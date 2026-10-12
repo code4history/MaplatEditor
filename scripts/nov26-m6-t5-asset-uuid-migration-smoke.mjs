@@ -397,8 +397,12 @@ await writeFile(
       await put(dir, 'img/a.png'); await put(dir, 'img/b.png');
       insertApp(db, A1, { appName: 'before', appSettings: { splash: 'a.png' } });
       insertApp(db, A2, { appName: 'B', appSettings: { splash: 'b.png' } });
+      // IR-T5-MIN-1: ベースマップの行でも、複製の後・書き換えの前に thumbnail が変えられたら付け替えない
+      await put(dir, 'tmbs/cas-bm.png'); await put(dir, thumb512PathFor('tmbs/cas-bm.png'));
+      insertBase(db, B1, { title: 'cas', thumbnail: 'tmbs/cas-bm.png' });
       const r = await runAssetUuidNamesColdBoot(db, dir, MARKER_ID, {
         __beforeSwap: (uid) => {
+          if (uid === B1) { const d = baseData(db, B1); d.thumbnail = 'tmbs/changed-by-user.png'; db.prepare('UPDATE base_maps SET data_json = ? WHERE uid = ?').run(JSON.stringify(d), B1); }
           if (uid === A1) { const d = appData(db, A1); d.appName = 'edited'; db.prepare('UPDATE apps SET data_json = ? WHERE uid = ?').run(JSON.stringify(d), A1); }
           if (uid === A2) { const d = appData(db, A2); d.appSettings.splash = 'renamed-by-user.png'; db.prepare('UPDATE apps SET data_json = ? WHERE uid = ?').run(JSON.stringify(d), A2); }
         },
@@ -408,7 +412,10 @@ await writeFile(
       assert.match(a1.appSettings.splash, UUID_SPLASH, 'F12: 同じキーが旧値のままなら書き換える');
       assert.equal(appData(db, A2).appSettings.splash, 'renamed-by-user.png', 'F12/AC6(f): 同じキーを変えられた行は書き換えない');
       assert.deepEqual(outcomeOf(r, A2, 'splash'), ['cas_mismatch']);
-      console.log('ok: F12 比較と交換（AC6(f)）');
+      assert.equal(baseData(db, B1).thumbnail, 'tmbs/changed-by-user.png', 'F12/IR-T5-MIN-1: ベースマップも、thumbnail を変えられた行は書き換えない');
+      assert.deepEqual(outcomeOf(r, B1, 'thumbnail'), ['cas_mismatch'], 'F12/IR-T5-MIN-1: ベースマップの cas_mismatch');
+      assert.ok(await exists(nodePath.join(dir, 'tmbs/cas-bm.png')), 'F12: 旧ファイルは残る');
+      console.log('ok: F12 比較と交換（AC6(f)。アプリとベースマップ）');
       db.close();
     }
 
@@ -613,6 +620,21 @@ await writeFile(
       assert.equal(r16.thumbnail, 'tmbs/f16.png', 'F16: 戻り値の thumbnail は旧名のまま');
       assert.equal(baseData(db, U16).thumbnail, 'tmbs/f16.png', 'F16: 保存された thumbnail は旧名のまま');
       assert.equal((await fs.readFile(nodePath.join(svcDir, 'tmbs/f16.png'))).toString(), 'REPLACED 52 BY USER', 'F16: 利用者の新しい画像が残る');
+      // F16b（IR-T5-MIN-2）: 移行の後、移行前の下書きで K1 の 512px だけを置換して保存。52px は旧名と uid 名で
+      // 同じなので条件 2 は通るが、条件 3（512px の内容の一致）で止まり、利用者の新しい 512px が参照され続ける
+      const U20 = '30000000-0000-4000-8000-000000000020';
+      await put(svcDir, 'tmbs/f16b.png', Buffer.from('F16B 52'));
+      await put(svcDir, thumb512PathFor('tmbs/f16b.png'), Buffer.from('F16B ORIGINAL 512'));
+      await seed(U20, 'f16b-bm', 'tmbs/f16b.png');
+      db.prepare('DELETE FROM schema_migrations WHERE id = ?').run(MARKER_ID);
+      await runAssetUuidNamesColdBoot(db, svcDir, MARKER_ID);
+      assert.equal(baseData(db, U20).thumbnail, thumb52PathFor(U20, 'png'), 'F16b 前提: 移行で uid 名になった');
+      await put(svcDir, thumb512PathFor('tmbs/f16b.png'), Buffer.from('F16B REPLACED 512 BY USER'));
+      const r16b = await SqliteDataService.saveUserBaseMap({ uid: U20, slug: 'f16b-bm', tms: baseTms('tmbs/f16b.png') });
+      assert.equal(r16b.thumbnail, 'tmbs/f16b.png', 'F16b: 戻り値の thumbnail は旧名のまま（512px の内容が違う）');
+      assert.equal(baseData(db, U20).thumbnail, 'tmbs/f16b.png', 'F16b: 保存された thumbnail は旧名のまま');
+      assert.equal((await fs.readFile(nodePath.join(svcDir, thumb512PathFor('tmbs/f16b.png')))).toString(), 'F16B REPLACED 512 BY USER',
+        'F16b: 利用者の新しい 512px が旧名の位置で参照され続ける');
       // F17: 旧名の 52px だけがあり、uid 名の位置に別内容
       await put(svcDir, 'tmbs/f17.png', Buffer.from('F17 OLD'));
       await put(svcDir, thumb52PathFor(U17, 'png'), Buffer.from('F17 DIFFERENT'));
@@ -633,7 +655,7 @@ await writeFile(
       const r19 = await SqliteDataService.saveUserBaseMap({ uid: U19, slug: 'f19-bm', tms: baseTms('tmbs/f19.png') });
       assert.equal(r19.thumbnail, 'tmbs/f19.png', '対が無い: 戻り値は旧名');
       assert.equal(baseData(db, U19).thumbnail, 'tmbs/f19.png', '対が無い: 付け替わらない');
-      console.log('ok: AC10 ベースマップの付け替え（F16・F17 は旧名のまま・F18 は uid 名・対が無ければ旧名）');
+      console.log('ok: AC10 ベースマップの付け替え（F16・F16b・F17 は旧名のまま・F18 は uid 名・対が無ければ旧名）');
     }
 
     console.log('nov26-m6-t5 asset uuid migration smoke: ALL PASS');
