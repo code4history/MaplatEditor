@@ -73,7 +73,21 @@ function grepRepo(pattern, dirs) {
     envRefs, [],
     `AC4: MAPLAT_SEARCH_ENGINE の参照が残っている:\n${envRefs.join('\n')}`
   );
-  console.log('  [2/8] AC3/AC4 DuckDB 経路の残骸なし: PASS');
+  // nov26-m6-t1 (#94・J-M6-5・タスク設計レビュー T1-MIN-3): ビルド設定とスクリプトに死んだ
+  // @duckdb の external を残さない（復活させない）恒久の不在検査。vite.config.ts の external は
+  // 1 行の配列で、他タスク（m7 t5 の electron-updater 追加など）の rebase で旧い行が戻り得る。
+  // grep に頼らず読む（grep はヒット 0 と失敗の区別が付かない）。本ファイル自身は不在の断言のため除く。
+  const NEEDLE = '@' + 'duckdb';
+  const buildConfigs = ['vite.config.ts'];
+  for (const rel of buildConfigs) {
+    assert.ok(!read(rel).includes(NEEDLE), `AC3: ${rel} に ${NEEDLE} が残っている（死んだ external）`);
+  }
+  const scriptHits = readdirSync(path.join(projectRoot, 'scripts'), { recursive: true })
+    .map((p) => path.join('scripts', String(p)))
+    .filter((rel) => rel !== SELF && /\.(mjs|cjs|js|ts)$/.test(rel))
+    .filter((rel) => read(rel).includes(NEEDLE));
+  assert.deepEqual(scriptHits, [], `AC3: scripts/ に ${NEEDLE} 参照が残っている:\n${scriptHits.join('\n')}`);
+  console.log('  [2/8] AC3/AC4 DuckDB 経路の残骸なし（electron/ src/ scripts/ vite.config.ts）: PASS');
 }
 
 // ───────────────────────────────────────────────
