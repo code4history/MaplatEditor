@@ -12,7 +12,7 @@
 //   Part D: ambiguous legacy (2件) は trashItem 対象にせず live 残置 + warning (AC18-5)
 //   Part E: 構造 assert (撤去の恒久ガード、m12-t30 Part C の確立様式) —
 //           MapTrashReconcileService.ts 不在 / reconcileDeletedMapsTrash 参照 0件 /
-//           'trash' パス構築 (path.join/resolve の要素) 0件 / moveToTrash・rollbackMoves 残存 0件 (AC18-3)
+//           'trash' literal（stage: の値を除く）0件 / moveToTrash・rollbackMoves 残存 0件 (AC18-3)
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
@@ -53,16 +53,27 @@ async function walkFiles(dir, exts) {
   return out;
 }
 
-// needle は文字列（部分一致）か RegExp。
+// needle は文字列（部分一致）・RegExp・述語関数のいずれか。
 function matchesNeedle(content, needle) {
-  return typeof needle === 'string' ? content.includes(needle) : needle.test(content);
+  if (typeof needle === 'string') return content.includes(needle);
+  if (typeof needle === 'function') return needle(content);
+  return needle.test(content);
 }
 
-// 撤去した独自 trash 機構の形そのもの（`trash` をパス要素に組む式。bd3be75 で消えた
-// `path.join(saveFolder, 'trash', 'maps')` 等）を検出する needle。
+// 撤去した独自 trash 機構の残骸（bd3be75 で消えた `path.join(saveFolder, 'trash', 'maps')` 等）を検出する
+// needle: `'trash'`／`"trash"` の literal のうち、`stage:` の値（型の `stage?: 'trash'` を含む）でないもの。
 // nov26-m6-t1 (#117 S1): 旧 needle `'trash'` は ImageAssetService の `stage: 'trash'`（画像アセット
-// 削除の警告の段階名・m5-t4 の別機構）に当たる偽陽性だったため、パス構築の式へ狭めた。
-const TRASH_PATH_NEEDLE = /path\.(?:join|resolve)\([^)]*['"]trash['"]/;
+// 削除の警告の段階名・m5-t4 の別機構）に当たる偽陽性だったため、その形だけを除いた。
+// パス構築の式に限る形（`path.join(…)` の正規表現）は、第 1 引数に入れ子の呼び出しを持つ形
+// （`path.join(SettingsService.get('saveFolder') as string, 'trash')`）や名前付き import の
+// `join(…, 'trash')` を取りこぼすため採らない（実装レビュー B19-MIN-1）。
+const TRASH_PATH_NEEDLE = (content) => {
+  for (const m of content.matchAll(/['"]trash['"]/g)) {
+    const before = content.slice(Math.max(0, m.index - 40), m.index);
+    if (!/\bstage\??\s*:\s*$/.test(before)) return true;
+  }
+  return false;
+};
 
 async function countOccurrences(dirs, exts, needle) {
   let count = 0;
@@ -387,6 +398,8 @@ try {
   {
     const revived = "const dir = path.join(saveFolder, 'trash', 'maps');";
     const revivedResolve = 'const dir = path.resolve(dataDir, "trash");';
+    const revivedNested = "const dir = path.join(SettingsService.get('saveFolder') as string, 'trash');";
+    const revivedNamedImport = "import { join } from 'node:path';\nconst dir = join(saveFolder, 'trash', 'maps');";
     const otherMechanism = [
       "  warning?: { stage: 'trash'; message: string };",
       "    const trashDir = path.join(this.assetsDir, '_trash');",
@@ -394,8 +407,10 @@ try {
     ].join('\n');
     assert.equal(matchesNeedle(revived, TRASH_PATH_NEEDLE), true, 'T1-1: path.join(…, \'trash\') の復活を検出できない');
     assert.equal(matchesNeedle(revivedResolve, TRASH_PATH_NEEDLE), true, 'T1-1: path.resolve(…, "trash") の復活を検出できない');
+    assert.equal(matchesNeedle(revivedNested, TRASH_PATH_NEEDLE), true, 'T1-1: 入れ子の呼び出しを第 1 引数に持つ path.join(…, \'trash\') の復活を検出できない');
+    assert.equal(matchesNeedle(revivedNamedImport, TRASH_PATH_NEEDLE), true, 'T1-1: 名前付き import の join(…, \'trash\') の復活を検出できない');
     assert.equal(matchesNeedle(otherMechanism, TRASH_PATH_NEEDLE), false, 'T1-1: 別機構 (stage: \'trash\' / \'_trash\') を誤検出する');
-    console.log('ok: (Part E self-check T1-1) trash path needle hits revived path.join/resolve(…\'trash\') and ignores stage:\'trash\' / \'_trash\'');
+    console.log('ok: (Part E self-check T1-1) trash needle hits revived path.join/resolve/join(…\'trash\') incl. nested first arg and ignores stage:\'trash\' / \'_trash\'');
   }
 
   const productDirs = [path.join(projectRoot, 'electron')];
@@ -407,7 +422,7 @@ try {
       `製品コード (electron/) に ${needle} が残存している (独自 trash 機構の残骸, AC18-3): ${JSON.stringify(hits)}`
     );
   }
-  console.log('ok: (Part E) MapTrashReconcileService absent; no reconcile/moveToTrash/rollbackMoves/path.join(…\'trash\') remnants in electron/ (AC18-3)');
+  console.log('ok: (Part E) MapTrashReconcileService absent; no reconcile/moveToTrash/rollbackMoves/\'trash\' (non-stage) remnants in electron/ (AC18-3)');
 
   console.log('M12-T18 os-trash delete smoke passed');
 } finally {
