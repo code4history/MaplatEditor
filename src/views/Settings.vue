@@ -270,6 +270,9 @@ import { useTranslation } from "i18next-vue";
 import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 
+// nov26-m6-t4（#26）: vue/multi-word-component-names。ファイル名・route は変えない
+defineOptions({ name: "SettingsView" });
+
 const { t, i18next } = useTranslation();
 const activeTab = ref("basic");
 

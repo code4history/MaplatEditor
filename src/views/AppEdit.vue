@@ -1703,6 +1703,7 @@ function onPoisChange(next: unknown[]) {
                 :fallback-center="homePosition ?? undefined"
                 :app-coverage-lng-lats="appData.coverageLngLats ?? null"
                 :master-data="masterDataOf(source)"
+                @update:source="appData.sources[index] = $event"
                 @select-language="selectEditorLanguage"
                 @change="recordHistory"
               />
