@@ -411,8 +411,8 @@ await writeFile(
     }
 
     // ============ S10: 新規ベースマップの「存在範囲から生成 → 初回保存」で 512px が残る ============
-    // 人間検証で見つかった欠陥の回帰。実フロー（生成は暫定名＝slug 名で書かれ、初回保存で
-    // uid 名へ付け替わる）を実サービスでそのまま踏む。
+    // 人間検証で見つかった欠陥の回帰。実フロー（nov26-m6-t5 以降は生成の時点で uid 名で書かれ、
+    // 初回保存の後も uid 名のまま）を実サービスでそのまま踏む。
     {
       const nodeHttp = await import('node:http');
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
@@ -431,15 +431,16 @@ await writeFile(
       const UID = 'ffffffff-6666-4666-8666-ffffffffffff';
       const coverage = [[139.7, 35.6], [139.8, 35.7]];
 
-      // 未保存の新規ベースマップ: iconFileKey() は slug を返すため暫定名で書かれる
-      const gen = await AppAssetService.generateTmsThumbnail(SLUG, { url: tmsUrl, minZoom: 0, maxZoom: 18 }, coverage);
+      // 未保存の新規ベースマップ: nov26-m6-t5 以降、iconFileKey() は未保存でも事前採番の uid を返す
+      // （旧: slug＝暫定名で書き、初回保存で uid 名へ付け替えていた）
+      const gen = await AppAssetService.generateTmsThumbnail(UID, { url: tmsUrl, minZoom: 0, maxZoom: 18 }, coverage);
       server.close();
       assert.ok(!gen.err, 'S10: 存在範囲から生成が成功する: ' + JSON.stringify(gen));
-      assert.equal(gen.path, 'tmbs/' + SLUG + '.png', 'S10: 生成の返値は 52px の暫定名');
-      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '.png')), 'S10: 生成直後は 52px が暫定名で在る');
-      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', SLUG + '_512.webp')), 'S10: 生成直後は 512px が暫定名で在る');
+      assert.equal(gen.path, 'tmbs/' + UID + '.png', 'S10: 生成の返値は 52px の uid 名（nov26-m6-t5）');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '.png')), 'S10: 生成直後に 52px が uid 名で在る');
+      assert.ok(await exists(nodePath.join(dataDir, 'tmbs', UID + '_512.webp')), 'S10: 生成直後に 512px が uid 名で在る');
 
-      // 初回保存（create=true・preset uid）→ relocateBaseMapIcon が uid 名へ付け替える
+      // 初回保存（create=true・preset uid）→ 既に uid 名なので relocateBaseMapIcon は何もしない
       const saved = await SqliteDataService.saveUserBaseMap({
         uid: UID, slug: SLUG, create: true,
         tms: {

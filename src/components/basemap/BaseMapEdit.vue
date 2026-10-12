@@ -1046,7 +1046,10 @@ const overlayTms = computed(() => {
   return { url, minZoom: document.value.minZoom ?? undefined, maxZoom: document.value.maxZoom ?? undefined };
 });
 const canGenerateIcon = computed(() => overlayTms.value !== null && document.value.coverageLngLats !== null && !!document.value.slug);
-const iconFileKey = () => revision.value === null ? document.value.slug : document.value.uid;
+// nov26-m6-t5 (#109・ADR-0007): アイコンの内部名は未保存でも uid（新規は事前採番 uid を持つ）。
+// 旧「未保存なら slug」は slug 名のファイルを作り、初回保存の relocateBaseMapIcon に頼っていた。
+// ボタンの有効条件（slug 未入力では押せない）は canGenerateIcon と writeTarget の K0 が slug で判定する。
+const iconFileKey = () => document.value.uid;
 
 // ===== m19-t2: サムネイル管理（512px / 52px）=====
 //
@@ -1088,12 +1091,11 @@ const {
   writeTarget: () => {
     const parts = thumbnailKeyParts.value;
     if (parts) return parts; // K1: キーと拡張子は document.thumbnail から採る（規則 K）
-    const fileKey = iconFileKey(); // K2: 新たに tmbs/ 配下へ作る
-    // 規則 K0: 未保存かつ slug 未入力で fileKey が空になる場合は書かない（uploadIcon と同じガード）。
-    // 書いてしまうと tmbs/.png が生じ、その値は K1 にも relocateBaseMapIcon の正規表現にも
-    // 一致しないため保存まで残り続ける。m19-t12 の規則 T3 により、この状態はボタンの
-    // disabled + 理由表示として押す前に見える。
-    return fileKey ? { fileKey, ext: "png" } : null;
+    const fileKey = iconFileKey(); // K2: 新たに tmbs/ 配下へ作る（nov26-m6-t5: 未保存でも uid 名）
+    // 規則 K0: slug 未入力なら書かない（uploadIcon と同じガード）。nov26-m6-t5 で書き込みキーは uid に
+    // なったが、ボタンの有効条件は従来どおり slug で決める（m19-t12 の規則 T3: この状態はボタンの
+    // disabled + 理由表示として押す前に見える。tests/e2e/m19-t12-thumbnail-replace-parity.spec.ts E4）。
+    return document.value.slug ? { fileKey, ext: "png" } : null;
   },
   disabledReason: () => t("basemap.errors.id_required"),
   // §6.5: parity から意図的に逸脱する唯一の点。
@@ -1144,13 +1146,13 @@ watch(
   { immediate: true },
 );
 
-// m19-t2: 旧「アップロード」（uploadIcon / uploadTmsThumbnail 経由）は撤去した。
+// m19-t2: 旧「アップロード」（uploadIcon / TMS サムネイルのアップロードの IPC 経由）は撤去した。
 // 新設の replaceThumbnail('52') と機能が重複するうえ、書き込みキーを iconFileKey() から採り
 // 拡張子を .png に固定するため、規則 K（キーと拡張子を document.thumbnail から採る）を通らない。
 // 実害: merc 継承で thumbnail が tmbs/{uid}.jpg のベースマップに対して tmbs/{uid}.png を書いて
 // thumbnail を張り替えるため、そこから導く 512px（png 側）が実体を持たず、実在する
 // 512px（jpg 側）が参照不能になる。replaceThumbnail('52') は拡張子を thumbnail から採るため対で整合する。
-// uploadTmsThumbnail 自体は AppSourceEditor.vue が唯一の呼び出し元として残るため存置する。
+// その IPC 自体も呼び出し元が 0 件だったため撤去した（nov26-m6-t5。名前を決められる口を残さない）。
 // m6-t7: TileJSON URL からの tms マスタ取り込み。attribution/name はプレーン文字列
 // (多言語非対応) のため document.defaultLang のスロットにのみ書き込む（他言語スロットは変更しない）。
 // 実装レビュー M-1: selectGooglePreset（:602-617、m6-t4b「1 commit = 1 undo」）と同型に、

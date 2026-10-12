@@ -12,7 +12,7 @@
 //
 // 参照実装は tests/e2e/m12-t15-thumbnail-512.spec.ts（地図側）。fixture 作成手順を踏襲する。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
@@ -220,7 +220,7 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       const saveFolder = await saveFolderOf(page);
       await installDialogHarness(app, await makeSourceImage(e2eRoot, 'replace.png'));
 
-      // 未保存の新規ベースマップ（iconFileKey() が slug を返す状態）を作る
+      // 未保存の新規ベースマップを作る（nov26-m6-t5 以降、iconFileKey() は未保存でも事前採番の uid を返す）
       const slug = `m19t2-new-${Date.now().toString(36)}`;
       await openHash(page, '#/basemaps');
       await page.getByTestId('basemap-new').click();
@@ -240,17 +240,25 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       // K2 経路と強制 ON も同時に通るぶん検証としては広い。
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeDisabled();
       await page.getByTestId('basemap-thumbnail-replace-512').click();
-      // 512px → 52px の順に書かれるため、両方が揃うまで待つ
+      // 512px → 52px の順に書かれるため、両方が揃うまで待つ。nov26-m6-t5: 未保存でも書かれる名前は
+      // slug ではなく事前採番の uid（保存後の行の uid と同じ）であることを断言する
+      const uuidPng = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.png$/;
+      let preSaveKey = '';
       await expect
         .poll(
-          async () =>
-            (await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`)))
-            && (await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))),
+          async () => {
+            const names = await readdir(path.join(saveFolder, 'tmbs')).catch(() => [] as string[]);
+            const key = names.map((n) => uuidPng.exec(n)?.[1]).find((k): k is string => !!k && names.includes(`${k}_512.webp`));
+            preSaveKey = key ?? '';
+            return Boolean(key);
+          },
           { timeout: 15000 },
         )
         .toBe(true);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))).toBe(false);
+      expect(await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`))).toBe(false);
 
-      // 保存 → relocateBaseMapIcon が uid 名へ寄せる
+      // 保存（既に uid 名なので relocateBaseMapIcon は付け替えない）
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
       await page.getByTestId('editor-save').click();
       await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
@@ -262,7 +270,9 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
         return row.uid;
       }, slug);
 
-      // AC7: 512px も uid 名へ移り、slug 名の取り残しが無い
+      // nov26-m6-t5: 保存前に書かれた名前が保存後の uid と同じ
+      expect(uid).toBe(preSaveKey);
+      // AC7: 512px も uid 名で在り、slug 名の取り残しが無い
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}.png`))).toBe(true);
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.webp`))).toBe(true);
       expect(await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`))).toBe(false);
@@ -296,12 +306,12 @@ test.describe('m19-t2 ベースマップのサムネイル管理（512px/52px）
       await page.getByTestId('basemap-url').fill('https://tiles.example.test/{z}/{x}/{y}.png');
       await page.getByTestId('basemap-url').press('Tab');
 
-      // 未保存のうちに 512px/52px を作る（暫定名＝slug 名で書かれる）
+      // 未保存のうちに 512px/52px を作る（nov26-m6-t5 以降は事前採番の uid 名で書かれる）
       await page.getByTestId('basemap-thumbnail-replace-512').click();
       const img512 = page.locator('img[alt="512px"]');
       await expect(img512).toBeVisible({ timeout: 15000 });
 
-      // 初回保存（backend が 512px/52px を uid 名へ付け替える）
+      // 初回保存（nov26-m6-t5 以降は既に uid 名で、付け替えは起きない）
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
       await page.getByTestId('editor-save').click();
       await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
