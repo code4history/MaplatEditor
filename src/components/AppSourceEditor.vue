@@ -200,9 +200,11 @@ function copyCoverageToEnvelope() {
   <div>
     <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
          m6-t10 hotfix (2026-08-07): §3.8-6 の label 操作子移設で maplat 分岐が空になり、
-         maplat ソースの label 編集が消えていた退行の復旧。maplat にはマスタ（ベースマップ）が
-         無いためプレースホルダは出さない。空にする＝label を外す（viewer は設定ファイルの
-         year へフォールバックする従来挙動）。testid は override- 接頭辞にしない
+         maplat ソースの label 編集が消えていた退行の復旧。
+         nov26-m6-t4（#108）: maplat にはベースマップのマスタは無いが、viewer はアプリの label が
+         無ければ地図の設定の label を使う。∴ 親が masterData に地図の文書（label / lang）を渡し、
+         ベースマップの分岐と同じくその label をプレースホルダに出す。空にする＝label を外す
+         （viewer は地図の label へフォールバックする）。testid は override- 接頭辞にしない
          （AC7 の照合集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
          マスタとの差分ではないため） -->
     <div v-if="source.sourceType === 'maplat'" class="row g-2 mt-1">
@@ -213,6 +215,7 @@ function copyCoverageToEnvelope() {
           :active-lang="currentLang"
           :default-lang="defaultLang"
           :language-options="languageOptions"
+          :placeholder="masterText('label')"
           clearable
           input-testid="app-source-maplat-label"
           @update:model-value="setLangResource('label', $event)"

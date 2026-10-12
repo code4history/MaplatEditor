@@ -441,9 +441,40 @@ async function refreshBaseMapMasters() {
   }
 }
 
-// ソースのマスタ生 data。null = マスタ欠落（AppSourceEditor が欠落表示にする）
+// nov26-m6-t4（#108）: Maplat 地図のソースのラベル欄のプレースホルダ用に、地図の文書から
+// 言語別の label と lang だけを引いておく（viewer はアプリの label が無ければ地図の設定の label を
+// 使う）。引けなかった地図は入れない（resolveMaplatFallbackCenter と同じくベストエフォート）。
+// 読み込み・下書きの復帰・Undo/Redo・地図の追加のどれでソースが変わっても拾えるよう、
+// maplat ソースの mapUid の並びを監視して未取得のものだけ引く。
+const maplatMapDocs = ref<Record<string, { lang?: string; label?: unknown }>>({});
+const maplatMapDocsRequested = new Set<string>();
+
+async function fetchMaplatMapDoc(mapUid: string) {
+  if (!mapUid || maplatMapDocsRequested.has(mapUid)) return;
+  maplatMapDocsRequested.add(mapUid);
+  try {
+    const mapDoc = await window.mapedit.request(mapUid);
+    if (mapDoc) {
+      maplatMapDocs.value = { ...maplatMapDocs.value, [mapUid]: { lang: mapDoc.lang, label: mapDoc.label } };
+    }
+  } catch {
+    // noop: プレースホルダが空になるだけ
+  }
+}
+
+watch(
+  () => appData.value.sources.filter((source) => source.sourceType === "maplat").map((source) => source.mapUid),
+  (mapUids) => {
+    for (const mapUid of mapUids) void fetchMaplatMapDoc(mapUid);
+  },
+  { immediate: true },
+);
+
+// ソースのマスタ生 data。null = マスタ欠落（AppSourceEditor が欠落表示にする）。
+// maplat は地図の文書（label / lang だけ）を返す。引けていなければ {}（プレースホルダが空になる
+// だけで、maplat の分岐は v-if が先なので欠落表示には行かない）
 function masterDataOf(source: AppSource): Record<string, any> | null {
-  if (source.sourceType === "maplat") return null;
+  if (source.sourceType === "maplat") return maplatMapDocs.value[source.mapUid] ?? {};
   const resolved = resolveAppSource(source, baseMapLookup.value);
   return resolved.ok ? resolved.master.data : null;
 }
