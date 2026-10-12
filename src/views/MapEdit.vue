@@ -4752,7 +4752,7 @@ const goBack = async () => {
                                         <label class="small fw-bold mb-0">{{ t("mapedit.map_layer_select") }}</label>
                                         <select class="form-select form-select-sm" v-model.number="currentEditingLayer">
                                             <option :value="0">{{ t("mapedit.map_mainlayer") }}</option>
-                                            <option v-for="(_, index) in sub_maps" :value="index+1">{{ t("mapedit.map_sublayer") }}{{index+1}}</option>
+                                            <option v-for="(_, index) in sub_maps" :key="index + 1" :value="index+1">{{ t("mapedit.map_sublayer") }}{{index+1}}</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">

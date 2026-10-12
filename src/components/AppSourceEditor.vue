@@ -66,6 +66,9 @@ const props = defineProps<{
   masterData?: Record<string, any> | null;
 }>();
 const emit = defineEmits<{
+  // nov26-m6-t4（#26）: source は prop なので子からは書き換えない。変更は新しいオブジェクトを
+  // 組んで親へ渡す（v-model:source 相当。親は v-for の別名なので @update:source で受ける）
+  (e: "update:source", value: AppSource & { thumbnail?: string }): void;
   (e: "change"): void;
   (e: "select-language", language: LangCode): void;
 }>();
@@ -73,10 +76,10 @@ const emit = defineEmits<{
 const { t } = useTranslation();
 const showEnvelopeModal = ref(false);
 
-const overrides = computed(() => {
-  if (!props.source.overrides) props.source.overrides = {};
-  return props.source.overrides as Record<string, any>;
-});
+// 読むだけ。直す前は未定義のとき {} を prop へ生やしていたが（computed の副作用）、
+// 書き込み側（writeOverride / clearOverride）が overrides を必ず持つ新しいオブジェクトを渡すので、
+// 保存される形（overrides が空なら {} を残す）は変わらない
+const overrides = computed(() => (props.source.overrides ?? {}) as Record<string, any>);
 
 const masterMissing = computed(() => props.masterData === null);
 const master = computed(() => props.masterData ?? {});
@@ -94,15 +97,31 @@ function masterText(key: string): string {
 // m19-t3: 読み出し側の `readOverride` は唯一の利用者だった isOverridden / scalarValue が
 // 廃止されて未使用になった（vue-tsc の noUnusedLocals が検出）。§4.5 (a) と同じ判断で削除する。
 // 読み出しは template が `overrides.xxx` / `source.label` を直接見る形へ一本化されている。
-function writeOverride(key: string, value: any) {
-  if (key === "label") props.source.label = value;
-  else overrides.value[key] = value;
+//
+// nov26-m6-t4（#26）: prop を直接書き換えず、新しいオブジェクトを update:source で渡してから
+// change を出す（親の recordHistory が変更後の値を記録する順序は直す前と同じ）。
+// 直す前の形に合わせる: 直す前は builtin / tms の分岐を描くたびに computed が overrides: {} を
+// 生やしていた ∴ maplat 以外のソースは書き込み後に必ず overrides を持つ（空なら {}）。
+// maplat の分岐は overrides を読まないので生えない（ここでも生やさない）。
+function copySource(): AppSource & { thumbnail?: string } {
+  if (props.source.sourceType === "maplat") return { ...props.source };
+  return { ...props.source, overrides: { ...overrides.value } };
+}
+function commitSource(next: AppSource & { thumbnail?: string }) {
+  emit("update:source", next);
   emit("change");
 }
+function writeOverride(key: string, value: any) {
+  const next = copySource();
+  if (key === "label") next.label = value;
+  else next.overrides = { ...next.overrides, [key]: value };
+  commitSource(next);
+}
 function clearOverride(key: string) {
-  if (key === "label") delete (props.source as any).label;
-  else delete overrides.value[key];
-  emit("change");
+  const next = copySource();
+  if (key === "label") delete next.label;
+  else if (next.overrides) delete next.overrides[key];
+  commitSource(next);
 }
 // 言語別フィールド（m19-t3 以後は label のみ）は LangResourceInput が現在言語で読み書きする
 // （マスタ編集フォームと同一部品・§3.8-8）。保存は編集した言語のみ（設計 §3.5.5）。
@@ -181,9 +200,11 @@ function copyCoverageToEnvelope() {
   <div>
     <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
          m6-t10 hotfix (2026-08-07): §3.8-6 の label 操作子移設で maplat 分岐が空になり、
-         maplat ソースの label 編集が消えていた退行の復旧。maplat にはマスタ（ベースマップ）が
-         無いためプレースホルダは出さない。空にする＝label を外す（viewer は設定ファイルの
-         year へフォールバックする従来挙動）。testid は override- 接頭辞にしない
+         maplat ソースの label 編集が消えていた退行の復旧。
+         nov26-m6-t4（#108）: maplat にはベースマップのマスタは無いが、viewer はアプリの label が
+         無ければ地図の設定の label を使う。∴ 親が masterData に地図の文書（label / lang）を渡し、
+         ベースマップの分岐と同じくその label をプレースホルダに出す。空にする＝label を外す
+         （viewer は地図の label へフォールバックする）。testid は override- 接頭辞にしない
          （AC7 の照合集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
          マスタとの差分ではないため） -->
     <div v-if="source.sourceType === 'maplat'" class="row g-2 mt-1">
@@ -194,6 +215,7 @@ function copyCoverageToEnvelope() {
           :active-lang="currentLang"
           :default-lang="defaultLang"
           :language-options="languageOptions"
+          :placeholder="masterText('label')"
           clearable
           input-testid="app-source-maplat-label"
           @update:model-value="setLangResource('label', $event)"
