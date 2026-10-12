@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
-import { dialog, type BrowserWindow } from 'electron';
+import { app, dialog, type BrowserWindow } from 'electron';
 import { Jimp } from 'jimp';
 import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
@@ -58,6 +58,8 @@ class AppAssetService {
 
   private async pickImage(win: BrowserWindow): Promise<string | null> {
     const ret = await dialog.showOpenDialog(win, {
+      // Electron 43 は defaultPath 省略時の既定が Downloads になったため明示する（nov26-m6-t2）
+      defaultPath: app.getPath('documents'),
       properties: ['openFile'],
       filters: IMAGE_FILTERS,
     });

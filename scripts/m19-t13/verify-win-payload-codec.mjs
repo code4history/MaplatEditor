@@ -12,11 +12,13 @@
 //   **アプリだけが存在しない**」という形で成立する。終了コード・インストール成否・ビルド緑を
 //   見る検査では原理的に捕まらないため、**生成物のペイロード内コーデックを直接照合する**。
 //
-// 許可集合は「現に動いていることが証明されている集合」だけに限る（fail-closed）:
-//   rc2 の x64 ペイロードと rc1 の arm64 ペイロードに現れるのは Copy / LZMA / LZMA2 / BCJ2 のみ。
-//   ARM / ARMT / DELTA 等は electron-builder の ALLOWED_7Z_FILTERS には入っているが、
-//   nsis7z がこの配布パイプラインで解けることの証拠が無い。∴ 誰かがそれらへ変えたら
-//   本検査は**落ちるべきである**。将来 7-Zip が新たなフィルタを自動選択するようになった場合も、
+// 許可集合は「同梱の nsis7z が解ける方式」として根拠のある集合だけに限る（fail-closed）:
+//   electron-builder 26.15.6 以降は NSIS の app ペイロードのフィルタを BCJ（圧縮時）・Copy（格納時）に
+//   固定し、ELECTRON_BUILDER_7Z_FILTER では上書きできない（上流 #9988・backport #9989）。
+//   ∴ 許可集合は Copy / LZMA / LZMA2 / BCJ（nov26-m6-t2）。BCJ2 は上流が「7za 24.09 が x64 で
+//   自動適用する BCJ2 を同梱の Nsis7z は解けない」とするので外した（BCJ2 が出たら上流の固定が
+//   効いていない）。ARM64 / ARM / ARMT / DELTA 等も nsis7z が解けることの証拠が無い。∴ それらが
+//   現れたら本検査は**落ちるべきである**。将来 7-Zip が新たなフィルタを自動選択するようになった場合も、
 //   未知トークンとして自動的に落ちる。
 //
 // 実行:
@@ -29,7 +31,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 /** nsis7z が解けることが実証済みのコーデックトークン（設計 §6.1）。 */
-const ALLOWED = new Set(['Copy', 'LZMA', 'LZMA2', 'BCJ2']);
+const ALLOWED = new Set(['Copy', 'LZMA', 'LZMA2', 'BCJ']);
 
 /** ペイロードに必ず含まれているべき実行形式（本不具合で最初に落ちたもの）。 */
 const REQUIRED_ENTRY = 'MaplatEditor.exe';
@@ -242,8 +244,8 @@ if (violationCount > 0) {
   console.error(
     `\nm19-t13 G2: 許可されていないコーデックのエントリが ${violationCount} 件ある。`
     + '\n  nsis7z はこれを黙って落とす。インストールは成功したように見えてアプリが存在しない。'
-    + '\n  対処: electron-builder.config.cjs の ELECTRON_BUILDER_7Z_FILTER が'
-    + " 'BCJ2' を設定しているか確認すること（m19-t13）"
+    + '\n  対処: electron-builder の版が 26.15.6 以上か、上流が NSIS に BCJ を選んでいるかを確認すること'
+    + '（BCJ2 が出たら上流の固定が効いていない。nov26-m6-t2・上流 #9988）'
   );
   process.exit(1);
 }
