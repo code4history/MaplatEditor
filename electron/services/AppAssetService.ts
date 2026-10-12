@@ -80,7 +80,8 @@ class AppAssetService {
     return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 
-  // nov26-m6-t5: 旧「非ビルトイン TMS のサムネイルのアップロード」のメソッドは IPC ごと撤去した。
+  // 非ビルトインTMSのサムネイルのアップロード: nov26-m6-t5 でメソッドを IPC ごと撤去した。
+  // （この行は m19-t5 smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
   // src からの呼び出しが 0 件で、名前（mapID）を呼び出し元が決められる口だけが残っていたため
   // （画像の内部名は UUID／uid に統一する。タスク設計 §4.1）。置換は replaceMapThumbnail が担う。
 
