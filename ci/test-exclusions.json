@@ -57,13 +57,6 @@
       "issue": "#121"
     },
     {
-      "name": "m12-t18-os-trash-delete",
-      "kind": "known-failure",
-      "reason": "起点（m4-t2 より前）から赤: electron/ に 'trash' の文字列が残存（AC18-3）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
-      "issue": "#117",
-      "expect": "製品コード (electron/) に 'trash' が残存している"
-    },
-    {
       "name": "m19-t11-range-vocabulary",
       "kind": "known-failure",
       "reason": "起点（m4-t2 より前）から赤: 属性名の出現数が凍結 baseline と異なる（MC5）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",

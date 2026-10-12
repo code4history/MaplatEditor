@@ -12,7 +12,7 @@
 //   Part D: ambiguous legacy (2件) は trashItem 対象にせず live 残置 + warning (AC18-5)
 //   Part E: 構造 assert (撤去の恒久ガード、m12-t30 Part C の確立様式) —
 //           MapTrashReconcileService.ts 不在 / reconcileDeletedMapsTrash 参照 0件 /
-//           'trash' パス構築 0件 / moveToTrash・rollbackMoves 残存 0件 (AC18-3)
+//           'trash' パス構築 (path.join/resolve の要素) 0件 / moveToTrash・rollbackMoves 残存 0件 (AC18-3)
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
@@ -53,6 +53,17 @@ async function walkFiles(dir, exts) {
   return out;
 }
 
+// needle は文字列（部分一致）か RegExp。
+function matchesNeedle(content, needle) {
+  return typeof needle === 'string' ? content.includes(needle) : needle.test(content);
+}
+
+// 撤去した独自 trash 機構の形そのもの（`trash` をパス要素に組む式。bd3be75 で消えた
+// `path.join(saveFolder, 'trash', 'maps')` 等）を検出する needle。
+// nov26-m6-t1 (#117 S1): 旧 needle `'trash'` は ImageAssetService の `stage: 'trash'`（画像アセット
+// 削除の警告の段階名・m5-t4 の別機構）に当たる偽陽性だったため、パス構築の式へ狭めた。
+const TRASH_PATH_NEEDLE = /path\.(?:join|resolve)\([^)]*['"]trash['"]/;
+
 async function countOccurrences(dirs, exts, needle) {
   let count = 0;
   const hits = [];
@@ -60,7 +71,7 @@ async function countOccurrences(dirs, exts, needle) {
     const files = await walkFiles(dir, exts);
     for (const file of files) {
       const content = await readFile(file, 'utf8');
-      if (content.includes(needle)) {
+      if (matchesNeedle(content, needle)) {
         count += 1;
         hits.push(file);
       }
@@ -372,8 +383,23 @@ try {
     'electron/services/MapTrashReconcileService.ts が撤去されていない (起動時 reconcile は m12-t18 で廃止)'
   );
 
+  // 自己検査 (T1-1): 狭めた needle が撤去対象の復活には今も当たり、別機構には当たらないこと
+  {
+    const revived = "const dir = path.join(saveFolder, 'trash', 'maps');";
+    const revivedResolve = 'const dir = path.resolve(dataDir, "trash");';
+    const otherMechanism = [
+      "  warning?: { stage: 'trash'; message: string };",
+      "    const trashDir = path.join(this.assetsDir, '_trash');",
+      "        warning: { stage: 'trash', message: 'x' },",
+    ].join('\n');
+    assert.equal(matchesNeedle(revived, TRASH_PATH_NEEDLE), true, 'T1-1: path.join(…, \'trash\') の復活を検出できない');
+    assert.equal(matchesNeedle(revivedResolve, TRASH_PATH_NEEDLE), true, 'T1-1: path.resolve(…, "trash") の復活を検出できない');
+    assert.equal(matchesNeedle(otherMechanism, TRASH_PATH_NEEDLE), false, 'T1-1: 別機構 (stage: \'trash\' / \'_trash\') を誤検出する');
+    console.log('ok: (Part E self-check T1-1) trash path needle hits revived path.join/resolve(…\'trash\') and ignores stage:\'trash\' / \'_trash\'');
+  }
+
   const productDirs = [path.join(projectRoot, 'electron')];
-  for (const needle of ['reconcileDeletedMapsTrash', 'moveToTrash', 'rollbackMoves', "'trash'"]) {
+  for (const needle of ['reconcileDeletedMapsTrash', 'moveToTrash', 'rollbackMoves', TRASH_PATH_NEEDLE]) {
     const { count, hits } = await countOccurrences(productDirs, ['.ts'], needle);
     assert.equal(
       count,
@@ -381,7 +407,7 @@ try {
       `製品コード (electron/) に ${needle} が残存している (独自 trash 機構の残骸, AC18-3): ${JSON.stringify(hits)}`
     );
   }
-  console.log('ok: (Part E) MapTrashReconcileService absent; no reconcile/moveToTrash/rollbackMoves/\'trash\' remnants in electron/ (AC18-3)');
+  console.log('ok: (Part E) MapTrashReconcileService absent; no reconcile/moveToTrash/rollbackMoves/path.join(…\'trash\') remnants in electron/ (AC18-3)');
 
   console.log('M12-T18 os-trash delete smoke passed');
 } finally {
