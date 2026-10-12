@@ -65,14 +65,6 @@
       "kind": "intermittent",
       "reason": "AC20-3: m4-t2 前の 10e09c1 から 10 回中 2〜9 回 PASS のタイミング依存・破棄後に下書きの記録が書き戻される欠陥の候補（#117 で別途見立て中。d11ac0b ＋ t5 の測定では 1 回目で合格）",
       "issue": "#117"
-    },
-    {
-      "file": "m5-t7-tile-url-runtime-rebuild.spec.ts",
-      "line": 142,
-      "title": "AC8/AC9/AC11/AC12: 確定で切り替わり、未確定・同値では発火しない",
-      "kind": "known-failure",
-      "reason": "タイル URL の期待が file: で、実際は app://bundle/__local/…（t2ff 第 2 版以降。m4-t2 の app://local から形は変わったが file: ではない）",
-      "issue": "#117"
     }
   ]
 }
