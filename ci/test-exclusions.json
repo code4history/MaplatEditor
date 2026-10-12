@@ -57,13 +57,6 @@
       "issue": "#121"
     },
     {
-      "name": "m19-t11-range-vocabulary",
-      "kind": "known-failure",
-      "reason": "起点（m4-t2 より前）から赤: 属性名の出現数が凍結 baseline と異なる（MC5）（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
-      "issue": "#117",
-      "expect": "MC5: 属性名の出現数が凍結 baseline と異なる"
-    },
-    {
       "name": "m4-undo-redo",
       "kind": "known-failure",
       "reason": "起点（m4-t2 より前）から赤: MapEdit.vue の構造変更で検査対象ブロックが見つからない（oct26-m4-t5 合流直前の測定 master d11ac0b ＋ t5 でも失敗）",
