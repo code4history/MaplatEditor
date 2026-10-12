@@ -203,8 +203,16 @@ assert.match(
   /writeDocumentPois\(mapData\.value, next, mapData\.value\.pois\)/,
   'MapEdit.vue must route the pois write path through writeDocumentPois (which drops the key when nothing remains)'
 );
-  const settingsTab = mapEdit.match(/v-show="activeTab === 'settings'"[\s\S]*?<!-- 地域指定モーダル/)?.[0] ?? '';
+  // 錨: settings タブの直後に置かれたモーダルのコメント。m19-t11（779f3df・用語統一）で
+  // 「地域指定モーダル」→「絞り込み範囲の指定モーダル」に変わった（nov26-m6-t1 #117 S3）。
+  const settingsTab = mapEdit.match(/v-show="activeTab === 'settings'"[\s\S]*?<!-- 絞り込み範囲の指定モーダル/)?.[0] ?? '';
   assert.ok(settingsTab, 'MapEdit.vue settings tab block could not be located');
+  // 錨だけ合わせて以降の断言が素通りしていないこと: 切り出しは settings タブの v-show から始まり、
+  // 中身を持ち、他のタブ（activeTab === …）を飲み込んでいない
+  assert.ok(settingsTab.startsWith(`v-show="activeTab === 'settings'"`), 'settings タブの切り出しが v-show から始まらない');
+  assert.ok(settingsTab.length > 1000, `settings タブの切り出しが短すぎる (${settingsTab.length} 文字)`);
+  assert.equal((settingsTab.match(/activeTab === '/g) ?? []).length, 1, 'settings タブの切り出しが他のタブまで飲み込んでいる');
+  console.log(`ok: (S3) settings tab block located (${settingsTab.length} chars, single tab)`);
   // POI カードは settings タブから撤去済み (POIデータタブへ移設)
   assert.doesNotMatch(settingsTab, /PoiSourceSelector|PoiReferenceEditor/, 'settings タブに POI UI が残存している (POIデータタブへ移設済みのはず)');
   // ベースマップ可視性ペインは共有 ResourceSelector (M12-T10 v2.0) へ移行済み。

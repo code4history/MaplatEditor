@@ -67,14 +67,18 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     await applyDraft(draft);
   };
 
+  // nov26-m6-t1 (#117 E3): 明示破棄の後は、エディタの履歴が dirty のままでも forced に
+  // dirty へ戻さない（破棄の後に slug の予約成功・hot exit 等の flush が来ると下書きを書き戻していた）。
+  // 利用者が次に編集すれば watcher 経由の schedule(true) で破棄済みの印が解ける
+  const forcePersist = () => !core.isDiscarded() && (options.shouldPersist?.() ?? false);
+
   const beforeUnload = () => {
-    const shouldPersist = options.shouldPersist?.() ?? false;
-    if (shouldPersist) core.schedule(true);
+    if (forcePersist()) core.schedule(true);
     core.flushSync();
   };
 
   const flush = async () => {
-    if (options.shouldPersist?.()) core.schedule(true);
+    if (forcePersist()) core.schedule(true);
     await core.flush();
   };
 
@@ -95,8 +99,9 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     configureCore(assetUid, baseRevision);
   };
 
-  const discard = async () => {
-    await core.markSaved();
+  // opts.endSession: 破棄の直後に編集画面を離れる（新規 asset の下書きの破棄）ときに true
+  const discard = async (opts?: { endSession?: boolean }) => {
+    await core.discard(opts);
     draftRestored.value = false;
     conflictDraft.value = null;
   };
@@ -123,6 +128,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     markSaved,
     rebase,
     discard,
+    endDiscardGuard: core.endDiscardGuard,
     flushSync: core.flushSync,
     currentUid,
     currentRevision,

@@ -79,11 +79,16 @@ test('slug-less save shows visible error, recovers on edit, and new draft is dis
   //    slug を入力すると enabled になる
   await page.evaluate(() => { location.hash = '#/appedit'; });
   await page.getByTestId('app-title').fill('スラッグなしテスト');
-  await expect(page.getByRole('button', { name: '保存' })).toBeDisabled();
+  // 保存ボタンは data-testid で一意に指す。getByRole('button', { name: '保存' }) は部分一致で、
+  // 文言に「保存」を含む context-help ボタン（aria-label に説明文）にも当たり 3 要素になる
+  // （製品の保存ボタンは 1 つ。nov26-m6-t1 #117 E1）
+  const saveBtn = page.getByTestId('editor-save');
+  await expect(saveBtn).toHaveText(/保存/);
+  await expect(saveBtn).toBeDisabled();
   const appCount = await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 10 })).total);
   expect(appCount).toBe(0);
   await page.getByTestId('app-id').fill('noslug-recovery');
-  await expect(page.getByRole('button', { name: '保存' })).toBeEnabled();
+  await expect(saveBtn).toBeEnabled();
 
   // 2. 新規下書きをエディタから破棄できる: 下書きを seed して復元状態で開く
   const draftUid = 'dddddddd-eeee-ffff-0000-000000000002';

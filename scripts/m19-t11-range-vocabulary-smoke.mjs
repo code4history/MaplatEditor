@@ -5,7 +5,7 @@
 //
 // **MC5 は m19 §4.6.2-1 の凍結契約（範囲を保持する 3 属性の名前を変更しない）の
 //   機械証明の単独手段である**（設計 §12.1 / レビュー v2 §1.5 が「MC5 単独で十分」と判定）。
-//   絶対数 assert なので、誰がいつどこで走らせても同じ判定になる。
+//   nov26-m6-t1 で絶対数 assert から性質の検査（宣言の錨・識別子の集合）へ改めた（MC5 の節を参照）。
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -252,26 +252,113 @@ console.log("m19-t11 smoke MC6-b: OK（新設 9 キーが 11 言語に非空・�
 // ---------------------------------------------------------------------------
 // MC5 (AC12): 属性名の凍結証明。**単独手段**（設計 §12.1 / §12.3）
 // ---------------------------------------------------------------------------
+// nov26-m6-t1 (#117 S2) で「全出現数の絶対値（473 / 43 / 6）」から**性質の検査**へ置き換えた。
+// 絶対数は、後のタスクが属性を**使う**行を足しただけで動き（m20-t6・m22-t1 で実際に動いた）、
+// 凍結契約（名前を変えない）の違反ではないのに赤になっていた。性質は次の 2 つ:
+//   (a) 宣言箇所の固定表: 3 属性名がそれぞれ、型宣言・キー表の錨（下の FREEZE_ANCHORS）に在る
+//   (b) 識別子の集合: `coverage`／`envelope(p)`／`appCoverage` で始まり `Lng`／`Lon`／`Lat` を含む
+//       識別子（大小文字を区別しない）の集合が、3 つの凍結名と、場所を限った既知の別名
+//       （FREEZE_ALIASES）にちょうど等しい。宣言以外の箇所だけの改名（例: 書き込み側だけ
+//       `…LonLats`・`…_lnglats` にする）も (b) で赤になる。後の正当な使用の追加では動かない。
 // 走査範囲は src / electron / scripts / tests / public（preview 除く）。
-// grep -c は 0 件で exit 1 を返すため、ここでは JS で数える（設計 §12.1 の注意）。
 //
-// **本ファイル自身が凍結属性名を literal で含んではならない。**
-// 走査範囲に scripts/ が入るため、検査器が属性名を書くと自分の記述で件数が増え、
-// AC12 の検証コマンド（リポジトリルートで全 5 ディレクトリを grep -o する）も
-// baseline から外れる。∴ 属性名は下のように断片から組み立てる。
-const ATTR_COVERAGE = "coverage" + "LngLats";
-const ATTR_ENVELOPE = "envelope" + "LngLats";
-const ATTR_APP_COVERAGE = "app" + "Coverage" + "LngLats";
+// **本ファイル自身が凍結属性名・別名を literal で含んではならない。**
+// 走査範囲に scripts/ が入るため、検査器が名前を書くと自分の記述が (b) の集合に入る。
+// ∴ 名前は下のように断片から組み立てる（自己検査の fixture も同じ）。
+const LNGLATS = "Lng" + "Lats";
+const ATTR_COVERAGE = "coverage" + LNGLATS;
+const ATTR_ENVELOPE = "envelope" + LNGLATS;
+const ATTR_APP_COVERAGE = "app" + "Coverage" + LNGLATS;
+const FROZEN_ATTRS = [ATTR_COVERAGE, ATTR_ENVELOPE, ATTR_APP_COVERAGE];
 
 const FREEZE_ROOTS = ["src", "electron", "scripts", "tests", "public"];
-const FREEZE_EXPECTED = {
-  [ATTR_COVERAGE]: 473,
-  [ATTR_ENVELOPE]: 43,
-  [ATTR_APP_COVERAGE]: 6,
-};
-const freezeFiles = [];
-for (const dir of FREEZE_ROOTS) freezeFiles.push(...(await collectFilesAll(dir)));
 
+// (a) 宣言箇所の固定表（nov26-m6-t1 の実装時に `git grep -n -E "<名>\??:" -- src electron` で測った）。
+//     envelope 側は TS の型宣言を持たない（override の文字列キーで扱う）ため、キー表と書き込みの錨を使う。
+const FREEZE_ANCHORS = [
+  { attr: ATTR_COVERAGE, file: "electron/services/TileJsonImportService.ts", needle: `${ATTR_COVERAGE}?: [number, number][];` },
+  { attr: ATTR_COVERAGE, file: "electron/utils/searchSpatial.ts", needle: `${ATTR_COVERAGE}?: [number, number][] | null` },
+  { attr: ATTR_COVERAGE, file: "src/components/EnvelopeEditorModal.vue", needle: `  ${ATTR_COVERAGE}?: [number, number][] | null;` },
+  { attr: ATTR_COVERAGE, file: "src/electron.d.ts", needle: `    ${ATTR_COVERAGE}?: [number, number][];` },
+  { attr: ATTR_APP_COVERAGE, file: "src/components/EnvelopeEditorModal.vue", needle: `  ${ATTR_APP_COVERAGE}?: [number, number][] | null;` },
+  { attr: ATTR_APP_COVERAGE, file: "src/components/AppSourceEditor.vue", needle: `  ${ATTR_APP_COVERAGE}?: [number, number][] | null;` },
+  { attr: ATTR_ENVELOPE, file: "src/utils/appSourceModel.ts", needle: `  "${ATTR_ENVELOPE}",` },
+  { attr: ATTR_ENVELOPE, file: "src/components/AppSourceEditor.vue", needle: `writeOverride("${ATTR_ENVELOPE}", ` },
+];
+
+// (b) 場所を限った既知の別名（凍結名ではない綴りが、凍結名へ正規化するためだけに現れる箇所）。
+//     ここに無い綴り・ここに無いファイルでの出現は赤。
+const FREEZE_ALIASES = [
+  // core の normalizeArg が拒否する旧キーを凍結名へ写す runtimeKeyMap のキー
+  { name: "envelope" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
+  { name: "envelop" + LNGLATS, files: ["src/utils/appSourceModel.ts", "scripts/m6-app-source-model-smoke.mjs"] }, // smoke は旧キーの正規化を検査する
+  { name: "coverage" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
+  // e2e の fixture 定数（値を凍結名のキーへ入れて使う）。定数名は属性名にならないので tests/e2e/ の
+  // どの spec でも許す（m6-t4 #146 の nov26-m6-t4-app-source-editor-behavior.spec.ts も使う。
+  // 実装レビュー B19-MAJ-2）。末尾が "/" の項目はディレクトリの接頭として扱う
+  { name: "COVERAGE" + "_LNG_LATS", files: ["tests/e2e/"] },
+];
+
+const FREEZE_IDENT_RE = /(?<![A-Za-z0-9_$])(?:app)?(?:coverage|envelope?)[A-Za-z0-9_$]*?(?:lng|lon|lat)[A-Za-z0-9_$]*/gi;
+
+// texts: Map<rel, text>。問題の一覧（空なら合格）を返す純関数（自己検査で fixture にも使う）。
+function checkFreezeAnchors(texts) {
+  const problems = [];
+  for (const { attr, file, needle } of FREEZE_ANCHORS) {
+    const text = texts.get(file);
+    if (text == null) problems.push(`(a) ${file} が無い（${attr} の宣言の錨）`);
+    else if (!text.includes(needle)) problems.push(`(a) ${file} に ${attr} の宣言の錨 ${JSON.stringify(needle)} が無い`);
+  }
+  return problems;
+}
+
+function checkFreezeIdentifiers(texts) {
+  const problems = [];
+  const aliasFiles = new Map(FREEZE_ALIASES.map(({ name, files }) => [name, new Set(files)]));
+  const seen = new Set();
+  for (const [rel, text] of texts) {
+    for (const m of text.matchAll(FREEZE_IDENT_RE)) {
+      const ident = m[0];
+      seen.add(ident);
+      if (FROZEN_ATTRS.includes(ident)) continue;
+      const allowed = aliasFiles.get(ident);
+      if (allowed && [...allowed].some((f) => (f.endsWith("/") ? rel.startsWith(f) : rel === f))) continue;
+      problems.push(`(b) 凍結名でない綴り ${ident} が ${rel} にある（改名・近縁綴りの疑い）`);
+    }
+  }
+  for (const attr of FROZEN_ATTRS) {
+    if (!seen.has(attr)) problems.push(`(b) 凍結名 ${attr} が走査範囲のどこにも無い`);
+  }
+  return [...new Set(problems)];
+}
+
+// 自己検査 (T1-2): 宣言箇所から名前を 1 つ消す・別綴りを 1 つ混ぜると赤になること
+{
+  const baseTexts = new Map(FREEZE_ANCHORS.map(({ file }) => [file, ""]));
+  for (const { file, needle } of FREEZE_ANCHORS) baseTexts.set(file, baseTexts.get(file) + needle + "\n");
+  assert.deepEqual(checkFreezeAnchors(baseTexts), [], "T1-2: 錨だけの fixture が (a) を通らない");
+  assert.deepEqual(checkFreezeIdentifiers(baseTexts), [], "T1-2: 錨だけの fixture が (b) を通らない");
+
+  const removed = new Map(baseTexts);
+  const victim = FREEZE_ANCHORS[0];
+  removed.set(victim.file, removed.get(victim.file).replace(victim.needle, ""));
+  assert.ok(checkFreezeAnchors(removed).length > 0, "T1-2: 宣言箇所から名前を消しても (a) が赤にならない");
+
+  for (const variant of [
+    "coverage" + "LonLats",
+    "coverage" + "_lnglats", // 別名だが許可されたファイルの外
+    "app" + "coverage" + LNGLATS,
+    "envelope" + "LngLat",
+    "COVERAGE" + "_LNG_LATS", // e2e の定数名は tests/e2e/ の外（製品）では許さない
+  ]) {
+    const mixed = new Map(baseTexts);
+    mixed.set("src/views/AppEdit.vue", `const x = doc.${variant};\n`);
+    assert.ok(checkFreezeIdentifiers(mixed).length > 0, `T1-2: 別綴り ${variant} を混ぜても (b) が赤にならない`);
+  }
+  console.log("ok: (MC5 self-check T1-2) 宣言の削除・別綴り 5 種の混入はいずれも赤になる");
+}
+
+const freezeTexts = new Map();
 async function collectFilesAll(dir, acc = []) {
   for (const ent of await readdir(path.join(projectRoot, dir), { withFileTypes: true })) {
     const rel = `${dir}/${ent.name}`;
@@ -284,26 +371,20 @@ async function collectFilesAll(dir, acc = []) {
   }
   return acc;
 }
-
-const freezeCounts = { [ATTR_COVERAGE]: 0, [ATTR_ENVELOPE]: 0, [ATTR_APP_COVERAGE]: 0 };
-for (const rel of freezeFiles) {
-  let text;
-  try {
-    text = await read(rel);
-  } catch {
-    continue; // バイナリ等
-  }
-  for (const attr of Object.keys(freezeCounts)) {
-    // grep -o 相当（重なりなしの全出現）。大文字小文字を区別するため
-    // ベースマップ側の属性とアプリ側の属性は互いに部分文字列にならない。
-    freezeCounts[attr] += text.split(attr).length - 1;
+for (const dir of FREEZE_ROOTS) {
+  for (const rel of await collectFilesAll(dir)) {
+    try {
+      freezeTexts.set(rel, await read(rel));
+    } catch {
+      // 読めないものは飛ばす
+    }
   }
 }
-assert.deepEqual(freezeCounts, FREEZE_EXPECTED,
-  `MC5: 属性名の出現数が凍結 baseline と異なる。m19 §4.6.2-1 の凍結契約に違反した可能性がある。\n`
-  + `  期待（設計 §11 C8）: ${JSON.stringify(FREEZE_EXPECTED)}\n`
-  + `  実測: ${JSON.stringify(freezeCounts)}\n`
-  + `  属性を意図的に触った場合は rule-0015 に従い当該タスクが本 baseline を更新すること。`);
-console.log("m19-t11 smoke MC5: OK（属性名 473 / 43 / 6 — 凍結契約 §4.6.2-1 の機械証明）");
+
+const freezeProblems = [...checkFreezeAnchors(freezeTexts), ...checkFreezeIdentifiers(freezeTexts)];
+assert.deepEqual(freezeProblems, [],
+  `MC5: 範囲を保持する 3 属性の凍結契約（m19 §4.6.2-1「名前を変えない」）に違反した可能性がある。\n`
+  + freezeProblems.map((p) => `  - ${p}`).join("\n"));
+console.log("m19-t11 smoke MC5: OK（3 属性の宣言の錨が在り、近縁の識別子は凍結名と既知の別名だけ — 凍結契約 §4.6.2-1）");
 
 console.log("m19-t11 smoke: ALL OK");

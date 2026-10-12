@@ -215,18 +215,78 @@ const base = {
 }
 
 // AC11 peerDeps
+// nov26-m6-t1 (#117 S5): 兄弟リポジトリ（../MaplatCore・../Maplat）ではなく、Editor が実際に解決する
+// 公開物（node_modules/@maplat/core・@maplat/ui）を読む。期待値を公開物の値へ写すと検査が何も守らなく
+// なる（タスク設計レビュー T1-MIN-2）ので、「Editor が実際に使う GL の版（PROVIDER_GL_CDN のピン留め版）
+// と ol の版が、公開物の peerDependencies の範囲を満たす」を semver の満たし判定で確かめる。
+// 旧断言 corePkg.devDependencies["maplibre-gl"] === "5.6.2" は Core の内部の開発依存で Editor の契約では
+// ないため削除した。
+//
+// 範囲の判定は依存を増やさない最小の実装（`||` で区切った `^x.y.z` / `^x.y` / `^x` / `x.y.z` だけ）。
+// それ以外の書式が来たら「判定できない」として赤にする（fail-closed）。
+function parseVersion(v) {
+  const m = /^(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(String(v).trim());
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2] ?? 0), Number(m[3] ?? 0)];
+}
+function cmpVersion(a, b) {
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+  return 0;
+}
+function satisfiesRange(version, range) {
+  const v = parseVersion(version);
+  if (!v) throw new Error(`判定できない版: ${version}`);
+  return String(range).split("||").some((part) => {
+    const t = part.trim();
+    if (t.startsWith("^")) {
+      const lo = parseVersion(t.slice(1));
+      if (!lo) throw new Error(`判定できない範囲: ${range}`);
+      // ^0.y.z の特例は使わない（peerDeps に現れない）。現れたら判定できないとして落とす
+      if (lo[0] === 0) throw new Error(`判定できない範囲（^0.x）: ${range}`);
+      return cmpVersion(v, lo) >= 0 && v[0] === lo[0];
+    }
+    const exact = parseVersion(t);
+    if (!exact) throw new Error(`判定できない範囲: ${range}`);
+    return cmpVersion(v, exact) === 0;
+  });
+}
+// 自己検査: 範囲の外の版は赤・判定できない書式は例外
 {
-  const corePkg = JSON.parse(
-    await readFile(path.join(projectRoot, "../MaplatCore/package.json"), "utf8"),
-  );
-  const uiPkg = JSON.parse(
-    await readFile(path.join(projectRoot, "../Maplat/package.json"), "utf8"),
-  );
-  assert.equal(corePkg.peerDependencies["maplibre-gl"], "^5.0.0 || ^6.0.0");
-  assert.equal(corePkg.peerDependencies["mapbox-gl"], "^2.0.0 || ^3.0.0");
-  assert.equal(uiPkg.peerDependencies["maplibre-gl"], "^5.0.0 || ^6.0.0");
-  assert.equal(uiPkg.peerDependencies["mapbox-gl"], "^2.0.0 || ^3.0.0");
-  assert.equal(corePkg.devDependencies?.["maplibre-gl"], "5.6.2");
+  const R = "^5.0.0 || ^6.0.0";
+  assert.equal(satisfiesRange("5.6.2", R), true);
+  assert.equal(satisfiesRange("6.0.0", R), true);
+  assert.equal(satisfiesRange("4.7.1", R), false, "S5 自己検査: 範囲より古い版を満たすと判定した");
+  assert.equal(satisfiesRange("7.0.0", R), false, "S5 自己検査: 範囲より新しいメジャーを満たすと判定した");
+  assert.equal(satisfiesRange("3.27.0", "^2.0.0 || ^3.0.0"), true);
+  assert.equal(satisfiesRange("1.13.3", "^2.0.0 || ^3.0.0"), false, "S5 自己検査: mapbox v1 を満たすと判定した");
+  assert.throws(() => satisfiesRange("5.6.2", ">=5 <7"), /判定できない範囲/);
+  console.log("ok: (AC11 self-check) semver range check rejects out-of-range versions and unknown range syntax");
+}
+{
+  const readPkg = async (name) =>
+    JSON.parse(await readFile(path.join(projectRoot, "node_modules", name, "package.json"), "utf8"));
+  const editorPkg = JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8"));
+  const olVersion = (await readPkg("ol")).version;
+  // Editor が実際に使う版: GL は CDN のピン留め版、ol は Editor の依存として解決した版
+  const used = {
+    "maplibre-gl": PROVIDER_GL_CDN.maplibre.version,
+    "mapbox-gl": PROVIDER_GL_CDN.mapbox.version,
+    ol: olVersion,
+  };
+  for (const name of ["@maplat/core", "@maplat/ui"]) {
+    assert.ok(editorPkg.dependencies?.[name], `Editor の package.json が ${name} に依存していない`);
+    const pkg = await readPkg(name);
+    for (const [dep, version] of Object.entries(used)) {
+      const range = pkg.peerDependencies?.[dep];
+      assert.ok(range, `${name}@${pkg.version} の peerDependencies に ${dep} が無い`);
+      assert.equal(
+        satisfiesRange(version, range),
+        true,
+        `Editor が使う ${dep}@${version} が ${name}@${pkg.version} の peerDependencies "${range}" を満たさない`,
+      );
+    }
+  }
+  console.log(`ok: (AC11) GL ${used["maplibre-gl"]}/${used["mapbox-gl"]} と ol ${olVersion} が公開物 @maplat/core・@maplat/ui の peerDependencies を満たす`);
 }
 
 // Export/Preview same module
@@ -332,13 +392,20 @@ const base = {
 }
 
 // Core index wiring
+// nov26-m6-t1 (#117 S5): 兄弟リポジトリではなく Editor が解決する公開物 @maplat/core を読む。
+// 配布ファイル（package.json の module）は minify で識別子が潰れるため、結線の断言は公開物に同梱の
+// src/index.ts（package.json の files に src/ を含む）で行い、throw の文言（文字列は minify で残る）の
+// 不在は配布ファイルでも確かめる。
 {
-  const idx = await readFile(
-    path.join(projectRoot, "../MaplatCore/src/index.ts"),
-    "utf8",
-  );
+  const coreRoot = path.join(projectRoot, "node_modules/@maplat/core");
+  const corePkg = JSON.parse(await readFile(path.join(coreRoot, "package.json"), "utf8"));
+  const idx = await readFile(path.join(coreRoot, "src/index.ts"), "utf8");
   assert.match(idx, /bindProviderGlToSource/);
   assert.doesNotMatch(idx, /throw ["']To use Mapbox based maps/);
+  for (const entry of new Set([corePkg.module, corePkg.main].filter(Boolean))) {
+    const dist = await readFile(path.join(coreRoot, entry), "utf8");
+    assert.doesNotMatch(dist, /To use Mapbox based maps/, `@maplat/core の配布ファイル ${entry} に GL 未ロード時の throw が残っている`);
+  }
 }
 
 await rm(workDir, { recursive: true, force: true });

@@ -2,7 +2,9 @@
 //
 // 検証する受け入れ条件（設計 §9.2）:
 //   AC8   空 → 外部URL の確定で exchangeCount が 1 増える
-//   AC9   外部URL → 空 で 1 増え、url_ が内部タイルの file:// 形式へ戻る
+//   AC9   外部URL → 空 で 1 増え、url_ が内部タイルの形（app://bundle/__local/…）へ戻る
+//         （内部タイルの URL 形は oct26-m4-t2ff 第 2 版で file:// から renderer と同一 origin の
+//          app://bundle/__local/<abs> へ変わった。nov26-m6-t1 #117 E2 で追随）
 //   AC10  Enter でも確定する
 //   AC11  値が変わらない blur では発火しない
 //   AC12  キー入力ごとには発火しない
@@ -22,6 +24,8 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const EXT_URL = 'https://example.com/tiles/{z}/{x}/{y}.png';
+// 内部タイルの URL 形（renderer と同一 origin。oct26-m4-t2ff-app-local-cors.spec.ts の SAME_ORIGIN_PREFIX と同じ）
+const INTERNAL_TILE_URL = /^app:\/\/bundle\/__local\//;
 
 async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
@@ -146,7 +150,7 @@ test.describe('M5-T7 編集済みタイルURLのランタイムタイル源再�
     try {
       await prepareMapWithImage(app, page, e2eRoot, `m5t7-toggle-${Date.now()}`);
       const localUrl_ = (await mapUrlPair(page)).url_;
-      expect(localUrl_).toContain('file:');
+      expect(localUrl_).toMatch(INTERNAL_TILE_URL);
 
       const before = (await tileDebug(page)).exchangeCount;
 
@@ -171,6 +175,7 @@ test.describe('M5-T7 編集済みタイルURLのランタイムタイル源再�
       await urlInput(page).blur();
       await expect.poll(async () => (await tileDebug(page)).exchangeCount, { timeout: 15_000 }).toBe(before + 2);
       expect((await mapUrlPair(page)).url_).toBe(localUrl_);
+      expect((await mapUrlPair(page)).url_).toMatch(INTERNAL_TILE_URL);
     } finally {
       await quitElectronApplication(app);
     }

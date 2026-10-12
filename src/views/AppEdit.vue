@@ -1007,7 +1007,8 @@ async function discardRestoredDraft() {
       message: t("editor_ui.delete_draft_confirm", { name }),
     });
     if (result.response !== 0) return;
-    await draftLifecycle.discard();
+    // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（nov26-m6-t1 #117 E3）
+    await draftLifecycle.discard({ endSession: true });
     await router.push("/applist");
     return;
   }
@@ -1021,6 +1022,9 @@ async function discardRestoredDraft() {
   if (result.response !== 0) return;
   await draftLifecycle.discard();
   await reloadFromStore();
+  // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
+  // 下書きに残す。nov26-m6-t1 実装レビュー B19-MAJ-1）
+  draftLifecycle.endDiscardGuard();
 }
 
 async function chooseAppExport(hasSaved: boolean) {

@@ -265,7 +265,9 @@
     "smoke:nov26-m6-t5-export-splash-name": "node scripts/nov26-m6-t5-export-splash-name-smoke.mjs",
     "test:e2e:nov26-m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t5-predraft-after-migration.spec.ts",
     "smoke:nov26-m6-t11-export-query-allowlist": "node scripts/nov26-m6-t11-export-query-allowlist-smoke.mjs",
-    "smoke:nov26-m7-t1-artifact-signing-probe": "node scripts/nov26-m7-t1-artifact-signing-probe-smoke.mjs"
+    "smoke:nov26-m7-t1-artifact-signing-probe": "node scripts/nov26-m7-t1-artifact-signing-probe-smoke.mjs",
+    "smoke:nov26-m6-t1-draft-discard": "node scripts/nov26-m6-t1-draft-discard-smoke.mjs",
+    "test:e2e:nov26-m6-t1-draft-discard": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t1-draft-discard-no-rewrite.spec.ts tests/e2e/nov26-m6-t1-discard-then-single-edit.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
