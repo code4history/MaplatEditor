@@ -281,6 +281,10 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     appSaveSucceeded = true;
     // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
     appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
+    // nov26-m6-t5 §4.3: 保存の入口で UUID 名へ寄せた画像の参照を画面の文書へ反映する。
+    // 反映しないと画面が旧名を持ち続け、次の保存のたびに新しい複製ができる（AC10 の 2 回保存）
+    if (result.imageRefs?.splash) appData.value.appSettings.splash = result.imageRefs.splash;
+    if (result.imageRefs?.iconSource) appData.value.manifestSettings.iconSource = result.imageRefs.iconSource;
     await hydrateSourceThumbnails();
     markHistorySaved();
     await draftLifecycle.markSaved();

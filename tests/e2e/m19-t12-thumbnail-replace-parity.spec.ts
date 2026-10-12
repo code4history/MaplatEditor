@@ -264,7 +264,8 @@ test.describe('m19-t12 サムネイル置換の永続化セマンティクス統
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m19t12-e4-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      // (a) ベースマップ: 新規で slug 未入力 ⇒ iconFileKey() が空 ⇒ disabled＋理由
+      // (a) ベースマップ: 新規で slug 未入力 ⇒ writeTarget() の K0 が null ⇒ disabled＋理由
+      //     （nov26-m6-t5: iconFileKey() は uid を返すようになったが、K0 は slug 未入力で null を返す）
       await openHash(page, '#/basemaps');
       await page.getByTestId('basemap-new').click();
       await page.getByTestId('basemap-kind-tms').click();

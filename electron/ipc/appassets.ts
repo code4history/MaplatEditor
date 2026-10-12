@@ -4,11 +4,6 @@ import AppAssetService from '../services/AppAssetService';
 import { runGuarded } from '../utils/inflightGuard';
 
 export function registerAppAssetHandlers() {
-  ipcMain.handle('appassets:upload-tms-thumbnail', async (event, mapID: string) => {
-    const win = BrowserWindow.fromWebContents(event.sender)!;
-    return await runGuarded('appassets:upload-tms-thumbnail', () => AppAssetService.uploadTmsThumbnail(win, mapID));
-  });
-
   ipcMain.handle('appassets:upload-splash', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
     return await runGuarded('appassets:upload-splash', () => AppAssetService.uploadSplash(win));

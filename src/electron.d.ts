@@ -35,8 +35,9 @@ export interface AppSavePayload {
     create?: boolean;
 }
 
+// nov26-m6-t5 §4.3: imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。画面は文書へ反映する
 export type AppSaveResult =
-    | { result: 'Success'; uid: string; slug: string; revision: number }
+    | { result: 'Success'; uid: string; slug: string; revision: number; imageRefs?: { splash?: string; iconSource?: string } }
     | { result: 'Exist' }
     | { result: 'Error' }
     | { error: 'revision-conflict'; current: number };
@@ -239,7 +240,6 @@ export interface ImageAssetsAPI {
 }
 
 export interface AppAssetsAPI {
-    uploadTmsThumbnail(mapID: string): Promise<{ err?: string; path?: string; fileUrl?: string }>;
     // m19-t2: ext は省略可能（既定 'jpg' = 地図の uid 規約）。返値の path / path52 は kind 依存で、
     // path は「kind が指す側の所在」である（kind='512' では 512px）。52px の所在は
     // kind==='52' ? path : path52 でのみ求める（`path52 ?? path` は 512px を掴むため禁止）。

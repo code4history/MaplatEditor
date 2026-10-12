@@ -13,6 +13,8 @@ import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../s
 // m19-t5: 符号化は宛先の拡張子だけで決まる唯一の実装へ委譲する（タスク設計 v1.0 §4.2 規則 C）。
 // 52px 経路も同じ関数を通るが、拡張子が変わらないため挙動は不変である。
 import { writeImageByExt } from '../utils/thumbnail512Codec';
+// nov26-m6-t5: 画像の内部名の命名規則（UUID）は assetImageRefs が唯一の定義
+import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
 
 const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
 
@@ -78,20 +80,10 @@ class AppAssetService {
     return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 
-  // 非ビルトインTMSのサムネイル: 長辺52pxの長方形規約(縦横比は保持し、正方形は要求しない)
-  // m19-t2: 公開シグネチャは不変のまま、書き込みを共通ルーチンへ委譲する（並行実装を残さない）。
-  async uploadTmsThumbnail(win: BrowserWindow, mapID: string): Promise<UploadResult> {
-    const file = await this.pickImage(win);
-    if (!file) return { err: 'Canceled' };
-    let image;
-    try {
-      image = await Jimp.read(file);
-    } catch {
-      return { err: 'InvalidImage' };
-    }
-    const written = await this.writeThumbnail(image, ICON_LONG_SIDE, thumb52PathFor(sanitizeId(mapID), 'png'));
-    return { path: written.path, fileUrl: written.fileUrl };
-  }
+  // 非ビルトインTMSのサムネイルのアップロード: nov26-m6-t5 でメソッドを IPC ごと撤去した。
+  // （この行は m19-t5 smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
+  // src からの呼び出しが 0 件で、名前（mapID）を呼び出し元が決められる口だけが残っていたため
+  // （画像の内部名は UUID／uid に統一する。タスク設計 §4.1）。置換は replaceMapThumbnail が担う。
 
   // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（リソース管理）。
   // 512px/52px を独立して置き換えられる。512px アップロード時に「52px も作成する」で 52px を流用生成できる。
@@ -145,24 +137,37 @@ class AppAssetService {
     return result;
   }
 
-  // スプラッシュ画像: サイズ自由。img/へコピー
+  // スプラッシュ画像: サイズ自由。img/ へ複製する。
+  // nov26-m6-t5 (#109): 内部名は `{uuid}.{ext}`（タスク設計 §2）。元のファイル名を使うと、同じ名前の画像を
+  // 別のアプリへ入れたときに先のアプリの画像を上書きしていた（日本語名は sanitize で `__.png` 等へ潰れて衝突した）。
+  // ext は元画像の拡張子を小文字にしたもの。§2 の形に合わなければ png に変換して書く。
   async uploadSplash(win: BrowserWindow): Promise<UploadResult> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
+    let image;
     try {
-      await Jimp.read(file);
+      image = await Jimp.read(file);
     } catch {
       return { err: 'InvalidImage' };
     }
-    const fileName = sanitizeFileName(path.basename(file));
+    const ext = lowerExtOf(path.basename(file));
+    const fileName = newSplashName(ext ?? 'png');
     const dest = path.join(this.saveFolder, 'img', fileName);
     await fs.ensureDir(path.dirname(dest));
-    await fs.copy(file, dest, { overwrite: true });
+    if (ext) {
+      // overwrite: false — UUID 名なので衝突しないが、万一あっても既存の画像を上書きしない
+      await fs.copy(file, dest, { overwrite: false, errorOnExist: true });
+    } else {
+      await image.write(dest as `${string}.${string}`);
+    }
     return { splash: fileName, fileUrl: this.toFileUrl(dest) };
   }
 
   // PWAアイコン元画像: 512x512以上の正方形 → 512x512 PNG
-  async uploadPwaIcon(win: BrowserWindow, appID: string): Promise<UploadResult> {
+  // nov26-m6-t5 (#109): 書き込み先は `pwa/{uuid}.png`（タスク設計 §2）。旧 `pwa/{appID}_icon.png` は
+  // 同じ appID の別アプリ（取込・複製）の画像を上書きしていた。引数 appID は使わなくなったが、
+  // IPC（appassets:upload-pwa-icon）と preload の形を変えないため残す。
+  async uploadPwaIcon(win: BrowserWindow, _appID: string): Promise<UploadResult> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
     let image;
@@ -173,12 +178,13 @@ class AppAssetService {
     }
     if (image.width !== image.height) return { err: 'NotSquare' };
     if (image.width < 512) return { err: 'TooSmall' };
-    const dest = path.join(this.saveFolder, 'pwa', `${sanitizeId(appID)}_icon.png`);
+    const relPath = newIconSourceRel('png');
+    const dest = path.join(this.saveFolder, relPath);
     await fs.ensureDir(path.dirname(dest));
     if (image.width !== 512) image.resize({ w: 512, h: 512 });
     await image.write(dest as `${string}.${string}`);
     return {
-      path: `pwa/${sanitizeId(appID)}_icon.png`,
+      path: relPath,
       fileUrl: this.toFileUrl(dest),
     };
   }
@@ -361,10 +367,6 @@ function lngLatToMerc(lng: number, lat: number): [number, number] {
 
 function sanitizeId(value: string): string {
   return String(value || '').replace(/[^\w-]/g, '_');
-}
-
-function sanitizeFileName(value: string): string {
-  return String(value || '').replace(/[^\w.-]/g, '_');
 }
 
 export default new AppAssetService();

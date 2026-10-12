@@ -127,3 +127,37 @@ export async function appendMigrationWarnings(saveFolder: string, warnings: stri
     const merged = { ...base, warnings: [...existingWarnings, ...warnings] };
     await writeReportAtomic(saveFolder, merged);
 }
+
+// nov26-m6-t5 (#109): 画像の内部名を UUID に統一する起動時の移行の報告。
+// mergeAndWriteReport と同じく additive（既存の top-level を保つ）で、既存が読めなければ abandon する。
+// 報告の書き込みの失敗は移行を失敗させない（writeReportAtomic は throw しない）。
+export type AssetUuidNamesOutcome =
+    | 'migrated'
+    | 'already_uuid'
+    | 'shared_split'
+    | 'source_missing'
+    | 'outside_folder'
+    | 'copy_failed'
+    | 'cas_mismatch'
+    | 'unsupported_form';
+
+export interface AssetUuidNamesEntry {
+    kind: 'splash' | 'iconSource' | 'thumbnail';
+    uid: string;
+    from: string;
+    to?: string;
+    outcome: AssetUuidNamesOutcome;
+    detail?: string;
+}
+
+export interface AssetUuidNamesDetail {
+    lastRunAt: string;
+    summary: Record<AssetUuidNamesOutcome, number>;
+    entries: AssetUuidNamesEntry[];
+}
+
+export async function mergeAssetUuidNamesReport(saveFolder: string, detail: AssetUuidNamesDetail): Promise<void> {
+    const base = await readReportSafe(saveFolder);
+    if (base === null) return; // abandon（既存の報告を上書きしない）
+    await writeReportAtomic(saveFolder, { ...base, assetUuidNamesMigration: detail });
+}

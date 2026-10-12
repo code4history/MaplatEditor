@@ -18,7 +18,8 @@ const TARGETS = [
   ["electron/ipc/dataupload.ts", ["dataupload:showDataSelectDialog"]],
   ["electron/ipc/mapupload.ts", ["mapupload:showMapSelectDialog"]],
   ["electron/ipc/wmts.ts", ["wmtsGen:generate"]],
-  ["electron/ipc/appassets.ts", ["appassets:upload-tms-thumbnail", "appassets:upload-splash", "appassets:upload-pwa-icon", "appassets:replace-map-thumbnail", "appassets:generate-tms-thumbnail"]],
+  // nov26-m6-t5: TMS サムネイルのアップロードの IPC は撤去した（呼び出し 0 件・名前を決められる口を残さない）
+  ["electron/ipc/appassets.ts", ["appassets:upload-splash", "appassets:upload-pwa-icon", "appassets:replace-map-thumbnail", "appassets:generate-tms-thumbnail"]],
   ["electron/ipc/assets-images.ts", ["imageassets:add", "imageassets:update-metadata"]],
 ];
 

@@ -76,6 +76,14 @@ export function assertNoMapJsonCollision(written: ReadonlySet<string>, slug: str
 
 export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 
+// nov26-m6-t5 (#110): 書き出し物のスプラッシュ名は `{appID}_splash.{ext}`（タスク設計 §2 の書き出し物の行）。
+// 内部名（UUID。#109）を viewer 向けの出力（zip のエントリ・app JSON の splash・og:image）へ出さない。
+// ext は内部名の拡張子。名前はこの 1 箇所で導き、呼び出し側で組み立てない
+export function exportedSplashName(appID: string, splash: string): string {
+  const ext = path.extname(splash).slice(1).toLowerCase() || 'png';
+  return `${appID}_splash.${ext}`;
+}
+
 function findExistingPath(candidates: string[]) {
   return candidates.find(candidate => fs.existsSync(candidate)) || candidates[0];
 }
@@ -564,7 +572,7 @@ class AppExportService {
       if (splash) {
         const from = path.join(this.saveFolder, 'img', splash);
         if (fs.existsSync(from)) {
-          await fs.copy(from, path.join(outDir, 'img', splash));
+          await fs.copy(from, path.join(outDir, 'img', exportedSplashName(appID, splash)));
         } else {
           warnings.push('appedit.export.missing_splash');
         }
@@ -701,7 +709,7 @@ class AppExportService {
     const description = compactLangObject(document.description, lang);
     if (description) out.description = description;
     const splash = String(document.appSettings?.splash || '');
-    if (splash) out.splash = splash;
+    if (splash) out.splash = exportedSplashName(String(document.appID || '').trim(), splash);
     out.homePosition = [
       finiteOr(document.appSettings?.homeLng, 139.767),
       finiteOr(document.appSettings?.homeLat, 35.681),
@@ -957,7 +965,8 @@ class AppExportService {
     // generator 由来の PNG favicon リンク (htmlMeta.favicon) がある場合も併記する
     headLines.push(`  <link rel="icon" href="favicon.ico">`);
     if (splash) {
-      const ogImage = siteUrl ? joinUrl(siteUrl, `img/${splash}`) : `img/${splash}`;
+      const ogPath = `img/${exportedSplashName(appID, splash)}`;
+      const ogImage = siteUrl ? joinUrl(siteUrl, ogPath) : ogPath;
       headLines.push(`  <meta property="og:image" content="${escapeHtml(ogImage)}">`);
     }
     if (siteUrl) {
