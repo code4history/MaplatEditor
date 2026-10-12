@@ -35,8 +35,9 @@ export interface AppSavePayload {
     create?: boolean;
 }
 
+// nov26-m6-t5 §4.3: imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。画面は文書へ反映する
 export type AppSaveResult =
-    | { result: 'Success'; uid: string; slug: string; revision: number }
+    | { result: 'Success'; uid: string; slug: string; revision: number; imageRefs?: { splash?: string; iconSource?: string } }
     | { result: 'Exist' }
     | { result: 'Error' }
     | { error: 'revision-conflict'; current: number };

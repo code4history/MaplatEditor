@@ -3,6 +3,9 @@ import SearchDataService, { type AppListResult } from './SearchDataService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resolveAppListImage } from './resourceImageResolver';
 import MapPurposeService from './MapPurposeService';
+import SettingsService from './SettingsService';
+// nov26-m6-t5 §4.3: 保存の入口で画像の参照を UUID 名へ寄せる（移行と同じ規則）
+import { normalizeAppImageRefs } from './assetImageRefs';
 
 // uid正準の保存要求/結果 (ADR-0007)。uid無指定は新規作成。
 // expectedRevision は楽観ロック(不一致で revision-conflict を返す)
@@ -15,8 +18,10 @@ export interface AppSaveRequest {
   create?: boolean;
 }
 
+// nov26-m6-t5 §4.3: imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。
+// 画面はこれを文書へ反映する（返さないと画面が旧名を持ち続け、保存のたびに新しい複製ができる）
 export type AppSaveResult =
-  | { result: 'Success'; uid: string; slug: string; revision: number }
+  | { result: 'Success'; uid: string; slug: string; revision: number; imageRefs?: { splash?: string; iconSource?: string } }
   | { result: 'Exist' }
   | { result: 'Error' }
   | { error: 'revision-conflict'; current: number };
@@ -85,7 +90,7 @@ class AppDataService {
   // uid正準の保存 (ADR-0007): uidなし=新規作成、uidあり=revision楽観ロック付きupsert。
   // slug衝突(グローバルnamespace)は 'Exist'、他ウィンドウ先行更新は revision-conflict
   async saveApp(request: AppSaveRequest): Promise<AppSaveResult> {
-    const { document } = request;
+    const { document: requestedDocument } = request;
     const uid = request.uid ?? undefined;
     const slug = String(request.slug || '').trim();
     if (!slug) return { result: 'Error' };
@@ -93,15 +98,22 @@ class AppDataService {
       // M13-T1 (§2.7): strict_error / missing map を含む maplat 参照は保存自体を拒否する
       // (AC-T1-2)。DB書き込み分岐より前・try ブロック先頭で判定する
       await MapPurposeService.assertViewerRuntimeAllowed(
-        MapPurposeService.collectMaplatMapRefs(document), 'app-save'
+        MapPurposeService.collectMaplatMapRefs(requestedDocument), 'app-save'
       );
+      // nov26-m6-t5 §4.3 (R2-MIN-1): 移行前の下書き・1.1.x で入れ直した画像を拾う。UUID の形でない参照の
+      // 複製元が保存フォルダの中に実在すれば新しい UUID 名へ複製して置き換える（旧ファイルは消さない）。
+      // 複製元が無い・外を指すものは旧名のまま保存し警告する。他のアプリの参照は変えない
+      const { document, imageRefs } = await normalizeAppImageRefs(
+        requestedDocument, String(SettingsService.get('saveFolder') ?? ''),
+      );
+      const withRefs = <T extends object>(result: T): T => (imageRefs ? { ...result, imageRefs } : result);
       if (request.create === true) {
         // 新規作成の明示合図(D11改): 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
         // 既存update経路の復活防止不変条件(lookup失敗=Error)を侵さない。
         // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
         if (!(await SqliteDataService.isSlugAvailable(slug, uid))) return { result: 'Exist' };
         const { uid: createdUid } = await SqliteDataService.createApp(slug, document, uid);
-        return { result: 'Success', uid: createdUid, slug, revision: 1 };
+        return withRefs({ result: 'Success' as const, uid: createdUid, slug, revision: 1 });
       }
       if (uid) {
         const existing = await SqliteDataService.findApp(uid);
@@ -112,11 +124,11 @@ class AppDataService {
         const { revision } = await SqliteDataService.upsertApp(
           uid, slug, document, request.expectedRevision ?? undefined
         );
-        return { result: 'Success', uid, slug, revision };
+        return withRefs({ result: 'Success' as const, uid, slug, revision });
       }
       if (!(await SqliteDataService.isSlugAvailable(slug))) return { result: 'Exist' };
       const { uid: createdUid } = await SqliteDataService.createApp(slug, document);
-      return { result: 'Success', uid: createdUid, slug, revision: 1 };
+      return withRefs({ result: 'Success' as const, uid: createdUid, slug, revision: 1 });
     } catch (e: any) {
       if (e instanceof RevisionConflictError) {
         return { error: 'revision-conflict', current: e.current };

@@ -34,6 +34,9 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
+// nov26-m6-t5: 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
+import { runAssetUuidNamesColdBoot } from './AssetUuidNamesMigrationService';
+import { sameContent } from './assetImageRefs';
 import { writeLegacyMigrationReport, appendMigrationWarnings } from './MigrationReportService';
 
 type BaseMapScope = 'builtin' | 'user';
@@ -166,6 +169,10 @@ const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
 // 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）。
 // これは「スキーマの移行」ではなく z2 タイルからの **導出** なので m19-t7 でも残る
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
+// nov26-m6-t5 (#109): 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行の印。
+// 取込の段ではない（0.7.0 の取込行に限らず 1.0.0〜1.1.x のすべての行が対象で、到達先は 1.2.0 の命名の契約）。
+// 印の定数はこのファイルの行頭に集める規約に従い、AssetUuidNamesMigrationService へは引数で渡す（T5-R2-MIN-1）
+const ASSET_UUID_NAMES_V1_ID = '2026-10-11-asset-uuid-names-v1';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -949,6 +956,15 @@ class SqliteDataService {
       await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止、§4.1)
     } catch (e) {
       console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
+    }
+
+    // nov26-m6-t5 (#109・HR-15): 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行。
+    // 本段は 0.7.0 の取込行を 1.0.0 の形へ直す段ではない（nov26-m6-t5 §4.2『m19-t7 との関係』）。
+    // 原本の移行と同じく、失敗しても migrate() を失敗させない（印が付かず次の起動でやり直す）。
+    try {
+      await runAssetUuidNamesColdBoot(db, this.folders.saveFolder, ASSET_UUID_NAMES_V1_ID);
+    } catch (e) {
+      console.error('[SqliteDataService] asset UUID names migration failed unexpectedly; continuing DB initialization without it', e);
     }
   }
 
@@ -2506,6 +2522,9 @@ class SqliteDataService {
     const requestedCreate = payload?.create === true;
     if (!requestedCreate && payload?.uid != null && String(payload.uid).trim() !== '') {
       const uid = String(payload.uid);
+      // nov26-m6-t5 §4.3 (a′): 旧名の thumbnail を、内容が同じ uid 名の対へ付け替える（複製・移動はしない）。
+      // fs の確認とハッシュはトランザクション（同期のコールバック）の外で、その前に行う（T5-MIN-4）
+      const effectiveThumbnail = await this.resolveBaseMapThumbnailRepoint(uid, tms?.thumbnail);
       // 現在値の読み取りも同一トランザクション内で行う(BEGIN IMMEDIATEで書き込みロックを
       // 先頭取得するため、並走する書き込みと交錯して返却revisionがずれることがない)
       return this.withTransaction(db, () => {
@@ -2523,11 +2542,12 @@ class SqliteDataService {
         }
         db.prepare(
           `UPDATE base_maps SET slug = ?, data_json = ?, revision = revision + 1, updated_at = datetime('now') WHERE uid = ?`
-        ).run(slug, JSON.stringify({ ...tms, mapID: slug }), uid);
+        ).run(slug, JSON.stringify({ ...tms, thumbnail: effectiveThumbnail, mapID: slug }), uid);
+        // 付け替えた値を返す（画面が旧名を持ち続けると、そこから導く 512px パスがずれる。上のコメントと同じ理由）
         return {
           uid,
           revision: currentRevision + 1,
-          thumbnail: typeof tms?.thumbnail === 'string' ? tms.thumbnail : undefined,
+          thumbnail: typeof effectiveThumbnail === 'string' ? effectiveThumbnail : undefined,
         };
       });
     }
@@ -2574,6 +2594,37 @@ class SqliteDataService {
       revision = 2;
     }
     return { uid, revision, thumbnail: typeof data.thumbnail === 'string' ? data.thumbnail : undefined };
+  }
+
+  // nov26-m6-t5 §4.3 (a′)・R4-MIN-1: 更新経路で、渡された thumbnail が旧名（tmbs/{uid でないキー}.{ext}）のとき、
+  // 次のすべてを満たせば uid 名（thumb52PathFor(uid, 同じ拡張子)）へ付け替える。ファイルの複製・移動はしない。
+  //   1. uid 名の 52px が実在する
+  //   2. 旧名の 52px が実在するなら、内容（SHA-256）が uid 名と一致する（T5-MAJ-1: 移行前の下書きで置換した
+  //      利用者の新しい画像を、移行が作った古い複製で置き換えない。旧名が無い＝参照が既に切れているなら 1 だけでよい）
+  //   3. 旧名の 512px が実在するなら uid 名の 512px も実在し、内容が一致する
+  // 1 つでも満たさなければ渡された値のまま（失われるものは無い）。512px のパスは thumb512PathFor で導く。
+  private async resolveBaseMapThumbnailRepoint(uid: string, thumbnail: unknown): Promise<unknown> {
+    if (typeof thumbnail !== 'string') return thumbnail;
+    const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
+    if (!match || match[1] === uid) return thumbnail;
+    const { saveFolder } = this.folders;
+    if (!saveFolder) return thumbnail;
+    const new52 = thumb52PathFor(uid, match[2]);
+    const at = (rel: string) => path.join(saveFolder, rel);
+    try {
+      if (!(await fs.pathExists(at(new52)))) return thumbnail;
+      if ((await fs.pathExists(at(thumbnail))) && !(await sameContent(at(thumbnail), at(new52)))) return thumbnail;
+      const old512 = thumb512PathFor(thumbnail);
+      const new512 = thumb512PathFor(new52);
+      if (old512 && (await fs.pathExists(at(old512)))) {
+        if (!new512 || !(await fs.pathExists(at(new512)))) return thumbnail;
+        if (!(await sameContent(at(old512), at(new512)))) return thumbnail;
+      }
+      return new52;
+    } catch (e: any) {
+      console.warn(`[SqliteDataService] base map thumbnail repoint check failed: ${thumbnail} (${e?.message ?? e})`);
+      return thumbnail;
+    }
   }
 
   // 新規ベースマップ作成時のアイコン付け替え: tmbs/{暫定名}.{ext} → tmbs/{uid}.{ext}。
