@@ -16,6 +16,8 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const read = (rel) => readFile(path.join(projectRoot, rel), 'utf8');
@@ -259,6 +261,145 @@ try {
     'package.json に test:e2e:mapedit-align-m1-t1 が結線されていない',
   );
   console.log('  [6/6] AC9/AC11 i18n キー実在と結線: PASS');
+
+
+  // nov26-m9-t3b: 現 source のメソッド本体を駆動し、OL の DOM 欠落と通常経路を検査する。
+  // class/メソッドの一意性を AST で確認し、製品ロジックを試験側へ複製しない。
+  const extractMethod = (source, className, methodName) => {
+    const tree = ts.createSourceFile('probe.ts', source, ts.ScriptTarget.Latest, true);
+    const methods = [];
+    const visit = (node) => {
+      if (ts.isClassDeclaration(node) && node.name?.text === className) {
+        for (const member of node.members) {
+          if (ts.isMethodDeclaration(member) && member.name.getText(tree) === methodName) {
+            methods.push(member.getText(tree));
+          }
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(tree);
+    assert.equal(methods.length, 1, `${className}.${methodName} が一意でない`);
+    return methods[0];
+  };
+  const vueScripts = [...mapEdit.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)];
+  assert.equal(vueScripts.length, 1, 'MapEdit の script が一意でない');
+  const sourceMethods = {
+    setMap: extractMethod(ctxMain, 'ContextMenu', 'setMap'),
+    removeListeners: extractMethod(ctxMain, 'ContextMenu', 'removeListeners'),
+    move: extractMethod(vueScripts[0][1], 'Drag', 'handleMoveEvent'),
+  };
+  const compileProbe = (methods, globals = {}) => {
+    const compiled = ts.transpileModule(`class Probe extends Control { ${methods.join('\n')} }`, {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+      reportDiagnostics: true,
+    });
+    assert.equal(compiled.diagnostics?.filter((d) => d.category === ts.DiagnosticCategory.Error).length, 0);
+    return vm.runInNewContext(`${compiled.outputText}\nProbe`, {
+      Control: class { setMap(map) { this.superMap = map; } }, ...globals,
+    });
+  };
+  const probeFailures = (methods) => {
+    const failures = [];
+    const check = (name, fn) => {
+      try { fn(); } catch (err) { failures.push(`${name}: ${err.name}: ${err.message}`); }
+    };
+    for (const hasViewport of [true, false]) {
+      check(`viewport=${hasViewport}`, () => {
+        const calls = { add: [], remove: [], on: 0, off: 0, entries: 0, move: 0 };
+        const viewport = hasViewport ? {
+          addEventListener: (...args) => calls.add.push(args),
+          removeEventListener: (...args) => calls.remove.push(args),
+        } : undefined;
+        const Probe = compileProbe([methods.setMap, methods.removeListeners], {
+          CustomEventTypes: { ADD_MENU_ENTRY: 'add' }, DEFAULT_ITEMS: [],
+          addMenuEntries: () => { calls.entries += 1; }, getLineHeight: () => 8,
+        });
+        const menu = new Probe();
+        const listener = () => {};
+        const items = [{ text: '項目' }];
+        Object.assign(menu, {
+          options: { eventType: 'contextmenu', defaultItems: false, items, width: 170 },
+          contextMenuEventListener: listener, container: { firstElementChild: {}, offsetHeight: 20 },
+          emitter: { on: () => { calls.on += 1; }, off: () => { calls.off += 1; } },
+          getMenuEntriesLength: () => 2,
+        });
+        const map = { getViewport: () => viewport, on: (name) => {
+          assert.equal(name, 'movestart'); calls.move += 1;
+        } };
+        menu.setMap(map);
+        assert.equal(menu.superMap, map);
+        assert.equal(menu.map, map);
+        assert.equal(menu.items, items);
+        assert.equal(menu.lineHeight, 10);
+        assert.equal(calls.on, 1); assert.equal(calls.entries, 1); assert.equal(calls.move, 1);
+        assert.deepEqual(calls.add, hasViewport ? [['contextmenu', listener, false]] : []);
+        menu.removeListeners();
+        assert.deepEqual(calls.remove, hasViewport ? [['contextmenu', listener, false]] : []);
+        assert.equal(calls.off, 1, 'viewport 欠落時にも emitter を解除する');
+      });
+    }
+    // 解除 guard は登録 guard と独立に測る（登録の TypeError で解除検査を黙らせない）。
+    check('欠落viewportの解除', () => {
+      const Probe = compileProbe([methods.removeListeners], { CustomEventTypes: { ADD_MENU_ENTRY: 'add' } });
+      const menu = new Probe(); let off = 0;
+      Object.assign(menu, { map: { getViewport: () => undefined }, emitter: { off: () => { off += 1; } } });
+      menu.removeListeners(); assert.equal(off, 1);
+    });
+    const DragProbe = compileProbe([methods.move]);
+    const makeDrag = () => Object.assign(new DragProbe(), { cursor_: 'pointer', previousCursor_: undefined, layerFilter: 'marker' });
+    const event = (target, feature, button = 0) => ({ originalEvent: { button }, pixel: [2, 3], map: {
+      getTargetElement: () => target,
+      forEachFeatureAtPixel: (pixel, callback, options) => {
+        assert.deepEqual(pixel, [2, 3]);
+        assert.equal(options.layerFilter({ get: () => 'marker' }), true);
+        assert.equal(options.layerFilter({ get: () => 'other' }), false);
+        return feature ? callback(feature) : undefined;
+      },
+    } });
+    for (const target of [null, undefined]) {
+      for (const feature of [{}, undefined]) {
+        check(`target=${target},feature=${!!feature}`, () => {
+          const drag = makeDrag(); drag.previousCursor_ = 'crosshair';
+          drag.handleMoveEvent(event(target, feature));
+          assert.equal(drag.previousCursor_, 'crosshair', '欠落時の保存cursorを保つ');
+          assert.equal(drag.cursor_, 'pointer');
+        });
+      }
+    }
+    check('通常cursorと右ボタン', () => {
+      const drag = makeDrag(); const target = { style: { cursor: 'crosshair' } };
+      drag.handleMoveEvent(event(target, {}));
+      assert.equal(target.style.cursor, 'pointer'); assert.equal(drag.previousCursor_, 'crosshair');
+      drag.handleMoveEvent(event(target, {}));
+      assert.equal(drag.previousCursor_, 'crosshair', '反復hoverで保存cursorを上書きしない');
+      drag.handleMoveEvent(event(target, undefined, 2));
+      assert.equal(target.style.cursor, 'pointer'); assert.equal(drag.previousCursor_, 'crosshair');
+      drag.handleMoveEvent(event(target, undefined));
+      assert.equal(target.style.cursor, 'crosshair'); assert.equal(drag.previousCursor_, undefined);
+      drag.handleMoveEvent(event(target, undefined));
+      assert.equal(target.style.cursor, 'crosshair');
+      drag.handleMoveEvent(event(null, {}, 2));
+      assert.equal(drag.previousCursor_, undefined);
+    });
+    return failures;
+  };
+  assert.deepEqual(probeFailures(sourceMethods), [], 'nov26-m9-t3b の DOM 欠落/通常経路');
+
+  // guard を source ではなくメモリだけで外し、各検査が元の TypeError を検出することを示す。
+  const mutations = [
+    ['setMap', 'viewport=false', (s) => s.replace('getViewport()?.addEventListener', 'getViewport().addEventListener')],
+    ['removeListeners', '欠落viewportの解除', (s) => s.replace(/getViewport\(\)(\s*)\?\.removeEventListener/, 'getViewport()$1.removeEventListener')],
+    ['move', 'target=null,feature=true', (s) => s.replace(/\s*if \(!element\) return;/, '')],
+  ];
+  for (const [key, label, mutate] of mutations) {
+    const changed = mutate(sourceMethods[key]);
+    assert.notEqual(changed, sourceMethods[key], `${key} 対照の guard を取得できない`);
+    const failures = probeFailures({ ...sourceMethods, [key]: changed });
+    assert.ok(failures.some((f) => f.startsWith(`${label}: TypeError:`)), `${key} の旧例外を検出できない: ${failures.join('; ')}`);
+    console.log(`  nov26-m9-t3b メモリ対照 ${key}: 旧 TypeError を検出`);
+  }
+  console.log('  nov26-m9-t3b 実メソッドの欠落/通常経路: PASS');
 
   console.log('m1-t1 contextmenu smoke passed');
 } catch (err) {

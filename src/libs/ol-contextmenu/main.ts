@@ -238,7 +238,7 @@ export default class ContextMenu extends Control {
         if (map) {
             this.map = map
 
-            map.getViewport().addEventListener(
+            map.getViewport()?.addEventListener(
                 this.options.eventType,
                 this.contextMenuEventListener,
                 false,
@@ -283,7 +283,7 @@ export default class ContextMenu extends Control {
     protected removeListeners() {
         this.map
             .getViewport()
-            .removeEventListener(this.options.eventType, this.contextMenuEventListener, false)
+            ?.removeEventListener(this.options.eventType, this.contextMenuEventListener, false)
 
         this.emitter.off(CustomEventTypes.ADD_MENU_ENTRY)
     }
