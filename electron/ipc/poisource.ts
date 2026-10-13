@@ -1,4 +1,5 @@
-import { ipcMain, dialog, app, BrowserWindow } from 'electron';
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import path from 'path';
 import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
@@ -32,15 +33,16 @@ export function registerPoisourceHandlers() {
       const extension = inspection.kind === 'zip' ? 'zip' : 'geojson';
       const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
       const options = {
-        defaultPath: path.join(app.getPath('documents'), `${inspection.slug}.${extension}`),
         filters: inspection.kind === 'zip'
           ? [{ name: 'POI package', extensions: ['zip'] }]
           : [{ name: 'GeoJSON', extensions: ['geojson', 'json'] }],
+        defaultPath: dialogDefaultPath('export', `${inspection.slug}.${extension}`),
       };
       const ret = win
         ? await dialog.showSaveDialog(win, options)
         : await dialog.showSaveDialog(options);
       if (ret.canceled || !ret.filePath) return { result: 'Canceled' } as const;
+      rememberDialogPath('export', ret.filePath, 'file');
       await runGuarded('poisource:exportFile', () => writePoiExport(inspection, ret.filePath));
       return { result: 'Success', filePath: ret.filePath } as const;
     } catch (error) {
@@ -57,7 +59,7 @@ export function registerPoisourceHandlers() {
   ipcMain.handle('poisource:pickImportFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
-      defaultPath: app.getPath('documents'),
+      defaultPath: dialogDefaultPath('import'),
       properties: ['openFile' as const],
       filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip'] }],
     };
@@ -66,6 +68,7 @@ export function registerPoisourceHandlers() {
       : await dialog.showOpenDialog(options);
     if (ret.canceled || ret.filePaths.length === 0) return null;
     const filePath = ret.filePaths[0];
+    rememberDialogPath('import', filePath, 'file');
     return { filePath, fileName: path.basename(filePath) };
   });
 }

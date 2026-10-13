@@ -181,6 +181,13 @@ binaries are distributed via GitHub Releases.
 
 ### Export and Import
 
+File dialogs remember the last folder separately for imports, exports, and
+image selection, including after restarting the app. Cancelling a dialog
+leaves the remembered folder unchanged. If that folder is no longer
+available, the dialog opens in Documents. The data storage folder picker
+uses the currently configured storage folder when it is available, or
+Documents otherwise.
+
 - Apps export as a single ZIP (`{appID}.zip`), optionally including a
   static, PWA-ready build (manifest, icons, splash image); each map/base-map
   source is referenced by a `settingFile` (`maps/<slug>.json`) rather than
