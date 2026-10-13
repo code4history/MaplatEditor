@@ -425,11 +425,15 @@ class DataUploadService {
             console.error('[DataUploadService] extractZip error', err);
             // nov26-m6-t3 (#98・#116): 大きすぎる ZIP と壊れた ZIP（adm-zip・zlib の読み取りの例外）は
             // 利用者向けのコードへ写す（MapEdit が固定文の i18n を出す）。原文は上の console.error だけ。
-            // それ以外（Exist・NoTile・NoTmb・ENOENT 等）は従来どおり
+            // 重複名（duplicate-entry）は写さない（設計 §3.1 は too-large・corrupt の 2 つだけ。
+            // m5-t4 の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
+            // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
             const zipError = classifyZipReadError(err);
-            const message = zipError
-                ? (zipError.kind === 'too-large' ? 'TooLarge' : 'Corrupt')
-                : typeof err === 'string' ? err : (err.message || 'Unknown');
+            const message = zipError?.kind === 'too-large'
+                ? 'TooLarge'
+                : zipError?.kind === 'corrupt'
+                    ? 'Corrupt'
+                    : typeof err === 'string' ? err : (err.message || 'Unknown');
 
             // M5-T4B (I-4c): 補償し、**到達できなかったものを残留として申告する**。
             // 補償が全て到達した場合のみ従来どおり { err } を返す。
