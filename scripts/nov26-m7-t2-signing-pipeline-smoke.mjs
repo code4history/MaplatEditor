@@ -20,10 +20,11 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 
 const require = createRequire(import.meta.url);
-const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const projectRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SIGNER_JSON = path.join(projectRoot, 'scripts/win-sign/signer-identity.json');
 const SIGNER = path.join(projectRoot, 'scripts/win-sign/signer-identity.cjs');
 const WIN_SIGN = path.join(projectRoot, 'scripts/win-sign/win-sign.cjs');
@@ -53,6 +54,12 @@ const ES_CHAIN = [
   { subject: ES_SUBJECT, thumbprint: '1111111111111111111111111111111111111111' },
   { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, C=US', thumbprint: '2222222222222222222222222222222222222222' },
   { subject: 'CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US', thumbprint: ES_ROOT },
+];
+// eSigner の実物（nov26-m7-t2 U-1・run 38369214775 の artifact u1-esigner-identity/esigner-identity.json の chain）
+const ES_REAL_CHAIN = [
+  { subject: 'CN="NAYUTA, INC.", O="NAYUTA, INC.", L=Osaka, S=Ōsaka Prefecture, C=JP', thumbprint: '7625D11EF2D21CB8133CF1E60A2DBEC2B33938B6' },
+  { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, L=Houston, S=Texas, C=US', thumbprint: 'BC1E0FF366EEAD57F872622A0A5903706B7420F4' },
+  { subject: 'CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US', thumbprint: 'B7AB3308D1EA4477BA1480125A6FBDA936490CBB' },
 ];
 const FIXTURE_IDENTITY = {
   'artifact-signing': {
@@ -133,11 +140,17 @@ const FIXTURE_IDENTITY = {
   assert.deepEqual(as.issuerAllow.map((a) => a.thumbprint).sort(), [AS_CHAIN[2].thumbprint, AS_CHAIN[3].thumbprint].sort(),
     '[1] artifact-signing.issuerAllow は H-B1 の chain の index ≥ 2（PCA とルート）');
   assert.equal(si.checkSigner({ subject: AS_SUBJECT, chain: AS_CHAIN }, 'artifact-signing'), null, '[1] 正本で H-B1 の実物が通る');
-  // eSigner は未測定なら issuerAllow が空で、照合は必ず落ちる（fail-closed）。測定済みなら空でない
-  if (identity.esigner.issuerAllow.length === 0) {
-    assert.match(si.checkSigner({ subject: identity.esigner.publisherSubject, chain: ES_CHAIN }, 'esigner') ?? '', /issuerAllow/,
-      '[1] esigner の上位が未測定のあいだは、eSigner の照合は必ず落ちる');
-  }
+  // 値の実在（U-1 の実測・B31 MAJ-2）: eSigner は run 38369214775 の measure-esigner-identity（v1.1.0 の x64 Setup.exe）の
+  // 葉の Subject と chain の index 2（SSL.com Root）。index 1（Intermediate）は §3.5 の規則で issuerAllow に入れない
+  const es = identity.esigner;
+  assert.equal(es.publisherSubject, ES_REAL_CHAIN[0].subject, '[1] esigner.publisherSubject は U-1 の SignerCertificate.Subject そのもの');
+  assert.deepEqual(es.issuerAllow.map((a) => a.thumbprint), [ES_REAL_CHAIN[2].thumbprint],
+    '[1] esigner.issuerAllow は U-1 の chain の index 2（SSL.com Root Certification Authority RSA）だけ');
+  assert.match(es.source, /38369214775/, '[1] esigner.source は U-1 の run を指す');
+  assert.equal(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN }, 'esigner'), null,
+    '[1] 正本の esigner で U-1 の実物（SSL.com のチェーン）が通る');
+  assert.match(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN.slice(0, 2) }, 'esigner') ?? '', /上位/,
+    '[1] 正本の esigner でも Root が無いチェーンは落ちる');
 
   // (c) 署名者の文字列・WIN_SIGN_EXPECTED_CN は正本と smoke の fixture にしか無い
   const r = spawnSync('git', ['grep', '-n', '--untracked', 'NAYUTA, INC\\|WIN_SIGN_EXPECTED_CN', '--', 'scripts', 'electron-builder.config.cjs'],
@@ -518,6 +531,16 @@ const OLD = new Date('2020-01-02T03:04:05Z');
   const ri = apply({ phase: 'installer', manifest: path.join(d, 'manifest-installer.json'), signed: instSigned, releaseDir: finalRel, signedDir: null });
   assert.deepEqual(ri.errors, [], `[3] apply installer: ${ri.errors}`);
   assert.deepEqual(readFileSync(path.join(finalRel, path.basename(files.setup[0]))), fakeSign(files.setup[1]), '[3] apply installer: release/<版>/<名前> に置く');
+  // 変異（B31 MIN-1）: manifest の name が basename でなければ、どの phase でも 1 周目で赤・何も書かない
+  for (const bad of ['../escape-Setup.exe', '..\\escape-Setup.exe', 'sub/escape-Setup.exe']) {
+    writeFileSync(path.join(d, 'manifest-installer-bad.json'), JSON.stringify([{ sha256: sha256(files.setup[1]), name: bad,
+      kind: 'electron-builder', comparable: ws.comparableDigest(files.setup[1]), paths: [] }]));
+    const escRel = path.join(d, 'esc', 'release', '1.2.0');
+    const rb = apply({ phase: 'installer', manifest: path.join(d, 'manifest-installer-bad.json'), signed: instSigned, releaseDir: escRel, signedDir: null });
+    assert.ok(rb.errors.some((x) => /basename/.test(x)), `[3] apply installer: name が basename でなければ赤（${bad}）: ${rb.errors}`);
+    assert.deepEqual(rb.applied, [], `[3] apply installer: name が basename でなければ何も書かない（${bad}）`);
+    assert.ok(!existsSync(path.join(d, 'esc')), `[3] apply installer: release-dir の外へ書かない（${bad}）`);
+  }
   // verify-win-install.mjs の判定（PE の列挙は中身で・署名者は artifact-signing か Microsoft）
   const { listPes, judgeSigners } = await import('./win-sign/verify-win-install.mjs');
   const inst = path.join(d, 'installed');
@@ -543,6 +566,14 @@ const OLD = new Date('2020-01-02T03:04:05Z');
       { env: { ...process.env, WIN_SIGN_MODE: m, GITHUB_ENV: envFile }, encoding: 'utf8' });
     assert.equal(r.status, 0, `[3] prepare-nsis-toolset: ${m} は exit 0`);
     assert.equal(readFileSync(envFile, 'utf8'), '', `[3] prepare-nsis-toolset: ${m} は $GITHUB_ENV に書かない`);
+  }
+  // 静的（B31 MAJ-1）: Windows のジョブで node が起動する scripts/win-sign/ の下に `new URL(import.meta.url).pathname` の形が無い
+  // （Windows では pathname が /D:/… になり、path.resolve が D:\\D:\\… を作る。fileURLToPath を使う）
+  const winSignDir = path.join(projectRoot, 'scripts/win-sign');
+  for (const f of readdirSync(winSignDir).filter((n) => /\.(c|m)?js$/.test(n))) {
+    const src = readFileSync(path.join(winSignDir, f), 'utf8');
+    assert.ok(!/import\.meta\.url\s*\)\s*\.pathname/.test(src),
+      `[3] scripts/win-sign/${f} に new URL(…import.meta.url).pathname がある（Windows でパスが壊れる・fileURLToPath を使う）`);
   }
   console.log('  [3/6] collect-sign-set・apply-signed・verify-win-install・prepare-nsis-toolset: PASS');
 }

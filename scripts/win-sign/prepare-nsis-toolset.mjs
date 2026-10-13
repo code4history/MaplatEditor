@@ -15,9 +15,12 @@
 import { appendFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const projectRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
+// fileURLToPath で読む（B31 MAJ-1）。URL の pathname を使うと Windows で /D:/… になり、
+// path.resolve が D:\D:\… を作って electron-builder.config.cjs が見つからない（run 38369214775 の measure-prod-a/b）
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const winSign = require('./win-sign.cjs');
 
 const mode = winSign.getMode();

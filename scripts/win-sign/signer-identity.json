@@ -10,9 +10,11 @@
     ]
   },
   "esigner": {
-    "source": "未測定（暫定）。subject は docs/release-signing.md Part G の記録（2026-08-10・openssl）の属性。publisherSubject はそれを .NET の形に並べた暫定値。issuerAllow が空のあいだ eSigner の照合は必ず落ちる（fail-closed）。値は nov26-m7-t2 設計 §3.7 の 4（v1.1.0 の x64 Setup.exe の Get-AuthenticodeSignature と X509Chain）の実測で置き換える",
+    "source": "nov26-m7-t2 U-1（run 38369214775 の measure-esigner-identity・v1.1.0 の x64 Setup.exe の Get-AuthenticodeSignature と X509Chain・artifact u1-esigner-identity/esigner-identity.json の signerSubject と chain の index 2）。status Valid・signerSubject は暫定値と完全一致。chain の index 1（SSL.com Code Signing Intermediate CA RSA R1・BC1E0FF366EEAD57F872622A0A5903706B7420F4）は直接の発行者なので issuerAllow に入れない",
     "publisherSubject": "CN=\"NAYUTA, INC.\", O=\"NAYUTA, INC.\", L=Osaka, S=Ōsaka Prefecture, C=JP",
     "subject": { "CN": "NAYUTA, INC.", "O": "NAYUTA, INC.", "L": "Osaka", "ST": "Ōsaka Prefecture", "C": "JP" },
-    "issuerAllow": []
+    "issuerAllow": [
+      { "subject": "CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US", "thumbprint": "B7AB3308D1EA4477BA1480125A6FBDA936490CBB" }
+    ]
   }
 }

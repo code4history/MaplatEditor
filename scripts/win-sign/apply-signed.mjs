@@ -61,6 +61,13 @@ export function applySigned({ phase, manifest, signed, signer, releaseDir, signe
   // 1 周目: 全部を照合する（1 つでも外れたら何も書かない）
   const ok = [];
   for (const m of items) {
+    // name は書き込み先（installer は --release-dir/<name>）に使う ∴ basename でなければ赤（B31 MIN-1・3 phase とも）。
+    // posix と win32 の両方の区切りで確かめる（Windows の runner では \ も区切り）
+    const name = typeof m?.name === 'string' ? m.name : '';
+    if (name === '' || name === '.' || name === '..' || name !== path.posix.basename(name) || name !== path.win32.basename(name)) {
+      errors.push(`manifest の name が basename でない: ${JSON.stringify(m?.name)}`);
+      continue;
+    }
     const f = path.join(signed, `${m.sha256}.pe`);
     if (!existsSync(f)) { errors.push(`署名済みが無い: ${m.sha256}.pe（${m.name}）`); continue; }
     const buf = readFileSync(f);
