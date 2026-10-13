@@ -234,6 +234,47 @@ async function bootstrap(
 }
 
 test.describe('m1-t1 右クリックメニューの相別契約と折り返し', () => {
+  for (const face of ['illst', 'merc'] as const) {
+    test(`nov26-m9-t3b/AC3: ${face} 面の通常 hover と cursor 復元`, async () => {
+      test.setTimeout(120_000);
+      const { app, page, errors } = await bootstrap('ja', `maplat-m1t1-hover-${face}-`);
+      try {
+        const coord = await markerCoord(page, face, '2');
+        expect(coord).not.toBeNull();
+        await centerOn(page, face, coord!);
+        const positions = await page.evaluate(({ f, c, id }) => {
+          const debug = (window as any).testDebug;
+          const map = (f === 'illst' ? debug.illstMapInfo() : debug.mercMapInfo()).map;
+          const target = document.getElementById(id)!;
+          const rect = target.getBoundingClientRect();
+          const pixel = map.getPixelFromCoordinate(c);
+          // marker のアンカーより上にある実アイコンへ移動する（既存右クリック経路と同じ補正）。
+          const hover = [pixel[0], pixel[1] - 12];
+          const candidates = [[20, 20], [rect.width - 20, 20], [20, rect.height - 20], [rect.width - 20, rect.height - 20]];
+          const empty = candidates.find((p) => !map.forEachFeatureAtPixel(p, (ft: any) => ft, {
+            layerFilter: (layer: any) => layer.get('name') === 'marker',
+          }));
+          if (!empty) throw new Error('marker に命中しない対照pixelが無い');
+          return { hover: { x: rect.left + hover[0], y: rect.top + hover[1] }, empty: { x: rect.left + empty[0], y: rect.top + empty[1] } };
+        }, { f: face, c: coord!, id: MAP_ELEMENT_ID[face] });
+        const target = page.locator(`#${MAP_ELEMENT_ID[face]}`);
+        await page.mouse.move(positions.empty.x, positions.empty.y);
+        const previous = await target.evaluate((element) => element.style.cursor);
+        expect(previous).not.toBe('pointer');
+        await page.mouse.move(positions.hover.x, positions.hover.y);
+        await expect.poll(() => target.evaluate((element) => element.style.cursor)).toBe('pointer');
+        // 反復hoverで previousCursor_ を上書きしない。
+        await page.mouse.move(positions.hover.x + 1, positions.hover.y);
+        await expect.poll(() => target.evaluate((element) => element.style.cursor)).toBe('pointer');
+        await page.mouse.move(positions.empty.x, positions.empty.y);
+        await expect.poll(() => target.evaluate((element) => element.style.cursor)).toBe(previous);
+        expect(errors).toEqual([]);
+      } finally {
+        await quitElectronApplication(app);
+      }
+    });
+  }
+
   test('AC4/AC6/AC7/AC8: F0（通常）と F1（対応線作図中）の全セル', async () => {
     test.setTimeout(240_000);
     const { app, page, errors } = await bootstrap('ja', 'maplat-m1t1-f0f1-');

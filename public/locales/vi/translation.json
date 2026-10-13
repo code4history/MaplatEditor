@@ -51,6 +51,8 @@
     "settings": "Cài đặt"
   },
   "basemap": {
+    "source_metadata": "Thông tin nguồn (tùy chọn)",
+    "source_description_pf": "Vui lòng nhập mô tả của bản đồ nền.",
     "thumbnail_manage": "Quản lý ảnh thu nhỏ",
     "thumbnail_replace_512": "Thay thế 512px…",
     "thumbnail_replace_52": "Thay thế 52px…",

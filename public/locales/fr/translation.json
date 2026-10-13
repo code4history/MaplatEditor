@@ -51,6 +51,8 @@
     "settings": "Paramètres"
   },
   "basemap": {
+    "source_metadata": "Informations sur la source (facultatif)",
+    "source_description_pf": "Veuillez saisir la description du fond de carte.",
     "thumbnail_manage": "Gestion des vignettes",
     "thumbnail_replace_512": "Remplacer le 512px…",
     "thumbnail_replace_52": "Remplacer le 52px…",

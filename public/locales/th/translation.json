@@ -51,6 +51,8 @@
     "settings": "การตั้งค่า"
   },
   "basemap": {
+    "source_metadata": "ข้อมูลแหล่งที่มา (ไม่บังคับ)",
+    "source_description_pf": "กรุณากรอกคำอธิบายของแผนที่ฐาน",
     "thumbnail_manage": "จัดการภาพย่อ",
     "thumbnail_replace_512": "แทนที่ 512px…",
     "thumbnail_replace_52": "แทนที่ 52px…",

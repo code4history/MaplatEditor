@@ -1,0 +1,20 @@
+{
+  "_about": "Windows の署名者の正本（nov26-m7-t2・C-3）。照合は scripts/win-sign/signer-identity.cjs の checkSigner だけが行う。publisherSubject は Get-AuthenticodeSignature の SignerCertificate.Subject の文字列そのもの（electron-updater の publisherName 用・加工しない）。subject はそれを parseDn で読んだ属性の集合（照合用）。issuerAllow はチェーンの index 2 以降（0 は葉・1 は直接の発行者）に 1 つ以上あるべき上位の証明書",
+  "artifact-signing": {
+    "source": "nov26-m7-t1 H-B1（run 38271126518・probe-result.json の signerCertificate.Subject と chain の index 2・3）",
+    "publisherSubject": "CN=\"Nayuta, Inc.\", O=\"Nayuta, Inc.\", L=Osaka-shi, S=Osaka-fu, C=JP",
+    "subject": { "CN": "Nayuta, Inc.", "O": "Nayuta, Inc.", "L": "Osaka-shi", "ST": "Osaka-fu", "C": "JP" },
+    "issuerAllow": [
+      { "subject": "CN=Microsoft ID Verified Code Signing PCA 2021, O=Microsoft Corporation, C=US", "thumbprint": "8E750F459DAF9A79D6370DB747AD2226866AD818" },
+      { "subject": "CN=Microsoft Identity Verification Root Certificate Authority 2020, O=Microsoft Corporation, C=US", "thumbprint": "F40042E2E5F7E8EF8189FED15519AECE42C3BFA2" }
+    ]
+  },
+  "esigner": {
+    "source": "nov26-m7-t2 U-1（run 38369214775 の measure-esigner-identity・v1.1.0 の x64 Setup.exe の Get-AuthenticodeSignature と X509Chain・artifact u1-esigner-identity/esigner-identity.json の signerSubject と chain の index 2）。status Valid・signerSubject は暫定値と完全一致。chain の index 1（SSL.com Code Signing Intermediate CA RSA R1・BC1E0FF366EEAD57F872622A0A5903706B7420F4）は直接の発行者なので issuerAllow に入れない",
+    "publisherSubject": "CN=\"NAYUTA, INC.\", O=\"NAYUTA, INC.\", L=Osaka, S=Ōsaka Prefecture, C=JP",
+    "subject": { "CN": "NAYUTA, INC.", "O": "NAYUTA, INC.", "L": "Osaka", "ST": "Ōsaka Prefecture", "C": "JP" },
+    "issuerAllow": [
+      { "subject": "CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US", "thumbprint": "B7AB3308D1EA4477BA1480125A6FBDA936490CBB" }
+    ]
+  }
+}

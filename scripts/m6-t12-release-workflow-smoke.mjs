@@ -49,6 +49,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
         VERSION,
         EXPECTED_EDITOR_SHA: opts.sha ?? '',
         EXPECTED_VERSION: opts.version ?? '',
+        WIN_SIGNER: opts.signer ?? '',
       },
       encoding: 'utf8',
     });
@@ -78,7 +79,24 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'AC3(h) verify + alpha → 許可');
   ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'AC3(i) verify + master + rc → 許可');
 
-  console.log('  [1/7] AC3 リリースガード 13ケース（2軸モデル + #104 exact SHA 宣言）: PASS');
+  // --- nov26-m7-t2: mode=sign-check（Mac 署名のみ・Win は Artifact Signing・draft Release なし。定額 ∴ rc の制限なし）---
+  ok(run('sign-check', 'refs/heads/master', '1.2.0-alpha.1', { sha: SHA, version: '1.2.0-alpha.1', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + alpha + 宣言 → 許可（rc の制限を課さない）');
+  ok(run('sign-check', 'refs/heads/foss4g-hiroshima', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + 非 master + 正式版 → 許可（配布物を作らない）');
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { version: '1.2.0', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + expected_editor_sha 欠落 → 拒否', /expected_editor_sha/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.1', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + expected_version 不一致 → 拒否', /expected_version/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }),
+    'm7-t2 sign-check + win_signer=esigner → 拒否（課金の退路を検査用途に使わない）', /esigner/);
+  // --- nov26-m7-t2: mode=full の win_signer（artifact-signing・esigner のどちらか。既定は artifact-signing）---
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }), 'm7-t2 full + esigner → 許可（J-7 の退路）');
+  ng(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'bogus' }), 'm7-t2 full + 不正な win_signer → 拒否', /win_signer/);
+  ng(run('nonsense', 'refs/heads/master', '1.2.0'), 'm7-t2 未知の mode → 拒否', /mode/);
+  ok(run('', 'refs/heads/master', '1.2.0'), 'm7-t2 push（mode が空）→ 制約なし');
+
+  console.log('  [1/7] AC3 リリースガード 22ケース（2軸モデル + #104 exact SHA 宣言 + m7-t2 sign-check・win_signer）: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -139,6 +157,8 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     'APPLE_CERT_BASE64', 'APPLE_CERT_PASSWORD',
     'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID',
     'ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET',
+    // nov26-m7-t2: Artifact Signing の署名専用ジョブの azure/login だけが参照する（規則は signing-job-rules.mjs）
+    'AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID',
   ].sort();
   const referenced = [...new Set([...src.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))].sort();
   assert.deepEqual(referenced, EXPECTED_SECRETS, 'AC1: secrets 参照が契約表と完全一致');
@@ -161,10 +181,12 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const inputs = wf.on.workflow_dispatch.inputs;
   assert.deepEqual(
     Object.keys(inputs).sort(),
-    ['expected_editor_sha', 'expected_version', 'mode', 'platforms'],
-    'AC10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version'
+    ['expected_editor_sha', 'expected_version', 'mode', 'platforms', 'win_signer'],
+    'AC10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + nov26-m7-t2 の win_signer'
   );
-  assert.deepEqual(inputs.mode.options, ['verify', 'full'], 'AC10: mode の選択肢');
+  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'AC10: mode の選択肢（nov26-m7-t2 で sign-check）');
+  assert.deepEqual(inputs.win_signer.options, ['artifact-signing', 'esigner'], 'm7-t2: win_signer の選択肢');
+  assert.equal(inputs.win_signer.default, 'artifact-signing', 'm7-t2: win_signer の既定は artifact-signing（定額）');
   assert.equal(inputs.mode.default, 'verify', 'AC10: mode の既定は課金ゼロ側（verify）');
   assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'AC10: platforms の選択肢');
   assert.equal(inputs.platforms.default, 'all', 'AC10: platforms の既定は all');
@@ -193,11 +215,14 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // 検査は課金の前に置く（m19-t13 §6.3 の「壊れた成果物へ課金つきの署名をしない」を引き継ぐ）
   const rehearsalAt = stepIndex((st) => st.name === 'Build Windows', '予行ビルド（Build Windows）');
   const rehearsal = winSteps[rehearsalAt];
-  assert.equal(envOf(rehearsal).WIN_SIGN_MODE, 'record', 'SAC: Build Windows は record（署名しない・課金ゼロ）');
+  // nov26-m7-t2: eSigner の経路だけ record（キャッシュを引いて課金の見込みを出す）、それ以外は collect（署名しない・集める）
+  assert.equal(envOf(rehearsal).WIN_SIGN_MODE, "${{ needs.prepare.outputs.win_sign_path == 'esigner' && 'record' || 'collect' }}",
+    'SAC: Build Windows は署名しない（eSigner の経路は record・それ以外は collect）');
   assert.equal(rehearsal.if, undefined, 'SAC: 予行は全経路（push / verify / full）で走る');
   const codecAt = stepIndex((st) => (st.run ?? '').includes('verify:m19-t13:win-payload-codec'), 'コーデック検査');
   const coverageAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--record'), '署名網羅の検査（record）');
   assert.equal(winSteps[coverageAt].if, undefined, 'SAC: 署名網羅の検査は全経路で走る（日常の回帰の番人）');
+  const ESIGNER_PATH = "needs.prepare.outputs.win_sign_path == 'esigner'";
   const esignerSteps = winSteps.filter((st) => envOf(st).WIN_SIGN_MODE === 'esigner');
   assert.equal(esignerSteps.length, 1, 'SAC: 本番署名（WIN_SIGN_MODE=esigner）のビルドは 1 ステップ');
   const esignerAt = winSteps.indexOf(esignerSteps[0]);
@@ -205,6 +230,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     'SAC: 予行 → コーデック検査 → 署名網羅の検査 → 本番署名 の順（検査を課金の前に置く）');
   const esigner = esignerSteps[0];
   assert.ok(FULL_COND.test(esigner.if ?? ''), 'AC4: eSigner 署名は mode=full 限定（verify では Win 署名なし）');
+  assert.ok((esigner.if ?? '').includes(ESIGNER_PATH), 'm7-t2: eSigner 署名は win_sign_path=esigner のときだけ');
   for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
     assert.equal(envOf(esigner)[k], `\${{ secrets.${k} }}`, `SAC: 本番署名ステップが ${k} を env で受け取る`);
   }
@@ -216,7 +242,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // CodeSignTool は公式リリースから版とハッシュを固定して取得し、本番署名の前に用意する
   const cstAt = stepIndex((st) => (st.name ?? '').includes('CodeSignTool'), 'CodeSignTool の取得');
   const cst = winSteps[cstAt];
-  assert.ok(FULL_COND.test(cst.if ?? ''), 'SAC: CodeSignTool の取得は mode=full 限定');
+  assert.ok(FULL_COND.test(cst.if ?? '') && (cst.if ?? '').includes(ESIGNER_PATH), 'SAC: CodeSignTool の取得は mode=full・eSigner の経路限定');
   assert.match(envOf(cst).CODESIGNTOOL_URL ?? '', /^https:\/\/github\.com\/SSLcom\/CodeSignTool\/releases\/download\/v[0-9.]+\//,
     'SAC: CodeSignTool は SSL.com の公式リリースから版を固定して取得');
   assert.match(envOf(cst).CODESIGNTOOL_SHA256 ?? '', /^[0-9a-f]{64}$/, 'SAC: CodeSignTool の SHA-256 を固定');
@@ -226,6 +252,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // 本番署名の成果物を Authenticode で検査する
   const acAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--authenticode'), 'Authenticode の検査');
   assert.ok(FULL_COND.test(winSteps[acAt].if ?? '') && esignerAt < acAt, 'SAC: Authenticode の検査は mode=full で本番署名の後');
+  assert.ok((winSteps[acAt].run ?? '').includes('--signer esigner'), 'm7-t2: eSigner の経路の Authenticode の検査は --signer esigner');
   const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
   assert.ok(resign && FULL_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は mode=full 限定');
   const macSteps = wf.jobs['build-mac'].steps;
@@ -250,7 +277,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     'AC1: prepare が check-release-guard.mjs を呼ぶ');
 
   // #104 / oct26-m4-t2: 全 checkout を ref: inputs.expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
-  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
+  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux', 'pack-win-1', 'pack-win-2', 'finalize-win', 'verify-win-install']) {
     const checkouts = (wf.jobs[job].steps ?? []).filter((s) => (s.uses ?? '').startsWith('actions/checkout@'));
     assert.ok(checkouts.length > 0, `#104: ${job} に checkout step がある`);
     for (const c of checkouts) {
@@ -267,7 +294,8 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.equal(guardEnv.EXPECTED_VERSION, '${{ inputs.expected_version }}', '#104: guard へ EXPECTED_VERSION を渡す');
 
   // #104: prepare が git rev-parse HEAD から build-meta.json を生成し build-meta artifact として upload
-  const metaGen = prepSteps.find((s) => (s.run ?? '').includes('git rev-parse HEAD'));
+  // nov26-m7-t2: 祖先の確認の step も git rev-parse HEAD を持つので、build-meta.json を書く step を選ぶ
+  const metaGen = prepSteps.find((s) => (s.run ?? '').includes('git rev-parse HEAD') && (s.run ?? '').includes('build-meta.json'));
   assert.ok(metaGen && (metaGen.run ?? '').includes('build-meta.json'),
     '#104: prepare が git rev-parse HEAD から build-meta.json を生成');
   const metaUpload = prepSteps.find((s) =>
@@ -294,8 +322,10 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   }
 
   // P1(e): win アーティファクトに blockmap を含める
-  const upload = winSteps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact'));
+  const upload = winSteps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact') && s.with?.name === 'win-artifacts');
   assert.ok(String(upload.with.path).includes('*.exe.blockmap'), 'AC1: win artifacts に blockmap を含む');
+  const finUpload = wf.jobs['finalize-win'].steps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact') && s.with?.name === 'win-artifacts');
+  assert.ok(String(finUpload.with.path).includes('*-Setup.exe.blockmap'), 'm7-t2: finalize-win の win artifacts に blockmap を含む');
 
   console.log('  [3/7] AC1/AC4/AC6/AC10 build.yml 静的検査: PASS');
 }
@@ -395,7 +425,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     );
   }
   // 多層防御: ビルドジョブの checkout はトークンを .git/config へ残さない
-  for (const job of ['build-mac', 'build-win', 'build-linux']) {
+  for (const job of ['build-mac', 'build-win', 'build-linux', 'pack-win-1', 'pack-win-2', 'finalize-win', 'verify-win-install']) {
     const co = wf.jobs[job].steps.find((s) => (s.uses ?? '').startsWith('actions/checkout@'));
     assert.equal(
       co?.with?.['persist-credentials'], false,

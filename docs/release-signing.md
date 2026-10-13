@@ -159,14 +159,24 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 
 ## Part D: 署名付きビルドの実行
 
-実行は **`mode`（署名レベル）** と **`platforms`（対象）** の2軸で指定する。
+実行は **`mode`（署名レベル）** と **`platforms`（対象）** の2軸で指定し、Windows の署名者を **`win_signer`** で選ぶ（nov26-m7-t2）。
 
 | mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
 |---|---|---|---|---|---|
 | **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可） |
-| **`full`**（完全） | 署名 + 公証 | eSigner 署名（全 PE） | 作る | **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
+| **`sign-check`**（署名の確認・nov26-m7-t2） | 署名のみ（公証なし） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
+| **`full`**（完全） | 署名 + 公証 | 全 PE 署名（`win_signer`） | 作る | `artifact-signing`: **定額** / `esigner`: **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
 
 **`platforms`**: `all`（既定）/ `mac` / `win` / `linux`
+
+**`win_signer`**（Windows の署名者・Part I）:
+
+| win_signer | 署名 | 使える mode |
+|---|---|---|
+| **`artifact-signing`**（既定） | Azure Artifact Signing（`nayutasigning`・プロファイル `maplateditor`）。依存を入れない署名専用ジョブ 3 つが署名する | `full`・`sign-check` |
+| `esigner`（退路・J-7） | SSL.com eSigner（署名ごとに課金）。build-win の中で署名し、署名済みキャッシュを使い回す | `full` だけ（`sign-check` では prepare が拒む） |
+
+`mode=full`・`sign-check` は、`expected_editor_sha` が **origin/master の祖先**でなければ prepare の最初の step で止まる（#140 L-1）。
 
 `mode=full` が使えるバージョン:
 
@@ -180,6 +190,9 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 2. 右上の **Run workflow** → ブランチを選ぶ → **mode** と **platforms** を選んで Run workflow
 3. build-mac / build-win が **承認待ち（Review deployments）**になる → 黄色の表示をクリックし、`release` にチェックして **Approve and deploy**
    - dispatch 実行では mode に関わらず environment `release` を使う（Mac 署名に証明書が要るため）
+   - `win_signer=artifact-signing` では、続いて署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・`sign-win-installer`）が
+     **1 つずつ承認待ちになる**（1 回の実行で承認は最大 4 回）。承認の前に run の表示名（`dispatch mode=… signer=… sha=… ver=…`）が
+     自分の起動と一致することを確かめる（outer の承認スクリプトは表示名を照合してから承認する）
 4. 完了後の確認:
    - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / latest-mac.yml）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
    - `mode=full` かつ `platforms=all` のときだけ **Releases に draft** ができる → 内容を確認して人間が Publish する（自動公開はしない）
@@ -198,6 +211,7 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 | Win の署名だけやり直す | `full` | `win` |
 | Win のビルドが通るかだけ見る | `verify` | `win` |
 | Linux だけ | どちらでも | `linux` |
+| Windows の Artifact Signing の経路だけを本番の前に確かめる（SAC の確認用の Setup.exe を作る） | `sign-check` | `all` |
 
 **`platforms` を絞れることの意味**: eSigner は署名ごとに課金されるため、Mac の都合で全体を焼き直すと Windows の署名代が無駄になる。Apple の公証待ちが発生したときは `mac` + `full` で Mac だけ作り直し、Windows は前回の Artifacts を流用すればよい。
 
@@ -322,7 +336,7 @@ v1.0.0 は Setup.exe しか署名していなかったため、Windows 11 の**�
 
 - 依存の版が同じなら DLL 等はバイト単位で同じなので、署名済みファイルを GitHub Release **`win-signed-cache`**
   （prerelease・配布物ではない）の asset に保管し、次のリリースで使い回す。asset 名は `<署名前の SHA-256>--<ファイル名>.signed`
-- 取り込む前に「署名を除いた中身が署名前ファイルと一致」「Authenticode が Valid」「署名者が NAYUTA, INC.」を確かめる。
+- 取り込む前に「署名を除いた中身が署名前ファイルと一致」「Authenticode が Valid」「署名者が `scripts/win-sign/signer-identity.json` の `esigner`」を確かめる。
   1 つでも外れたら使わずに署名し直す（改ざんされた asset は取り込まれない）
 - 書き込みは `publish-win-sign-cache` ジョブ（`contents: write`・checkout も依存導入もしない）だけが行う。
   build-win は新しく署名したものを artifact で渡すだけ（build ジョブに write を与えない — SR-t12-M-1）
@@ -340,3 +354,65 @@ node scripts/win-sign/verify-win-sign-coverage.mjs --record release/win-sign-rec
 Apple Silicon の Mac で Rosetta が無い場合、既定の NSIS（3.0.4.1）の makensis が x86_64 専用のため起動しない。
 その場合は `pnpm run dist:win -c.toolsets.nsis=1.2.1`（NSIS 3.12・arm64 ネイティブ）で代用できる
 （同梱される PE の顔ぶれは同じ。CI の Windows ランナーは既定の NSIS で作る）
+
+## Part I: Azure Artifact Signing の署名専用ジョブ（nov26-m7-t2・2026-10）
+
+### 何が変わったか
+
+- Windows の既定の署名者を SSL.com eSigner から **Azure Artifact Signing** に替えた（`win_signer=artifact-signing`）。
+  定額（Basic・**月 5,000 署名**）で、署名ごとの課金が無い。アカウント `nayutasigning`（Japan East・エンドポイント
+  `https://jpe.codesigning.azure.net`）・証明書プロファイル `maplateditor`。証明書の Subject は
+  `CN="Nayuta, Inc.", O="Nayuta, Inc.", L=Osaka-shi, S=Osaka-fu, C=JP`（nov26-m7-t1 の H-B1・run 38271126518）
+- 葉の証明書は **3 日ごとに替わる**（有効期間 3 日）。タイムスタンプ（`http://timestamp.acs.microsoft.com`）があるので、
+  期限が切れても署名は有効なまま。∴ 署名者の照合は葉の thumbprint ではなく、DN の属性と上位（PCA・ルート）の thumbprint で行う
+- eSigner の経路は退路として残す（`win_signer=esigner`。`mode=full` だけ）
+
+### 署名専用ジョブの構成（C-8）
+
+OIDC の要求口（`id-token: write`）はジョブの間ずっと開いている。依存（electron-builder とその依存）を入れたジョブに持たせると、
+依存のどこかが乗っ取られたときに署名トークンを取られる。∴ **署名は依存を入れないジョブだけが行う**。
+
+| 段 | ジョブ | id-token | 中身 |
+|---|---|---|---|
+| 0 | `prepare` | なし | 祖先の確認・`win_sign_path` の算出・ガード |
+| 1 | `build-win` | なし | `WIN_SIGN_MODE=collect` で作り、検査（コーデック・網羅）を通し、payload（unpacked の PE・NSIS プラグイン・`elevate.exe`）を `<SHA-256>.pe` で並べる |
+| 2 | `sign-win-payload` | **あり** | 署名専用（上限 48 本） |
+| 3 | `pack-win-1` | なし | 署名済みを照合して書き戻し、`prepare-nsis-toolset.mjs` → `--prepackaged` で作り直し、アンインストーラーを並べる |
+| 4 | `sign-win-uninstaller` | **あり** | 署名専用（上限 2 本） |
+| 5 | `pack-win-2` | なし | 署名済みのアンインストーラーに差し替えて作り直し、インストーラーを並べる |
+| 6 | `sign-win-installer` | **あり** | 署名専用（上限 2 本） |
+| 7 | `finalize-win` | なし | 署名済みの Setup.exe・`latest.yml`・blockmap、網羅検査（`--authenticode --signer artifact-signing`）、`win-artifacts` |
+| 8 | `verify-win-install` | なし | x64 の Setup.exe を入れて全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す |
+
+- 署名専用ジョブ 3 つは step の列が完全に同じ（違いは `IN_ARTIFACT`・`OUT_ARTIFACT`・`MAX_FILES` だけ）。checkout・pnpm・
+  setup-node を持たず、リポジトリのコードを実行しない。入力は「直下の `<SHA-256>.pe` だけ・件数の上限・中身の SHA-256 が名前と一致・
+  先頭が MZ・ディレクトリとリンクが無い」を確かめてから署名し、実行しない。規則の正本は `scripts/win-sign/signing-job-rules.mjs`
+- `--prepackaged` では electron-builder の `beforePack` が呼ばれないので、NSIS ツールセット（署名済みのプラグイン）の用意は
+  electron-builder の前の step（`scripts/win-sign/prepare-nsis-toolset.mjs`）が行う。用意が無いまま NSIS の出力を署名しようとすると
+  `win-sign.cjs` が落ちる（fail-closed）
+- 署名済みを戻すときは「署名と TimeDateStamp を除いた中身が署名前と一致」「Authenticode が Valid」「署名者が
+  `scripts/win-sign/signer-identity.json` の `artifact-signing`」を確かめる。Artifact Signing の経路は署名済みキャッシュを使わない
+- 承認の回数: 1 回の実行で最大 4 回（開始時の build-mac＋build-win・署名専用 3 つ）
+- 受け渡しの artifact の保持は 1 日。`win-artifacts`（Setup.exe・blockmap・`latest.yml`）は `sign-check` で 3 日・`full` で 30 日
+- 署名回数（1 回の実行）: 上限は 52 本（48＋2＋2）。実績は H-B2（t2/AC6）の 3 つの `signing-record.json` の件数の和で記入する（**未測定**）
+
+### `sign-check` の使い方
+
+`mode=sign-check`・`platforms=all`・`win_signer=artifact-signing`・`expected_editor_sha`（master の祖先）・`expected_version` で起動する。
+Mac は署名のみ（公証なし）・Windows は本番と同じ経路で全 PE を署名・draft Release は作らない。できた `win-artifacts` の Setup.exe で
+SAC（スマート アプリ コントロール）の確認を行う（保持 3 日）。
+
+### 身元確認の期限
+
+Artifact Signing の法人の身元確認には期限があり、切れると証明書の更新と署名が止まる（**60 日前から通知**。Microsoft Learn の FAQ）。
+期限の日付と通知の宛先は Azure ポータル（アカウント `nayutasigning` → Objects → Identity validations）で確かめる
+（本書の作成時点では未確認。確かめたらここに書く）。
+
+### U-1（同じ入力からアンインストーラーを 2 回作って同じ中身になるか）の判定
+
+署名済みのアンインストーラーへの差し替え（段 5）は、段 3 と段 5 で作ったアンインストーラーが「署名と TimeDateStamp を除いて同じ」
+ことを前提にする。決定的にする手当て: NSIS ツールセットの複写で mtime を保つ・比較で TimeDateStamp を除く。
+**判定は Windows の runner での測定（nov26-m7-t2 設計 §3.7 の一時の workflow）待ち**。不成立なら段 3〜5 を 1 つのジョブにまとめる縮退
+（C-8 の例外。残るリスクをここに書く）へ進む。なお pack-win-2 が「差し替えられなかったアンインストーラー」を赤にするので、
+不成立のまま署名済みでない成果物が出ることは無い。
+

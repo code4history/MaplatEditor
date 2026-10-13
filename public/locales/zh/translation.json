@@ -51,6 +51,8 @@
     "settings": "设置"
   },
   "basemap": {
+    "source_metadata": "来源信息（可选）",
+    "source_description_pf": "请输入底图的说明文字。",
     "thumbnail_manage": "缩略图管理",
     "thumbnail_replace_512": "替换512px…",
     "thumbnail_replace_52": "替换52px…",

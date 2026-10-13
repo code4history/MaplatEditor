@@ -7,12 +7,17 @@
  * 署名専用ジョブは OIDC の要求口（id-token: write）をジョブの間ずっと持つ。そのため:
  *   - リポジトリのコード・依存を一切実行しない（checkout・pnpm・npm・node を持たない）
  *   - 外部 action は first-party の actions/* も含めて 40 桁 SHA で固定する
- *   - secrets は azure/login の 3 つだけ
+ *   - secrets は azure/login の 3 つだけ（.名前・['名前'] の両方の記法で数え、toJSON(secrets) 等の丸渡しは拒む）
+ *   - github.token を参照しない
  *   - 署名先の Endpoint・アカウントは step の中のリテラル（式や前段の出力から作らない）
- *   - 入力（署名する PE）を実行しない。& で呼んでよいのは $env:SIGNTOOL だけ
+ *   - 入力（署名する PE）を実行しない。& で呼んでよいのは $env:SIGNTOOL だけ。run: の shell は pwsh に限る
+ *     （拒否リストは完全にできないので、shell を 1 つに絞り、& の対象を許可リストにしたうえで、既知の起動手段
+ *     〔Start-Process・Invoke-Item・ii・[Diagnostics.Process]::Start・Start-Job・powershell -・cmd /c 等〕と、
+ *     ワークスペースの絶対パスから入力のディレクトリを指す形を拒む。nov26-m7-t2・B24-MIN-2）
  *
  * checkSigningJob(jobName, job) → string[]（違反の一覧。空なら合格）
  * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて m10 の PIN か）
+ * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う（nov26-m7-t2・B24-MIN-1）
  */
 
 export const ENDPOINT = 'https://jpe.codesigning.azure.net';
@@ -33,6 +38,8 @@ const PINNED_USES_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\/[A-Za-z0-9_./-]+)?@[
 const VERSION_RE = /^\d+(\.\d+){2,3}$/;
 const SHA256_RE = /^[0-9a-f]{64}$/;
 
+const GITHUB_TOKEN_RE = /\bgithub\s*(\.\s*token\b|\[\s*['"]token['"]\s*\])/;
+
 const stepLabel = (jobName, i, st) => `${jobName}.steps[${i}]${st?.name ? `「${st.name}」` : ''}`;
 
 /** オブジェクト中の文字列をすべて連結する（secrets・式の参照を位置を問わず拾う） */
@@ -42,6 +49,26 @@ function allStrings(v) {
   if (typeof v !== 'object') return String(v);
   return Object.entries(v).map(([k, x]) => `${k}\n${allStrings(x)}`).join('\n');
 }
+
+/**
+ * secrets の参照を拾う。名前は `secrets.X`・`secrets['X']`・`secrets["X"]` の 3 つの形で数え、それ以外の
+ * `secrets`（式の中の toJSON(secrets)・secrets[format(...)] 等の丸渡し・動的な添字）は bulk として数える。
+ * @returns {{names: string[], bulk: string[]}}
+ */
+export function secretRefs(value) {
+  const text = allStrings(value);
+  const NAMED = /\bsecrets\s*(?:\.\s*([A-Za-z0-9_]+)|\[\s*(['"])([A-Za-z0-9_]+)\2\s*\])/g;
+  const names = [...text.matchAll(NAMED)].map((m) => m[1] ?? m[3]);
+  // 名前つきの参照を消したあとも式の中に残る secrets は、丸渡し（toJSON(secrets)）か動的な添字
+  const bulk = [...text.matchAll(/\$\{\{([\s\S]*?)\}\}/g)]
+    .filter((m) => /\bsecrets\b/.test(m[1].replace(NAMED, '')))
+    .map((m) => m[0]);
+  return { names, bulk };
+}
+export const hasSecretRef = (value) => {
+  const r = secretRefs(value);
+  return r.names.length > 0 || r.bulk.length > 0;
+};
 
 /** run: の中の呼び出し演算子 & の対象を列挙する（2>&1 や && は対象にしない） */
 function callTargets(run) {
@@ -71,7 +98,10 @@ export function checkSigningJob(jobName, job) {
 
   // ジョブ全体（steps 以外）で secrets を参照しない（env: 等で全 step へ配らない）
   const { steps: rawSteps, ...rest } = job;
-  if (/secrets\./.test(allStrings(rest))) v.push(`${jobName}: ジョブレベルで secrets を参照している`);
+  if (hasSecretRef(rest)) v.push(`${jobName}: ジョブレベルで secrets を参照している`);
+  // github.token を参照しない（署名ジョブは GitHub に何も書かない・読まない。B24-Info-5）
+  if (GITHUB_TOKEN_RE.test(allStrings(job))) v.push(`${jobName}: github.token を参照している`);
+  const defaultShell = job.defaults?.run?.shell;
 
   const steps = Array.isArray(rawSteps) ? rawSteps : [];
   if (steps.length === 0) v.push(`${jobName}: steps が無い`);
@@ -95,14 +125,21 @@ export function checkSigningJob(jobName, job) {
     // 4. uses: はすべて 40 桁 SHA で固定
     if (uses && !PINNED_USES_RE.test(uses)) v.push(`${label}: uses が 40 桁 SHA で固定されていない: ${uses}`);
 
-    // 5. secrets を参照してよいのは azure/login の step だけ・参照名は 3 つだけ
-    const text = allStrings(st);
-    const refs = [...text.matchAll(/secrets\.([A-Za-z0-9_]+)/g)].map((m) => m[1]);
+    // 5. secrets を参照してよいのは azure/login の step だけ・参照名は 3 つだけ・丸渡しは誰にも許さない
+    const { names: refs, bulk } = secretRefs(st);
     const isAzureLogin = uses.startsWith('azure/login@');
     if (isAzureLogin) azureLoginSteps++;
-    if (refs.length > 0 && !isAzureLogin) v.push(`${label}: azure/login 以外の step が secrets を参照している: ${refs.join(',')}`);
+    if ((refs.length > 0 || bulk.length > 0) && !isAzureLogin) {
+      v.push(`${label}: azure/login 以外の step が secrets を参照している: ${[...refs, ...bulk].join(',')}`);
+    }
+    for (const b of bulk) v.push(`${label}: secrets を名前でなく丸ごと・動的に参照している: ${b}`);
     for (const r of refs) {
       if (!ALLOWED_SECRETS.includes(r)) v.push(`${label}: 許されていない secret を参照している: ${r}`);
+    }
+
+    // run: の shell は pwsh に限る（bash・cmd・powershell 5.1 で拒否リストを迂回させない）
+    if (run !== '' && (st.shell ?? defaultShell) !== 'pwsh') {
+      v.push(`${label}: run: の shell が pwsh でない: ${JSON.stringify(st.shell ?? defaultShell ?? '(既定)')}`);
     }
 
     // 6. metadata.json を書く step: Endpoint・アカウントはリテラル・run と env に ${{ が無い
@@ -137,9 +174,19 @@ export function checkSigningJob(jobName, job) {
     // 9. 入力を実行しない
     for (const [re, what] of [
       [/Start-Process/i, 'Start-Process'],
+      [/(^|[\s;|(])saps\s/im, 'saps'],
       [/Invoke-Expression/i, 'Invoke-Expression'],
       [/(^|[\s;|(])iex\s/im, 'iex'],
-      [/cmd(\.exe)?\s+\/c/i, 'cmd /c'],
+      [/Invoke-Item/i, 'Invoke-Item'],
+      [/(^|[\s;|({])ii\s/im, 'ii'],
+      [/Invoke-Command/i, 'Invoke-Command'],
+      [/Invoke-CimMethod|Invoke-WmiMethod|\bwmic\b/i, 'WMI からの起動'],
+      [/Process\]\s*::\s*Start/i, '[Diagnostics.Process]::Start'],
+      [/ProcessStartInfo/i, 'ProcessStartInfo'],
+      [/Start-(Thread)?Job/i, 'Start-Job'],
+      [/(^|[\s;|(&])(powershell|pwsh)(\.exe)?\s+-/im, 'powershell -・pwsh -'],
+      [/cmd(\.exe)?\s+\/[ck]/i, 'cmd /c'],
+      [/\b(rundll32|regsvr32|mshta|cscript|wscript)\b/i, 'rundll32 等'],
       [/&\s*\.\\/, '& .\\'],
     ]) {
       if (re.test(run)) v.push(`${label}: 実行の形 ${what} がある`);
@@ -151,6 +198,9 @@ export function checkSigningJob(jobName, job) {
       // 入力のディレクトリの .exe を行頭（コマンド位置）で直接起動する形
       const re = new RegExp(`(^|[;|(])\\s*(\\.[\\\\/])?${dir}[\\\\/][^\\s]*\\.(exe|pe|com|bat|cmd|ps1)\\b`, 'im');
       if (re.test(run)) v.push(`${label}: 入力 ${dir} のファイルをコマンド位置で起動している`);
+      // ワークスペースの絶対パスから入力のディレクトリを指す形（"$GITHUB_WORKSPACE/probe-in/…exe" 等）
+      const ws = new RegExp(`(GITHUB_WORKSPACE|github\\.workspace)[^\\n]*${dir}`, 'i');
+      if (ws.test(run)) v.push(`${label}: ワークスペースの絶対パスから入力 ${dir} を指している`);
     }
 
     // 10. upload-artifact は retention-days を持つ

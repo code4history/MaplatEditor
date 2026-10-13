@@ -51,6 +51,8 @@
     "settings": "設定"
   },
   "basemap": {
+    "source_metadata": "出典の情報（任意）",
+    "source_description_pf": "ベースマップの説明文を入力してください",
     "thumbnail_manage": "サムネイル管理",
     "thumbnail_replace_512": "512pxを置換…",
     "thumbnail_replace_52": "52pxを置換…",
