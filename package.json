@@ -267,6 +267,7 @@
     "smoke:nov26-m6-t11-export-query-allowlist": "node scripts/nov26-m6-t11-export-query-allowlist-smoke.mjs",
     "smoke:nov26-m7-t1-artifact-signing-probe": "node scripts/nov26-m7-t1-artifact-signing-probe-smoke.mjs",
     "smoke:nov26-m6-t1-draft-discard": "node scripts/nov26-m6-t1-draft-discard-smoke.mjs",
+    "smoke:nov26-m6-t2-electron43": "node scripts/nov26-m6-t2-electron43-smoke.mjs",
     "test:e2e:nov26-m6-t1-draft-discard": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t1-draft-discard-no-rewrite.spec.ts tests/e2e/nov26-m6-t1-discard-then-single-edit.spec.ts"
   },
   "dependencies": {
@@ -312,8 +313,8 @@
     "app-builder-bin": "4.0.0",
     "dotenv": "^17.4.0",
     "electrobun": "^1.18.1",
-    "electron": "^39.8.10",
-    "electron-builder": "^26.15.3",
+    "electron": "^43.7.9",
+    "electron-builder": "^26.17.0",
     "js-yaml": "^4.3.1",
     "sass": "^1.97.3",
     "typescript": "^5.9.3",

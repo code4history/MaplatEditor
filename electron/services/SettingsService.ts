@@ -203,7 +203,8 @@ class SettingsService extends EventEmitter {
 
   public async showSaveFolderDialog(mainWindow: any): Promise<string | null> {
     const result = await dialog.showOpenDialog(mainWindow, {
-      defaultPath: this.store.get('saveFolder'),
+      // Electron 43 は defaultPath 省略時の既定が Downloads になったため、未設定（空文字を含む）なら documents へ倒す（nov26-m6-t2）
+      defaultPath: this.store.get('saveFolder') || app.getPath('documents'),
       properties: ['openDirectory']
     });
 
