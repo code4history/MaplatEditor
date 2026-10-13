@@ -546,3 +546,304 @@ const OLD = new Date('2020-01-02T03:04:05Z');
   }
   console.log('  [3/6] collect-sign-set・apply-signed・verify-win-install・prepare-nsis-toolset: PASS');
 }
+
+// ───────────────────────────────────────────────
+// [4] build.yml の静的検査 — AC1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
+// ───────────────────────────────────────────────
+const { checkSigningJob, checkPnpmPin, ENDPOINT } = await import('./win-sign/signing-job-rules.mjs');
+const SIGN_JOBS = { 'sign-win-payload': '48', 'sign-win-uninstaller': '2', 'sign-win-installer': '2' };
+const PACK_JOBS = ['pack-win-1', 'pack-win-2'];
+const RUN_NAME = "${{ github.event_name == 'workflow_dispatch' && format('dispatch mode={0} signer={1} sha={2} ver={3}', inputs.mode, inputs.win_signer, inputs.expected_editor_sha, inputs.expected_version) || format('push {0}', github.sha) }}";
+const RELEASE_IF = "${{ !cancelled() && needs.prepare.result == 'success' && needs.build-mac.result == 'success' && needs.build-win.result == 'success' && needs.build-linux.result == 'success' && ((needs.finalize-win.result == 'success' && needs.verify-win-install.result == 'success') || (needs.prepare.outputs.win_sign_path == 'esigner' && needs.finalize-win.result == 'skipped' && needs.verify-win-install.result == 'skipped')) && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && inputs.platforms == 'all' }}";
+const AS_COND = "needs.prepare.outputs.win_sign_path == 'artifact-signing'";
+const runOf = (st) => (typeof st?.run === 'string' ? st.run : '');
+const usesOf = (st) => (typeof st?.uses === 'string' ? st.uses : '');
+const needsOf = (job) => (job?.needs == null ? [] : [].concat(job.needs));
+const EB_RE = /(^|[\s;&|(])electron-builder\s/m;
+
+/** AC1 の build.yml の違反の一覧（空なら合格） */
+function checkBuildWorkflow(wf) {
+  const v = [];
+  const jobs = wf?.jobs ?? {};
+  // (i) run-name
+  if (wf['run-name'] !== RUN_NAME) v.push(`(i) run-name が §3.2 の式と一致しない: ${JSON.stringify(wf['run-name'])}`);
+  // (a) id-token を持つのは署名専用ジョブ 3 つだけ（縮退時は pack-sign-win も）・workflow レベルに無い
+  if (wf.permissions && 'id-token' in wf.permissions) v.push('(a) workflow レベルに id-token がある');
+  const allowedIdToken = new Set([...Object.keys(SIGN_JOBS), ...(jobs['pack-sign-win'] ? ['pack-sign-win'] : [])]);
+  for (const [name, job] of Object.entries(jobs)) {
+    if (job?.permissions && typeof job.permissions === 'object' && 'id-token' in job.permissions && !allowedIdToken.has(name)) {
+      v.push(`(a) ${name} が id-token を持つ`);
+    }
+  }
+  const stepsJson = [];
+  for (const [name, max] of Object.entries(SIGN_JOBS)) {
+    const job = jobs[name];
+    if (!job) { v.push(`(a) 署名専用ジョブ ${name} が無い`); continue; }
+    for (const msg of checkSigningJob(name, job)) v.push(`(a) ${msg}`);
+    if (String(job.env?.MAX_FILES) !== max) v.push(`(a) ${name} の MAX_FILES が ${max} でない: ${JSON.stringify(job.env?.MAX_FILES)}`);
+    const envKeys = Object.keys(job.env ?? {}).sort().join(',');
+    if (envKeys !== 'IN_ARTIFACT,MAX_FILES,OUT_ARTIFACT') v.push(`(a) ${name} のジョブ env が IN_ARTIFACT・OUT_ARTIFACT・MAX_FILES だけでない: ${envKeys}`);
+    if (job.if !== AS_COND) v.push(`(a) ${name} の if が Artifact Signing の経路でない: ${JSON.stringify(job.if)}`);
+    stepsJson.push(JSON.stringify(job.steps));
+    // (b) Endpoint のリテラル
+    const meta = (job.steps ?? []).filter((st) => /CodeSigningAccountName/.test(runOf(st)));
+    if (meta.length !== 1 || !runOf(meta[0]).includes(`'${ENDPOINT}'`) || runOf(meta[0]).includes('${{')) {
+      v.push(`(b) ${name} の metadata.json の Endpoint が ${ENDPOINT} のリテラルでない`);
+    }
+    // (l) 入力の検査
+    const check = (job.steps ?? []).find((st) => st.name === 'Check the input');
+    const ct = runOf(check);
+    for (const needle of ['^[0-9a-f]{64}\\.pe$', 'MAX_FILES', 'Get-FileHash', '-Recurse', 'ReparsePoint', 'Directory']) {
+      if (!ct.includes(needle)) v.push(`(l) ${name} の入力の検査に ${needle} が無い`);
+    }
+    const signStep = (job.steps ?? []).find((st) => /\/dlib\b/.test(runOf(st)));
+    if (!/Get-ChildItem -LiteralPath sign-in -Filter \*\.pe/.test(runOf(signStep))) v.push(`(l) ${name} の署名が sign-in の直下の *.pe だけを対象にしていない`);
+  }
+  if (new Set(stepsJson).size > 1) v.push('(a) 署名専用ジョブ 3 つの step の列が同じでない');
+
+  // (h) 祖先の確認: prepare の checkout の直後の最初の step・scripts/ を呼ばない
+  const prep = jobs.prepare?.steps ?? [];
+  const coAt = prep.findIndex((st) => usesOf(st).startsWith('actions/checkout@'));
+  const anc = prep[coAt + 1];
+  if (coAt < 0 || prep[coAt].with?.['fetch-depth'] !== 0) v.push('(h) prepare の checkout に fetch-depth: 0 が無い');
+  if (!anc || !/merge-base --is-ancestor/.test(runOf(anc))) v.push('(h) prepare の checkout の直後の step が祖先の確認でない');
+  else {
+    if (/scripts\//.test(runOf(anc))) v.push('(h) 祖先の確認の run: がリポジトリのファイルを呼ぶ');
+    if (runOf(anc).includes('${{')) v.push('(h) 祖先の確認の run: に ${{ がある（env: で渡す）');
+  }
+  // (h) expected_editor_sha で checkout する全ジョブが needs を推移的にたどって prepare に依存する
+  const reaches = (name, seen = new Set()) => {
+    if (name === 'prepare') return true;
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return needsOf(jobs[name]).some((n) => reaches(n, seen));
+  };
+  for (const [name, job] of Object.entries(jobs)) {
+    const co = (job?.steps ?? []).some((st) => usesOf(st).startsWith('actions/checkout@') && st.with?.ref === '${{ inputs.expected_editor_sha }}');
+    if (co && name !== 'prepare' && !reaches(name)) v.push(`(h) ${name} は expected_editor_sha で checkout するが prepare に依存しない`);
+    const cond = String(job?.if ?? '');
+    if (/always\(\)|!cancelled\(\)/.test(cond)) {
+      const ok = cond.includes("needs.prepare.result == 'success'")
+        || (name === 'publish-win-sign-cache' && cond.includes("needs.build-win.outputs.win_sign_cache_new != ''") && needsOf(job).includes('build-win'));
+      if (!ok) v.push(`(h) ${name} の if: が always()/!cancelled() を持つのに prepare の成功を要らない`);
+    }
+  }
+
+  // (f) Artifact Signing の経路の step にキャッシュが無い
+  const asJobs = [...Object.keys(SIGN_JOBS), ...PACK_JOBS, 'finalize-win', 'verify-win-install'];
+  for (const [name, job] of Object.entries(jobs)) {
+    (job?.steps ?? []).forEach((st, i) => {
+      const onPath = asJobs.includes(name) || String(st.if ?? '').includes(AS_COND);
+      if (onPath && /WIN_SIGN_CACHE_URL|WIN_SIGN_CACHE_DIR|win-signed-cache/.test(JSON.stringify(st))) {
+        v.push(`(f) Artifact Signing の経路の ${name}.steps[${i}] がキャッシュを参照する`);
+      }
+    });
+    if (asJobs.includes(name) && /WIN_SIGN_CACHE_URL|WIN_SIGN_CACHE_DIR|win-signed-cache/.test(JSON.stringify(job?.env ?? {}))) {
+      v.push(`(f) ${name} のジョブ env がキャッシュを参照する`);
+    }
+  }
+  for (const name of asJobs) {
+    if (!jobs[name]) v.push(`(f) ジョブ ${name} が無い`);
+    else if (jobs[name].if !== AS_COND) v.push(`(f) ${name} の if が Artifact Signing の経路でない`);
+  }
+
+  // (g) sign-check で release・キャッシュの公開・公証・eSigner の step が走らない（式が mode == 'full' を含む）
+  const FULL = "inputs.mode == 'full'";
+  const gate = [['release', jobs.release?.if], ['publish-win-sign-cache', jobs['publish-win-sign-cache']?.if]];
+  for (const st of jobs['build-mac']?.steps ?? []) if (/notarization/.test(st.name ?? '')) gate.push(['公証の env', st.if]);
+  for (const st of jobs['build-win']?.steps ?? []) {
+    if (/esigner|CodeSignTool|cache-outbox|resign-update-metadata|--authenticode|signed build/i.test(`${st.name ?? ''} ${runOf(st)} ${JSON.stringify(st.env ?? {})}`)
+      && !String(st.if ?? '').includes(AS_COND) && st.name !== 'Build Windows') gate.push([`build-win「${st.name}」`, st.if]);
+  }
+  for (const [what, cond] of gate) if (!String(cond ?? '').includes(FULL)) v.push(`(g) ${what} の if: が mode=full に限られていない`);
+
+  // (j) 受け渡しの artifact は 1 日・win-artifacts は sign-check で 3 日・中身は 3 種類・release は verify-win-install を要る
+  for (const [name, job] of Object.entries(jobs)) {
+    for (const st of job?.steps ?? []) {
+      if (!usesOf(st).startsWith('actions/upload-artifact@')) continue;
+      const an = String(st.with?.name ?? '');
+      const handoff = /^(win-stage1|win-stage1-meta|win-sign-in-|win-signed-|win-pack\d-record|win-finalize-record)/.test(an) || an.includes('env.OUT_ARTIFACT');
+      if (handoff && st.with?.['retention-days'] !== 1) v.push(`(j) ${name} の受け渡し ${an} の retention-days が 1 でない`);
+    }
+  }
+  const fin = (jobs['finalize-win']?.steps ?? []).find((st) => usesOf(st).startsWith('actions/upload-artifact@') && st.with?.name === 'win-artifacts');
+  if (!fin) v.push('(j) finalize-win が win-artifacts を上げない');
+  else {
+    if (fin.with['retention-days'] !== "${{ inputs.mode == 'sign-check' && 3 || 30 }}") v.push('(j) win-artifacts の保持が sign-check で 3 日でない');
+    const globs = String(fin.with.path).trim().split('\n').map((x) => x.trim()).sort();
+    const want = ['release/${{ env.VERSION }}/*-Setup.exe', 'release/${{ env.VERSION }}/*-Setup.exe.blockmap', 'release/${{ env.VERSION }}/latest.yml'].sort();
+    if (JSON.stringify(globs) !== JSON.stringify(want)) v.push(`(j) win-artifacts の path が 3 つの glob でない: ${JSON.stringify(globs)}`);
+  }
+  const bwUp = (jobs['build-win']?.steps ?? []).find((st) => st.with?.name === 'win-artifacts');
+  if (!bwUp || bwUp.if !== "needs.prepare.outputs.win_sign_path != 'artifact-signing'") v.push('(j) build-win の win-artifacts が Artifact Signing の経路でも上がる（二重 upload）');
+  if (!needsOf(jobs.release).includes('verify-win-install') || !needsOf(jobs.release).includes('finalize-win')) v.push('(j) release の needs に finalize-win・verify-win-install が無い');
+  if (jobs.release?.if !== RELEASE_IF) v.push('(j) release の if: が §3.2 の式と一致しない');
+
+  // (k) 縮退（pack-sign-win）があるときだけ
+  if (jobs['pack-sign-win']) {
+    const all = (jobs['pack-sign-win'].steps ?? []).map(runOf).join('\n');
+    if (!/pnpm install --frozen-lockfile --ignore-scripts/.test(all)) v.push('(k) pack-sign-win の install が --frozen-lockfile --ignore-scripts でない');
+    if (/pnpm run|\bvite\b|vue-tsc/.test(all)) v.push('(k) pack-sign-win が pnpm run・vite・vue-tsc を起動する');
+  }
+
+  // (n) 準備の step が electron-builder より前・WIN_SIGN_MODE collect
+  for (const name of [...PACK_JOBS, ...(jobs['pack-sign-win'] ? ['pack-sign-win'] : [])]) {
+    const steps = jobs[name]?.steps ?? [];
+    const prepAt = steps.findIndex((st) => runOf(st).includes('node scripts/win-sign/prepare-nsis-toolset.mjs'));
+    const ebAt = steps.findIndex((st) => EB_RE.test(runOf(st)));
+    if (prepAt < 0) v.push(`(n) ${name} に準備の step（prepare-nsis-toolset.mjs）が無い`);
+    else {
+      if (ebAt >= 0 && prepAt > ebAt) v.push(`(n) ${name} の準備の step が electron-builder の後にある`);
+      const want = name === 'pack-sign-win' ? 'artifact-signing-inline' : 'collect';
+      if (steps[prepAt].env?.WIN_SIGN_MODE !== want) v.push(`(n) ${name} の準備の step の WIN_SIGN_MODE が ${want} でない`);
+    }
+    if (ebAt < 0) v.push(`(n) ${name} が electron-builder を起動しない`);
+    for (const st of steps) {
+      if (EB_RE.test(runOf(st)) && !/--prepackaged\s/.test(runOf(st))) v.push(`(n) ${name}「${st.name}」が --prepackaged でない`);
+      if (EB_RE.test(runOf(st)) && st.env?.WIN_SIGN_MODE !== (name === 'pack-sign-win' ? 'artifact-signing-inline' : 'collect')) {
+        v.push(`(n) ${name}「${st.name}」の WIN_SIGN_MODE が collect でない`);
+      }
+    }
+  }
+  for (const [name, job] of Object.entries(jobs)) {
+    for (const st of job?.steps ?? []) {
+      if (!EB_RE.test(runOf(st))) continue;
+      if (!runOf(st).includes('--config electron-builder.config.cjs')) v.push(`(n) ${name}「${st.name}」の electron-builder に --config electron-builder.config.cjs が無い`);
+      if (!runOf(st).includes('--publish never')) v.push(`(n) ${name}「${st.name}」の electron-builder に --publish never が無い`);
+    }
+  }
+  return v;
+}
+
+const wfText = readFileSync(WORKFLOW, 'utf8');
+const wf = yaml.load(wfText);
+{
+  const v = checkBuildWorkflow(wf);
+  assert.deepEqual(v, [], `t2/AC1 の build.yml の違反:\n  ${v.join('\n  ')}`);
+  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は m10 の PIN（t2/AC4）');
+  console.log('  [4/6] build.yml の静的検査（AC1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)）: PASS');
+}
+
+// ───────────────────────────────────────────────
+// [5] 祖先の確認の shell を fixture のリポジトリで実行 — AC1 (h)
+// ───────────────────────────────────────────────
+{
+  const prep = wf.jobs.prepare.steps;
+  const anc = prep[prep.findIndex((st) => usesOf(st).startsWith('actions/checkout@')) + 1];
+  const repo = path.join(work, 'ancestry');
+  mkdirSync(repo, { recursive: true });
+  const git = (...args) => {
+    const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_NAME: 's', GIT_AUTHOR_EMAIL: 's@example.com', GIT_COMMITTER_NAME: 's', GIT_COMMITTER_EMAIL: 's@example.com' } });
+    assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  git('init', '-q', '-b', 'master');
+  const commit = (msg) => { writeFileSync(path.join(repo, 'f.txt'), msg); git('add', 'f.txt'); git('commit', '-q', '-m', msg); return git('rev-parse', 'HEAD'); };
+  const A = commit('A');
+  const B = commit('B');
+  git('switch', '-q', '-c', 'other', A);
+  const C = commit('C');
+  git('update-ref', 'refs/remotes/origin/master', B);
+  const run = (event, mode, sha, at = sha) => {
+    if (/^[0-9a-f]{40}$/.test(at)) git('switch', '-q', '--detach', at);
+    return spawnSync('bash', ['-c', runOf(anc)], { cwd: repo, encoding: 'utf8', env: { ...process.env, EVENT: event, MODE: mode, SHA: sha } }).status;
+  };
+  for (const mode of ['full', 'sign-check']) {
+    assert.equal(run('workflow_dispatch', mode, B), 0, `[5](h) ${mode}: master の B は通る`);
+    assert.equal(run('workflow_dispatch', mode, A), 0, `[5](h) ${mode}: master の祖先 A は通る`);
+    assert.notEqual(run('workflow_dispatch', mode, C), 0, `[5](h) ${mode}: 別 branch の C は落ちる`);
+    assert.notEqual(run('workflow_dispatch', mode, 'deadbeef', B), 0, `[5](h) ${mode}: 40 桁でない値は落ちる`);
+    assert.notEqual(run('workflow_dispatch', mode, B, A), 0, `[5](h) ${mode}: checkout が SHA を指していなければ落ちる`);
+  }
+  assert.equal(run('workflow_dispatch', 'verify', C), 0, '[5](h) verify では検査しない');
+  assert.equal(run('push', '', '', B), 0, '[5](h) push では検査しない');
+  console.log('  [5/6] 祖先の確認（fixture のリポジトリで実行）: PASS');
+}
+
+// ───────────────────────────────────────────────
+// [6] 変異の自己検査 — AC1 (m)
+// ───────────────────────────────────────────────
+{
+  const steps = (w, job) => w.jobs[job].steps;
+  const at = (w, job, pred) => {
+    const i = steps(w, job).findIndex(pred);
+    assert.ok(i >= 0, `自己検査の前提: ${job} に変異させる step が無い`);
+    return i;
+  };
+  const ebAt = (w, job) => at(w, job, (st) => EB_RE.test(runOf(st)));
+  const prepAt = (w, job) => at(w, job, (st) => runOf(st).includes('prepare-nsis-toolset.mjs'));
+  const mutations = [
+    ['pack-win-1 に id-token を付ける', (w) => { w.jobs['pack-win-1'].permissions = { contents: 'read', 'id-token': 'write' }; }],
+    ['workflow レベルに id-token を付ける', (w) => { w.permissions = { contents: 'read', 'id-token': 'write' }; }],
+    ['prepare への依存を外したジョブを足す', (w) => {
+      w.jobs.rogue = { needs: [], 'runs-on': 'ubuntu-latest', steps: [{ uses: 'actions/checkout@v4', with: { ref: '${{ inputs.expected_editor_sha }}' } }] };
+    }],
+    ['Endpoint を式にする', (w) => {
+      const i = at(w, 'sign-win-payload', (st) => /CodeSigningAccountName/.test(runOf(st)));
+      steps(w, 'sign-win-payload')[i].run = runOf(steps(w, 'sign-win-payload')[i]).split(ENDPOINT).join('${{ inputs.endpoint }}');
+    }],
+    ['MAX_FILES を消す', (w) => { delete w.jobs['sign-win-uninstaller'].env.MAX_FILES; }],
+    ['署名専用ジョブの step を 1 か所変える', (w) => { steps(w, 'sign-win-installer')[0].with.path = 'sign-in-x'; }],
+    ['pack-win-1 の準備の step を消す', (w) => { steps(w, 'pack-win-1').splice(prepAt(w, 'pack-win-1'), 1); }],
+    ['pack-win-2 の準備の step を electron-builder の後へ動かす', (w) => {
+      const s = steps(w, 'pack-win-2');
+      const [p] = s.splice(prepAt(w, 'pack-win-2'), 1);
+      s.splice(ebAt(w, 'pack-win-2') + 1, 0, p);
+    }],
+    ['pack の electron-builder から --config を消す', (w) => {
+      const i = ebAt(w, 'pack-win-1');
+      steps(w, 'pack-win-1')[i].run = runOf(steps(w, 'pack-win-1')[i]).replace('--config electron-builder.config.cjs ', '');
+    }],
+    ['pack の electron-builder から --publish never を消す', (w) => {
+      const i = ebAt(w, 'pack-win-2');
+      steps(w, 'pack-win-2')[i].run = runOf(steps(w, 'pack-win-2')[i]).replace('--publish never ', '');
+    }],
+    // 以下は設計の変異に加えた分（各項が効くこと）
+    ['準備の step の WIN_SIGN_MODE を record にする', (w) => { steps(w, 'pack-win-1')[prepAt(w, 'pack-win-1')].env.WIN_SIGN_MODE = 'record'; }],
+    ['祖先の確認を checkout の直後から動かす', (w) => {
+      const s = steps(w, 'prepare');
+      const i = s.findIndex((st) => /merge-base --is-ancestor/.test(runOf(st)));
+      const [x] = s.splice(i, 1);
+      s.push(x);
+    }],
+    ['祖先の確認がリポジトリのスクリプトを呼ぶ', (w) => {
+      const s = steps(w, 'prepare');
+      const i = s.findIndex((st) => /merge-base --is-ancestor/.test(runOf(st)));
+      s[i].run = `node scripts/x.mjs\n${runOf(s[i])}`;
+    }],
+    ['run-name を変える', (w) => { w['run-name'] = 'dispatch'; }],
+    ['受け渡しの保持を 7 日にする', (w) => {
+      const i = at(w, 'pack-win-1', (st) => st.with?.name === 'win-sign-in-uninstaller');
+      steps(w, 'pack-win-1')[i].with['retention-days'] = 7;
+    }],
+    ['win-artifacts に unpacked を足す', (w) => {
+      const i = at(w, 'finalize-win', (st) => st.with?.name === 'win-artifacts');
+      steps(w, 'finalize-win')[i].with.path += '\nrelease/${{ env.VERSION }}/win-unpacked';
+    }],
+    ['release の needs から verify-win-install を外す', (w) => { w.jobs.release.needs = w.jobs.release.needs.filter((n) => n !== 'verify-win-install'); }],
+    ['release の if から verify-win-install の success を外す', (w) => {
+      w.jobs.release.if = w.jobs.release.if.replace(" && needs.verify-win-install.result == 'success'", '');
+    }],
+    ['Artifact Signing の経路の step にキャッシュの URL を渡す', (w) => {
+      steps(w, 'finalize-win')[0].env = { WIN_SIGN_CACHE_URL: 'https://github.com/x/releases/download/win-signed-cache' };
+    }],
+    ['入力の検査から ReparsePoint を外す', (w) => {
+      const i = at(w, 'sign-win-payload', (st) => st.name === 'Check the input');
+      steps(w, 'sign-win-payload')[i].run = runOf(steps(w, 'sign-win-payload')[i]).replaceAll('ReparsePoint', 'Archive');
+      for (const j of ['sign-win-uninstaller', 'sign-win-installer']) steps(w, j)[i].run = steps(w, 'sign-win-payload')[i].run;
+    }],
+    ['公証の env の if: から mode == full を外す', (w) => {
+      const i = at(w, 'build-mac', (st) => /notarization/.test(st.name ?? ''));
+      steps(w, 'build-mac')[i].if = "github.event_name == 'workflow_dispatch'";
+    }],
+    ['always() のジョブを prepare の成功なしで足す', (w) => { w.jobs.late = { needs: ['prepare'], if: 'always()', steps: [] }; }],
+  ];
+  for (const [what, mutate] of mutations) {
+    const w = structuredClone(wf);
+    mutate(w);
+    assert.ok(checkBuildWorkflow(w).length > 0, `自己検査: 変異「${what}」で違反が出ない（規則が空振りしている）`);
+  }
+  console.log(`  [6/6] 自己検査（変異 ${mutations.length} 件がすべて違反を出す）: PASS`);
+}
+
+console.log('\nnov26-m7-t2 signing pipeline smoke: すべて成功');
