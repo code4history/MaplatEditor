@@ -22,7 +22,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import yaml from 'js-yaml';
 import {
-  checkSigningJob, checkPnpmPin, ENDPOINT, TSA, PNPM_PIN,
+  checkSigningJob, checkPnpmPin, hasSecretRef, ENDPOINT, TSA, PNPM_PIN,
 } from './win-sign/signing-job-rules.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -61,7 +61,8 @@ export function checkProbeWorkflow(wf, text) {
     const hasEnv = job.environment != null;
     if (name !== 'probe-sign' && hasIdToken) v.push(`(b) ${name} が id-token を持つ`);
     if (name !== 'probe-sign' && hasEnv) v.push(`(b) ${name} が environment を持つ`);
-    if (name !== 'probe-sign' && /secrets\./.test(JSON.stringify(job))) v.push(`(b) ${name} が secrets を参照する`);
+    // secrets の参照は .名前・['名前']・丸渡し（toJSON(secrets) 等）のどれも拾う（B24-MIN-1。判定は規則の正本）
+    if (name !== 'probe-sign' && hasSecretRef(job)) v.push(`(b) ${name} が secrets を参照する`);
   }
   if (wf.jobs['probe-sign'] && wf.jobs['probe-sign'].needs !== 'probe-build'
     && !(Array.isArray(wf.jobs['probe-sign'].needs) && wf.jobs['probe-sign'].needs.includes('probe-build'))) {
@@ -206,6 +207,43 @@ const wf = yaml.load(text);
     }],
     ['environment を式にする', (w) => {
       w.jobs['probe-sign'].environment = '${{ github.ref_name }}';
+    }],
+    // nov26-m7-t2 で足した分（B24-MIN-1: secrets の添字記法・丸渡し）
+    ['azure/login 以外が secrets を添字で参照する', (w) => {
+      signSteps(w).push({ shell: 'pwsh', env: { X: "${{ secrets['AZURE_CLIENT_ID'] }}" }, run: 'echo hi' });
+    }],
+    ['probe-sign のジョブ env に secrets を丸ごと渡す', (w) => {
+      w.jobs['probe-sign'].env = { ALL: '${{ toJSON(secrets) }}' };
+    }],
+    ['probe-build の step が secrets を添字で参照する', (w) => {
+      w.jobs['probe-build'].steps.push({ env: { X: '${{ secrets["AZURE_TENANT_ID"] }}' }, run: 'echo hi' });
+    }],
+    ['azure/login が許されていない secret を添字で参照する', (w) => {
+      const i = idx(w, (st) => usesOf(st).startsWith('azure/login@'));
+      signSteps(w)[i].with = { ...signSteps(w)[i].with, extra: "${{ secrets['GITHUB_TOKEN'] }}" };
+    }],
+    // B24-MIN-2: 入力を実行する形の取りこぼし
+    ['入力の PE を Invoke-Item で起動する', (w) => {
+      signSteps(w).push({ shell: 'pwsh', run: 'Invoke-Item probe-in\\MaplatEditor.exe' });
+    }],
+    ['入力の PE を ii で起動する', (w) => {
+      signSteps(w).push({ shell: 'pwsh', run: 'ii probe-in\\MaplatEditor.exe' });
+    }],
+    ['入力の PE を [Diagnostics.Process]::Start で起動する', (w) => {
+      signSteps(w).push({ shell: 'pwsh', run: "[Diagnostics.Process]::Start('probe-in\\MaplatEditor.exe')" });
+    }],
+    ['bash から $GITHUB_WORKSPACE つきの絶対パスで起動する', (w) => {
+      signSteps(w).push({ shell: 'bash', run: '"$GITHUB_WORKSPACE/probe-in/MaplatEditor.exe"' });
+    }],
+    ['pwsh から $env:GITHUB_WORKSPACE つきのパスを & で起動する', (w) => {
+      signSteps(w).push({ shell: 'pwsh', run: '& "$env:GITHUB_WORKSPACE\\probe-in\\MaplatEditor.exe"' });
+    }],
+    ['shell を指定しない run を足す（既定の shell に任せない）', (w) => {
+      signSteps(w).push({ run: 'Get-ChildItem probe-in' });
+    }],
+    // B24-Info-5: 署名ジョブは github.token を参照しない
+    ['github.token を env へ渡す', (w) => {
+      signSteps(w).push({ shell: 'pwsh', env: { T: '${{ github.token }}' }, run: 'echo hi' });
     }],
   ];
   for (const [what, mutate] of mutations) {

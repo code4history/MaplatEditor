@@ -7,16 +7,17 @@
 //
 // 2 つの照合方式:
 //   --record <jsonl>（record モードのビルド。課金ゼロ・どの OS でも可）:
-//       各 PE の SHA-256 が署名フックの記録（would-sign / signed / cache-hit / skip-already-signed）に
-//       あること。skip-already-signed は埋め込み署名の証明書に Microsoft Corporation があること（openssl）。
+//       各 PE の SHA-256 が署名フックの記録（would-sign / signed / cache-hit / signed-substituted /
+//       skip-already-signed）にあること。skip-already-signed は埋め込み署名の証明書に Microsoft Corporation があること（openssl）。
 //       記録に無い PE は「漏れ」。
-//   --authenticode（esigner モードのビルド。Windows のみ）:
-//       各 PE の Get-AuthenticodeSignature が Valid で、署名者が WIN_SIGN_EXPECTED_CN（既定 NAYUTA, INC.）
-//       か Microsoft Corporation であること。
+//   --authenticode --signer <artifact-signing|esigner>（署名済みの最終成果物。Windows のみ）:
+//       各 PE の Get-AuthenticodeSignature が Valid で、署名者が signer-identity.json の当該モード
+//       （DN の属性の集合・上位の証明書の thumbprint。scripts/win-sign/signer-identity.cjs の checkSigner）か
+//       Microsoft Corporation であること（nov26-m7-t2・C-3）。
 //
 // 実行:
 //   node scripts/win-sign/verify-win-sign-coverage.mjs --record <jsonl> [--summary <json>] <installer.exe> …
-//   node scripts/win-sign/verify-win-sign-coverage.mjs --authenticode [--summary <json>] <installer.exe> …
+//   node scripts/win-sign/verify-win-sign-coverage.mjs --authenticode --signer <mode> [--summary <json>] <installer.exe> …
 // 環境変数: WIN_SIGN_7Z … 7-Zip 実行ファイルを明示する（省略時は PATH と既定の導入先を探す）
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -26,7 +27,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const require = createRequire(import.meta.url);
-const { readPeInfo, extractPkcs7, subjectHasCn } = require('./win-sign.cjs');
+const { readPeInfo, extractPkcs7 } = require('./win-sign.cjs');
+const { checkSigner, isMicrosoftSubject, authenticodeFiles } = require('./signer-identity.cjs');
 
 const die = (msg) => {
   console.error(`win-sign coverage: ${msg}`);
@@ -38,15 +40,20 @@ const argv = process.argv.slice(2);
 let recordPath = null;
 let authenticodeMode = false;
 let summaryPath = null;
+let signer = null;
 const installers = [];
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--record') recordPath = argv[++i];
   else if (argv[i] === '--authenticode') authenticodeMode = true;
   else if (argv[i] === '--summary') summaryPath = argv[++i];
+  else if (argv[i] === '--signer') signer = argv[++i];
   else installers.push(argv[i]);
 }
 if (installers.length === 0) die('インストーラーを 1 つ以上指定してください');
 if ((recordPath == null) === !authenticodeMode) die('--record <jsonl> と --authenticode のどちらか一方を指定してください');
+if (authenticodeMode && !['artifact-signing', 'esigner'].includes(signer ?? '')) {
+  die('--authenticode には --signer artifact-signing|esigner が要る（署名者の正本 signer-identity.json のモード）');
+}
 for (const f of installers) if (!existsSync(f)) die(`インストーラーが存在しない: ${f}`);
 
 // ── 7-Zip（無ければ失敗。スキップしない） ──
@@ -116,34 +123,11 @@ function embeddedSubjects(buf, workRoot) {
   if (r.status !== 0) return [];
   return r.stdout.split('\n').filter((l) => l.startsWith('subject=')).map((l) => l.slice('subject='.length).trim());
 }
-const isMicrosoftSubject = (s) => /O\s*=\s*"?Microsoft Corporation\b/.test(s);
 
-function authenticodeMany(files) {
-  const script = "$ErrorActionPreference='Stop'; $files = Get-Content -LiteralPath $env:WIN_SIGN_LIST | ConvertFrom-Json; "
-    + "$files | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_; [pscustomobject]@{ file = $_; status = [string]$s.Status; "
-    + "subject = if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { $null } } } | ConvertTo-Json -Compress -Depth 3";
-  const listFile = path.join(tmpdir(), `win-sign-list-${process.pid}.json`);
-  writeFileSync(listFile, JSON.stringify(files));
-  // pwsh（GitHub Actions の既定）から起動した powershell.exe は PSModulePath の食い違いで
-  // Microsoft.PowerShell.Security を読めないことがある（win-sign.cjs の authenticode() と同じ理由）。
-  // ∴ pwsh を優先し、無いときだけ PSModulePath を外して powershell.exe を使う。
-  const env = { ...process.env, WIN_SIGN_LIST: listFile };
-  const opts = { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 };
-  let shell = 'pwsh';
-  let r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], opts);
-  if (r.error && r.error.code === 'ENOENT') {
-    shell = 'powershell.exe';
-    delete env.PSModulePath;
-    r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', script], opts);
-  }
-  if (r.error) die(`${shell} を起動できません: ${r.error.message}`);
-  if (r.status !== 0) die(`Get-AuthenticodeSignature が失敗（${shell}）: ${r.stderr}`);
-  const parsed = JSON.parse(r.stdout.trim() || '[]');
-  return new Map((Array.isArray(parsed) ? parsed : [parsed]).map((e) => [e.file, e]));
-}
+const authenticodeMany = (files) => authenticodeFiles(files);
 
 // ── 照合 ──
-const COVERED = new Set(['would-sign', 'signed', 'cache-hit', 'skip-already-signed']);
+const COVERED = new Set(['would-sign', 'signed', 'cache-hit', 'signed-substituted', 'skip-already-signed']);
 const recordBySha = new Map();
 let recordEntries = [];
 if (recordPath != null) {
@@ -156,7 +140,6 @@ if (recordPath != null) {
 }
 
 const workRoot = mkdtempSync(path.join(tmpdir(), 'win-sign-coverage-'));
-const expectedCn = process.env.WIN_SIGN_EXPECTED_CN || 'NAYUTA, INC.';
 const failures = [];
 const summary = { installers: [], workRoot };
 
@@ -170,9 +153,11 @@ for (const installer of installers) {
     let detail = '';
     if (authenticodeMode) {
       const a = acMap.get(p.file);
-      const okSigner = a && (subjectHasCn(a.subject, expectedCn) || isMicrosoftSubject(a.subject ?? ''));
-      status = a && a.status === 'Valid' && okSigner ? 'ok' : 'FAIL';
-      detail = a ? `${a.status} ${a.subject ?? ''}` : 'no result';
+      const why = a == null ? 'no result'
+        : a.status !== 'Valid' ? `Authenticode が ${a.status}`
+          : isMicrosoftSubject(a.subject) ? null : checkSigner(a, signer);
+      status = why == null ? 'ok' : 'FAIL';
+      detail = a ? `${a.status} ${a.subject ?? ''}${why ? `（${why}）` : ''}` : 'no result';
     } else {
       const hits = (recordBySha.get(sha) ?? []).filter((e) => COVERED.has(e.decision));
       if (hits.length > 0) {
