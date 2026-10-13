@@ -1011,6 +1011,7 @@ class Drag extends Pointer {
             });
 
             const element = evt.map.getTargetElement();
+            if (!element) return;
             if (feature) {
                 if (element.style.cursor !== this.cursor_) {
                     this.previousCursor_ = element.style.cursor;
