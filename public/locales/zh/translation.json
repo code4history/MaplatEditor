@@ -454,7 +454,9 @@
     "error_no_tile": "数据中不包含瓦片图像。停止处理。",
     "error_no_tmb": "数据中不包含缩略图。停止处理。",
     "error_upload": "注册地图数据时发生错误。",
-    "success_upload": "地图数据已成功注册。"
+    "success_upload": "地图数据已成功注册。",
+    "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
+    "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。"
   },
   "database": {
     "migrating": "正在迁移到新型数据库格式。",
@@ -852,7 +854,9 @@
       "pick_failed": "无法选择文件",
       "references_unavailable": "无法获取引用信息",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "ZIP 过大（无法导入超过 2 GiB 的文件）",
+      "zip_corrupt": "ZIP 已损坏，无法导入"
     }
   },
   "poiedit": {

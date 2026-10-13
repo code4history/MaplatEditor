@@ -146,7 +146,10 @@ export type PoiSourceErrorCode =
     | 'parse'
     | 'not-found'
     | 'invalid-request'
-    | 'internal';
+    | 'internal'
+    // nov26-m6-t3 (#98・#116): ZIP の取り込み（2 GiB 超・壊れた ZIP）。message を持たない
+    | 'zip-too-large'
+    | 'zip-corrupt';
 
 // maps/apps の保存結果 union と同形 (ファイルフェーズが無いため Error{uid,slug,revision} 拡張なし)。
 // 'Invalid' = 検証エラーで拒否 (issues 参照)、'ReadOnly' = remote ソースへの save 拒否

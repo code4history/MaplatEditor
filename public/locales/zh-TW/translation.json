@@ -454,7 +454,9 @@
     "error_no_tile": "資料中不包含圖磚圖像。停止處理。",
     "error_no_tmb": "資料中不包含縮圖。停止處理。",
     "error_upload": "登錄地圖資料時發生錯誤。",
-    "success_upload": "地圖資料已成功登錄。"
+    "success_upload": "地圖資料已成功登錄。",
+    "error_too_large": "地圖資料的 ZIP 過大（無法匯入超過 2 GiB 的檔案）。",
+    "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。"
   },
   "database": {
     "migrating": "正在遷移至新型資料庫格式。",
@@ -852,7 +854,9 @@
       "pick_failed": "無法選擇檔案",
       "references_unavailable": "無法取得引用資訊",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "ZIP 過大（無法匯入超過 2 GiB 的檔案）",
+      "zip_corrupt": "ZIP 已損壞，無法匯入"
     }
   },
   "poiedit": {

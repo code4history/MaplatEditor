@@ -454,7 +454,9 @@
     "error_no_tile": "Los datos no contienen imágenes de teselas. Deteniendo el proceso.",
     "error_no_tmb": "Los datos no contienen una miniatura. Deteniendo el proceso.",
     "error_upload": "Se ha producido un error al registrar los datos del mapa.",
-    "success_upload": "Los datos del mapa se han registrado correctamente."
+    "success_upload": "Los datos del mapa se han registrado correctamente.",
+    "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
+    "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar."
   },
   "database": {
     "migrating": "Migrando al nuevo formato de base de datos.",
@@ -852,7 +854,9 @@
       "pick_failed": "No se pudo seleccionar el archivo",
       "references_unavailable": "No se pudo obtener la información de referencias",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "El ZIP es demasiado grande (no se pueden importar archivos de más de 2 GiB)",
+      "zip_corrupt": "El ZIP está dañado y no se puede importar"
     }
   },
   "poiedit": {

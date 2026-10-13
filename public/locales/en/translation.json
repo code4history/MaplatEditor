@@ -436,7 +436,9 @@
     "error_no_tile": "The data does not contain tile images. Stopping process.",
     "error_no_tmb": "The data does not contain a thumbnail. Stopping process.",
     "error_upload": "An error occurred during map data import.",
-    "success_upload": "Map data was successfully imported."
+    "success_upload": "Map data was successfully imported.",
+    "error_too_large": "The map data ZIP is too large (files over 2 GiB cannot be imported).",
+    "error_corrupt": "The map data ZIP is corrupted and cannot be imported."
   },
   "database": {
     "migrating": "Migrating to the new database format.",
@@ -834,7 +836,9 @@
       "pick_failed": "Could not pick a file",
       "references_unavailable": "Could not retrieve reference information",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "The ZIP is too large (files over 2 GiB cannot be imported)",
+      "zip_corrupt": "The ZIP is corrupted and cannot be imported"
     }
   },
   "app": {
