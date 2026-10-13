@@ -85,6 +85,9 @@ try {
         'C:\\\\Windows\\\\evil.txt',
         'a\\\\b.txt',
         'evil\\u0000name.txt',
+        // nov26-m6-t3（#103）: ドライブ相対と空文字（関数は拒否していたが fixture に無かった）
+        'C:evil.txt',
+        '',
       ];
       let caseNo = 0;
       for (const entryName of dangerous) {
