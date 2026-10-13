@@ -166,7 +166,10 @@ async function copyTilesWithProgress(
     if (now - lastReportTime >= 200 || sinceLastReport >= 100 || done === total) {
       lastReportTime = now;
       sinceLastReport = 0;
-      reporter.update(progressState.step, `${slug} (${done}/${total})`);
+      // nov26-m6-t3 (#101): 地図ごとの最終件は整数 % が進まないと throttle に落ち、(N/N) が届かない
+      // （分母は全体・文言は地図ごと）∴ フェーズの最終件だけ updatePhaseEnd で送る。非最終件の throttle は温存
+      if (done === total) reporter.updatePhaseEnd(progressState.step, `${slug} (${done}/${total})`);
+      else reporter.update(progressState.step, `${slug} (${done}/${total})`);
     }
   }
 }
