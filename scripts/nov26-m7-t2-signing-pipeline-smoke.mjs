@@ -387,3 +387,162 @@ const OLD = new Date('2020-01-02T03:04:05Z');
   resetEnv();
   console.log('  [2/6] win-sign.cjs の collect・差し替え・fail-closed: PASS');
 }
+
+// ───────────────────────────────────────────────
+// [3] collect-sign-set.mjs・apply-signed.mjs — phase の順の規則（MIN-1）と照合
+// ───────────────────────────────────────────────
+{
+  const { collectSignSet, phaseOf } = await import('./win-sign/collect-sign-set.mjs');
+  const { applySigned } = await import('./win-sign/apply-signed.mjs');
+  const ws = loadFresh(WIN_SIGN);
+  const d = path.join(work, 'phase');
+  const rel = path.join(d, 'release', '1.2.0');
+  const files = {
+    plugin: [path.join(d, 'ws', 'nsis-collect', 'nsis-resources', 'plugins', 'x86-unicode', 'nsExec.dll'), makePe({ body: 'nsExec' })],
+    appX: [path.join(rel, 'win-unpacked', 'MaplatEditor.exe'), makePe({ body: 'app-x64' })],
+    appA: [path.join(rel, 'win-arm64-unpacked', 'MaplatEditor.exe'), makePe({ body: 'app-arm64' })],
+    dllX: [path.join(rel, 'win-unpacked', 'ffmpeg.dll'), makePe({ body: 'ffmpeg' })],
+    dllA: [path.join(rel, 'win-arm64-unpacked', 'ffmpeg.dll'), makePe({ body: 'ffmpeg' })], // x64 と同じ中身
+    elevate: [path.join(d, 'tmp', 'elevate-staging-1', 'resources', 'elevate.exe'), makePe({ body: 'elevate' })],
+    uninst: [path.join(rel, 'MaplatEditor-Windows-1.2.0-x64-Setup.__uninstaller.exe'), makePe({ body: 'uninst' })],
+    setup: [path.join(rel, 'MaplatEditor-Windows-1.2.0-x64-Setup.exe'), makePe({ body: 'setup' })],
+  };
+  const collectDir = path.join(d, 'collect');
+  mkdirSync(collectDir, { recursive: true });
+  for (const [f, b] of Object.values(files)) {
+    mkdirSync(path.dirname(f), { recursive: true });
+    writeFileSync(f, b);
+    utimesSync(f, OLD, OLD);
+    writeFileSync(path.join(collectDir, `${sha256(b)}.pe`), b);
+  }
+  // elevate.exe は stage 1 の後で win-unpacked にも複写される（フックを通らない）。同じ中身
+  mkdirSync(path.join(rel, 'win-unpacked', 'resources'), { recursive: true });
+  writeFileSync(path.join(rel, 'win-unpacked', 'resources', 'elevate.exe'), files.elevate[1]);
+  const entry = (k, decision, extra = {}) => {
+    const [f, b] = files[k];
+    return { file: f, name: path.basename(f), kind: k === 'plugin' ? 'nsis-plugin' : 'electron-builder', sha256: sha256(b), decision,
+      ...(decision === 'would-sign' ? { collected: `${sha256(b)}.pe` } : {}), ...extra };
+  };
+  const writeRec = (name, entries) => {
+    const p = path.join(d, name);
+    writeFileSync(p, entries.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    return p;
+  };
+  assert.equal(phaseOf(entry('plugin', 'would-sign')), 'payload', '[3] NSIS プラグインは payload');
+  assert.equal(phaseOf(entry('appX', 'would-sign')), 'payload', '[3] *-unpacked の中は payload');
+  assert.equal(phaseOf(entry('elevate', 'would-sign')), 'payload', '[3] elevate.exe（NSIS の組み立てで一時ディレクトリから署名される）は payload');
+  assert.equal(phaseOf(entry('uninst', 'would-sign')), 'uninstaller', '[3] …__uninstaller.exe はアンインストーラー');
+  assert.equal(phaseOf(entry('setup', 'would-sign')), 'installer', '[3] …-Setup.exe はインストーラー（__uninstaller.exe は入らない）');
+  assert.equal(phaseOf({ file: path.join(d, 'stray', 'foo.exe'), name: 'foo.exe' }), null, '[3] どの phase にも属さないもの');
+
+  const stage1 = writeRec('rec-stage1.jsonl', ['plugin', 'appX', 'appA', 'dllX', 'dllA', 'elevate', 'uninst', 'setup']
+    .map((k) => entry(k, 'would-sign')).concat([{ ...entry('dllX', 'skip-already-signed'), name: 'd3dcompiler_47.dll' }]));
+  const run = (phase, record, name) => collectSignSet({
+    phase, record, collectDir, out: path.join(d, `out-${name}`), manifest: path.join(d, `manifest-${name}.json`), cwd: d,
+  });
+  const p1 = run('payload', stage1, 'payload');
+  assert.deepEqual(p1.errors, [], '[3] build-win（payload）: 後の phase の would-sign は正常');
+  assert.equal(p1.later, 2, '[3] build-win（payload）: 後の phase の数（アンインストーラーとインストーラー）');
+  assert.equal(p1.selected.length, 5, '[3] payload: SHA-256 で重ねて 5 本（x64/arm64 の同じ DLL は 1 本）');
+  const outNames = readdirSync(path.join(d, 'out-payload')).sort();
+  assert.ok(outNames.every((n) => /^[0-9a-f]{64}\.pe$/.test(n)), '[3] 署名の入力は <SHA-256>.pe だけ');
+  const manifest = JSON.parse(readFileSync(path.join(d, 'manifest-payload.json'), 'utf8'));
+  const ff = manifest.find((m) => m.name === 'ffmpeg.dll');
+  assert.deepEqual(ff.paths.sort(), ['release/1.2.0/win-arm64-unpacked/ffmpeg.dll', 'release/1.2.0/win-unpacked/ffmpeg.dll'],
+    '[3] manifest の paths は作業ディレクトリからの相対パス（/ 区切り）');
+  assert.equal(ff.comparable, ws.comparableDigest(files.dllX[1]), '[3] manifest に署名前の comparableDigest');
+
+  // pack-win-1（uninstaller）: プラグインの would-sign が残る＝差し替えられていない（MAJ-1 の再発）→ 赤
+  const pack1Bad = writeRec('rec-pack1-bad.jsonl', [entry('plugin', 'would-sign'), entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
+  const e1 = run('uninstaller', pack1Bad, 'p1bad').errors;
+  assert.ok(e1.some((x) => /前の phase/.test(x) && /nsExec\.dll/.test(x)), `[3] uninstaller でプラグインの would-sign が残れば赤: ${e1}`);
+  const pack1 = writeRec('rec-pack1.jsonl', [entry('plugin', 'signed-substituted'), entry('elevate', 'signed-substituted'),
+    entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
+  const r1 = run('uninstaller', pack1, 'p1');
+  assert.deepEqual(r1.errors, [], '[3] pack-win-1: 差し替え済みのプラグインとアンインストーラー・インストーラーは正常');
+  assert.deepEqual(r1.selected.map((s) => s.name), [path.basename(files.uninst[0])], '[3] pack-win-1: アンインストーラーだけを並べる');
+  assert.equal(r1.later, 1, '[3] pack-win-1: インストーラーは後の phase');
+  // pack-win-2（installer）: アンインストーラーの would-sign が残る＝U-1 不成立 → 赤
+  const pack2Bad = writeRec('rec-pack2-bad.jsonl', [entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
+  assert.ok(run('installer', pack2Bad, 'p2bad').errors.some((x) => /前の phase/.test(x) && /__uninstaller/.test(x)),
+    '[3] installer でアンインストーラーの would-sign が残れば赤（U-1 不成立の検出）');
+  // どの phase にも属さない would-sign・並べるものが 0 本・収集した複写が無い → 赤
+  const stray = writeRec('rec-stray.jsonl', [{ file: path.join(d, 'stray', 'foo.exe'), name: 'foo.exe', sha256: 'f'.repeat(64), decision: 'would-sign' }, entry('setup', 'would-sign')]);
+  assert.ok(run('installer', stray, 'stray').errors.some((x) => /どの phase/.test(x)), '[3] どの phase にも属さない would-sign は赤');
+  const none = writeRec('rec-none.jsonl', [entry('setup', 'signed-substituted')]);
+  assert.ok(run('installer', none, 'none').errors.some((x) => /0 本/.test(x)), '[3] 並べるものが 0 本なら赤');
+  assert.throws(() => collectSignSet({ phase: 'bogus', record: none, collectDir, out: path.join(d, 'x'), manifest: path.join(d, 'x.json'), cwd: d }),
+    /phase/, '[3] 未知の phase は落とす');
+
+  // apply-signed: 署名済みの .pe を照合してから書き戻す
+  const signedIn = path.join(d, 'signed-payload');
+  mkdirSync(signedIn, { recursive: true });
+  for (const m of manifest) {
+    const orig = Object.values(files).find(([, b]) => sha256(b) === m.sha256)[1];
+    writeFileSync(path.join(signedIn, `${m.sha256}.pe`), fakeSign(orig));
+  }
+  const signedDirOut = path.join(d, 'signed');
+  const apply = (over = {}) => applySigned({
+    phase: 'payload', manifest: path.join(d, 'manifest-payload.json'), signed: signedIn, signer: 'artifact-signing',
+    releaseDir: rel, signedDir: signedDirOut, cwd: d, deps: { platform: 'win32', authenticode: VALID_AS }, ...over,
+  });
+  assert.ok(apply({ deps: { platform: 'darwin' } }).errors.some((x) => /Windows/.test(x)), '[3] apply: Windows でなければ赤（署名者を確かめられない）');
+  assert.ok(apply({ deps: { platform: 'win32', authenticode: () => ({ status: 'Valid', subject: ES_SUBJECT, chain: ES_CHAIN }) } })
+    .errors.some((x) => /署名者/.test(x)), '[3] apply: 署名者が artifact-signing でなければ赤');
+  assert.deepEqual(readFileSync(files.appX[0]), files.appX[1], '[3] apply: 赤のときは書き戻さない');
+  const res = apply();
+  assert.deepEqual(res.errors, [], `[3] apply: 照合が通れば書き戻す: ${res.errors}`);
+  for (const k of ['appX', 'appA', 'dllX', 'dllA']) {
+    assert.deepEqual(readFileSync(files[k][0]), fakeSign(files[k][1]), `[3] apply: ${k} を署名済みに書き戻す`);
+    assert.equal(statSync(files[k][0]).mtime.getTime(), OLD.getTime(), `[3] apply: ${k} の mtime を保つ`);
+  }
+  assert.deepEqual(readFileSync(path.join(rel, 'win-unpacked', 'resources', 'elevate.exe')), fakeSign(files.elevate[1]),
+    '[3] apply: unpacked の中で SHA-256 が一致するファイル（記録に無い elevate.exe の複写）も書き戻す');
+  for (const k of ['plugin', 'elevate', 'dllX']) {
+    const [f, b] = files[k];
+    assert.deepEqual(readFileSync(path.join(signedDirOut, ws.assetName(sha256(b), f))), fakeSign(b),
+      `[3] apply: ${k} を WIN_SIGN_SIGNED_DIR に <sha>--<名前>.signed で置く`);
+  }
+  // 中身の違う署名済み（取り違え・改ざん）は赤
+  writeFileSync(path.join(signedIn, `${sha256(files.appX[1])}.pe`), fakeSign(makePe({ body: 'evil' })));
+  assert.ok(apply().errors.some((x) => /一致しない/.test(x)), '[3] apply: 中身の違う署名済みは赤');
+  writeFileSync(path.join(signedIn, `${sha256(files.appX[1])}.pe`), files.appX[1]);
+  assert.ok(apply().errors.some((x) => /証明書表/.test(x)), '[3] apply: 署名されていない .pe は赤');
+  // installer: release-dir/<名前> へ置く
+  const instSigned = path.join(d, 'signed-installer');
+  mkdirSync(instSigned, { recursive: true });
+  writeFileSync(path.join(instSigned, `${sha256(files.setup[1])}.pe`), fakeSign(files.setup[1]));
+  writeFileSync(path.join(d, 'manifest-installer.json'), JSON.stringify([{ sha256: sha256(files.setup[1]), name: path.basename(files.setup[0]),
+    kind: 'electron-builder', comparable: ws.comparableDigest(files.setup[1]), paths: [] }]));
+  const finalRel = path.join(d, 'final', '1.2.0');
+  const ri = apply({ phase: 'installer', manifest: path.join(d, 'manifest-installer.json'), signed: instSigned, releaseDir: finalRel, signedDir: null });
+  assert.deepEqual(ri.errors, [], `[3] apply installer: ${ri.errors}`);
+  assert.deepEqual(readFileSync(path.join(finalRel, path.basename(files.setup[0]))), fakeSign(files.setup[1]), '[3] apply installer: release/<版>/<名前> に置く');
+  // verify-win-install.mjs の判定（PE の列挙は中身で・署名者は artifact-signing か Microsoft）
+  const { listPes, judgeSigners } = await import('./win-sign/verify-win-install.mjs');
+  const inst = path.join(d, 'installed');
+  mkdirSync(path.join(inst, 'resources'), { recursive: true });
+  writeFileSync(path.join(inst, 'MaplatEditor.exe'), makePe({ body: 'a' }));
+  writeFileSync(path.join(inst, 'resources', 'app.node'), makePe({ body: 'n' })); // 拡張子でなく中身で数える
+  writeFileSync(path.join(inst, 'resources', 'app.asar'), Buffer.from('not a pe'));
+  assert.deepEqual(listPes(inst).map((f) => path.relative(inst, f)).sort(), ['MaplatEditor.exe', path.join('resources', 'app.node')],
+    '[3] verify-win-install: PE は中身で数える');
+  const judged = judgeSigners(new Map([
+    ['ok', VALID_AS()],
+    ['ms', { status: 'Valid', subject: 'CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US', chain: [] }],
+    ['es', { status: 'Valid', subject: ES_SUBJECT, chain: ES_CHAIN }],
+    ['bad', { ...VALID_AS(), status: 'NotSigned' }],
+  ]), 'artifact-signing');
+  assert.deepEqual(judged.map((r) => [r.file, r.ok]), [['ok', true], ['ms', true], ['es', false], ['bad', false]],
+    '[3] verify-win-install: artifact-signing か Microsoft だけを通す');
+  // prepare-nsis-toolset.mjs: collect 以外では何もしない（$GITHUB_ENV に書かない）
+  for (const m of ['off', 'record', 'esigner']) {
+    const envFile = path.join(d, `github-env-${m}`);
+    writeFileSync(envFile, '');
+    const r = spawnSync(process.execPath, [path.join(projectRoot, 'scripts/win-sign/prepare-nsis-toolset.mjs')],
+      { env: { ...process.env, WIN_SIGN_MODE: m, GITHUB_ENV: envFile }, encoding: 'utf8' });
+    assert.equal(r.status, 0, `[3] prepare-nsis-toolset: ${m} は exit 0`);
+    assert.equal(readFileSync(envFile, 'utf8'), '', `[3] prepare-nsis-toolset: ${m} は $GITHUB_ENV に書かない`);
+  }
+  console.log('  [3/6] collect-sign-set・apply-signed・verify-win-install・prepare-nsis-toolset: PASS');
+}
