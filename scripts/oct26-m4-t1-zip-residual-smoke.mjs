@@ -186,7 +186,9 @@ try {
       const rejected = await dataUploadService.extractZip(oversize);
       assert.equal(typeof rejected, 'object', 'AC3: 拒否が { err } 形で返ること');
       assert.equal(typeof rejected.err, 'string', 'AC3: err が文字列であること');
-      assert.match(rejected.err, /too large to import/, 'AC3: 明確なメッセージであること（実際: ' + JSON.stringify(rejected.err) + '）');
+      // nov26-m6-t3 (#98・#116) で、利用者向けのコード 'TooLarge'（MapEdit が dataupload.error_too_large へ写す）
+      // に変わった。原文（'too large to import'）は main のログへだけ出る
+      assert.equal(rejected.err, 'TooLarge', 'AC3: 明確なコードであること（実際: ' + JSON.stringify(rejected.err) + '）');
       assert.equal(rejected.err.includes('ERR_FS_FILE_TOO_LARGE'), false,
         'AC3: ERR_FS_FILE_TOO_LARGE ではなく意図したエラーであること（実際: ' + JSON.stringify(rejected.err) + '）');
       console.log('ok AC3 正検査: 2 GiB 超を明確なエラーで拒否する（ERR_FS_FILE_TOO_LARGE ではない）');

@@ -20,6 +20,7 @@ import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
 import { resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
 import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
+import { assertZipImportSize } from '../utils/zipImportGuard';
 
 export type PoiExportInspection = {
   kind: 'geojson' | 'zip';
@@ -324,9 +325,13 @@ export async function importManagedPoiDocuments(
       // 参照されているのに ZIP に無い → Error。黙って落とすと POI が欠けた地図が生まれる
       if (!entry) throw new Error(`Packaged POI document is missing: ${dest}`);
 
+      // nov26-m6-t3 (#116): getData の例外（CRC 不正・zlib の破損）は JSON の誤りと別物である。
+      // try の外で読み、例外の原形のまま呼び出し側の classifyZipReadError へ届かせる
+      // （try の中に置くと「GeoJSON is not valid JSON」に化けて、壊れた ZIP と判定できない）
+      const documentBytes = entry.getData();
       let fc: FeatureCollection;
       try {
-        fc = JSON.parse(entry.getData().toString('utf8')) as FeatureCollection;
+        fc = JSON.parse(documentBytes.toString('utf8')) as FeatureCollection;
       } catch {
         throw new Error('POI package GeoJSON is not valid JSON');
       }
@@ -347,6 +352,11 @@ export async function importManagedPoiDocuments(
 }
 
 export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
+  // nov26-m6-t3 (#98): 地図の取り込みと同じ 2 GiB の上限を new AdmZip の前に検査する。
+  // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
+  // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
+  // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない
+  await assertZipImportSize(filePath, 'POI package');
   const zip = new AdmZip(filePath);
 
   // POI 単体パッケージは **全 entry が payload** であるため、上限も全 entry へ掛ける。

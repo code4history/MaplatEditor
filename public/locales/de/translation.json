@@ -454,7 +454,9 @@
     "error_no_tile": "Die Daten enthalten keine Kachelbilder. Der Vorgang wird abgebrochen.",
     "error_no_tmb": "Die Daten enthalten keine Miniaturansicht. Der Vorgang wird abgebrochen.",
     "error_upload": "Beim Registrieren der Kartendaten ist ein Fehler aufgetreten.",
-    "success_upload": "Die Kartendaten wurden erfolgreich registriert."
+    "success_upload": "Die Kartendaten wurden erfolgreich registriert.",
+    "error_too_large": "Die ZIP-Datei der Kartendaten ist zu groß (Dateien über 2 GiB können nicht importiert werden).",
+    "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden."
   },
   "database": {
     "migrating": "Migration zum neuen Datenbankformat läuft.",
@@ -852,7 +854,9 @@
       "pick_failed": "Datei konnte nicht ausgewählt werden",
       "references_unavailable": "Referenzinformationen konnten nicht abgerufen werden",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "Die ZIP-Datei ist zu groß (Dateien über 2 GiB können nicht importiert werden)",
+      "zip_corrupt": "Die ZIP-Datei ist beschädigt und kann nicht importiert werden"
     }
   },
   "poiedit": {

@@ -454,7 +454,9 @@
     "error_no_tile": "ข้อมูลไม่มีภาพไทล์อยู่ หยุดการประมวลผล",
     "error_no_tmb": "ข้อมูลไม่มีภาพย่อ หยุดการประมวลผล",
     "error_upload": "เกิดข้อผิดพลาดในการลงทะเบียนข้อมูลแผนที่",
-    "success_upload": "ลงทะเบียนข้อมูลแผนที่สำเร็จแล้ว"
+    "success_upload": "ลงทะเบียนข้อมูลแผนที่สำเร็จแล้ว",
+    "error_too_large": "ไฟล์ ZIP ข้อมูลแผนที่มีขนาดใหญ่เกินไป (ไม่สามารถนำเข้าไฟล์ที่เกิน 2 GiB ได้)",
+    "error_corrupt": "ไฟล์ ZIP ข้อมูลแผนที่เสียหาย จึงไม่สามารถนำเข้าได้"
   },
   "database": {
     "migrating": "กำลังย้ายไปยังรูปแบบฐานข้อมูลใหม่",
@@ -852,7 +854,9 @@
       "pick_failed": "ไม่สามารถเลือกไฟล์ได้",
       "references_unavailable": "ไม่สามารถดึงข้อมูลการอ้างอิงได้",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "ไฟล์ ZIP มีขนาดใหญ่เกินไป (ไม่สามารถนำเข้าไฟล์ที่เกิน 2 GiB ได้)",
+      "zip_corrupt": "ไฟล์ ZIP เสียหาย จึงไม่สามารถนำเข้าได้"
     }
   },
   "poiedit": {

@@ -454,7 +454,9 @@
     "error_no_tile": "Data tidak berisi gambar tile. Proses dihentikan.",
     "error_no_tmb": "Data tidak berisi thumbnail. Proses dihentikan.",
     "error_upload": "Terjadi kesalahan saat mendaftarkan data peta.",
-    "success_upload": "Data peta berhasil didaftarkan."
+    "success_upload": "Data peta berhasil didaftarkan.",
+    "error_too_large": "ZIP data peta terlalu besar (file lebih dari 2 GiB tidak dapat diimpor).",
+    "error_corrupt": "ZIP data peta rusak sehingga tidak dapat diimpor."
   },
   "database": {
     "migrating": "Sedang memigrasikan ke format basis data baru.",
@@ -852,7 +854,9 @@
       "pick_failed": "Tidak dapat memilih berkas",
       "references_unavailable": "Tidak dapat mengambil informasi referensi",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "ZIP terlalu besar (file lebih dari 2 GiB tidak dapat diimpor)",
+      "zip_corrupt": "ZIP rusak sehingga tidak dapat diimpor"
     }
   },
   "poiedit": {

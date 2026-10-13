@@ -19,6 +19,7 @@ import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { transcodeImage } from '../utils/thumbnail512Codec';
+import { ZIP_IMPORT_MAX_BYTES, ZipImportError, classifyZipReadError } from '../utils/zipImportGuard';
 
 // m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
@@ -29,9 +30,8 @@ import { transcodeImage } from '../utils/thumbnail512Codec';
 const THUMB_512_IMPORT_EXT_CANDIDATES = [THUMB_512_EXT ?? 'jpg', 'jpg', 'jpeg', 'png'];
 
 // oct26-m4-t1 (#98 item 3): 読取側の 2 GiB 上限。adm-zip は 2 GiB 超の zip を読めない
-// （ERR_FS_FILE_TOO_LARGE を実測）。地図 import 経路のみ fail-fast で明示エラーにする
-// （POI import は展開後 100 MiB 上限で 2 GiB に到達しないため無変更で安全）。
-const ZIP_IMPORT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+// （ERR_FS_FILE_TOO_LARGE を実測）。定数と判定は nov26-m6-t3 で electron/utils/zipImportGuard.ts へ
+// 移した（POI 単体の取り込み〔PoiPackageService.importPoiZip〕も同じ上限を使う）。
 
 // M5-T4B (実装レビュー Major-1): restore 失敗経路で先に走った補償の残留を、
 // throw する Error へ添えて外側へ運ぶための添え札。
@@ -255,8 +255,11 @@ class DataUploadService {
             // 完全ストリーミング読取は依存追加を要する機能追加で、脆弱性是正のタスクでは扱わない
             // （oct26-m5-t16 設計 §10 で範囲外と記録し、oct26-m8-t1 の棚卸しへ回した）。
             const zipSize = (await fs.stat(zipFile)).size;
+            // nov26-m6-t3 (#98): 比較の式はこの文字列のまま残す（oct26-m4-t1 の smoke がソースで探す）。
+            // 投げる例外は ZipImportError('too-large') ∴ 外側の catch が利用者向けのコード 'TooLarge' へ写す
             if (zipSize > ZIP_IMPORT_MAX_BYTES) {
-                throw new Error(
+                throw new ZipImportError(
+                    'too-large',
                     `Map package is too large to import: ${zipSize} bytes exceeds the 2 GiB limit ` +
                     '(>2 GiB streaming import is not yet supported)',
                 );
@@ -420,7 +423,13 @@ class DataUploadService {
             return { mapData: histMap, tins };
         } catch (err: any) {
             console.error('[DataUploadService] extractZip error', err);
-            const message = typeof err === 'string' ? err : (err.message || 'Unknown');
+            // nov26-m6-t3 (#98・#116): 大きすぎる ZIP と壊れた ZIP（adm-zip・zlib の読み取りの例外）は
+            // 利用者向けのコードへ写す（MapEdit が固定文の i18n を出す）。原文は上の console.error だけ。
+            // それ以外（Exist・NoTile・NoTmb・ENOENT 等）は従来どおり
+            const zipError = classifyZipReadError(err);
+            const message = zipError
+                ? (zipError.kind === 'too-large' ? 'TooLarge' : 'Corrupt')
+                : typeof err === 'string' ? err : (err.message || 'Unknown');
 
             // M5-T4B (I-4c): 補償し、**到達できなかったものを残留として申告する**。
             // 補償が全て到達した場合のみ従来どおり { err } を返す。
