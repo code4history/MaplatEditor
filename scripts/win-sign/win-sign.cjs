@@ -557,6 +557,12 @@ async function sign(configuration) {
 
 let nsisPrepared = null;
 
+// 別ドライブでは relative が絶対パスになる。親参照の境界も区切り文字まで見る（..cache は子孫）。
+function isPathAtOrBelow(parent, candidate) {
+  const relative = path.relative(path.resolve(parent), path.resolve(candidate));
+  return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
+}
+
 /**
  * NSIS ツールセットを複写し、使うプラグインだけ署名（collect では収集か差し替え）して electron-builder に使わせる。
  * beforePack（--prepackaged でないビルド）と prepare-nsis-toolset.mjs（--prepackaged の前の step）から呼ばれる。
@@ -580,13 +586,13 @@ async function prepareSignedNsisToolset(packagerLike) {
   }
   // 複写先から複写しない（以前の用意を指す ELECTRON_BUILDER_NSIS_* が残っていると、消してから読むことになる）
   for (const src of [nsisSrc, pluginsSrc]) {
-    if (!path.relative(path.resolve(root), path.resolve(src)).startsWith('..')) {
+    if (isPathAtOrBelow(root, src)) {
       throw new Error(`NSIS ツールセットの複写元が複写先の中にある: ${src}（ELECTRON_BUILDER_NSIS_DIR／RESOURCES_DIR を外して実行すること）`);
     }
   }
   // 既定（toolsets.nsis 未指定）は nsis-3.0.4.1 本体 + 別梱包の nsis-resources-3.4.1/plugins。
   // 統合バンドル（toolsets.nsis: 1.2.1 等）はプラグインが本体の windows/Plugins にある
-  const pluginsInsideNsis = !path.relative(path.resolve(nsisSrc), path.resolve(pluginsSrc)).startsWith('..');
+  const pluginsInsideNsis = isPathAtOrBelow(nsisSrc, pluginsSrc);
   const resSrc = pluginsInsideNsis ? null : path.dirname(pluginsSrc);
 
   fs.rmSync(root, { recursive: true, force: true });
