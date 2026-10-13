@@ -33,6 +33,8 @@
     "settings": "Settings"
   },
   "basemap": {
+    "source_metadata": "Source information (optional)",
+    "source_description_pf": "Enter the description of the base map.",
     "thumbnail_manage": "Thumbnail management",
     "thumbnail_replace_512": "Replace 512px…",
     "thumbnail_replace_52": "Replace 52px…",

@@ -51,6 +51,8 @@
     "settings": "Configuración"
   },
   "basemap": {
+    "source_metadata": "Información de la fuente (opcional)",
+    "source_description_pf": "Introduzca la descripción del mapa base.",
     "thumbnail_manage": "Gestión de miniaturas",
     "thumbnail_replace_512": "Reemplazar 512px…",
     "thumbnail_replace_52": "Reemplazar 52px…",

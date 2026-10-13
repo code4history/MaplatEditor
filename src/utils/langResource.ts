@@ -38,6 +38,13 @@ export const BASE_MAP_LANG_ATTRS = [
   "dataLicenseNote",
 ] as const;
 
+// nov26-m6-t6: 任意の出典情報。必須5属性と分け、未設定の旧文書へ空キーを足さない。
+// 地図のreferenceは単一文字列だが、ベースマップはJ-M6-3により言語別とする。
+export const BASE_MAP_META_LANG_ATTRS = [
+  "createdAt", "era", "contributor", "mapper", "reference", "description",
+] as const;
+export type BaseMapMetaLangKey = (typeof BASE_MAP_META_LANG_ATTRS)[number];
+
 // 任意の入力(プレーン文字列/オブジェクト/空)→ 内部形(オブジェクト、空エントリ除去)
 // プレーン文字列はデフォルト言語の値とみなす
 export function normalizeLangResource(

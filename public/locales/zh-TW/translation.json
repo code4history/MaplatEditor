@@ -51,6 +51,8 @@
     "settings": "設定"
   },
   "basemap": {
+    "source_metadata": "來源資訊（選填）",
+    "source_description_pf": "請輸入底圖的說明文字。",
     "thumbnail_manage": "縮圖管理",
     "thumbnail_replace_512": "取代512px…",
     "thumbnail_replace_52": "取代52px…",

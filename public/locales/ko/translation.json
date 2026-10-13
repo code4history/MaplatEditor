@@ -51,6 +51,8 @@
     "settings": "설정"
   },
   "basemap": {
+    "source_metadata": "출처 정보 (선택 사항)",
+    "source_description_pf": "배경 지도의 설명을 입력하세요.",
     "thumbnail_manage": "썸네일 관리",
     "thumbnail_replace_512": "512px 교체…",
     "thumbnail_replace_52": "52px 교체…",

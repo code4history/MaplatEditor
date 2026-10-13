@@ -128,6 +128,11 @@ binaries are distributed via GitHub Releases.
 - Base map and image asset editing use left-list/right-edit master-detail
   screens (replacing the previous modal editors), with the selected item
   reflected in the URL for direct links
+- User-created base maps support optional, multilingual creation dates,
+  target eras, owners/contributors, mappers, references, and descriptions
+  in the collapsible "Source information (optional)" section. Saved values
+  are included in exported settings and shown in the viewer's information
+  dialog. Unset fields are omitted; built-in base maps are not editable
 - Every edit screen validates the slug (ID) automatically as you type — no
   separate "check availability" step — and renaming a map's slug now edits
   the same map in place instead of prompting to copy or move it

@@ -1,5 +1,5 @@
 import { isProviderKind, resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
-import { BASE_MAP_LANG_ATTRS, normalizeLangResource } from "./langResource";
+import { BASE_MAP_LANG_ATTRS, BASE_MAP_META_LANG_ATTRS, normalizeLangResource } from "./langResource";
 import type { LangResource } from "./langResource";
 
 // アプリ設定のソース(sources)モデル共有ロジック。
@@ -152,7 +152,7 @@ export const COMMON_OPTION_KEYS = [
 ] as const;
 
 // 言語別フィールド（交換形を保つ。ADR-0005）。BASE_MAP_LANG_ATTRS は label を含まないため足す。
-const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, "label"];
+const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, ...BASE_MAP_META_LANG_ATTRS, "label"];
 
 const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
 

@@ -51,6 +51,8 @@
     "settings": "Einstellungen"
   },
   "basemap": {
+    "source_metadata": "Quelleninformationen (optional)",
+    "source_description_pf": "Bitte geben Sie die Beschreibung der Basiskarte ein.",
     "thumbnail_manage": "Thumbnail-Verwaltung",
     "thumbnail_replace_512": "512px ersetzen…",
     "thumbnail_replace_52": "52px ersetzen…",
