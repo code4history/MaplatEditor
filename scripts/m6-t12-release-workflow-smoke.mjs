@@ -49,6 +49,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
         VERSION,
         EXPECTED_EDITOR_SHA: opts.sha ?? '',
         EXPECTED_VERSION: opts.version ?? '',
+        WIN_SIGNER: opts.signer ?? '',
       },
       encoding: 'utf8',
     });
@@ -78,7 +79,24 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'AC3(h) verify + alpha → 許可');
   ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'AC3(i) verify + master + rc → 許可');
 
-  console.log('  [1/7] AC3 リリースガード 13ケース（2軸モデル + #104 exact SHA 宣言）: PASS');
+  // --- nov26-m7-t2: mode=sign-check（Mac 署名のみ・Win は Artifact Signing・draft Release なし。定額 ∴ rc の制限なし）---
+  ok(run('sign-check', 'refs/heads/master', '1.2.0-alpha.1', { sha: SHA, version: '1.2.0-alpha.1', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + alpha + 宣言 → 許可（rc の制限を課さない）');
+  ok(run('sign-check', 'refs/heads/foss4g-hiroshima', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + 非 master + 正式版 → 許可（配布物を作らない）');
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { version: '1.2.0', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + expected_editor_sha 欠落 → 拒否', /expected_editor_sha/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.1', signer: 'artifact-signing' }),
+    'm7-t2 sign-check + expected_version 不一致 → 拒否', /expected_version/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }),
+    'm7-t2 sign-check + win_signer=esigner → 拒否（課金の退路を検査用途に使わない）', /esigner/);
+  // --- nov26-m7-t2: mode=full の win_signer（artifact-signing・esigner のどちらか。既定は artifact-signing）---
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }), 'm7-t2 full + esigner → 許可（J-7 の退路）');
+  ng(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'bogus' }), 'm7-t2 full + 不正な win_signer → 拒否', /win_signer/);
+  ng(run('nonsense', 'refs/heads/master', '1.2.0'), 'm7-t2 未知の mode → 拒否', /mode/);
+  ok(run('', 'refs/heads/master', '1.2.0'), 'm7-t2 push（mode が空）→ 制約なし');
+
+  console.log('  [1/7] AC3 リリースガード 22ケース（2軸モデル + #104 exact SHA 宣言 + m7-t2 sign-check・win_signer）: PASS');
 }
 
 // ───────────────────────────────────────────────
