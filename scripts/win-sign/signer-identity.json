@@ -1,0 +1,18 @@
+{
+  "_about": "Windows の署名者の正本（nov26-m7-t2・C-3）。照合は scripts/win-sign/signer-identity.cjs の checkSigner だけが行う。publisherSubject は Get-AuthenticodeSignature の SignerCertificate.Subject の文字列そのもの（electron-updater の publisherName 用・加工しない）。subject はそれを parseDn で読んだ属性の集合（照合用）。issuerAllow はチェーンの index 2 以降（0 は葉・1 は直接の発行者）に 1 つ以上あるべき上位の証明書",
+  "artifact-signing": {
+    "source": "nov26-m7-t1 H-B1（run 38271126518・probe-result.json の signerCertificate.Subject と chain の index 2・3）",
+    "publisherSubject": "CN=\"Nayuta, Inc.\", O=\"Nayuta, Inc.\", L=Osaka-shi, S=Osaka-fu, C=JP",
+    "subject": { "CN": "Nayuta, Inc.", "O": "Nayuta, Inc.", "L": "Osaka-shi", "ST": "Osaka-fu", "C": "JP" },
+    "issuerAllow": [
+      { "subject": "CN=Microsoft ID Verified Code Signing PCA 2021, O=Microsoft Corporation, C=US", "thumbprint": "8E750F459DAF9A79D6370DB747AD2226866AD818" },
+      { "subject": "CN=Microsoft Identity Verification Root Certificate Authority 2020, O=Microsoft Corporation, C=US", "thumbprint": "F40042E2E5F7E8EF8189FED15519AECE42C3BFA2" }
+    ]
+  },
+  "esigner": {
+    "source": "未測定（暫定）。subject は docs/release-signing.md Part G の記録（2026-08-10・openssl）の属性。publisherSubject はそれを .NET の形に並べた暫定値。issuerAllow が空のあいだ eSigner の照合は必ず落ちる（fail-closed）。値は nov26-m7-t2 設計 §3.7 の 4（v1.1.0 の x64 Setup.exe の Get-AuthenticodeSignature と X509Chain）の実測で置き換える",
+    "publisherSubject": "CN=\"NAYUTA, INC.\", O=\"NAYUTA, INC.\", L=Osaka, S=Ōsaka Prefecture, C=JP",
+    "subject": { "CN": "NAYUTA, INC.", "O": "NAYUTA, INC.", "L": "Osaka", "ST": "Ōsaka Prefecture", "C": "JP" },
+    "issuerAllow": []
+  }
+}

@@ -5,8 +5,9 @@
 //   macOS 署名+公証: APPLE_ID 環境変数が設定されている場合（リリース用）
 //   Windows: 配布物に入る全 PE（exe・dll・Windows 用 .node・elevate.exe・アンインストーラー・
 //   インストーラー・NSIS プラグイン DLL）を electron-builder のファイルごとの署名フック
-//   （scripts/win-sign/win-sign.cjs）で SSL.com eSigner により署名する。WIN_SIGN_MODE で切り替える
-//   （off=既定・署名しない / record=記録だけ・課金ゼロ / esigner=本番）。手順は docs/release-signing.md
+//   （scripts/win-sign/win-sign.cjs）に渡す。WIN_SIGN_MODE で切り替える（off=既定・署名しない /
+//   record=記録だけ・課金ゼロ / collect=署名専用ジョブ〔Azure Artifact Signing〕へ渡すために集める・
+//   同じ実行の署名済みに差し替える / esigner=SSL.com eSigner で署名する退路）。手順は docs/release-signing.md
 //
 // ローカルビルド: .env ファイルに APPLE_ID 等を記載すれば署名+公証される
 // CI: build.yml が release 実行時のみ環境変数を出し分ける（詳細は build.yml 冒頭コメント）
@@ -85,7 +86,8 @@ const config = {
     },
     // 公証: APPLE_ID が設定されている場合のみ実行（スクリプト内でも再確認）
     afterSign: isMacNotarize ? 'scripts/notarize/notarize.cjs' : undefined,
-    // Windows: NSIS プラグイン DLL を署名済みの複写に差し替える（WIN_SIGN_MODE=off では登録しない）
+    // Windows: NSIS プラグイン DLL を署名済みの複写に差し替える（WIN_SIGN_MODE=off では登録しない）。
+    // --prepackaged（build.yml の pack のジョブ）では呼ばれないので、そこでは scripts/win-sign/prepare-nsis-toolset.mjs が用意する
     beforePack: winSignEnabled ? winSign.beforePack : undefined,
 
     dmg: {
