@@ -1,3 +1,4 @@
+import { dialogDefaultPath, type RememberedDialogFolders } from '../utils/dialogFolders';
 import Store from 'electron-store';
 import { app, dialog } from 'electron';
 import fs from 'fs-extra';
@@ -6,6 +7,7 @@ import path from 'path';
 interface AppSettings {
   lang: string;
   saveFolder: string;
+  lastDialogFolders?: RememberedDialogFolders;
   /**
    * M5-T8: JPEG デコードの会計メモリ**キャップ**（MB = 2^20 バイト）。`null` = 自動。
    * M5-T6 では「デコーダへそのまま渡す運用値」だったが、m5-t8 で画像ごとの自動決定へ移り、
@@ -70,6 +72,7 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 // (lang の設計意図とは別種)
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
+  lastDialogFolders: {},
   // M5-T8: 既定は「自動」。利用者が数値を入れたときだけキャップとして働く
   jpegDecodeMaxMemoryMB: null,
   jpegDecodeMaxResolutionMP: null,
@@ -203,8 +206,7 @@ class SettingsService extends EventEmitter {
 
   public async showSaveFolderDialog(mainWindow: any): Promise<string | null> {
     const result = await dialog.showOpenDialog(mainWindow, {
-      // Electron 43 は defaultPath 省略時の既定が Downloads になったため、未設定（空文字を含む）なら documents へ倒す（nov26-m6-t2）
-      defaultPath: this.store.get('saveFolder') || app.getPath('documents'),
+      defaultPath: dialogDefaultPath('saveFolder'),
       properties: ['openDirectory']
     });
 

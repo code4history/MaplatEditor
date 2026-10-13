@@ -1,5 +1,5 @@
-import path from 'path';
-import { app, dialog, type BrowserWindow } from 'electron';
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
+import { dialog, type BrowserWindow } from 'electron';
 import SqliteDataService from './SqliteDataService';
 import MapEditService, { hasStrictError } from './MapEditService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
@@ -86,10 +86,11 @@ class MapPurposeService {
             const slug = mapDoc?.slug || previewJson.mapID;
             const fileKey = mapDoc?.uid || slug;
             const ret = await dialog.showSaveDialog(win, {
-                defaultPath: path.join(app.getPath('documents'), `${slug}.zip`),
+                defaultPath: dialogDefaultPath('export', `${slug}.zip`),
                 filters: [{ name: 'Output file', extensions: ['zip'] }],
             });
             if (ret.canceled || !ret.filePath) return 'Canceled';
+            rememberDialogPath('export', ret.filePath, 'file');
             await buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath);
             return 'Success';
         } catch (e) {

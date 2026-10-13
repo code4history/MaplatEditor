@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow, dialog, app } from 'electron';
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 // #105: タイル URL は file:// から app://local へ移行する
@@ -205,10 +206,11 @@ export const registerMapEditHandlers = () => {
         const fileKey = mapDoc?.uid || slug;
 
         const ret = await dialog.showSaveDialog(win, {
-            defaultPath: path.join(app.getPath('documents'), `${slug}.zip`),
+            defaultPath: dialogDefaultPath('export', `${slug}.zip`),
             filters: [{ name: 'Output file', extensions: ['zip'] }],
         });
         if (ret.canceled || !ret.filePath) return 'Canceled';
+        rememberDialogPath('export', ret.filePath, 'file');
 
         await runGuarded('mapedit:download',
             () => buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath));
@@ -229,7 +231,7 @@ export const registerMapEditHandlers = () => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
         const ret = await dialog.showOpenDialog(win, {
-            defaultPath: app.getPath('documents'),
+            defaultPath: dialogDefaultPath('import'),
             properties: ['openFile'],
             filters: [{ name: csvRepl, extensions: [] }],
         });
@@ -239,6 +241,7 @@ export const registerMapEditHandlers = () => {
         }
 
         const file = ret.filePaths[0];
+        rememberDialogPath('import', file, 'file');
         const results: any[] = [];
         const options = {
             strict: true,

@@ -1,3 +1,4 @@
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import fs from 'fs-extra';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -244,11 +245,12 @@ class AppExportService {
     // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ (Phase 8 Task 6)。
     // 上書き確認は showSaveDialog のネイティブ確認に任せる(旧フォルダ出力の独自確認は廃止)
     const picked = await dialog.showSaveDialog(win, {
-      defaultPath: path.join(app.getPath('documents'), `${appID}.zip`),
+      defaultPath: dialogDefaultPath('export', `${appID}.zip`),
       filters: [{ name: 'Output file', extensions: ['zip'] }],
     });
     if (picked.canceled || !picked.filePath) return { result: 'Canceled', warnings };
     const zipFilePath = picked.filePath;
+    rememberDialogPath('export', zipFilePath, 'file');
 
     // パッケージは一時ディレクトリに構成し、zip 化して保存先へ書き出したら finally で必ず削除する
     await fs.ensureDir(app.getPath('temp'));

@@ -1,3 +1,4 @@
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 /**
  * MapUploadService.ts
  * 旧実装 backend/src/mapupload.js の TypeScript 移植版
@@ -9,7 +10,7 @@
  */
 import path from 'path';
 import fs from 'fs-extra';
-import { app, BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
 // #105: タイル URL は file:// から app://local へ移行する
 import { localFileUrl } from '../utils/appScheme';
 // @ts-ignore
@@ -476,12 +477,13 @@ export async function selectMapImage(
     mapImageLabel: string
 ): Promise<string | null> {
     const ret = await dialog.showOpenDialog(win, {
-        defaultPath: app.getPath('documents'),
+        defaultPath: dialogDefaultPath('image'),
         properties: ['openFile'],
         // 旧実装: filters: [{name: mapImageRepl, extensions: ['jpg', 'png', 'jpeg']}]
         filters: [{ name: mapImageLabel, extensions: ['jpg', 'png', 'jpeg'] }]
     });
-    if (ret.canceled) return null;
+    if (ret.canceled || ret.filePaths.length === 0) return null;
+    rememberDialogPath('image', ret.filePaths[0], 'file');
     return ret.filePaths[0];
 }
 

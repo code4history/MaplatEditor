@@ -1,7 +1,8 @@
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import fs from 'fs-extra';
 import path from 'path';
 import AdmZip from 'adm-zip';
-import { app, dialog, BrowserWindow } from 'electron';
+import { dialog, BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
@@ -82,13 +83,14 @@ class DataUploadService {
 
     async showDataSelectDialog(win: BrowserWindow): Promise<any> {
         const ret = await dialog.showOpenDialog(win, {
-            defaultPath: app.getPath('documents'),
+            defaultPath: dialogDefaultPath('import'),
             properties: ['openFile'],
             filters: [{ name: 'Map data zip', extensions: ['zip'] }],
         });
         if (ret.canceled || ret.filePaths.length === 0) {
             return { err: 'Canceled' };
         }
+        rememberDialogPath('import', ret.filePaths[0], 'file');
         return this.extractZip(ret.filePaths[0]);
     }
 

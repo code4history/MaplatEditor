@@ -1,5 +1,6 @@
+import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import path from 'node:path';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 import imageAssetService from '../services/ImageAssetService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
@@ -25,7 +26,7 @@ export function registerImageAssetHandlers() {
   ipcMain.handle('imageassets:pickImageFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
-      defaultPath: app.getPath('documents'),
+      defaultPath: dialogDefaultPath('image'),
       properties: ['openFile' as const],
       filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif'] }],
     };
@@ -34,6 +35,7 @@ export function registerImageAssetHandlers() {
       : await dialog.showOpenDialog(options);
     if (ret.canceled || ret.filePaths.length === 0) return null;
     const filePath = ret.filePaths[0];
+    rememberDialogPath('image', filePath, 'file');
     return { filePath, fileName: path.basename(filePath) };
   });
 }

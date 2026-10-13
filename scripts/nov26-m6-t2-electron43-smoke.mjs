@@ -129,24 +129,24 @@ function callBlock(src, opener, label) {
   console.log('  [7/8] (g) G2 ALLOWED = {Copy, LZMA, LZMA2, BCJ}: PASS');
 }
 
-// (h) ダイアログの既定フォルダ
+// (h) nov26-m6-t7: 2ダイアログの退避責務はdialogFoldersへ移った。
+// 呼出しの結線とdocumentsの退避を固定する。実物storeでの消失/不正値はt7 smokeが検証する。
 {
   const settings = read('electron/services/SettingsService.ts');
   const sBlock = callBlock(settings, 'dialog.showOpenDialog(mainWindow, {', '(h) SettingsService');
-  assert.match(
-    sBlock, /defaultPath:\s*this\.store\.get\('saveFolder'\)\s*\|\|\s*app\.getPath\('documents'\)/,
-    "(h): SettingsService の showOpenDialog の defaultPath が未設定時に app.getPath('documents') へ倒れない"
-  );
-  assert.match(settings, /^import\s*\{[^}]*\bapp\b[^}]*\}\s*from\s*'electron';/m, '(h): SettingsService が electron の app を import していない');
-
+  assert.match(sBlock, /defaultPath:\s*dialogDefaultPath\('saveFolder'\)/,
+    '(h): SettingsService が保存フォルダの共通経路を通らない');
   const asset = read('electron/services/AppAssetService.ts');
   const aBlock = callBlock(asset, 'dialog.showOpenDialog(win, {', '(h) AppAssetService');
-  assert.match(
-    aBlock, /defaultPath:\s*app\.getPath\('documents'\)/,
-    "(h): AppAssetService.pickImage の showOpenDialog に defaultPath: app.getPath('documents') が無い"
-  );
-  assert.match(asset, /^import\s*\{[^}]*\bapp\b[^}]*\}\s*from\s*'electron';/m, '(h): AppAssetService が electron の app を import していない');
-  console.log('  [8/8] (h) ダイアログ 2 箇所の defaultPath: PASS');
+  assert.match(aBlock, /defaultPath:\s*dialogDefaultPath\('image'\)/,
+    '(h): AppAssetService が画像用の共通経路を通らない');
+  const helper = read('electron/utils/dialogFolders.ts');
+  assert.match(helper, /availableFolder\(remembered\)\s*\?\s*remembered\s*:\s*app\.getPath\('documents'\)/,
+    '(h): 記憶したフォルダが使えないときdocumentsへ倒れない');
+  for (const caller of [settings, asset]) assert.match(caller,
+    /import\s*\{[^}]*dialogDefaultPath[^}]*\}\s*from\s*['"]\.\.\/utils\/dialogFolders['"]/,
+    '(h): 共通経路のimportがない');
+  console.log('  [8/8] (h) ダイアログ2箇所の共通経路とdocuments退避: PASS');
 }
 
 console.log('nov26-m6-t2 electron43 smoke: PASS');
