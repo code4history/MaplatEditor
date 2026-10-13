@@ -454,7 +454,9 @@
     "error_no_tile": "Les données ne contiennent pas d'images de tuiles. Arrêt du traitement.",
     "error_no_tmb": "Les données ne contiennent pas de miniature. Arrêt du traitement.",
     "error_upload": "Une erreur s'est produite lors de l'enregistrement des données de carte.",
-    "success_upload": "Les données de carte ont été enregistrées avec succès."
+    "success_upload": "Les données de carte ont été enregistrées avec succès.",
+    "error_too_large": "Le ZIP des données de carte est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés).",
+    "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé."
   },
   "database": {
     "migrating": "Migration vers le nouveau format de base de données en cours.",
@@ -852,7 +854,9 @@
       "pick_failed": "Impossible de sélectionner un fichier",
       "references_unavailable": "Impossible de récupérer les informations de référence",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "Le ZIP est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés)",
+      "zip_corrupt": "Le ZIP est endommagé et ne peut pas être importé"
     }
   },
   "poiedit": {

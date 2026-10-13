@@ -454,7 +454,9 @@
     "error_no_tile": "Dữ liệu không chứa ảnh tile. Dừng xử lý.",
     "error_no_tmb": "Dữ liệu không chứa ảnh thu nhỏ. Dừng xử lý.",
     "error_upload": "Đã xảy ra lỗi khi đăng ký dữ liệu bản đồ.",
-    "success_upload": "Đã đăng ký dữ liệu bản đồ thành công."
+    "success_upload": "Đã đăng ký dữ liệu bản đồ thành công.",
+    "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
+    "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập."
   },
   "database": {
     "migrating": "Đang di chuyển sang định dạng cơ sở dữ liệu mới.",
@@ -852,7 +854,9 @@
       "pick_failed": "Không thể chọn tệp",
       "references_unavailable": "Không thể lấy thông tin tham chiếu",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "Tệp ZIP quá lớn (không thể nhập tệp vượt quá 2 GiB)",
+      "zip_corrupt": "Tệp ZIP bị hỏng nên không thể nhập"
     }
   },
   "poiedit": {
