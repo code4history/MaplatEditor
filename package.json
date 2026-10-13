@@ -6,6 +6,8 @@
   "author": "Maplat Project",
   "type": "module",
   "scripts": {
+    "smoke:nov26-m6-t6-basemap-metadata": "node scripts/nov26-m6-t6-basemap-metadata-smoke.mjs",
+    "test:e2e:nov26-m6-t6": "node scripts/ensure-electron.mjs && pnpm --ignore-workspace run build && playwright test tests/e2e/nov26-m6-t6-basemap-metadata.spec.ts",
     "postinstall": "node scripts/ensure-electron.mjs",
     "predev": "node scripts/ensure-electron.mjs",
     "predist": "node scripts/ensure-electron.mjs",

@@ -51,6 +51,8 @@
     "settings": "Pengaturan"
   },
   "basemap": {
+    "source_metadata": "Informasi sumber (opsional)",
+    "source_description_pf": "Masukkan deskripsi peta dasar.",
     "thumbnail_manage": "Manajemen thumbnail",
     "thumbnail_replace_512": "Ganti 512px…",
     "thumbnail_replace_52": "Ganti 52px…",

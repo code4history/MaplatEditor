@@ -249,6 +249,29 @@
           />
         </div>
 
+        <div v-if="document.scope === 'user'" class="col-12">
+          <details data-testid="basemap-source-metadata" :open="hasSourceMetadata">
+            <summary class="fw-semibold mb-2">{{ t("basemap.source_metadata") }}</summary>
+            <div class="row g-3">
+              <div v-for="key in BASE_MAP_META_LANG_ATTRS" :key="key" class="col-12 col-xl-6">
+                <label class="form-label fw-semibold">{{ t(`mapedit.${metadataLabels[key]}`) }}</label>
+                <LangResourceInput
+                  :input-testid="`basemap-meta-${key}`"
+                  :model-value="document[key]"
+                  :active-lang="activeLang"
+                  :default-lang="document.defaultLang"
+                  :language-options="SUPPORTED_LANGUAGES"
+                  :multiline="key === 'description'"
+                  :placeholder="t(key === 'description' ? 'basemap.source_description_pf' : `mapedit.${metadataLabels[key]}_pf`)"
+                  :disabled="readOnly || saving || sessionTransitionPending"
+                  @update:model-value="updateResource(key, $event)"
+                  @select-language="activeLang = $event"
+                />
+              </div>
+            </div>
+          </details>
+        </div>
+
         <div class="col-12"><hr class="my-1"></div>
         <div class="col-12">
                   <template v-if="document.kind === 'tms'">
@@ -416,6 +439,7 @@
 </template>
 
 <script setup lang="ts">
+import { BASE_MAP_META_LANG_ATTRS, type BaseMapMetaLangKey } from "../../utils/langResource";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -499,6 +523,12 @@ const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugLive = ref(initial.slug);
 const originalSlug = ref<string | undefined>(props.item?.mapID);
 const slugFieldState = ref<SlugFieldState>("idle");
+const metadataLabels: Record<BaseMapMetaLangKey, string> = {
+  createdAt: "map_create_at", era: "map_era", contributor: "map_owner",
+  mapper: "map_mapper", reference: "map_source", description: "map_description",
+};
+const hasSourceMetadata = computed(() => BASE_MAP_META_LANG_ATTRS.some(key =>
+  Object.values(document.value[key] ?? {}).some(value => value.trim() !== "")));
 const activeLang = ref<LangCode>(document.value.defaultLang);
 const saving = ref(false);
 const generatingIcon = ref(false);
@@ -801,11 +831,11 @@ function commit(next: BaseMapEditDocument): void {
 function updateField<K extends keyof BaseMapEditDocument>(key: K, value: BaseMapEditDocument[K]): void {
   // 翻訳モード (structuralDisabled) では構造項目 (title/label/attr/license/dataLicense) は編集不可。
   // 言語別フィールド (dataAttr/licenseNote/dataLicenseNote) は編集可能。設計 §4.2。
-  if (structuralDisabled.value && !(["title", "label", "attr", "dataAttr", "licenseNote", "dataLicenseNote"] as string[]).includes(key)) return;
+  if (structuralDisabled.value && !(["title", "label", "attr", "dataAttr", "licenseNote", "dataLicenseNote", ...BASE_MAP_META_LANG_ATTRS] as string[]).includes(key)) return;
   commit({ ...document.value, [key]: clone(value) });
 }
 
-function updateResource(key: "title" | "label" | "attr" | "dataAttr" | "licenseNote" | "dataLicenseNote", value: string | Record<string, string> | undefined): void {
+function updateResource(key: "title" | "label" | "attr" | "dataAttr" | "licenseNote" | "dataLicenseNote" | BaseMapMetaLangKey, value: string | Record<string, string> | undefined): void {
   const normalized = typeof value === "object" && value ? value : value ? { [document.value.defaultLang]: value } : {};
   updateField(key, normalized);
 }

@@ -1,6 +1,8 @@
 import type { LangCode } from "./editorLanguages";
 import {
   BASE_MAP_LANG_ATTRS,
+  BASE_MAP_META_LANG_ATTRS,
+  type BaseMapMetaLangKey,
   normalizeLangResource,
   type LangResource,
 } from "./langResource";
@@ -29,7 +31,7 @@ export type BaseMapKind = "tms" | "google" | "mapbox" | "maplibre" | "merc";
 // Google プリセット値（m6-t4）。kind === "google" のときのみ意味を持つ。
 export type GoogleMapType = "google_roadmap" | "google_satellite" | "google_hybrid" | "google_terrain";
 
-export interface BaseMapEditDocument {
+export interface BaseMapEditDocument extends Partial<Record<BaseMapMetaLangKey, Record<string, string>>> {
   uid: string;
   scope: "builtin" | "user";
   defaultLang: LangCode;
@@ -90,7 +92,7 @@ export interface BaseMapSavePayload {
   expectedRevision?: number;
   // 新規作成の明示合図 (M11-T7/§7.2b)。true=uid を事前採番 preset として採用
   create?: boolean;
-  tms: {
+  tms: Partial<Record<BaseMapMetaLangKey, Record<string, string>>> & {
     // 種別軸（m6-t1）。保存時は document.kind ?? "tms" で必ず既知5値のいずれか。
     kind: BaseMapKind;
     lang: LangCode;
@@ -246,11 +248,17 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     if (attr === "title") continue;
     lang[attr] = normalizeLangResource(data[attr] as LangResource | undefined, defaultLang);
   }
+  const metadata: Partial<Record<BaseMapMetaLangKey, Record<string, string>>> = {};
+  for (const key of BASE_MAP_META_LANG_ATTRS) {
+    const value = normalizeLangResource(data[key] as LangResource | undefined, defaultLang);
+    if (Object.keys(value).length) metadata[key] = value;
+  }
   // license / dataLicense は ASCII 語彙の単一文字列。非文字列は空文字へ落とす (§4.1)
   const license = typeof data.license === "string" ? data.license : "";
   const dataLicense = typeof data.dataLicense === "string" ? data.dataLicense : "";
   const kind = normalizeKind(data.kind);
   return {
+    ...metadata,
     uid: item.uid,
     scope: item.scope,
     defaultLang,
@@ -353,12 +361,18 @@ export function toBaseMapSavePayload(
   document: BaseMapEditDocument,
   revision: number | null,
 ): BaseMapSavePayload {
+  const metadata: Partial<Record<BaseMapMetaLangKey, Record<string, string>>> = {};
+  for (const key of BASE_MAP_META_LANG_ATTRS) {
+    const value = normalizeLangResource(document[key], document.defaultLang);
+    if (Object.keys(value).length) metadata[key] = value;
+  }
   const hasExplicitLabel = Object.values(document.label).some((value) => value.trim() !== "");
   return {
     ...(revision !== null && document.scope === "user" && document.uid ? { uid: document.uid } : {}),
     slug: document.slug,
     ...(revision === null ? {} : { expectedRevision: revision }),
     tms: {
+      ...metadata,
       // 種別軸（m6-t1）。null は保存時 "tms" へ正規化（save は kind-required で null 到達を阻止済み）。
       // saveUserBaseMap が { ...tms, mapID: slug } を data_json に書くため、ここに載せれば永続化される。
       kind: document.kind ?? "tms",
