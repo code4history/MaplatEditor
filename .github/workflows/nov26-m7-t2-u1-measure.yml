@@ -1,0 +1,290 @@
+# nov26-m7-t2 §3.7: U-1 の測定（一時の workflow。nov26/m7-t2 には入れない・merge しない）。
+# 同じ入力から 2 つの runner でアンインストーラーを作り、署名と TimeDateStamp を除いた中身（comparableDigest）が
+# 一致するかを測る。あわせて v1.1.0 の x64 Setup.exe（eSigner）の署名者とチェーンを取る（signer-identity.json の esigner）。
+# environment・secrets・id-token を持たない（C-9 に触れない）。
+name: nov26-m7-t2 U-1 measure
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nov26-m7-t2-u1-measure.yml
+      - scripts/win-sign/**
+
+permissions:
+  contents: read
+
+jobs:
+  # 本番（win-stage1 の tar を pack-win-1・2 が共有する）と形を揃え、unpacked は 1 つのジョブで作って共有する（R2-MIN-3）
+  measure-build:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Package unpacked (x64, unsigned)
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win --x64 --dir
+      - name: Tar the unpacked app
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          tar -cf u1-unpacked.tar -C "release/$v" win-unpacked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-unpacked
+          path: u1-unpacked.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  # (i) 現行の流れ（origin/master の win-sign.cjs・record・--prepackaged なし＝beforePack が呼ばれる）を同じ runner で 2 回。参考
+  measure-current:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Restore the current win-sign.cjs from origin/master
+        shell: bash
+        run: git show origin/master:scripts/win-sign/win-sign.cjs > scripts/win-sign/win-sign.cjs
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - name: Build twice (record)
+        shell: bash
+        run: |
+          for n in 1 2; do
+            WIN_SIGN_MODE=record WIN_SIGN_WORK_DIR="u1-current/$n" WIN_SIGN_RECORD_FILE="$PWD/u1-current/rec-$n.jsonl" \
+              pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win nsis --x64 -c.directories.output="release/u1-current-$n"
+          done
+          for n in 1 2; do grep '__uninstaller.exe' "u1-current/rec-$n.jsonl" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log('$n', JSON.parse(s.trim().split('\n')[0]).sha256))"; done | tee u1-current/summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-current
+          path: u1-current/*.jsonl
+          retention-days: 3
+
+  # (ii) 本番と同じ経路（prepare-nsis-toolset.mjs → --prepackaged）を別々の runner で
+  measure-prod-a:
+    needs: measure-build
+    runs-on: windows-2025
+    timeout-minutes: 40
+    env:
+      U1_SIDE: a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: u1-unpacked
+          path: .
+      - name: Restore the unpacked app
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p "release/$v" && tar -xf u1-unpacked.tar -C "release/$v"
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Prepare the NSIS toolset
+        env:
+          WIN_SIGN_MODE: collect
+          WIN_SIGN_WORK_DIR: u1/work
+          WIN_SIGN_RECORD_FILE: u1/rec.jsonl
+          WIN_SIGN_COLLECT_DIR: u1/collect
+        run: node scripts/win-sign/prepare-nsis-toolset.mjs
+      - name: Pack (x64, --prepackaged)
+        env:
+          WIN_SIGN_MODE: collect
+          WIN_SIGN_WORK_DIR: u1/work
+          WIN_SIGN_RECORD_FILE: u1/rec.jsonl
+          WIN_SIGN_COLLECT_DIR: u1/collect
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win nsis --x64 --prepackaged release/${{ env.VERSION }}/win-unpacked
+      # 測定の空振りの検出: (α) プラグインの記録が 7 件 (β) electron-builder の環境の RESOURCES_DIR が印と一致
+      - name: Check the measurement is valid
+        shell: bash
+        run: |
+          node --input-type=module -e "
+          import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
+          const require = createRequire(import.meta.url); const ws = require('./scripts/win-sign/win-sign.cjs');
+          const rec = fs.readFileSync('u1/rec.jsonl','utf8').trim().split('\n').map(JSON.parse);
+          const plugins = rec.filter(e => e.kind === 'nsis-plugin').length;
+          if (plugins !== ws.NSIS_PLUGINS_TO_SIGN.length) throw new Error('(α) プラグインの記録が ' + plugins);
+          const marker = JSON.parse(fs.readFileSync(path.join('u1/work/nsis-collect', ws.PREPARED_MARKER),'utf8'));
+          if (path.resolve(process.env.ELECTRON_BUILDER_NSIS_RESOURCES_DIR) !== path.resolve(marker.resourcesDir)) throw new Error('(β) RESOURCES_DIR が印と違う');
+          const u = rec.find(e => e.name.endsWith('__uninstaller.exe'));
+          fs.copyFileSync(path.join('u1/collect', u.collected), 'u1/uninstaller.pe');
+          console.log('(α)(β) ok', u.sha256);
+          "
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-prod-${{ env.U1_SIDE }}
+          path: |
+            u1/uninstaller.pe
+            u1/rec.jsonl
+            u1/work/nsis-collect/.win-sign-prepared.json
+          retention-days: 3
+          if-no-files-found: error
+
+  measure-prod-b:
+    needs: measure-build
+    runs-on: windows-2025
+    timeout-minutes: 40
+    env:
+      U1_SIDE: b
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: u1-unpacked
+          path: .
+      - name: Restore the unpacked app
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p "release/$v" && tar -xf u1-unpacked.tar -C "release/$v"
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Prepare the NSIS toolset
+        env:
+          WIN_SIGN_MODE: collect
+          WIN_SIGN_WORK_DIR: u1/work
+          WIN_SIGN_RECORD_FILE: u1/rec.jsonl
+          WIN_SIGN_COLLECT_DIR: u1/collect
+        run: node scripts/win-sign/prepare-nsis-toolset.mjs
+      - name: Pack (x64, --prepackaged)
+        env:
+          WIN_SIGN_MODE: collect
+          WIN_SIGN_WORK_DIR: u1/work
+          WIN_SIGN_RECORD_FILE: u1/rec.jsonl
+          WIN_SIGN_COLLECT_DIR: u1/collect
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win nsis --x64 --prepackaged release/${{ env.VERSION }}/win-unpacked
+      # 測定の空振りの検出: (α) プラグインの記録が 7 件 (β) electron-builder の環境の RESOURCES_DIR が印と一致
+      - name: Check the measurement is valid
+        shell: bash
+        run: |
+          node --input-type=module -e "
+          import fs from 'node:fs'; import path from 'node:path'; import { createRequire } from 'node:module';
+          const require = createRequire(import.meta.url); const ws = require('./scripts/win-sign/win-sign.cjs');
+          const rec = fs.readFileSync('u1/rec.jsonl','utf8').trim().split('\n').map(JSON.parse);
+          const plugins = rec.filter(e => e.kind === 'nsis-plugin').length;
+          if (plugins !== ws.NSIS_PLUGINS_TO_SIGN.length) throw new Error('(α) プラグインの記録が ' + plugins);
+          const marker = JSON.parse(fs.readFileSync(path.join('u1/work/nsis-collect', ws.PREPARED_MARKER),'utf8'));
+          if (path.resolve(process.env.ELECTRON_BUILDER_NSIS_RESOURCES_DIR) !== path.resolve(marker.resourcesDir)) throw new Error('(β) RESOURCES_DIR が印と違う');
+          const u = rec.find(e => e.name.endsWith('__uninstaller.exe'));
+          fs.copyFileSync(path.join('u1/collect', u.collected), 'u1/uninstaller.pe');
+          console.log('(α)(β) ok', u.sha256);
+          "
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-prod-${{ env.U1_SIDE }}
+          path: |
+            u1/uninstaller.pe
+            u1/rec.jsonl
+            u1/work/nsis-collect/.win-sign-prepared.json
+          retention-days: 3
+          if-no-files-found: error
+
+
+  # (ii)(iii) 2 つのアンインストーラーの SHA-256 と comparableDigest（署名と TimeDateStamp を除いた中身）を比べる
+  measure-compare:
+    needs: [measure-prod-a, measure-prod-b]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: u1-prod-*
+          path: u1
+      - name: Compare
+        run: |
+          node --input-type=module -e "
+          import fs from 'node:fs'; import crypto from 'node:crypto'; import { createRequire } from 'node:module';
+          const require = createRequire(import.meta.url); const ws = require('./scripts/win-sign/win-sign.cjs');
+          const r = {};
+          for (const s of ['a','b']) { const b = fs.readFileSync('u1/u1-prod-' + s + '/uninstaller.pe'); r[s] = { sha256: crypto.createHash('sha256').update(b).digest('hex'), comparable: ws.comparableDigest(b), size: b.length }; }
+          const out = { a: r.a, b: r.b, sha256Equal: r.a.sha256 === r.b.sha256, comparableEqual: r.a.comparable === r.b.comparable };
+          const j = JSON.stringify(out, null, 2); console.log(j);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '## U-1\n\n\`\`\`json\n' + j + '\n\`\`\`\n');
+          fs.writeFileSync('u1-result.json', j);
+          "
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-result
+          path: u1-result.json
+          retention-days: 3
+
+  # §3.7 の 4: v1.1.0 の x64 Setup.exe（公開物）の署名者とチェーン（signer-identity.json の esigner の値）
+  measure-esigner-identity:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Download v1.1.0 x64 Setup.exe
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v1.1.0 -R code4history/MaplatEditor -p '*x64-Setup.exe' -D v110
+      - name: Read the signature
+        shell: pwsh
+        run: |
+          $f = @(Get-ChildItem -LiteralPath v110 -Filter '*x64-Setup.exe')[0].FullName
+          $s = Get-AuthenticodeSignature -LiteralPath $f
+          $c = [System.Security.Cryptography.X509Certificates.X509Chain]::new()
+          $c.ChainPolicy.RevocationMode = 'NoCheck'
+          $built = $c.Build($s.SignerCertificate)
+          $r = [ordered]@{
+            status = [string]$s.Status
+            signerSubject = $s.SignerCertificate.Subject
+            chainBuilt = $built
+            chain = @($c.ChainElements | ForEach-Object { [ordered]@{ subject = $_.Certificate.Subject; thumbprint = $_.Certificate.Thumbprint } })
+          }
+          $j = $r | ConvertTo-Json -Depth 5
+          $j | Set-Content -LiteralPath esigner-identity.json -Encoding utf8NoBOM
+          $j
+          "## v1.1.0 の署名者`n`n``````json`n$j`n``````" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: u1-esigner-identity
+          path: esigner-identity.json
+          retention-days: 3
