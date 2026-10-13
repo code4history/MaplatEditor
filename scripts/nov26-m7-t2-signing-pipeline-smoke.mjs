@@ -22,6 +22,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
+import { runInNewContext } from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -194,6 +195,56 @@ function fakeSign(unsigned, magic = 0x20b) {
   return out;
 }
 const VALID_AS = () => ({ status: 'Valid', subject: AS_SUBJECT, chain: AS_CHAIN });
+// Windows の C: のキャッシュと D: の作業場所を、実際の準備関数と path.win32 で検査する。
+// ファイル操作は記録だけにし、複写先の列挙で止める（プラグインの差し替えは下の実ファイル fixture で検査）。
+{
+  const winPath = path.win32;
+  const workDir = String.raw`D:\a\MaplatEditor\MaplatEditor\release\.win-sign`;
+  const root = winPath.join(workDir, 'nsis-collect');
+  const source = readFileSync(WIN_SIGN, 'utf8');
+  const realRequire = createRequire(WIN_SIGN);
+  const check = async (nsisSrc, pluginsSrc, rejected = false) => {
+    const copies = [];
+    const removals = [];
+    const fakeFs = {
+      rmSync: (p) => removals.push(p),
+      cpSync: (from, to, opts) => copies.push({ from, to, opts }),
+      readdirSync: () => { throw new Error('NSIS パス fixture: 複写先の列挙まで到達'); },
+    };
+    const mod = { exports: {} };
+    const evaluate = runInNewContext(`(function(require, module, exports) { ${source}\n})`, {
+      process: { env: { WIN_SIGN_MODE: 'collect', WIN_SIGN_WORK_DIR: workDir }, platform: 'win32' },
+      Buffer, console,
+    });
+    evaluate((id) => id === 'node:path' ? winPath : id === 'node:fs' ? fakeFs : realRequire(id), mod, mod.exports);
+    mod.exports.__setDepsForTest({ toolsetSources: { nsisSrc, pluginsSrc } });
+    await assert.rejects(() => mod.exports.prepareSignedNsisToolset({ config: {} }),
+      rejected ? /複写元が複写先の中にある/ : /NSIS パス fixture: 複写先の列挙まで到達/,
+      `[2](o) Windows の複写元判定: ${nsisSrc} / ${pluginsSrc}`);
+    if (rejected) {
+      assert.equal(removals.length, 0, '[2](o) 複写先自身・子孫の入力は消す前に拒む');
+      assert.equal(copies.length, 0, '[2](o) 拒んだ入力は複写しない');
+    } else {
+      assert.deepEqual(removals, [root], '[2](o) 再生成する対象は複写先だけ');
+      assert.equal(copies[0].from, nsisSrc, '[2](o) NSIS 本体の複写元');
+      assert.equal(copies[0].to, winPath.join(root, 'nsis'), '[2](o) NSIS 本体の複写先');
+      return copies;
+    }
+  };
+  const separate = await check(String.raw`C:\cache\nsis-3.0.4.1`, String.raw`C:\cache\nsis-resources-3.4.1\plugins`);
+  assert.equal(separate.length, 2, '[2](o) C: の別梱包は D: へ本体・resources の 2 回複写');
+  assert.equal(separate[1].to, winPath.join(root, 'nsis-resources'), '[2](o) 別梱包の resources を別の複写先へ');
+  const crossDrive = await check(String.raw`C:\cache\nsis`, String.raw`E:\cache\nsis-resources\plugins`);
+  assert.equal(crossDrive.length, 2, '[2](o) resources も別ドライブなら統合バンドルと誤判定しない');
+  const bundled = await check(String.raw`C:\cache\nsis`, String.raw`C:\cache\nsis\windows\Plugins`);
+  assert.equal(bundled.length, 1, '[2](o) 統合バンドルは本体の複写 1 回');
+  await check(root, String.raw`C:\cache\plugins`, true);
+  await check(winPath.join(root, 'nsis'), String.raw`C:\cache\plugins`, true);
+  await check(String.raw`C:\cache\nsis`, winPath.join(root, 'nsis-resources', 'plugins'), true);
+  await check(winPath.join(root, '..cache'), String.raw`C:\cache\plugins`, true);
+  await check(`${root}-old`, String.raw`C:\cache\plugins`);
+  console.log('  [2] Windows の別ドライブ・統合バンドル・自己複写拒否（8 ケース）: PASS');
+}
 const work = mkdtempSync(path.join(tmpdir(), 'nov26-m7-t2-'));
 const resetEnv = () => {
   for (const k of ['WIN_SIGN_MODE', 'WIN_SIGN_WORK_DIR', 'WIN_SIGN_RECORD_FILE', 'WIN_SIGN_COLLECT_DIR', 'WIN_SIGN_SIGNED_DIR',
