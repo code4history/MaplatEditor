@@ -4070,6 +4070,12 @@ const importMap = async () => {
                 modalFinish('dataupload.error_no_tile');
             } else if (arg.err === 'NoTmb') {
                 modalFinish('dataupload.error_no_tmb');
+            } else if (arg.err === 'TooLarge') {
+                // nov26-m6-t3 (#98): 2 GiB 超。理由の分かる固定文（原文は main のログ）
+                modalFinish('dataupload.error_too_large');
+            } else if (arg.err === 'Corrupt') {
+                // nov26-m6-t3 (#116): adm-zip・zlib の読み取りの例外。原文は出さない
+                modalFinish('dataupload.error_corrupt');
             } else {
                 console.error('[importMap]', arg.err);
                 modalFinish('dataupload.error_upload');

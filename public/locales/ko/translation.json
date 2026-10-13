@@ -454,7 +454,9 @@
     "error_no_tile": "데이터에 타일 이미지가 포함되어 있지 않습니다. 처리를 중단합니다.",
     "error_no_tmb": "데이터에 썸네일이 포함되어 있지 않습니다. 처리를 중단합니다.",
     "error_upload": "지도 데이터 등록 중 오류가 발생했습니다.",
-    "success_upload": "지도 데이터가 정상적으로 등록되었습니다."
+    "success_upload": "지도 데이터가 정상적으로 등록되었습니다.",
+    "error_too_large": "지도 데이터 ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다).",
+    "error_corrupt": "지도 데이터 ZIP이 손상되어 가져올 수 없습니다."
   },
   "database": {
     "migrating": "신형 DB 형식으로 이전 중입니다.",
@@ -852,7 +854,9 @@
       "pick_failed": "파일을 선택할 수 없습니다",
       "references_unavailable": "참조 정보를 가져올 수 없습니다",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
-      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty."
+      "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
+      "zip_too_large": "ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다)",
+      "zip_corrupt": "ZIP이 손상되어 가져올 수 없습니다"
     }
   },
   "poiedit": {

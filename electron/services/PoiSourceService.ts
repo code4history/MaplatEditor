@@ -37,6 +37,7 @@ import type { PoiZipImport, CompensationResidue } from './PoiPackageService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { guardedFetch } from './remoteFetchGuard';
+import { classifyZipReadError } from '../utils/zipImportGuard';
 
 // POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
@@ -114,7 +115,11 @@ export type PoiSourceErrorCode =
   | 'parse'
   | 'not-found'
   | 'invalid-request'
-  | 'internal';
+  | 'internal'
+  // nov26-m6-t3 (#98・#116): ZIP の取り込みで、2 GiB 超（zip-too-large）と
+  // 壊れた ZIP（adm-zip・zlib の読み取りの例外・重複名。zip-corrupt）。message を付けない
+  | 'zip-too-large'
+  | 'zip-corrupt';
 
 // 保存系の結果 union (MapSaveResult/AppSaveResult と同形。ファイルフェーズが無いため
 // Error{uid,slug,revision} 拡張は不要)。'Invalid' = 検証エラーで拒否 (issues 参照)、
@@ -447,6 +452,14 @@ export class PoiSourceService {
         return result;
       } catch (e: any) {
         if (preparedImport) logCompensationResidue('importFile/throw', await preparedImport.cleanup());
+        // nov26-m6-t3 (#98・#116): 大きすぎる ZIP・壊れた ZIP は利用者向けのコードへ写し、
+        // 原文（adm-zip の `{0}` やパスを含みうる）は message に載せない（PoiEdit は
+        // invalid-request の message をそのまま出すため）。原文はログへだけ出す
+        const zipError = classifyZipReadError(e);
+        if (zipError) {
+          console.error('[PoiSourceService] importFile zip error', e);
+          return { result: 'Error', code: zipError.kind === 'too-large' ? 'zip-too-large' : 'zip-corrupt' };
+        }
         return { result: 'Error', code: 'invalid-request', message: e?.message ?? String(e) };
       }
     }
@@ -534,7 +547,17 @@ export class PoiSourceService {
     const ext = path.extname(String(filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
       const { importPoiZip } = await import('./PoiPackageService');
-      const imported = await importPoiZip(filePath);
+      let imported: PoiZipImport;
+      try {
+        imported = await importPoiZip(filePath);
+      } catch (e) {
+        // nov26-m6-t3 (#116): 言語の判定は補助である。大きすぎる ZIP・壊れた ZIP は投げずに既定の言語を返し、
+        // 続く importFile が同じ例外を利用者向けのコード（zip-too-large・zip-corrupt）で返す。
+        // それ以外の例外は従来どおり投げる
+        if (!classifyZipReadError(e)) throw e;
+        console.error('[PoiSourceService] detectImportLanguage zip error', e);
+        return fallbackLang || SettingsService.get('lang');
+      }
       try {
         return resolvePoiSourceLanguage((imported.fc as PoiEditorFC).lang, fallbackLang || SettingsService.get('lang'));
       } finally {

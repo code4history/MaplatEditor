@@ -454,7 +454,9 @@
     "error_no_tile": "データにタイル画像が含まれていません。処理を停止します。",
     "error_no_tmb": "データにサムネイルが含まれていません。処理を停止します。",
     "error_upload": "地図データ登録でエラーが発生しました。",
-    "success_upload": "正常に地図データが登録できました。"
+    "success_upload": "正常に地図データが登録できました。",
+    "error_too_large": "地図データの ZIP が大きすぎます（2 GiB を超えるものは取り込めません）。",
+    "error_corrupt": "地図データの ZIP が壊れているため取り込めません。"
   },
   "database": {
     "migrating": "新型DB形式に移行中です。",
@@ -852,7 +854,9 @@
       "pick_failed": "ファイルを選択できませんでした",
       "references_unavailable": "参照情報を取得できませんでした",
       "content_mode_url_format": "URLに http/https 以外のプロトコル（javascript: 等）は使用できません。",
-      "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。"
+      "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。",
+      "zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものは取り込めません）",
+      "zip_corrupt": "ZIP が壊れているため取り込めません"
     }
   },
   "poiedit": {
