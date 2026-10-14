@@ -30,6 +30,7 @@ allowBuilds:
   electron-winstaller: false
 
 overrides:
+  rollup: "4.62.4"
   # eslint / vitest まわりが引く js-yaml。>=4.0.0 <4.3.1 の high。4系の最新へ留める。
   js-yaml: "^4.3.1"
 
