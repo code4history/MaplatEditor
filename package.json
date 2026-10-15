@@ -6,6 +6,7 @@
   "author": "Maplat Project",
   "type": "module",
   "scripts": {
+    "smoke:issue-148-basemap-icon": "node scripts/issue-148-basemap-icon-smoke.mjs",
     "smoke:nov26-m6-t7-dialog-folders": "node scripts/nov26-m6-t7-dialog-folders-smoke.mjs",
     "test:e2e:nov26-m6-t7": "node scripts/ensure-electron.mjs && pnpm --ignore-workspace run build && playwright test tests/e2e/nov26-m6-t7-dialog-folders.spec.ts",
     "smoke:nov26-m6-t6-basemap-metadata": "node scripts/nov26-m6-t6-basemap-metadata-smoke.mjs",
