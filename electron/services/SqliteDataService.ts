@@ -36,7 +36,7 @@ import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
 // nov26-m6-t5: 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
 import { runAssetUuidNamesColdBoot } from './AssetUuidNamesMigrationService';
-import { sameContent } from './assetImageRefs';
+import { copyVerified, sameContent } from './assetImageRefs';
 import { writeLegacyMigrationReport, appendMigrationWarnings } from './MigrationReportService';
 
 type BaseMapScope = 'builtin' | 'user';
@@ -2571,10 +2571,9 @@ class SqliteDataService {
          VALUES (?, ?, 'user', ?, ?, 1, datetime('now'))`
       ).run(uid, slug, sortOrder, JSON.stringify(data));
     });
-    // 新規作成時、アイコンが暫定名(uid未採番のため入力ID名でアップロードされる)なら
-    // uid名(tmbs/{uid}.{ext})へ付け替える。行コミット後に行う(slug衝突等で作成が
-    // 失敗した場合にアイコン実体だけ先に動かして再試行時に参照切れになるのを防ぐ)。
-    // 付け替え失敗時は暫定名のまま残る(参照は有効なまま)
+    // 新規作成時、別名のアイコン（複製元・旧暫定名）を uid 名へコピーする。
+    // 行コミット後に行い、作成失敗時の不要なコピーを避ける。
+    // コピー失敗時は元参照を維持する。元ファイルは成功時も削除しない（#148）。
     const relocated = await this.relocateBaseMapIcon(uid, typeof tms?.thumbnail === 'string' ? tms.thumbnail : '');
     // 実装レビュー round3 M-6: merc マスタ新規作成でサムネイル未指定なら、元地図
     // (sourceMapUid) のサムネイルを own uid 名へ複製し既定値とする。relocate と同じ理由
@@ -2627,65 +2626,48 @@ class SqliteDataService {
     }
   }
 
-  // 新規ベースマップ作成時のアイコン付け替え: tmbs/{暫定名}.{ext} → tmbs/{uid}.{ext}。
-  // 実体が無い/移動に失敗した場合は null を返し、元のパスをそのまま保存する
+  // #148: thumbnail は複製元の保存済み画像も指すため、暫定名と仮定して移動しない。
+  // 元の対を残し、存在する両サイズのコピーを確認した後だけ参照を切り替える。
+  // 途中失敗時は元参照を維持する。部分コピーは消さず、同一内容なら再試行で再利用する。
+  // DB の参照更新失敗・プロセス中断でも元参照は有効（未参照コピーの掃除は別責務）。
   private async relocateBaseMapIcon(uid: string, thumbnail: string): Promise<string | null> {
     const match = thumbnail.match(/^tmbs\/([^/]+)\.([A-Za-z0-9]+)$/);
     if (!match || match[1] === uid) return null;
     const { saveFolder } = this.folders;
     const newRel = thumb52PathFor(uid, match[2]);
-    const from = path.join(saveFolder, thumbnail);
-    if (!(await fs.pathExists(from))) return null;
-
-    // m19-t2 (ADR-0007 違反 A の是正): 52px だけを uid 名へ寄せると、未保存中に生成された
-    // 512px が暫定名（slug 名）に取り残される。内部ストレージキーは uid のみ参照してよい
-    // （ADR-0007）ため、同じ規則で 512px も追随させる。
-    //
-    // 【順序が意味を持つ】512px を先に動かす。52px を先に動かすと、512px の付け替えに
-    // 失敗したときに「52px は uid 名・512px は暫定名」という非対称が残り、保存後の
-    // thumbnail から導く 512px パスが実体を持たない状態になる（＝ 512px が消えたように見える）。
-    // 対で動かせないなら 52px も動かさず、暫定名のまま整合させる（参照は有効なまま）。
-    const large = await this.moveBaseMapIconLarge(thumbnail, newRel);
-    if (!large.ok) return null;
-
+    const at = (rel: string) => path.join(saveFolder, rel);
     try {
-      await fs.move(from, path.join(saveFolder, newRel), { overwrite: false });
+      if (!(await fs.pathExists(at(thumbnail)))) return null;
+      const oldLarge = thumb512PathFor(thumbnail);
+      const newLarge = thumb512PathFor(newRel);
+      const pairs: [string, string][] = [];
+      if (oldLarge && newLarge) {
+        if (await fs.pathExists(at(oldLarge))) {
+          pairs.push([oldLarge, newLarge]);
+        } else if (await fs.pathExists(at(newLarge))) {
+          // 元に無い 512px と、宛先に残る別の画像を組み合わせない。
+          return null;
+        }
+      }
+      pairs.push([thumbnail, newRel]);
+      for (const [from, to] of pairs) {
+        const copied = await copyVerified(at(from), at(to));
+        if (!copied.ok) throw new Error(copied.detail);
+      }
+      // 新規コピーも SHA-256 で確認する（copyVerified 自体の新規検証はサイズのみ）。
+      for (const [from, to] of pairs) {
+        if (!(await sameContent(at(from), at(to)))) throw new Error(`content mismatch: ${from} -> ${to}`);
+      }
       return newRel;
     } catch (e: any) {
-      console.warn(`[SqliteDataService] base map icon relocation failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
-      // 52px を動かせなかったので、先に動かした 512px を元へ戻して対の整合を保つ
-      if (large.moved) await this.moveBaseMapIconLarge(newRel, thumbnail);
+      console.warn(`[SqliteDataService] base map icon copy failed: ${thumbnail} -> ${newRel} (${e?.message ?? e})`);
       return null;
-    }
-  }
-
-  // m19-t2: 52px の付け替えに対応する 512px の付け替え。
-  // 派生規約は thumb512PathFor に集約しており、ここでリテラルを組み立てない。
-  // 戻り値の ok=false は「512px の実体があるのに動かせなかった」場合のみで、呼び出し元は
-  // 52px の付け替えを中止する。実体が無い場合は動かすものが無いだけなので ok=true とする。
-  private async moveBaseMapIconLarge(oldRel52: string, newRel52: string): Promise<{ ok: boolean; moved: boolean }> {
-    const oldLarge = thumb512PathFor(oldRel52);
-    const newLarge = thumb512PathFor(newRel52);
-    if (!oldLarge || !newLarge || oldLarge === newLarge) return { ok: true, moved: false };
-    const { saveFolder } = this.folders;
-    try {
-      const from = path.join(saveFolder, oldLarge);
-      if (!(await fs.pathExists(from))) return { ok: true, moved: false };
-      await fs.move(from, path.join(saveFolder, newLarge), { overwrite: false });
-      return { ok: true, moved: true };
-    } catch (e: any) {
-      // 52px 側の成功に埋もれると「512px だけ消える」原因の特定が難しくなるため error で出す
-      console.error(
-        `[SqliteDataService] base map large icon relocation failed (52px relocation aborted to keep the pair consistent): `
-          + `${oldLarge} -> ${newLarge} (${e?.message ?? e})`,
-      );
-      return { ok: false, moved: false };
     }
   }
 
   // 実装レビュー round3 M-6: merc マスタの既定サムネイル継承。
   // 元地図の 52px/512px サムネイルを own uid 名へ複製する
-  // (relocateBaseMapIcon の move と異なり、複製元＝元地図のファイルは残す必要があるため copy)。
+  // (複製元＝元地図のファイルは残す必要があるため copy)。
   // 52px 実体が無ければ null(呼出元は payload の thumbnail をそのまま使う)。512px は任意(無くても52pxのみ複製する)
   private async inheritMercThumbnail(uid: string, sourceMapUid: string): Promise<string | null> {
     const { saveFolder } = this.folders;

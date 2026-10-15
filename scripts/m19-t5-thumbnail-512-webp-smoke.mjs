@@ -399,62 +399,70 @@ await writeFile(
         },
       });
 
-      // console.error の呼び出し回数を数える（512px の失敗が warn に埋もれず error で出ること）
-      const withErrorCount = async <T>(fn: () => Promise<T>): Promise<{ result: T; errors: number }> => {
-        const original = console.error;
-        let errors = 0;
-        console.error = (...args: unknown[]) => { errors++; original(...args); };
+      // 失敗の記録を数える。Issue #148 で move を廃止し、relocate の失敗は
+      // 単一の console.warn に集約された。どのサイズで落ちたかは本文のパスで判別できる形を検査する。
+      const withWarnCount = async <T>(fn: () => Promise<T>): Promise<{ result: T; warns: string[] }> => {
+        const original = console.warn;
+        const warns: string[] = [];
+        console.warn = (...args: unknown[]) => { warns.push(args.map(String).join(' ')); original(...args); };
         try {
           const result = await fn();
-          return { result, errors };
+          return { result, warns };
         } finally {
-          console.error = original;
+          console.warn = original;
         }
       };
+      // 宛先の「先客」は内容の違いだけを見たいので、復号しない sentinel バイト列で置く
+      const putSentinel = (absPath: string, body: string) => fse.outputFile(absPath, body);
 
-      // ---- R-1: 順序 + 中止 ----
-      // 512px の移動先を先に作っておく -> fs.move(overwrite:false) が失敗する。
-      // 期待: relocate が null を返し、**52px は暫定名のまま**（対で動かせないなら動かさない）
+      // ---- R-1: 順序 + 中止（Issue #148 以降は move ではなく copy）----
+      // 512px の宛先に**別内容**の先客を置く -> copyVerified が上書きを拒否して失敗する。
+      // 期待: relocate が null を返し、**52px も複製しない**（対で揃わないなら参照も変えない）
       {
         const uid = globalThis.crypto.randomUUID();
         const prov52 = 'tmbs/prov-r1.png';
         await makeIcon(abs(prov52));
         await makeIcon(abs(rel512Of(prov52)));
         const dest52 = 'tmbs/' + uid + '.png';
-        await makeIcon(abs(rel512Of(dest52))); // 512px の移動先に先客を置く
+        await putSentinel(abs(rel512Of(dest52)), 'unrelated-512'); // 512px の宛先に別内容の先客
 
-        const { result: saved, errors } = await withErrorCount(() =>
+        const { result: saved, warns } = await withWarnCount(() =>
           SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r1', prov52)),
         );
 
         assert.equal(saved.thumbnail, prov52, 'R-1: 付け替えを中止し thumbnail は暫定名のまま');
-        assert.equal(await exists(abs(dest52)), false, 'R-1: **52px は uid 名へ動いていない**（順序と中止が効いている）');
+        assert.equal(await exists(abs(dest52)), false, 'R-1: **52px は uid 名へ複製していない**（順序と中止が効いている）');
         assert.ok(await exists(abs(prov52)), 'R-1: 52px は暫定名に残る（参照は有効なまま）');
         assert.ok(await exists(abs(rel512Of(prov52))), 'R-1: 512px も暫定名に残る');
-        assert.ok(errors >= 1, 'R-1: 512px の失敗は console.error で出る（warn に埋もれない）');
-        console.log('ok: R-1 順序 + 中止（512px が動かせなければ 52px も動かさない・error 出力あり）');
+        assert.equal(await fse.readFile(abs(rel512Of(dest52)), 'utf8'), 'unrelated-512', 'R-1: 宛先の先客は上書きしない');
+        assert.ok(warns.length >= 1, 'R-1: 失敗は console.warn に出る');
+        assert.ok(warns.some((w) => w.includes(rel512Of(dest52))), 'R-1: 失敗の本文から 512px 側で落ちたことが分かる');
+        console.log('ok: R-1 順序 + 中止（512px を複製できなければ 52px も複製しない・warn 出力あり）');
       }
 
-      // ---- R-2: ロールバック ----
-      // 52px の移動先を先に作っておく -> 512px は一度 uid 名へ動くが 52px の move が失敗する。
-      // 期待: 512px が暫定名へ**戻っている**
+      // ---- R-2: 52px の宛先衝突（Issue #148: 上書きしない・ロールバック不要）----
+      // 52px の宛先に別内容の先客を置く -> 512px は先に複製されるが、52px で失敗して参照は暫定名のまま。
+      // 期待: **元の 52px/512px は失われない**（移動していないので戻すものが無い）。
+      // 先にできた 512px のコピーは消さない（同一内容なら再試行で再利用できる。未参照コピーの掃除は別責務）。
       {
         const uid = globalThis.crypto.randomUUID();
         const prov52 = 'tmbs/prov-r2.png';
         await makeIcon(abs(prov52));
         await makeIcon(abs(rel512Of(prov52)));
         const dest52 = 'tmbs/' + uid + '.png';
-        await makeIcon(abs(dest52)); // 52px の移動先に先客を置く
+        await putSentinel(abs(dest52), 'unrelated-52'); // 52px の宛先に別内容の先客
 
         const saved = await SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r2', prov52));
 
         assert.equal(saved.thumbnail, prov52, 'R-2: 付け替えは失敗し thumbnail は暫定名のまま');
-        assert.ok(await exists(abs(rel512Of(prov52))), 'R-2: **512px が暫定名へロールバックされている**');
-        assert.equal(await exists(abs(rel512Of(dest52))), false, 'R-2: 512px は uid 名に残っていない');
-        console.log('ok: R-2 ロールバック（52px が失敗したら 512px を戻す）');
+        assert.ok(await exists(abs(prov52)), 'R-2: **元の 52px は残る（移動・削除しない）**');
+        assert.ok(await exists(abs(rel512Of(prov52))), 'R-2: **元の 512px も残る（戻すのではなく非破壊）**');
+        assert.equal(await fse.readFile(abs(dest52), 'utf8'), 'unrelated-52', 'R-2: 宛先の先客は上書きしない');
+        assert.ok(await exists(abs(rel512Of(dest52))), 'R-2: 先にできた 512px のコピーは消さない（部分コピーは残す）');
+        console.log('ok: R-2 52px の宛先衝突（元を失わない・上書きしない・部分コピーは残す）');
       }
 
-      // ---- R-3: 正常系 ----
+      // ---- R-3: 正常系（対で copy・元は残る）----
       {
         const uid = globalThis.crypto.randomUUID();
         const prov52 = 'tmbs/prov-r3.png';
@@ -465,11 +473,18 @@ await writeFile(
         const saved = await SqliteDataService.saveUserBaseMap(savePayload(uid, 'bm-r3', prov52));
 
         assert.equal(saved.thumbnail, dest52, 'R-3: 戻り値が uid 名の 52px パス');
-        assert.ok(await exists(abs(dest52)), 'R-3: 52px が uid 名へ移動');
-        assert.ok(await exists(abs(rel512Of(dest52))), 'R-3: 512px が uid 名へ移動');
-        assert.equal(await exists(abs(prov52)), false, 'R-3: 52px の暫定名は残らない');
-        assert.equal(await exists(abs(rel512Of(prov52))), false, 'R-3: 512px の暫定名は残らない');
-        console.log('ok: R-3 正常系（52px・512px とも uid 名へ移動）');
+        assert.ok(await exists(abs(dest52)), 'R-3: 52px が uid 名へ複製される');
+        assert.ok(await exists(abs(rel512Of(dest52))), 'R-3: 512px が uid 名へ複製される');
+        assert.deepEqual(await fse.readFile(abs(dest52)), await fse.readFile(abs(prov52)), 'R-3: 52px の内容が一致');
+        assert.deepEqual(
+          await fse.readFile(abs(rel512Of(dest52))),
+          await fse.readFile(abs(rel512Of(prov52))),
+          'R-3: 512px の内容が一致',
+        );
+        // Issue #148: 複製元（暫定名）は移動・削除しない。同一内容なので再保存でも壊れない
+        assert.ok(await exists(abs(prov52)), 'R-3: **52px の暫定名は残る（#148: 複製元を消さない）**');
+        assert.ok(await exists(abs(rel512Of(prov52))), 'R-3: **512px の暫定名も残る**');
+        console.log('ok: R-3 正常系（52px・512px とも uid 名へ複製し、暫定名は残る）');
       }
     }
   `,

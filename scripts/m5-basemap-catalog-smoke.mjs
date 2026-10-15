@@ -64,7 +64,7 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { access, mkdir, writeFile } from 'node:fs/promises';
+      import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
       import nodePath from 'node:path';
 
       const { default: SettingsService } = await import(${JSON.stringify(settingsPath)});
@@ -222,7 +222,9 @@ try {
       assert.equal(readded.enabled, false);
 
       // 新規作成時のアイコン付け替え: uid未採番のため暫定名でアップロードされたアイコンは
-      // 保存時に tmbs/{uid}.{ext} へ移動され、thumbnail参照も追随する
+      // 保存時に tmbs/{uid}.{ext} へ**複製**され、thumbnail参照も追随する。
+      // Issue #148: thumbnail は複製元の保存済み画像を指し得るので、暫定名と決めつけて
+      // 移動・削除しない（元の参照が壊れてデータを失う）。暫定名の実体は残る。
       await mkdir(${JSON.stringify(path.join(dataDir, 'tmbs'))}, { recursive: true });
       await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png', 'png-bytes');
       const iconNewResult = await SettingsService.saveUserBaseMap({
@@ -234,7 +236,12 @@ try {
       const iconNew = (await SettingsService.listBaseMaps()).find((item) => item.uid === iconNewUid);
       assert.equal(iconNew.data.thumbnail, 'tmbs/' + iconNewUid + '.png');
       await access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/' + iconNewUid + '.png');
-      await assert.rejects(() => access(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png'));
+      // 複製元（暫定名）は残る。内容も同じ
+      assert.equal(
+        await readFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png', 'utf8'),
+        'png-bytes',
+        '#148: 複製元の 52px は移動・削除しない',
+      );
       await SettingsService.deleteUserBaseMap(iconNewUid);
 
       // 暫定表示設定の採用: 未保存地図('draft-map')の設定は初回保存時にuidキーへ引き継がれる
