@@ -90,8 +90,8 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 20
     environment: release
+    # contents: read も持たない（nov26-m7-t3。規則の正本 scripts/win-sign/signing-job-rules.mjs の規則 1）
     permissions:
-      contents: read
       id-token: write
     steps:
       - name: Download the unsigned PE

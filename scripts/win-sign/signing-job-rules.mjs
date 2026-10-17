@@ -14,8 +14,20 @@
  *     （拒否リストは完全にできないので、shell を 1 つに絞り、& の対象を許可リストにしたうえで、既知の起動手段
  *     〔Start-Process・Invoke-Item・ii・[Diagnostics.Process]::Start・Start-Job・powershell -・cmd /c 等〕と、
  *     ワークスペースの絶対パスから入力のディレクトリを指す形を拒む。nov26-m7-t2・B24-MIN-2）
+ *   - permissions は { id-token: write } だけ（contents: read も持たない。同じ run の artifact の受け渡しは runtime の
+ *     トークンで行われ GITHUB_TOKEN を使わない。nov26-m7-t3）
+ *   - 署名の記録（signing-record.json）を job summary にも表で書く（artifact は 1 日で消えるが summary は run と同じだけ残る。
+ *     probe は除く。nov26-m7-t3 規則 11）
+ *   - & の対象 $env:SIGNTOOL・/dlib の $env:DLIB を付け替えさせない（NOV26-M7T2-B31-MIN2 の E1〜E4。nov26-m7-t3 規則 12〜14）:
+ *     SIGNTOOL・DLIB への代入（$env:X = ・Set-Item env:X・SetEnvironmentVariable）と step の env: での上書きを拒む。
+ *     GITHUB_ENV へ書いてよいのは NuGet の step（ちょうど 1 つ）の SIGNTOOL・DLIB と、許可した名前（UNSIGNED_SHA256）だけで、
+ *     行の頭がリテラルの "名前= でなければ拒む。GITHUB_PATH は誰にも書かせない。ドット・ソース（. <パス>）と
+ *     Diagnostics.Process（New-Object・::new・::Start）を拒む。
+ *     判定の前にバッククォートの継続行を畳む。Env:\X・Env:/X（プロバイダーのパス）も代入とみなす。GITHUB_ENV へ書く値は
+ *     "$($変数[0].FullName)"（NuGet）か "$変数"（それ以外）だけで、その step は改行を作る書き方を持たない（B41 MAJ-2）
  *
- * checkSigningJob(jobName, job) → string[]（違反の一覧。空なら合格）
+ * checkSigningJob(jobName, job, opts?) → string[]（違反の一覧。空なら合格）
+ *   opts.requireSummary（既定: jobName !== 'probe-sign'）… 規則 11 を課すか
  * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて m10 の PIN か）
  * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う（nov26-m7-t2・B24-MIN-1）
  */
@@ -27,6 +39,17 @@ export const PNPM_PIN = 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d
 
 /** azure/login の step が参照してよい secrets */
 export const ALLOWED_SECRETS = ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID'];
+
+/** 署名の step が使う、NuGet の step だけが GITHUB_ENV で決めてよい名前（付け替えさせない） */
+export const PROTECTED_ENV = ['SIGNTOOL', 'DLIB'];
+/** NuGet の step 以外が GITHUB_ENV へ書いてよい名前（probe の入力の SHA-256） */
+export const GITHUB_ENV_ALLOWED = ['UNSIGNED_SHA256'];
+/** NuGet の step が GITHUB_ENV へ書く値の形（"SIGNTOOL=$($signtool[0].FullName)"）。B41 MAJ-2 */
+const GITHUB_ENV_NUGET_VALUE_RE = /^\$\(\$[A-Za-z_][A-Za-z0-9_]*\[0\]\.FullName\)$/;
+/** NuGet 以外の step が GITHUB_ENV へ書く値の形（"UNSIGNED_SHA256=$sha"）。B41 MAJ-2 */
+const GITHUB_ENV_ALLOWED_VALUE_RE = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
+/** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。B41 MAJ-2 */
+const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 
 /** 署名専用ジョブが受け取る入力のディレクトリ（t1 は probe-in・t2 は sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
@@ -79,21 +102,26 @@ function callTargets(run) {
   return out;
 }
 
-export function checkSigningJob(jobName, job) {
+export function checkSigningJob(jobName, job, opts = {}) {
+  const requireSummary = opts.requireSummary ?? jobName !== 'probe-sign';
   const v = [];
   if (!job || typeof job !== 'object') return [`${jobName}: ジョブが無い`];
 
-  // 1. permissions は { contents: read, id-token: write } と完全一致
+  // 1. permissions は { id-token: write } と完全一致（nov26-m7-t3: contents: read も外す）
   const perm = job.permissions;
-  const permKeys = perm && typeof perm === 'object' ? Object.keys(perm).sort() : [];
-  if (!(permKeys.length === 2 && permKeys[0] === 'contents' && permKeys[1] === 'id-token'
-    && perm.contents === 'read' && perm['id-token'] === 'write')) {
-    v.push(`${jobName}: permissions が { contents: read, id-token: write } と一致しない: ${JSON.stringify(perm)}`);
+  const permKeys = perm && typeof perm === 'object' ? Object.keys(perm) : [];
+  if (!(permKeys.length === 1 && permKeys[0] === 'id-token' && perm['id-token'] === 'write')) {
+    v.push(`${jobName}: permissions が { id-token: write } と一致しない: ${JSON.stringify(perm)}`);
   }
 
   // 2. environment は文字列 release（式でない）
   if (job.environment !== 'release') {
     v.push(`${jobName}: environment が文字列 release でない: ${JSON.stringify(job.environment)}`);
+  }
+
+  // 12. ジョブの env: で SIGNTOOL・DLIB を決めない（NuGet の step が GITHUB_ENV で決める）
+  for (const k of Object.keys(job.env ?? {})) {
+    if (PROTECTED_ENV.includes(k.toUpperCase())) v.push(`${jobName}: ジョブの env: で ${k} を決めている`);
   }
 
   // ジョブ全体（steps 以外）で secrets を参照しない（env: 等で全 step へ配らない）
@@ -110,6 +138,7 @@ export function checkSigningJob(jobName, job) {
   let signSteps = 0;
   let nugetSteps = 0;
   let azureLoginSteps = 0;
+  let summarySteps = 0;
 
   steps.forEach((st, i) => {
     const label = stepLabel(jobName, i, st);
@@ -203,6 +232,53 @@ export function checkSigningJob(jobName, job) {
       if (ws.test(run)) v.push(`${label}: ワークスペースの絶対パスから入力 ${dir} を指している`);
     }
 
+    // 11. 署名の記録の step は job summary へ表を書く（probe は除く）
+    if (/signing-record\.json/.test(run) && /GITHUB_STEP_SUMMARY/.test(run) && /\|\s*in\b[^\n]*\|\s*out\b[^\n]*\|\s*status\s*\|/.test(run)) {
+      summarySteps++;
+    }
+
+    // 規則 12〜14 は、PowerShell のバッククォートの継続行（行末の ` ＋改行）を空白へ畳んでから判定する（B41 MAJ-2）
+    const folded = run.replace(/`[ \t]*\r?\n/g, ' ');
+
+    // 12. SIGNTOOL・DLIB を付け替えない（E1）
+    for (const k of Object.keys(st.env ?? {})) {
+      if (PROTECTED_ENV.includes(k.toUpperCase())) v.push(`${label}: step の env: で ${k} を上書きしている`);
+    }
+    for (const [re, what] of [
+      [/\$\{?env:(SIGNTOOL|DLIB)\}?\s*(\+|-|\?\?)?=(?!=)/i, '$env:SIGNTOOL・DLIB への代入'],
+      // Env:\SIGNTOOL・Env:/DLIB（プロバイダーの正規のパス）も同じ（B41 MAJ-2）
+      [/(^|[^$\w{])env:[\\/]?(SIGNTOOL|DLIB)\b/im, 'env: ドライブの SIGNTOOL・DLIB（Set-Item 等）'],
+      [/SetEnvironmentVariable/i, 'SetEnvironmentVariable'],
+      [/Set-Variable|(^|[\s;|(])(sv|set)\s/im, 'Set-Variable'],
+    ]) {
+      if (re.test(folded)) v.push(`${label}: ${what} がある`);
+    }
+
+    // 13. GITHUB_ENV・GITHUB_PATH（E2）: NuGet の step の SIGNTOOL・DLIB と、許可した名前だけ・行の頭はリテラルの "名前=
+    //     値の文字種も絞る（B41 MAJ-2: 許可した形の値に `n・$([char]10) 等で改行を入れて別の名前の行を足させない）:
+    //     NuGet の step は "$($変数[0].FullName)"、それ以外は "$変数" だけ。さらに GITHUB_ENV へ書く step は、
+    //     改行を作る書き方（`n・`r・[char]・NewLine・here-string）を持たない（変数に改行を仕込ませない）
+    const isNuget = /nuget\.org/i.test(run);
+    let writesGithubEnv = false;
+    for (const line of folded.split('\n')) {
+      if (/GITHUB_PATH/i.test(line)) v.push(`${label}: GITHUB_PATH に触れている`);
+      if (!/GITHUB_ENV/i.test(line)) continue;
+      writesGithubEnv = true;
+      const m = line.match(/^\s*"([A-Za-z0-9_]+)=([^"`\n]*)"\s*\|\s*Out-File -FilePath \$env:GITHUB_ENV -Append -Encoding utf8\s*$/);
+      const allowed = isNuget ? PROTECTED_ENV : GITHUB_ENV_ALLOWED;
+      const valueRe = isNuget ? GITHUB_ENV_NUGET_VALUE_RE : GITHUB_ENV_ALLOWED_VALUE_RE;
+      if (!m) v.push(`${label}: GITHUB_ENV へ決まった形（"名前=…" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8）以外で触れている`);
+      else if (!allowed.includes(m[1].toUpperCase())) v.push(`${label}: GITHUB_ENV へ ${m[1]} を書いている（許されるのは ${allowed.join('・')}）`);
+      else if (!valueRe.test(m[2])) v.push(`${label}: GITHUB_ENV へ書く ${m[1]} の値が決まった形でない: ${m[2]}`);
+    }
+    if (writesGithubEnv && NEWLINE_MAKER_RE.test(run)) {
+      v.push(`${label}: GITHUB_ENV へ書く step に改行を作る書き方（\`n・\`r・[char]・NewLine・here-string）がある`);
+    }
+
+    // 14. ドット・ソース（E3）と Diagnostics.Process（E4）
+    if (/(^|[;|({]|&&|\|\|)\s*\.\s+\S/m.test(run)) v.push(`${label}: ドット・ソース（. <パス>）がある`);
+    if (/Diagnostics\.Process\b/i.test(run)) v.push(`${label}: Diagnostics.Process がある`);
+
     // 10. upload-artifact は retention-days を持つ
     if (uses.startsWith('actions/upload-artifact@') && st.with?.['retention-days'] == null) {
       v.push(`${label}: upload-artifact に retention-days が無い`);
@@ -212,7 +288,8 @@ export function checkSigningJob(jobName, job) {
   if (azureLoginSteps !== 1) v.push(`${jobName}: azure/login の step がちょうど 1 つでない（${azureLoginSteps}）`);
   if (metadataSteps < 1) v.push(`${jobName}: metadata.json を書く step が無い`);
   if (signSteps < 1) v.push(`${jobName}: 署名（/dlib）の step が無い`);
-  if (nugetSteps < 1) v.push(`${jobName}: NuGet から署名ツールを取る step が無い`);
+  if (nugetSteps !== 1) v.push(`${jobName}: NuGet から署名ツールを取る step がちょうど 1 つでない（${nugetSteps}）`);
+  if (requireSummary && summarySteps < 1) v.push(`${jobName}: 署名の記録を job summary へ表で書く step が無い（規則 11）`);
   return v;
 }
 
