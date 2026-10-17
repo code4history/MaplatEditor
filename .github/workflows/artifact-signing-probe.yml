@@ -44,10 +44,12 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      # pnpm 11 は allowBuilds・overrides を pnpm-workspace.yaml からしか読まない（build.yml と同じ）
+      # pnpm 11 は allowBuilds・overrides を pnpm-workspace.yaml からしか読まない（build.yml と同じ）。
+      # 書式は build.yml・test.yml と同じ cp に揃える（outer の verify:m1-t2 AC2b がこの形で数える。
+      # pwsh の cp は Copy-Item の別名）
       - name: Apply CI-only pnpm config
         shell: pwsh
-        run: Copy-Item -LiteralPath ci/pnpm-workspace.ci.yaml -Destination pnpm-workspace.yaml
+        run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
