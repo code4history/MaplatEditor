@@ -277,6 +277,7 @@
     "smoke:nov26-m6-t3-zip-guards": "node scripts/nov26-m6-t3-zip-guards-smoke.mjs",
     "smoke:nov26-m6-t3-zip-errors": "node scripts/nov26-m6-t3-zip-errors-smoke.mjs",
     "smoke:nov26-m6-t3-progress-phase-end": "node scripts/nov26-m6-t3-progress-phase-end-smoke.mjs",
+    "smoke:nov26-m7-t4-cache-publish-guard": "node scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs",
     "test:e2e:nov26-m6-t1-draft-discard": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t1-draft-discard-no-rewrite.spec.ts tests/e2e/nov26-m6-t1-discard-then-single-edit.spec.ts"
   },
   "dependencies": {
