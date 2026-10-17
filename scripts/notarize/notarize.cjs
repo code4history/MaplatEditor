@@ -22,10 +22,8 @@ exports.default = async function notarizing(context) {
 
     console.log(`公証: ${appName} (${appBundleId}) の公証を開始します...`);
 
-    // @electron/notarize v2 は notarytool を使用（altool は macOS 13+ で廃止）
+    // @electron/notarize は notarytool だけを使う（v3 で tool・appBundleId の指定が廃止。v2 でも notarytool では使われない）
     await notarize({
-        tool: 'notarytool',
-        appBundleId,
         appPath: `${appOutDir}/${appName}.app`,
         appleId: process.env.APPLE_ID,
         appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
