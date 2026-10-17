@@ -6,7 +6,7 @@
  *   [2] t5/AC1 更新器の設定（updaterSettings・applyUpdaterSettings を本物の electron-updater の更新器に当てる）
  *   [3] t5/AC1 electron-builder.config.cjs の publish と publisherName（i）〜（iv）（MAJ-2）
  *   [4] t5/AC1 vite.config.ts の main の external（MIN-8）
- *   [5] t5/AC2 製品のコードに更新の確認を起動する呼び出しが無い
+ *   [5] t5/AC2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の check の中だけ（nov26-m7-t6 で MIN-7 の形へ）
  *   [6] t5/AC3 resolveUpdateFeed のマトリクスと、SettingsService・process.argv を読まないこと
  *   [7] t5/AC4 (d) Windows の x64／arm64 の更新ファイルの選び方（§3.5 の判定 (A)）
  *   [8] mac の zip・build.yml の artifact と注記・verify-win-install の publisherName の検査（§3.2・§3.6）
@@ -240,14 +240,47 @@ function mainExternal(src) {
 }
 
 // ───────────────────────────────────────────────
-// [5] t5/AC2 更新の確認を起動する呼び出しは UpdateService.ts の中だけ
+// [5] t5/AC2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の中だけ（nov26-m7-t6 で MIN-7 の形へ広げた）
+//   (1) 該当ファイルは {UpdateService.ts, UpdateController.ts} だけ
+//   (2) UpdateController.ts の中でそれらの名前が現れるのは関数 check の本文の中だけ
+//   (3) main.ts が UpdateController について呼ぶのは check({ manual: true })（メニューの click）と startAutomaticCheck( の 2 つだけ
 // ───────────────────────────────────────────────
 {
+  const NAMES = /checkForUpdates|downloadUpdate|quitAndInstall/g;
   const r = git('grep', '--untracked', '-n', '-E', 'checkForUpdates|downloadUpdate|quitAndInstall', '--', 'electron', 'src');
   assert.ok(r.status === 0 || r.status === 1, `git grep が失敗した: ${r.stderr}`);
   const files = new Set(r.stdout.split('\n').filter(Boolean).map((l) => l.split(':')[0]));
-  assert.deepEqual([...files], ['electron/services/UpdateService.ts'], `該当が UpdateService.ts の中だけでない: ${[...files].join(', ')}`);
-  pass('t5/AC2 checkForUpdates・downloadUpdate・quitAndInstall の該当は UpdateService.ts だけ');
+  assert.deepEqual([...files].sort(), ['electron/services/UpdateController.ts', 'electron/services/UpdateService.ts'],
+    `該当が UpdateService.ts・UpdateController.ts の中だけでない: ${[...files].join(', ')}`);
+
+  // (2) check の本文（開き波括弧から対応する閉じ波括弧まで。文字列・コメントの中の波括弧は数えない）
+  const ctl = read('electron/services/UpdateController.ts');
+  const at = ctl.search(/export\s+async\s+function\s+check\s*\(/);
+  assert.ok(at >= 0, 'UpdateController.ts に export async function check( が無い');
+  const open = ctl.indexOf('{', ctl.indexOf(')', at));
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < ctl.length && close < 0; i++) {
+    const c = ctl[i];
+    if (c === '/' && ctl[i + 1] === '/') { i = ctl.indexOf('\n', i); continue; }
+    if (c === '/' && ctl[i + 1] === '*') { i = ctl.indexOf('*/', i) + 1; continue; }
+    if (c === "'" || c === '"' || c === '`') { for (i++; i < ctl.length && ctl[i] !== c; i++) if (ctl[i] === '\\') i++; continue; }
+    if (c === '{') depth++;
+    if (c === '}' && --depth === 0) close = i;
+  }
+  assert.ok(close > open, 'check の本文の終わりが見つからない');
+  const outside = ctl.slice(0, open) + ctl.slice(close + 1);
+  assert.deepEqual(outside.match(NAMES) ?? [], [], 'UpdateController.ts の check の外にそれらの名前がある');
+  assert.ok((ctl.slice(open, close + 1).match(NAMES) ?? []).length > 0, 'check の本文にそれらの呼び出しが無い');
+
+  // (3) main.ts の UpdateController の参照（import の行を除く）
+  const main = read('electron/main.ts');
+  const uses = [...main.matchAll(/UpdateController\.(\w+)/g)].map((m) => m[1]);
+  assert.deepEqual(uses.sort(), ['check', 'startAutomaticCheck'],
+    `main.ts の UpdateController の参照が check・startAutomaticCheck の 1 回ずつでない: ${uses.join(' / ')}`);
+  assert.match(main, /UpdateController\.startAutomaticCheck\(/);
+  assert.match(main, /click:\s*\(\)\s*=>\s*UpdateController\.check\(\{\s*manual:\s*true\s*\}\)/, 'check({ manual: true }) がメニューの click の中でない');
+  pass('t5/AC2 checkForUpdates・downloadUpdate・quitAndInstall は UpdateService.ts と UpdateController.ts の check の中だけ・main.ts はメニューと起動の 2 か所だけ');
 }
 
 // ───────────────────────────────────────────────

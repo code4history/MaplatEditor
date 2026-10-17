@@ -68,3 +68,22 @@ export function applyUpdaterSettings(updater: UpdaterSettings): void {
   Object.assign(updater, updaterSettings());
   updater.allowDowngrade = false;
 }
+
+const STARTUP_DELAY_MS = 15000;
+const DELAY_PATTERN = /^\d{1,5}$/;
+
+/**
+ * nov26-m7-t6: 起動の後、更新を確かめるまでの待ち時間（ミリ秒）。既定 15000。
+ * e2e のときだけ（isPackaged が偽かつ MAPLAT_E2E_ROOT が空でない）MAPLAT_E2E_UPDATE_DELAY_MS（0〜60000 の整数）を使う。
+ * 製品は env を読まない（resolveUpdateFeed と同じ形）
+ */
+export function resolveStartupDelayMs(input: { isPackaged: boolean; env: Record<string, string | undefined> }): number {
+  if (input.isPackaged !== false) return STARTUP_DELAY_MS;
+  const { env } = input;
+  const root = env.MAPLAT_E2E_ROOT;
+  if (typeof root !== 'string' || root === '') return STARTUP_DELAY_MS;
+  const raw = env.MAPLAT_E2E_UPDATE_DELAY_MS;
+  if (typeof raw !== 'string' || !DELAY_PATTERN.test(raw)) return STARTUP_DELAY_MS;
+  const ms = Number(raw);
+  return ms <= 60000 ? ms : STARTUP_DELAY_MS;
+}
