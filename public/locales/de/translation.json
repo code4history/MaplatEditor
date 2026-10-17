@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "Der Standardwert, der verwendet wird, wenn kein app-spezifischer Schlüssel festgelegt ist.",
     "default_publish_google_api_key": "Google API-Schlüssel (Standard)",
     "default_publish_mapbox_token": "Mapbox-Zugriffstoken (Standard)",
-    "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen."
+    "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen.",
+    "update_check": "Beim Start nach Updates suchen",
+    "update_check_desc": "Sie werden benachrichtigt, wenn eine neue Version verfügbar ist. Heruntergeladen wird nur, wenn Sie „Aktualisieren“ wählen. Unter Linux wird die Release-Seite geöffnet."
   },
   "maplist": {
     "title": "Kartenliste",

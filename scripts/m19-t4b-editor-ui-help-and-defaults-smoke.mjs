@@ -158,7 +158,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
     const actual = count(source, "<ContextHelp");
     assert.equal(actual, expected, `${label}: ${rel} must have ${expected} <ContextHelp> tags (got ${actual})`);
   }
-  // src 全体 34 → 52
+  // src 全体 34 → 52（nov26-m7-t6: 設定画面の更新確認の説明で +1 ∴ 53）
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -168,8 +168,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 52, `S3-S5: src 全体の <ContextHelp タグ数は 52 であること (got ${total})`);
-  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 13 / MapEdit 18 / BaseMapEdit 10 / src 計 52: PASS");
+  assert.equal(total, 53, `S3-S5: src 全体の <ContextHelp タグ数は 53 であること（52 + nov26-m7-t6 の 1） (got ${total})`);
+  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 13 / MapEdit 18 / BaseMapEdit 10 / src 計 53: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない

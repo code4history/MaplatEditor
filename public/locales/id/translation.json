@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "Nilai default yang digunakan saat kunci khusus aplikasi belum diatur.",
     "default_publish_google_api_key": "Kunci API Google (default)",
     "default_publish_mapbox_token": "Token Akses Mapbox (default)",
-    "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah."
+    "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah.",
+    "update_check": "Periksa pembaruan saat mulai",
+    "update_check_desc": "Anda akan diberi tahu jika ada versi baru. Unduhan hanya dilakukan jika Anda memilih \"Perbarui\". Di Linux, halaman rilis akan dibuka."
   },
   "maplist": {
     "title": "Daftar Peta",

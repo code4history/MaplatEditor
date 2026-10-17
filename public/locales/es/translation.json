@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "El valor predeterminado que se usa cuando no hay una clave específica de la app.",
     "default_publish_google_api_key": "Clave API de Google (predeterminada)",
     "default_publish_mapbox_token": "Token de acceso de Mapbox (predeterminado)",
-    "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta."
+    "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta.",
+    "update_check": "Buscar actualizaciones al iniciar",
+    "update_check_desc": "Se le avisará cuando haya una nueva versión. Solo se descarga si elige «Actualizar». En Linux se abre la página de la versión."
   },
   "maplist": {
     "title": "Lista de mapas",

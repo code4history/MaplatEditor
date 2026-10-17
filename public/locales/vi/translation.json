@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "Giá trị mặc định được dùng khi chưa thiết lập khóa riêng cho ứng dụng.",
     "default_publish_google_api_key": "Khóa API Google (mặc định)",
     "default_publish_mapbox_token": "Mã truy cập Mapbox (mặc định)",
-    "same_key_warning": "Khóa trình chỉnh sửa và khóa xuất bản mặc định của {{provider}} giống nhau. Nên cấp một khóa riêng biệt."
+    "same_key_warning": "Khóa trình chỉnh sửa và khóa xuất bản mặc định của {{provider}} giống nhau. Nên cấp một khóa riêng biệt.",
+    "update_check": "Kiểm tra cập nhật khi khởi động",
+    "update_check_desc": "Bạn sẽ được thông báo khi có phiên bản mới. Chỉ tải xuống khi bạn chọn \"Cập nhật\". Trên Linux, trang phát hành sẽ được mở."
   },
   "maplist": {
     "title": "Danh sách bản đồ",

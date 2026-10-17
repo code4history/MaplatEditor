@@ -16,6 +16,8 @@ interface AppSettings {
   jpegDecodeMaxMemoryMB: number | null;
   /** M5-T8: JPEG デコードの解像度**キャップ**（MP = 1e6 ピクセルの十進）。`null` = 自動 */
   jpegDecodeMaxResolutionMP: number | null;
+  /** nov26-m7-t6: 起動時に更新を確認する（既定オン）。オフでもメニューの「更新を確認…」は使える */
+  updateCheckEnabled: boolean;
   [key: string]: any;
 }
 
@@ -56,6 +58,7 @@ function normalizeJpegDecodeCap(value: unknown, min: number, max: number): numbe
 }
 
 import { resolveDecodeSafety } from '../utils/decodeSafety';
+import { normalizeUpdateCheckEnabled } from '../utils/updatePolicy';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 import { defaultDraftTileRoot } from './draftTilePaths';
@@ -76,6 +79,7 @@ const defaultSettings: AppSettings = {
   // M5-T8: 既定は「自動」。利用者が数値を入れたときだけキャップとして働く
   jpegDecodeMaxMemoryMB: null,
   jpegDecodeMaxResolutionMP: null,
+  updateCheckEnabled: true,
 } as AppSettings;
 
 import { EventEmitter } from 'events';
@@ -146,6 +150,9 @@ class SettingsService extends EventEmitter {
     if (key === 'lang') {
       return this.ensureLang();
     }
+    if (key === 'updateCheckEnabled') {
+      return normalizeUpdateCheckEnabled(this.store.get('updateCheckEnabled'));
+    }
     return this.store.get(key);
   }
 
@@ -194,6 +201,9 @@ class SettingsService extends EventEmitter {
       value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_MEMORY_MB_MIN, resolveDecodeSafety().maxMemoryMB);
     } else if (key === 'jpegDecodeMaxResolutionMP') {
       value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_RESOLUTION_MP_MIN, resolveDecodeSafety().maxResolutionMP);
+    } else if (key === 'updateCheckEnabled') {
+      // nov26-m7-t6: 明示の false（と文字列の 'false'）だけを「切る」に正規化する
+      value = normalizeUpdateCheckEnabled(value);
     }
     this.store.set(key, value);
     if (key === 'saveFolder') {

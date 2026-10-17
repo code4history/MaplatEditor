@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "Valeur par défaut utilisée lorsque aucune clé spécifique à l'application n'est définie.",
     "default_publish_google_api_key": "Clé API Google (par défaut)",
     "default_publish_mapbox_token": "Jeton d'accès Mapbox (par défaut)",
-    "same_key_warning": "La clé de l'éditeur et la clé de publication par défaut pour {{provider}} sont identiques. Il est recommandé d'émettre une clé distincte."
+    "same_key_warning": "La clé de l'éditeur et la clé de publication par défaut pour {{provider}} sont identiques. Il est recommandé d'émettre une clé distincte.",
+    "update_check": "Rechercher les mises à jour au démarrage",
+    "update_check_desc": "Vous serez averti lorsqu’une nouvelle version sera disponible. Le téléchargement n’a lieu que si vous choisissez « Mettre à jour ». Sous Linux, la page de version s’ouvre."
   },
   "maplist": {
     "title": "Liste des cartes",

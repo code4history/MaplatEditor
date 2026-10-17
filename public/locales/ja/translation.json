@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "アプリ個別のキーが未設定のときに使われる既定値です。",
     "default_publish_google_api_key": "Google API キー（既定）",
     "default_publish_mapbox_token": "Mapbox アクセストークン（既定）",
-    "same_key_warning": "{{provider}} のエディタ用キーと既定公開用キーが同一です。別のキーを発行することを推奨します。"
+    "same_key_warning": "{{provider}} のエディタ用キーと既定公開用キーが同一です。別のキーを発行することを推奨します。",
+    "update_check": "起動時に更新を確認する",
+    "update_check_desc": "新しい版があるとお知らせします。更新は「更新する」を選んだときだけ行います。Linux では Release のページを開きます。"
   },
   "maplist": {
     "title": "地図一覧",

@@ -180,7 +180,9 @@
     "default_publish_api_key_notice": "The default value used when an app-specific key is not set.",
     "default_publish_google_api_key": "Google API Key (default)",
     "default_publish_mapbox_token": "Mapbox Access Token (default)",
-    "same_key_warning": "The editor key and default publish key for {{provider}} are identical. It is recommended to issue a separate key."
+    "same_key_warning": "The editor key and default publish key for {{provider}} are identical. It is recommended to issue a separate key.",
+    "update_check": "Check for updates at startup",
+    "update_check_desc": "You will be notified when a new version is available. The app downloads only when you choose \"Update\". On Linux it opens the release page."
   },
   "maplist": {
     "title": "Map list",
