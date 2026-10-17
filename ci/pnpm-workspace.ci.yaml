@@ -64,6 +64,11 @@ overrides:
   undici: "^7.29.1"
   # extract-zip（high×2・修正版なし）→ Electron 公式の置換 fork。経路は pwa-asset-generator → @puppeteer/browsers（oct26-m5-t12）。electron 側は 40.10.3 以降が置換 fork を直接使う（nov26-m6-t2）
   "@puppeteer/browsers>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
+  # 2026-10-17（nov26 m13・E-9）: basic-ftp <=6.2.0 の high は 6.2.1 で修正。経路は pwa-asset-generator >
+  # puppeteer-core > @puppeteer/browsers > proxy-agent > pac-proxy-agent > get-uri（実行時・FTP の PAC 取得だけ）。
+  # get-uri は最新の 8.0.1 でも basic-ftp ^5.3.1 を宣言するため、範囲の中では直らない。get-uri が使う API
+  # （Client・access・lastMod・downloadTo・list・close）は 6 系にもある（6.2.3 で実測）。経路を get-uri に限定する
+  "get-uri>basic-ftp": "^6.2.1"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
 # （minimumReleaseAge=1440・サプライチェーン保護）の対象外とする。第三者依存への
