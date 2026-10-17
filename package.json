@@ -278,7 +278,9 @@
     "smoke:nov26-m6-t3-zip-errors": "node scripts/nov26-m6-t3-zip-errors-smoke.mjs",
     "smoke:nov26-m6-t3-progress-phase-end": "node scripts/nov26-m6-t3-progress-phase-end-smoke.mjs",
     "smoke:nov26-m7-t4-cache-publish-guard": "node scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs",
-    "test:e2e:nov26-m6-t1-draft-discard": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t1-draft-discard-no-rewrite.spec.ts tests/e2e/nov26-m6-t1-discard-then-single-edit.spec.ts"
+    "test:e2e:nov26-m6-t1-draft-discard": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t1-draft-discard-no-rewrite.spec.ts tests/e2e/nov26-m6-t1-discard-then-single-edit.spec.ts",
+    "smoke:nov26-m7-t5-update-foundation": "node scripts/nov26-m7-t5-update-foundation-smoke.mjs",
+    "test:e2e:nov26-m7-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m7-t5-update-feed.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
@@ -296,6 +298,7 @@
     "bootstrap-sass": "^3.4.3",
     "csv-parser": "^3.0.0",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.10",
     "file-url": "^4.0.0",
     "fs-extra": "^11.3.3",
     "i18next": "^25.10.10",

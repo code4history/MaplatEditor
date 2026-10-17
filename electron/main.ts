@@ -30,6 +30,8 @@ installBackendErrorForwarding()
 
 // m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
 import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
+// nov26-m7-t5: 自動更新の器。製品のコードからは更新を確かめない（t6 が呼ぶ）。ここでは e2e の口だけを置く
+import { installUpdateTestHook } from './services/UpdateService'
 
 // 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
@@ -57,6 +59,9 @@ protocol.registerSchemesAsPrivileged([
 // paintWhenInitiallyHidden は既定 true のまま ∴ renderer は通常どおり描画され
 // Canvas / screenshot 系 e2e も影響を受けない
 const isE2EMainProcess = Boolean(process.env['MAPLAT_E2E_ROOT'])
+
+// nov26-m7-t5: 開発時かつ e2e のときだけ globalThis.__maplatUpdateTest を置く（条件は installUpdateTestHook の中でも確かめる）
+if (isE2EMainProcess) installUpdateTestHook()
 
 let win: BrowserWindow | null
 
