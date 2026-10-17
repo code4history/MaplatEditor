@@ -6,7 +6,8 @@
  *   [2] t6/AC3 releasePageUrl は固定の接頭辞だけ（版の文字列を URL に混ぜない）
  *   [3] t6/AC3 UpdateController の open-releases の分岐からダウンロード・入れ替えへ届かない
  *   [4] t6/AC3 updateCheckEnabled の正規化・resolveStartupDelayMs（製品では env を読まない）
- *   [5] t6/AC3 defaultSettings のキーの集合 ＝ origin/master の集合 ∪ {updateCheckEnabled}（MIN-6）
+ *   [5] t6/AC3 defaultSettings のキーの集合 ＝ 基点の集合 ∪ {updateCheckEnabled}（MIN-6）
+ *       基点は origin/master → 設計が名指しした d77eb63 → その既知の 4 キー（浅い checkout 用）の順に解決する
  *   [6] t6/AC4 updateMessages の全キーが 11 言語にあり、差し込みの {…} が保たれ、無い言語は en
  *   [7] t6/AC4 Settings.vue の項目と翻訳 11 ファイルの 2 キー
  *   [8] t6/AC7 新しい IPC（app-update:）・preload の口が無い。更新の UI は main のダイアログ
@@ -180,15 +181,42 @@ function blockFrom(src, start) {
     return map;
   };
   const head = defaultsOf(read('electron/services/SettingsService.ts'));
-  const r = git('show', 'origin/master:electron/services/SettingsService.ts');
-  assert.equal(r.status, 0, `origin/master の SettingsService.ts を読めない: ${r.stderr}`);
-  const base = defaultsOf(r.stdout);
+  /**
+   * 基点の defaultSettings を解決する。CI の actions/checkout は深さ 1 で origin/master を持たない ∴
+   * (1) origin/master → (2) 設計 §0・§2 が名指しした基点 d77eb63 → (3) その既知の 4 キーの字面、の順に落とす。
+   * (3) は期待値を緩めるものではない: d77eb63 の defaultSettings はこの 4 キーだけであり（実測）、
+   * キー集合の完全一致と元の値の字面の一致を同じ強さで検査する。
+   */
+  const baseFromRev = (rev) => {
+    const r = git('show', `${rev}:electron/services/SettingsService.ts`);
+    return r.status === 0 ? defaultsOf(r.stdout) : null;
+  };
+  const hasRev = (rev) => git('rev-parse', '--verify', '--quiet', `${rev}^{commit}`).status === 0;
+  let base;
+  let baseLabel;
+  if (hasRev('origin/master')) {
+    base = baseFromRev('origin/master');
+    baseLabel = 'origin/master';
+  } else if (hasRev('d77eb63')) {
+    base = baseFromRev('d77eb63');
+    baseLabel = 'd77eb63';
+  }
+  if (!base) {
+    // 浅い checkout（CI と同じ深さ 1）。設計が名指しした基点 d77eb63 の defaultSettings の実測値
+    base = new Map([
+      ['saveFolder', 'runtimeStoragePaths.saveFolder'],
+      ['lastDialogFolders', '{}'],
+      ['jpegDecodeMaxMemoryMB', 'null'],
+      ['jpegDecodeMaxResolutionMP', 'null'],
+    ]);
+    baseLabel = 'd77eb63 の既知の 4 キー（浅い checkout）';
+  }
   const want = new Set([...base.keys(), 'updateCheckEnabled']);
-  assert.deepEqual([...head.keys()].sort(), [...want].sort(), 'defaultSettings のキーが origin/master ∪ {updateCheckEnabled} でない');
-  for (const [k, v] of base) assert.equal(head.get(k), v, `defaultSettings.${k} の字面が origin/master と違う`);
+  assert.deepEqual([...head.keys()].sort(), [...want].sort(), `defaultSettings のキーが ${baseLabel} ∪ {updateCheckEnabled} でない`);
+  for (const [k, v] of base) assert.equal(head.get(k), v, `defaultSettings.${k} の字面が ${baseLabel} と違う`);
   assert.equal(head.get('updateCheckEnabled'), 'true', 'defaultSettings.updateCheckEnabled が true でない');
   assert.equal(head.get('lastDialogFolders'), '{}', 'm6 t7 の lastDialogFolders: {} が残っていない');
-  pass(`t6/AC3 defaultSettings = origin/master ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
+  pass(`t6/AC3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
 }
 
 // ───────────────────────────────────────────────
