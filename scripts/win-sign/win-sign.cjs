@@ -53,6 +53,34 @@ const { spawnSync } = require('node:child_process');
 const os = require('node:os');
 const signerIdentity = require('./signer-identity.cjs');
 
+// ───────────────────────────────────────────────
+// eSigner の資格情報の閉じ込め（nov26-m7-t3・#139 推奨 1）
+// ───────────────────────────────────────────────
+// build.yml の eSigner の本番 step は ES_* を step の env: で渡す（electron-builder のプロセスとその子が読める）。
+// ∴ このモジュールの読み込み時に値をモジュール内の閉じた変数へ写し、process.env から外す。以後どのコードも
+// process.env.ES_* を読まない。値は CodeSignTool の子プロセスの起動にだけ使う（pwsh 等の他の子には渡らない）。
+// 残るリスク（docs/release-signing.md「残るリスク」）: このモジュールより前に読み込まれたコードは値を読めた。
+// CodeSignTool v1.3.0 は資格情報を環境変数で受け取れない（SSL.com の文書・esigner-codesign action の実装がすべて
+// コマンドライン引数）ため、引数で渡す ＝ 同じ利用者の他のプロセスからコマンドラインが読める。
+const ES_ENV_KEYS = Object.freeze({
+  username: 'ES_USERNAME', password: 'ES_PASSWORD', credentialId: 'ES_CREDENTIAL_ID', totpSecret: 'ES_TOTP_SECRET',
+});
+const esCredentials = (() => {
+  const c = {};
+  for (const [field, key] of Object.entries(ES_ENV_KEYS)) {
+    c[field] = process.env[key] || null;
+    delete process.env[key];
+  }
+  return Object.freeze(c);
+})();
+
+/** 子プロセスへ渡す env の土台。ES_* は（読み込み時に外したが、後から足されても）必ず外す */
+function baseChildEnv() {
+  const env = { ...process.env };
+  for (const key of Object.values(ES_ENV_KEYS)) delete env[key];
+  return env;
+}
+
 const MODES = ['off', 'record', 'collect', 'esigner'];
 
 /** electron-builder の NSIS テンプレートが実際に埋め込むプラグイン（v1.1.0-rc.1 の $PLUGINSDIR から実測）。
@@ -265,8 +293,7 @@ async function lookupCache(file, key, unsignedDigest) {
 // ───────────────────────────────────────────────
 function redact(text) {
   let t = String(text ?? '');
-  for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
-    const v = process.env[k];
+  for (const v of Object.values(esCredentials)) {
     if (v) t = t.split(v).join('***');
   }
   return t;
@@ -305,32 +332,43 @@ async function codeSignTool(file) {
     const alias = path.join(tmpDir, `${path.basename(file, path.extname(file))}.dll`);
     fs.copyFileSync(file, alias);
     console.log(`[win-sign] ${path.basename(file)} は CodeSignTool が拡張子で受け付けないため、${path.basename(alias)} として署名する`);
-    await codeSignToolRaw(alias);
+    await runCodeSignTool(alias);
     fs.copyFileSync(alias, file);
     return;
   }
-  await codeSignToolRaw(file);
+  await runCodeSignTool(file);
 }
 
-async function codeSignToolRaw(file) {
-  for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
-    if (!process.env[k]) throw new Error(`${k} が未設定です（environment release の secrets）`);
-  }
-  const tool = resolveCodeSignTool();
+/**
+ * CodeSignTool の起動の形（純関数・smoke が中身を確かめる）。
+ * 資格情報は引数で渡す（CodeSignTool v1.3.0 は環境変数で受け取れない）。env は ES_* を外した process.env ＋
+ * CODE_SIGN_TOOL_PATH だけで、資格情報を入れない。
+ * @param {string} file
+ * @param {{dir: string, jar: string, java: string}} tool
+ * @param {{username: string, password: string, credentialId: string, totpSecret: string}} creds
+ * @returns {{command: string, args: string[], env: Record<string, string>, cwd: string}}
+ */
+function buildCodeSignToolInvocation(file, tool, creds) {
   const args = [
     '-Xmx1024M', '-jar', tool.jar, 'sign',
-    `-username=${process.env.ES_USERNAME}`,
-    `-password=${process.env.ES_PASSWORD}`,
-    `-credential_id=${process.env.ES_CREDENTIAL_ID}`,
-    `-totp_secret=${process.env.ES_TOTP_SECRET}`,
+    `-username=${creds.username}`,
+    `-password=${creds.password}`,
+    `-credential_id=${creds.credentialId}`,
+    `-totp_secret=${creds.totpSecret}`,
     `-input_file_path=${path.resolve(file)}`, // CodeSignTool は cwd を自分の置き場にして動かすため絶対パスで渡す
     '-override=true',
   ];
+  return { command: tool.java, args, env: { ...baseChildEnv(), CODE_SIGN_TOOL_PATH: tool.dir }, cwd: tool.dir };
+}
+
+async function runCodeSignTool(file) {
+  for (const [field, key] of Object.entries(ES_ENV_KEYS)) {
+    if (!esCredentials[field]) throw new Error(`${key} が未設定です（environment release の secrets）`);
+  }
+  const inv = buildCodeSignToolInvocation(file, resolveCodeSignTool(), esCredentials);
   // OTP は 30 秒窓。連続署名で同じ OTP が拒まれたときだけ、次の窓まで待って最大 2 回やり直す
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const r = spawnSync(tool.java, args, {
-      cwd: tool.dir, env: { ...process.env, CODE_SIGN_TOOL_PATH: tool.dir }, encoding: 'utf8', timeout: 600_000,
-    });
+    const r = spawnSync(inv.command, inv.args, { cwd: inv.cwd, env: inv.env, encoding: 'utf8', timeout: 600_000 });
     const out = redact(`${r.stdout ?? ''}\n${r.stderr ?? ''}`).trim();
     console.log(`[win-sign] CodeSignTool（${attempt} 回目）: ${path.basename(file)}\n${out}`);
     const failed = r.error != null || r.status !== 0 || FAILURE_MARKERS.some((m) => out.includes(m));
@@ -341,7 +379,7 @@ async function codeSignToolRaw(file) {
       await sleep(wait);
       continue;
     }
-    throw new Error(`CodeSignTool の署名に失敗しました: ${file}${r.error ? ` (${r.error.message})` : ''}`);
+    throw new Error(redact(`CodeSignTool の署名に失敗しました: ${file}${r.error ? ` (${r.error.message})` : ''}`));
   }
 }
 
@@ -656,6 +694,9 @@ module.exports = {
   subjectHasCn,
   assetName,
   rejectCachedReason,
+  buildCodeSignToolInvocation,
+  runCodeSignTool,
+  buildPwshEnv: signerIdentity.buildPwshEnv,
   signFile,
   sign,
   assertNsisToolsetPrepared,

@@ -147,6 +147,16 @@ const PS_AUTHENTICODE = "$ErrorActionPreference='Stop'; $files = @(Get-Content -
   + '[pscustomobject]@{ file = $_; status = [string]$s.Status; subject = if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { $null }; chain = $chain } }); '
   + 'ConvertTo-Json -InputObject $out -Compress -Depth 5';
 
+/** eSigner の資格情報（nov26-m7-t3）。pwsh の子へは渡さない */
+const ES_ENV_KEYS = ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET'];
+
+/** Authenticode の検証に起動する pwsh の子の env（ES_* を外し、一覧のファイルの場所だけを足す） */
+function buildPwshEnv(listFile) {
+  const env = { ...process.env, WIN_SIGN_LIST: listFile };
+  for (const k of ES_ENV_KEYS) delete env[k];
+  return env;
+}
+
 /**
  * @param {string[]} files
  * @returns {Map<string, {status: string, subject: string|null, chain: Array<{subject: string, thumbprint: string}>}>}
@@ -158,7 +168,7 @@ function authenticodeFiles(files) {
   // GitHub Actions の Windows は step を pwsh で動かす。そこから powershell.exe を起動すると PSModulePath の
   // 食い違いで Microsoft.PowerShell.Security を読めず、Get-AuthenticodeSignature が黙って $null を返す
   // （1.1.0-rc.2 の run 37122225835）。∴ pwsh を優先し、無いときだけ PSModulePath を外して powershell.exe を使う。
-  const env = { ...process.env, WIN_SIGN_LIST: listFile };
+  const env = buildPwshEnv(listFile);
   const opts = { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 600_000 };
   let shell = 'pwsh';
   let r = spawnSync(shell, ['-NoProfile', '-NonInteractive', '-Command', PS_AUTHENTICODE], opts);
@@ -192,5 +202,6 @@ module.exports = {
   checkSigner,
   isMicrosoftSubject,
   authenticodeFiles,
+  buildPwshEnv,
   PS_AUTHENTICODE,
 };
