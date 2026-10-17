@@ -7,6 +7,12 @@
 //   2. インストール先（既定 %LOCALAPPDATA%\Programs\MaplatEditor）の全 PE（拡張子でなく MZ＋PE\0\0 で判定）の
 //      Authenticode が Valid で、署名者が signer-identity.json の --signer のモードか Microsoft
 //   3. MaplatEditor.exe --user-data-dir=<RUNNER_TEMP の下> を起動し、10 秒後にプロセスが生きていることを確かめて終了させる
+//   2b. （nov26-m7-t5・§3.6）入った resources/app-update.yml の publisherName が signer-identity.json の
+//      --signer の publisherSubject と文字列として一致し、インストールに使った Setup.exe（＝更新のときに electron-updater が
+//      照らすファイル）の生の SignerCertificate.Subject とも文字列として一致し、electron-updater の判定の写し
+//      （updater-publisher-match.cjs の matchesPublisher）で真。Subject は electron-updater と同じコマンド
+//      （set "PSModulePath=" & chcp 65001 >NUL & powershell.exe … Get-AuthenticodeSignature | ConvertTo-Json -Compress）で取る
+//      （R2-INFO-3: 取得経路の違いを疑う余地を消す）。正規化した値どうしでは比べない（S と ST の食い違いを見逃すため）
 //   4. Uninstall MaplatEditor.exe /S を起動し、インストール先の MaplatEditor.exe が消えるまで最大 120 秒待つ
 //   5. 結果を JSON で job summary（GITHUB_STEP_SUMMARY）と標準出力に出す
 //
@@ -21,6 +27,7 @@ import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const { readPeInfo } = require('./win-sign.cjs');
 const { checkSigner, isMicrosoftSubject, authenticodeFiles } = require('./signer-identity.cjs');
+const { matchesPublisher } = require('./updater-publisher-match.cjs');
 
 /** dir の下の全 PE（拡張子でなく中身で判定） */
 export function listPes(dir) {
@@ -47,6 +54,103 @@ export function judgeSigners(results, signer, identity) {
     else if (!isMicrosoftSubject(a.subject)) why = checkSigner(a, signer, identity);
     return { file, ok: why == null, detail: why ?? (a.subject ?? '') };
   });
+}
+
+// ───────────────────────────────────────────────
+// app-update.yml の publisherName（nov26-m7-t5・§3.6）
+// ───────────────────────────────────────────────
+
+/** js-yaml の dump が書く 1 つのスカラー（素・'…'・"…"）を読む。依存を入れないジョブで使うための最小の読み取り */
+function readYamlScalar(text) {
+  const t = text.trim();
+  if (t.startsWith("'")) {
+    if (!t.endsWith("'") || t.length < 2) throw new Error(`引用符が閉じていない: ${t}`);
+    return t.slice(1, -1).replace(/''/g, "'");
+  }
+  if (t.startsWith('"')) return JSON.parse(t);
+  return t;
+}
+
+/**
+ * app-update.yml（electron-builder の serializeToYaml＝js-yaml の dump の出力）から publisherName を読む。
+ * 無ければ null。1 つの文字列なら長さ 1 の配列にする（electron-updater と同じ扱い）
+ * @returns {string[] | null}
+ */
+export function readPublisherNames(yml) {
+  const lines = String(yml).split(/\r?\n/);
+  const i = lines.findIndex((l) => /^publisherName:/.test(l));
+  if (i < 0) return null;
+  const inline = lines[i].slice('publisherName:'.length).trim();
+  if (inline !== '') {
+    if (inline === 'null' || inline === '~') return null;
+    if (inline.startsWith('[')) throw new Error(`publisherName の flow 形式は読まない: ${inline}`);
+    return [readYamlScalar(inline)];
+  }
+  const out = [];
+  for (const l of lines.slice(i + 1)) {
+    const m = l.match(/^\s+- (.*)$/);
+    if (!m) break;
+    out.push(readYamlScalar(m[1]));
+  }
+  return out;
+}
+
+/**
+ * @param {{appUpdateYml: string|null, subject: string|null, identity: object, signer: string}} input
+ *   subject は Setup.exe の Get-AuthenticodeSignature の SignerCertificate.Subject（生の文字列）
+ * @returns {{publisherName: string[]|null, publisherSubject: string|null, subject: string|null, failures: string[]}}
+ */
+export function judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signer }) {
+  const failures = [];
+  const publisherSubject = identity?.[signer]?.publisherSubject ?? null;
+  let publisherName = null;
+  if (appUpdateYml == null) {
+    failures.push('app-update.yml が無い（electron-updater は publisherName を照らさずに通す）');
+  } else {
+    try {
+      publisherName = readPublisherNames(appUpdateYml);
+    } catch (e) {
+      failures.push(`app-update.yml の publisherName が読めない（${e.message}）`);
+    }
+    if (publisherName == null && failures.length === 0) {
+      failures.push('app-update.yml に publisherName が無い（electron-updater は署名者を照らさずに通す）');
+    }
+  }
+  if (typeof publisherSubject !== 'string' || publisherSubject === '') {
+    failures.push(`signer-identity.json の ${signer}.publisherSubject が空`);
+  }
+  if (publisherName != null) {
+    if (publisherName.length === 0) failures.push('publisherName が空の配列');
+    for (const n of publisherName) {
+      if (n !== publisherSubject) failures.push(`publisherName の要素が ${signer}.publisherSubject と文字列として一致しない（${JSON.stringify(n)}）`);
+    }
+  }
+  if (typeof subject !== 'string' || subject === '') {
+    failures.push('Setup.exe の SignerCertificate.Subject が取れない');
+  } else if (publisherName != null && publisherName.length > 0) {
+    if (publisherName[0] !== subject) failures.push('publisherName[0] が Setup.exe の Subject と文字列として一致しない');
+    let ok = false;
+    try {
+      ok = matchesPublisher(publisherName, subject);
+    } catch (e) {
+      failures.push(`matchesPublisher が失敗した（${e.message}）`);
+    }
+    if (!ok) failures.push('electron-updater の判定（matchesPublisher）で publisherName が Setup.exe の Subject に一致しない');
+  }
+  return { publisherName, publisherSubject, subject: subject ?? null, failures };
+}
+
+/** electron-updater 6.8.10（windowsExecutableCodeSignatureVerifier.js 14・47 行）と同じコマンドで Subject を取る */
+function updaterStyleSubject(file) {
+  const literal = file.replace(/'/g, "''");
+  const r = spawnSync('set "PSModulePath=" & chcp 65001 >NUL & powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-InputFormat', 'None', '-Command', `"Get-AuthenticodeSignature -LiteralPath '${literal}' | ConvertTo-Json -Compress"`],
+    { shell: true, timeout: 20_000, encoding: 'utf8', windowsHide: true });
+  if (r.error || r.status !== 0 || r.stderr) {
+    throw new Error(`Get-AuthenticodeSignature が失敗した（status ${r.status}・${r.error?.message ?? ''}・${(r.stderr ?? '').trim()}）`);
+  }
+  const data = JSON.parse(r.stdout);
+  return { status: data.Status, subject: data.SignerCertificate?.Subject ?? null };
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -76,6 +180,35 @@ async function main(argv) {
   result.steps.signatures = { peCount: pes.length, rows: rows.map((r) => ({ ...r, file: path.relative(installDir, r.file) })) };
   for (const r of rows) if (!r.ok) failures.push(`署名: ${path.relative(installDir, r.file)} — ${r.detail}`);
   if (pes.length === 0) failures.push('インストール先に PE が無い');
+
+  // 2b. app-update.yml の publisherName と、インストールに使った Setup.exe の生の Subject（nov26-m7-t5・§3.6）
+  {
+    const ymlPath = path.join(installDir, 'resources', 'app-update.yml');
+    const appUpdateYml = existsSync(ymlPath) ? readFileSync(ymlPath, 'utf8') : null;
+    let subject = null;
+    let subjectError = null;
+    try {
+      ({ subject } = updaterStyleSubject(installer));
+    } catch (e) {
+      subjectError = e.message;
+    }
+    const identity = JSON.parse(readFileSync(new URL('./signer-identity.json', import.meta.url), 'utf8'));
+    const judged = judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signer: opt.signer });
+    result.steps.appUpdatePublisher = { ...judged, subjectError };
+    for (const f of judged.failures) failures.push(`app-update.yml: ${f}`);
+    if (subjectError) failures.push(`app-update.yml: ${subjectError}`);
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const cell = (v) => `\`${String(v ?? '(無し)').replace(/`/g, "'")}\``;
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+        '## app-update.yml の publisherName と Setup.exe の Subject（生の文字列）', '',
+        '| 項目 | 値 |', '|---|---|',
+        `| app-update.yml の publisherName[0] | ${cell(judged.publisherName?.[0])} |`,
+        `| Setup.exe の SignerCertificate.Subject | ${cell(subject)} |`,
+        `| signer-identity.json の ${opt.signer}.publisherSubject | ${cell(judged.publisherSubject)} |`,
+        `| 判定 | ${judged.failures.length === 0 && !subjectError ? '一致' : '不一致'} |`, '', '',
+      ].join('\n'));
+    }
+  }
 
   // 3. 起動して 10 秒生きている
   const profile = path.join(process.env.RUNNER_TEMP ?? os.tmpdir(), 'maplat-verify-win-install-profile');

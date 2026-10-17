@@ -292,6 +292,8 @@ jobs:
           path: |
             release/${{ env.VERSION }}/*.dmg
             release/${{ env.VERSION }}/*.dmg.blockmap
+            release/${{ env.VERSION }}/*.zip
+            release/${{ env.VERSION }}/*.zip.blockmap
             release/${{ env.VERSION }}/latest-mac.yml
 
   # ─────────────────────────────────────────────
@@ -552,7 +554,7 @@ jobs:
   # このジョブは checkout も依存の導入もせず、リポジトリのコードを 1 行も実行しない（gh CLI だけ）。
   # 取り込む側（scripts/win-sign/win-sign.cjs）は、asset を使う前に「署名を除いた中身が署名前ファイルと一致」
   # 「Authenticode が Valid」「署名者が signer-identity.json の esigner」を確かめるので、ここで改ざんされても取り込まれない。
-  # Release は prerelease として作り、配布物ではないことを本文に書く（アプリは electron-updater を使わない）
+  # Release は prerelease として作り、配布物ではないことを本文に書く（アプリの自動更新（electron-updater）は `allowPrerelease: false` で prerelease を見ない（#141））
   # ─────────────────────────────────────────────
   publish-win-sign-cache:
     needs: [prepare, build-win]
