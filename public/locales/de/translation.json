@@ -439,7 +439,13 @@
     "basemap_align_reset": "Zurücksetzen",
     "basemap_align_cancel": "Abbrechen",
     "context_select_reference_point": "Referenzpunkt wählen",
-    "context_select_ground_truth": "Ground Truth wählen"
+    "context_select_ground_truth": "Ground Truth wählen",
+    "export_options_title": "Zu exportierende Inhalte",
+    "export_option_tiles": "Kacheln (einschließlich Vorschaubilder)",
+    "export_option_json": "Karteneinstellungen (JSON und POIs)",
+    "export_option_originals": "Originalbild",
+    "export_option_originals_note": "Fügt die ursprüngliche Bilddatei unverändert hinzu. Die Datei wird größer und kann Fotometadaten enthalten.",
+    "export_option_none_selected": "Wählen Sie mindestens ein Element aus"
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -458,7 +464,8 @@
     "error_upload": "Beim Registrieren der Kartendaten ist ein Fehler aufgetreten.",
     "success_upload": "Die Kartendaten wurden erfolgreich registriert.",
     "error_too_large": "Die ZIP-Datei der Kartendaten ist zu groß (Dateien über 2 GiB können nicht importiert werden).",
-    "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden."
+    "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden.",
+    "error_no_json": "Import nicht möglich, da die Karteneinstellungen (JSON) fehlen"
   },
   "database": {
     "migrating": "Migration zum neuen Datenbankformat läuft.",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "Die POI-Daten mischen GeoJSON- und Nicht-GeoJSON-Formate. Sie werden im Viewer möglicherweise nicht korrekt angezeigt. Wandeln Sie POIs im Altformat in GeoJSON um.",
     "provider_source_note": "Die Kachel-URL wird automatisch aus dem API-Schlüssel und dem Typ erstellt, eine manuelle Eingabe ist nicht erforderlich.",
     "error_missing_base_map_master": "Die Basiskarte für diese Quelle fehlt. Sie wird von Export und Vorschau ausgeschlossen.",
-    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen."
+    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen.",
+    "export_exclude_tiles": "Kacheln nicht einschließen"
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",

@@ -439,7 +439,13 @@
     "basemap_align_reset": "リセット",
     "basemap_align_cancel": "キャンセル",
     "context_select_reference_point": "基準点を選ぶ",
-    "context_select_ground_truth": "Ground Truth を選ぶ"
+    "context_select_ground_truth": "Ground Truth を選ぶ",
+    "export_options_title": "書き出す中身",
+    "export_option_tiles": "タイル（サムネイルを含む）",
+    "export_option_json": "地図の設定（JSON・POI）",
+    "export_option_originals": "原画像",
+    "export_option_originals_note": "元の画像そのものを入れます。ファイルが大きくなり、写真の付帯情報を含むことがあります",
+    "export_option_none_selected": "1 つ以上選んでください"
   },
   "mapupload": {
     "map_image": "地図画像",
@@ -458,7 +464,8 @@
     "error_upload": "地図データ登録でエラーが発生しました。",
     "success_upload": "正常に地図データが登録できました。",
     "error_too_large": "地図データの ZIP が大きすぎます（2 GiB を超えるものは取り込めません）。",
-    "error_corrupt": "地図データの ZIP が壊れているため取り込めません。"
+    "error_corrupt": "地図データの ZIP が壊れているため取り込めません。",
+    "error_no_json": "地図の設定（JSON）が含まれていないため取り込めません"
   },
   "database": {
     "migrating": "新型DB形式に移行中です。",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "POIデータにGeoJSON形式とそれ以外の形式が混在しています。ビューアで正しく表示されない可能性があります。旧形式のPOIはGeoJSONへ変換してください。",
     "provider_source_note": "APIキーと種別からタイルURLが自動的に構築されるため、直接入力の必要はありません。",
     "error_missing_base_map_master": "このソースのベースマップが見つかりません。書き出しとプレビューから除外されます。",
-    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。"
+    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。",
+    "export_exclude_tiles": "タイルを含めない"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

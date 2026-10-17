@@ -439,7 +439,13 @@
     "basemap_align_reset": "重置",
     "basemap_align_cancel": "取消",
     "context_select_reference_point": "选择基准点",
-    "context_select_ground_truth": "选择 Ground Truth"
+    "context_select_ground_truth": "选择 Ground Truth",
+    "export_options_title": "导出内容",
+    "export_option_tiles": "瓦片（含缩略图）",
+    "export_option_json": "地图设置（JSON・POI）",
+    "export_option_originals": "原始图像",
+    "export_option_originals_note": "按原样放入原始图像文件。文件会变大，并可能包含照片的附加信息",
+    "export_option_none_selected": "请至少选择一项"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -458,7 +464,8 @@
     "error_upload": "注册地图数据时发生错误。",
     "success_upload": "地图数据已成功注册。",
     "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
-    "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。"
+    "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。",
+    "error_no_json": "未包含地图设置（JSON），无法导入"
   },
   "database": {
     "migrating": "正在迁移到新型数据库格式。",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "POI 数据中混杂了 GeoJSON 格式与其他格式，可能无法在查看器中正确显示。请将旧格式 POI 转换为 GeoJSON。",
     "provider_source_note": "瓦片URL会根据API密钥和类型自动构建，无需手动输入。",
     "error_missing_base_map_master": "找不到该源的底图，将从导出和预览中排除。",
-    "warn_missing_base_map_master": "已排除找不到底图的源。"
+    "warn_missing_base_map_master": "已排除找不到底图的源。",
+    "export_exclude_tiles": "不包含瓦片"
   },
   "mapmodel": {
     "untitled": "标题未设置",

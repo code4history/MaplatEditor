@@ -4,6 +4,7 @@ import SqliteDataService from './SqliteDataService';
 import MapEditService, { hasStrictError } from './MapEditService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
+import { normalizeMapExportOptions, type MapExportOptions } from '../../src/utils/exportOptions';
 
 // M13-T1 (§2.3): App save/preview/export と Viewer runtime ingress の入口ゲート。
 // MapEditService.ts の requestPreviewSource() 内 strict throw (保存済み地図読み出し時) や
@@ -60,8 +61,11 @@ class MapPurposeService {
     // 内部で発生した例外(map not found / too_less_gcps / dialog・fs エラー等)はすべて catch し
     // 'Error' へ写像する — reject しない (§2.1/§2.3: milestone v2.1 の型契約
     // Promise<'Success'|'Canceled'|'Error'> は常にこの3値のいずれかで resolve する契約と解釈)
-    async downloadSavedMap(win: BrowserWindow, mapRef: string): Promise<'Success' | 'Canceled' | 'Error'> {
+    // nov26-m6-t8（#113）: options は書き出す中身。省略時は既定（現行と同じ中身）。
+    // 3 つとも false は書かずに 'Error'（画面は選べないようにしているので防御）
+    async downloadSavedMap(win: BrowserWindow, mapRef: string, options?: Partial<MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'> {
         try {
+            const exportOptions = normalizeMapExportOptions(options);
             const previewJson = await MapEditService.buildPreviewSource(mapRef); // strict-free（§2.5）
             // M5-T1: mapDoc の取得を mapObject の合成より前へ移す。
             // buildPreviewSource() は preview 用途のために url へ**ランタイム**のタイルURL
@@ -91,7 +95,7 @@ class MapPurposeService {
             });
             if (ret.canceled || !ret.filePath) return 'Canceled';
             rememberDialogPath('export', ret.filePath, 'file');
-            await buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath);
+            await buildAndWriteMapZip(win, mapObject, tins, slug, fileKey, ret.filePath, exportOptions);
             return 'Success';
         } catch (e) {
             console.error('[MapPurposeService.downloadSavedMap]', e);

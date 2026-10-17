@@ -421,7 +421,13 @@
     "basemap_align_reset": "Reset",
     "basemap_align_cancel": "Cancel",
     "context_select_reference_point": "Select reference point",
-    "context_select_ground_truth": "Select ground truth"
+    "context_select_ground_truth": "Select ground truth",
+    "export_options_title": "Contents to export",
+    "export_option_tiles": "Tiles (including thumbnails)",
+    "export_option_json": "Map settings (JSON and POIs)",
+    "export_option_originals": "Original image",
+    "export_option_originals_note": "Includes the original image file as is. The file becomes larger and may contain photo metadata.",
+    "export_option_none_selected": "Select at least one item"
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -440,7 +446,8 @@
     "error_upload": "An error occurred during map data import.",
     "success_upload": "Map data was successfully imported.",
     "error_too_large": "The map data ZIP is too large (files over 2 GiB cannot be imported).",
-    "error_corrupt": "The map data ZIP is corrupted and cannot be imported."
+    "error_corrupt": "The map data ZIP is corrupted and cannot be imported.",
+    "error_no_json": "Cannot import because the map settings (JSON) are not included"
   },
   "database": {
     "migrating": "Migrating to the new database format.",
@@ -672,7 +679,8 @@
     "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON.",
     "provider_source_note": "The tile URL is built automatically from the API key and type, so no manual input is needed.",
     "error_missing_base_map_master": "The base map for this source is missing. It will be excluded from export and preview.",
-    "warn_missing_base_map_master": "Excluded sources whose base map could not be found."
+    "warn_missing_base_map_master": "Excluded sources whose base map could not be found.",
+    "export_exclude_tiles": "Do not include tiles"
   },
   "mapmodel": {
     "untitled": "Untitled",

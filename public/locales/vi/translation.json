@@ -439,7 +439,13 @@
     "basemap_align_reset": "Đặt lại",
     "basemap_align_cancel": "Hủy",
     "context_select_reference_point": "Chọn điểm tham chiếu",
-    "context_select_ground_truth": "Chọn ground truth"
+    "context_select_ground_truth": "Chọn ground truth",
+    "export_options_title": "Nội dung xuất",
+    "export_option_tiles": "Ô bản đồ (bao gồm ảnh thu nhỏ)",
+    "export_option_json": "Cài đặt bản đồ (JSON và POI)",
+    "export_option_originals": "Ảnh gốc",
+    "export_option_originals_note": "Đưa nguyên tệp ảnh gốc vào. Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
+    "export_option_none_selected": "Hãy chọn ít nhất một mục"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -458,7 +464,8 @@
     "error_upload": "Đã xảy ra lỗi khi đăng ký dữ liệu bản đồ.",
     "success_upload": "Đã đăng ký dữ liệu bản đồ thành công.",
     "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
-    "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập."
+    "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập.",
+    "error_no_json": "Không thể nhập vì không có cài đặt bản đồ (JSON)"
   },
   "database": {
     "migrating": "Đang di chuyển sang định dạng cơ sở dữ liệu mới.",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
     "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
     "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",
-    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền."
+    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền.",
+    "export_exclude_tiles": "Không bao gồm ô bản đồ"
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

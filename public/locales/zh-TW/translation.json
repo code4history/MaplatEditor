@@ -439,7 +439,13 @@
     "basemap_align_reset": "重設",
     "basemap_align_cancel": "取消",
     "context_select_reference_point": "選擇基準點",
-    "context_select_ground_truth": "選擇 Ground Truth"
+    "context_select_ground_truth": "選擇 Ground Truth",
+    "export_options_title": "匯出內容",
+    "export_option_tiles": "圖磚（含縮圖）",
+    "export_option_json": "地圖設定（JSON・POI）",
+    "export_option_originals": "原始影像",
+    "export_option_originals_note": "按原樣放入原始影像檔案。檔案會變大，並可能包含照片的附加資訊",
+    "export_option_none_selected": "請至少選擇一項"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -458,7 +464,8 @@
     "error_upload": "登錄地圖資料時發生錯誤。",
     "success_upload": "地圖資料已成功登錄。",
     "error_too_large": "地圖資料的 ZIP 過大（無法匯入超過 2 GiB 的檔案）。",
-    "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。"
+    "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。",
+    "error_no_json": "未包含地圖設定（JSON），無法匯入"
   },
   "database": {
     "migrating": "正在遷移至新型資料庫格式。",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。",
     "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。",
     "error_missing_base_map_master": "找不到此來源的底圖，將自匯出與預覽中排除。",
-    "warn_missing_base_map_master": "已排除找不到底圖的來源。"
+    "warn_missing_base_map_master": "已排除找不到底圖的來源。",
+    "export_exclude_tiles": "不包含圖磚"
   },
   "mapmodel": {
     "untitled": "標題未設定",

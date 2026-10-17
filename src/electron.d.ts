@@ -48,7 +48,8 @@ export interface AppEditAPI {
     preparePreview(document: any): Promise<{ url: string; port: number; warnings: string[] }>;
     stopPreview(): Promise<void>;
     // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
-    export(document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
+    // nov26-m6-t8（#113）: 第 3 引数 options.includeTiles（省略時は含める）
+    export(document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: Partial<import('./utils/exportOptions').AppExportOptions>): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 
 export interface AppEventsAPI {
@@ -335,7 +336,8 @@ export interface MapEditAPI {
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
     // M13-T1 (§2.2): 保存済み地図専用のstrict-free搬出
-    downloadSaved(mapRef: string): Promise<'Success' | 'Canceled' | 'Error'>;
+    // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
+    downloadSaved(mapRef: string, options?: Partial<import('./utils/exportOptions').MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'>;
     // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
     // M12-T20 (§5.1): 復元時ガード用の staging 実在照会

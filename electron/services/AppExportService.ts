@@ -44,6 +44,7 @@ import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths'
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
+import { normalizeAppExportOptions, type AppExportOptions } from '../../src/utils/exportOptions';
 import {
   resolvePublishKey,
   resolveStartFromViewerMapID,
@@ -227,7 +228,10 @@ class AppExportService {
     return SettingsService.get('saveFolder') as string;
   }
 
-  async exportApp(win: BrowserWindow, document: any, overrideKeys?: ProviderKeyOverride): Promise<ExportResult> {
+  // nov26-m6-t8（#113）: options.includeTiles === false のとき、tiles/・merc/ のタイルの実体をコピーしない。
+  // app JSON・地図の設定のタイルの URL は書き出し時と同じ相対パスのまま（利用者が別にタイルを置く構成）
+  async exportApp(win: BrowserWindow, document: any, overrideKeys?: ProviderKeyOverride, options?: Partial<AppExportOptions>): Promise<ExportResult> {
+    const { includeTiles } = normalizeAppExportOptions(options);
     const warnings: string[] = [];
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
@@ -349,12 +353,13 @@ class AppExportService {
       for (const source of maplatSources) {
         const mapDoc = maplatDocs.get(source)!;
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        const count = fs.existsSync(tileDir) ? await countTileFiles(tileDir) : 0;
+        const count = includeTiles && fs.existsSync(tileDir) ? await countTileFiles(tileDir) : 0;
         tileFileCounts.set(source, count);
         totalTileFiles += count;
       }
       // m6-t8: merc タイル数も進捗の事前計上へ織り込む（名前衝突で実コピーされないエントリは除く）
-      for (const entry of mercEntriesToCopy) {
+      // nov26-m6-t8: タイルを含めないときは数えない（進捗の分母からタイルのコピーの分を除く）
+      for (const entry of includeTiles ? mercEntriesToCopy : []) {
         const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
         totalTileFiles += fs.existsSync(mercDir) ? await countTileFiles(mercDir) : 0;
       }
@@ -472,7 +477,7 @@ class AppExportService {
         // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)。
         // ファイル単位でコピーしつつ進捗を報告する(まとまった大きな地図でもバーが動き続ける)
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        if (fs.existsSync(tileDir)) {
+        if (includeTiles && fs.existsSync(tileDir)) {
           await copyTilesWithProgress(tileDir, path.join(outDir, 'tiles', slug), slug, reporter, progressState);
         }
         const thumb = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}.jpg`);
@@ -509,7 +514,10 @@ class AppExportService {
         const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
         if (!fs.existsSync(mercDir)) continue; // タイル未生成(異常値)。既存tiles/tmbsと同型のsilent skip
         const mercOutDir = path.join(outDir, 'merc', entry.dirName);
-        await copyTilesWithProgress(mercDir, mercOutDir, entry.dirName, reporter, progressState);
+        // nov26-m6-t8: タイルを含めないときも tilejson.json（タイルの URL の宣言）は下で書く
+        if (includeTiles) {
+          await copyTilesWithProgress(mercDir, mercOutDir, entry.dirName, reporter, progressState);
+        }
         const tileJsonSrc = path.join(mercDir, 'tilejson.json');
         if (fs.existsSync(tileJsonSrc)) {
           const tileJson = await fs.readJson(tileJsonSrc);

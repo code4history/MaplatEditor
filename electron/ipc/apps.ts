@@ -39,11 +39,12 @@ export function registerAppHandlers() {
   // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
   // t1 (§4.5): runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
   // （reply was never sent の構造的防壁。適用範囲は appedit:export のみ — blast radius を広げない）
-  ipcMain.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }) => {
+  // nov26-m6-t8（#113）: 第 3 引数 options.includeTiles（省略時は含める）
+  ipcMain.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: { includeTiles?: boolean }) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
     try {
       return await runGuarded('appedit:export',
-        () => AppExportService.exportApp(win, document, overrideKeys));
+        () => AppExportService.exportApp(win, document, overrideKeys, options));
     } catch (e: any) {
       console.error('Failed to handle appedit:export', e);
       return { result: 'Error', warnings: [], message: e?.message || String(e) };

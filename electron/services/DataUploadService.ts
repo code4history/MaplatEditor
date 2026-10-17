@@ -21,6 +21,14 @@ import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { transcodeImage } from '../utils/thumbnail512Codec';
 import { ZIP_IMPORT_MAX_BYTES, ZipImportError, classifyZipReadError } from '../utils/zipImportGuard';
+import {
+    DEFAULT_MAP_EXPORT_OPTIONS,
+    EXPORT_MANIFEST_NAME,
+    CorruptExportManifestError,
+    parseExportManifest,
+    type MapExportOptions,
+} from '../../src/utils/exportOptions';
+import { normalizeOriginalExt } from './MapOriginalImageService';
 
 // m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
@@ -287,12 +295,34 @@ class DataUploadService {
 
             zip.extractAllTo(dataTmpFolder, true);
 
+            // nov26-m6-t8（T8-MIN-1）: 目録を先に読む。無ければ既定の中身（タイルと JSON）とみなす。
+            // 壊れた目録・未知の version は「目録なし」と同じに扱わず 'Corrupt'（途中で切れた・別物の zip）
+            let contents: MapExportOptions = { ...DEFAULT_MAP_EXPORT_OPTIONS };
+            const manifestPath = path.join(dataTmpFolder, EXPORT_MANIFEST_NAME);
+            if (fs.existsSync(manifestPath)) {
+                try {
+                    contents = parseExportManifest(await fs.readFile(manifestPath, 'utf8')).contents;
+                } catch (e) {
+                    if (e instanceof CorruptExportManifestError) {
+                        console.error('[DataUploadService] export manifest is corrupt', e.message);
+                        throw 'Corrupt';
+                    }
+                    throw e;
+                }
+            }
+
             // maps/{mapID}.json を読む（原版と同じ）
             const mapTmpFolder = path.join(dataTmpFolder, 'maps');
             const tileTmpFolder = path.join(dataTmpFolder, 'tiles');
             const tmbTmpFolder  = path.join(dataTmpFolder, 'tmbs');
+            const originalTmpFolder = path.join(dataTmpFolder, 'originals');
 
-            const mapFile = (await fs.readdir(mapTmpFolder))[0];
+            // nov26-m6-t8: maps/ が無い・空なら決定的な 'NoJson'（従来は ENOENT 等の原文が出ていた）
+            const mapFiles = fs.existsSync(mapTmpFolder)
+                ? (await fs.readdir(mapTmpFolder)).filter((name) => name.toLowerCase().endsWith('.json'))
+                : [];
+            if (mapFiles.length === 0) throw 'NoJson';
+            const mapFile = mapFiles[0];
             const mapID   = mapFile.split('.')[0];
             const mapPath = path.join(mapTmpFolder, mapFile);
             const mapData = await fs.readJson(mapPath);
@@ -303,8 +333,33 @@ class DataUploadService {
             // --- バリデーション (slugはグローバル一意: ADR-0007) ---
             // M5-T5: 同名 slug は 'Exist' で拒否せず自動解決するため、ここでの slug 検査は
             // 無くなった。構造的な欠落 (タイル・サムネイル) だけを先に弾く。
-            if (!fs.existsSync(tilePath)) throw 'NoTile';
-            if (!fs.existsSync(tmbPath))  throw 'NoTmb';
+            // nov26-m6-t8: 目録が「タイルを入れなかった」と言うときだけ欠けを許す。
+            // 目録の無い zip（既定・旧い版の書き出し物）の欠けは従来どおり壊れた書き出し物として止める
+            const hasTiles = fs.existsSync(tilePath);
+            const hasTmb = fs.existsSync(tmbPath);
+            if (contents.tiles) {
+                if (!hasTiles) throw 'NoTile';
+                if (!hasTmb)  throw 'NoTmb';
+            }
+
+            // 原画像（任意）。目録が「入れた」と言うのに無ければ壊れた zip
+            let originalFrom: { path: string; ext: string } | null = null;
+            if (fs.existsSync(originalTmpFolder)) {
+                for (const name of await fs.readdir(originalTmpFolder)) {
+                    const parsed = path.parse(name);
+                    if (parsed.name !== mapID) continue;
+                    const ext = normalizeOriginalExt(parsed.ext.replace(/^\./, ''));
+                    if (!ext) continue;
+                    originalFrom = { path: path.join(originalTmpFolder, name), ext };
+                    break;
+                }
+            }
+            if (contents.originals && !originalFrom) throw 'Corrupt';
+            if (originalFrom) {
+                // 置いた原画像と DB の拡張子を揃える（resolveRuntimeOriginal の extHint）
+                (mapData as any).imageExtension = originalFrom.ext;
+                delete (mapData as any).imageExtention;
+            }
 
             // --- M5-T4B: 準備 — 外部 POI を editor 正本形へ復元する ---
             // **map を保存する前**に行う。保存後だと、復元に失敗したとき既に map 行が
@@ -368,13 +423,26 @@ class DataUploadService {
             const tileToPath = path.join(tileFolder, uid);
             const tmbToPath  = path.join(uiThumbnailFolder, `${uid}.jpg`);
 
-            // タイルとサムネイルを移動
-            await fs.remove(tileToPath);
-            await fs.move(tilePath, tileToPath);
-            placedPaths.push(tileToPath);
-            await fs.remove(tmbToPath);
-            await fs.move(tmbPath, tmbToPath);
-            placedPaths.push(tmbToPath);
+            // タイルとサムネイルを移動（nov26-m6-t8: 目録が外したものは無いまま登録する）
+            if (hasTiles) {
+                await fs.remove(tileToPath);
+                await fs.move(tilePath, tileToPath);
+                placedPaths.push(tileToPath);
+            }
+            if (hasTmb) {
+                await fs.remove(tmbToPath);
+                await fs.move(tmbPath, tmbToPath);
+                placedPaths.push(tmbToPath);
+            }
+
+            // nov26-m6-t8: 原画像は originals/<新しい uid>.<ext> へ置く（ADR-0007: 内部は uid・zip 内は slug）
+            if (originalFrom) {
+                const originalToPath = path.join(SettingsService.get('saveFolder') as string, 'originals', `${uid}.${originalFrom.ext}`);
+                await fs.ensureDir(path.dirname(originalToPath));
+                await fs.remove(originalToPath);
+                await fs.move(originalFrom.path, originalToPath);
+                placedPaths.push(originalToPath);
+            }
 
             // M5-T4B: 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う。
             // m19-t5 (§8.3): 入力の拡張子は交換形式の世代によって異なるため候補から 1 件だけ拾い、

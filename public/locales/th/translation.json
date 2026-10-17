@@ -439,7 +439,13 @@
     "basemap_align_reset": "รีเซ็ต",
     "basemap_align_cancel": "ยกเลิก",
     "context_select_reference_point": "เลือกจุดอ้างอิง",
-    "context_select_ground_truth": "เลือก Ground Truth"
+    "context_select_ground_truth": "เลือก Ground Truth",
+    "export_options_title": "เนื้อหาที่จะส่งออก",
+    "export_option_tiles": "ไทล์ (รวมภาพขนาดย่อ)",
+    "export_option_json": "การตั้งค่าแผนที่ (JSON และ POI)",
+    "export_option_originals": "ภาพต้นฉบับ",
+    "export_option_originals_note": "ใส่ไฟล์ภาพต้นฉบับตามเดิม ไฟล์จะมีขนาดใหญ่ขึ้นและอาจมีข้อมูลเมตาของภาพถ่าย",
+    "export_option_none_selected": "โปรดเลือกอย่างน้อยหนึ่งรายการ"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",
@@ -458,7 +464,8 @@
     "error_upload": "เกิดข้อผิดพลาดในการลงทะเบียนข้อมูลแผนที่",
     "success_upload": "ลงทะเบียนข้อมูลแผนที่สำเร็จแล้ว",
     "error_too_large": "ไฟล์ ZIP ข้อมูลแผนที่มีขนาดใหญ่เกินไป (ไม่สามารถนำเข้าไฟล์ที่เกิน 2 GiB ได้)",
-    "error_corrupt": "ไฟล์ ZIP ข้อมูลแผนที่เสียหาย จึงไม่สามารถนำเข้าได้"
+    "error_corrupt": "ไฟล์ ZIP ข้อมูลแผนที่เสียหาย จึงไม่สามารถนำเข้าได้",
+    "error_no_json": "ไม่สามารถนำเข้าได้เนื่องจากไม่มีการตั้งค่าแผนที่ (JSON)"
   },
   "database": {
     "migrating": "กำลังย้ายไปยังรูปแบบฐานข้อมูลใหม่",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "ข้อมูล POI มีทั้งรูปแบบ GeoJSON และรูปแบบอื่นปะปนกัน อาจแสดงผลไม่ถูกต้องในวิวเวอร์ โปรดแปลง POI รูปแบบเก่าเป็น GeoJSON",
     "provider_source_note": "URL ไทล์จะถูกสร้างขึ้นโดยอัตโนมัติจากคีย์ API และประเภท จึงไม่จำเป็นต้องป้อนด้วยตนเอง",
     "error_missing_base_map_master": "ไม่พบแผนที่ฐานของแหล่งข้อมูลนี้ จะถูกยกเว้นจากการส่งออกและตัวอย่าง",
-    "warn_missing_base_map_master": "ยกเว้นแหล่งข้อมูลที่ไม่พบแผนที่ฐาน"
+    "warn_missing_base_map_master": "ยกเว้นแหล่งข้อมูลที่ไม่พบแผนที่ฐาน",
+    "export_exclude_tiles": "ไม่รวมไทล์"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",

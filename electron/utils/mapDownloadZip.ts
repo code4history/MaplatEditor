@@ -17,6 +17,14 @@ import {
   type IconFile,
   type PoiDocument,
 } from '../services/poiReferenceResolver';
+import { resolveRuntimeOriginal } from '../services/MapOriginalImageService';
+import {
+  DEFAULT_MAP_EXPORT_OPTIONS,
+  EXPORT_MANIFEST_NAME,
+  buildExportManifest,
+  isDefaultMapExportContents,
+  type MapExportOptions,
+} from '../../src/utils/exportOptions';
 
 // download 用の交換形 map JSON を組み立てる (M2)。histMap2Store + 言語畳み込みの後、
 // pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
@@ -77,6 +85,8 @@ export async function buildAndWriteMapZip(
   slug: string,
   fileKey: string,
   targetFilePath: string,
+  // nov26-m6-t8（#113）: 書き出す中身。省略時は既定（現行と同じ: タイルと JSON。原画像なし）
+  options: MapExportOptions = DEFAULT_MAP_EXPORT_OPTIONS,
 ): Promise<void> {
   const tmpFolder = SettingsService.get('tmpFolder') as string;
   const saveFolder = SettingsService.get('saveFolder') as string;
@@ -109,9 +119,13 @@ export async function buildAndWriteMapZip(
   await fs.remove(poiStageDir).catch(() => undefined);
   const poiTmpFiles = await writePoiDocuments(poiStageDir, documents);
 
-  // ZIP に追加するファイルリスト: [localPath, zipDir, zipName]
-  const targets: [string, string, string][] = [
-    [tmpFile, 'maps', `${slug}.json`],
+  // nov26-m6-t8（#113・タスク設計 §3.1）: 区分ごとに積む。
+  //   json      = maps/{slug}.json・pois/*.geojson・imgs/…
+  //   tiles     = tmbs/{slug}.jpg・512px・tiles/{slug}/…
+  //   originals = originals/{slug}.{ext}
+  // 既定のときの積む順は従来と同じ（maps → tmbs → 512px → pois → imgs → tiles）に保つ。
+  const jsonTargets: [string, string, string][] = [[tmpFile, 'maps', `${slug}.json`]];
+  const tileTargets: [string, string, string][] = [
     [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${slug}.jpg`],
   ];
 
@@ -122,11 +136,11 @@ export async function buildAndWriteMapZip(
   // (通常サムネイル・タイルと同じ扱い)。
   const src512 = thumb512PathFor(thumb52PathFor(fileKey, 'jpg'))!;
   const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'))!;
-  targets.push([path.join(saveFolder, src512), path.posix.dirname(out512), path.posix.basename(out512)]);
+  tileTargets.push([path.join(saveFolder, src512), path.posix.dirname(out512), path.posix.basename(out512)]);
 
   // M5-T4B: 外部化した POI 実体を pois/<name>.geojson として同梱する
   for (let i = 0; i < documents.length; i++) {
-    targets.push([poiTmpFiles[i], 'pois', path.posix.basename(documents[i].dest)]);
+    jsonTargets.push([poiTmpFiles[i], 'pois', path.posix.basename(documents[i].dest)]);
   }
 
   // 解決済み POI icon の実体 (POI-117): zip ルート相対 imgs/... へ同梱
@@ -134,10 +148,11 @@ export async function buildAndWriteMapZip(
   for (const file of files) {
     const destSegments = file.dest.split('/');
     const zipName = destSegments.pop()!;
-    targets.push([file.src, destSegments.join('/'), zipName]);
+    jsonTargets.push([file.src, destSegments.join('/'), zipName]);
   }
 
   // タイルファイルを再帰的に収集(読み込みはtiles/{uid}、zip内はtiles/{slug})
+  const tileFileTargets: [string, string, string][] = [];
   const tileRoot = path.join(tileFolder, fileKey);
   try {
     const { files: tileFiles } = await recursiveFs.read(tileRoot);
@@ -146,9 +161,44 @@ export async function buildAndWriteMapZip(
       const zipName = path.basename(localPath);
       const relDir = path.relative(tileRoot, path.dirname(localPath));
       const zipPath = ['tiles', slug, ...relDir.split(path.sep).filter(Boolean)].join('/');
-      targets.push([localPath, zipPath, zipName]);
+      tileFileTargets.push([localPath, zipPath, zipName]);
     }
   } catch (_e) { /* タイルなし */ }
+
+  // 原画像（選んだときだけ）。内部は uid キー、ZIP 内は slug 名（ADR-0007）。実体が無ければ黙って省く
+  const originalTargets: [string, string, string][] = [];
+  if (options.originals) {
+    const original = await resolveRuntimeOriginal(
+      fileKey, slug, mapObject?.imageExtension ?? mapObject?.imageExtention,
+    );
+    if (original && fs.existsSync(original.path)) {
+      originalTargets.push([original.path, 'originals', `${slug}.${original.ext}`]);
+    }
+  }
+
+  // ZIP に追加するファイルリスト: [localPath, zipDir, zipName]
+  const targets: [string, string, string][] = [];
+  if (options.json) targets.push(jsonTargets[0]);
+  if (options.tiles) targets.push(...tileTargets);
+  if (options.json) targets.push(...jsonTargets.slice(1));
+  if (options.tiles) targets.push(...tileFileTargets);
+  targets.push(...originalTargets);
+
+  // 目録（T8-MIN-1）: **実際に積んだ**区分を書く。tiles は tiles/{slug}/… が 1 件以上あり、
+  // かつ tmbs/{slug}.jpg が実在するときだけ true（申し送り T8-R2-MIN-1）。
+  // contents が既定と同じなら目録を入れない ∴ 既定の書き出し物は現行とバイト単位で同じ中身になる（AC2）
+  const exists = (target: [string, string, string]) => fs.existsSync(target[0]);
+  const contents: MapExportOptions = {
+    tiles: options.tiles && tileFileTargets.some(exists) && exists(tileTargets[0]),
+    json: options.json && exists(jsonTargets[0]),
+    originals: originalTargets.length > 0,
+  };
+  let manifestFile: string | null = null;
+  if (!isDefaultMapExportContents(contents)) {
+    manifestFile = path.join(tmpFolder, `${slug}-${EXPORT_MANIFEST_NAME}`);
+    await fs.writeFile(manifestFile, buildExportManifest(contents));
+    targets.push([manifestFile, '', EXPORT_MANIFEST_NAME]);
+  }
 
   // oct26-m4-t1 (#98 残経路1・#102): 全メモリ方式の zip 書き出しを writeZipStreaming へ寄せる。
   // targets（[localPath, zipDir, zipName]）を、実在ファイルだけ ZipSourceEntry へ写像する
@@ -181,6 +231,7 @@ export async function buildAndWriteMapZip(
   });
 
   await fs.remove(tmpFile);
+  if (manifestFile) await fs.remove(manifestFile).catch(() => undefined);
   // M5-T4B: 外部化 POI の一時領域も後始末する
   await fs.remove(poiStageDir).catch(() => undefined);
   await fs.move(zipFilePath, targetFilePath, { overwrite: true });
