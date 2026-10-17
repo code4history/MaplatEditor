@@ -21,6 +21,13 @@
 const winSign = require('./scripts/win-sign/win-sign.cjs');
 const winSignEnabled = winSign.getMode() !== 'off';
 
+// 自動更新（nov26-m7-t5・#141）: Windows の更新ファイルの署名者を electron-updater が照らす publisherName。
+// 正本は scripts/win-sign/signer-identity.json の artifact-signing.publisherSubject（Get-AuthenticodeSignature の
+// SignerCertificate.Subject の文字列そのもの）。**加工しない**: electron-updater は builder-util-runtime の parseDn で
+// 両側を読み、キー名を正規化せずに全キーの値を比べる（S と ST は別のキー・値は 1 文字も変えられない）。
+// 照合の写しは scripts/win-sign/updater-publisher-match.cjs、実物の Setup.exe との突き合わせは verify-win-install
+const signerIdentity = require('./scripts/win-sign/signer-identity.json');
+
 // macOS: 署名（Hardened Runtime）は「署名のみ」「署名+公証」のどちらでも有効化
 const isMacNotarize = !!process.env.APPLE_ID;
 const isMacSigning = isMacNotarize || process.env.MAC_SIGN === 'true';
@@ -34,6 +41,19 @@ const config = {
         output: 'release/${version}',
         buildResources: 'build',
     },
+    // 自動更新の更新元（nov26-m7-t5）。ビルドは --publish never のまま（公開はしない）。この設定は electron-builder が
+    // resources/app-update.yml を書くために要る。publisherName を win.signtoolOptions に置かないのは、そこが
+    // WIN_SIGN_MODE=off で消え、CN だけ（または無し）に落ちるため（app-builder-lib の PublishManager は
+    // publish の publisherName を先に使う）。publisherName は Windows（NsisUpdater）だけが読む
+    publish: [
+        {
+            provider: 'github',
+            owner: 'code4history',
+            repo: 'MaplatEditor',
+            releaseType: 'release',
+            publisherName: [signerIdentity['artifact-signing'].publisherSubject],
+        },
+    ],
     // m1-t2: 内部パッケージ（@maplat/* / @c4h/*）は outer の pnpm workspace により
     // 兄弟リポジトリの作業ディレクトリへ symlink 解決される。electron-builder は
     // その実体を丸ごと収集するため、各リポジトリの package.json の files 指定
@@ -67,6 +87,8 @@ const config = {
         icon: 'build/icon.icns',
         target: [
             { target: 'dmg', arch: ['x64', 'arm64'] },
+            // 自動更新（Squirrel.Mac）は zip を要る（nov26-m7-t5）。名前は下の artifactName（MaplatEditor-Mac-<版>-<arch>.zip）
+            { target: 'zip', arch: ['x64', 'arm64'] },
         ],
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
         // Hardened Runtime は公証に必須だが、APPLE_ID 未設定時は無効化

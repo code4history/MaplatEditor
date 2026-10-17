@@ -208,7 +208,7 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
      **1 つずつ承認待ちになる**（1 回の実行で承認は最大 4 回）。承認の前に run の表示名（`dispatch mode=… signer=… sha=… ver=…`）が
      自分の起動と一致することを確かめる（outer の承認スクリプトは表示名を照合してから承認する）
 4. 完了後の確認:
-   - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / latest-mac.yml）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
+   - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / .zip / .zip.blockmap / latest-mac.yml。zip は自動更新〔Squirrel.Mac〕用・Part J）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
    - `mode=full` かつ `platforms=all` のときだけ **Releases に draft** ができる → 内容を確認して人間が Publish する（自動公開はしない）
 5. 署名の確認（任意・初回推奨）:
    - Mac: `codesign -dv --verbose=2 MaplatEditor.app` / 公証まで見るなら `spctl -a -vv MaplatEditor.app`（`accepted` / `Notarized Developer ID`）
@@ -486,3 +486,22 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
   課金を伴う eSigner の実走は求めていない。退路を使う日は、最初の 1 ファイルの署名のログで CodeSignTool が資格情報を受け取れたことを見る
 - 署名専用ジョブの拒否語（`signing-job-rules.mjs`）は完全にはできない（文字列の連結・別名で組み立てた呼び出し等）。shell を pwsh に絞り、
   `&` の対象と GITHUB_ENV へ書ける名前を許可リストにしたうえでの残り。step の列の SHA-256 固定は m12 で検討する
+
+## Part J: 自動更新（electron-updater）の基盤（nov26-m7-t5・#141）
+
+- アプリは `electron-updater` を持つ（`electron/services/UpdateService.ts`）。確認の起動・知らせる UI・設定の項目は nov26-m7-t6
+- 更新元は GitHub の `code4history/MaplatEditor` の Releases だけ（`electron-builder.config.cjs` の `publish`。ビルドは
+  `--publish never` のままで、この設定は electron-builder が `resources/app-update.yml` を書くために要る）。
+  `allowPrerelease: false` なので「最新のリリース」（prerelease を含まない）だけを見る ＝ RC・`win-signed-cache` を拾わない。
+  `allowDowngrade: false` なので古い版へは戻さない。製品では更新元を環境変数・設定・引数で替えられない
+- mac: Squirrel.Mac は zip を要るので、`mac.target` に zip（x64・arm64）を足した。`latest-mac.yml` は両 arch の zip を指す
+- Windows: `latest.yml` に x64 と arm64 の Setup.exe が名前に arch を含んで載り、electron-updater が `process.arch` で選ぶ
+- Windows の署名者の照合: `app-update.yml` の `publisherName` は `scripts/win-sign/signer-identity.json` の
+  `artifact-signing.publisherSubject`（`Get-AuthenticodeSignature` の Subject の文字列そのもの）。electron-updater はキー名を
+  正規化せずに全キーの値を比べるので、**文字列を加工しない**（`S` を `ST` にしただけで Windows の全更新が拒まれる）。
+  `verify-win-install` が、入った `app-update.yml` の `publisherName` と、インストールに使った Setup.exe の生の Subject
+  （electron-updater と同じ `powershell.exe` のコマンドで取る）を文字列で比べ、job summary に並べて出す
+- **署名者の名義を変えるとき**: 配布済みのアプリの `publisherName` は古いまま ∴ 新しい名義で署名した版への更新は旧版で拒まれる。
+  名義を変える前に、旧名義と新名義の両方を `publisherName` の配列に入れた版を 1 つ出す
+- **eSigner で出すことになった場合**（マイルストーン設計 §8.4・SAC に止められたとき）: orchestrator の指示で
+  `electron-builder.config.cjs` の `publisherName` を `signerIdentity.esigner.publisherSubject` へ替える 1 行の変更を足す
