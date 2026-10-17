@@ -166,7 +166,7 @@ async function loadLock(root) {
   // js-yaml は devDependency。CI の prepare は依存導入前なので、ここを遅延 import にして、
   // --self-test や prepare（node_modules 無し）の経路が js-yaml を要求しないようにする
   // （Major-1 の是正）。
-  const { default: yaml } = await import('js-yaml');
+  const yaml = await import('js-yaml');
   return yaml.load(readFileSync(path.join(root, 'pnpm-lock.yaml'), 'utf8'));
 }
 
