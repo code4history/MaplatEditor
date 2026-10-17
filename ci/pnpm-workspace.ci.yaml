@@ -31,7 +31,7 @@ allowBuilds:
 
 overrides:
   # eslint / vitest まわりが引く js-yaml。>=4.0.0 <4.3.1 の high。4系の最新へ留める。
-  js-yaml: "^4.3.1"
+  "js-yaml@<5": "^4.3.1"
 
 # ---- 恒久 override（m1-t3）----
 # 第三者依存の脆弱性。上流の更新を待つしかないため恒久。
