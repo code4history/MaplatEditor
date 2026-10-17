@@ -326,7 +326,9 @@ try {
     'MapEdit.vue に modalFinish(t(... という二重翻訳 call site が残存している (AC-T1-4)'
   );
   // 新IPC channel への切替と、renderer からの previewSource+download 2段呼び出しの消滅を確認
-  assert.match(mapEditSource, /window\.mapedit\.downloadSaved\(mapUid\.value\)/);
+  // nov26-m6-t8 (#113): downloadSaved は第 2 引数に書き出す中身（options）を取るようになった。
+  // 検査の意図（新 IPC を mapUid.value で呼ぶ）は変えず、後続の引数を許す
+  assert.match(mapEditSource, /window\.mapedit\.downloadSaved\(mapUid\.value[,)]/);
   assert.doesNotMatch(mapEditSource, /window\.mapedit\.previewSource\(mapUid\.value\)/);
   console.log('ok: AC-T1-4 MapEdit.vue has zero modalShow(t(/modalFinish(t( double-translation call sites');
 

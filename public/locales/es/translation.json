@@ -439,7 +439,13 @@
     "basemap_align_reset": "Restablecer",
     "basemap_align_cancel": "Cancelar",
     "context_select_reference_point": "Seleccionar punto de referencia",
-    "context_select_ground_truth": "Seleccionar ground truth"
+    "context_select_ground_truth": "Seleccionar ground truth",
+    "export_options_title": "Contenido a exportar",
+    "export_option_tiles": "Teselas (incluidas las miniaturas)",
+    "export_option_json": "Configuración del mapa (JSON y POI)",
+    "export_option_originals": "Imagen original",
+    "export_option_originals_note": "Incluye el archivo de imagen original tal cual. El archivo será más grande y puede contener metadatos de la foto.",
+    "export_option_none_selected": "Seleccione al menos un elemento"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -458,7 +464,8 @@
     "error_upload": "Se ha producido un error al registrar los datos del mapa.",
     "success_upload": "Los datos del mapa se han registrado correctamente.",
     "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
-    "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar."
+    "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar.",
+    "error_no_json": "No se puede importar porque no se incluye la configuración del mapa (JSON)"
   },
   "database": {
     "migrating": "Migrando al nuevo formato de base de datos.",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
     "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
-    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró."
+    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró.",
+    "export_exclude_tiles": "No incluir teselas"
   },
   "mapmodel": {
     "untitled": "Título no establecido",

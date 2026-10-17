@@ -448,6 +448,8 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
       await openHash(page, `#/mapedit?uid=${mapUid}`);
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30000 });
       await page.locator('[data-editor-action="export"]').click();
+      // nov26-m6-t8: 書き出す中身の選択の画面（既定のまま）で書き出す
+      await page.getByTestId('map-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 180000 });
       await dismissStartupModals(page);
 

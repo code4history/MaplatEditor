@@ -1,0 +1,12 @@
+{
+  "note": "nov26-m6-t8 (b): 変更前の master で --write-baseline により生成した、既定の地図の書き出し物のエントリと SHA-256。手で書き換えない",
+  "entries": {
+    "imgs/icons/builtin/defaultpin.png": "a6435b80bcc4f27bb95be2ab66fbf2bc4e2316433690362e111d43cc278de673",
+    "maps/m6t8map.json": "10a52bd78f609d07bc3b846743217ea36052170ffe958e1c3b9353b65dae416e",
+    "pois/poi.geojson": "4a6fea502d554a3324dded9efe6a02fc57424c34aec329f8742ae625fee99907",
+    "tiles/m6t8map/0/0/0.jpg": "02f774df618f74eff5f0b19232c92fe2714a33f1249f98cd0a36855341a9b806",
+    "tiles/m6t8map/1/0/1.jpg": "e12cd35eb3bc4c88762ba000886ab7cfbfd09084762e2b40839888a7dc7b307c",
+    "tmbs/m6t8map_512.webp": "61468a58e6b8a136773147539ee2a09bb7653116aaeebf3c11b085d0a00dbfe9",
+    "tmbs/m6t8map.jpg": "03ddea2e254455b154c98b64938b1f76e98e0a96ea2ec9f092257807866d6458"
+  }
+}

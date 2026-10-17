@@ -49,8 +49,9 @@ contextBridge.exposeInMainWorld('mapedit', {
   download: (mapObject: any, tins: any[]) =>
     ipcRenderer.invoke('mapedit:download', mapObject, tins),
   // M13-T1 (§2.1/§2.2): 保存済み地図専用のstrict-free搬出。mapRefはuid優先、slugも受理
-  downloadSaved: (mapRef: string) =>
-    ipcRenderer.invoke('mapedit:download-saved', mapRef),
+  // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
+  downloadSaved: (mapRef: string, options?: { tiles?: boolean; json?: boolean; originals?: boolean }) =>
+    ipcRenderer.invoke('mapedit:download-saved', mapRef, options),
   // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
     ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
@@ -134,8 +135,9 @@ contextBridge.exposeInMainWorld('appedit', {
   preparePreview: (document: any) => ipcRenderer.invoke('appedit:prepare-preview', document),
   stopPreview: () => ipcRenderer.invoke('appedit:stop-preview'),
   // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
-  export: (document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }) =>
-    ipcRenderer.invoke('appedit:export', document, overrideKeys),
+  // nov26-m6-t8（#113）: 第 3 引数 options.includeTiles（省略時は含める）
+  export: (document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: { includeTiles?: boolean }) =>
+    ipcRenderer.invoke('appedit:export', document, overrideKeys, options),
 })
 
 contextBridge.exposeInMainWorld('dialog', {

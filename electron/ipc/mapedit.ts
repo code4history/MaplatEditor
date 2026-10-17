@@ -16,6 +16,7 @@ import SettingsService from '../services/SettingsService';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import MapPurposeService from '../services/MapPurposeService';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
+import type { MapExportOptions } from '../../src/utils/exportOptions';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
@@ -219,10 +220,11 @@ export const registerMapEditHandlers = () => {
 
     // M13-T1 (§2.1): 保存済み地図専用のstrict-free搬出。strict_error/missing map判定を行わず、
     // 例外は全てcatchして'Error'へ写像する薄いラッパー(実処理はMapPurposeService側)
-    ipcMain.handle('mapedit:download-saved', async (event, mapRef: string) => {
+    // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
+    ipcMain.handle('mapedit:download-saved', async (event, mapRef: string, options?: Partial<MapExportOptions>) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
         return await runGuarded('mapedit:download-saved',
-            () => MapPurposeService.downloadSavedMap(win, mapRef));
+            () => MapPurposeService.downloadSavedMap(win, mapRef, options));
     });
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）

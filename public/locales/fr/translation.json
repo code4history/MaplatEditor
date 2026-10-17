@@ -439,7 +439,13 @@
     "basemap_align_reset": "Réinitialiser",
     "basemap_align_cancel": "Annuler",
     "context_select_reference_point": "Choisir le point de référence",
-    "context_select_ground_truth": "Choisir le ground truth"
+    "context_select_ground_truth": "Choisir le ground truth",
+    "export_options_title": "Contenu à exporter",
+    "export_option_tiles": "Tuiles (miniatures comprises)",
+    "export_option_json": "Paramètres de la carte (JSON et POI)",
+    "export_option_originals": "Image originale",
+    "export_option_originals_note": "Inclut le fichier image original tel quel. Le fichier devient plus volumineux et peut contenir des métadonnées de la photo.",
+    "export_option_none_selected": "Sélectionnez au moins un élément"
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -458,7 +464,8 @@
     "error_upload": "Une erreur s'est produite lors de l'enregistrement des données de carte.",
     "success_upload": "Les données de carte ont été enregistrées avec succès.",
     "error_too_large": "Le ZIP des données de carte est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés).",
-    "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé."
+    "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé.",
+    "error_no_json": "Importation impossible car les paramètres de la carte (JSON) ne sont pas inclus"
   },
   "database": {
     "migrating": "Migration vers le nouveau format de base de données en cours.",
@@ -690,7 +697,8 @@
     "warn_mixed_pois": "Les données POI mélangent le format GeoJSON et d'autres formats. Elles risquent de ne pas s'afficher correctement dans la visionneuse. Convertissez les POI à l'ancien format en GeoJSON.",
     "provider_source_note": "L'URL de la tuile est construite automatiquement à partir de la clé API et du type, aucune saisie manuelle n'est nécessaire.",
     "error_missing_base_map_master": "Le fond de carte de cette source est introuvable. Il sera exclu de l’export et de l’aperçu.",
-    "warn_missing_base_map_master": "Les sources dont le fond de carte est introuvable ont été exclues."
+    "warn_missing_base_map_master": "Les sources dont le fond de carte est introuvable ont été exclues.",
+    "export_exclude_tiles": "Ne pas inclure les tuiles"
   },
   "mapmodel": {
     "untitled": "Titre non défini",

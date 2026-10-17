@@ -1091,13 +1091,19 @@ async function resolveExportOverrideKeys(
   });
 }
 
+// nov26-m6-t8（#113・HR-19）: 「タイルを含めない」。既定は含める（外れている）。
+// 書き出しが終わったら（成功・失敗・取消のどれでも）外す（選択を覚えない）
+const appExportExcludeTiles = ref(false);
+
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
   try {
     const document = cloneDocument(await window.appedit.request(appUid.value));
     const overrideKeys = await resolveExportOverrideKeys(document);
     if (overrideKeys === null) return false; // ユーザーがオンザフライ入力をキャンセル
-    const result = await window.appedit.export(document, overrideKeys ?? undefined);
+    const result = await window.appedit.export(document, overrideKeys ?? undefined, {
+      includeTiles: !appExportExcludeTiles.value,
+    });
     if (result.result === "Canceled") return false;
     if (result.result === "Error") {
       await (window as any).dialog.showMessageBox({
@@ -1140,6 +1146,7 @@ async function exportApp() {
     });
   } finally {
     exporting.value = false;
+    appExportExcludeTiles.value = false;
   }
 }
 
@@ -1370,6 +1377,17 @@ function onPoisChange(next: unknown[]) {
       @discard-draft="discardRestoredDraft"
     >
       <template #actions="{ disabled }">
+        <div class="form-check form-check-inline mb-0 me-1 small">
+          <input
+            id="appExportExcludeTiles"
+            v-model="appExportExcludeTiles"
+            type="checkbox"
+            class="form-check-input"
+            data-testid="app-export-exclude-tiles"
+            :disabled="disabled || exporting"
+          />
+          <label class="form-check-label" for="appExportExcludeTiles">{{ t("appedit.export_exclude_tiles") }}</label>
+        </div>
         <button
           type="button"
           class="btn btn-sm btn-outline-primary"

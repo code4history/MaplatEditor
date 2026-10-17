@@ -151,6 +151,8 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30_000 });
       await page.locator('[data-editor-action="export"]').click();
+      // nov26-m6-t8: 書き出す中身の選択の画面（既定のまま）で書き出す
+      await page.getByTestId('map-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120_000 });
 
       // 別 slug の ZIP を作り、取込ダイアログがそれを返すようにする
