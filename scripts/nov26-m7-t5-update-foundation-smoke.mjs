@@ -277,6 +277,9 @@ function mainExternal(src) {
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 'generic', url: 'http://127.0.0.1.evil.example:41234/' }) }, github],
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 'generic', url: 'http://127.0.0.1:41234' }) }, github],
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 'generic', url: 'http://127.0.0.1@evil.example:41234/' }) }, github],
+    // 先頭の固定（LOOPBACK_HOST・LOOPBACK_URL の ^）を外す退行を検出する（B40 MIN-1）
+    [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 'github', host: 'evil.example127.0.0.1:41234', protocol: 'http' }) }, github],
+    [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 'generic', url: 'http://evil.example/?http://127.0.0.1:41234/' }) }, github],
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify({ provider: 's3', bucket: 'x' }) }, github],
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: JSON.stringify(['http://127.0.0.1:41234/']) }, github],
     [false, { MAPLAT_E2E_ROOT: root, MAPLAT_E2E_UPDATE_FEED: 'http://127.0.0.1:41234/' }, github],
