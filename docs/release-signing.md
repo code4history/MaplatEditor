@@ -129,6 +129,20 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
   未署名のアプリ本体と DLL を止めたため（2026-10-03）、全 PE へ広げた
 - もし CI の署名ステップが「hash needs to be scanned first」で失敗したら、eSigner の Malware Blocker が有効になっている。build.yml の eSigner ステップに `malware_block: 'true'` を追加するか、SSL.com 側で Malware Blocker を無効化する
 
+### B-5. TOTP の作り直し（nov26-m7-t3）
+
+`ES_TOTP_SECRET` が漏れた疑いがあるとき・控えを失ったときに行う（外部アカウントの操作なので、必要になったときに人間が行う）。
+SSL.com の公式の手順: [View and Reset eSigner QR Code or Reset PIN](https://www.ssl.com/how-to/view-reset-esigner-qr-code-reset-pin/)（2026-10-17 に確認）。
+
+1. SSL.com のアカウントにログインし、eSigner の証明書の注文（Orders）を開く
+2. 注文の `download` のリンクから証明書の画面を開き、QR コードのリセットの欄に PIN を入れて送る
+   → **新しい QR コードと `secret code:` が出る。古い TOTP シークレットはこの時点で無効になる**
+3. B-3 の手順で新しい `secret code:` の値を控え、B-3 の Python の 6 桁が認証アプリと一致することを確かめる
+4. GitHub の environment `release` の `ES_TOTP_SECRET` を新しい値に差し替える（Part C）
+5. 古い値を控えた場所（パスワード管理ツール等）から消す
+
+**注意**: 2 で古い値は無効になる。eSigner の経路（`win_signer=esigner`）を使う予定の実行がある日に行うときは、4 まで続けて行う。
+
 ---
 
 ## Part C: GitHub に environment `release` を作って secrets を登録する
@@ -416,3 +430,44 @@ Artifact Signing の法人の身元確認には期限があり、切れると証
 （C-8 の例外。残るリスクをここに書く）へ進む。なお pack-win-2 が「差し替えられなかったアンインストーラー」を赤にするので、
 不成立のまま署名済みでない成果物が出ることは無い。
 
+### 署名履歴の確かめ方（nov26-m7-t3）
+
+**(i) GitHub の側**: Artifact Signing の経路の各 run で、署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・
+`sign-win-installer`）の **job summary に署名の記録の表**（`in`＝署名前の SHA-256・`out`＝署名後の SHA-256・`status`）が出る。
+受け渡しの artifact（`signing-record.json` を含む）は 1 日で消えるが、job summary と run のログはリポジトリの保持期間の間残る。
+配布物の PE の SHA-256 を `out` の列と照らせば、その PE をどの run が署名したかが分かる。
+
+```zsh
+gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] | select(.name | startswith("sign-win-")) | {name, conclusion, url}'
+# 各ジョブの URL の Summary に表がある（gh は job summary を取り出せないのでブラウザで見る）
+```
+
+**(ii) Azure の側**: アカウント `nayutasigning` の**診断設定**（Diagnostic settings）で、ログの分類 **Sign Transactions** を
+送り先（ストレージ アカウント・Event Hubs・パートナーのソリューション）へ送ると、署名の 1 回ごとの記録が残る。
+手順: Microsoft Learn「[Access signed transactions in Artifact Signing](https://learn.microsoft.com/en-us/azure/artifact-signing/how-to-sign-history)」
+（2026-10-17 に確認。ストレージ アカウントの例では、設定から 10〜15 分後にコンテナー `insights-logs-signtransactions` に入る）。
+ストレージは Artifact Signing と別に課金される。**設定するかは人間の判断**（外部アカウントの操作。本書では手順だけを示し、設定は求めない）。
+
+### 残るリスク（nov26-m7-t3・m12 のセキュリティレビューの入力）
+
+- **(a) eSigner の退路の資格情報は、フックの読み込みより前に動くコードからは読める。** `ES_*` は従来どおり eSigner の本番 step の
+  `env:` で渡し、`scripts/win-sign/win-sign.cjs` が**読み込み時に** `process.env` から外して閉じた変数へ移す。外した後に読み込まれる
+  コードと、CodeSignTool 以外の子プロセス（Authenticode を確かめる pwsh 等）には渡らない。しかし electron-builder の
+  プロセスの中で `electron-builder.config.cjs` がフックを読み込むより前に動く依存のコード（electron-builder 本体とその依存）は値を読める
+- **(b) CodeSignTool には資格情報をコマンドライン引数で渡している。** CodeSignTool v1.3.0 は資格情報を環境変数で受け取れない
+  （SSL.com の [CodeSignTool Command Guide](https://www.ssl.com/guide/esigner-codesigntool-command-guide/) の `sign` の引数は
+  `-username`・`-password`・`-credential_id`・`-totp_secret` だけで、環境変数の記載が無い。SSL.com 自身の
+  [esigner-codesign](https://github.com/SSLcom/esigner-codesign) action も `src/util.ts` の `setCommand` で引数として渡している。
+  2026-10-17 に確認）。Windows では同じ利用者の他のプロセスが CodeSignTool のコマンドラインを読める。
+  なお CodeSignTool の失敗の文言（`Missing required option`・`Unmatched argument`）は picocli のもので、picocli の `@ファイル`
+  （引数をファイルから読む）が効く見込みがあるが、実走で確かめていないので採っていない
+- **(c) U-1 の縮退（段 3〜5 を 1 つのジョブ `pack-sign-win` にまとめる）を選んだ場合**、そのジョブは electron-builder の依存を入れたまま
+  `id-token: write` を持つ ＝ 依存が乗っ取られると署名トークンを取られうる。2026-10-17 の時点では縮退していない（`build.yml` に
+  `pack-sign-win` は無い）
+- **(d) eSigner の退路は 11 月の H-B3 では走らない**（H-B3 は Artifact Signing の経路）。nov26-m7-t2 の組み替えと nov26-m7-t3 の
+  資格情報の閉じ込めの後の eSigner の経路は、**退路を実際に使うまで live では未走**である。確かめているのは smoke だけ
+  （`scripts/nov26-m7-t3-credential-exposure-smoke.mjs`: 偽の CodeSignTool で起動の形・子の env・ログの伏せ字を、
+  `scripts/ci/eval-gh-if.mjs` で eSigner の step の `if:` が `win_sign_path=esigner` のときだけ真になることを確かめる）。
+  課金を伴う eSigner の実走は求めていない。退路を使う日は、最初の 1 ファイルの署名のログで CodeSignTool が資格情報を受け取れたことを見る
+- 署名専用ジョブの拒否語（`signing-job-rules.mjs`）は完全にはできない（文字列の連結・別名で組み立てた呼び出し等）。shell を pwsh に絞り、
+  `&` の対象と GITHUB_ENV へ書ける名前を許可リストにしたうえでの残り。step の列の SHA-256 固定は m12 で検討する
