@@ -20,7 +20,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   checkSigningJob, checkPnpmPin, hasSecretRef, ENDPOINT, TSA, PNPM_PIN,
 } from './win-sign/signing-job-rules.mjs';

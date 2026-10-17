@@ -18,7 +18,7 @@ import { gunzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const GUARD = path.join(projectRoot, 'scripts/m6-t12/check-release-guard.mjs');
