@@ -265,6 +265,15 @@ test.describe('nov26-m7-t6 更新のお知らせ', () => {
       await sw.uncheck();
       await page.locator('#basic button.btn-primary').click();
       await expect.poll(() => page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(false);
+      // 設計 §3.7「jpeg の 2 キーと同じ扱い」: 保存後は dirty が閉じ、Reset は保存値へ戻す
+      // （original を更新し忘れると、保存ボタンと Reset が有効なまま残る）
+      await expect(page.locator('#basic button.btn-primary')).toBeDisabled();
+      await sw.check();
+      await expect(page.locator('#basic button.btn-primary')).toBeEnabled();
+      await page.locator('#basic button.btn-light').click();
+      await expect(sw).not.toBeChecked();
+      await expect(page.locator('#basic button.btn-primary')).toBeDisabled();
+      expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(false);
     } finally {
       await quitElectronApplication(app);
       await feed.close();

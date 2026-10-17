@@ -467,6 +467,11 @@ const saveSettings = async () => {
       state[key] = capToField(saved);
       original[key] = state[key];
     }
+    // nov26-m7-t6: jpeg の 2 キーと同じく、正規化後の値を読み直して state と original の両方へ入れる
+    // （明示の false だけが「切る」なので、保存値と画面を揃え、保存後に dirty を閉じる）
+    const savedUpdateCheck = await window.settings.get("updateCheckEnabled");
+    state.updateCheckEnabled = savedUpdateCheck !== false;
+    original.updateCheckEnabled = state.updateCheckEnabled;
     // m6-t6: ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
     for (const key of BASEMAP_KEY_FIELDS) {
       original[key] = state[key];
