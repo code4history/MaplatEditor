@@ -2,7 +2,7 @@
  * nov26-m7-t3: 署名の資格情報の露出を狭める（eSigner の退路・署名専用ジョブの最小化）の受け入れ検査。
  *
  *   [1] t3/AC1: win-sign.cjs が読み込み時に ES_* を process.env から外す・CodeSignTool の起動の形
- *       （偽の java で引数と env を記録する）・pwsh の子の env・ログの伏せ字・AZURE_CLIENT_SECRET を使わない
+ *       （偽の java で引数と env を記録する）・pwsh の子の env・ログの伏せ字・Azure のクライアントシークレットを使わない
  *   [2] t3/AC2: secrets.ES_* を参照するのは eSigner の本番 step だけ・secrets.AZURE_* は署名専用ジョブ（と probe）の
  *       azure/login だけ・署名専用ジョブの permissions は { id-token: write } だけ（signing-job-rules.mjs の規則 1・5）
  *   [3] scripts/ci/eval-gh-if.mjs の自己検査
@@ -136,6 +136,25 @@ const work = mkdtempSync(path.join(tmpdir(), 'nov26-m7-t3-'));
     assert.ok(logs.includes('CodeSignTool (fake)'), '[1](e) 偽の java の出力がログに無い（伏せ字の検査が空振りする）');
     for (const v of Object.values(creds)) assert.ok(!logs.includes(v), `[1](e) ログに資格情報の値が出ている: ${v.slice(0, 4)}…`);
     assert.ok(logs.includes('***'), '[1](e) 伏せ字 *** がログに無い');
+
+    // (e2) 値が重なるとき（username が password の部分文字列）も残りを出さない（B41 MIN-1: 長い値から伏せる）
+    // username を生成し、password はその username を接頭辞にして残り（tail）を足す
+    const overlap = fakeCredentials('ovl-');
+    const tail = `-TAIL!#${rnd(3)}`;
+    overlap.ES_PASSWORD = `${overlap.ES_USERNAME}${tail}`;
+    const child2 = `
+      const ws = require(${JSON.stringify(WIN_SIGN)});
+      ws.runCodeSignTool(${JSON.stringify(target)}).catch((e) => { console.error(e); process.exit(3); });
+    `;
+    const r2 = spawnSync(process.execPath, ['-e', child2], {
+      env: { ...process.env, ...overlap, CODE_SIGN_TOOL_PATH: tool, CODESIGNTOOL_JAVA: fakeJava, WIN_SIGN_MODE: 'esigner' },
+      encoding: 'utf8', cwd: projectRoot, timeout: 120_000,
+    });
+    assert.equal(r2.status, 0, `[1](e2) 子プロセスが失敗した: ${r2.stderr}\n${r2.stdout}`);
+    const logs2 = `${r2.stdout}\n${r2.stderr}`;
+    assert.ok(logs2.includes('CodeSignTool (fake)'), '[1](e2) 偽の java の出力がログに無い');
+    assert.ok(!logs2.includes(tail), '[1](e2) 値が重なるとき password の残りがログに出ている（長い値から伏せていない）');
+    for (const v of Object.values(overlap)) assert.ok(!logs2.includes(v), `[1](e2) ログに資格情報の値が出ている: ${v.slice(0, 4)}…`);
   }
 
   // (f) Azure の資格情報はクライアントシークレットを使わない（OIDC だけ）
@@ -331,6 +350,14 @@ function esignerIfViolations(workflow) {
       const i = job.steps.findIndex((st) => /nuget\.org/i.test(runOf(st)));
       job.steps.splice(i + 1, 0, clone(job.steps[i]));
     }],
+    // B41 MAJ-2: PowerShell の正規の書き方で抜けていた 5 通り（と、変数に改行を仕込む派生）
+    ['E1: Set-Item -Path Env:\\SIGNTOOL（プロバイダーのパス）', (job) => prepend(job, signIdx(job), 'Set-Item -Path Env:\\SIGNTOOL -Value sign-in\\x.pe')],
+    ['E1: Set-Item -LiteralPath "Env:/DLIB"', (job) => prepend(job, signIdx(job), 'Set-Item -LiteralPath "Env:/DLIB" -Value sign-in\\x.pe')],
+    ['E1: バッククォートの継続行で $env:SIGNTOOL へ代入する', (job) => prepend(job, signIdx(job), '$env:SIGNTOOL `\n  = "sign-in\\x.pe"')],
+    ['E2: 許可した形の値に `n で改行を入れて SIGNTOOL を書く', (job) => injectStep(job, signIdx(job), '"UNSIGNED_SHA256=x`nSIGNTOOL=C:\\evil.exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8')],
+    ['E2: 許可した形の値に $([char]10) で改行を入れて SIGNTOOL を書く', (job) => injectStep(job, signIdx(job), '"UNSIGNED_SHA256=x$([char]10)SIGNTOOL=C:\\evil.exe" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8')],
+    ['E2: 改行を仕込んだ変数を許可した形の値に入れる', (job) => injectStep(job, signIdx(job), '$sha = "x`nSIGNTOOL=C:\\evil.exe"\n"UNSIGNED_SHA256=$sha" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8')],
+    ['E2: 継続行で GITHUB_ENV の行を割る（SIGNTOOL を書く）', (job) => injectStep(job, signIdx(job), '"SIGNTOOL=C:\\evil.exe" `\n  | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8')],
     ['E3: ドット・ソースで入力を読み込む', (job) => prepend(job, signIdx(job), '. .\\sign-in\\x.ps1')],
     ['E3: 行の途中のドット・ソース', (job) => prepend(job, signIdx(job), '$null; . (Join-Path sign-in x.ps1)')],
     ['E4: New-Object Diagnostics.Process', (job) => prepend(job, signIdx(job), '$p = New-Object Diagnostics.Process')],

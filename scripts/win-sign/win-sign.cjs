@@ -293,9 +293,9 @@ async function lookupCache(file, key, unsignedDigest) {
 // ───────────────────────────────────────────────
 function redact(text) {
   let t = String(text ?? '');
-  for (const v of Object.values(esCredentials)) {
-    if (v) t = t.split(v).join('***');
-  }
+  // 長い値から伏せる（短い値が長い値の部分文字列のとき、先に短い方を伏せると長い方の残りが出る。B41 MIN-1）
+  const values = Object.values(esCredentials).filter((v) => v).sort((a, b) => b.length - a.length);
+  for (const v of values) t = t.split(v).join('***');
   return t;
 }
 

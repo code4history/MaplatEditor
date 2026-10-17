@@ -22,7 +22,9 @@
  *     SIGNTOOL・DLIB への代入（$env:X = ・Set-Item env:X・SetEnvironmentVariable）と step の env: での上書きを拒む。
  *     GITHUB_ENV へ書いてよいのは NuGet の step（ちょうど 1 つ）の SIGNTOOL・DLIB と、許可した名前（UNSIGNED_SHA256）だけで、
  *     行の頭がリテラルの "名前= でなければ拒む。GITHUB_PATH は誰にも書かせない。ドット・ソース（. <パス>）と
- *     Diagnostics.Process（New-Object・::new・::Start）を拒む
+ *     Diagnostics.Process（New-Object・::new・::Start）を拒む。
+ *     判定の前にバッククォートの継続行を畳む。Env:\X・Env:/X（プロバイダーのパス）も代入とみなす。GITHUB_ENV へ書く値は
+ *     "$($変数[0].FullName)"（NuGet）か "$変数"（それ以外）だけで、その step は改行を作る書き方を持たない（B41 MAJ-2）
  *
  * checkSigningJob(jobName, job, opts?) → string[]（違反の一覧。空なら合格）
  *   opts.requireSummary（既定: jobName !== 'probe-sign'）… 規則 11 を課すか
@@ -42,6 +44,12 @@ export const ALLOWED_SECRETS = ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUB
 export const PROTECTED_ENV = ['SIGNTOOL', 'DLIB'];
 /** NuGet の step 以外が GITHUB_ENV へ書いてよい名前（probe の入力の SHA-256） */
 export const GITHUB_ENV_ALLOWED = ['UNSIGNED_SHA256'];
+/** NuGet の step が GITHUB_ENV へ書く値の形（"SIGNTOOL=$($signtool[0].FullName)"）。B41 MAJ-2 */
+const GITHUB_ENV_NUGET_VALUE_RE = /^\$\(\$[A-Za-z_][A-Za-z0-9_]*\[0\]\.FullName\)$/;
+/** NuGet 以外の step が GITHUB_ENV へ書く値の形（"UNSIGNED_SHA256=$sha"）。B41 MAJ-2 */
+const GITHUB_ENV_ALLOWED_VALUE_RE = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
+/** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。B41 MAJ-2 */
+const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 
 /** 署名専用ジョブが受け取る入力のディレクトリ（t1 は probe-in・t2 は sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
@@ -229,28 +237,42 @@ export function checkSigningJob(jobName, job, opts = {}) {
       summarySteps++;
     }
 
+    // 規則 12〜14 は、PowerShell のバッククォートの継続行（行末の ` ＋改行）を空白へ畳んでから判定する（B41 MAJ-2）
+    const folded = run.replace(/`[ \t]*\r?\n/g, ' ');
+
     // 12. SIGNTOOL・DLIB を付け替えない（E1）
     for (const k of Object.keys(st.env ?? {})) {
       if (PROTECTED_ENV.includes(k.toUpperCase())) v.push(`${label}: step の env: で ${k} を上書きしている`);
     }
     for (const [re, what] of [
       [/\$\{?env:(SIGNTOOL|DLIB)\}?\s*(\+|-|\?\?)?=(?!=)/i, '$env:SIGNTOOL・DLIB への代入'],
-      [/(^|[^$\w{])env:(SIGNTOOL|DLIB)\b/im, 'env: ドライブの SIGNTOOL・DLIB（Set-Item 等）'],
+      // Env:\SIGNTOOL・Env:/DLIB（プロバイダーの正規のパス）も同じ（B41 MAJ-2）
+      [/(^|[^$\w{])env:[\\/]?(SIGNTOOL|DLIB)\b/im, 'env: ドライブの SIGNTOOL・DLIB（Set-Item 等）'],
       [/SetEnvironmentVariable/i, 'SetEnvironmentVariable'],
       [/Set-Variable|(^|[\s;|(])(sv|set)\s/im, 'Set-Variable'],
     ]) {
-      if (re.test(run)) v.push(`${label}: ${what} がある`);
+      if (re.test(folded)) v.push(`${label}: ${what} がある`);
     }
 
     // 13. GITHUB_ENV・GITHUB_PATH（E2）: NuGet の step の SIGNTOOL・DLIB と、許可した名前だけ・行の頭はリテラルの "名前=
+    //     値の文字種も絞る（B41 MAJ-2: 許可した形の値に `n・$([char]10) 等で改行を入れて別の名前の行を足させない）:
+    //     NuGet の step は "$($変数[0].FullName)"、それ以外は "$変数" だけ。さらに GITHUB_ENV へ書く step は、
+    //     改行を作る書き方（`n・`r・[char]・NewLine・here-string）を持たない（変数に改行を仕込ませない）
     const isNuget = /nuget\.org/i.test(run);
-    for (const line of run.split('\n')) {
+    let writesGithubEnv = false;
+    for (const line of folded.split('\n')) {
       if (/GITHUB_PATH/i.test(line)) v.push(`${label}: GITHUB_PATH に触れている`);
       if (!/GITHUB_ENV/i.test(line)) continue;
-      const m = line.match(/^\s*"([A-Za-z0-9_]+)=[^"\n]*"\s*\|\s*Out-File -FilePath \$env:GITHUB_ENV -Append -Encoding utf8\s*$/);
+      writesGithubEnv = true;
+      const m = line.match(/^\s*"([A-Za-z0-9_]+)=([^"`\n]*)"\s*\|\s*Out-File -FilePath \$env:GITHUB_ENV -Append -Encoding utf8\s*$/);
       const allowed = isNuget ? PROTECTED_ENV : GITHUB_ENV_ALLOWED;
+      const valueRe = isNuget ? GITHUB_ENV_NUGET_VALUE_RE : GITHUB_ENV_ALLOWED_VALUE_RE;
       if (!m) v.push(`${label}: GITHUB_ENV へ決まった形（"名前=…" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8）以外で触れている`);
       else if (!allowed.includes(m[1].toUpperCase())) v.push(`${label}: GITHUB_ENV へ ${m[1]} を書いている（許されるのは ${allowed.join('・')}）`);
+      else if (!valueRe.test(m[2])) v.push(`${label}: GITHUB_ENV へ書く ${m[1]} の値が決まった形でない: ${m[2]}`);
+    }
+    if (writesGithubEnv && NEWLINE_MAKER_RE.test(run)) {
+      v.push(`${label}: GITHUB_ENV へ書く step に改行を作る書き方（\`n・\`r・[char]・NewLine・here-string）がある`);
     }
 
     // 14. ドット・ソース（E3）と Diagnostics.Process（E4）

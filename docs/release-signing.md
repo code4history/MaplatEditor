@@ -453,7 +453,11 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
 - **(a) eSigner の退路の資格情報は、フックの読み込みより前に動くコードからは読める。** `ES_*` は従来どおり eSigner の本番 step の
   `env:` で渡し、`scripts/win-sign/win-sign.cjs` が**読み込み時に** `process.env` から外して閉じた変数へ移す。外した後に読み込まれる
   コードと、CodeSignTool 以外の子プロセス（Authenticode を確かめる pwsh 等）には渡らない。しかし electron-builder の
-  プロセスの中で `electron-builder.config.cjs` がフックを読み込むより前に動く依存のコード（electron-builder 本体とその依存）は値を読める
+  プロセスの中で `electron-builder.config.cjs` がフックを読み込むより前に動く依存のコード（electron-builder 本体とその依存）は値を読める。
+  また、同じ job の**前の step**（依存を実行する予行の electron-builder 等）が `$GITHUB_ENV` へ `NODE_OPTIONS=--require …`・
+  `CODESIGNTOOL_JAVA`・`CODE_SIGN_TOOL_PATH` を書けば、eSigner の step でフックより前にコードを動かす、または資格情報の引数を
+  別の実行ファイルへ渡すことができる。`pnpm exec` の親プロセス（pnpm 自身）は step の間ずっと `ES_*` を env に持つ
+  （外すのは electron-builder のプロセスの中だけ）。対策は退路を使う日に検討する（eSigner の経路は live 未走。(d)）
 - **(b) CodeSignTool には資格情報をコマンドライン引数で渡している。** CodeSignTool v1.3.0 は資格情報を環境変数で受け取れない
   （SSL.com の [CodeSignTool Command Guide](https://www.ssl.com/guide/esigner-codesigntool-command-guide/) の `sign` の引数は
   `-username`・`-password`・`-credential_id`・`-totp_secret` だけで、環境変数の記載が無い。SSL.com 自身の
