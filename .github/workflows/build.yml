@@ -557,7 +557,9 @@ jobs:
   publish-win-sign-cache:
     needs: [prepare, build-win]
     # build-win が失敗しても、署名できた分は保管する（取り込み側が中身と署名を検証するので安全）
-    if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != ''
+    # キャッシュを書くのは eSigner の退路だけ（C-4: Artifact Signing の経路はキャッシュを読まない・書かない）。
+    # always() を持つので prepare の成功も要る（nov26-m7-t4）
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != '' && needs.prepare.result == 'success' && needs.prepare.outputs.win_sign_path == 'esigner'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -573,6 +575,32 @@ jobs:
           name: win-sign-cache-outbox
           path: outbox
 
+      # 上げる前の検査（nov26-m7-t4・#140 L-2）。公式の Release から配られうるファイルを、名前（win-sign.cjs の
+      # assetName の形）・種類（通常のファイル）・大きさ・件数・中身の形（PE の MZ）で絞る。1 つでも外れたら
+      # この step が落ち、次の upload は走らない（何も上げない）。リポジトリのコードは実行しない（shell と coreutils だけ）。
+      # 検査の振る舞いは scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs がこの run: を抜き出して実行して確かめる
+      - name: Check cache candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          export LC_ALL=C   # 正規表現の範囲（[0-9a-f]）を文字コードの順で解釈させる
+          MAX_FILES=64; MAX_BYTES=67108864   # 1 実行あたりの件数の上限・1 ファイル 64 MiB
+          files=(outbox/*)
+          [ "${#files[@]}" -ge 1 ] || { echo "::error::候補が 0 件"; exit 1; }
+          [ "${#files[@]}" -le "$MAX_FILES" ] || { echo "::error::候補が ${#files[@]} 件（上限 $MAX_FILES）"; exit 1; }
+          re='^[0-9a-f]{64}--[A-Za-z0-9._-]{1,200}\.signed$'
+          for f in "${files[@]}"; do
+            name=$(basename -- "$f")
+            [ -f "$f" ] && [ ! -L "$f" ] || { echo "::error::通常のファイルでない: $name"; exit 1; }
+            [[ "$name" =~ $re ]] || { echo "::error::名前が規則に合わない: $name"; exit 1; }
+            case "$name" in *..*) echo "::error::名前に .. を含む: $name"; exit 1;; esac
+            size=$(stat -c %s -- "$f")
+            [ "$size" -ge 64 ] && [ "$size" -le "$MAX_BYTES" ] || { echo "::error::大きさが範囲外（$size）: $name"; exit 1; }
+            [ "$(head -c 2 -- "$f" | od -An -c | tr -d ' \n')" = "MZ" ] || { echo "::error::PE でない: $name"; exit 1; }
+          done
+          echo "検査を通った候補: ${#files[@]} 件"
+
       - name: Publish to the cache release
         shell: bash
         run: |
@@ -583,7 +611,8 @@ jobs:
               --notes "build.yml（mode=full）が Windows 配布物の署名に使い回す、署名済みの DLL・elevate.exe・.node・NSIS プラグインの保管場所です。アプリの配布物ではありません。asset 名は <署名前ファイルの SHA-256>--<ファイル名>.signed。取り込み時に中身と署名を検証します（scripts/win-sign/win-sign.cjs）。"
           fi
           existing=$(gh release view "$CACHE_TAG" --json assets --jq '.assets[].name')
-          for f in outbox/*.signed; do
+          # 上の検査と同じ集合を上げる（検査を通った後なので全件が .signed）
+          for f in outbox/*; do
             name=$(basename "$f")
             if printf '%s\n' "$existing" | grep -Fxq "$name"; then
               echo "既にある: $name"

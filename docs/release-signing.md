@@ -354,6 +354,17 @@ v1.0.0 は Setup.exe しか署名していなかったため、Windows 11 の**�
   1 つでも外れたら使わずに署名し直す（改ざんされた asset は取り込まれない）
 - 書き込みは `publish-win-sign-cache` ジョブ（`contents: write`・checkout も依存導入もしない）だけが行う。
   build-win は新しく署名したものを artifact で渡すだけ（build ジョブに write を与えない — SR-t12-M-1）
+- **上げる前の検査**（nov26-m7-t4・#140 L-2）: `publish-win-sign-cache` は eSigner の退路（`mode=full`・`win_sign_path=esigner`・
+  prepare が成功）でだけ走り（Artifact Signing の経路はキャッシュを読まない・書かない — C-4）、upload の前の
+  「Check cache candidates」step で候補を絞る。名前が `^[0-9a-f]{64}--[A-Za-z0-9._-]{1,200}\.signed$`（`win-sign.cjs` の
+  `assetName` の形）で `..` を含まない・通常のファイル（symlink・ディレクトリでない）・64 バイト以上 64 MiB 以下・先頭が `MZ`・
+  1〜64 件。1 つでも外れたら step が落ちて**何も上げない**（上げなかった分は次の eSigner の実行で署名し直す＝課金が増えるだけ）。
+  outbox へ置く前の署名者の照合は `win-sign.cjs` の esigner の署名直後の `checkSigner(…, 'esigner')`（C-3）で、
+  外れたら throw して outbox へ届かない。検査の振る舞いは `scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs` が
+  run: を抜き出して実行して確かめる
+- **この経路が 11 月に初めて走るのは eSigner の退路を使ったときで、RC 以降になりうる**（S-6）。受け入れる根拠: 検査は
+  抜き出した shell を smoke で実行して確かめており、壊れても上げる前に落ちる（配布物は変わらず、キャッシュに上がらないだけ）。
+  正当な候補が上限（64 件・64 MiB）を超えて赤になったら、超えた事実を見て上限を上げる
 - 証明書を更新したら古い asset は署名者が変わるだけで検証は通る（期限切れでもタイムスタンプ済みなら Valid）。
   作り直したいときは Release `win-signed-cache` の asset を消せば、次の `mode=full` で署名し直して足される
 
