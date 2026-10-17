@@ -320,7 +320,7 @@
     "@vitejs/plugin-vue": "^6.0.5",
     "app-builder-bin": "4.0.0",
     "dotenv": "^17.4.0",
-    "electrobun": "^1.18.1",
+    "electrobun": "^2.0.2",
     "electron": "^43.7.9",
     "electron-builder": "^26.17.0",
     "js-yaml": "^4.3.1",
