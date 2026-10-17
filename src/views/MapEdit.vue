@@ -38,6 +38,7 @@ import { isEditableElement } from '../utils/nativeTextUndo';
 import { resolveSourceThumbnail } from '../utils/sourceThumbnail';
 // oct26-m4-t2s2: 更新前の版の下書きに残る旧形 url_（file:// / app://local）を、タイル源に渡すときだけ現行形へ
 import { displayTileUrl } from '../utils/appUrl';
+import { DEFAULT_MAP_EXPORT_OPTIONS, hasAnyMapExportContent, type MapExportOptions } from '../utils/exportOptions';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
@@ -4071,6 +4072,9 @@ const importMap = async () => {
                 modalFinish('dataupload.error_no_tile');
             } else if (arg.err === 'NoTmb') {
                 modalFinish('dataupload.error_no_tmb');
+            } else if (arg.err === 'NoJson') {
+                // nov26-m6-t8 (#113): 地図の設定（JSON）を外して書き出した zip
+                modalFinish('dataupload.error_no_json');
             } else if (arg.err === 'TooLarge') {
                 // nov26-m6-t3 (#98): 2 GiB 超。理由の分かる固定文（原文は main のログ）
                 modalFinish('dataupload.error_too_large');
@@ -4168,14 +4172,38 @@ const chooseMapExport = async (hasSaved: boolean) => {
 // M13-T1 (§2.8): previewSource()(strict throw あり)+download() の2段呼び出しから、
 // strict-freeな新IPC mapedit:download-saved(mapRef) の単一呼び出しへ切替える。
 // tins組み立てロジックはserver側(MapPurposeService.downloadSavedMap())へ移管したため削除
+// nov26-m6-t8（#113・HR-19）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
+// （選択を覚えない。HR-19「まずはこの形。改善は使ってから」）
+const mapExportOptionsVisible = ref(false);
+const mapExportOptions = ref<MapExportOptions>({ ...DEFAULT_MAP_EXPORT_OPTIONS });
+const mapExportOptionsSelectable = computed(() => hasAnyMapExportContent(mapExportOptions.value));
+let mapExportOptionsResolve: ((value: MapExportOptions | null) => void) | null = null;
+
+const askMapExportOptions = (): Promise<MapExportOptions | null> => {
+    mapExportOptions.value = { ...DEFAULT_MAP_EXPORT_OPTIONS };
+    mapExportOptionsVisible.value = true;
+    return new Promise((resolve) => {
+        mapExportOptionsResolve = resolve;
+    });
+};
+const closeMapExportOptions = (value: MapExportOptions | null) => {
+    if (value && !hasAnyMapExportContent(value)) return;
+    mapExportOptionsVisible.value = false;
+    const resolve = mapExportOptionsResolve;
+    mapExportOptionsResolve = null;
+    resolve?.(value ? { ...value } : null);
+};
+
 const downloadSavedMap = async (): Promise<boolean> => {
     if (!mapUid.value) return false;
+    const exportOptions = await askMapExportOptions();
+    if (!exportOptions) return false; // 選択の画面で取り消した
     modalShow('editor_ui.busy_exporting');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
-        const result = await window.mapedit.downloadSaved(mapUid.value);
+        const result = await window.mapedit.downloadSaved(mapUid.value, exportOptions);
         if (result === 'Success') {
             modalFinish('mapedit.export_success');
             return true;
@@ -4460,6 +4488,46 @@ const goBack = async () => {
             :enable-close="modalEnableClose"
             @close="modalHide"
         />
+        <!-- nov26-m6-t8（#113・HR-19）: 書き出す中身の選択。ビジー表示（z-index 1040）より前面の .modal（1055） -->
+        <div v-if="mapExportOptionsVisible" class="modal show d-block" tabindex="-1" role="dialog" aria-modal="true"
+             data-testid="map-export-options">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5">{{ t('mapedit.export_options_title') }}</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-check">
+                            <input id="mapExportOptionTiles" type="checkbox" class="form-check-input"
+                                   data-testid="map-export-option-tiles" v-model="mapExportOptions.tiles" />
+                            <label class="form-check-label" for="mapExportOptionTiles">{{ t('mapedit.export_option_tiles') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="mapExportOptionJson" type="checkbox" class="form-check-input"
+                                   data-testid="map-export-option-json" v-model="mapExportOptions.json" />
+                            <label class="form-check-label" for="mapExportOptionJson">{{ t('mapedit.export_option_json') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="mapExportOptionOriginals" type="checkbox" class="form-check-input"
+                                   data-testid="map-export-option-originals" v-model="mapExportOptions.originals" />
+                            <label class="form-check-label" for="mapExportOptionOriginals">{{ t('mapedit.export_option_originals') }}</label>
+                            <div class="form-text" data-testid="map-export-option-originals-note">{{ t('mapedit.export_option_originals_note') }}</div>
+                        </div>
+                        <div v-if="!mapExportOptionsSelectable" class="text-danger small mt-2" data-testid="map-export-options-none-selected">
+                            {{ t('mapedit.export_option_none_selected') }}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-testid="map-export-options-cancel"
+                                @click="closeMapExportOptions(null)">{{ t('common.cancel') }}</button>
+                        <button type="button" class="btn btn-primary" data-testid="map-export-options-confirm"
+                                :disabled="!mapExportOptionsSelectable"
+                                @click="closeMapExportOptions(mapExportOptions)">{{ t('editor_ui.export_button') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-if="mapExportOptionsVisible" class="modal-backdrop show"></div>
         <!-- M11-T10 (R6): 保存準備区間(予約再確認・TIN計算待ち)もカバーする -->
         <EditorBusyOverlay
             :visible="saving || preparingSave || exporting"

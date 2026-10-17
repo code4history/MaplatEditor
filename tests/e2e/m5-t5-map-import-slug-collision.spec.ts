@@ -46,6 +46,8 @@ async function exportSeededMap(
   await openHash(page, `#/mapedit?uid=${mapUid}`);
   await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30000 });
   await page.locator('[data-editor-action="export"]').click();
+  // nov26-m6-t8: 書き出す中身の選択の画面（既定のまま）で書き出す
+  await page.getByTestId('map-export-options-confirm').click();
   await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
 }
 
