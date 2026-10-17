@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "當未設定應用程式專屬金鑰時使用的預設值。",
     "default_publish_google_api_key": "Google API 金鑰（預設）",
     "default_publish_mapbox_token": "Mapbox 存取權杖（預設）",
-    "same_key_warning": "{{provider}} 的編輯器金鑰與預設發布金鑰相同。建議發行另一組金鑰。"
+    "same_key_warning": "{{provider}} 的編輯器金鑰與預設發布金鑰相同。建議發行另一組金鑰。",
+    "update_check": "啟動時檢查更新",
+    "update_check_desc": "有新版本時會通知您。僅在您選擇「更新」時才會下載。在 Linux 上會開啟發行版頁面。"
   },
   "maplist": {
     "title": "地圖清單",

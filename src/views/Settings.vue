@@ -115,6 +115,33 @@
               </div>
             </div>
 
+            <!-- nov26-m7-t6 (#141): 起動時の更新の確認。既定はオン。オフでもメニューの「更新を確認…」は使える -->
+            <div class="row mb-3 align-items-center">
+              <label
+                for="updateCheckEnabled"
+                class="col-sm-3 col-form-label text-end d-flex align-items-center justify-content-end gap-1"
+              >
+                {{ t("settings.update_check") }}
+                <ContextHelp
+                  :text="t('settings.update_check_desc')"
+                  :ariaLabel="t('settings.update_check_desc')"
+                  data-testid="settings-update-check-help"
+                />
+              </label>
+              <div class="col-sm-9 d-flex align-items-center">
+                <div class="form-check form-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="updateCheckEnabled"
+                    data-testid="settings-update-check"
+                    v-model="state.updateCheckEnabled"
+                  />
+                </div>
+              </div>
+            </div>
+
             <!-- Buttons -->
             <div class="row">
               <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
@@ -294,6 +321,7 @@ const state = reactive<{
   saveFolder: string;
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
+  updateCheckEnabled: boolean;
   editorGoogleApiKey: string;
   editorMapboxToken: string;
   defaultPublishGoogleApiKey: string;
@@ -303,6 +331,7 @@ const state = reactive<{
   saveFolder: "",
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
+  updateCheckEnabled: true,
   editorGoogleApiKey: "",
   editorMapboxToken: "",
   defaultPublishGoogleApiKey: "",
@@ -315,6 +344,7 @@ const original = reactive<{
   saveFolder: string;
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
+  updateCheckEnabled: boolean;
   editorGoogleApiKey: string;
   editorMapboxToken: string;
   defaultPublishGoogleApiKey: string;
@@ -324,6 +354,7 @@ const original = reactive<{
   saveFolder: "",
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
+  updateCheckEnabled: true,
   editorGoogleApiKey: "",
   editorMapboxToken: "",
   defaultPublishGoogleApiKey: "",
@@ -352,6 +383,7 @@ const isDirty = computed(() => {
     state.saveFolder !== original.saveFolder ||
     state.jpegDecodeMaxMemoryMB !== original.jpegDecodeMaxMemoryMB ||
     state.jpegDecodeMaxResolutionMP !== original.jpegDecodeMaxResolutionMP ||
+    state.updateCheckEnabled !== original.updateCheckEnabled ||
     BASEMAP_KEY_FIELDS.some((key) => state[key] !== original[key])
   );
 });
@@ -378,6 +410,10 @@ onMounted(async () => {
       state[key] = capToField(value);
       original[key] = state[key];
     }
+    // nov26-m7-t6: 起動時の更新の確認（main 側の get が正規化する。未設定は true）
+    const updateCheck = await window.settings.get("updateCheckEnabled");
+    state.updateCheckEnabled = updateCheck !== false;
+    original.updateCheckEnabled = state.updateCheckEnabled;
     // m6-t6: ベースマップタブの4キー（未設定時は window.settings.get が undefined を返す）
     for (const key of BASEMAP_KEY_FIELDS) {
       const value = await window.settings.get(key);
@@ -401,6 +437,7 @@ const resetSettings = async () => {
     state.saveFolder = original.saveFolder;
     state.jpegDecodeMaxMemoryMB = original.jpegDecodeMaxMemoryMB;
     state.jpegDecodeMaxResolutionMP = original.jpegDecodeMaxResolutionMP;
+    state.updateCheckEnabled = original.updateCheckEnabled;
     for (const key of BASEMAP_KEY_FIELDS) {
       state[key] = original[key];
     }
@@ -415,6 +452,7 @@ const saveSettings = async () => {
     // M5-T8: 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
     await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
     await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);
+    await window.settings.set("updateCheckEnabled", state.updateCheckEnabled);
     for (const key of BASEMAP_KEY_FIELDS) {
       await window.settings.set(key, state[key]);
     }
@@ -429,6 +467,11 @@ const saveSettings = async () => {
       state[key] = capToField(saved);
       original[key] = state[key];
     }
+    // nov26-m7-t6: jpeg の 2 キーと同じく、正規化後の値を読み直して state と original の両方へ入れる
+    // （明示の false だけが「切る」なので、保存値と画面を揃え、保存後に dirty を閉じる）
+    const savedUpdateCheck = await window.settings.get("updateCheckEnabled");
+    state.updateCheckEnabled = savedUpdateCheck !== false;
+    original.updateCheckEnabled = state.updateCheckEnabled;
     // m6-t6: ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
     for (const key of BASEMAP_KEY_FIELDS) {
       original[key] = state[key];

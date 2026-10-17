@@ -198,7 +198,9 @@
     "default_publish_api_key_notice": "当未设置应用专属密钥时使用的默认值。",
     "default_publish_google_api_key": "Google API 密钥（默认）",
     "default_publish_mapbox_token": "Mapbox 访问令牌（默认）",
-    "same_key_warning": "{{provider}} 的编辑器密钥与默认发布密钥相同。建议签发另一个密钥。"
+    "same_key_warning": "{{provider}} 的编辑器密钥与默认发布密钥相同。建议签发另一个密钥。",
+    "update_check": "启动时检查更新",
+    "update_check_desc": "有新版本时会通知您。仅在您选择“更新”时才会下载。在 Linux 上会打开发行版页面。"
   },
   "maplist": {
     "title": "地图列表",

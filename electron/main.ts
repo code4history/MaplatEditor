@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, protocol, net } from 'electron'
+import { app, BrowserWindow, Menu, dialog, protocol, net, autoUpdater } from 'electron'
 import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -32,6 +32,9 @@ installBackendErrorForwarding()
 import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
 // nov26-m7-t5: 自動更新の器。製品のコードからは更新を確かめない（t6 が呼ぶ）。ここでは e2e の口だけを置く
 import { installUpdateTestHook } from './services/UpdateService'
+// nov26-m7-t6: 自動更新の形（起動時の確認・メニューの「更新を確認…」・同意で更新）
+import * as UpdateController from './services/UpdateController'
+import { updateText } from './services/updateMessages'
 
 // 🚧 ['ENV_NAME'] 形式で参照: vite:define プラグインの誤変換を回避（Vite@2.x 起因）
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
@@ -154,6 +157,14 @@ function createWindow() {
     }
   })
 }
+
+// nov26-m7-t6 (§3.2): 更新の入れ替え（UpdateService の入れ替えの関数）は、electron の
+// autoUpdater が 'before-quit-for-update' を出してから終了する。macOS で × の「隠す」に入らず
+// 終わるよう、その時に forceQuit を立てる（electron-updater の BaseUpdater は setImmediate で
+// electron.autoUpdater に emit する・MacUpdater は nativeUpdater = electron.autoUpdater を使う）
+autoUpdater.on('before-quit-for-update', () => {
+  forceQuit = true
+})
 
 // 旧実装 main.js L.88-93 に準拠: Cmd+Q 等でアプリ終了する場合のみ force_quit を立てる
 app.on('before-quit', () => {
@@ -349,6 +360,8 @@ app.whenReady().then(async () => {
   await gcOrphanDraftTiles()
   createWindow()
   setupMenu()
+  // nov26-m7-t6: 起動の少し後に 1 回だけ更新を確かめる（設定がオフなら何もしない）
+  UpdateController.startAutomaticCheck(() => win)
 
   // 言語変更時にメニューを再構築する
   SettingsService.on('changeLang', () => {
@@ -594,6 +607,12 @@ function setupMenu() {
         { 
           label: t('menu.about'),
           click: createAboutWindow
+        },
+        // nov26-m7-t6: 更新の確認（About の隣）。文言は updateMessages.ts（messages の表は触らない）
+        {
+          id: 'check-updates',
+          label: updateText(lang, 'menu.check_updates'),
+          click: () => UpdateController.check({ manual: true })
         }
       ]
     },
