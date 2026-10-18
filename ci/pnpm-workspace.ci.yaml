@@ -41,12 +41,10 @@ overrides:
 # audit の下限（>=X）ではなく系列を留める spec を書くこと（>=X だと未検証の上位メジャーを引く）。
 #   例: path-to-regexp は page@1.11.6 が 1.x API 前提のため ~1.9.0 に留める（>=1.9.0 だと 8.4.2 へ解決して壊れる）。
 #
-# 既知除外: brace-expansion <=5.0.7（high / DoS via unbounded expansion length）は override しない。
-#   (a) 我々の経路では到達しない — pwa-asset-generator > pretty > js-beautify は library API を呼び、
-#       editorconfig / glob を require する cli.js を通らないため実行時にロードされない。
-#   (b) 修正版 ^5.0.8 は module.exports が function から object へ変わっており、
-#       const expand = require("brace-expansion") として expand(pattern) する minimatch 3.x を壊す。
-#   詳細は設計書 §2.4。m9 で再評価する。
+# brace-expansion（GHSA-q2hr-2g5m-vwhr 等）: nov26-m9-t2・t3 で再評価した（2026-10）。
+#   MaplatEditor の lock の brace-expansion は 2.x だけ（minimatch 9 系）で、下の override（^2.1.7）が修正版へ留めている。
+#   旧注記の前提（require("brace-expansion") を関数として呼ぶ minimatch 3.x・pwa-asset-generator > pretty > js-beautify の経路）は
+#   lock に存在しない。
   # ajv は経路を限定する。無指定だと 8.20.0 が workbox-build / app-builder-lib 側にも効き、
   # Quyuan のビルドが strict mode エラー（additionalItems is ignored...）で落ちる（実測）。
   # 脆弱経路は electron-store > conf > (ajv-formats >) ajv のみ。
@@ -72,6 +70,21 @@ overrides:
   # get-uri は最新の 8.0.1 でも basic-ftp ^5.3.1 を宣言するため、範囲の中では直らない。get-uri が使う API
   # （Client・access・lastMod・downloadTo・list・close）は 6 系にもある（6.2.3 で実測）。経路を get-uri に限定する
   "get-uri>basic-ftp": "^6.2.1"
+  # 2026-10-18（nov26-m9-t3）: vite 7.3.7 は Rollup 4.64 で dist の分割が変わる（dist 806→825）。
+  # rollup を base の解決版に留め、アプリの出力を保つ。12 月の見直しは t8／m13 が持つ。
+  rollup: "4.62.4"
+  # 2026-10-18（nov26-m9-t3 v3-R8）: pnpm update --no-save（depth Infinity）で動いた推移依存を base の解決版に留める。
+  # 直接依存ではないため pnpm update <name>@<base> では戻らない（実測）。extract-zip は pwa 8.1.7 の閉包変化なので留めない。
+  "@babel/runtime": "7.29.7"
+  "@thednp/position-observer": "1.1.3"
+  "@types/lodash": "4.17.25"
+  dompurify: "3.4.16"
+  strtok3: "10.3.5"
+  "serialize-error>type-fest": "0.13.1"
+  type-fest: "5.8.0"
+  uint8array-extras: "1.5.0"
+  viewerjs: "1.11.8"
+  vscode-uri: "3.1.0"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
 # （minimumReleaseAge=1440・サプライチェーン保護）の対象外とする。第三者依存への
