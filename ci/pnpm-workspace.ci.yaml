@@ -32,6 +32,9 @@ allowBuilds:
 overrides:
   # eslint / vitest まわりが引く js-yaml。>=4.0.0 <4.3.1 の high。4系の最新へ留める。
   js-yaml: "^4.3.1"
+  # nov26 m9/DC5: http-cache-semantics 4.2.0 の high は 4.2.1 で修正。4.3.0 を当てる
+  # （経路は electron-builder > app-builder-lib > ... のビルド時のみ）
+  http-cache-semantics: "^4.3.0"
 
 # ---- 恒久 override（m1-t3）----
 # 第三者依存の脆弱性。上流の更新を待つしかないため恒久。
