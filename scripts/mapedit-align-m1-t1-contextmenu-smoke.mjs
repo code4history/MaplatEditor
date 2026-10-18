@@ -291,7 +291,7 @@ try {
   };
   const compileProbe = (methods, globals = {}) => {
     const compiled = ts.transpileModule(`class Probe extends Control { ${methods.join('\n')} }`, {
-      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
       reportDiagnostics: true,
     });
     assert.equal(compiled.diagnostics?.filter((d) => d.category === ts.DiagnosticCategory.Error).length, 0);
