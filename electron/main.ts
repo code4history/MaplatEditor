@@ -247,7 +247,8 @@ async function gcOrphanDraftTiles(): Promise<void> {
 
 app.whenReady().then(async () => {
   // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
-  // resolveAppUrl の許可経路 allowlist で解決できた実体のみ net.fetch で配信し、それ以外は 403。
+  // ローカルリソースは許可ルートと候補の両方を realpath した実体で判定し（#138・nov26-m7-t7）、判定した実体を
+  // net.fetch で配信し、それ以外は 403。
   // oct26-m4-t2ff: 解決・失敗 status の写像・防御ヘッダは createAppSchemeHandler（appScheme.ts）が持つ。
   // ここでは要求ごとの許可ルートと実ファイルの読み方だけを渡す。
   protocol.handle(APP_SCHEME, createAppSchemeHandler({

@@ -59,7 +59,7 @@ const TILE_TEMPLATE_SUFFIX = /^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/;
  *   - それ以外（新形・http(s)・テンプレートの無い file:// 等）と文字列以外はそのまま
  * main（POSIX の fileURLToPath）が例外にする形はそのまま返す: host 付き・`%2F`・不正な percent-encoding。
  * `%5C` も変換しない（renderer は `\` を区切りとして扱うため。main の出力も `appUrlToLocalPath` が拒否して配信されない）。
- * 許可の判定はしない。配信してよいかは main の resolveAppUrl（許可ルートの境界込み判定）が従来どおり決める。
+ * 許可の判定はしない。配信してよいかは main の app:// handler（許可ルートと候補を realpath した実体の境界込み判定・#138）が決める。
  */
 export function displayTileUrl<T>(url: T): T {
   if (typeof url !== 'string') return url;
