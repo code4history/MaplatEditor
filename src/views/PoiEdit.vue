@@ -1081,7 +1081,7 @@ async function initializeEditor(): Promise<void> {
   if (duplicateFrom) {
     // 複製（案A: エディタ側ロード）。複製浄化: uid/revision/readOnly は写さず、
     // slug は予約値で上書き。title/lang/fc（layerMeta 含む）を複製し dirty で開く
-    let source: Awaited<ReturnType<typeof window.poiSources.get>> | null = null;
+    let source: Awaited<ReturnType<typeof window.poiSources.get>> | null;
     try {
       source = await window.poiSources.get(duplicateFrom);
     } catch {

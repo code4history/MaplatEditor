@@ -20,6 +20,7 @@ const isKind = (value: unknown): value is AssetDraftKind =>
   typeof value === 'string' && (ASSET_DRAFT_KINDS as readonly string[]).includes(value);
 
 const validUid = (value: unknown): value is string =>
+  // eslint-disable-next-line no-control-regex -- 制御文字 U+0000〜U+001F を拒否する検査そのもの（意図どおりの正規表現）
   typeof value === 'string' && value.trim() === value && value.length > 0 && value.length <= 256 && !/[\u0000-\u001f]/.test(value);
 
 export function validateAssetDraftEnvelope(value: unknown): asserts value is AssetDraftEnvelope {

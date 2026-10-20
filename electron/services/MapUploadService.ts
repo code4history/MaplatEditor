@@ -247,7 +247,7 @@ export async function imageCutter(
     const caps = SettingsService.getJpegDecodeCaps();
     const safety = resolveDecodeSafety();
     let sourceBuffer: Buffer;
-    let budget: JpegDecodeBudget | null = null;
+    let budget: JpegDecodeBudget | null;
     let toExtKey: string;
     // デコードへ実際に渡す値。budget があれば画像ごとの自動値、無ければ機械安全枠。
     let effectiveMemoryMB: number;
