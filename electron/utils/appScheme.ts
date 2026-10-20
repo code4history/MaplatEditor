@@ -27,8 +27,18 @@
  *   - 同梱の HTML（index.html・about.html）には renderer CSP（RENDERER_CSP）だけを付ける
  *   - ローカルリソース（__local・旧 app://local）には sandbox の CSP＋nosniff（localResponseHeaders）だけを付ける
  *   - 2 本を重ねない（重ねると両方が適用され、sandbox 側の意図と別の制約が混ざる）。同梱の非 HTML には付けない
+ *
+ * nov26-m7-t7（#138）: ローカルリソースの封じ込めの**最終判定を字面から実体へ**移す。許可ルートの**中**に置かれた
+ * symlink・ジャンクション（Windows）が外を指している場合、従来は path.resolve の前方一致（isUnderRoot）だけで判定していた
+ * ため、その先を配信していた。以後は許可ルートと候補の**両方を同じ関数（fs.realpath）で実体にしてから** isUnderRoot を当てる
+ * （resolveLocalReal）。許可ルートそのものがリンクの場合は実体同士で比べるので通る（保存フォルダを OneDrive の下に
+ * 置く使い方を壊さない）。外を指すリンクの先は、先が実在しても欠損していても 403 とし、ルートの外の存在の有無を漏らさない。
+ * 字面の配下判定（前方一致）は**ローカルの判定から外した**——ルートが 8.3 名・大文字小文字違いで書かれていると実体の
+ * 判定に届かないため。ただし**fs に触れる前の形の検査（localPathShape）は必ず前**に置く。これは UNC（`\\host\share`）・
+ * `\\?\`・`\\.\`・ルートの無いドライブ・`/net/<host>` 等、**要求者が URL で選べるパス**で realpath が外へ接続しないため。
+ * `resolveAppUrl` は同梱物の解決と他の純関数の検査に残す（字面の判定のまま。挙動は変えない）。
  */
-import { access, constants as fsConstants, stat } from 'node:fs/promises';
+import { access, constants as fsConstants, lstat, readlink, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -217,6 +227,207 @@ function isUnderRoot(candidate: string, root: string): boolean {
   return resolved === base || resolved.startsWith(base + path.sep);
 }
 
+/** リンクをたどる上限（resolveLocalReal。自分を指す輪はここで止めて 403 にする） */
+const LINK_BUDGET = 40;
+
+/**
+ * ローカルリソースの**形の検査**（nov26-m7-t7・#138・MAJ-3）。fs に触れない純関数。
+ *
+ * `realpath` を呼ぶ前に「要求者が URL で選べるパスが、ネットワークの場所や別のドライブを指していないか」を字面だけで
+ * 落とす段。UNC（`\\host\share`＝SMB の接続と NTLM の送出）・`\\?\`・`\\.\`・ルートの無いドライブ（Windows）・
+ * `/net/<host>`・`/Volumes/<共有>`（POSIX）への要求で、403 を返す前に外部への接続が起きるのを防ぐ。
+ *
+ * 見るのは **8.3 名・大文字小文字の影響を受けない段だけ**（Windows はドライブ文字、POSIX は先頭の 2 段。ルートが
+ * 1 段しか無ければ 1 段）。∴ ルートが 8.3 名・大文字小文字違いで書かれていても、実体の判定（resolveLocalReal）に届く。
+ * 比べるのは大文字小文字を区別しない形にする（macOS の既定の APFS は区別しない。区別する volume でも、ずれたものが
+ * `realpath` の段で外れるだけで安全側）。
+ *
+ * `localRoots` には**ルートの字面と実体の両方**を渡す（macOS は `TMPDIR` の `/var/folders/…` の実体が
+ * `/private/var/…` なので、片方だけだと実体側の表記の要求が形で落ちてしまう）。ルートが空なら `reject`。
+ */
+export function localPathShape(
+  nativePath: string,
+  localRoots: string[],
+  platform: NodeJS.Platform = process.platform,
+): 'ok' | 'reject' {
+  if (localRoots.length === 0) return 'reject';
+  if (platform === 'win32') {
+    // ドライブ文字だけを見る（8.3 名を持たず、大文字小文字だけが揺れる段）
+    const driveOf = (p: string): string | undefined => path.win32.resolve(p).match(/^([A-Za-z]):\\/)?.[1]?.toLowerCase();
+    const drive = driveOf(nativePath);
+    if (!drive) return 'reject';
+    return localRoots.some((root) => driveOf(root) === drive) ? 'ok' : 'reject';
+  }
+  // POSIX は先頭の 2 段（ルートが 1 段しか無ければ 1 段）を大文字小文字を区別せずに比べる
+  const segmentsOf = (p: string): string[] => path.posix.resolve(p).split('/').filter((s) => s !== '');
+  const candidate = segmentsOf(nativePath);
+  for (const root of localRoots) {
+    const rootSegments = segmentsOf(root);
+    const depth = Math.min(2, rootSegments.length);
+    if (candidate.length < depth) continue;
+    let same = true;
+    for (let i = 0; i < depth; i += 1) {
+      if (candidate[i].toLowerCase() !== rootSegments[i].toLowerCase()) {
+        same = false;
+        break;
+      }
+    }
+    if (same) return 'ok';
+  }
+  return 'reject';
+}
+
+/**
+ * ローカルリソースの最終判定（nov26-m7-t7・#138）。許可ルートと候補の**両方を `realpath` で実体にしてから**
+ * isUnderRoot（境界込み）を当てる。handler から呼ばれ、fs を差し替えられるので smoke で実挙動を測れる。
+ *
+ * 段（設計 §3.1 の 2 と同じ番号）:
+ * 1. ルートの実体。`ENOENT`・`ENOTDIR` のルートは**許可から外す**（存在しないルートは許可しない。字面に落とさない）。
+ *    それ以外の errno のルートも外し、記録は `deps.warn` に流す
+ * 1.5 形の検査（localPathShape・fs に触れない）。落ちたら 403（`outside`・warn しない）
+ * 2. 候補の実体。実体ルートの配下（境界込み）なら `ok`。配下でなければ 403（字面ではルートの配下だった場合だけ
+ *    `link-escapes`＝warn）。`ENOENT`・`ENOTDIR`・`ELOOP` は classifyMissing で「存在しない」とリンクを分ける
+ * 3. classifyMissing: 最も深い既存の段 `p` を `lstat` で探し、(i) `p` がリンクなら `readlink` の先に形の検査を当てて
+ *    から `realpath` をやり直す（1 回たどるごとに上限を 1 減らし、0 で 403）。(ii) リンクでなければ `realpath(p)` が
+ *    実体ルートの配下なら 404（ルート内の欠損は正常系）、外なら 403
+ *
+ * ∴ 外を指すリンクは、先が実在しても（生きたリンク）欠損していても（壊れたリンク）同じ 403 になり、ルートの外の
+ * 存在の有無を 404／403 の差で漏らさない。**注**: classifyMissing の形の検査は段 2 の `realpath(候補)` の後なので、
+ * 利用者が置いたリンクの先がネットワークの場所を指している場合、その接続は防がない（OS が段 2 で既にたどっている）。
+ * 本関数が守るのは**要求者が URL で選べるパス**だけ（設計 §13 の Info）。
+ */
+export type LocalRealResolution =
+  | { ok: true; lexicalPath: string; realPath: string }
+  | { ok: false; status: 403 | 404 | 500; reason: 'outside' | 'link-escapes' | 'missing' | 'error'; code?: string };
+
+/** resolveLocalReal が使う fs（既定は node:fs/promises。smoke が呼び出しを数えるために差し込む） */
+export interface LocalRealDeps {
+  realpath?: (filePath: string) => Promise<string>;
+  lstat?: (filePath: string) => Promise<{ isSymbolicLink(): boolean }>;
+  readlink?: (filePath: string) => Promise<string>;
+  platform?: NodeJS.Platform;
+  /** ルートの realpath が ENOENT/ENOTDIR 以外で失敗したときの記録先（省略可） */
+  warn?: (...args: unknown[]) => void;
+}
+
+export async function resolveLocalReal(
+  nativePath: string,
+  localRoots: string[],
+  deps: LocalRealDeps = {},
+): Promise<LocalRealResolution> {
+  const realpathOf = deps.realpath ?? realpath;
+  const lstatOf = deps.lstat ?? lstat;
+  const readlinkOf = deps.readlink ?? readlink;
+  const platform = deps.platform ?? process.platform;
+
+  // (1) ルートの実体。存在しない・解決できないルートは許可から外す（字面に落とさない）
+  const realRoots: string[] = [];
+  const lexicalRoots: string[] = [];
+  for (const root of localRoots) {
+    try {
+      realRoots.push(await realpathOf(root));
+      lexicalRoots.push(root);
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException)?.code;
+      if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+        deps.warn?.(`[app-scheme] root realpath failed (${code ?? 'unknown'}): ${root}`);
+      }
+    }
+  }
+  // (1.5) 形の検査（fs に触れない。ルートが 1 つも解決できなければ空になり reject）
+  if (localPathShape(nativePath, [...lexicalRoots, ...realRoots], platform) === 'reject') {
+    return { ok: false, status: 403, reason: 'outside' };
+  }
+
+  const isLexicallyInside = (): boolean => lexicalRoots.some((root) => isUnderRoot(nativePath, root));
+  const isReallyInside = (p: string): boolean => realRoots.some((root) => isUnderRoot(p, root));
+  const escapes = (): LocalRealResolution =>
+    isLexicallyInside()
+      ? { ok: false, status: 403, reason: 'link-escapes' }
+      : { ok: false, status: 403, reason: 'outside' };
+  const isMissingCode = (code: string | undefined): boolean =>
+    code === 'ENOENT' || code === 'ENOTDIR' || code === 'ELOOP';
+
+  // (3): 存在しないパスとリンクを段ごとに分ける（外の欠損も 403 にする・MIN-10）
+  const classifyMissing = async (target: string, rest: string[], budget: number): Promise<LocalRealResolution> => {
+    // 3-1. target から上へ、lstat が成功する最も深い段 p を探す（p より下の段を rest に積む）
+    let current = target;
+    const below = [...rest];
+    let p: string | null = null;
+    let pIsLink = false;
+    for (;;) {
+      try {
+        const st = await lstatOf(current);
+        p = current;
+        pIsLink = st.isSymbolicLink();
+        break;
+      } catch {
+        const parent = path.dirname(current);
+        if (parent === current) break;
+        below.unshift(path.basename(current));
+        current = parent;
+      }
+    }
+    if (p === null) return { ok: false, status: 403, reason: 'outside' };
+
+    // 3-2. p がリンクなら、先に形の検査を当ててから realpath をやり直す（段 2 で OS は既にたどっている）
+    if (pIsLink) {
+      if (budget <= 0) return { ok: false, status: 403, reason: 'link-escapes', code: 'ELOOP' };
+      let linkTarget: string;
+      try {
+        const raw = await readlinkOf(p);
+        const base = await realpathOf(path.dirname(p)).catch(() => path.dirname(p));
+        linkTarget = path.resolve(base, raw);
+      } catch (e) {
+        return { ok: false, status: 403, reason: 'link-escapes', code: (e as NodeJS.ErrnoException)?.code };
+      }
+      if (localPathShape(linkTarget, [...lexicalRoots, ...realRoots], platform) === 'reject') {
+        return { ok: false, status: 403, reason: 'link-escapes' };
+      }
+      const next = below.length > 0 ? path.join(linkTarget, ...below) : linkTarget;
+      try {
+        const realPath = await realpathOf(next);
+        return isReallyInside(realPath) ? { ok: true, lexicalPath: next, realPath } : escapes();
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException)?.code;
+        if (isMissingCode(code)) return classifyMissing(next, [], budget - 1);
+        return { ok: false, status: fsErrorStatus(code) as 403 | 404 | 500, reason: 'error', code };
+      }
+    }
+
+    // 3-3. p がリンクでない: ルートの中の欠損は 404（正常系）、外なら 403（存在の有無を漏らさない）
+    try {
+      const realP = await realpathOf(p);
+      if (isReallyInside(realP)) return { ok: false, status: 404, reason: 'missing' };
+    } catch {
+      // 実体が取れない段は「外」として扱う（下の 403）
+    }
+    return { ok: false, status: 403, reason: 'outside' };
+  };
+
+  try {
+    const realPath = await realpathOf(nativePath);
+    return isReallyInside(realPath) ? { ok: true, lexicalPath: nativePath, realPath } : escapes();
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException)?.code;
+    if (isMissingCode(code)) return classifyMissing(nativePath, [], LINK_BUDGET);
+    return isLexicallyInside()
+      ? { ok: false, status: fsErrorStatus(code) as 403 | 404 | 500, reason: 'error', code }
+      : { ok: false, status: 403, reason: 'outside', code };
+  }
+}
+
+// ローカルの形（新形 `app://bundle/__local/<abs>`・旧 `app://local/<abs>`・接頭辞そのもの）の URL か。
+// resolveAppUrl のローカルの分岐と同じ条件（ローカルの最終判定は resolveLocalReal が行い、resolveAppUrl は同梱物の解決に残す）。
+function isLocalUrl(rawUrl: string): boolean {
+  try {
+    const u = new URL(rawUrl);
+    return localPathnameOf(u) !== null || (u.hostname === BUNDLE_HOST && u.pathname === LOCAL_PATH_PREFIX);
+  } catch {
+    return false;
+  }
+}
+
 function decodePathname(pathname: string): string {
   try {
     return decodeURIComponent(pathname);
@@ -235,6 +446,10 @@ function decodePathname(pathname: string): string {
  *
  * 実体の存在確認は行わない（handler 側が net.fetch で 404 を返す）。ここでは
  * 「解決が許可されるか」と解決先パス・MIME だけを返す。
+ *
+ * nov26-m7-t7（#138）: **ローカルの最終判定は createAppSchemeHandler の `resolveLocalReal`（実体）が行う。**
+ * 本関数のローカル判定は字面（前方一致）のままで、同梱の解決と「他の純関数・smoke が使う検査」に残す
+ * （挙動は変えない。handler のローカルの分岐は本関数のローカルの判定を通らない）。
  */
 export function resolveAppUrl(rawUrl: string, roots: AppSchemeRoots): AppUrlResolution | null {
   let u: URL;
@@ -379,30 +594,83 @@ export interface AppSchemeHandlerDeps {
   fetchFile: (filePath: string) => Promise<Response>;
   /** 欠損以外の失敗の記録先（main では console.warn） */
   warn: (...args: unknown[]) => void;
+  /**
+   * ローカルの実体判定（resolveLocalReal）に使う fs（省略時は node:fs/promises）。
+   * smoke が呼び出しを数えて「形で落ちる要求は fs に触れない」を断言するための口。main は渡さない。
+   */
+  fs?: Pick<LocalRealDeps, 'realpath' | 'lstat' | 'readlink'>;
 }
 
 /**
  * protocol.handle(APP_SCHEME, …) に渡す handler を作る（oct26-m4-t2ff）。electron に依存しないので smoke で実挙動を測れる。
- * - 許可経路外 → 403
+ * - ローカルの形の要求は **resolveLocalReal（実体）** で判定する（nov26-m7-t7・#138）。resolveAppUrl の字面の配下判定は
+ *   使わない（ルートが 8.3 名・大文字小文字違いで書かれていると前方一致で 403 になり、実体の判定に届かないため）。
+ *   ただし fs に触れる前の形の検査（localPathShape）は必ず前にある（要求者が URL で選べるパスで外部へ接続しない）
+ * - 許可経路外 → 403。ルートの外の欠損・外を指すリンクの先も 403（存在の有無を漏らさない）。ルート内の欠損のみ 404
+ * - MIME は**要求側（字面）のパス**から決める（実体が .html でも要求が .png なら image/png）
+ * - スクリプト系 MIME（.js/.mjs）は**字面と実体の両方**で拒否する（oct26-m4-t6・MAJ-1 の案 B を実体側にも広げる）
+ * - stat / 読取権限の確認 / fetchFile は**実体のパス**に対して行う（判定と読み出しの間の付け替えの窓を狭める。閉じはしない）
  * - stat / 読取権限の確認に失敗 → fsErrorStatus（ENOENT/ENOTDIR 以外は warn）・ディレクトリ → 403＋warn・読込例外 → 500＋warn
  * - Content-Type は mimeFor が導出した値を明示（MIN-1）
  * - ローカルリソースの応答（失敗応答を含む）には localResponseHeaders を付ける。ACAO は付けない
- * - 同梱 HTML の応答には renderer CSP（bundleDocumentHeaders）を付ける（oct26-m4-t6）
- * - ローカルリソースのスクリプト系 MIME（.js/.mjs）は 403（oct26-m4-t6・MAJ-1 の案 B）。製品が __local で配信するのは
- *   画像（タイル・サムネイル・merc・画像アセット）だけで、保存フォルダのスクリプトを renderer に読ませる経路は無い。
- *   CSP のパス照合に依存しない独立の層で、CSP ヘッダが付かない dev 起動の main window にも効く
+ * - 同梱 HTML の応答には renderer CSP（bundleDocumentHeaders）を付ける（oct26-m4-t6）。同梱（app://bundle/<rel>）の分岐は変えない
  */
 export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Request) => Promise<Response> {
   const text = (status: number, body: string, extra: Record<string, string>) =>
     new Response(body, { status, headers: { 'content-type': 'text/plain; charset=utf-8', ...extra } });
+  const bodyFor = (status: number): string =>
+    status === 404 ? 'Not Found' : status === 403 ? 'Forbidden' : 'Internal Server Error';
   return async (request: Request): Promise<Response> => {
-    const resolution = resolveAppUrl(request.url, deps.getRoots());
+    const roots = deps.getRoots();
+
+    // ---- ローカルリソース（新形 app://bundle/__local/・旧 app://local/）: 実体で判定する（#138） ----
+    if (isLocalUrl(request.url)) {
+      const extra = localResponseHeaders();
+      const lexicalPath = appUrlToLocalPath(request.url);
+      if (lexicalPath === null) return text(403, 'Forbidden', extra);
+      const resolved = await resolveLocalReal(lexicalPath, roots.localRoots, { ...deps.fs, warn: deps.warn });
+      if (!resolved.ok) {
+        if (resolved.reason === 'link-escapes') {
+          deps.warn(`[app-scheme] link-escapes (${resolved.status}): ${request.url}`);
+        } else if (resolved.reason === 'error') {
+          deps.warn(`[app-scheme] ${resolved.code ?? 'unknown'} (${resolved.status}): ${request.url}`);
+        }
+        return text(resolved.status, bodyFor(resolved.status), extra);
+      }
+      // MIME は要求側（字面）で決める。スクリプトの拒否は字面と実体の両側に当てる
+      const mimeType = mimeFor(resolved.lexicalPath);
+      if (mimeType === 'text/javascript' || mimeFor(resolved.realPath) === 'text/javascript') {
+        deps.warn(`[app-scheme] script from local resource refused (403): ${request.url}`);
+        return text(403, 'Forbidden', extra);
+      }
+      try {
+        const st = await stat(resolved.realPath);
+        if (st.isDirectory()) {
+          deps.warn(`[app-scheme] directory request refused (403): ${request.url}`);
+          return text(403, 'Forbidden', extra);
+        }
+        // stat は読取権限が無くても成功するので、読めるかを先に確かめて EACCES を 403 として区別する
+        await access(resolved.realPath, fsConstants.R_OK);
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException)?.code;
+        const status = fsErrorStatus(code);
+        if (status !== 404) deps.warn(`[app-scheme] ${code ?? 'unknown'} (${status}): ${request.url}`);
+        return text(status, bodyFor(status), extra);
+      }
+      let res: Response;
+      try {
+        res = await deps.fetchFile(resolved.realPath);
+      } catch (e) {
+        deps.warn(`[app-scheme] read failed (500): ${request.url}: ${String(e)}`);
+        return text(500, 'Internal Server Error', extra);
+      }
+      return new Response(res.body, { status: res.status, headers: { 'content-type': mimeType, ...extra } });
+    }
+
+    // ---- 同梱リソース（app://bundle/<rel>）: 従来どおり resolveAppUrl（字面）で解決する ----
+    const resolution = resolveAppUrl(request.url, roots);
     if (!resolution) return text(403, 'Forbidden', {});
     const extra = responseHeadersFor(resolution);
-    if (resolution.kind === 'local' && resolution.mimeType === 'text/javascript') {
-      deps.warn(`[app-scheme] script from local resource refused (403): ${request.url}`);
-      return text(403, 'Forbidden', extra);
-    }
     try {
       const st = await stat(resolution.filePath);
       if (st.isDirectory()) {
@@ -415,7 +683,7 @@ export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Re
       const code = (e as NodeJS.ErrnoException)?.code;
       const status = fsErrorStatus(code);
       if (status !== 404) deps.warn(`[app-scheme] ${code ?? 'unknown'} (${status}): ${request.url}`);
-      return text(status, status === 404 ? 'Not Found' : status === 403 ? 'Forbidden' : 'Internal Server Error', extra);
+      return text(status, bodyFor(status), extra);
     }
     let res: Response;
     try {

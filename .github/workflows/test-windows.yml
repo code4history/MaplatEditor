@@ -1,0 +1,41 @@
+# nov26-m7-t7（#138）: app:// のローカル配信の封じ込めを realpath で判定する変更を、Windows の runner で確かめる。
+#
+# なぜ test.yml に job を足さないか: oct26-m4-t5 の判定 smoke（oct26-m4-t5-ci-judge-smoke.mjs）が test.yml の
+# job の集合を `['e2e','smoke']`・`runs-on: macos-26` に固定しており、job を足すとその AC5 の断言を 4 か所
+# 書き換えることになる（m10 t2 が触る test.yml とも重なる）。∴ Windows の smoke だけを別の workflow に置く。
+#
+# 依存は入れない（smoke は electron/utils/appScheme.ts と Node の組み込みだけを import する）∴ pnpm/action-setup を持たない。
+# `fsutil 8dot3name set` の失敗は step の失敗＝赤（8.3 名が得られないことを skip にしない。赤字はこの step で解く）。
+# secrets を参照せず id-token も持たない。
+name: Tests (Windows)
+on:
+  pull_request:
+  push:
+    branches: [master, glm52, foss4g-hiroshima]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: test-windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  app-scheme-realpath:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Enable 8.3 short names on the work volume
+        shell: pwsh
+        run: |
+          $drive = (Get-Item $env:RUNNER_TEMP).PSDrive.Name + ':'
+          fsutil 8dot3name set $drive 0
+          fsutil 8dot3name query $drive
+      - name: app:// realpath smoke (Windows)
+        env:
+          NOV26_M7_T7_WINDOWS_REQUIRED: '1'
+        run: node --experimental-strip-types scripts/nov26-m7-t7-app-scheme-realpath-smoke.mjs
