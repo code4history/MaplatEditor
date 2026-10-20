@@ -26,6 +26,7 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  appUrlToLocalPath,
   createAppSchemeHandler,
   localFileUrl,
   localPathShape,
@@ -384,7 +385,21 @@ if (isWin) {
     }
     const longUrl = localFileUrl(path.join(longDir, "0", "0.png"));
     const shortUrl = localFileUrl(path.join(shortOut, "0", "0.png"));
-    assert.equal((await makeHandler([shortOut])(new Request(longUrl))).status, 200, "短い名前のルート × 長い名前の URL");
+    // 失敗したときに Windows の実測が残るよう、realpath の結果と warn を添える
+    const diag = async () =>
+      JSON.stringify({
+        shortOut,
+        longDir,
+        longUrl,
+        realShort: await realpath(shortOut).catch((e) => `ERR ${e.code}`),
+        realLongFile: await realpath(path.join(longDir, "0", "0.png")).catch((e) => `ERR ${e.code}`),
+        nativeOfLongUrl: appUrlToLocalPath(longUrl),
+        warns: warns.slice(-3),
+      });
+    {
+      const st = (await makeHandler([shortOut])(new Request(longUrl))).status;
+      if (st !== 200) assert.fail(`短い名前のルート × 長い名前の URL: ${st} !== 200 ${await diag()}`);
+    }
     assert.equal((await makeHandler([longDir])(new Request(shortUrl))).status, 200, "長い名前のルート × 短い名前の URL");
   });
   await item("g3", async () => {
