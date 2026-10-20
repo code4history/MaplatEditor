@@ -254,6 +254,11 @@ export function localPathShape(
   if (platform === 'win32') {
     // ドライブ文字だけを見る（8.3 名を持たず、大文字小文字だけが揺れる段）
     const driveOf = (p: string): string | undefined => path.win32.resolve(p).match(/^([A-Za-z]):\\/)?.[1]?.toLowerCase();
+    // 【NOV26-IR-M7-T7-0445 MAJOR-1】候補は、fs に渡す生の文字列そのものが「ドライブ文字＋区切り」で始まることを
+    // 必須にする。path.win32.resolve は `/\\host\share\x`（Win32 では UNC）を UNC と見なさず cwd のドライブを
+    // 補うので、resolve の後だけを見ると UNC 形が形の検査を抜けて realpath（＝ネットワークへの接続）に届く。
+    // 正当な候補は fromUrlPath から常に `C:/…` の形で来るので、これで落ちる正当な要求は無い
+    if (!/^[A-Za-z]:[\\/]/.test(nativePath)) return 'reject';
     const drive = driveOf(nativePath);
     if (!drive) return 'reject';
     return localRoots.some((root) => driveOf(root) === drive) ? 'ok' : 'reject';

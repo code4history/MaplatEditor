@@ -335,6 +335,16 @@ await item("j1", async () => {
   for (const p of ["\\\\host\\share\\x", "//host/share/x", "\\\\?\\C:\\x", "\\\\.\\pipe\\x", "Z:\\x"]) {
     assert.equal(localPathShape(p, winRoots, "win32"), "reject", `win32: ${p} は reject`);
   }
+  // 【NOV26-IR-M7-T7-0445 MAJOR-1】区切りが 3 つ並ぶ UNC 形は、cwd が許可ルートと同じドライブでも reject
+  const realCwd = process.cwd;
+  try {
+    process.cwd = () => "C:\\work";
+    for (const p of ["/\\\\host\\share\\x", "//\\host\\share\\x", "/x", "\\x"]) {
+      assert.equal(localPathShape(p, winRoots, "win32"), "reject", `win32: ${p} は cwd が C: でも reject`);
+    }
+  } finally {
+    process.cwd = realCwd;
+  }
   assert.equal(localPathShape("c:\\save\\x", winRoots, "win32"), "ok", "win32: 大文字小文字を区別しない");
   assert.equal(localPathShape("C:\\Save\\x", winRoots, "win32"), "ok");
   assert.equal(localPathShape("C:\\x", [], "win32"), "reject", "win32: ルートが空なら reject");
