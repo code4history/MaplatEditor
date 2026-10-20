@@ -377,7 +377,12 @@ if (isWin) {
     const longDir = path.join(save, "LongDirectoryName-tiles");
     await mkdir(path.join(longDir, "0"), { recursive: true });
     await writeFile(path.join(longDir, "0", "0.png"), PNG);
-    const shortOut = execFileSync("cmd", ["/d", "/c", `for %I in ("${longDir}") do @echo %~sI`], { encoding: "utf8" }).trim();
+    // Node は cmd への引数を引用符で包み直すので、for の引用符が二重になり `D:\"D:\…\"` という存在しないパスに
+    // なっていた（2026-10-20 の Windows CI で実測）。windowsVerbatimArguments で、組んだ文字列をそのまま cmd に渡す
+    const shortOut = execFileSync("cmd.exe", ["/d", "/s", "/c", `"for %I in ("${longDir}") do @echo %~sI"`], {
+      encoding: "utf8",
+      windowsVerbatimArguments: true,
+    }).trim();
     if (!shortOut || shortOut.toLowerCase() === longDir.toLowerCase()) {
       throw new Error(
         `8.3 名を得られない（${longDir} → ${shortOut || "(空)"}）。fsutil 8dot3name で有効にした場所で測ること`,
