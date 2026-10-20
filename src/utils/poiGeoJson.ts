@@ -369,7 +369,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
   if (features.length > SCALE_FEATURE_COUNT) {
     issues.push({ level: "warning", code: "scale-feature-count" });
   }
-  let byteSize = 0;
+  let byteSize: number;
   try {
     byteSize = JSON.stringify(fc).length;
   } catch {

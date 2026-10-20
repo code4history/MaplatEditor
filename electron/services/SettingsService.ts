@@ -114,7 +114,9 @@ class SettingsService extends EventEmitter {
               try {
                   const saveFolderVal = fs.readJsonSync(saveFolderFile);
                   if (saveFolderVal) this.store.set('saveFolder', saveFolderVal);
-              } catch(e) {}
+              } catch {
+                  // 旧形式の設定ファイルが読めなければ移行しない（従来どおり読み飛ばす）
+              }
           }
           
           const langFile = path.join(legacyStoragePath, 'lang.json');
@@ -122,7 +124,9 @@ class SettingsService extends EventEmitter {
               try {
                   const langVal = fs.readJsonSync(langFile);
                   if (langVal) this.store.set('lang', langVal);
-              } catch(e) {}
+              } catch {
+                  // 旧形式の設定ファイルが読めなければ移行しない（従来どおり読み飛ばす）
+              }
           }
            
           this.store.set('migratedFromLegacy', true);

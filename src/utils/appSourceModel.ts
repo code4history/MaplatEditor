@@ -299,7 +299,7 @@ function migrateLegacyData(
   }
 
   // label は歴史的にトップレベルにあるため別扱い（保存位置は動かさない・設計 §3.1）
-  let label = source.label;
+  let label: typeof source.label;
   const legacyLabel = source.label ?? legacy.label;
   if (legacyLabel === undefined || langEquals(legacyLabel, master.data.label, defaultLang)) {
     label = undefined;

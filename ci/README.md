@@ -4,7 +4,7 @@
 
 | job | 内容 |
 |---|---|
-| `smoke` | install → `pnpm run build` → `scripts/ci/run-smokes.mjs`（`smoke:*` を全数・直列）→ `scripts/ci/judge-test-results.mjs smoke` |
+| `smoke` | install → `pnpm run lint`（ESLint。対象 `src electron`・nov26-m8-t4）→ `pnpm run build` → `scripts/ci/run-smokes.mjs`（`smoke:*` を全数・直列）→ `scripts/ci/judge-test-results.mjs smoke` |
 | `e2e (1)〜(3)` | install → `pnpm run build` → `playwright test --forbid-only --shard=N/3`（exit を `playwright-exit.txt` に記録）→ `judge-test-results.mjs e2e` |
 
 e2e job は Playwright の前に Electron（`com.github.Electron`）の言語を `ja` に固定し（`defaults write com.github.Electron AppleLanguages -array ja`）、`scripts/ci/electron-locale-check.cjs` で `app.getLocale()` が `ja` であることを確かめる。
@@ -32,6 +32,7 @@ e2e job の install は `--config.side-effects-cache=false` を付けて electro
 ```bash
 cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml   # 単独 clone のときだけ（Maplats 配下の checkout では行わない）
 pnpm install --frozen-lockfile
+node_modules/.bin/eslint src electron   # = pnpm run lint（合否は rtk を通さずに見る）
 pnpm run build
 # runner に無いツール（bun 等）を PATH から外し、TMPDIR を使い捨ての場所に向ける
 node scripts/ci/run-smokes.mjs --report smoke-report.json       # = pnpm run ci:smoke

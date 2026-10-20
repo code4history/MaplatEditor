@@ -91,6 +91,7 @@ export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackag
     entries = zip.getEntries();
   } catch (error) {
     if (error instanceof Error && ADM_ZIP_DUPLICATE_ENTRY.test(error.message)) {
+      // eslint-disable-next-line preserve-caught-error -- adm-zip の例外（entry 名が古くなる上流の不具合）を製品の例外へ持ち込まない（oct26-m5-t16。PoiPackageService.ts の 79〜85 行）
       throw new Error(`Duplicate ${kindLabel} entry`);
     }
     throw error;

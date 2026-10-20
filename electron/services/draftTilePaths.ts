@@ -34,6 +34,7 @@ export const draftTileRoot: string = resolveRuntimeStoragePaths(
 // 条件1: validUid と同一基準（src/services/assetDraftStore.ts の validUid と同条件:
 // string・trim() 一致・長さ 1..256・制御文字 U+0000〜U+001F なし）
 const validSegmentBase = (value: unknown): value is string =>
+  // eslint-disable-next-line no-control-regex -- 制御文字 U+0000〜U+001F を拒否する検査そのもの（意図どおりの正規表現）
   typeof value === 'string' && value.trim() === value && value.length > 0 && value.length <= 256 && !/[\u0000-\u001f]/.test(value);
 
 /**
