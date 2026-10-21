@@ -3239,7 +3239,10 @@ const loadBaseMapVisibility = async () => {
         rawBaseMapVisibility.value = raw;
         baseMapVisibilityList.value = raw
             .filter((item: BaseMapVisibilityItem) =>
-                !isProviderBaseMapData(item?.data) || isGoogleEditorBasemap(item?.data, !!editorGoogleKey.value));
+                // 【NOV26-IR-EDITOR-FEAT3-0459 MINOR-1】旧い保存形（kind が無く maptype が google_*）は
+                // isProviderBaseMapData に当たらないので、google は provider の判定と別に、キーの条件だけで通す
+                (!isProviderBaseMapData(item?.data) && baseMapProviderKindOf(item?.data) !== 'google')
+                || isGoogleEditorBasemap(item?.data, !!editorGoogleKey.value));
     } catch (e: any) {
         console.error('[loadBaseMapVisibility] Failed:', e);
         baseMapVisibilityError.value = e?.message || String(e);

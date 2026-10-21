@@ -165,8 +165,9 @@ const mapedit = await readFile(path.join(projectRoot, "src/views/MapEdit.vue"), 
   // 従来述語を消さず、google 述語を OR で足す
   assert.match(
     mapedit,
-    /!isProviderBaseMapData\(item\?\.data\)\s*\|\|\s*isGoogleEditorBasemap\(item\?\.data,/,
-    "AC6: フィルタが「従来述語 OR google 述語」になっていない",
+    // NOV26-IR-EDITOR-FEAT3-0459 MINOR-1: 旧い保存形の google を従来述語の側で通さない（キーの条件だけで通す）
+    /\(!isProviderBaseMapData\(item\?\.data\)\s*&&\s*baseMapProviderKindOf\(item\?\.data\)\s*!==\s*'google'\)\s*\|\|\s*isGoogleEditorBasemap\(item\?\.data,/,
+    "AC6: フィルタが「（従来述語 かつ google でない）OR google 述語」になっていない",
   );
   // キーの有無は述語の第2引数で渡す（キー未解決なら出さない）
   assert.match(mapedit, /isGoogleEditorBasemap\(item\?\.data,\s*!!editorGoogleKey\.value\)/);
