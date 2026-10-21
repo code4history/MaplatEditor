@@ -695,7 +695,8 @@
       "pwa_fallback": "La génération des images PWA a échoué ; seules les icônes de base ont été générées.",
       "no_icon_source": "Aucune image source d'icône PWA n'étant définie, aucune icône n'a été générée.",
       "missing_thumbnail": "Certaines miniatures de fonds de carte/superpositions sont introuvables.",
-      "missing_splash": "L'image de l'écran de démarrage est introuvable."
+      "missing_splash": "L'image de l'écran de démarrage est introuvable.",
+      "og_image_failed": "L'image de carte pour les réseaux sociaux (og:image) n'a pas pu être dessinée et n'a donc pas été incluse."
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Rechercher des cartes…",

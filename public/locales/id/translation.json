@@ -695,7 +695,8 @@
       "pwa_fallback": "Pembuatan gambar PWA gagal, sehingga hanya ikon dasar yang dibuat.",
       "no_icon_source": "Gambar sumber ikon PWA belum diatur, sehingga ikon tidak dibuat.",
       "missing_thumbnail": "Beberapa thumbnail peta dasar/overlay tidak ditemukan.",
-      "missing_splash": "Gambar layar pembuka tidak ditemukan."
+      "missing_splash": "Gambar layar pembuka tidak ditemukan.",
+      "og_image_failed": "Gambar kartu media sosial (og:image) tidak dapat digambar, sehingga tidak disertakan."
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Cari peta…",

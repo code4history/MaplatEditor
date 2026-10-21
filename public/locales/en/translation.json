@@ -677,7 +677,8 @@
       "pwa_fallback": "PWA image generation failed, so only basic icons were generated.",
       "no_icon_source": "PWA icon source is not set, so no icons were generated.",
       "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
-      "missing_splash": "The splash image was not found."
+      "missing_splash": "The splash image was not found.",
+      "og_image_failed": "The social media card image (og:image) could not be rendered, so it was not included."
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Search maps…",

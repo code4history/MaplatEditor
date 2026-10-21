@@ -695,7 +695,8 @@
       "pwa_fallback": "Tạo ảnh PWA thất bại, chỉ đã tạo biểu tượng cơ bản.",
       "no_icon_source": "Chưa thiết lập ảnh gốc biểu tượng PWA nên không tạo biểu tượng.",
       "missing_thumbnail": "Không tìm thấy ảnh thu nhỏ của một số bản đồ nền/lớp phủ.",
-      "missing_splash": "Không tìm thấy ảnh màn hình khởi động."
+      "missing_splash": "Không tìm thấy ảnh màn hình khởi động.",
+      "og_image_failed": "Không thể vẽ ảnh thẻ cho mạng xã hội (og:image) nên đã không đưa vào."
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Tìm bản đồ…",
