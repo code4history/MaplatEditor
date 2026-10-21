@@ -169,6 +169,58 @@ export function isProviderBaseMapData(
   return isProviderKind(data?.kind ?? data?.maptype);
 }
 
+// nov26-editor-feat3: provider 種別を 1 値として切り出す。エディタ背景へ通すのは google だけ
+// （mapbox/maplibre は従来どおり除外）という条件分岐を、文字列比較の散在ではなく本述語へ寄せる。
+// 判定規則は isProviderBaseMapData と同一（kind 優先・maptype フォールバック）
+export type ProviderBaseMapKind = "google" | "mapbox" | "maplibre";
+export function baseMapProviderKindOf(
+  data: { kind?: unknown; maptype?: unknown } | null | undefined,
+): ProviderBaseMapKind | null {
+  const kind = data?.kind;
+  if (isProviderKind(kind)) return kind as ProviderBaseMapKind;
+  // 明示 kind が provider 以外なら maptype を見ない（isProviderBaseMapData と同じ kind 優先）
+  if (kind !== undefined && kind !== null && kind !== "") return null;
+  const maptype = data?.maptype;
+  if (isProviderKind(maptype)) return maptype as ProviderBaseMapKind;
+  // google の maptype は viewer 軸の `google_roadmap` 等であり `google` と一致しない。
+  // 旧保存形（kind を持たず maptype が google_*）を取りこぼさないため接頭辞で受ける
+  // （設計レビュー 2026-10-21 MINOR a。mapbox/maplibre の maptype は種別名そのもの）
+  if (typeof maptype === "string" && maptype.startsWith("google")) return "google";
+  return null;
+}
+
+// nov26-editor-feat3: 編集用ベースマップの選択肢に google を出してよいか。
+// 条件は「種別 google」かつ「エディタ用 Google Maps API キーが解決できる」の AND（設計 §4.1/§4.3）。
+// キーが無いときは出さない（呼び出し側が理由を注記する）。
+// maptype は ol/source/Google が解釈できる google_* のみ通す。旧保存形（kind が無く
+// maptype が google_*）も normalizeGoogleMaptype の kind フォールバックで受ける
+// （設計レビュー 2026-10-21 MINOR a）
+export function isGoogleEditorBasemap(
+  data: { kind?: unknown; maptype?: unknown } | null | undefined,
+  keyAvailable: boolean,
+): boolean {
+  if (!keyAvailable) return false;
+  if (baseMapProviderKindOf(data) !== "google") return false;
+  return normalizeGoogleMaptype(data?.maptype, "google") !== null;
+}
+
+// nov26-editor-feat3（設計レビュー 2026-10-21 MINOR c）: ol/source/Google の language / region の
+// 既定値は en-US / US。エディタの表示言語（currentLang）を渡す。region は CLDR の地域識別子で
+// あり言語コードだけからは決まらないため、Intl.Locale.maximize()（likely subtags）で導く。
+// 表を手で持たないのは、対応言語が増えたときに表だけが取り残されるのを避けるため。
+// 導けない場合は region を空で返し、ol 側の既定に委ねる（推測した地域を書き込まない）
+export function googleTileLocaleOf(lang: unknown): { language: string; region: string } {
+  const language = typeof lang === "string" && lang.trim() ? lang.trim() : "en";
+  let region: string;
+  try {
+    const maximized = new Intl.Locale(language).maximize();
+    region = typeof maximized.region === "string" ? maximized.region : "";
+  } catch {
+    region = "";
+  }
+  return { language, region };
+}
+
 // m22-t1: ベースマップ IPC の item から、レイヤ生成に使う data 複製を作る。
 //
 // なぜ必要か（設計書 §3.4）: 実行時専用の url_ は item レベルに来る（永続層 data_json も

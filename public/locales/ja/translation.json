@@ -409,6 +409,8 @@
     "edit_layer": "地図レイヤ編集",
     "edit_coordinate": "座標編集",
     "no_selected_base_maps": "左の一覧からベースマップを追加してください。",
+    "base_map_google_key_missing": "Google のベースマップは、エディタ用の Google Maps API キーが未設定のため選択肢に出していません（設定 > ベースマップ）。",
+    "base_map_google_failed": "Google のベースマップを読み込めませんでした（API キーとネットワークを確認してください）。",
     "basemap_settings_note": "この設定は地図のコンテンツではなく、エディタの表示設定です。",
     "thumbnail_manage": "サムネイル管理",
     "thumbnail_derive_52": "512pxから52pxも作成する",
