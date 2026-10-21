@@ -90,7 +90,9 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
   }
 
   function persist(): Promise<void> {
-    const snapshot = items.value;
+    // IPC は structured clone で運ぶため、Vue の reactive proxy をそのまま渡せない
+    // （渡すと "An object could not be cloned." で保存が失敗する）。素の値へ写してから書く。
+    const snapshot = items.value.map((entry) => ({ q: entry.q, at: entry.at }));
     writes = writes.then(async () => {
       const next: RecentSearches = { ...stored, [kind]: snapshot };
       try {
