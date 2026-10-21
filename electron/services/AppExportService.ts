@@ -849,6 +849,8 @@ class AppExportService {
     } catch (e) {
       console.error('[AppExportService] PWA asset rendering failed', e);
       warnings.push('appedit.export.pwa_fallback');
+      // 【NOV26-IR-EDITOR174-0453 MIN-3】途中まで描いた画像を残すと退避のアイコンと混ざって zip に入るので、先に空にする
+      await fs.emptyDir(pagDir).catch(() => undefined);
       return await this.generateFallbackIcons(iconSource, pagDir, appID);
     }
   }

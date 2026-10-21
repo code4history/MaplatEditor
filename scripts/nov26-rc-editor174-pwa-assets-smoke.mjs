@@ -148,6 +148,15 @@ try {
       const withAppId = (value: any) =>
         JSON.parse(JSON.stringify(value).split('pwa/' + baseline.appIdPlaceholder).join('pwa/' + APP_ID));
 
+      // 【NOV26-IR-EDITOR174-0453 MIN-2】背景色は色の書式だけを通し、<style> を閉じる文字列は既定色に置き換える
+      for (const ok of ['#fff', '#f6f0d3', '#f6f0d3cc', 'rgb(1, 2, 3)', 'rgba(1,2,3,0.5)', 'hsl(10 20% 30%)', 'white', 'transparent']) {
+        assert.equal(pwaAssets.sanitizeCssColor(ok), ok, '背景色 ' + ok + ' は通るはず');
+      }
+      for (const bad of ['</style><script>alert(1)</script>', 'red;}body{x:1', 'url(http://x)', '#ggg', '', 'expression(1)']) {
+        assert.equal(pwaAssets.sanitizeCssColor(bad), pwaAssets.PWA_DEFAULT_BACKGROUND, '背景色 ' + bad + ' は既定色になるはず');
+      }
+      assert.ok(!pwaAssets.buildPwaShellHtml('</style><script>x</script>').includes('<script>'), 'シェル HTML に script が入らないはず');
+      console.log('ok MIN-2: 背景色の書式の検査');
       // 仕様（名前・順序）が基準と一致する
       const iconSpecs = pwaAssets.getPwaIconSpecs(OUT);
       assert.equal(iconSpecs.length, 8, '仕様: アイコンは 8 件のはず');

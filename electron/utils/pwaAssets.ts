@@ -255,6 +255,9 @@ export function pwaZoomFor(
 
 /** 描画用のシェル HTML（一時ファイルに書いて file: で読む）。CSS に % は書かない。 */
 export function buildPwaShellHtml(background: string): string {
+  // 【NOV26-IR-EDITOR174-0453 MIN-2】背景色は <style> に埋め込むので、CSS の色として安全な書式だけを通す
+  // （`</style><script>` 等を入れさせない）。書式に合わなければ既定の背景色にする
+  background = sanitizeCssColor(background);
   return `<!doctype html><html><head><meta charset="utf-8"><style>
   html,body{margin:0;padding:0;overflow:hidden;background:${background}}
   body{box-sizing:border-box;position:relative}
@@ -291,4 +294,14 @@ export function buildPwaApplyScript(box: PwaContainBox, sourceUrl?: string): str
     }
   });
 })()`;
+}
+
+/** 背景色として通す書式: #rgb・#rgba・#rrggbb・#rrggbbaa・rgb()/rgba()/hsl()/hsla()（数字・%・空白・カンマ・点・スラッシュだけ）・英字だけの色名・transparent。それ以外は既定の色。 */
+export const PWA_DEFAULT_BACKGROUND = '#f6f0d3';
+export function sanitizeCssColor(value: unknown): string {
+  const v = String(value ?? '').trim();
+  if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) return v;
+  if (/^(?:rgba?|hsla?)\([0-9.,%\s/]+\)$/i.test(v)) return v;
+  if (/^[a-zA-Z]{3,30}$/.test(v)) return v;
+  return PWA_DEFAULT_BACKGROUND;
 }

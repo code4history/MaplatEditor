@@ -127,6 +127,9 @@ async function drawSpec(
       break;
     } catch (error) {
       lastError = error;
+      // 【NOV26-IR-EDITOR174-0453 MIN-1】再試行するのはリサイズ直後の一時的な失敗（UnknownVizError 等）だけ。
+      // 応答が無いまま時間切れになったら、40 回×60 秒固まらないよう、すぐ退避（jimp）へ落とす
+      if (error instanceof Error && error.message.startsWith('pwa-render-timeout:')) break;
       await delay(CAPTURE_RETRY_DELAY_MS);
     }
   }
@@ -179,6 +182,10 @@ export async function renderPwaAssets(args: {
         partition: PWA_RENDER_PARTITION,
       },
     });
+    // 【NOV26-IR-EDITOR174-0453 MIN-2】描画用のウィンドウは、遷移・新しいウィンドウ・権限要求をすべて断る
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', (event) => event.preventDefault());
+    win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
     const renderWindow = win;
     const shellPath = path.join(tmpDir, 'pwa-shell.html');
     await fs.writeFile(shellPath, buildPwaShellHtml(args.background));
