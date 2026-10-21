@@ -89,6 +89,10 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     '<?xml version="1.0" encoding="UTF-8"?>\n<!-- コメント -->\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n<svg:svg xmlns:svg="http://www.w3.org/2000/svg" width="100px" height="50px"><svg:g/><svg:g></svg:g></svg:svg>\n',
     // CDATA と自己終了・属性の並び
     '<svg width="10" height="10"><style><![CDATA[ .a { fill: red; } ]]></style><path d="M0 0h10v10z" /></svg>',
+    // % 指定でも viewBox があれば大きさが決まる（実在の書き方）
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"><defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs><text x="1" y="2">a &amp; b</text></svg>',
+    // DOCTYPE の内部サブセット（`[ ... ]` の中の `>` で切らない）
+    '<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg width="1" height="1"/>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
