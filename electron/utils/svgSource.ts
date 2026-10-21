@@ -17,6 +17,11 @@
 // 「文字参照で書いた javascript:」「XHTML 名前空間の要素」「DTD の内部実体」がすり抜けるため、
 // 値のデコード後の判定・名前空間の解決後の許可リスト・実体の宣言の拒否を足した。
 //
+// 【NOV26-IM-M12-SVG-HARDEN-0479】レビュー（Major 3・Minor 1）を受けて、字面の取り違えで
+// すり抜けられる 4 つの経路を塞いだ: SMIL の属性を名前空間なしの完全一致の名前で引くこと・
+// DOCTYPE の内部サブセットをまるごと拒否すること・XML 宣言の encoding を UTF-8 に限ること・
+// CSS のエスケープ（`\`）を拒否すること。
+//
 // electron に依存しない（node の smoke から直接読む）。
 
 export type SvgMarkupCheck = { ok: true } | { ok: false; reason: string };
@@ -30,7 +35,7 @@ export function isSvgExt(ext: unknown): boolean {
 
 /** XML の名前（名前空間の接頭辞を含んでよい） */
 const NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*/;
-/** DOCTYPE の内部サブセットに実体の宣言があるか */
+/** 宣言の中に実体の宣言があるか（内部サブセットは既に拒否しているので、二重の検査として残す） */
 const ENTITY_DECLARATION = /<!\s*ENTITY/i;
 /** 長さ（単位なし or px。`%` は固有の大きさにならないので大きさとして数えない） */
 const LENGTH = /^([0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)\s*(?:px)?$/;
@@ -187,6 +192,10 @@ function urlViolation(normalized: string): string | null {
 /** style 属性・`<style>` の中身として受け付けない書き方（デコード済みの値を渡す） */
 function styleViolation(css: string): string | null {
   const normalized = normalizeValue(css);
+  // 【NOV26-IM-M12-SVG-HARDEN-0479】CSS のエスケープ（`\`）は受け付けない。`@\69 mport`・`\75 rl(` の
+  // ように、字面の一致で見ている `@import`・`url(` を書かずに同じ意味にできるため。
+  // デコード（文字参照）の後の中身で見るので、`&#92;` で書いたものも同じように落ちる
+  if (normalized.includes('\\')) return 'CSS escape';
   if (normalized.includes('javascript:')) return 'javascript:';
   if (normalized.includes('vbscript:')) return 'vbscript:';
   if (normalized.includes('expression(')) return 'expression(';
@@ -195,6 +204,19 @@ function styleViolation(css: string): string | null {
   const url = urlViolation(normalized);
   if (url !== null) return url;
   return null;
+}
+
+/**
+ * XML 宣言（`<?xml` と `?>` の間）の encoding を返す。宣言に encoding が無ければ `null`。
+ * 値は前後の空白を落として小文字にする（大文字小文字と前後の空白は問わない）。
+ * 引用符で囲まれていない値は XML の宣言として不正なので、正規化せずそのまま返す
+ * （`checkSvgMarkup` 側で `UTF-8` 以外として拒否される）。
+ */
+function xmlDeclarationEncoding(declaration: string): string | null {
+  const match = /(?:^|\s)encoding\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(declaration);
+  if (match === null) return null;
+  if (match[3] !== undefined) return match[3];
+  return (match[1] ?? match[2] ?? '').trim().toLowerCase();
 }
 
 /** 名前空間の文脈（接頭辞 → URI と既定の名前空間） */
@@ -224,12 +246,18 @@ function hasSize(attributes: Map<string, string>): boolean {
 /**
  * SVG のテキストを確かめる。
  * 通る条件: 先頭以外に要素が無い・ルートが `svg`（接頭辞つき可）・要素が対応している・
- * 属性が引用符つきで重複が無い・ルートに width+height（px/単位なし）か viewBox がある。
+ * 属性が引用符つきで重複が無い・ルートに width+height（px/単位なし）か viewBox がある・
+ * DOCTYPE に内部サブセットが無い・XML 宣言の encoding が `UTF-8`（か未指定）・BOM が UTF-8 のもの 1 つ。
  */
 export function checkSvgMarkup(text: string): SvgMarkupCheck {
   if (typeof text !== 'string') return INVALID('not text');
-  // BOM は XML で許される
+  // 【NOV26-IM-M12-SVG-HARDEN-0479】BOM は UTF-8 のもの（デコード後の U+FEFF）だけを 1 つ許す。
+  // UTF-16 の BOM（FE FF・FF FE）は、読み違えると符号の並びが変わるので拒否する
+  // （U+FFFE は UTF-16 の BOM を逆の符号で読んだもの）
   const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  if (source.charCodeAt(0) === 0xfeff || source.charCodeAt(0) === 0xfffe) {
+    return INVALID('byte order mark not allowed');
+  }
   if (source.trim().length === 0) return INVALID('empty');
 
   const stack: string[] = [];
@@ -293,25 +321,30 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       if (index !== 0 || !/^xml(?:\s|$)/.test(source.slice(index + 2, end))) {
         return INVALID(`processing instruction not allowed: ${target}`);
       }
+      // 【NOV26-IM-M12-SVG-HARDEN-0479】宣言の encoding は書かないか `UTF-8` だけを許す。
+      // バイト列は UTF-8 としてしか読まないので、他の encoding を名乗る文書は解釈が割れる
+      // （ISO-2022-JP・Shift_JIS・UTF-16・`utf8` の綴り違いなど）
+      const declaredEncoding = xmlDeclarationEncoding(source.slice(index + 5, end));
+      if (declaredEncoding !== null && declaredEncoding !== 'utf-8') {
+        return INVALID(`encoding not allowed: ${declaredEncoding}`);
+      }
       index = end + 2;
       continue;
     }
-    // DOCTYPE（ルートより前だけ。`[ ... ]` の入れ子を許す）
+    // DOCTYPE（ルートより前だけ）
     if (source.startsWith('<!', index)) {
       if (rootName !== null) return INVALID('declaration after root');
-      let depth = 0;
-      let cursor = index + 2;
-      for (; cursor < source.length; cursor += 1) {
-        const ch = source[cursor];
-        if (ch === '[') depth += 1;
-        else if (ch === ']') depth -= 1;
-        else if (ch === '>' && depth <= 0) break;
-      }
-      if (cursor >= source.length) return INVALID('unterminated declaration');
-      // 【SR-C1-M-1】内部サブセットの実体の宣言は受け付けない（`&x;` で javascript: を持ち込める）。
-      // DOCTYPE そのもの（外部 ID だけ・実体の宣言が無い内部サブセット）は今までどおり通す
-      if (ENTITY_DECLARATION.test(source.slice(index, cursor + 1))) return INVALID('entity declaration in DOCTYPE');
-      index = cursor + 1;
+      const end = source.indexOf('>', index + 2);
+      if (end < 0) return INVALID('unterminated declaration');
+      const declaration = source.slice(index, end + 1);
+      // 【NOV26-IM-M12-SVG-HARDEN-0479】内部サブセット（`[ ... ]`）はまるごと拒否する。
+      // 実体の宣言だけでなく ATTLIST の既定値（`<!ATTLIST svg onload CDATA "x">`）でも、
+      // この検査が見ていない属性を補えるため。あわせて `[` `]` の数え方（引用符の中の `]` や `>`）の
+      // 取り違えも消える。外部 ID だけの DOCTYPE（今までどおり）は通す
+      if (declaration.includes('[')) return INVALID('internal subset in DOCTYPE');
+      // 【SR-C1-M-1】念のため、実体の宣言そのものも拒否する（`&x;` で javascript: を持ち込める）
+      if (ENTITY_DECLARATION.test(declaration)) return INVALID('entity declaration in DOCTYPE');
+      index = end + 1;
       continue;
     }
     // 終了タグ
@@ -452,15 +485,29 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
 
     // 【NOV26-IM-M12-SVG-HARDEN-0478】SMIL のアニメーションは実行時に属性を書き換えられる。
     // attributeName が参照・style・イベントを指すものは拒否し、値にも scheme の判定をかける。
-    // `mpath` の href は属性の判定（REFERENCE_ATTRIBUTES・javascript:）でそのまま見ている
     if (SMIL_ELEMENTS.has(localName(name))) {
-      const valueByLocalName = (local: string): string | undefined => {
-        for (const [attrName, attrValue] of attributes) {
-          if (localName(attrName) === local) return attrValue;
+      // 【NOV26-IM-M12-SVG-HARDEN-0479】SMIL の属性は**名前空間なしの属性だけ**を完全一致の名前で引く。
+      // 接頭辞を落とした局所名で最初の値を返していたため、`inkscape:attributeName="x"` を本物より前に
+      // 置くと本物の `attributeName="href"` を見落とせた。同じ局所名の属性が名前空間違いで
+      // 複数ある要素は、どれが本物か決められないので拒否する（正しい XML でも同じ名前は重ならない）
+      const byLocal = new Map<string, number>();
+      for (const attrName of attributes.keys()) {
+        if (attrName === 'xmlns' || attrName.startsWith('xmlns:')) continue;
+        const local = localName(attrName);
+        byLocal.set(local, (byLocal.get(local) ?? 0) + 1);
+      }
+      for (const [local, count] of byLocal) {
+        if (count > 1) return INVALID(`ambiguous attribute in animation: ${local}`);
+      }
+      // xlink:href は接頭辞の綴りではなく名前空間で引く（接頭辞は任意）
+      const xlinkHref = (): string | undefined => {
+        for (const attrName of attributes.keys()) {
+          if (prefixOf(attrName) === '' || localName(attrName) !== 'href') continue;
+          if (resolvePrefix(prefixOf(attrName)) === XLINK_NS) return attributes.get(attrName);
         }
         return undefined;
       };
-      const targetAttribute = valueByLocalName('attributename');
+      const targetAttribute = attributes.get('attributeName');
       if (targetAttribute !== undefined) {
         // デコード後の値を接頭辞なしの局所名・小文字にしてから見る（`xlink:href` → `href`）
         const target = localName(targetAttribute.trim());
@@ -471,7 +518,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
           return INVALID(`attributeName not allowed: ${targetAttribute}`);
         }
       }
-      const animatedValues = valueByLocalName('values');
+      const animatedValues = attributes.get('values');
       if (animatedValues !== undefined) {
         // `values` は `;` で分けた各値をそれぞれ見る（`0;javascript:...` をすり抜けさせない）
         for (const part of animatedValues.split(';')) {
@@ -479,8 +526,15 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
           if (violation !== null) return INVALID(`animation value not allowed: ${violation}`);
         }
       }
-      for (const local of ['from', 'to', 'by']) {
-        const value = valueByLocalName(local);
+      // from・to・by と、アニメーションの対象を指す href（`mpath` の xlink:href を含む）
+      const animatedAttributes: [string, string | undefined][] = [
+        ['from', attributes.get('from')],
+        ['to', attributes.get('to')],
+        ['by', attributes.get('by')],
+        ['href', attributes.get('href')],
+        ['xlink:href', xlinkHref()],
+      ];
+      for (const [, value] of animatedAttributes) {
         if (value === undefined) continue;
         const violation = animationValueViolation(value);
         if (violation !== null) return INVALID(`animation value not allowed: ${violation}`);
@@ -507,6 +561,10 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
 
 /** ファイルのバイト列を UTF-8 として読み、SVG として確かめる（文字コードが壊れていれば不可） */
 export function checkSvgBytes(bytes: Uint8Array): SvgMarkupCheck {
+  // 【NOV26-IM-M12-SVG-HARDEN-0479】UTF-16 の BOM（FE FF・FF FE）で始まるものは受け付けない
+  if ((bytes[0] === 0xfe && bytes[1] === 0xff) || (bytes[0] === 0xff && bytes[1] === 0xfe)) {
+    return INVALID('utf-16 byte order mark');
+  }
   let text: string;
   try {
     text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);

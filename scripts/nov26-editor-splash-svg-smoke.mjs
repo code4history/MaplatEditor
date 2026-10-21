@@ -16,6 +16,10 @@
 //       許可リスト外の SVG 名前空間の要素（handler・listener・unknownElement 等）・SMIL のアニメーションで
 //       参照・style・イベントを指す attributeName・アニメーションの値に書いた javascript:/vbscript:/data: は拒否する。
 //       一方、Inkscape 1.x の既定保存（Inkscape SVG）のメタデータ（inkscape/sodipodi/RDF/DC/CC）は通す
+//       【NOV26-IM-M12-SVG-HARDEN-0479】レビュー（Major 3・Minor 1）の決定: SMIL の属性は名前空間なしの
+//       完全一致の名前で引き（同じ局所名が名前空間違いで複数あれば拒否）・DOCTYPE の内部サブセットは
+//       まるごと拒否（外部 ID だけは通す）・XML 宣言の encoding は UTF-8 か未指定だけ・BOM は UTF-8 の
+//       ものだけ・`<style>` と style 属性の CSS に `\`（エスケープ）があれば拒否
 //   (c) 保存前の表示: 拡張子 allowlist を経路で分ける（スプラッシュは svg 可・アセットは不可）
 //   (d) 書き出し: スプラッシュの複製と app JSON の splash は拡張子のまま。og:image は
 //       SVG のとき Chromium で描いた PNG（1200x630・背景で余白）
@@ -30,7 +34,7 @@ import path from "node:path";
 
 // electron 非依存の純粋モジュール（node の型ストリップで直接読む）
 import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS } from "../electron/utils/imagePickFilters.ts";
-import { checkSvgMarkup, isSvgExt } from "../electron/utils/svgSource.ts";
+import { checkSvgBytes, checkSvgMarkup, isSvgExt } from "../electron/utils/svgSource.ts";
 import {
   ASSET_PREVIEW_ALLOWED_EXTS,
   SPLASH_PREVIEW_ALLOWED_EXTS,
@@ -99,12 +103,19 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     '<svg width="10" height="10"><style><![CDATA[ .a { fill: red; } ]]></style><path d="M0 0h10v10z" /></svg>',
     // % 指定でも viewBox があれば大きさが決まる（実在の書き方）
     '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"><defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs><text x="1" y="2">a &amp; b</text></svg>',
-    // DOCTYPE の内部サブセット（`[ ... ]` の中の `>` で切らない）。
-    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】ENTITY の宣言は拒否の側へ移した（宣言そのものが実体の持ち込みになる）。
-    // 内部サブセットがあること自体は今までどおり通す
-    '<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ATTLIST svg foo CDATA #IMPLIED> ]><svg width="1" height="1"/>',
-    // 外部 ID だけの DOCTYPE（今までどおり）
+    // DOCTYPE の内部サブセット（`[ ... ]`）は
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】まるごと拒否の側へ移した（ATTLIST の既定値で検査の見ていない
+    // 属性を補えるため）。外部 ID だけの DOCTYPE は今までどおり通す
     '<!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="1" height="1"/>',
+    '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="1" height="1"/>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】XML 宣言の encoding は書かないか `UTF-8` だけ
+    // （大文字小文字・前後の空白は問わない）
+    '<?xml version="1.0"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding="UTF-8"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding="utf-8" standalone="no"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding=" utf-8 "?><svg width="1" height="1"/>',
+    // BOM は UTF-8 のもの（1 つだけ）を今までどおり許す
+    '\uFEFF<svg width="1" height="1"/>',
     // Illustrator の典型的な書き出し（xlink の宣言・style 要素・xml:space・fill="url(#id)" は属性なので可）
     '<?xml version="1.0" encoding="utf-8"?>\n'
       + '<!-- Generator: Adobe Illustrator 27.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->\n'
@@ -267,10 +278,65 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     // 【NOV26-IM-M12-SVG-HARDEN-0478】4. メタデータ名前空間の子孫でも名前空間の判定はそのまま
     ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo><h:iframe/></i:foo></svg>', "inkscape の要素の子の XHTML の iframe"],
     ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo h:x="1"/></svg>', "メタデータの要素の XHTML 名前空間の属性"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】1. SMIL の属性は名前空間なしの属性だけを完全一致の名前で引く。
+    // 接頭辞を落とした局所名で最初の値を返していたため、`inkscape:attributeName` を本物より前に
+    // 置くと本物の `attributeName="href"` を見落とせた
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate inkscape:attributeName="x" attributeName="href" inkscape:values="0" values="#a;javascript:alert(1)"/></svg>', "メタデータの接頭辞を本物の属性の前に置いた animate"],
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate attributeName="href" inkscape:attributeName="x" values="#a;javascript:alert(1)" inkscape:values="0"/></svg>', "属性の順を入れ替えた同上"],
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate attributeName="opacity" inkscape:attributeName="x" values="0;1" dur="1s"/></svg>', "同じ局所名の属性が名前空間違いで 2 つある animate"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】2. DTD の内部サブセットはまるごと拒否（ATTLIST の既定値で、
+    // この検査が見ていない属性を補えるため。`[` `]` の数え方の取り違えも同時に消える）
+    ['<!DOCTYPE svg [<!ATTLIST svg onload CDATA "x">]><svg width="10" height="10"/>', "ATTLIST の既定値で onload を補う内部サブセット"],
+    ['<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ATTLIST svg foo CDATA #IMPLIED> ]><svg width="1" height="1"/>', "無害に見える ATTLIST の内部サブセット（以前は通していた例）"],
+    ['<!DOCTYPE svg [<!ATTLIST svg a CDATA "]">]><svg width="10" height="10"/>', "宣言の中に \"]\" を含む内部サブセット"],
+    ['<!DOCTYPE svg [<!ATTLIST svg a CDATA ">">]><svg width="10" height="10"/>', "宣言の中に \">\" を含む内部サブセット"],
+    ['<!DOCTYPE svg []><svg width="10" height="10"/>', "空の内部サブセット"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】3. XML 宣言の encoding は書かないか `UTF-8` だけ
+    ['<?xml version="1.0" encoding="ISO-2022-JP"?><svg width="10" height="10"/>', "ISO-2022-JP の宣言"],
+    ['<?xml version="1.0" encoding="Shift_JIS"?><svg width="10" height="10"/>', "Shift_JIS の宣言"],
+    ['<?xml version="1.0" encoding="UTF-16"?><svg width="10" height="10"/>', "UTF-16 の宣言"],
+    ["<?xml version='1.0' encoding='UTF-16LE'?><svg width=\"10\" height=\"10\"/>", "単一引用符の UTF-16LE の宣言"],
+    ['<?xml version="1.0" encoding="utf8"?><svg width="10" height="10"/>', "utf8 の綴り違いの宣言"],
+    ['\uFFFE<?xml version="1.0"?><svg width="10" height="10"/>', "UTF-16 の BOM を逆の符号で読んだもの"],
+    ['\uFEFF\uFEFF<svg width="10" height="10"/>', "BOM が 2 つ"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】4. CSS のエスケープ（`@\\69 mport`・`\\75 rl(` など）
+    ['<svg width="10" height="10"><style>@\\69 mport url("http://example.invalid/x.css");</style><rect width="1" height="1"/></svg>', "<style> のエスケープで書いた @import"],
+    ['<svg width="10" height="10"><style>.a{fill:\\75 rl(http://x/a.svg#a)}</style><rect width="1" height="1"/></svg>', "<style> のエスケープで書いた url("],
+    ['<svg width="10" height="10"><rect style="fill:\\75 rl(#a)" width="1" height="1"/></svg>', "style 属性のエスケープで書いた url("],
+    ['<svg width="10" height="10"><style>.a{color:&#92;65 xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照で書いた CSS エスケープ"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);
     assert.equal(result.ok, false, `${why} を正しい SVG として通した: ${text.slice(0, 60)}`);
+  }
+
+  // 【NOV26-IM-M12-SVG-HARDEN-0479】バイト列の BOM は UTF-8 のものだけを通す。
+  // UTF-16 の文書（BOM つき）は UTF-8 として読めないので拒否する
+  {
+    const encode = (text) => new TextEncoder().encode(text);
+    const document = '<?xml version="1.0" encoding="UTF-16"?><svg width="10" height="10"/>';
+    const utf16 = (littleEndian) => {
+      const bytes = new Uint8Array(2 + document.length * 2);
+      bytes[0] = littleEndian ? 0xff : 0xfe;
+      bytes[1] = littleEndian ? 0xfe : 0xff;
+      for (let i = 0; i < document.length; i += 1) {
+        const code = document.charCodeAt(i);
+        bytes[2 + i * 2 + (littleEndian ? 0 : 1)] = code & 0xff;
+        bytes[2 + i * 2 + (littleEndian ? 1 : 0)] = code >> 8;
+      }
+      return bytes;
+    };
+    assert.deepEqual(
+      checkSvgBytes(new Uint8Array([0xef, 0xbb, 0xbf, ...encode('<svg width="10" height="10"/>')])),
+      { ok: true },
+      "UTF-8 の BOM つきの SVG を弾いた",
+    );
+    assert.equal(checkSvgBytes(utf16(false)).ok, false, "UTF-16BE（FE FF）の BOM つきの SVG を通した");
+    assert.equal(checkSvgBytes(utf16(true)).ok, false, "UTF-16LE（FF FE）の BOM つきの SVG を通した");
   }
 
   const service = await readSrc("electron/services/AppAssetService.ts");
