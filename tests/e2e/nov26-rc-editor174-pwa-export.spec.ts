@@ -15,7 +15,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
 
 const APP_ID = 'nov26-rc-editor174-app';
-const BASELINE = path.resolve(__dirname, '../../scripts/fixtures/nov26-rc-editor174-pwa-baseline.json');
+const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/nov26-rc-editor174-pwa-baseline.json');
 
 type Baseline = {
   appIdPlaceholder: string;
@@ -67,26 +67,27 @@ test.describe('nov26-rc-editor174: PWA 画像を Electron の Chromium で描く
         return uid;
       }, APP_ID);
 
-      // Chrome 起動の見張りを main に入れる（CJS の child_process を横取りし、ESM 側へも同期する）
-      const spyInstalled = await app.evaluate(async () => {
-        const { createRequire } = await import('node:module');
-        const mod = await import('node:module');
-        const req = createRequire(process.execPath);
-        const cp = req('child_process') as Record<string, unknown>;
+      // Chrome 起動の見張りを main に入れる。main は ESM なので dynamic import は使えず、
+      // Node の組み込みモジュールは process.getBuiltinModule で取る（CJS の実体を横取りする）
+      const spyInstalled = await app.evaluate(() => {
+        const cp = (process as unknown as {
+          getBuiltinModule: (id: string) => Record<string, unknown>;
+        }).getBuiltinModule('node:child_process');
         const g = globalThis as unknown as { __editor174CpCalls?: string[] };
         g.__editor174CpCalls = [];
+        let patched = 0;
         for (const name of ['spawn', 'exec', 'execFile', 'execSync', 'spawnSync', 'fork']) {
           const original = cp[name] as (...a: unknown[]) => unknown;
           if (typeof original !== 'function') continue;
+          patched += 1;
           cp[name] = (...args: unknown[]) => {
             g.__editor174CpCalls!.push(`${name}:${String(args[0])}`);
             return original.apply(cp, args);
           };
         }
-        (mod as unknown as { syncBuiltinESMExports: () => void }).syncBuiltinESMExports();
-        return true;
+        return patched;
       });
-      expect(spyInstalled).toBe(true);
+      expect(spyInstalled).toBeGreaterThan(0);
 
       // 実 UI から書き出す
       await openHash(page, `#/appedit?uid=${appUid}`);

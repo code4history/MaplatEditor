@@ -196,3 +196,24 @@ outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
 **提案**: 会期後に (a) `resourceAssets.ts` の探索を outDir 名に依存しない形へ改める、または
 (b) 既存 smoke 群が `APP_ROOT` を明示するよう揃える、のいずれかで偶然依存を解消する。
 放置しても現状は壊れないが、outDir 名の変更という**無関係な変更**が遠くの smoke を赤くする。
+
+## 11. PWA 画像生成の旧依存（pwa-asset-generator 系）を 12 月に撤去する（nov26-rc-editor174）
+
+**現状**: #174 で PWA の画像（アイコン 8・スプラッシュ 46）は **Electron 自身の Chromium**
+（`electron/utils/pwaChromiumRenderer.ts` の非表示 offscreen ウィンドウ）で描くようになった。
+`pwa-asset-generator`（および `puppeteer-core`・`chrome-launcher`）は **コードからは呼ばない** が、
+`package.json` には残っている。理由は、lockfile・`vite.config.ts:27` の external・
+`scripts/` 24 本の smoke の `external` 配列・`ci/pnpm-workspace.ci.yaml` の override 注記が連動し、
+RC（11 月）の回帰面を増やさないためである。
+
+**12 月の作業**: `pwa-asset-generator` を `dependencies` から外し、上記の連動箇所を掃除する。
+`pwa-asset-generator` の純関数に依存しているのは **smoke だけ**（`scripts/nov26-rc-editor174-pwa-assets-smoke.mjs`
+が基準ファイルとライブラリ生出力を突き合わせるブロックと、AC7 の端末寸法表の同一性検査）。撤去時に
+その 2 ブロックを消せば、基準ファイル `scripts/fixtures/nov26-rc-editor174-pwa-baseline.json` は
+そのまま期待値として使える。端末寸法表の再生成器 `scripts/generate-pwa-splash-devices.mjs` も同時に撤去する。
+
+**速度（実測 2026-10-21・この開発機）**: 54 枚で 512px 元画像 4.2 秒 / 4000px 写真 4.7 秒
+（従来の Chrome 経路は約 4 秒 / 約 16 秒）。2560px 級の写真で旧経路の 16 秒が効いていたので、
+その面は改善した。512px の小さい元画像では同程度で、`capturePage` の往復が支配的である。
+さらに縮めたければ 1 ウィンドウ内で複数サイズを同時に描いて 1 回で撮る（タイル状に並べる）等が考えられるが、
+本 RC では行わない。
