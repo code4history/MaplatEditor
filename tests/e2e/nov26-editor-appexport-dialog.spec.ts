@@ -135,55 +135,45 @@ test.describe('nov26-editor-appexport-dialog: アプリのエクスポートの�
       await page.getByTestId('app-title').fill('Explain App 未保存');
       await page.waitForTimeout(500);
 
-      // (1) 未保存のときの選択で取り消す → 小窓は開かない
-      const calls: string[] = [];
-      await app.evaluate(async ({ dialog }) => {
+      // 未保存のときの選択（3 択）だけを記録する。保存成功の OK など他の messageBox は混ぜない
+      const installHarness = async (dirtyResponse: number) => app.evaluate(async ({ dialog }, response) => {
         const g = globalThis as unknown as { __appExportOrder: string[] };
         g.__appExportOrder = [];
-        dialog.showMessageBox = (async () => {
-          g.__appExportOrder.push('dirty-choice');
-          return { response: 2, checkboxChecked: false };
-        }) as unknown as typeof dialog.showMessageBox;
-        dialog.showSaveDialog = (async () => {
-          g.__appExportOrder.push('save-dialog');
-          return { canceled: true, filePath: undefined };
-        }) as unknown as typeof dialog.showSaveDialog;
-      });
-      const canceledZip = path.join(e2eRoot, 'dirty-canceled.zip');
-      await stubSaveDialog(app, canceledZip);
-      await page.locator('[data-editor-action="export"]').click();
-      await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 60000 });
-      await page.waitForTimeout(1000);
-      await expect(page.getByTestId('app-export-options')).toHaveCount(0);
-      expect(existsSync(canceledZip)).toBe(false);
-      const firstOrder = await app.evaluate(async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
-      calls.push(...firstOrder);
-      expect(calls).toEqual(['dirty-choice']);
-
-      // (2) 「保存してエクスポート」を選ぶ → 保存の後に小窓。小窓で取り消すと書き出さない
-      await app.evaluate(async ({ dialog }) => {
-        const g = globalThis as unknown as { __appExportOrder: string[] };
-        g.__appExportOrder = [];
-        dialog.showMessageBox = (async () => {
-          g.__appExportOrder.push('dirty-choice');
+        dialog.showMessageBox = (async (...args: unknown[]) => {
+          const options = ((args.length > 1 ? args[1] : args[0]) ?? {}) as { buttons?: string[] };
+          if ((options.buttons?.length ?? 0) === 3) {
+            g.__appExportOrder.push('dirty-choice');
+            return { response, checkboxChecked: false };
+          }
           return { response: 0, checkboxChecked: false };
         }) as unknown as typeof dialog.showMessageBox;
         dialog.showSaveDialog = (async () => {
           g.__appExportOrder.push('save-dialog');
           return { canceled: true, filePath: undefined };
         }) as unknown as typeof dialog.showSaveDialog;
-      });
+      }, dirtyResponse);
+      const readOrder = async () =>
+        app.evaluate(async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
+
+      // (1) 未保存のときの選択で取り消す → 小窓は開かない
+      await installHarness(2); // 「取消」
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 60000 });
+      await page.waitForTimeout(1500);
+      await expect(page.getByTestId('app-export-options')).toHaveCount(0);
+      expect(await readOrder()).toEqual(['dirty-choice']); // 小窓も保存先の選択も呼ばれない
+
+      // (2) 「保存してエクスポート」を選ぶ → 保存の後に小窓。小窓で取り消すと書き出さない
+      await installHarness(0); // 「保存してエクスポート」
       await page.locator('[data-editor-action="export"]').click();
       const modal = page.getByTestId('app-export-options');
       await expect(modal).toBeVisible({ timeout: 60000 });
-      const orderWhileModal = await app.evaluate(async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
-      expect(orderWhileModal).toEqual(['dirty-choice']); // 保存の選択が済んでから小窓が出ている
+      expect(await readOrder()).toEqual(['dirty-choice']); // 保存の選択が済んでから小窓が出ている
       await page.getByTestId('app-export-options-cancel').click();
       await expect(modal).toHaveCount(0);
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 60000 });
-      await page.waitForTimeout(1000);
-      const afterCancel = await app.evaluate(async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
-      expect(afterCancel).toEqual(['dirty-choice']); // 小窓で取り消したので保存先の選択は呼ばれない
+      await page.waitForTimeout(1500);
+      expect(await readOrder()).toEqual(['dirty-choice']); // 小窓で取り消したので保存先の選択は呼ばれない
       console.log('  (b): PASS');
     } finally {
       await quitElectronApplication(app);
