@@ -8,6 +8,8 @@
 //       （PWA アイコン・アセット・地図画像は従来どおり）
 //   (b) 取り込み: uploadSplash は SVG を XML として確かめ（ルート svg・大きさあり）、
 //       `{uuid}.svg` で img/ へ複製する。壊れた SVG は InvalidImage
+//       【NOV26-SR-M12-C1-0465 SR-C1-M-1】文字参照で書いた javascript:/vbscript:/data:・
+//       XHTML（および他の）名前空間の要素・属性・DTD の内部実体・style の url(/expression(/@import は拒否する
 //   (c) 保存前の表示: 拡張子 allowlist を経路で分ける（スプラッシュは svg 可・アセットは不可）
 //   (d) 書き出し: スプラッシュの複製と app JSON の splash は拡張子のまま。og:image は
 //       SVG のとき Chromium で描いた PNG（1200x630・背景で余白）
@@ -91,8 +93,33 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     '<svg width="10" height="10"><style><![CDATA[ .a { fill: red; } ]]></style><path d="M0 0h10v10z" /></svg>',
     // % 指定でも viewBox があれば大きさが決まる（実在の書き方）
     '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"><defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs><text x="1" y="2">a &amp; b</text></svg>',
-    // DOCTYPE の内部サブセット（`[ ... ]` の中の `>` で切らない）
-    '<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg width="1" height="1"/>',
+    // DOCTYPE の内部サブセット（`[ ... ]` の中の `>` で切らない）。
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】ENTITY の宣言は拒否の側へ移した（宣言そのものが実体の持ち込みになる）。
+    // 内部サブセットがあること自体は今までどおり通す
+    '<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ATTLIST svg foo CDATA #IMPLIED> ]><svg width="1" height="1"/>',
+    // 外部 ID だけの DOCTYPE（今までどおり）
+    '<!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="1" height="1"/>',
+    // Illustrator の典型的な書き出し（xlink の宣言・style 要素・xml:space・fill="url(#id)" は属性なので可）
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+      + '<!-- Generator: Adobe Illustrator 27.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->\n'
+      + '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100;" xml:space="preserve">\n'
+      + '<style type="text/css">\n\t.st0{fill:#FFFFFF;}\n\t.st1{fill:none;stroke:#000000;stroke-width:2;}\n</style>\n'
+      + '<rect class="st0" width="100" height="100"/>\n'
+      + '<circle class="st1" cx="50" cy="50" r="20"/>\n'
+      + '<defs><linearGradient id="SVGID_1_"><stop offset="0" stop-color="#fff"/></linearGradient></defs>\n'
+      + '<rect x="0" y="0" width="10" height="10" fill="url(#SVGID_1_)"/>\n'
+      + '</svg>\n',
+    // Inkscape の書き出し（メタデータの名前空間なしで保存したもの）
+    '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" version="1.1"><defs>'
+      + '<g id="arrow"><path d="M0,0 L10,5 L0,10 z"/></g></defs>'
+      + '<use xlink:href="#arrow" x="10" y="10"/><a href="https://example.com/"><text x="1" y="2">link</text></a></svg>',
+    // Figma の書き出し
+    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<path d="M12 2L2 22h20L12 2z" fill="#1E1E1E"/></svg>',
+    // 手書きの典型（名前空間の宣言なし・数値の文字参照・定義済み 5 実体）
+    '<svg viewBox="0 0 8 8"><title>a &#38; b</title><path d="M0 0 8 8" stroke="black" stroke-width="1"/></svg>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
@@ -121,6 +148,53 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><rect ONCLICK="x" width="1" height="1"/></svg>', "大文字のイベント属性"],
     ['<svg width="10" height="10"><a href=" javascript:alert(1)"><rect width="1" height="1"/></a></svg>', "javascript: の参照"],
     ['<svg width="10" height="10"><foreignObject width="10" height="10"><div/></foreignObject></svg>', "foreignObject"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】1. 文字参照で書いた javascript:（字面だけの検査をすり抜ける）
+    ['<svg width="10" height="10"><a href="&#106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "10 進の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#x6A;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "16 進の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#0000106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "0 詰めの文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="java&#9;script:alert(1)"><rect width="1" height="1"/></a></svg>', "タブを挟んだ javascript:"],
+    ['<svg width="10" height="10"><a href="java&#10;script:alert(1)"><rect width="1" height="1"/></a></svg>', "改行を挟んだ javascript:"],
+    ['<svg width="10" height="10"><a href="java&#x0d;&#x0a;script:alert(1)"><rect width="1" height="1"/></a></svg>', "CR LF を挟んだ javascript:"],
+    ['<svg xml:space="preserve" width="10" height="10"><a href="&#x6a;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "xml:space と併用した文字参照の javascript:"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><a xlink:href="&#106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "xlink:href の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#118;bscript:msgbox(1)"><rect width="1" height="1"/></a></svg>', "文字参照の vbscript:"],
+    ['<svg width="10" height="10"><image href="&#100;ata:text/html,&lt;script&gt;" width="1" height="1"/></svg>', "文字参照の data: の参照"],
+    ['<svg width="10" height="10"><use href="&#100;ata:image/svg+xml,&lt;svg/&gt;" width="1" height="1"/></svg>', "data: を use で参照"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】2. XHTML 名前空間の要素
+    ['<svg xmlns:html="http://www.w3.org/1999/xhtml" width="10" height="10"><html:iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"/></svg>', "XHTML の接頭辞つき iframe"],
+    ['<svg width="10" height="10"><iframe xmlns="http://www.w3.org/1999/xhtml" srcdoc="x"/></svg>', "既定の名前空間を XHTML にした iframe"],
+    ['<svg xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><g><h:p>よみこみ</h:p></g></svg>', "入れ子の中の XHTML 要素"],
+    ['<svg xmlns:h="http://www.w3.org/1999/xhtml" h:x="1" width="10" height="10"/>', "XHTML 名前空間の属性"],
+    ['<svg xmlns="http://www.w3.org/1999/xhtml" width="10" height="10"/>', "ルート自体を XHTML にした"],
+    ['<svg width="10" height="10"><g xmlns="http://www.w3.org/1999/xhtml"><p>x</p></g></svg>', "途中で既定の名前空間を XHTML に切り替えた"],
+    ['<svg width="10" height="10"><undeclared:x/></svg>', "宣言していない接頭辞"],
+    // メタデータの名前空間も確実を期して拒否（図柄には不要）
+    ['<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" width="10" height="10"><rdf:RDF/></svg>', "RDF のメタデータ"],
+    ['<svg xmlns:dc="http://purl.org/dc/elements/1.1/" width="10" height="10"><dc:title>t</dc:title></svg>', "Dublin Core のメタデータ"],
+    ['<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.0.dtd" width="10" height="10"><sodipodi:namedview/></svg>', "sodipodi のメタデータ"],
+    ['<svg xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/" width="10" height="10"><i:pgf/></svg>', "Illustrator の i: のメタデータ"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】3. DTD の内部実体
+    ['<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY x "javascript:alert(1)"> ]><svg width="10" height="10"><a href="&x;"><rect width="1" height="1"/></a></svg>', "実体を属性で参照"],
+    ['<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY x "<script>alert(1)</script>"> ]><svg width="10" height="10"><text>&x;</text></svg>', "実体を本文で参照"],
+    ['<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg width="1" height="1"/>', "使っていない実体の宣言（以前は通していた例）"],
+    ['<!DOCTYPE svg [<!ENTITY % p "<!ENTITY x \'y\'>"> ]><svg width="1" height="1"/>', "パラメータ実体の宣言"],
+    ['<!DOCTYPE svg [<!entity x "y">]><svg width="1" height="1"/>', "小文字の実体宣言"],
+    ['<svg width="10" height="10"><text>&foo;</text></svg>', "宣言の無い名前つき実体（本文）"],
+    ['<svg width="10" height="10"><a href="&foo;"><rect width="1" height="1"/></a></svg>', "宣言の無い名前つき実体（属性）"],
+    ['<svg width="10" height="10"><text>&nbsp;</text></svg>', "定義済み 5 以外の HTML の実体"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】style の url(・expression(・javascript:・@import
+    ['<svg width="10" height="10"><style>@import url("http://example.invalid/x.css");</style><rect width="1" height="1"/></svg>', "<style> の @import"],
+    ['<svg width="10" height="10"><style><![CDATA[ .a{fill:url(#a)} ]]></style><rect width="1" height="1"/></svg>', "<style> の url("],
+    ['<svg width="10" height="10"><style>.a{fill:u&#114;l(#a)}</style><rect width="1" height="1"/></svg>', "文字参照を挟んだ <style> の url("],
+    ['<svg width="10" height="10"><style>.a{color:&#101;xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照を挟んだ <style> の expression("],
+    ['<svg width="10" height="10"><rect style="fill:url(#g)" width="1" height="1"/></svg>', "style 属性の url("],
+    ['<svg width="10" height="10"><rect style="width:expression(alert(1))" width="1" height="1"/></svg>', "style 属性の expression("],
+    ['<svg width="10" height="10"><g style="x:java&#9;script:alert(1)"/></svg>', "style 属性の javascript:"],
+    ['<svg width="10" height="10"><g STYLE="x:java&#x0a;script:alert(1)"/></svg>', "大文字の style 属性"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);
