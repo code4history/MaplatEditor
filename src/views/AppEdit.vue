@@ -549,14 +549,20 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
   };
 }
 
-// splash/PWAアイコンのプレビュー画像URLを解決する
+// splash/PWAアイコンのプレビュー画像URLを解決する。
+// feat2: Undo/Redo のたびに呼ぶため、解決中に文書が差し替わると（連打）古い結果が後着して
+// 新しい表示を上書きする。世代番号を進め、末尾で食い違う結果を捨てる。
+let previewGeneration = 0;
 async function hydrateAssetPreviews() {
-  splashPreviewUrl.value = appData.value.appSettings.splash
-    ? await window.appAssets.fileUrl(`img/${appData.value.appSettings.splash}`)
-    : null;
-  iconPreviewUrl.value = appData.value.manifestSettings.iconSource
-    ? await window.appAssets.fileUrl(appData.value.manifestSettings.iconSource)
-    : null;
+  const generation = ++previewGeneration;
+  // パスは await より前に読む（待っている間に文書が差し替わっても、この世代の対象を固定する）
+  const splashPath = appData.value.appSettings.splash;
+  const iconPath = appData.value.manifestSettings.iconSource;
+  const splashUrl = splashPath ? await window.appAssets.fileUrl(`img/${splashPath}`) : null;
+  const iconUrl = iconPath ? await window.appAssets.fileUrl(iconPath) : null;
+  if (generation !== previewGeneration) return;
+  splashPreviewUrl.value = splashUrl;
+  iconPreviewUrl.value = iconUrl;
 }
 
 async function uploadSplash() {
@@ -889,6 +895,8 @@ function performUndo() {
   historyStack.value.undo();
   appData.value = cloneDocument(historyStack.value.current());
   historyApplying.value = false;
+  // feat2: 文書だけ戻すと画像は新しいまま残る（設計 §3.4-2）。戻したパスのプレビューを解決し直す
+  void hydrateAssetPreviews();
 }
 
 function performRedo() {
@@ -897,6 +905,8 @@ function performRedo() {
   historyStack.value.redo();
   appData.value = cloneDocument(historyStack.value.current());
   historyApplying.value = false;
+  // feat2: performUndo と同じ（Redo でも画像を追随させる）
+  void hydrateAssetPreviews();
 }
 
 function onEditorKeydown(event: KeyboardEvent) {
@@ -1568,7 +1578,7 @@ function onPoisChange(next: unknown[]) {
                   <!-- m19-t4b: 8 トグルへ ContextHelp を追加。PWA は @change="onPwaToggle" で
                        キャッシュの強制を 1 履歴レコードへ畳む（設計 §4.3.2）。
                        キャッシュは PWA 従属（判定点は pwaEnabled computed 1 つ） -->
-                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" :disabled="translationMode" @change="onPwaToggle"> {{ t("appedit.pwa_manifest") }} <ContextHelp :text="t('appedit.pwa_manifest_note')" :ariaLabel="t('appedit.pwa_manifest_note')" /></label>
+                  <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" data-testid="app-pwa-toggle" :disabled="translationMode" @change="onPwaToggle"> {{ t("appedit.pwa_manifest") }} <ContextHelp :text="t('appedit.pwa_manifest_note')" :ariaLabel="t('appedit.pwa_manifest_note')" /></label>
                   <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.overlay_ui") }} <ContextHelp :text="t('appedit.overlay_ui_note')" :ariaLabel="t('appedit.overlay_ui_note')" /></label>
                   <label class="form-check"><input v-model="appData.httpSettings.enableHideMarker" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.hide_marker_ui") }} <ContextHelp :text="t('appedit.hide_marker_ui_note')" :ariaLabel="t('appedit.hide_marker_ui_note')" /></label>
                   <label class="form-check"><input v-model="appData.httpSettings.enableMarkerList" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.marker_list_ui") }} <ContextHelp :text="t('appedit.marker_list_ui_note')" :ariaLabel="t('appedit.marker_list_ui_note')" /></label>
@@ -1596,9 +1606,9 @@ function onPoisChange(next: unknown[]) {
                 <label class="form-label small fw-bold">{{ t("appedit.splash") }}</label>
                 <div class="d-flex align-items-center gap-2">
                   <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" readonly>
-                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" :disabled="translationMode" @click="uploadSplash">{{ t("appedit.upload") }}</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-testid="appedit-splash-upload" :disabled="translationMode" @click="uploadSplash">{{ t("appedit.upload") }}</button>
                 </div>
-                <img v-if="splashPreviewUrl" :src="splashPreviewUrl" class="asset-preview mt-1" alt="splash">
+                <img v-if="splashPreviewUrl" :src="splashPreviewUrl" class="asset-preview mt-1" data-testid="appedit-splash-preview" alt="splash">
               </div>
               <div class="col-md-2">
                 <label class="form-label small fw-bold">{{ t("appedit.home_lng") }}</label>
@@ -1662,11 +1672,11 @@ function onPoisChange(next: unknown[]) {
                 <label class="form-label small fw-bold d-flex align-items-center gap-1">{{ t("appedit.manifest_icon_source") }} <ContextHelp :text="t('appedit.manifest_icon_note')" :ariaLabel="t('appedit.manifest_icon_note')" /></label>
                 <div class="d-flex align-items-center gap-2">
                   <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': !!assetUploadError }" readonly>
-                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-testid="appedit-icon-upload" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
                 </div>
                 <!-- M12-T11 (R3/C32): inline text-danger から DF field へ -->
                 <DiagnosticFeedback v-if="assetUploadError" scope="field" :items="[{ key: 'pwa-icon', severity: 'danger', message: assetUploadError }]" />
-                <img v-if="iconPreviewUrl" :src="iconPreviewUrl" class="asset-preview mt-1" alt="icon">
+                <img v-if="iconPreviewUrl" :src="iconPreviewUrl" class="asset-preview mt-1" data-testid="appedit-icon-preview" alt="icon">
               </div>
             </div>
           </section>
