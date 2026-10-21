@@ -3,7 +3,7 @@
  *
  * AC1  : isGoogleEditorBasemap の表駆動単体（google だけ true・キー無しで false・
  *        旧保存形＝kind 無しで maptype が google_* も受ける）
- * AC6  : 単一投入点（loadBaseMapVisibility）の字面が保たれ、除外が「従来述語 OR google 述語」に鳴っている
+ * AC6  : 単一投入点（loadBaseMapVisibility）の字面が保たれ、除外が「従来述語 OR google 述語」になっている
  * AC9  : MapEdit.vue の google 源分岐のソーステキスト契約（url / thumbnail を渡さない・key と maptype を渡す）
  * AC10 : 11 言語すべてに 2 キーが存在する
  * MINOR(b): applyBaseMapShifts が google 源を対象外にする
@@ -155,5 +155,57 @@ const {
     }
   }
 }
+
+const mapedit = await readFile(path.join(projectRoot, "src/views/MapEdit.vue"), "utf8");
+
+// ---- AC6: 単一投入点の字面と、google を条件付きで通す OR ----
+{
+  // m6-t5 の smoke が断言する字面（isProviderBaseMapData(item?.data)）を保つ
+  assert.match(mapedit, /isProviderBaseMapData\(item\?\.data\)/);
+  // 従来述語を消さず、google 述語を OR で足す
+  assert.match(
+    mapedit,
+    /!isProviderBaseMapData\(item\?\.data\)\s*\|\|\s*isGoogleEditorBasemap\(item\?\.data,/,
+    "AC6: フィルタが「従来述語 OR google 述語」になっていない",
+  );
+  // キーの有無は述語の第2引数で渡す（キー未解決なら出さない）
+  assert.match(mapedit, /isGoogleEditorBasemap\(item\?\.data,\s*!!editorGoogleKey\.value\)/);
+}
+
+// ---- AC9: google 源の分岐（ソーステキスト契約） ----
+{
+  const start = mapedit.indexOf("isGoogleEditorBasemap(tms");
+  assert.ok(start > 0, "AC9: setupBaseMaps に google 分岐が無い");
+  const endMarker = mapedit.indexOf("watchGoogleSourceState", start);
+  const block = mapedit.slice(start, endMarker > 0 ? endMarker : start + 2400);
+  assert.match(block, /maptype:\s*tms\.maptype/, "AC9: maptype を tms から渡していない");
+  assert.match(block, /\bkey:\s*editorGoogleKey\.value/, "AC9: key を渡していない");
+  // provider に url を渡すと ol/source/Google の baseUrl が汚染される（source_ex.ts:110-116）
+  assert.doesNotMatch(block, /\burl:\s/, "AC9: google 分岐で url を渡している");
+  // 相対 thumbnail 仮置き fetch を避けるため thumbnail も渡さない
+  assert.doesNotMatch(block, /\bthumbnail:\s/, "AC9: google 分岐で thumbnail を渡している");
+  // MINOR(c): 表示言語を渡す
+  assert.match(block, /googleTileLocaleOf\(currentLang\.value\)/, "MINOR(c): 表示言語を渡していない");
+  // 失敗検知: 源の change を購読して error 状態を見る
+  assert.match(mapedit, /getState[^/]*?(===|!==)\s*['"]error['"]/, "失敗検知: getState()==='error' を見ていない");
+  assert.match(mapedit, /getError/, "失敗検知: getError() を見ていない");
+}
+
+// ---- MINOR(b): applyBaseMapShifts は google 源に mercatorXShift を書かない ----
+{
+  const start = mapedit.indexOf("const applyBaseMapShifts");
+  assert.ok(start > 0, "applyBaseMapShifts が無い");
+  const end = mapedit.indexOf("const loadBaseMapShifts", start);
+  const block = mapedit.slice(start, end > 0 ? end : start + 1600);
+  assert.match(block, /baseMapProviderKindOf\(baseMapTms\)/, "MINOR(b): google 判定が無い");
+  assert.match(block, /===\s*["']google["']/, "MINOR(b): google の比較が無い");
+}
+
+// ---- 失敗検知: 未処理 reject を作らない（fetchSessionToken の差し替え） ----
+{
+  assert.match(mapedit, /fetchSessionToken\s*:/, "未処理 reject 対策の fetchSessionToken 差し替えが無い");
+  assert.match(mapedit, /catch/, "fetchSessionToken 側の catch が無い");
+}
+
 
 console.log("nov26-editor-feat3 smoke: OK");

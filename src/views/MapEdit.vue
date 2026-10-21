@@ -29,7 +29,7 @@ import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
 import { computeBboxAndCentroid, estimateZoomForBbox, expandBboxByRatio } from '../utils/geoEstimate';
-import { isProviderBaseMapData, resolveBaseMapLayerMetadata, toBaseMapLayerData } from '../utils/baseMapEditorDocument';
+import { isProviderBaseMapData, isGoogleEditorBasemap, baseMapProviderKindOf, googleTileLocaleOf, resolveBaseMapLayerMetadata, toBaseMapLayerData } from '../utils/baseMapEditorDocument';
 import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, isZeroShift, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
@@ -393,6 +393,15 @@ const currentBaseMapID = ref('osm');
 const baseMapVisibilityList = ref<BaseMapVisibilityItem[]>([]);
 const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
+// nov26-editor-feat3: 編集用ベースマップに google を出すための 3 つの状態。
+// - editorGoogleKey: エディタで使える Google Maps API キー（未解決は null）
+// - editorGoogleKeyResolved: 「まだ読んでいない」と「読んだがキーが無い」を区別する
+// - rawBaseMapVisibility: フィルタ前の IPC 生返却。キー未設定で隠した google の存在を注記に使う
+// - googleBaseMapFailure: Google 源の読込失敗の文言（空なら非表示）
+const editorGoogleKey = ref<string | null>(null);
+const editorGoogleKeyResolved = ref(false);
+const rawBaseMapVisibility = ref<BaseMapVisibilityItem[]>([]);
+const googleBaseMapFailure = ref('');
 // ベースマップ表示選択の検索/絞り込み(文字列・GCP範囲・地域指定)
 const baseMapSearchText = ref('');
 const baseMapFilterRegion = ref<[number, number][] | null>(null);
@@ -2371,7 +2380,12 @@ onMounted(async () => {
                 mercMap?.updateSize();
             });
         } else if (newTab === 'settings') {
-            loadBaseMapVisibility();
+            // nov26-editor-feat3: キーは設定画面（設定 > ベースマップ）で変わるため、タブ切替の
+            // たびに解決してから一覧を作る（設計 §4.3。既存 site と同じ契機に並置する）
+            void (async () => {
+                await loadEditorGoogleKey();
+                await loadBaseMapVisibility();
+            })();
             void loadBaseMapShifts();  // m1-t4 (HR-6): visibility と同じ site から並置で再読込
         }
         // M12-T10 v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
@@ -3173,8 +3187,42 @@ const getVisibleBaseMapID = (): string | null => {
 // 初回保存時にmain側がuidキーへ引き継ぐ)
 const baseMapVisibilityMapRef = (): string => mapUid.value || mapID.value;
 
+// nov26-editor-feat3: エディタ用 Google Maps API キーの解決（設計 §4.3）。
+// 地図管理はアプリに属さないため、main の resolvePreviewKey の 3 段から「アプリ単位」を除いた
+// 2 段（editorGoogleApiKey → defaultPublishGoogleApiKey）で解決する。空文字・空白のみは未設定
+// とみなす（electron/services/providerKeyResolution.ts:36-38 の asNonEmpty と同じ規則）。
+// キーの値はログへ出さない（設計 §8）
+const asNonEmptyKey = (value: unknown): string | null =>
+    typeof value === 'string' && value.trim() ? value.trim() : null;
+
+const loadEditorGoogleKey = async () => {
+    const settings = (window as any).settings;
+    if (!settings?.get) {
+        editorGoogleKey.value = null;
+        editorGoogleKeyResolved.value = true;
+        return;
+    }
+    try {
+        editorGoogleKey.value = asNonEmptyKey(await settings.get('editorGoogleApiKey'))
+            ?? asNonEmptyKey(await settings.get('defaultPublishGoogleApiKey'));
+    } catch (e) {
+        // 例外の中身にキーは載らない（IPC 失敗）が、念のためオブジェクトは出さない
+        console.error('[loadEditorGoogleKey] Failed to resolve the editor Google API key');
+        editorGoogleKey.value = null;
+    } finally {
+        editorGoogleKeyResolved.value = true;
+    }
+};
+
+// キー未設定で選択肢から隠している google があるか（理由の注記を出す条件。設計 §4.4）
+const googleHiddenByMissingKey = computed(() =>
+    !editorGoogleKey.value
+    && rawBaseMapVisibility.value.some((item) => baseMapProviderKindOf(item?.data) === 'google'));
+
 const loadBaseMapVisibility = async () => {
     if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.getBaseMapVisibilityOfMapID) return;
+    // 入場時に未解決なら先に読む（設計 §4.3）。タブ切替では呼び出し側が読み直す
+    if (!editorGoogleKeyResolved.value) await loadEditorGoogleKey();
     baseMapVisibilityLoading.value = true;
     baseMapVisibilityError.value = '';
     try {
@@ -3183,8 +3231,15 @@ const loadBaseMapVisibility = async () => {
         // 単一投入点で除外する（人間判断 2026-08-05「選択肢に非表示」）。
         // 左右両ペイン（adapter / enabledBaseMaps）と背景レイヤ生成（enabledBaseMapData）の
         // 3消費者すべてにここで効かせる。adapter 側には置かない（二重適用防止）
-        baseMapVisibilityList.value = (Array.isArray(list) ? list : [])
-            .filter((item: BaseMapVisibilityItem) => !isProviderBaseMapData(item?.data));
+        //
+        // nov26-editor-feat3（人間依頼 2026-10-21）: 上の人間判断の前提（エディタ背景に使えない）が
+        // Google については解消したため、規則を「mapbox/maplibre は除外のまま・google はキーが
+        // 解決できるときだけ通す」へ改める。除外を 1 か所に閉じる形は変えない
+        const raw = Array.isArray(list) ? list : [];
+        rawBaseMapVisibility.value = raw;
+        baseMapVisibilityList.value = raw
+            .filter((item: BaseMapVisibilityItem) =>
+                !isProviderBaseMapData(item?.data) || isGoogleEditorBasemap(item?.data, !!editorGoogleKey.value));
     } catch (e: any) {
         console.error('[loadBaseMapVisibility] Failed:', e);
         baseMapVisibilityError.value = e?.message || String(e);
@@ -3220,6 +3275,12 @@ const applyBaseMapShifts = (group?: any) => {
     layers.getArray().forEach((layer: any) => {
         const mapID = layer.get?.('mapID');
         if (!mapID) return;
+        // nov26-editor-feat3（設計レビュー 2026-10-21 MINOR b・設計 §4.5 R3）: Google 源は
+        // ol/source/Google がタイル URL を組む（カスタムタイル関数ではない）ため、
+        // mercatorXShift を書いても位置は変わらない。11 月は「シフトが効かない」を受け入れ、
+        // 保持値を源へ書き込まない（効かない値を載せて「効いている」と誤読させない）
+        const baseMapTms = baseMapList.value.find((tms: any) => tms.mapID === mapID);
+        if (baseMapTms && baseMapProviderKindOf(baseMapTms) === 'google') return;
         const source: any = layer.getSource?.();
         if (!source) return;
         const shift = effectiveShiftOf(baseMapShifts.value, mapID, alignPhase.value, alignTargetMapID.value);
@@ -3469,6 +3530,47 @@ const refreshBaseMapLayers = async () => {
     await setupBaseMaps();
 };
 
+// nov26-editor-feat3（設計レビュー 2026-10-21 指示2）: ol/source/Google は constructor から
+// createSession_() を await せずに開始し、失敗を setState('error') で非同期に扱う
+// （node_modules/ol/source/Google.js:244-252）。∴ createSession_ 内の fetch が reject すると
+// 誰も受け取らず未処理 reject になる（オフライン時にプロセスを汚す）。fetchSessionToken を
+// 差し替えて reject を「ok:false の応答」へ変換し、ol の既存の失敗経路（state='error' /
+// error_）へ載せる。これでオフラインでも下の change 購読から注記が出る
+const fetchGoogleSessionTokenSafely = async (url: string, config: RequestInit): Promise<Response> => {
+    try {
+        return await fetch(url, config);
+    } catch {
+        // ネットワーク断の内訳は出さない（URL を含み得る）。文言は注記側の i18n が担う
+        return {
+            ok: false,
+            json: async () => ({ error: { message: '' } }),
+        } as unknown as Response;
+    }
+};
+
+// 失敗文言からキーと URL を伏せる（設計 §8・指示2）。Google の API 応答本文にはキーの値は
+// 載らないが、fetch の失敗メッセージには URL が載り得るため機械的に落とす
+const sanitizeGoogleError = (value: unknown): string =>
+    String((value as any)?.message ?? value ?? '')
+        .replace(/https?:\/\/\S+/gi, ' ')
+        .replace(/\bkey=[^\s&]+/gi, 'key=***')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+// Google 源の失敗を購読する。change で state が error になったときだけ注記を出す
+// （getError() の文言は出してよいが、キーと URL は sanitizeGoogleError で伏せる）
+const watchGoogleSourceState = (source: any, mapID: string) => {
+    const onStateChange = () => {
+        if (source?.getState?.() !== 'error') return;
+        const detail = sanitizeGoogleError(source.getError?.());
+        // コンソールにもキー・URL を出さない（設計 §8）
+        console.warn(`[setupBaseMaps] Google base map failed: ${mapID}${detail ? ` (${detail})` : ''}`);
+        googleBaseMapFailure.value = `${t('mapedit.base_map_google_failed')}${detail ? ` ${detail}` : ''}`;
+    };
+    source?.on?.('change', onStateChange);
+    onStateChange();  // 構築直後に既に error のとき（同期失敗）も拾う
+};
+
 const setupBaseMaps = async () => {
     if (!mercMap) return;
 
@@ -3531,12 +3633,36 @@ const setupBaseMaps = async () => {
         }
     }
 
+    // nov26-editor-feat3: レイヤを作り直すので前回の失敗表示は捨てる（新しい源の失敗で再び立つ）
+    googleBaseMapFailure.value = '';
+
     const layers = await Promise.all([...baseMapList.value].reverse().map(async (tms) => {
         let source;
         const localizedMeta = resolveBaseMapLayerMetadata(tms, currentLang.value);
         try {
             if (['osm', 'gsi', 'gsi_ortho'].includes(tms.mapID)) {
                 source = await mapSourceFactory(tms.mapID, {});
+            } else if (isGoogleEditorBasemap(tms, !!editorGoogleKey.value)) {
+                // nov26-editor-feat3（設計 §4.5）: Google はタイル URL を持たない。
+                // maptype（google_*）とキーを渡し、ol/source/Google に createSession を開始させる。
+                // url を渡すと baseUrl が汚染され createSession が別ホストへ出る（source_ex.ts:110-116）。
+                // thumbnail も渡さない（Google 源は相対 thumbnail 補完の対象外）
+                const googleLocale = googleTileLocaleOf(currentLang.value);
+                source = await mapSourceFactory({
+                    mapID: tms.mapID || 'custom',
+                    maptype: tms.maptype || 'google_roadmap',
+                    key: editorGoogleKey.value,
+                    attr: localizedMeta.attr,
+                    // Google タイルの上限（ol/source/Google.js:12 maxZoom=22）
+                    maxZoom: 22,
+                    minZoom: 0,
+                    // MINOR(c): ol の既定（en-US/US）ではなく今の表示言語を渡す
+                    language: googleLocale.language,
+                    ...(googleLocale.region ? { region: googleLocale.region } : {}),
+                    // 未処理 reject を作らないための差し替え（下の定義）
+                    fetchSessionToken: fetchGoogleSessionTokenSafely,
+                }, {});
+                watchGoogleSourceState(source, tms.mapID);
             } else {
                  source = await mapSourceFactory({
                      mapID: tms.mapID || 'custom',
@@ -5219,6 +5345,22 @@ const goBack = async () => {
                         v-else-if="baseMapVisibilityError"
                         scope="section"
                         :items="[{ key: 'basemap-visibility', severity: 'danger', message: baseMapVisibilityError }]"
+                    />
+                    <!-- nov26-editor-feat3 §4.4: キーが無いために出していない google があるとき、
+                         出さない理由を添える（「出すが選べない」形へは戻さない） -->
+                    <DiagnosticFeedback
+                        v-else-if="googleHiddenByMissingKey"
+                        data-testid="base-map-google-key-missing"
+                        scope="section"
+                        :items="[{ key: 'basemap-google-key-missing', severity: 'info', message: t('mapedit.base_map_google_key_missing') }]"
+                    />
+                    <!-- nov26-editor-feat3 指示2: Google 源の読込失敗（createSession の非同期失敗）。
+                         getError() の文言は載せるが、キーと URL は sanitizeGoogleError で伏せている -->
+                    <DiagnosticFeedback
+                        v-if="googleBaseMapFailure"
+                        data-testid="base-map-google-failed"
+                        scope="section"
+                        :items="[{ key: 'basemap-google-failed', severity: 'danger', message: googleBaseMapFailure }]"
                     />
                   </template>
 
