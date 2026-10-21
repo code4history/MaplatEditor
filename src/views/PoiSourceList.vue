@@ -11,8 +11,16 @@
       :total="total"
       :loaded="loaded"
       :new-draft="newDrafts.length > 0"
+      :recent-searches="recentItems"
+      :recent-active-query="query"
+      :recent-error="recentError"
       @create="onCreate"
       @update:query="updateQuery"
+      @commit:query="recordRecentNow"
+      @composition-start="beginRecentComposition"
+      @composition-end="endRecentComposition"
+      @apply-recent="onApplyRecent"
+      @remove-recent="onRemoveRecent"
       @retry="retry"
       @load-more="loadMore"
     >
@@ -77,6 +85,7 @@ import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { useRecentSearches } from "../composables/useRecentSearches";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useResourceDelete } from "../composables/useResourceDelete";
 import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
@@ -120,6 +129,18 @@ const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, 
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("poi-source");
+// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+const {
+  items: recentItems,
+  error: recentError,
+  record: recordRecent,
+  recordNow: recordRecentNow,
+  beginComposition: beginRecentComposition,
+  endComposition: endRecentComposition,
+  apply: applyRecent,
+  remove: removeRecent,
+  flush: flushRecent,
+} = useRecentSearches("poi-source");
 
 function firstVisibleUid(): string | null {
   const root = shellRef.value?.contentRef ?? null;
@@ -183,16 +204,29 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  flushRecent();
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
 });
 
 onBeforeRouteLeave((_to, _from, next) => {
+  // nov26-editor-feat1: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
+  flushRecent();
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
   next();
 });
 
 function updateQuery(q: string): void {
+  recordRecent(q);
   router.replace({ query: { ...route.query, q: q || undefined } });
+}
+// チップの適用: その q で検索し、使った条件を先頭へ移動する（bbox は変えない）
+function onApplyRecent(q: string): void {
+  void applyRecent(q);
+  updateQuery(q);
+}
+// チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
+function onRemoveRecent(q: string): void {
+  void removeRecent(q);
 }
 
 defineExpose({ shellRef });

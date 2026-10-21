@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "Fond de carte manquant",
     "badge_missing_poi": "Référence POI manquante",
     "badge_missing_asset": "Ressource manquante",
-    "badge_pois_format": "Format POI non pris en charge"
+    "badge_pois_format": "Format POI non pris en charge",
+    "recent_searches_label": "Recherches récentes",
+    "recent_search_apply": "Rechercher « {{q}} »",
+    "recent_search_remove": "Supprimer « {{q}} » de l’historique",
+    "recent_search_record_failed": "Impossible d’enregistrer l’historique des recherches"
   }
 }

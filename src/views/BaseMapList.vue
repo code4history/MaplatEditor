@@ -12,9 +12,17 @@
         :draft-summaries="draftSummaries"
         :loading="loading"
         :error="error"
+        :recent-searches="recentItems"
+        :recent-active-query="searchQuery"
+        :recent-error="recentError"
         @select="selectExisting"
         @select-draft="selectDraft"
         @update:query="updateSearchQuery"
+        @commit:query="recordRecentNow"
+        @composition-start="beginRecentComposition"
+        @composition-end="endRecentComposition"
+        @apply-recent="onApplyRecent"
+        @remove-recent="onRemoveRecent"
         @open-range-filter="rangeFilterOpen = true"
         @clear-range-filter="clearRangeFilter"
         @create="createBaseMap"
@@ -86,6 +94,7 @@ import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
 import { useResourceDelete } from "../composables/useResourceDelete";
+import { useRecentSearches } from "../composables/useRecentSearches";
 import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
@@ -106,6 +115,18 @@ const {
 } = useBboxRangeFilter({ route, router });
 const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
+// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+const {
+  items: recentItems,
+  error: recentError,
+  record: recordRecent,
+  recordNow: recordRecentNow,
+  beginComposition: beginRecentComposition,
+  endComposition: endRecentComposition,
+  apply: applyRecent,
+  remove: removeRecent,
+  flush: flushRecent,
+} = useRecentSearches("base-map");
 
 const items = ref<BaseMapCatalogItem[]>([]);
 const loading = ref(true);
@@ -155,7 +176,18 @@ async function updateFilters(filters: { q?: string | null; bbox?: string | null 
 }
 
 function updateSearchQuery(value: string): void {
+  // 入力のたびに呼ぶ（記録は 800 ms 停止後。変換中は予約しない）
+  recordRecent(value);
   void updateFilters({ q: value.trim() ? value : null });
+}
+// チップの適用: 選択中の uid を保ったまま q だけ書き換える（設計 §4.6 / AC9）
+function onApplyRecent(q: string): void {
+  void applyRecent(q);
+  void updateFilters({ q });
+}
+// チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
+function onRemoveRecent(q: string): void {
+  void removeRecent(q);
 }
 
 async function loadBaseMaps(): Promise<void> {
@@ -254,7 +286,11 @@ onMounted(async () => {
 });
 
 watch([searchQuery, filterBbox], () => { void loadBaseMaps(); });
+// レビュー指示 3: 左右ペインには onBeforeRouteLeave が無い。行を選んだとき（uid が変わるとき）に
+// 未記録の q を確定させる（選択の直前に打った検索語を取りこぼさない）
+watch(selectedUid, () => { flushRecent(); });
 onBeforeUnmount(() => {
+  flushRecent();
   if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
 });
 

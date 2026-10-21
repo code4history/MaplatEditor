@@ -10,8 +10,16 @@
       :total="total"
       :loaded="loaded"
       :new-draft="newDrafts.length > 0"
+      :recent-searches="recentItems"
+      :recent-active-query="query"
+      :recent-error="recentError"
       @create="createNewApp"
       @update:query="updateQuery"
+      @commit:query="recordRecentNow"
+      @composition-start="beginRecentComposition"
+      @composition-end="endRecentComposition"
+      @apply-recent="onApplyRecent"
+      @remove-recent="onRemoveRecent"
       @retry="retry"
       @load-more="loadMore"
     >
@@ -61,6 +69,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceDelete } from "../composables/useResourceDelete";
 import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { useRecentSearches } from "../composables/useRecentSearches";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
@@ -94,11 +103,27 @@ const adapter = createAppListAdapter({
 const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" });
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("app");
+// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+const {
+  items: recentItems,
+  error: recentError,
+  record: recordRecent,
+  recordNow: recordRecentNow,
+  beginComposition: beginRecentComposition,
+  endComposition: endRecentComposition,
+  apply: applyRecent,
+  remove: removeRecent,
+  flush: flushRecent,
+} = useRecentSearches("app");
 function firstVisibleUid() { const r = shellRef.value?.contentRef; if (!r) return null; const t = r.getBoundingClientRect().top; for (const e of Array.from(r.querySelectorAll<HTMLElement>("[data-resource-uid]"))) { if (e.getBoundingClientRect().bottom >= t) return e.dataset.resourceUid ?? null; } return null; }
-onBeforeRouteLeave(() => { const r = shellRef.value?.contentRef; backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: r?.scrollTop ?? 0 }); });
+onBeforeRouteLeave(() => { flushRecent(); const r = shellRef.value?.contentRef; backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: r?.scrollTop ?? 0 }); });
 async function restoreOrLoad() { const c = backCache.load(); if (c && c.q === query.value && c.bbox === bboxQuery.value && c.batches >= 1) { await restore(c.batches); await nextTick(); const r = shellRef.value?.contentRef; if (r) { const a = c.anchorUid ? r.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(c.anchorUid)}"]`) : null; if (a) r.scrollTop += a.getBoundingClientRect().top - r.getBoundingClientRect().top; else r.scrollTop = c.scrollTop; } } else { await loadFirst(); } }
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
-function updateQuery(value: string): void { void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } }); }
+function updateQuery(value: string): void { recordRecent(value); void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } }); }
+// チップの適用: その q で検索し、使った条件を先頭へ移動する（bbox は変えない）
+function onApplyRecent(q: string): void { void applyRecent(q); updateQuery(q); }
+// チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
+function onRemoveRecent(q: string): void { void removeRecent(q); }
 // M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
 function createNewApp(): void {
   const pending = latestNewDraft.value;

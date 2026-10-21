@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "Fehlende Basiskarte",
     "badge_missing_poi": "Fehlende POI-Referenz",
     "badge_missing_asset": "Fehlendes Asset",
-    "badge_pois_format": "Nicht unterstütztes POI-Format"
+    "badge_pois_format": "Nicht unterstütztes POI-Format",
+    "recent_searches_label": "Letzte Suchanfragen",
+    "recent_search_apply": "Nach \"{{q}}\" suchen",
+    "recent_search_remove": "\"{{q}}\" aus dem Verlauf entfernen",
+    "recent_search_record_failed": "Die Suchhistorie konnte nicht gespeichert werden"
   }
 }

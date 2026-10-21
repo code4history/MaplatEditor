@@ -8,7 +8,15 @@
         :active-lang="activeLang"
         :draft-uids="effectiveDraftUids"
         :draft-summaries="draftSummaries"
+        :recent-searches="recentItems"
+        :recent-active-query="query"
+        :recent-error="recentError"
         @update:query="updateQuery"
+        @commit:query="recordRecentNow"
+        @composition-start="beginRecentComposition"
+        @composition-end="endRecentComposition"
+        @apply-recent="onApplyRecent"
+        @remove-recent="onRemoveRecent"
         @loaded="onLoaded"
         @select="selectExisting"
         @select-draft="selectDraft"
@@ -79,6 +87,7 @@ import AssetMasterList from "../components/assets/AssetMasterList.vue";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useMasterDetailRouteState } from "../composables/useMasterDetailRouteState";
 import { useResourceDelete } from "../composables/useResourceDelete";
+import { useRecentSearches } from "../composables/useRecentSearches";
 import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import type { ImageAssetReference, ImageAssetRow } from "../electron";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
@@ -89,6 +98,18 @@ const route = useRoute();
 const router = useRouter();
 const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
+// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+const {
+  items: recentItems,
+  error: recentError,
+  record: recordRecent,
+  recordNow: recordRecentNow,
+  beginComposition: beginRecentComposition,
+  endComposition: endRecentComposition,
+  apply: applyRecent,
+  remove: removeRecent,
+  flush: flushRecent,
+} = useRecentSearches("image-asset");
 
 const items = ref<ImageAssetRow[]>([]);
 const selectedCache = ref<ImageAssetRow | null>(null);
@@ -165,7 +186,18 @@ function onLoaded(rows: ImageAssetRow[]): void {
 }
 
 async function updateQuery(value: string): Promise<void> {
+  // 入力のたびに呼ぶ（記録は 800 ms 停止後。変換中は予約しない）
+  recordRecent(value);
   await router.replace({ query: { ...route.query, q: value || undefined } });
+}
+// チップの適用: 選択中の uid を保ったまま q だけ書き換える（設計 §4.6 / AC9）
+function onApplyRecent(q: string): void {
+  void applyRecent(q);
+  void updateQuery(q);
+}
+// チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
+function onRemoveRecent(q: string): void {
+  void removeRecent(q);
 }
 async function selectExisting(uid: string): Promise<void> { await select(uid, false); }
 async function selectDraft(uid: string): Promise<void> { await select(uid, true); }
@@ -234,7 +266,11 @@ onMounted(async () => {
 });
 
 watch([selectedUid, isNew], () => { void resolveSelected(); });
+// レビュー指示 3: 左右ペインには onBeforeRouteLeave が無い。行を選んだとき（uid が変わるとき）に
+// 未記録の q を確定させる（選択の直前に打った検索語を取りこぼさない）
+watch(selectedUid, () => { flushRecent(); });
 onBeforeUnmount(() => {
+  flushRecent();
   if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
 });
 </script>

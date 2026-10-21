@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "แผนที่ฐานหายไป",
     "badge_missing_poi": "การอ้างอิง POI หายไป",
     "badge_missing_asset": "แอสเซ็ตหายไป",
-    "badge_pois_format": "รูปแบบ POI ไม่รองรับ"
+    "badge_pois_format": "รูปแบบ POI ไม่รองรับ",
+    "recent_searches_label": "เงื่อนไขการค้นหาล่าสุด",
+    "recent_search_apply": "ค้นหา \"{{q}}\"",
+    "recent_search_remove": "ลบ \"{{q}}\" ออกจากประวัติ",
+    "recent_search_record_failed": "ไม่สามารถบันทึกประวัติการค้นหาได้"
   }
 }

@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "Mapa base faltante",
     "badge_missing_poi": "Referencia POI faltante",
     "badge_missing_asset": "Recurso faltante",
-    "badge_pois_format": "Formato de POI no compatible"
+    "badge_pois_format": "Formato de POI no compatible",
+    "recent_searches_label": "Búsquedas recientes",
+    "recent_search_apply": "Buscar \"{{q}}\"",
+    "recent_search_remove": "Quitar \"{{q}}\" del historial",
+    "recent_search_record_failed": "No se pudo guardar el historial de búsquedas"
   }
 }

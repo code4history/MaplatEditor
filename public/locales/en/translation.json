@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "Missing base map",
     "badge_missing_poi": "Missing POI reference",
     "badge_missing_asset": "Missing asset",
-    "badge_pois_format": "Unsupported POI format"
+    "badge_pois_format": "Unsupported POI format",
+    "recent_searches_label": "Recent searches",
+    "recent_search_apply": "Search for \"{{q}}\"",
+    "recent_search_remove": "Remove \"{{q}}\" from history",
+    "recent_search_record_failed": "Could not save the search history"
   }
 }
