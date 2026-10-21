@@ -4501,6 +4501,12 @@ const goBack = async () => {
                             <input id="mapExportOptionTiles" type="checkbox" class="form-check-input"
                                    data-testid="map-export-option-tiles" v-model="mapExportOptions.tiles" />
                             <label class="form-check-label" for="mapExportOptionTiles">{{ t('mapedit.export_option_tiles') }}</label>
+                            <!-- nov26-editor-export-wording: 「タイル」の説明は既存の ? ヘルプ（ContextHelp）で出す -->
+                            <ContextHelp
+                                :text="t('mapedit.export_option_tiles_help')"
+                                :ariaLabel="t('mapedit.export_option_tiles_help')"
+                                data-testid="map-export-option-tiles-help"
+                            />
                         </div>
                         <div class="form-check">
                             <input id="mapExportOptionJson" type="checkbox" class="form-check-input"

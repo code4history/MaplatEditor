@@ -444,7 +444,8 @@
     "context_select_ground_truth": "เลือก Ground Truth",
     "export_options_title": "เนื้อหาที่จะส่งออก",
     "export_option_tiles": "ไทล์ (รวมภาพขนาดย่อ)",
-    "export_option_json": "การตั้งค่าแผนที่ (JSON และ POI)",
+    "export_option_tiles_help": "ไทล์คือภาพแผนที่ที่แบ่งเป็นสี่เหลี่ยมจัตุรัสเล็ก ๆ เพื่อให้แสดงแผนที่ได้ ใช้เมื่อเปิดแผนที่ รวมถึงภาพขนาดย่อ (ภาพเล็กที่แสดงในรายการ)",
+    "export_option_json": "ไฟล์การตั้งค่าแผนที่ (JSON และ POI)",
     "export_option_originals": "ภาพต้นฉบับ",
     "export_option_originals_note": "ใส่ไฟล์ภาพต้นฉบับตามเดิม ไฟล์จะมีขนาดใหญ่ขึ้นและอาจมีข้อมูลเมตาของภาพถ่าย",
     "export_option_none_selected": "โปรดเลือกอย่างน้อยหนึ่งรายการ"

@@ -444,7 +444,8 @@
     "context_select_ground_truth": "选择 Ground Truth",
     "export_options_title": "导出内容",
     "export_option_tiles": "瓦片（含缩略图）",
-    "export_option_json": "地图设置（JSON・POI）",
+    "export_option_tiles_help": "图砖是把地图图像分成小正方形以便显示地图的部分，打开地图时使用。也包含缩略图（列表中显示的小图）。",
+    "export_option_json": "地图设置文件（JSON・POI）",
     "export_option_originals": "原始图像",
     "export_option_originals_note": "按原样放入原始图像文件。文件会变大，并可能包含照片的附加信息",
     "export_option_none_selected": "请至少选择一项"

@@ -444,7 +444,8 @@
     "context_select_ground_truth": "Choisir le ground truth",
     "export_options_title": "Contenu à exporter",
     "export_option_tiles": "Tuiles (miniatures comprises)",
-    "export_option_json": "Paramètres de la carte (JSON et POI)",
+    "export_option_tiles_help": "Les tuiles sont l'image de la carte découpée en petits carrés pour pouvoir afficher la carte. Elles sont utilisées à l'ouverture de la carte. La miniature (la petite image affichée dans la liste) est également incluse.",
+    "export_option_json": "Fichier de paramètres de la carte (JSON et POI)",
     "export_option_originals": "Image originale",
     "export_option_originals_note": "Inclut le fichier image original tel quel. Le fichier devient plus volumineux et peut contenir des métadonnées de la photo.",
     "export_option_none_selected": "Sélectionnez au moins un élément"

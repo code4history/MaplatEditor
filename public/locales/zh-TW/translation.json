@@ -444,7 +444,8 @@
     "context_select_ground_truth": "選擇 Ground Truth",
     "export_options_title": "匯出內容",
     "export_option_tiles": "圖磚（含縮圖）",
-    "export_option_json": "地圖設定（JSON・POI）",
+    "export_option_tiles_help": "圖磚是把地圖影像分成小正方形以便顯示地圖的部分，開啟地圖時使用。也包含縮圖（清單中顯示的小圖）。",
+    "export_option_json": "地圖設定檔（JSON・POI）",
     "export_option_originals": "原始影像",
     "export_option_originals_note": "按原樣放入原始影像檔案。檔案會變大，並可能包含照片的附加資訊",
     "export_option_none_selected": "請至少選擇一項"

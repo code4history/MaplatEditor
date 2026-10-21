@@ -444,7 +444,8 @@
     "context_select_ground_truth": "Ground Truth 선택",
     "export_options_title": "내보낼 내용",
     "export_option_tiles": "타일(섬네일 포함)",
-    "export_option_json": "지도 설정(JSON·POI)",
+    "export_option_tiles_help": "타일은 지도를 표시하기 위해 이미지를 작은 정사각형으로 나눈 것입니다. 지도를 열 때 사용합니다. 섬네일(목록에 나오는 작은 이미지)도 포함합니다.",
+    "export_option_json": "지도 설정 파일(JSON·POI)",
     "export_option_originals": "원본 이미지",
     "export_option_originals_note": "원본 이미지 파일을 그대로 넣습니다. 파일이 커지고 사진의 부가 정보가 포함될 수 있습니다",
     "export_option_none_selected": "하나 이상 선택하십시오"

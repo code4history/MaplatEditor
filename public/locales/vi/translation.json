@@ -444,7 +444,8 @@
     "context_select_ground_truth": "Chọn ground truth",
     "export_options_title": "Nội dung xuất",
     "export_option_tiles": "Ô bản đồ (bao gồm ảnh thu nhỏ)",
-    "export_option_json": "Cài đặt bản đồ (JSON và POI)",
+    "export_option_tiles_help": "Ô bản đồ là hình ảnh bản đồ được chia thành các ô vuông nhỏ để hiển thị bản đồ. Chúng được dùng khi mở bản đồ. Bao gồm cả ảnh thu nhỏ (ảnh nhỏ hiển thị trong danh sách).",
+    "export_option_json": "Tệp cài đặt bản đồ (JSON và POI)",
     "export_option_originals": "Ảnh gốc",
     "export_option_originals_note": "Đưa nguyên tệp ảnh gốc vào. Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
     "export_option_none_selected": "Hãy chọn ít nhất một mục"

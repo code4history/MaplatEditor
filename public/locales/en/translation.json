@@ -426,7 +426,8 @@
     "context_select_ground_truth": "Select ground truth",
     "export_options_title": "Contents to export",
     "export_option_tiles": "Tiles (including thumbnails)",
-    "export_option_json": "Map settings (JSON and POIs)",
+    "export_option_tiles_help": "Tiles are the map image split into small squares so that the map can be displayed. They are used when the map is opened. This includes the thumbnail (the small image shown in the list).",
+    "export_option_json": "Map settings file (JSON, POI)",
     "export_option_originals": "Original image",
     "export_option_originals_note": "Includes the original image file as is. The file becomes larger and may contain photo metadata.",
     "export_option_none_selected": "Select at least one item"
