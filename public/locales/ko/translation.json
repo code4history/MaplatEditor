@@ -468,13 +468,13 @@
     "success_upload": "지도 데이터가 정상적으로 등록되었습니다.",
     "error_too_large": "지도 데이터 ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다).",
     "error_corrupt": "지도 데이터 ZIP이 손상되어 가져올 수 없습니다.",
-    "error_no_json": "지도 설정(JSON)이 포함되어 있지 않아 가져올 수 없습니다"
+    "error_no_json": "지도 설정 파일(JSON)이 포함되어 있지 않아 가져올 수 없습니다"
   },
   "database": {
     "migrating": "신형 DB 형식으로 이전 중입니다.",
     "migrating_builtin_basemaps": "표준 베이스맵을 신형 DB에 등록하고 있습니다.",
     "migrating_legacy_maps": "구 지도 데이터를 신형 DB로 이전하고 있습니다.",
-    "migrating_legacy_basemaps": "구 베이스맵 설정을 신형 DB로 이전하고 있습니다.",
+    "migrating_legacy_basemaps": "구 베이스맵 설정 파일을 신형 DB로 이전하고 있습니다.",
     "archiving_legacy_files": "구 DB 파일을 대피시키고 있습니다.",
     "migrated": "신형 DB 형식으로의 이전이 완료되었습니다.",
     "migration_failed": "신형 DB 형식으로의 이전에 실패했습니다.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "표시 라벨",
-    "source_advanced": "상세 설정(JSON)",
-    "success_save": "앱 설정을 저장했습니다.",
-    "error_saving": "앱 설정 저장에 실패했습니다.",
-    "confirm_no_save": "앱 설정에 변경 사항이 있지만 저장되지 않았습니다.\n저장하지 않고 닫으시겠습니까?",
+    "source_advanced": "설정 파일(JSON)을 직접 편집",
+    "success_save": "앱 설정 파일을 저장했습니다.",
+    "error_saving": "앱 설정 파일 저장에 실패했습니다.",
+    "confirm_no_save": "앱 설정 파일에 변경 사항이 있지만 저장되지 않았습니다.\n저장하지 않고 닫으시겠습니까?",
     "roles": {
       "maplat": "Maplat",
       "base": "베이스맵",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "POI 데이터에 GeoJSON 형식과 그 외 형식이 혼재되어 있습니다. 뷰어에서 올바르게 표시되지 않을 수 있습니다. 구형 POI는 GeoJSON으로 변환하세요.",
     "provider_source_note": "타일 URL은 API 키와 종류로부터 자동으로 구성되므로 직접 입력할 필요가 없습니다.",
     "error_missing_base_map_master": "이 소스의 베이스맵을 찾을 수 없습니다. 내보내기와 미리보기에서 제외됩니다.",
-    "warn_missing_base_map_master": "베이스맵을 찾을 수 없는 소스를 제외했습니다.",
-    "export_exclude_tiles": "타일 포함 안 함"
+    "warn_missing_base_map_master": "베이스맵을 찾을 수 없는 소스를 제외했습니다."
   },
   "mapmodel": {
     "untitled": "제목 미설정",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "메르카토르 타일 세트",
-    "tab_description": "이 지도의 GCP 설정으로부터 메르카토르 타일 세트를 생성하여 베이스맵으로 등록합니다.",
+    "tab_description": "이 지도의 대응점(GCP)으로부터 메르카토르 타일 세트를 생성하여 베이스맵으로 등록합니다.",
     "generate": "메르카토르 타일 생성",
-    "generate_not_ready": "GCP 설정이 완료되지 않았거나 이미 최신 상태로 생성되어 있어 실행할 수 없습니다.",
+    "generate_not_ready": "대응점(GCP)이 완료되지 않았거나 이미 최신 상태로 생성되어 있어 실행할 수 없습니다.",
     "generating_tile": "메르카토르 타일을 생성하는 중입니다.",
     "success_generation": "메르카토르 타일 생성에 성공했습니다.",
     "error_generation": "메르카토르 타일 생성 중 오류가 발생했습니다.",

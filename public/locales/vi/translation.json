@@ -468,13 +468,13 @@
     "success_upload": "Đã đăng ký dữ liệu bản đồ thành công.",
     "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
     "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập.",
-    "error_no_json": "Không thể nhập vì không có cài đặt bản đồ (JSON)"
+    "error_no_json": "Không thể nhập vì không có tệp cài đặt bản đồ (JSON)"
   },
   "database": {
     "migrating": "Đang di chuyển sang định dạng cơ sở dữ liệu mới.",
     "migrating_builtin_basemaps": "Đang đăng ký bản đồ nền tiêu chuẩn vào cơ sở dữ liệu mới.",
     "migrating_legacy_maps": "Đang di chuyển dữ liệu bản đồ cũ sang cơ sở dữ liệu mới.",
-    "migrating_legacy_basemaps": "Đang di chuyển cài đặt bản đồ nền cũ sang cơ sở dữ liệu mới.",
+    "migrating_legacy_basemaps": "Đang di chuyển tệp cài đặt bản đồ nền cũ sang cơ sở dữ liệu mới.",
     "archiving_legacy_files": "Đang lưu trữ tệp cơ sở dữ liệu cũ.",
     "migrated": "Đã hoàn tất di chuyển sang định dạng cơ sở dữ liệu mới.",
     "migration_failed": "Di chuyển sang định dạng cơ sở dữ liệu mới thất bại.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Nhãn hiển thị",
-    "source_advanced": "Cài đặt chi tiết (JSON)",
-    "success_save": "Đã lưu cài đặt ứng dụng.",
-    "error_saving": "Lưu cài đặt ứng dụng thất bại.",
-    "confirm_no_save": "Cài đặt ứng dụng đã bị thay đổi nhưng chưa được lưu.\nBạn có muốn đóng mà không lưu không?",
+    "source_advanced": "Chỉnh sửa trực tiếp tệp cài đặt (JSON)",
+    "success_save": "Đã lưu tệp cài đặt ứng dụng.",
+    "error_saving": "Lưu tệp cài đặt ứng dụng thất bại.",
+    "confirm_no_save": "Tệp cài đặt ứng dụng đã bị thay đổi nhưng chưa được lưu.\nBạn có muốn đóng mà không lưu không?",
     "roles": {
       "maplat": "Maplat",
       "base": "Bản đồ nền",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
     "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
     "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",
-    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền.",
-    "export_exclude_tiles": "Không bao gồm ô bản đồ"
+    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "Bộ tile Mercator",
-    "tab_description": "Tạo bộ tile Mercator từ thiết lập GCP của bản đồ này và đăng ký làm bản đồ nền.",
+    "tab_description": "Tạo bộ tile Mercator từ điểm khống chế (GCP) của bản đồ này và đăng ký làm bản đồ nền.",
     "generate": "Tạo tile Mercator",
-    "generate_not_ready": "Không thể thực hiện vì thiết lập GCP chưa hoàn tất, hoặc tile đã được cập nhật mới nhất.",
+    "generate_not_ready": "Không thể thực hiện vì điểm khống chế (GCP) chưa hoàn tất, hoặc tile đã được cập nhật mới nhất.",
     "generating_tile": "Đang tạo tile Mercator.",
     "success_generation": "Tạo tile Mercator thành công.",
     "error_generation": "Đã xảy ra lỗi khi tạo tile Mercator.",

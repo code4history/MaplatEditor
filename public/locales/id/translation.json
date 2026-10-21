@@ -468,13 +468,13 @@
     "success_upload": "Data peta berhasil didaftarkan.",
     "error_too_large": "ZIP data peta terlalu besar (file lebih dari 2 GiB tidak dapat diimpor).",
     "error_corrupt": "ZIP data peta rusak sehingga tidak dapat diimpor.",
-    "error_no_json": "Tidak dapat diimpor karena pengaturan peta (JSON) tidak disertakan"
+    "error_no_json": "Tidak dapat diimpor karena file pengaturan peta (JSON) tidak disertakan"
   },
   "database": {
     "migrating": "Sedang memigrasikan ke format basis data baru.",
     "migrating_builtin_basemaps": "Sedang mendaftarkan peta dasar standar ke basis data baru.",
     "migrating_legacy_maps": "Sedang memigrasikan data peta lama ke basis data baru.",
-    "migrating_legacy_basemaps": "Sedang memigrasikan pengaturan peta dasar lama ke basis data baru.",
+    "migrating_legacy_basemaps": "Sedang memigrasikan file pengaturan peta dasar lama ke basis data baru.",
     "archiving_legacy_files": "Sedang mengarsipkan berkas basis data lama.",
     "migrated": "Migrasi ke format basis data baru selesai.",
     "migration_failed": "Migrasi ke format basis data baru gagal.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Label tampilan",
-    "source_advanced": "Pengaturan lanjutan (JSON)",
-    "success_save": "Pengaturan aplikasi tersimpan.",
-    "error_saving": "Gagal menyimpan pengaturan aplikasi.",
-    "confirm_no_save": "Pengaturan aplikasi telah diubah tetapi belum disimpan.\nApakah Anda ingin menutup tanpa menyimpan?",
+    "source_advanced": "Edit file pengaturan (JSON) secara langsung",
+    "success_save": "File pengaturan aplikasi tersimpan.",
+    "error_saving": "Gagal menyimpan file pengaturan aplikasi.",
+    "confirm_no_save": "File pengaturan aplikasi telah diubah tetapi belum disimpan.\nApakah Anda ingin menutup tanpa menyimpan?",
     "roles": {
       "maplat": "Maplat",
       "base": "Peta Dasar",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON.",
     "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual.",
     "error_missing_base_map_master": "Peta dasar untuk sumber ini tidak ditemukan. Sumber ini akan dikecualikan dari ekspor dan pratinjau.",
-    "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan.",
-    "export_exclude_tiles": "Jangan sertakan tile"
+    "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "Set Tile Mercator",
-    "tab_description": "Buat set tile Mercator dari pengaturan GCP peta ini dan daftarkan sebagai peta dasar.",
+    "tab_description": "Buat set tile Mercator dari titik kontrol (GCP) peta ini dan daftarkan sebagai peta dasar.",
     "generate": "Buat Tile Mercator",
-    "generate_not_ready": "Tidak dapat dijalankan karena pengaturan GCP belum lengkap, atau tile sudah mutakhir.",
+    "generate_not_ready": "Tidak dapat dijalankan karena titik kontrol (GCP) belum lengkap, atau tile sudah mutakhir.",
     "generating_tile": "Sedang membuat tile Mercator.",
     "success_generation": "Pembuatan tile Mercator berhasil.",
     "error_generation": "Terjadi kesalahan saat membuat tile Mercator.",

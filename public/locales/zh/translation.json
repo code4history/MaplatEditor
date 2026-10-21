@@ -468,13 +468,13 @@
     "success_upload": "地图数据已成功注册。",
     "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
     "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。",
-    "error_no_json": "未包含地图设置（JSON），无法导入"
+    "error_no_json": "未包含地图设置文件（JSON），无法导入"
   },
   "database": {
     "migrating": "正在迁移到新型数据库格式。",
     "migrating_builtin_basemaps": "正在将标准底图注册到新型数据库中。",
     "migrating_legacy_maps": "正在将旧地图数据迁移到新型数据库中。",
-    "migrating_legacy_basemaps": "正在将旧底图设置迁移到新型数据库中。",
+    "migrating_legacy_basemaps": "正在将旧底图设置文件迁移到新型数据库中。",
     "archiving_legacy_files": "正在归档旧数据库文件。",
     "migrated": "已完成向新型数据库格式的迁移。",
     "migration_failed": "向新型数据库格式的迁移失败。",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "显示标签",
-    "source_advanced": "详细设置(JSON)",
-    "success_save": "应用设置已保存。",
-    "error_saving": "应用设置保存失败。",
-    "confirm_no_save": "应用设置已更改但尚未保存。\n确定不保存就关闭吗?",
+    "source_advanced": "直接编辑设置文件（JSON）",
+    "success_save": "应用设置文件已保存。",
+    "error_saving": "应用设置文件保存失败。",
+    "confirm_no_save": "应用设置文件已更改但尚未保存。\n确定不保存就关闭吗?",
     "roles": {
       "maplat": "Maplat",
       "base": "底图",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "POI 数据中混杂了 GeoJSON 格式与其他格式，可能无法在查看器中正确显示。请将旧格式 POI 转换为 GeoJSON。",
     "provider_source_note": "瓦片URL会根据API密钥和类型自动构建，无需手动输入。",
     "error_missing_base_map_master": "找不到该源的底图，将从导出和预览中排除。",
-    "warn_missing_base_map_master": "已排除找不到底图的源。",
-    "export_exclude_tiles": "不包含瓦片"
+    "warn_missing_base_map_master": "已排除找不到底图的源。"
   },
   "mapmodel": {
     "untitled": "标题未设置",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "墨卡托瓦片集",
-    "tab_description": "根据此地图的控制点设置生成墨卡托瓦片集，并将其注册为底图。",
+    "tab_description": "根据此地图的对应点（GCP）生成墨卡托瓦片集，并将其注册为底图。",
     "generate": "生成墨卡托瓦片",
-    "generate_not_ready": "由于控制点设置未完成，或瓦片已是最新状态，无法执行。",
+    "generate_not_ready": "由于对应点（GCP）未完成，或瓦片已是最新状态，无法执行。",
     "generating_tile": "正在生成墨卡托瓦片。",
     "success_generation": "墨卡托瓦片生成成功。",
     "error_generation": "生成墨卡托瓦片时发生错误。",

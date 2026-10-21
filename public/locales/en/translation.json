@@ -450,13 +450,13 @@
     "success_upload": "Map data was successfully imported.",
     "error_too_large": "The map data ZIP is too large (files over 2 GiB cannot be imported).",
     "error_corrupt": "The map data ZIP is corrupted and cannot be imported.",
-    "error_no_json": "Cannot import because the map settings (JSON) are not included"
+    "error_no_json": "Cannot import because the map settings file (JSON) is not included"
   },
   "database": {
     "migrating": "Migrating to the new database format.",
     "migrating_builtin_basemaps": "Registering built-in base maps in the new database.",
     "migrating_legacy_maps": "Migrating legacy map data to the new database.",
-    "migrating_legacy_basemaps": "Migrating legacy base map settings to the new database.",
+    "migrating_legacy_basemaps": "Migrating the legacy base map settings file to the new database.",
     "archiving_legacy_files": "Archiving legacy database files.",
     "migrated": "Migration to the new database format is complete.",
     "migration_failed": "Migration to the new database format failed.",
@@ -602,10 +602,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Display label",
-    "source_advanced": "Advanced Settings (JSON)",
-    "success_save": "App settings saved.",
-    "error_saving": "Failed to save app settings.",
-    "confirm_no_save": "The app settings have unsaved changes.\nClose without saving?",
+    "source_advanced": "Edit the settings file (JSON) directly",
+    "success_save": "App settings file saved.",
+    "error_saving": "Failed to save the app settings file.",
+    "confirm_no_save": "The app settings file has unsaved changes.\nClose without saving?",
     "roles": {
       "maplat": "Maplat",
       "base": "Base Map",
@@ -682,8 +682,7 @@
     "warn_mixed_pois": "The POI data mixes GeoJSON and non-GeoJSON formats. It may not display correctly in the viewer. Convert legacy-format POIs to GeoJSON.",
     "provider_source_note": "The tile URL is built automatically from the API key and type, so no manual input is needed.",
     "error_missing_base_map_master": "The base map for this source is missing. It will be excluded from export and preview.",
-    "warn_missing_base_map_master": "Excluded sources whose base map could not be found.",
-    "export_exclude_tiles": "Do not include tiles"
+    "warn_missing_base_map_master": "Excluded sources whose base map could not be found."
   },
   "mapmodel": {
     "untitled": "Untitled",
@@ -699,9 +698,9 @@
   },
   "merc": {
     "tab_title": "Mercator Tile Set",
-    "tab_description": "Generate a Mercator tile set from this map's GCP settings and register it as a base map.",
+    "tab_description": "Generate a Mercator tile set from this map's control points (GCP) and register it as a base map.",
     "generate": "Generate Mercator Tiles",
-    "generate_not_ready": "Cannot run because GCP setup is incomplete, or tiles are already up to date.",
+    "generate_not_ready": "Cannot run because the control points (GCP) are incomplete, or tiles are already up to date.",
     "generating_tile": "Mercator tiles are being generated.",
     "success_generation": "Mercator tile generation succeeded.",
     "error_generation": "Error in Mercator tile generation.",

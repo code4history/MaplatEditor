@@ -468,13 +468,13 @@
     "success_upload": "Les données de carte ont été enregistrées avec succès.",
     "error_too_large": "Le ZIP des données de carte est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés).",
     "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé.",
-    "error_no_json": "Importation impossible car les paramètres de la carte (JSON) ne sont pas inclus"
+    "error_no_json": "Importation impossible car le fichier de paramètres de la carte (JSON) n'est pas inclus"
   },
   "database": {
     "migrating": "Migration vers le nouveau format de base de données en cours.",
     "migrating_builtin_basemaps": "Enregistrement des fonds de carte intégrés dans la nouvelle base de données en cours.",
     "migrating_legacy_maps": "Migration des anciennes données de carte vers la nouvelle base de données en cours.",
-    "migrating_legacy_basemaps": "Migration des anciens paramètres de fond de carte vers la nouvelle base de données en cours.",
+    "migrating_legacy_basemaps": "Migration du fichier de paramètres des anciens fonds de carte vers la nouvelle base de données en cours.",
     "archiving_legacy_files": "Archivage des anciens fichiers de base de données en cours.",
     "migrated": "La migration vers le nouveau format de base de données est terminée.",
     "migration_failed": "La migration vers le nouveau format de base de données a échoué.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Libellé d’affichage",
-    "source_advanced": "Paramètres avancés (JSON)",
-    "success_save": "Les paramètres de l'application ont été enregistrés.",
-    "error_saving": "Échec de l'enregistrement des paramètres de l'application.",
-    "confirm_no_save": "Les paramètres de l'application ont été modifiés mais non enregistrés.\nFermer sans enregistrer ?",
+    "source_advanced": "Modifier directement le fichier de paramètres (JSON)",
+    "success_save": "Le fichier de paramètres de l'application a été enregistré.",
+    "error_saving": "Échec de l'enregistrement du fichier de paramètres de l'application.",
+    "confirm_no_save": "Le fichier de paramètres de l'application a été modifié mais non enregistré.\nFermer sans enregistrer ?",
     "roles": {
       "maplat": "Maplat",
       "base": "Fond de carte",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Les données POI mélangent le format GeoJSON et d'autres formats. Elles risquent de ne pas s'afficher correctement dans la visionneuse. Convertissez les POI à l'ancien format en GeoJSON.",
     "provider_source_note": "L'URL de la tuile est construite automatiquement à partir de la clé API et du type, aucune saisie manuelle n'est nécessaire.",
     "error_missing_base_map_master": "Le fond de carte de cette source est introuvable. Il sera exclu de l’export et de l’aperçu.",
-    "warn_missing_base_map_master": "Les sources dont le fond de carte est introuvable ont été exclues.",
-    "export_exclude_tiles": "Ne pas inclure les tuiles"
+    "warn_missing_base_map_master": "Les sources dont le fond de carte est introuvable ont été exclues."
   },
   "mapmodel": {
     "untitled": "Titre non défini",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "Jeu de tuiles Mercator",
-    "tab_description": "Générez un jeu de tuiles Mercator à partir des GCP de cette carte et enregistrez-le comme fond de carte.",
+    "tab_description": "Générez un jeu de tuiles Mercator à partir des points de contrôle (GCP) de cette carte et enregistrez-le comme fond de carte.",
     "generate": "Générer les tuiles Mercator",
-    "generate_not_ready": "Impossible d'exécuter : la configuration des GCP est incomplète ou les tuiles sont déjà à jour.",
+    "generate_not_ready": "Impossible d'exécuter : les points de contrôle (GCP) sont incomplets ou les tuiles sont déjà à jour.",
     "generating_tile": "Génération des tuiles Mercator en cours.",
     "success_generation": "La génération des tuiles Mercator a réussi.",
     "error_generation": "Une erreur s'est produite lors de la génération des tuiles Mercator.",

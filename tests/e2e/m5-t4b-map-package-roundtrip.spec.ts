@@ -187,6 +187,8 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       await openHash(page, `#/appedit?uid=${appUid}`);
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30000 });
       await page.locator('[data-editor-action="export"]').click();
+      // nov26-editor-appexport-dialog: アプリの書き出しも地図と同じく小窓（既定のまま）で書き出す
+      await page.getByTestId('app-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
 
       const { default: AdmZip } = await import('adm-zip');

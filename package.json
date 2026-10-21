@@ -12,6 +12,7 @@
     "test:e2e:nov26-m6-t6": "node scripts/ensure-electron.mjs && pnpm --ignore-workspace run build && playwright test tests/e2e/nov26-m6-t6-basemap-metadata.spec.ts",
     "smoke:nov26-m6-t8-export-options": "node scripts/nov26-m6-t8-export-options-smoke.mjs",
     "test:e2e:nov26-m6-t8": "node scripts/ensure-electron.mjs && pnpm --ignore-workspace run build && playwright test tests/e2e/nov26-m6-t8-export-options.spec.ts",
+    "test:e2e:nov26-editor-appexport-dialog": "node scripts/ensure-electron.mjs && pnpm --ignore-workspace run build && playwright test tests/e2e/nov26-editor-appexport-dialog.spec.ts",
     "postinstall": "node scripts/ensure-electron.mjs",
     "predev": "node scripts/ensure-electron.mjs",
     "predist": "node scripts/ensure-electron.mjs",

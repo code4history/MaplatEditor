@@ -93,6 +93,9 @@ test.describe('nov26-rc-editor174: PWA 画像を Electron の Chromium で描く
       await openHash(page, `#/appedit?uid=${appUid}`);
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30000 });
       await page.locator('[data-editor-action="export"]').click();
+      // nov26-editor-appexport-dialog: アプリの書き出しも「エクスポートする中身」の小窓を通る（既定はタイルを含める）
+      await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30000 });
+      await page.getByTestId('app-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 180000 });
       for (let i = 0; i < 5; i++) {
         const modal = page.locator('.modal.d-block');

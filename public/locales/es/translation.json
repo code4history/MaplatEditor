@@ -468,13 +468,13 @@
     "success_upload": "Los datos del mapa se han registrado correctamente.",
     "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
     "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar.",
-    "error_no_json": "No se puede importar porque no se incluye la configuración del mapa (JSON)"
+    "error_no_json": "No se puede importar porque no se incluye el archivo de configuración del mapa (JSON)"
   },
   "database": {
     "migrating": "Migrando al nuevo formato de base de datos.",
     "migrating_builtin_basemaps": "Registrando los mapas base integrados en la nueva base de datos.",
     "migrating_legacy_maps": "Migrando los datos de mapas antiguos a la nueva base de datos.",
-    "migrating_legacy_basemaps": "Migrando la configuración de mapas base antiguos a la nueva base de datos.",
+    "migrating_legacy_basemaps": "Migrando el archivo de configuración de mapas base antiguos a la nueva base de datos.",
     "archiving_legacy_files": "Archivando los archivos de la base de datos antigua.",
     "migrated": "La migración al nuevo formato de base de datos se ha completado.",
     "migration_failed": "Error en la migración al nuevo formato de base de datos.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Etiqueta visible",
-    "source_advanced": "Configuración avanzada (JSON)",
-    "success_save": "Se ha guardado la configuración de la aplicación.",
-    "error_saving": "Error al guardar la configuración de la aplicación.",
-    "confirm_no_save": "La configuración de la aplicación se ha modificado pero no se ha guardado.\n¿Cerrar sin guardar?",
+    "source_advanced": "Editar directamente el archivo de configuración (JSON)",
+    "success_save": "Se ha guardado el archivo de configuración de la aplicación.",
+    "error_saving": "Error al guardar el archivo de configuración de la aplicación.",
+    "confirm_no_save": "El archivo de configuración de la aplicación se ha modificado pero no se ha guardado.\n¿Cerrar sin guardar?",
     "roles": {
       "maplat": "Maplat",
       "base": "Mapa base",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
     "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
-    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró.",
-    "export_exclude_tiles": "No incluir teselas"
+    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró."
   },
   "mapmodel": {
     "untitled": "Título no establecido",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "Conjunto de teselas de Mercator",
-    "tab_description": "Genere un conjunto de teselas de Mercator a partir de los GCP de este mapa y regístrelo como mapa base.",
+    "tab_description": "Genere un conjunto de teselas de Mercator a partir de los puntos de control (GCP) de este mapa y regístrelo como mapa base.",
     "generate": "Generar teselas de Mercator",
-    "generate_not_ready": "No se puede ejecutar porque la configuración de GCP está incompleta o las teselas ya están actualizadas.",
+    "generate_not_ready": "No se puede ejecutar porque los puntos de control (GCP) están incompletos o las teselas ya están actualizadas.",
     "generating_tile": "Generando teselas de Mercator.",
     "success_generation": "Las teselas de Mercator se generaron correctamente.",
     "error_generation": "Se ha producido un error al generar las teselas de Mercator.",

@@ -468,13 +468,13 @@
     "success_upload": "地圖資料已成功登錄。",
     "error_too_large": "地圖資料的 ZIP 過大（無法匯入超過 2 GiB 的檔案）。",
     "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。",
-    "error_no_json": "未包含地圖設定（JSON），無法匯入"
+    "error_no_json": "未包含地圖設定檔（JSON），無法匯入"
   },
   "database": {
     "migrating": "正在遷移至新型資料庫格式。",
     "migrating_builtin_basemaps": "正在將標準底圖登錄至新型資料庫中。",
     "migrating_legacy_maps": "正在將舊地圖資料遷移至新型資料庫中。",
-    "migrating_legacy_basemaps": "正在將舊底圖設定遷移至新型資料庫中。",
+    "migrating_legacy_basemaps": "正在將舊底圖設定檔遷移至新型資料庫中。",
     "archiving_legacy_files": "正在封存舊資料庫檔案。",
     "migrated": "已完成遷移至新型資料庫格式。",
     "migration_failed": "遷移至新型資料庫格式失敗。",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "顯示標籤",
-    "source_advanced": "詳細設定(JSON)",
-    "success_save": "應用程式設定已儲存。",
-    "error_saving": "應用程式設定儲存失敗。",
-    "confirm_no_save": "應用程式設定已變更但尚未儲存。\n確定不儲存就關閉嗎?",
+    "source_advanced": "直接編輯設定檔（JSON）",
+    "success_save": "應用程式設定檔已儲存。",
+    "error_saving": "應用程式設定檔儲存失敗。",
+    "confirm_no_save": "應用程式設定檔已變更但尚未儲存。\n確定不儲存就關閉嗎?",
     "roles": {
       "maplat": "Maplat",
       "base": "底圖",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。",
     "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。",
     "error_missing_base_map_master": "找不到此來源的底圖，將自匯出與預覽中排除。",
-    "warn_missing_base_map_master": "已排除找不到底圖的來源。",
-    "export_exclude_tiles": "不包含圖磚"
+    "warn_missing_base_map_master": "已排除找不到底圖的來源。"
   },
   "mapmodel": {
     "untitled": "標題未設定",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "麥卡托圖磚集",
-    "tab_description": "根據此地圖的控制點設定產生麥卡托圖磚集，並將其註冊為底圖。",
+    "tab_description": "根據此地圖的對應點（GCP）產生麥卡托圖磚集，並將其註冊為底圖。",
     "generate": "產生麥卡托圖磚",
-    "generate_not_ready": "由於控制點設定未完成，或圖磚已是最新狀態，無法執行。",
+    "generate_not_ready": "由於對應點（GCP）未完成，或圖磚已是最新狀態，無法執行。",
     "generating_tile": "正在產生麥卡托圖磚。",
     "success_generation": "麥卡托圖磚產生成功。",
     "error_generation": "產生麥卡托圖磚時發生錯誤。",

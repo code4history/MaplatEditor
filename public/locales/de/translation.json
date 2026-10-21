@@ -468,13 +468,13 @@
     "success_upload": "Die Kartendaten wurden erfolgreich registriert.",
     "error_too_large": "Die ZIP-Datei der Kartendaten ist zu groß (Dateien über 2 GiB können nicht importiert werden).",
     "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden.",
-    "error_no_json": "Import nicht möglich, da die Karteneinstellungen (JSON) fehlen"
+    "error_no_json": "Import nicht möglich, da die Einstellungsdatei der Karte (JSON) fehlt"
   },
   "database": {
     "migrating": "Migration zum neuen Datenbankformat läuft.",
     "migrating_builtin_basemaps": "Integrierte Basiskarten werden in der neuen Datenbank registriert.",
     "migrating_legacy_maps": "Alte Kartendaten werden in die neue Datenbank migriert.",
-    "migrating_legacy_basemaps": "Alte Basiskarten-Einstellungen werden in die neue Datenbank migriert.",
+    "migrating_legacy_basemaps": "Die Einstellungsdatei der alten Basiskarten wird in die neue Datenbank migriert.",
     "archiving_legacy_files": "Alte Datenbankdateien werden archiviert.",
     "migrated": "Die Migration zum neuen Datenbankformat ist abgeschlossen.",
     "migration_failed": "Die Migration zum neuen Datenbankformat ist fehlgeschlagen.",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Anzeigebezeichnung",
-    "source_advanced": "Erweiterte Einstellungen (JSON)",
-    "success_save": "App-Einstellungen wurden gespeichert.",
-    "error_saving": "Speichern der App-Einstellungen fehlgeschlagen.",
-    "confirm_no_save": "Die App-Einstellungen wurden geändert, aber nicht gespeichert.\nMöchten Sie schließen, ohne zu speichern?",
+    "source_advanced": "Einstellungsdatei (JSON) direkt bearbeiten",
+    "success_save": "Die Einstellungsdatei der App wurde gespeichert.",
+    "error_saving": "Speichern der Einstellungsdatei der App fehlgeschlagen.",
+    "confirm_no_save": "Die Einstellungsdatei der App wurde geändert, aber nicht gespeichert.\nMöchten Sie schließen, ohne zu speichern?",
     "roles": {
       "maplat": "Maplat",
       "base": "Basiskarte",
@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Die POI-Daten mischen GeoJSON- und Nicht-GeoJSON-Formate. Sie werden im Viewer möglicherweise nicht korrekt angezeigt. Wandeln Sie POIs im Altformat in GeoJSON um.",
     "provider_source_note": "Die Kachel-URL wird automatisch aus dem API-Schlüssel und dem Typ erstellt, eine manuelle Eingabe ist nicht erforderlich.",
     "error_missing_base_map_master": "Die Basiskarte für diese Quelle fehlt. Sie wird von Export und Vorschau ausgeschlossen.",
-    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen.",
-    "export_exclude_tiles": "Kacheln nicht einschließen"
+    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",
@@ -717,9 +716,9 @@
   },
   "merc": {
     "tab_title": "Mercator-Kachelsatz",
-    "tab_description": "Erzeugen Sie aus den GCP-Einstellungen dieser Karte einen Mercator-Kachelsatz und registrieren Sie ihn als Basiskarte.",
+    "tab_description": "Erzeugen Sie aus den Passpunkten (GCP) dieser Karte einen Mercator-Kachelsatz und registrieren Sie ihn als Basiskarte.",
     "generate": "Mercator-Kacheln erzeugen",
-    "generate_not_ready": "Kann nicht ausgeführt werden, da die GCP-Einrichtung unvollständig ist oder die Kacheln bereits aktuell sind.",
+    "generate_not_ready": "Kann nicht ausgeführt werden, da die Passpunkte (GCP) unvollständig sind oder die Kacheln bereits aktuell sind.",
     "generating_tile": "Mercator-Kacheln werden erzeugt.",
     "success_generation": "Die Mercator-Kacheln wurden erfolgreich erzeugt.",
     "error_generation": "Bei der Erzeugung der Mercator-Kacheln ist ein Fehler aufgetreten.",
