@@ -567,6 +567,8 @@ async function hydrateAssetPreviews() {
 
 async function uploadSplash() {
   assetUploadError.value = null;
+  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-3】undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
+  previewGeneration++;
   const result = await window.appAssets.uploadSplash();
   if (result.err === "Canceled") return;
   if (result.err) {
@@ -580,6 +582,8 @@ async function uploadSplash() {
 
 async function uploadPwaIcon() {
   assetUploadError.value = null;
+  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-3】undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
+  previewGeneration++;
   if (!appData.value.appID.trim()) {
     assetUploadError.value = t("appedit.no_appid");
     return;
