@@ -116,6 +116,13 @@ test('AC4/AC5/AC6/AC9: 件数上限・× の 1 件削除・ワンクリック絞
     expect(await running.page.evaluate(() => location.hash)).toBe(beforeHash);
     await expect(mapSearch).toHaveValue('enter-commit');
 
+    // 【NOV26-IR-EDITOR-FEAT1-0463 MAJOR-1】チップを押した直後（800 ms 以内）に同じチップの × を押しても、
+    // 消した履歴が予約の記録で戻らない
+    await running.page.locator('[data-recent-search="map7"]').click();
+    await running.page.locator('[data-recent-search-remove="map7"]').click();
+    await running.page.waitForTimeout(1200);
+    await expect(running.page.locator('[data-recent-search="map7"]')).toHaveCount(0);
+
     // AC5: 左右ペインは 5 件まで
     await openHash(running.page, '#/basemaps', '[data-master-detail="base-map"]');
     const baseSearch = running.page.getByTestId('basemap-search');

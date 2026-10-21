@@ -18,6 +18,7 @@ import {
   normalizeQueryForHistory,
   normalizeRecentSearches,
   removeRecentSearch,
+  sameSearchKey,
   type RecentSearchEntry,
   type RecentSearches,
 } from "../utils/recentSearches";
@@ -149,6 +150,14 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
       pending = null;
       return;
     }
+    // 先頭がすでに同じ条件なら予約しない（タグを押した後の画面の更新で同じ条件を書き直さない・
+    // 【NOV26-IR-EDITOR-FEAT1-0463】の「違えた点 6」の余計な書き込み）
+    const head = items.value[0];
+    if (head && sameSearchKey(head.q, q)) {
+      clearTimer();
+      pending = null;
+      return;
+    }
     schedule(q);
   }
 
@@ -174,6 +183,12 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
   }
 
   async function remove(q: string): Promise<void> {
+    // 【NOV26-IR-EDITOR-FEAT1-0463 MAJOR-1】同じ条件の記録が予約中なら取り消す（タグを押した直後や入力の
+    // 直後に × を押すと、800 ms 後の予約が消した履歴を戻していた）
+    if (pending !== null && sameSearchKey(pending, q)) {
+      clearTimer();
+      pending = null;
+    }
     await hydrate();
     items.value = removeRecentSearch(items.value, q);
     await persist();
