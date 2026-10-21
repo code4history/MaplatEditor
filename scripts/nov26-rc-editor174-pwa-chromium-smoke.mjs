@@ -17,12 +17,10 @@
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { build } from 'vite';
 
-const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const baselinePath = path.join(projectRoot, 'scripts/fixtures/nov26-rc-editor174-pwa-baseline.json');
@@ -85,12 +83,20 @@ try {
       const exportRoot = ${JSON.stringify(exportRoot)};
       const timingRoot = ${JSON.stringify(timingRoot)};
 
-      app.setPath('userData', nodePath.join(workDir, 'userData'));
+      // 注意: app.setPath('userData', ...) を ready 前に呼ぶと、この環境では ready が来なくなる。
+      // 書き込み先の隔離は起動引数 --user-data-dir で行う（spawn 側）。
       process.env.APP_ROOT = ${JSON.stringify(projectRoot)};
 
       let zipSeq = 0;
+      // 描画用ウィンドウを壊したときに「全部のウィンドウが閉じた」でアプリが終わらないようにする
+      // （本番の main.ts は 'window-all-closed' を購読して macOS では終了しない）
+      app.on('window-all-closed', () => {});
+      console.log('[smoke] entry loaded');
+      // 注意: ESM の main で app.whenReady() を top-level await で待つと、Electron が main の
+      // 評価完了を待ってから ready を発火するため互いに待ち合って止まる。ready の後に本体を走らせる。
+      async function main() {
       try {
-        await app.whenReady();
+        console.log('[smoke] app ready');
         dialog.showSaveDialog = (async () => {
           zipSeq += 1;
           return { canceled: false, filePath: nodePath.join(exportRoot, 'export-' + zipSeq + '.zip') };
@@ -101,6 +107,7 @@ try {
         SettingsService.set('saveFolder', dataDir);
         SettingsService.set('tmpFolder', nodePath.join(workDir, 'tmp'));
         const { default: AppExportService } = await import(${p('electron/services/AppExportService.ts')});
+        console.log('[smoke] modules loaded');
         const renderer = await import(${p('electron/utils/pwaChromiumRenderer.ts')});
 
         const baseline = JSON.parse(await readFile(${JSON.stringify(baselinePath)}, 'utf8'));
@@ -316,10 +323,20 @@ try {
         }
 
         console.log('NOV26-RC-EDITOR174 pwa chromium smoke passed');
-      } finally {
         clearTimeout(timeout);
         app.exit(0);
+      } catch (error) {
+        // 失敗は終了コードと標準エラーで伝える（finally で exit するとエラーが消えるため catch にする）
+        console.error('NOV26-RC-EDITOR174 pwa chromium smoke failed', error);
+        clearTimeout(timeout);
+        app.exit(1);
       }
+      }
+
+      app.whenReady().then(main).catch((error) => {
+        console.error('NOV26-RC-EDITOR174 pwa chromium smoke failed', error);
+        app.exit(1);
+      });
     `
   );
 
@@ -345,16 +362,23 @@ try {
   for (const key of Object.keys(childEnv)) {
     if (key.startsWith('npm_') || key.startsWith('PNPM')) delete childEnv[key];
   }
-  const { stdout, stderr } = await execFileAsync(electronBin, ['--disable-crash-reporter', bundledFile], {
+  // 子プロセスの出力は逐次流す（固まったときにどこで止まったか分かるようにする）
+  const child = spawn(electronBin, ['--disable-crash-reporter', `--user-data-dir=${path.join(workDir, 'userData')}`, bundledFile], {
     cwd: projectRoot,
-    timeout: 900000,
-    maxBuffer: 1024 * 1024 * 32,
+    stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...childEnv, ELECTRON_DISABLE_SECURITY_WARNINGS: 'true' },
   });
-  if (stdout.trim()) console.log(stdout.trim());
-  if (stderr.trim()) console.error(stderr.trim());
-  assert.ok(stdout.includes('NOV26-RC-EDITOR174 pwa chromium smoke passed'),
-    'chromium smoke が完走しなかった（stdout に pass の行が無い）');
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (chunk) => { stdout += chunk; process.stdout.write(chunk); });
+  child.stderr.on('data', (chunk) => { stderr += chunk; process.stderr.write(chunk); });
+  const exit = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('chromium smoke が 15 分で終わらなかった')); }, 900000);
+    child.on('error', reject);
+    child.on('exit', (code, signal) => { clearTimeout(timer); resolve({ code, signal }); });
+  });
+  assert.ok(String(stdout).includes('NOV26-RC-EDITOR174 pwa chromium smoke passed'),
+    `chromium smoke が完走しなかった（exit=${JSON.stringify(exit)}）: ${stderr.slice(-2000)}`);
   console.log('nov26-rc-editor174 pwa chromium smoke passed');
 } finally {
   await rm(workDir, { recursive: true, force: true });

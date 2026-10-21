@@ -10,6 +10,8 @@ import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
+import { composePwaHtmlMeta, composePwaManifestIcons } from '../utils/pwaAssets';
+import { renderPwaAssets } from '../utils/pwaChromiumRenderer';
 import { packIco } from '../utils/icoPack';
 import {
   collectPoiUids,
@@ -781,9 +783,9 @@ class AppExportService {
     };
   }
 
-  // アイコン元画像 (generator/jimp への入力) の解決。manifestSettings.iconSource (saveFolder 相対)
+  // アイコン元画像 (描画/jimp への入力) の解決。manifestSettings.iconSource (saveFolder 相対)
   // が未指定または実体無しの場合は、アプリ同梱のデフォルト SVG (Maplat ロゴ、512x512 viewBox) に
-  // フォールバックする。SVG は pwa-asset-generator が Puppeteer でラスタライズできるため直接渡す
+  // フォールバックする。SVG は描画に使う Chromium がそのままラスタライズできるので直接渡す
   private resolveIconInput(document: any): string {
     const iconSourceRel = String(document.manifestSettings?.iconSource || '');
     const userIcon = iconSourceRel ? path.join(this.saveFolder, iconSourceRel) : '';
@@ -791,7 +793,8 @@ class AppExportService {
     return resolveResourceAsset('pwa/appicon-default.svg') || '';
   }
 
-  // pwa-asset-generatorでアイコン/スプラッシュ生成。Chrome不在などの失敗時はjimpで最低限のアイコンを生成
+  // PWA のアイコン/スプラッシュ生成 (#174)。描画は Electron 自身の Chromium（非表示ウィンドウ）で行い、
+  // Chrome は探さず起動しない。描画できない場合だけ jimp で最低限のアイコンを生成する
   private async generatePwaAssets(
     outDir: string,
     appID: string,
@@ -824,32 +827,27 @@ class AppExportService {
     }
 
     try {
-      const { generateImages } = await import('pwa-asset-generator');
-      const common = {
-        log: false,
-        pathOverride: `pwa/${appID}`,
+      // #174: 画像は Electron 自身の Chromium（画面外の非表示ウィンドウ）で描く。Chrome を探さず起動しない。
+      // ファイル名・寸法・manifest・htmlMeta は従来と同一（pwaAssets の純関数が決める）
+      const rendered = await renderPwaAssets({
+        iconSourcePath: iconSource,
+        splashSourcePath: splashSource && fs.existsSync(splashSource) ? splashSource : undefined,
+        outputDir: pagDir,
         background: backgroundColor,
-        type: 'png' as const,
-      };
-      const iconResult = await generateImages(iconSource, pagDir, {
-        ...common,
-        iconOnly: true,
-        favicon: true,
-        mstile: true,
-        maskable: true,
-        opaque: false,
       });
-      const splashInput = splashSource && fs.existsSync(splashSource) ? splashSource : iconSource;
-      const splashResult = await generateImages(splashInput, pagDir, {
-        ...common,
-        splashOnly: true,
-      });
+      // スプラッシュが読めずアイコン元画像で描いた場合は黙って差し替えない
+      if (rendered.splashUsedFallback) warnings.push('appedit.export.missing_splash');
+      const pathOverride = `pwa/${appID}`;
       return {
-        icons: iconResult.manifestJsonContent || [],
-        htmlMeta: { ...(splashResult.htmlMeta || {}), ...(iconResult.htmlMeta || {}) },
+        icons: composePwaManifestIcons(rendered.iconSaved, pathOverride),
+        htmlMeta: composePwaHtmlMeta(
+          { icon: rendered.iconSaved, splash: rendered.splashSaved },
+          pathOverride,
+          { favicon: true, mstile: true },
+        ),
       };
     } catch (e) {
-      console.error('[AppExportService] pwa-asset-generator failed', e);
+      console.error('[AppExportService] PWA asset rendering failed', e);
       warnings.push('appedit.export.pwa_fallback');
       return await this.generateFallbackIcons(iconSource, pagDir, appID);
     }
@@ -888,10 +886,10 @@ class AppExportService {
   }
 
   // favicon.ico をパッケージルートへ生成する (pwaManifest 無効時も常時)。
-  // 優先順: ① pwa-asset-generator 出力に .ico があればそれを配置 (8.1.5 時点では PNG のみで
-  // 出力されないが、将来の対応に備える) → ② generator の favicon PNG (favicon-196.png) を
-  // PNG-in-ICO (icoPack) で包む → ③ generator 未実行 (pwaManifest 無効) / 失敗時は jimp で
-  // 196px PNG を作ってから包む。favicon 生成失敗はエクスポート全体を落とさない
+  // 優先順: ① pwa/ に .ico があればそれを配置 (今の描画は PNG のみで出力されないが、将来の対応に
+  // 備える) → ② 描画した favicon PNG (favicon-196.png) を PNG-in-ICO (icoPack) で包む →
+  // ③ 描画していない (pwaManifest 無効) / 失敗時は jimp で 196px PNG を作ってから包む。
+  // favicon 生成失敗はエクスポート全体を落とさない
   private async writeFaviconIco(outDir: string, appID: string, document: any) {
     const pagDir = path.join(outDir, 'pwa', appID);
     const icoPath = path.join(outDir, 'favicon.ico');
