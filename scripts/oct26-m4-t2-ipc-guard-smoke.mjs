@@ -20,7 +20,8 @@ const TARGETS = [
   ["electron/ipc/wmts.ts", ["wmtsGen:generate"]],
   // nov26-m6-t5: TMS サムネイルのアップロードの IPC は撤去した（呼び出し 0 件・名前を決められる口を残さない）
   ["electron/ipc/appassets.ts", ["appassets:upload-splash", "appassets:upload-pwa-icon", "appassets:replace-map-thumbnail", "appassets:generate-tms-thumbnail"]],
-  ["electron/ipc/assets-images.ts", ["imageassets:add", "imageassets:update-metadata"]],
+  // nov26-editor-feat2: ユーザーが選んだ画像を読む新 IPC（token 方式）も対象表へ足す
+  ["electron/ipc/assets-images.ts", ["imageassets:add", "imageassets:update-metadata", "imageassets:readPickedSource"]],
 ];
 
 let total = 0;

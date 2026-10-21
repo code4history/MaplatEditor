@@ -232,7 +232,11 @@ contextBridge.exposeInMainWorld('imageAssets', {
   getFilePath: (ref: string) => ipcRenderer.invoke('imageassets:getFilePath', ref),
   findReferences: (ref: string) => ipcRenderer.invoke('imageassets:findReferences', ref),
   // インポート用ネイティブファイル選択。キャンセル時は null
+  // feat2: token は「このセッションで利用者が選んだファイル」を指す一次表示用の鍵
+  // （renderer からパスを渡す口は作らない）
   pickImageFile: () => ipcRenderer.invoke('imageassets:pickImageFile'),
+  // feat2: 指定直後の一次画像（保存前のプレビュー）。token でしか引けない
+  readPickedSource: (token: string) => ipcRenderer.invoke('imageassets:readPickedSource', token),
 })
 
 // slug 予約 (M11-T7/§7.2): 複数 instance 間の slug 予約・移動・解放・確認。
