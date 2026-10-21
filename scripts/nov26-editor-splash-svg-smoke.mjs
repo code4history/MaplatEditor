@@ -9,7 +9,9 @@
 //   (b) 取り込み: uploadSplash は SVG を XML として確かめ（ルート svg・大きさあり）、
 //       `{uuid}.svg` で img/ へ複製する。壊れた SVG は InvalidImage
 //       【NOV26-SR-M12-C1-0465 SR-C1-M-1】文字参照で書いた javascript:/vbscript:/data:・
-//       XHTML（および他の）名前空間の要素・属性・DTD の内部実体・style の url(/expression(/@import は拒否する
+//       XHTML（および他の）名前空間の要素・属性・DTD の内部実体・style の expression(/@import は拒否する。
+//       【NOV26-IM-M12-SVG-HARDEN-0474】style の url( は一律に拒否せず、デコードした中身が
+//       文書内参照（url(#id)）のときだけ通す（イラレは .st0{fill:url(#SVGID_1_);} でグラデーションを引く）
 //   (c) 保存前の表示: 拡張子 allowlist を経路で分ける（スプラッシュは svg 可・アセットは不可）
 //   (d) 書き出し: スプラッシュの複製と app JSON の splash は拡張子のまま。og:image は
 //       SVG のとき Chromium で描いた PNG（1200x630・背景で余白）
@@ -120,6 +122,18 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
       + '<path d="M12 2L2 22h20L12 2z" fill="#1E1E1E"/></svg>',
     // 手書きの典型（名前空間の宣言なし・数値の文字参照・定義済み 5 実体）
     '<svg viewBox="0 0 8 8"><title>a &#38; b</title><path d="M0 0 8 8" stroke="black" stroke-width="1"/></svg>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`#` で始まる名前）だけを許す。
+    // Illustrator のグラデーション参照の実在の形（style 属性・<style>・引用符つき・空白つき）
+    '<svg width="10" height="10"><rect style="fill:url(#SVGID_1_);" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url(#SVGID_1_);}</style><rect class="st0" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url(\'#a\');}</style><rect class="st0" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url( "#a" );}</style><rect class="st0" width="1" height="1"/></svg>',
+    // 文字参照を挟んだ url( も、デコードした結果が文書内参照なら通す（以前は一律に拒否していた）
+    '<svg width="10" height="10"><style>.a{fill:u&#114;l(#a)}</style><rect width="1" height="1"/></svg>',
+    // CDATA に書かれた <style> の中身も同じ扱い（以前は一律に拒否していた）
+    '<svg width="10" height="10"><style><![CDATA[ .a{fill:url(#a)} ]]></style><rect width="1" height="1"/></svg>',
+    // style 属性の文書内参照（以前は一律に拒否していた）
+    '<svg width="10" height="10"><rect style="fill:url(#g)" width="1" height="1"/></svg>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
@@ -186,13 +200,20 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><a href="&foo;"><rect width="1" height="1"/></a></svg>', "宣言の無い名前つき実体（属性）"],
     ['<svg width="10" height="10"><text>&nbsp;</text></svg>', "定義済み 5 以外の HTML の実体"],
 
-    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】style の url(・expression(・javascript:・@import
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】style の expression(・javascript:・@import
     ['<svg width="10" height="10"><style>@import url("http://example.invalid/x.css");</style><rect width="1" height="1"/></svg>', "<style> の @import"],
-    ['<svg width="10" height="10"><style><![CDATA[ .a{fill:url(#a)} ]]></style><rect width="1" height="1"/></svg>', "<style> の url("],
-    ['<svg width="10" height="10"><style>.a{fill:u&#114;l(#a)}</style><rect width="1" height="1"/></svg>', "文字参照を挟んだ <style> の url("],
     ['<svg width="10" height="10"><style>.a{color:&#101;xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照を挟んだ <style> の expression("],
-    ['<svg width="10" height="10"><rect style="fill:url(#g)" width="1" height="1"/></svg>', "style 属性の url("],
     ['<svg width="10" height="10"><rect style="width:expression(alert(1))" width="1" height="1"/></svg>', "style 属性の expression("],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0474】url( のうち文書内参照でないもの
+    ['<svg width="10" height="10"><style>.a{fill:url(http://x/a.svg#a)}</style><rect width="1" height="1"/></svg>', "<style> の url( の外部参照（http）"],
+    ['<svg width="10" height="10"><rect style="fill:url(data:image/svg+xml;base64,AAAA)" width="1" height="1"/></svg>', "style 属性の url( の data:"],
+    ['<svg width="10" height="10"><style>.a{fill:url(a.svg#x)}</style><rect width="1" height="1"/></svg>', "<style> の url( の相対パス"],
+    // 文書内参照の後に続く 2 つ目の url( も見る（最初の 1 つだけ見て通さない）
+    ['<svg width="10" height="10"><style>.a{fill:url(#a)} .b{fill:url(//x)}</style><rect width="1" height="1"/></svg>', "文書内参照の後に続く url(//x)"],
+    ['<svg width="10" height="10"><style>.a{fill:url(\\23 a)}</style><rect width="1" height="1"/></svg>', "<style> の url( の CSS エスケープ"],
+    ['<svg width="10" height="10"><style>.a{fill:url()}</style><rect width="1" height="1"/></svg>', "空の url("],
+    ['<svg width="10" height="10"><style>.a{fill:url(var(--x))}</style><rect width="1" height="1"/></svg>', "関数の入れ子の url("],
     ['<svg width="10" height="10"><g style="x:java&#9;script:alert(1)"/></svg>', "style 属性の javascript:"],
     ['<svg width="10" height="10"><g STYLE="x:java&#x0a;script:alert(1)"/></svg>', "大文字の style 属性"],
   ];

@@ -101,6 +101,41 @@ function normalizeValue(value: string): string {
   return value.replace(/[\p{Cc}\s\u00ad\u200b-\u200f]/gu, '').toLowerCase();
 }
 
+/**
+ * `url(...)` の中身として許す文書内参照。`#` の後は XML の名前の形だけ
+ * （引用符と空白を落としてから見る。大文字小文字は正規化で潰れているが、どちらも許す形なので影響しない）。
+ */
+const DOCUMENT_REFERENCE = /^#[A-Za-z_][\w.:-]*$/;
+
+/**
+ * CSS の中の `url(...)` をすべて見て、**文書内の参照（`url(#id)`）だけ**を許す。
+ * 【NOV26-IM-M12-SVG-HARDEN-0474】Illustrator は `<style>` の `.st0{fill:url(#SVGID_1_);}` で
+ * グラデーションを参照するのが普通なので、`url(` の一律の拒否は取りやめた。外の資源
+ * （http・data・相対パス）・空・関数の入れ子・CSS のエスケープ（`\23 ` など）は今までどおり拒否する。
+ * 引数は正規化済み（空白と制御文字を落として小文字にしたもの）の CSS。
+ */
+function urlViolation(normalized: string): string | null {
+  let index = 0;
+  for (;;) {
+    const start = normalized.indexOf('url(', index);
+    if (start < 0) return null;
+    // 対応する `)` まで数える（`url(var(--x))` のような入れ子も中身ごと見る）
+    let depth = 1;
+    let cursor = start + 4;
+    for (; cursor < normalized.length; cursor += 1) {
+      if (normalized[cursor] === '(') depth += 1;
+      else if (normalized[cursor] === ')') {
+        depth -= 1;
+        if (depth === 0) break;
+      }
+    }
+    if (cursor >= normalized.length) return 'url( is not closed';
+    const target = normalized.slice(start + 4, cursor).replace(/["']/g, '');
+    if (!DOCUMENT_REFERENCE.test(target)) return 'url( is not a document reference';
+    index = cursor + 1;
+  }
+}
+
 /** style 属性・`<style>` の中身として受け付けない書き方（デコード済みの値を渡す） */
 function styleViolation(css: string): string | null {
   const normalized = normalizeValue(css);
@@ -108,7 +143,9 @@ function styleViolation(css: string): string | null {
   if (normalized.includes('vbscript:')) return 'vbscript:';
   if (normalized.includes('expression(')) return 'expression(';
   if (normalized.includes('@import')) return '@import';
-  if (normalized.includes('url(')) return 'url(';
+  // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は一律には拒否しない（文書内参照だけを許す）
+  const url = urlViolation(normalized);
+  if (url !== null) return url;
   return null;
 }
 
@@ -308,7 +345,8 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       if (REFERENCE_ATTRIBUTES.has(attrLocal) && normalized.startsWith('data:')) {
         return INVALID(`data: not allowed: ${attrName}`);
       }
-      // 【SR-C1-M-1】style 属性は url(・expression(・javascript:・@import を受け付けない
+      // 【SR-C1-M-1】style 属性は expression(・javascript:・@import を受け付けない。
+      // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
       if (attrLocal === 'style') {
         const violation = styleViolation(decoded);
         if (violation !== null) return INVALID(`style not allowed: ${violation} in ${attrName}`);
