@@ -94,7 +94,18 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
     // （渡すと "An object could not be cloned." で保存が失敗する）。素の値へ写してから書く。
     const snapshot = items.value.map((entry) => ({ q: entry.q, at: entry.at }));
     writes = writes.then(async () => {
-      const next: RecentSearches = { ...stored, [kind]: snapshot };
+      // 書く直前に読み直す。履歴は全画面で 1 本のファイルを共有するので、他の kind が
+      // 直前に書いた分を、この画面が古い手元の値で上書きして消さないようにする。
+      let base: RecentSearches = stored;
+      try {
+        if (typeof window !== "undefined" && window.settings) {
+          const raw = await window.settings.get(RECENT_SEARCH_STORE_KEY);
+          if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) base = raw as RecentSearches;
+        }
+      } catch {
+        // 読めないときは手元の値で書く（保存自体は試みる）
+      }
+      const next: RecentSearches = { ...base, [kind]: snapshot };
       try {
         if (typeof window !== "undefined" && window.settings) {
           await window.settings.set(RECENT_SEARCH_STORE_KEY, next);
