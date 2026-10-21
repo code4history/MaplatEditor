@@ -241,6 +241,17 @@ test('AC2/AC7/AC8: キー未設定なら出さず理由を注記・キーを消�
     await expect(page.locator('[data-testid="map-selected-basemap-osm"]')).toBeVisible({ timeout: 15_000 });
     expect(pageErrors, 'キーを消した状態で pageerror が出ている').toEqual([]);
 
+    // AC8 の本題: キーが無い状態でその地図を**開き直す**（入場時の setupBaseMaps を通す）
+    await page.evaluate(() => { location.hash = '#/basemaps'; });
+    await page.evaluate((uid: string) => { location.hash = `#/mapedit?uid=${uid}`; }, mapUid);
+    await expect(page.getByTestId('map-tab-settings')).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId('map-tab-settings').click();
+    await expect(page.getByTestId('map-base-map-selector')).toBeVisible({ timeout: 30_000 });
+    await expect(row, 'キー無しで開き直したら google が出ている').toHaveCount(0);
+    await expect(page.getByTestId('base-map-google-key-missing')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-testid="map-selected-basemap-osm"]')).toBeVisible({ timeout: 15_000 });
+    expect(pageErrors, 'キー無しで開き直したときに pageerror が出ている').toEqual([]);
+
     // キーを入れ直すと選択が復活する
     await page.evaluate(async (key: string) => { await window.settings.set('editorGoogleApiKey', key); }, DUMMY_KEY);
     await reopenSettingsTab(page);
