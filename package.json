@@ -298,7 +298,9 @@
     "test:e2e:nov26-editor-feat2-app-preview": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-feat2-app-preview.spec.ts",
     "test:e2e:nov26-editor-feat2-asset-preview": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-feat2-asset-preview.spec.ts",
     "smoke:nov26-editor-feat1": "node scripts/nov26-editor-feat1-smoke.mjs",
-    "test:e2e:nov26-editor-feat1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-feat1.spec.ts"
+    "test:e2e:nov26-editor-feat1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-feat1.spec.ts",
+    "smoke:nov26-editor-splash-svg": "node scripts/nov26-editor-splash-svg-smoke.mjs",
+    "test:e2e:nov26-editor-splash-svg": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-splash-svg.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
