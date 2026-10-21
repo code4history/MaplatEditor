@@ -672,7 +672,7 @@
       "zipping": "Generating zip file",
       "done": "Export completed",
       "failed": "Export failed",
-      "pwa_fallback": "PWA image generation (pwa-asset-generator) failed; only basic icons were generated. Please check that Chrome/Chromium is installed.",
+      "pwa_fallback": "PWA image generation failed, so only basic icons were generated.",
       "no_icon_source": "PWA icon source is not set, so no icons were generated.",
       "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
       "missing_splash": "The splash image was not found."
