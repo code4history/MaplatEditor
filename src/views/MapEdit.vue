@@ -393,7 +393,7 @@ const currentBaseMapID = ref('osm');
 const baseMapVisibilityList = ref<BaseMapVisibilityItem[]>([]);
 const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
-// nov26-editor-feat3: 編集用ベースマップに google を出すための 3 つの状態。
+// nov26-editor-feat3: 編集用ベースマップに google を出すための 4 つの状態。
 // - editorGoogleKey: エディタで使える Google Maps API キー（未解決は null）
 // - editorGoogleKeyResolved: 「まだ読んでいない」と「読んだがキーが無い」を区別する
 // - rawBaseMapVisibility: フィルタ前の IPC 生返却。キー未設定で隠した google の存在を注記に使う
@@ -3205,7 +3205,7 @@ const loadEditorGoogleKey = async () => {
     try {
         editorGoogleKey.value = asNonEmptyKey(await settings.get('editorGoogleApiKey'))
             ?? asNonEmptyKey(await settings.get('defaultPublishGoogleApiKey'));
-    } catch (e) {
+    } catch {
         // 例外の中身にキーは載らない（IPC 失敗）が、念のためオブジェクトは出さない
         console.error('[loadEditorGoogleKey] Failed to resolve the editor Google API key');
         editorGoogleKey.value = null;
