@@ -695,7 +695,8 @@
       "pwa_fallback": "PWA画像の生成に失敗したため、基本アイコンのみ生成しました。",
       "no_icon_source": "PWAアイコン元画像が未設定のため、アイコンを生成しませんでした。",
       "missing_thumbnail": "一部のベースマップ/オーバーレイのサムネイル画像が見つかりませんでした。",
-      "missing_splash": "スプラッシュ画像が見つかりませんでした。"
+      "missing_splash": "スプラッシュ画像が見つかりませんでした。",
+      "og_image_failed": "SNSのカード画像(og:image)を描けなかったため、付けませんでした。"
     },
     "no_app_name": "アプリ名を入力してください。",
     "search_maps_placeholder": "地図を検索…",

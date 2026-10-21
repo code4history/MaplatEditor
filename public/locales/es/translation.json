@@ -695,7 +695,8 @@
       "pwa_fallback": "La generación de imágenes PWA falló, por lo que solo se generaron los iconos básicos.",
       "no_icon_source": "Como no se ha establecido ninguna imagen de origen del icono PWA, no se generó ningún icono.",
       "missing_thumbnail": "No se encontraron algunas miniaturas de mapas base/superposiciones.",
-      "missing_splash": "No se encontró la imagen de la pantalla de bienvenida."
+      "missing_splash": "No se encontró la imagen de la pantalla de bienvenida.",
+      "og_image_failed": "No se pudo generar la imagen de tarjeta para redes sociales (og:image), por lo que no se incluyó."
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Buscar mapas…",

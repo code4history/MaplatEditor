@@ -27,6 +27,7 @@ import {
   getPwaSplashSpecs,
   pwaImageBox,
   pwaZoomFor,
+  type PwaContainBox,
   type PwaImageSpec,
 } from './pwaAssets';
 import { installPwaRequestGuard } from './pwaRequestGuard';
@@ -101,13 +102,15 @@ async function drawSpec(
   sourceUrl: string,
   zoom: number,
   appliedZoom: { value: number },
+  // 省略時は PWA の作図（余白 10%＋contain）。og:image は余白なしの全面 contain を渡す
+  imageBox: PwaContainBox = pwaImageBox(spec),
 ): Promise<void> {
   // 等倍のままなら IPC を増やさない（54 枚ぶんの往復は所要時間に効く）
   if (appliedZoom.value !== zoom) {
     win.webContents.setZoomFactor(zoom);
     appliedZoom.value = zoom;
   }
-  const box = pwaImageBox(spec);
+  const box = imageBox;
   await withTimeout(
     win.webContents.executeJavaScript(buildPwaApplyScript(box, sourceUrl), true),
     STEP_TIMEOUT_MS,
@@ -142,6 +145,46 @@ async function drawSpec(
   await fs.outputFile(spec.path, png);
 }
 
+/** 描画用の非表示ウィンドウを 1 枚作る（遷移・新しいウィンドウ・権限要求はすべて断る） */
+function createRenderWindow(width: number, height: number): electron.BrowserWindow {
+  prepareSession();
+  const win = new electron.BrowserWindow({
+    width,
+    height,
+    show: false,
+    // macOS: 画面より大きいウィンドウを許す（これと offscreen の組み合わせで 2868px が作れる）
+    enableLargerThanScreen: true,
+    useContentSize: true,
+    skipTaskbar: true,
+    webPreferences: {
+      offscreen: true,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false,
+      partition: PWA_RENDER_PARTITION,
+    },
+  });
+  // 【NOV26-IR-EDITOR174-0453 MIN-2】描画用のウィンドウは、遷移・新しいウィンドウ・権限要求をすべて断る
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event) => event.preventDefault());
+  win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  return win;
+}
+
+/** 一時ファイルのシェル HTML（背景色だけのページ）を読み、実際に撮れる大きさを返す */
+async function loadShell(
+  win: electron.BrowserWindow,
+  tmpDir: string,
+  background: string,
+): Promise<{ contentWidth: number; contentHeight: number }> {
+  const shellPath = path.join(tmpDir, 'pwa-shell.html');
+  await fs.writeFile(shellPath, buildPwaShellHtml(background));
+  await withTimeout(win.loadFile(shellPath), STEP_TIMEOUT_MS, 'load-shell');
+  const [contentWidth, contentHeight] = win.getContentSize();
+  return { contentWidth, contentHeight };
+}
+
 /**
  * アイコン 8 枚 → スプラッシュ 46 枚を描いて書き出す（順序は従来と同じ）。
  * 1 回の呼び出しで非表示ウィンドウを 1 枚だけ作り、`finally` で必ず壊す。
@@ -164,34 +207,10 @@ export async function renderPwaAssets(args: {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'maplat-pwa-render-'));
   let win: electron.BrowserWindow | null = null;
   try {
-    prepareSession();
-    win = new electron.BrowserWindow({
-      width: maxWidth,
-      height: maxHeight,
-      show: false,
-      // macOS: 画面より大きいウィンドウを許す（これと offscreen の組み合わせで 2868px が作れる）
-      enableLargerThanScreen: true,
-      useContentSize: true,
-      skipTaskbar: true,
-      webPreferences: {
-        offscreen: true,
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: true,
-        backgroundThrottling: false,
-        partition: PWA_RENDER_PARTITION,
-      },
-    });
-    // 【NOV26-IR-EDITOR174-0453 MIN-2】描画用のウィンドウは、遷移・新しいウィンドウ・権限要求をすべて断る
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-    win.webContents.on('will-navigate', (event) => event.preventDefault());
-    win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+    win = createRenderWindow(maxWidth, maxHeight);
     const renderWindow = win;
-    const shellPath = path.join(tmpDir, 'pwa-shell.html');
-    await fs.writeFile(shellPath, buildPwaShellHtml(args.background));
-    await withTimeout(renderWindow.loadFile(shellPath), STEP_TIMEOUT_MS, 'load-shell');
+    const { contentWidth, contentHeight } = await loadShell(renderWindow, tmpDir, args.background);
 
-    const [contentWidth, contentHeight] = renderWindow.getContentSize();
     const availWidth = Math.max(1, Math.min(maxWidth, contentWidth));
     const availHeight = Math.max(1, Math.min(maxHeight, contentHeight));
     if (availWidth < maxWidth || availHeight < maxHeight) {
@@ -225,6 +244,56 @@ export async function renderPwaAssets(args: {
       splashSaved.push(spec);
     }
     return { iconSaved, splashSaved, splashUsedFallback };
+  } finally {
+    if (win && !win.isDestroyed()) win.destroy();
+    await fs.remove(tmpDir).catch(() => {});
+  }
+}
+
+/**
+ * 画像 1 枚を PNG に描く（nov26-editor-splash-svg #462。SVG のスプラッシュから SNS カード画像を作る）。
+ * PWA と同じ非表示ウィンドウ・同じシェル（背景色）を使い、`<img>` へ contain で中央寄せする。
+ * **`<img>` なので SVG の中の script も外部参照も動かない**（描けない場合は throw する）。
+ */
+export async function renderImagePng(args: {
+  sourcePath: string;
+  outputPath: string;
+  width: number;
+  height: number;
+  background: string;
+}): Promise<void> {
+  if (!electron.app.isReady()) throw new Error('pwa-render-not-ready');
+  const spec: PwaImageSpec = {
+    name: path.basename(args.outputPath),
+    width: args.width,
+    height: args.height,
+    scaleFactor: 1,
+    orientation: null,
+    path: args.outputPath,
+  };
+  // 余白なしで全面に contain（縦横比を保ち、残りは背景色で埋まる。CSS の object-fit: contain）
+  const box: PwaContainBox = {
+    canvasWidth: spec.width,
+    canvasHeight: spec.height,
+    padding: 0,
+    x: 0,
+    y: 0,
+    width: spec.width,
+    height: spec.height,
+  };
+  await fs.ensureDir(path.dirname(args.outputPath));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'maplat-image-render-'));
+  let win: electron.BrowserWindow | null = null;
+  try {
+    win = createRenderWindow(spec.width, spec.height);
+    const { contentWidth, contentHeight } = await loadShell(win, tmpDir, args.background);
+    const availWidth = Math.max(1, Math.min(spec.width, contentWidth));
+    const availHeight = Math.max(1, Math.min(spec.height, contentHeight));
+    const sourceUrl = fileUrl(args.sourcePath);
+    if (!(await canLoadImage(win, sourceUrl))) {
+      throw new Error(`image-source-load-failed:${args.sourcePath}`);
+    }
+    await drawSpec(win, spec, sourceUrl, pwaZoomFor(spec, availWidth, availHeight), { value: 1 }, box);
   } finally {
     if (win && !win.isDestroyed()) win.destroy();
     await fs.remove(tmpDir).catch(() => {});

@@ -695,7 +695,8 @@
       "pwa_fallback": "PWA圖像產生失敗,僅產生了基本圖示。",
       "no_icon_source": "PWA圖示原始圖像未設定,因此未產生圖示。",
       "missing_thumbnail": "部分底圖/疊加層的縮圖未找到。",
-      "missing_splash": "未找到啟動畫面圖像。"
+      "missing_splash": "未找到啟動畫面圖像。",
+      "og_image_failed": "未能繪製社群卡片圖像(og:image)，因此未加入。"
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "搜尋地圖…",

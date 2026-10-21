@@ -11,7 +11,9 @@ import { ProgressReporter } from '../utils/ProgressReporter';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import { composePwaHtmlMeta, composePwaManifestIcons } from '../utils/pwaAssets';
-import { renderPwaAssets } from '../utils/pwaChromiumRenderer';
+import { renderImagePng, renderPwaAssets } from '../utils/pwaChromiumRenderer';
+// nov26-editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
+import { isSvgExt } from '../utils/svgSource';
 import { packIco } from '../utils/icoPack';
 import {
   collectPoiUids,
@@ -87,6 +89,20 @@ export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 export function exportedSplashName(appID: string, splash: string): string {
   const ext = path.extname(splash).slice(1).toLowerCase() || 'png';
   return `${appID}_splash.${ext}`;
+}
+
+// nov26-editor-splash-svg (#462): SNS のカード画像（og:image）。多くの SNS は SVG をカードに描かないので、
+// SVG のスプラッシュは Chromium で同じ図柄の PNG を描いて og:image に使う（人間の決定）。
+// 寸法は OG の標準（1200x630）。今までの og:image はスプラッシュそのもの（寸法は元画像任せ）だったので、
+// PNG 化するときだけこの寸法にする。
+export const OG_IMAGE_WIDTH = 1200;
+export const OG_IMAGE_HEIGHT = 630;
+// 描画に失敗したら og:image を付けない（警告 1 件。名前は既存の appedit.export.* の並びに合わせる）
+export const OG_IMAGE_FAILED_WARNING = 'appedit.export.og_image_failed';
+
+/** og:image に使う PNG の書き出し名（スプラッシュの複製名とは別ファイル。1 箇所で導く） */
+export function exportedOgImageName(appID: string): string {
+  return `${appID}_og.png`;
 }
 
 function findExistingPath(candidates: string[]) {
@@ -588,11 +604,14 @@ class AppExportService {
       if (splash) {
         const from = path.join(this.saveFolder, 'img', splash);
         if (fs.existsSync(from)) {
+          // 拡張子のまま複製する（SVG もそのまま。app JSON の splash も同じ名前を指す）
           await fs.copy(from, path.join(outDir, 'img', exportedSplashName(appID, splash)));
         } else {
           warnings.push('appedit.export.missing_splash');
         }
       }
+      // 4b) SNS のカード画像（og:image）。SVG は描いてもらえないことが多いので PNG にしてから使う
+      const ogImageRel = await this.composeOgImage(outDir, appID, splash, document, warnings);
       progressState.step++;
       reporter.update(progressState.step);
 
@@ -618,7 +637,7 @@ class AppExportService {
       // 7) index.html
       await fs.outputFile(
         path.join(outDir, 'index.html'),
-        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources, overrideKeys, baseMapLookup),
+        this.renderIndexHtml(document, appID, htmlMeta, hasViewerBasemapSource(sources), sources, overrideKeys, baseMapLookup, ogImageRel),
       );
       progressState.step++;
       reporter.update(progressState.step);
@@ -755,6 +774,41 @@ class AppExportService {
       if (externalized.pois.length > 0) out.pois = externalized.pois;
     }
     return out;
+  }
+
+  /**
+   * og:image のパッケージ相対パスを決め、必要なら PNG を描く（nov26-editor-splash-svg #462）。
+   * - スプラッシュが PNG などのとき: 従来どおりスプラッシュそのもの（`img/{appID}_splash.{ext}`）
+   * - SVG のとき: Chromium（#174 の描画）で同じ図柄の PNG を描き、それを og:image に使う。
+   *   縦横比を保って contain し、余白は背景色で埋める
+   * - 描けないとき: og:image を付けない（undefined）＋警告 1 件
+   */
+  private async composeOgImage(
+    outDir: string,
+    appID: string,
+    splash: string,
+    document: any,
+    warnings: string[],
+  ): Promise<string | undefined> {
+    if (!splash) return undefined;
+    if (!isSvgExt(path.extname(splash).slice(1))) {
+      return `img/${exportedSplashName(appID, splash)}`;
+    }
+    const ogName = exportedOgImageName(appID);
+    try {
+      await renderImagePng({
+        sourcePath: path.join(this.saveFolder, 'img', splash),
+        outputPath: path.join(outDir, 'img', ogName),
+        width: OG_IMAGE_WIDTH,
+        height: OG_IMAGE_HEIGHT,
+        background: document.manifestSettings?.backgroundColor || '#f6f0d3',
+      });
+      return `img/${ogName}`;
+    } catch (e) {
+      console.error('[AppExportService] og:image rendering failed', e);
+      warnings.push(OG_IMAGE_FAILED_WARNING);
+      return undefined;
+    }
   }
 
   private composeManifest(document: any, appID: string, icons: any[]) {
@@ -956,14 +1010,13 @@ class AppExportService {
     }
   }
 
-  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly AppSource[] = [], overrideKeys?: ProviderKeyOverride, baseMapLookup?: BaseMapMasterLookup): string {
+  private renderIndexHtml(document: any, appID: string, htmlMeta: Record<string, string>, hasBasemap: boolean, sources: readonly AppSource[] = [], overrideKeys?: ProviderKeyOverride, baseMapLookup?: BaseMapMasterLookup, ogImageRel?: string): string {
     const lang = document.lang || 'ja';
     const localized = resolveAppLocalizedMetadata({ ...document, appID });
     const title = escapeHtml(localized.appName);
     const description = escapeHtml(localizeTitle(document.description, lang) || '');
     const keywords = escapeHtml(localized.keywords.trim());
     const siteUrl = String(document.siteUrl || '').trim();
-    const splash = String(document.appSettings?.splash || '');
     const pwaManifest = Boolean(document.httpSettings?.pwaManifest);
     const httpSettings = document.httpSettings || {};
 
@@ -978,9 +1031,9 @@ class AppExportService {
     // favicon.ico は writeFaviconIco が常時パッケージルートへ生成する。
     // generator 由来の PNG favicon リンク (htmlMeta.favicon) がある場合も併記する
     headLines.push(`  <link rel="icon" href="favicon.ico">`);
-    if (splash) {
-      const ogPath = `img/${exportedSplashName(appID, splash)}`;
-      const ogImage = siteUrl ? joinUrl(siteUrl, ogPath) : ogPath;
+    // og:image は composeOgImage が決めたパスをそのまま使う（SVG のスプラッシュは PNG 化済み）
+    if (ogImageRel) {
+      const ogImage = siteUrl ? joinUrl(siteUrl, ogImageRel) : ogImageRel;
       headLines.push(`  <meta property="og:image" content="${escapeHtml(ogImage)}">`);
     }
     if (siteUrl) {

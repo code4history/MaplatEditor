@@ -1609,7 +1609,7 @@ function onPoisChange(next: unknown[]) {
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.splash") }}</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" readonly>
+                  <input v-model="appData.appSettings.splash" type="text" class="form-control form-control-sm" readonly data-testid="appedit-splash-name">
                   <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-testid="appedit-splash-upload" :disabled="translationMode" @click="uploadSplash">{{ t("appedit.upload") }}</button>
                 </div>
                 <img v-if="splashPreviewUrl" :src="splashPreviewUrl" class="asset-preview mt-1" data-testid="appedit-splash-preview" alt="splash">
