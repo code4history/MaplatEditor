@@ -325,6 +325,7 @@ app.whenReady().then(async () => {
   ipcMain.removeHandler('imageassets:update-metadata')
   ipcMain.removeHandler('imageassets:delete')
   ipcMain.removeHandler('imageassets:getFilePath')
+  ipcMain.removeHandler('imageassets:readPickedSource')
   // Minor-2 (M11-T7): slug reservation channels の HMR cleanup
   ipcMain.removeHandler('slug-reservations:reserve')
   ipcMain.removeHandler('slug-reservations:move')

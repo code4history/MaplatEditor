@@ -229,6 +229,16 @@ export interface ImageAssetReferencesResult {
     poiSources: ImageAssetReference[];
 }
 
+// feat2: 指定直後の一次画像（保存前のプレビュー）。
+// **token 方式**: token は main が選択ダイアログで選ばれたファイルにだけ発行する。
+// renderer はパスを渡せない（任意ファイル読み出しの口を作らない。設計書 §8）。
+export type PickedSourceErrorCode =
+    | 'unknown-token' | 'expired' | 'unsupported' | 'too-large' | 'not-found' | 'internal';
+
+export type ReadPickedSourceResult =
+    | { ok: true; mime: string; byteSize: number; bytes: Uint8Array }
+    | { ok: false; code: PickedSourceErrorCode; byteSize?: number };
+
 export interface ImageAssetsAPI {
     // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
     add(input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string; uid?: string }): Promise<ImageAssetSaveResult>;
@@ -240,7 +250,10 @@ export interface ImageAssetsAPI {
     getFilePath(ref: string): Promise<string | null>;
     findReferences(ref: string): Promise<ImageAssetReferencesResult>;
     // インポート用ネイティブファイル選択。キャンセル時は null
-    pickImageFile(): Promise<{ filePath: string; fileName: string } | null>;
+    // token は一次表示用の鍵（main が選ばれたファイルにだけ発行する）
+    pickImageFile(): Promise<{ filePath: string; fileName: string; token: string } | null>;
+    // 一次画像（保存前のプレビュー）。token でしか引けない
+    readPickedSource(token: string): Promise<ReadPickedSourceResult>;
 }
 
 export interface AppAssetsAPI {

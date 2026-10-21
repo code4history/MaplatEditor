@@ -104,7 +104,15 @@
         </div>
 
         <div v-if="previewUrl" class="col-12 col-xl-5">
-          <div class="asset-preview border rounded p-2"><img :src="previewUrl" :alt="displayTitle"></div>
+          <div class="asset-preview border rounded p-2">
+            <img :src="previewUrl" :alt="displayTitle" data-testid="asset-source-preview" @error="onPreviewError">
+          </div>
+          <!-- feat2: 保存済み実体ではなく、指定したファイルの一次画像を見ていることを示す -->
+          <span v-if="previewUnsaved" class="small text-muted d-block" data-testid="asset-preview-unsaved">{{ t("assetlist.master_detail.preview_unsaved") }}</span>
+        </div>
+        <!-- feat2: 表示できない理由（20 MB 超・読み取り不能）。保存は妨げない -->
+        <div v-if="previewIssueMessage" class="col-12" data-testid="asset-preview-issue">
+          <DiagnosticFeedback scope="field" :items="[{ key: 'preview', severity: 'danger', message: previewIssueMessage }]" />
         </div>
         <div class="col-12" :class="previewUrl ? 'col-xl-7' : ''">
           <dl class="row small mb-0">
@@ -155,8 +163,21 @@ import { suggestSlug as sharedSuggestSlug } from "../../utils/poiSourceSlug";
 // #105: 表示用 URL は file:// から app://local へ移行した。複製時の「URL → 絶対パス」復元も
 // それに追随する (appUrlToLocalPath が URL をネイティブ絶対パスへ戻す)。
 import { appUrlToLocalPath } from "../../utils/appUrl";
+import { bytesToDataUrl } from "../../utils/previewDataUrl";
 
-interface VolatileSource { sourcePath: string; sourceName: string }
+// feat2: 未保存の画像（volatileSource）は 2 種類ある。
+//   'picked'    … 今回選んだファイル。token で main から一次画像（バイト列）を読む
+//   'duplicate' … 複製元アセット。元の uid から実体の URL（app://）を引く
+// どちらも「まだこのアセットとして保存されていない画像」であり、保存時は sourcePath から実体を複製する。
+interface VolatileSource {
+  previewKind: "picked" | "duplicate";
+  sourcePath: string;
+  sourceName: string;
+  /** 'picked' のとき: main が選択ダイアログで発行した一次画像の token */
+  token?: string;
+  /** 'duplicate' のとき: 複製元アセットの uid */
+  duplicateFromUid?: string;
+}
 interface AssetEditHistoryState { document: ImageAssetEditDocument; volatileSource: VolatileSource | null }
 
 const props = withDefaults(defineProps<{
@@ -198,6 +219,17 @@ const saving = ref(false);
 const picking = ref(false);
 const error = ref("");
 const previewUrl = ref<string | null>(null);
+// feat2: プレビュー解決の世代番号（resetSession でも進めて、旧セッションの結果を捨てる）
+let previewGeneration = 0;
+// feat2: 表示中の画像が「保存前のプレビュー」か、表示できない理由（null = 問題なし）
+const previewUnsaved = ref(false);
+type PreviewIssue = "too-large" | "unavailable" | null;
+const previewIssue = ref<PreviewIssue>(null);
+const previewIssueMessage = computed<string | null>(() => {
+  if (previewIssue.value === "too-large") return t("assetlist.master_detail.preview_too_large");
+  if (previewIssue.value === "unavailable") return t("assetlist.master_detail.preview_unavailable");
+  return null;
+});
 const conflictRevision = ref<number | null>(null);
 const overwritePending = ref(false);
 
@@ -253,9 +285,15 @@ async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
     const fileUrl = await window.imageAssets.getFilePath(source.uid);
     if (!fileUrl) throw new Error("source file not found");
     const sourcePath = appUrlToLocalPath(String(fileUrl)) ?? decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
-    volatileSource.value = { sourcePath, sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}` };
-    previewUrl.value = String(fileUrl);
+    volatileSource.value = {
+      previewKind: "duplicate",
+      duplicateFromUid: source.uid,
+      sourcePath,
+      sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}`,
+    };
     pushCurrent();
+    // 表示は refreshPreview の優先順（duplicate → 元 uid の実体）に任せる
+    void refreshPreview();
   } catch (cause) {
     console.error("Failed to prefill duplicate source", cause);
     error.value = t("assetlist.master_detail.reselect_required");
@@ -281,7 +319,11 @@ function resetSession(item: ImageAssetRow | null, uid: string): void {
   error.value = "";
   conflictRevision.value = null;
   overwritePending.value = false;
+  // feat2: 進行中のプレビュー解決（旧セッションの token など）を無効化してから空にする
+  previewGeneration++;
   previewUrl.value = null;
+  previewUnsaved.value = false;
+  previewIssue.value = null;
 }
 
 let sessionOpened = false;
@@ -311,8 +353,12 @@ watch(
         const snapshot = history.snapshot();
         history = UndoStack.fromSnapshot({
           ...snapshot,
+          // feat2: 保存できたので、履歴の各段からも一次画像（未保存の volatileSource）を落とす。
+          // 保存を跨いだ Undo で「保存前のプレビュー」が復活しないようにする（保存が境界という
+          // 既存の意味論は変えない）。
           history: snapshot.history.map((entry) => ({
             ...entry,
+            volatileSource: null,
             document: {
               ...entry.document,
               uid,
@@ -326,7 +372,9 @@ watch(
           })),
         });
         document.value = clone(history.current().document);
-        previewUrl.value = await window.imageAssets.getFilePath(uid).catch(() => null);
+        volatileSource.value = null;
+        // 表示は保存済み実体（app://）へ切り替える（AC5: 「保存前のプレビュー」を消す）
+        await refreshPreview();
         historyVersion.value++;
         await draftLifecycle.open(uid, itemRevision);
         sessionOpened = true;
@@ -334,7 +382,7 @@ watch(
         return;
       }
       resetSession(props.item, uid);
-      if (props.item) previewUrl.value = await window.imageAssets.getFilePath(uid).catch(() => null);
+      void refreshPreview();
       await draftLifecycle.open(uid, itemRevision ?? null);
       sessionOpened = true;
       establishDraftState(uid);
@@ -393,6 +441,8 @@ function applyHistory(): void {
   volatileSource.value = clone(current.volatileSource);
   historyVersion.value++;
   draftLifecycle.schedule(dirty.value);
+  // feat2: 復元した状態の画像へ表示を追随させる（指定 1 回 = Undo 1 段）
+  void refreshPreview();
 }
 function undo(): void { history.undo(); applyHistory(); }
 function redo(): void { history.redo(); applyHistory(); }
@@ -402,6 +452,52 @@ function redo(): void { history.redo(); applyHistory(); }
 // ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認 — 設計 §16-6)
 const suggestSlug = (name: string) => sharedSuggestSlug(name.normalize("NFKD").replace(/[^A-Za-z0-9._\s-]+/g, "-"), "");
 
+// feat2: いま表示すべき画像を優先順で決める（設計 §4.3）。
+//   1. picked    … 今回選んだファイル。token で main から一次画像を読み data: URL にする
+//   2. duplicate … 複製元アセット。元 uid の実体（app://）
+//   3. 保存済み   … 自分の uid の実体（app://）
+//   4. どれも無い … null（枠を出さない）
+// 連番（世代番号）で古い非同期の結果を捨てる（undo/redo の連打・再選択で後着が上書きしない）。
+// データは 1 枚だけ保持し、置き換え時に前の data URL は参照を切って捨てる。
+async function refreshPreview(): Promise<void> {
+  const generation = ++previewGeneration;
+  const source = volatileSource.value;
+  let next: string | null = null;
+  let unsaved = false;
+  let issue: PreviewIssue = null;
+  if (source?.previewKind === "picked" && source.token) {
+    const result = await window.imageAssets.readPickedSource(source.token).catch(() => null);
+    if (generation !== previewGeneration) return;
+    if (result?.ok) {
+      next = bytesToDataUrl(result.bytes, result.mime);
+      unsaved = true;
+    } else {
+      // too-large は「大きすぎて表示できない」、それ以外は「表示できない」。
+      // どちらも**保存は妨げない**（保存時に main がパスから読み直す）
+      issue = result?.code === "too-large" ? "too-large" : "unavailable";
+    }
+  } else if (source?.previewKind === "duplicate" && source.duplicateFromUid) {
+    next = await window.imageAssets.getFilePath(source.duplicateFromUid).catch(() => null);
+    if (generation !== previewGeneration) return;
+    unsaved = next !== null;
+    if (!next) issue = "unavailable";
+  } else if (revision.value !== null) {
+    next = await window.imageAssets.getFilePath(document.value.uid).catch(() => null);
+    if (generation !== previewGeneration) return;
+  }
+  previewUrl.value = next;
+  previewUnsaved.value = unsaved;
+  previewIssue.value = issue;
+}
+
+// <img> のデコード失敗は静かに落とさず理由文へ倒す（画像は隠す）
+function onPreviewError(): void {
+  previewGeneration++;
+  previewUrl.value = null;
+  previewUnsaved.value = false;
+  previewIssue.value = "unavailable";
+}
+
 async function pickImageFile(): Promise<void> {
   if (!props.isNew || structuralDisabled.value) return;
   picking.value = true;
@@ -409,7 +505,12 @@ async function pickImageFile(): Promise<void> {
   try {
     const picked = await window.imageAssets.pickImageFile();
     if (!picked) return;
-    volatileSource.value = { sourcePath: picked.filePath, sourceName: picked.fileName };
+    volatileSource.value = {
+      previewKind: "picked",
+      sourcePath: picked.filePath,
+      sourceName: picked.fileName,
+      token: picked.token,
+    };
     const stem = picked.fileName.replace(/\.[^.]+$/, "");
     const title = Object.keys(document.value.title).length ? document.value.title : { [document.value.defaultLang]: stem };
     document.value = {
@@ -419,6 +520,8 @@ async function pickImageFile(): Promise<void> {
       title,
     };
     pushCurrent();
+    // feat2: 保存前でも中身が見えるよう、選んだファイルの一次画像を読む
+    void refreshPreview();
   } catch (cause) {
     console.error("Failed to pick image file", cause);
     error.value = t("assetlist.errors.pick_failed");
@@ -582,7 +685,12 @@ function onEditorKeydown(event: KeyboardEvent): void {
   else if (key === "y") { event.preventDefault(); redo(); }
 }
 onMounted(() => window.addEventListener("keydown", onEditorKeydown));
-onBeforeUnmount(() => window.removeEventListener("keydown", onEditorKeydown));
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onEditorKeydown);
+  // feat2: 進行中のプレビュー解決を無効化し、data URL への参照を切る（object URL は使わないので revoke 不要）
+  previewGeneration++;
+  previewUrl.value = null;
+});
 
 // F8: dirty（下書きが存在する状態）の変化を「セッション確立済みの uid」に対してのみ通知する。
 // Undo で checkpoint clean に戻れば dirty=false となりバッジが即時に消える。
