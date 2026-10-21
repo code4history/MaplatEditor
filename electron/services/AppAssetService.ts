@@ -16,8 +16,10 @@ import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../s
 import { writeImageByExt } from '../utils/thumbnail512Codec';
 // nov26-m6-t5: 画像の内部名の命名規則（UUID）は assetImageRefs が唯一の定義
 import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
-
-const IMAGE_FILTERS = [{ name: 'Image', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }];
+// nov26-editor-splash-svg (#462): スプラッシュだけ SVG も選べる（他の経路は Jimp で読む ∴ 従来の集合）
+import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
+// 同: SVG は Jimp でデコードできないので、中身が SVG として正しいかを別に確かめる
+import { checkSvgBytes, isSvgExt } from '../utils/svgSource';
 
 // m6-t8 §3.10: merc マスタのタイル URL は file://（旧）または app://bundle/__local（oct26-m4-t2ff。m4-t2 期の旧 app://local も受理）で
 // 渡ってくる。Node の fetch()/undici は file: / app: スキームを解決できないため、
@@ -57,11 +59,12 @@ class AppAssetService {
     return localFileUrl(absPath);
   }
 
-  private async pickImage(win: BrowserWindow): Promise<string | null> {
+  // filters を省略した経路（PWA アイコン・地図サムネイル等）は従来の集合のまま
+  private async pickImage(win: BrowserWindow, filters: ImageFilter[] = IMAGE_FILTERS): Promise<string | null> {
     const ret = await dialog.showOpenDialog(win, {
       defaultPath: dialogDefaultPath('image'),
       properties: ['openFile'],
-      filters: IMAGE_FILTERS,
+      filters,
     });
     if (ret.canceled || ret.filePaths.length === 0) return null;
     rememberDialogPath('image', ret.filePaths[0], 'file');
@@ -144,16 +147,30 @@ class AppAssetService {
   // nov26-m6-t5 (#109): 内部名は `{uuid}.{ext}`（タスク設計 §2）。元のファイル名を使うと、同じ名前の画像を
   // 別のアプリへ入れたときに先のアプリの画像を上書きしていた（日本語名は sanitize で `__.png` 等へ潰れて衝突した）。
   // ext は元画像の拡張子を小文字にしたもの。§2 の形に合わなければ png に変換して書く。
+  //
+  // nov26-editor-splash-svg (#462): SVG も受け付ける。Jimp は SVG を読めないので、SVG のときは
+  // 「XML として読める・ルートが <svg>・大きさ（width/height か viewBox）がある」を確かめ、
+  // 通ったものを拡張子のまま（=`{uuid}.svg`）img/ へ複製する。壊れていれば今と同じ InvalidImage。
   async uploadSplash(win: BrowserWindow): Promise<UploadResult> {
-    const file = await this.pickImage(win);
+    const file = await this.pickImage(win, SPLASH_IMAGE_FILTERS);
     if (!file) return { err: 'Canceled' };
-    let image;
-    try {
-      image = await Jimp.read(file);
-    } catch {
-      return { err: 'InvalidImage' };
-    }
     const ext = lowerExtOf(path.basename(file));
+    let image;
+    if (isSvgExt(ext)) {
+      let bytes: Buffer;
+      try {
+        bytes = await fs.readFile(file);
+      } catch {
+        return { err: 'InvalidImage' };
+      }
+      if (!checkSvgBytes(bytes).ok) return { err: 'InvalidImage' };
+    } else {
+      try {
+        image = await Jimp.read(file);
+      } catch {
+        return { err: 'InvalidImage' };
+      }
+    }
     const fileName = newSplashName(ext ?? 'png');
     const dest = path.join(this.saveFolder, 'img', fileName);
     await fs.ensureDir(path.dirname(dest));
@@ -161,7 +178,8 @@ class AppAssetService {
       // overwrite: false — UUID 名なので衝突しないが、万一あっても既存の画像を上書きしない
       await fs.copy(file, dest, { overwrite: false, errorOnExist: true });
     } else {
-      await image.write(dest as `${string}.${string}`);
+      // 拡張子の形に合わない名前（§2 の 5 の外）は png へ変換して書く。この経路は必ず Jimp を通っている
+      await image!.write(dest as `${string}.${string}`);
     }
     return { splash: fileName, fileUrl: this.toFileUrl(dest) };
   }
