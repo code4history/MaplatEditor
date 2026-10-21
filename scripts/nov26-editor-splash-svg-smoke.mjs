@@ -12,6 +12,10 @@
 //       XHTML（および他の）名前空間の要素・属性・DTD の内部実体・style の expression(/@import は拒否する。
 //       【NOV26-IM-M12-SVG-HARDEN-0474】style の url( は一律に拒否せず、デコードした中身が
 //       文書内参照（url(#id)）のときだけ通す（イラレは .st0{fill:url(#SVGID_1_);} でグラデーションを引く）
+//       【NOV26-IM-M12-SVG-HARDEN-0478】文書の先頭の XML 宣言以外の処理命令（xml-stylesheet 等）・
+//       許可リスト外の SVG 名前空間の要素（handler・listener・unknownElement 等）・SMIL のアニメーションで
+//       参照・style・イベントを指す attributeName・アニメーションの値に書いた javascript:/vbscript:/data: は拒否する。
+//       一方、Inkscape 1.x の既定保存（Inkscape SVG）のメタデータ（inkscape/sodipodi/RDF/DC/CC）は通す
 //   (c) 保存前の表示: 拡張子 allowlist を経路で分ける（スプラッシュは svg 可・アセットは不可）
 //   (d) 書き出し: スプラッシュの複製と app JSON の splash は拡張子のまま。og:image は
 //       SVG のとき Chromium で描いた PNG（1200x630・背景で余白）
@@ -134,6 +138,26 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     '<svg width="10" height="10"><style><![CDATA[ .a{fill:url(#a)} ]]></style><rect width="1" height="1"/></svg>',
     // style 属性の文書内参照（以前は一律に拒否していた）
     '<svg width="10" height="10"><rect style="fill:url(#g)" width="1" height="1"/></svg>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】Inkscape 1.x の既定保存（Inkscape SVG）。
+    // inkscape・sodipodi・RDF・Dublin Core・Creative Commons のメタデータは図柄に効かないので通す。
+    // 無害な SMIL のアニメーション（opacity の 0→1）も通す
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+      + '<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#"'
+      + ' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg"'
+      + ' xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"'
+      + ' xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" id="svg8"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" inkscape:version="1.2.2" sodipodi:docname="drawing.svg">\n'
+      + '  <defs id="defs2"/>\n'
+      + '  <sodipodi:namedview id="base" pagecolor="#ffffff" bordercolor="#666666" inkscape:zoom="0.35"'
+      + ' inkscape:cx="400" inkscape:cy="560"><inkscape:page x="0" y="0" width="210" height="297" id="page1"/></sodipodi:namedview>\n'
+      + '  <metadata id="metadata5"><rdf:RDF><cc:Work rdf:about=""><dc:format>image/svg+xml</dc:format>'
+      + '<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/></cc:Work></rdf:RDF></metadata>\n'
+      + '  <g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1"><rect width="100" height="50" fill="#39f">'
+      + '<animate attributeName="opacity" values="0;1" dur="1s" repeatCount="indefinite"/></rect></g>\n'
+      + '</svg>\n',
+    // メタデータの要素の中でも、SVG の要素は許可リストで見る（メタデータの中の図柄はそのまま通す）
+    '<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="10" height="10">'
+      + '<sodipodi:namedview><rect width="1" height="1"/></sodipodi:namedview></svg>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
@@ -184,10 +208,9 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg xmlns="http://www.w3.org/1999/xhtml" width="10" height="10"/>', "ルート自体を XHTML にした"],
     ['<svg width="10" height="10"><g xmlns="http://www.w3.org/1999/xhtml"><p>x</p></g></svg>', "途中で既定の名前空間を XHTML に切り替えた"],
     ['<svg width="10" height="10"><undeclared:x/></svg>', "宣言していない接頭辞"],
-    // メタデータの名前空間も確実を期して拒否（図柄には不要）
-    ['<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" width="10" height="10"><rdf:RDF/></svg>', "RDF のメタデータ"],
-    ['<svg xmlns:dc="http://purl.org/dc/elements/1.1/" width="10" height="10"><dc:title>t</dc:title></svg>', "Dublin Core のメタデータ"],
-    ['<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.0.dtd" width="10" height="10"><sodipodi:namedview/></svg>', "sodipodi のメタデータ"],
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】通すのは上に挙げた 5 つのメタデータの名前空間だけ。
+    // 古い sodipodi の名前空間（0.0.dtd）と Illustrator の i: は今までどおり拒否する
+    ['<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.0.dtd" width="10" height="10"><sodipodi:namedview/></svg>', "許可していない sodipodi の名前空間（0.0.dtd）"],
     ['<svg xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/" width="10" height="10"><i:pgf/></svg>', "Illustrator の i: のメタデータ"],
 
     // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】3. DTD の内部実体
@@ -216,6 +239,34 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><style>.a{fill:url(var(--x))}</style><rect width="1" height="1"/></svg>', "関数の入れ子の url("],
     ['<svg width="10" height="10"><g style="x:java&#9;script:alert(1)"/></svg>', "style 属性の javascript:"],
     ['<svg width="10" height="10"><g STYLE="x:java&#x0a;script:alert(1)"/></svg>', "大文字の style 属性"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】1. 文書の先頭の XML 宣言以外の処理命令
+    ['<?xml-stylesheet href="x.css"?><svg width="10" height="10"/>', "先頭の xml-stylesheet（href つき）"],
+    ['<?xml-stylesheet type="text/xsl" href="x.xsl"?><svg width="10" height="10"/>', "先頭の xml-stylesheet（XSLT）"],
+    ['<?xml version="1.0"?><?xml version="1.0"?><svg width="10" height="10"/>', "2 つ目の XML 宣言"],
+    ['<svg width="10" height="10"><?xml version="1.0"?><rect width="1" height="1"/></svg>', "ルートの中の XML 宣言"],
+    ['<svg width="10" height="10"><?xml-stylesheet href="x.css"?><rect width="1" height="1"/></svg>', "ルートの中の xml-stylesheet"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】2. SMIL のアニメーション
+    ['<svg width="10" height="10"><animate attributeName="href" values="#a;javascript:alert(1)" dur="1s" repeatCount="indefinite"/></svg>', "attributeName が href の animate（values に javascript:）"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><set attributeName="xlink:href" to="&#106;avascript:alert(1)"/></svg>', "attributeName が xlink:href の set（文字参照の javascript:）"],
+    ['<svg width="10" height="10"><animate attributeName="ONCLICK" values="alert(1)" dur="1s"/></svg>', "attributeName が onclick の animate"],
+    ['<svg width="10" height="10"><animate attributeName="style" values="fill:red" dur="1s"/></svg>', "attributeName が style の animate"],
+    ['<svg width="10" height="10"><animate attributeName="src" values="a.png" dur="1s"/></svg>', "attributeName が参照の属性（src）の animate"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" values="0;java&#115;cript:alert(1)" dur="1s"/></svg>', "values の 2 つ目が文字参照の javascript:"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" from="0" to="data:text/html,x" dur="1s"/></svg>', "to の data:"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" by="&#118;bscript:msgbox(1)" dur="1s"/></svg>', "by の文字参照の vbscript:"],
+    ['<svg width="10" height="10"><animateMotion dur="1s"><mpath href="&#100;ata:image/svg+xml,&lt;svg/&gt;"/></animateMotion></svg>', "mpath の data: の参照"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】3. 許可リスト外の SVG 名前空間の要素
+    ['<svg width="10" height="10"><handler type="application/ecmascript">alert(1)</handler></svg>', "handler"],
+    ['<svg width="10" height="10"><listener event="load" handler="#x"/></svg>', "listener"],
+    ['<svg width="10" height="10"><unknownElement/></svg>', "許可リスト外の要素"],
+    ['<svg xmlns:svg="http://www.w3.org/2000/svg" width="10" height="10"><svg:handler/></svg>', "接頭辞つきの許可リスト外の要素"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】4. メタデータ名前空間の子孫でも名前空間の判定はそのまま
+    ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo><h:iframe/></i:foo></svg>', "inkscape の要素の子の XHTML の iframe"],
+    ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo h:x="1"/></svg>', "メタデータの要素の XHTML 名前空間の属性"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);

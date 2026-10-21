@@ -38,11 +38,24 @@ const NUMBER = /^[+-]?[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?$/;
 
 // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】名前空間の許可リスト。
 // スプラッシュは図柄だけでよいので、要素は SVG（と、名前空間を書いていない素の SVG）だけ、
-// 属性は名前空間なし・XLink・XML だけを通す。メタデータ（RDF・DC・sodipodi・i: 等）は図柄に
-// 不要なので、確実を期して拒否する。
+// 属性は名前空間なし・XLink・XML だけを通す。
+//
+// 【NOV26-IM-M12-SVG-HARDEN-0478】要素は許可リストで見る（SVG 1.1／SVG 2 の図柄・構造・
+// グラデーション・フィルタ・テキスト・アニメーションの要素だけ）。script・foreignObject・iframe・
+// handler・listener などは入れない。加えて、Inkscape 1.x の既定保存（Inkscape SVG）が通るように、
+// 図柄に効かないメタデータの名前空間（inkscape・sodipodi・RDF・Dublin Core・Creative Commons）だけは
+// 要素も属性も許す（値は見ない）。子孫の要素・属性の名前空間の判定はそのまま行う。
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const XLINK_NS = 'http://www.w3.org/1999/xlink';
 const XML_NS = 'http://www.w3.org/XML/1998/namespace';
+const INKSCAPE_NS = 'http://www.inkscape.org/namespaces/inkscape';
+const SODIPODI_NS = 'http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd';
+const RDF_NS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+const DC_NS = 'http://purl.org/dc/elements/1.1/';
+const CC_NS = 'http://creativecommons.org/ns#';
+
+/** 図柄に効かない無害なメタデータの名前空間（Inkscape の既定保存を通すため） */
+const METADATA_NAMESPACES = new Set([INKSCAPE_NS, SODIPODI_NS, RDF_NS, DC_NS, CC_NS]);
 
 /** 名前空間に関係なく受け付けない要素（SVG に無いもの・HTML を埋め込むもの） */
 const FORBIDDEN_ELEMENTS = new Set([
@@ -50,6 +63,28 @@ const FORBIDDEN_ELEMENTS = new Set([
   'html', 'head', 'body', 'meta', 'link', 'base', 'form', 'input', 'button', 'textarea',
   'select', 'template', 'noscript', 'marquee',
 ]);
+
+/**
+ * SVG の名前空間（と名前空間なし）で許す要素。図柄・構造・グラデーション・フィルタ・テキスト・
+ * アニメーションに必要なものだけで、`script`・`foreignObject`・`iframe` などは入れない。
+ * 名前空間の判定は接頭辞を落とした局所名（小文字）で行う。
+ */
+const ALLOWED_ELEMENTS = new Set([
+  'svg', 'g', 'defs', 'desc', 'title', 'metadata', 'symbol', 'use', 'switch', 'view', 'a',
+  'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'image',
+  'text', 'tspan', 'textpath', 'style',
+  'clippath', 'mask', 'marker', 'pattern',
+  'lineargradient', 'radialgradient', 'stop', 'filter',
+  'feblend', 'fecolormatrix', 'fecomponenttransfer', 'fecomposite', 'feconvolvematrix',
+  'fediffuselighting', 'fedisplacementmap', 'fedistantlight', 'fedropshadow', 'feflood',
+  'fefunca', 'fefuncb', 'fefuncg', 'fefuncr', 'fegaussianblur', 'feimage', 'femerge',
+  'femergenode', 'femorphology', 'feoffset', 'fepointlight', 'fespecularlighting',
+  'fespotlight', 'fetile', 'feturbulence',
+  'animate', 'animatemotion', 'animatetransform', 'animatecolor', 'set', 'discard', 'mpath',
+]);
+
+/** SMIL のアニメーションの要素（実行時に他の属性を書き換えられる） */
+const SMIL_ELEMENTS = new Set(['animate', 'animatemotion', 'animatetransform', 'animatecolor', 'set', 'discard']);
 
 /** 外部の資源を指せる属性（`data:` を拒否する対象） */
 const REFERENCE_ATTRIBUTES = new Set(['href', 'src', 'action', 'formaction', 'poster', 'background', 'cite', 'longdesc']);
@@ -99,6 +134,19 @@ function decodeReferences(text: string): string | null {
 function normalizeValue(value: string): string {
   // `\p{Cc}` は制御文字（タブ・改行・NUL など）。空白と幅の無い文字も落とす
   return value.replace(/[\p{Cc}\s\u00ad\u200b-\u200f]/gu, '').toLowerCase();
+}
+
+/**
+ * アニメーションの値（`values` は `;` で分けた各値・`from`・`to`・`by`）に、
+ * 属性と同じ scheme の判定をかける（デコード・正規化済みの値を見る）。
+ * 【NOV26-IM-M12-SVG-HARDEN-0478】SMIL は属性の値を書き換えるので、
+ * 属性そのものを検査するだけでは `values="0;javascript:..."` がすり抜ける。
+ */
+function animationValueViolation(value: string): string | null {
+  const normalized = normalizeValue(value);
+  if (/^(?:javascript|vbscript):/.test(normalized)) return 'script scheme';
+  if (normalized.startsWith('data:')) return 'data:';
+  return null;
 }
 
 /**
@@ -239,6 +287,12 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     if (source.startsWith('<?', index)) {
       const end = source.indexOf('?>', index + 2);
       if (end < 0) return INVALID('unterminated processing instruction');
+      // 【NOV26-IM-M12-SVG-HARDEN-0478】通すのは文書の先頭の XML 宣言だけ。
+      // `<?xml-stylesheet ...?>` は後ろに続く要素の解釈（XSLT の適用など）を変えられるので拒否する
+      const target = (source.slice(index + 2, end).match(/^[^\s?>]*/) ?? [''])[0];
+      if (index !== 0 || !/^xml(?:\s|$)/.test(source.slice(index + 2, end))) {
+        return INVALID(`processing instruction not allowed: ${target}`);
+      }
       index = end + 2;
       continue;
     }
@@ -334,23 +388,6 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       // 【SR-C1-M-1】値は数値文字参照と定義済み 5 実体をデコードしてから判定する
       const decoded = decodeReferences(value);
       if (decoded === null) return INVALID(`unescaped & or undeclared entity in attribute: ${attrName}`);
-      const attrLocal = localName(attrName);
-      // 【0464 MINOR-2】イベントの属性（onload 等）は受け付けない
-      if (/^on/i.test(attrLocal)) return INVALID(`event attribute not allowed: ${attrName}`);
-      // XHTML の iframe の中身を差し込む口（SVG には無い）
-      if (attrLocal === 'srcdoc') return INVALID(`srcdoc not allowed: ${attrName}`);
-      const normalized = normalizeValue(decoded);
-      // 【SR-C1-M-1】文字参照・制御文字・空白を挟んだ javascript: / vbscript: も参照しない
-      if (/^(?:javascript|vbscript):/.test(normalized)) return INVALID(`script scheme not allowed: ${attrName}`);
-      if (REFERENCE_ATTRIBUTES.has(attrLocal) && normalized.startsWith('data:')) {
-        return INVALID(`data: not allowed: ${attrName}`);
-      }
-      // 【SR-C1-M-1】style 属性は expression(・javascript:・@import を受け付けない。
-      // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
-      if (attrLocal === 'style') {
-        const violation = styleViolation(decoded);
-        if (violation !== null) return INVALID(`style not allowed: ${violation} in ${attrName}`);
-      }
       attributes.set(attrName, decoded);
     }
 
@@ -373,17 +410,85 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     // 接頭辞の無い要素は既定の名前空間（宣言が無ければ「名前空間なし」= 素の SVG として扱う）
     const elementNs = prefixOf(name) === '' ? scope.defaultNs : resolvePrefix(prefixOf(name));
     if (elementNs === undefined) return INVALID(`undeclared namespace prefix: ${name}`);
-    if (elementNs !== null && elementNs !== SVG_NS) return INVALID(`element namespace not allowed: ${name}`);
-    for (const attrName of attributes.keys()) {
-      if (attrName === 'xmlns' || attrName.startsWith('xmlns:')) continue;
-      const prefix = prefixOf(attrName);
-      if (prefix === '') continue;
-      const attrNs = resolvePrefix(prefix);
-      if (attrNs === undefined) return INVALID(`undeclared namespace prefix: ${attrName}`);
-      if (attrNs !== XLINK_NS && attrNs !== XML_NS) return INVALID(`attribute namespace not allowed: ${attrName}`);
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】メタデータの名前空間の要素だけは別扱い（図柄に効かない）。
+    // それ以外は SVG（と名前空間なし）だけで、さらに許可リストの要素だけを通す
+    const elementIsMetadata = elementNs !== null && METADATA_NAMESPACES.has(elementNs);
+    if (elementNs !== null && elementNs !== SVG_NS && !elementIsMetadata) {
+      return INVALID(`element namespace not allowed: ${name}`);
+    }
+    if (!elementIsMetadata && !ALLOWED_ELEMENTS.has(localName(name))) {
+      return INVALID(`element not allowed: ${name}`);
     }
 
-    if (rootAttributes === null && localName(name) === 'svg') {
+    for (const [attrName, attrValue] of attributes) {
+      if (attrName === 'xmlns' || attrName.startsWith('xmlns:')) continue;
+      const prefix = prefixOf(attrName);
+      const attrNs = prefix === '' ? null : resolvePrefix(prefix);
+      if (attrNs === undefined) return INVALID(`undeclared namespace prefix: ${attrName}`);
+      if (attrNs !== null && attrNs !== XLINK_NS && attrNs !== XML_NS && !METADATA_NAMESPACES.has(attrNs)) {
+        return INVALID(`attribute namespace not allowed: ${attrName}`);
+      }
+      // 【NOV26-IM-M12-SVG-HARDEN-0478】メタデータの名前空間の属性は図柄に効かないので値を見ない
+      if (attrNs !== null && METADATA_NAMESPACES.has(attrNs)) continue;
+
+      const attrLocal = localName(attrName);
+      // 【0464 MINOR-2】イベントの属性（onload 等）は受け付けない
+      if (/^on/i.test(attrLocal)) return INVALID(`event attribute not allowed: ${attrName}`);
+      // XHTML の iframe の中身を差し込む口（SVG には無い）
+      if (attrLocal === 'srcdoc') return INVALID(`srcdoc not allowed: ${attrName}`);
+      const normalized = normalizeValue(attrValue);
+      // 【SR-C1-M-1】文字参照・制御文字・空白を挟んだ javascript: / vbscript: も参照しない
+      if (/^(?:javascript|vbscript):/.test(normalized)) return INVALID(`script scheme not allowed: ${attrName}`);
+      if (REFERENCE_ATTRIBUTES.has(attrLocal) && normalized.startsWith('data:')) {
+        return INVALID(`data: not allowed: ${attrName}`);
+      }
+      // 【SR-C1-M-1】style 属性は expression(・javascript:・@import を受け付けない。
+      // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
+      if (attrLocal === 'style') {
+        const violation = styleViolation(attrValue);
+        if (violation !== null) return INVALID(`style not allowed: ${violation} in ${attrName}`);
+      }
+    }
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】SMIL のアニメーションは実行時に属性を書き換えられる。
+    // attributeName が参照・style・イベントを指すものは拒否し、値にも scheme の判定をかける。
+    // `mpath` の href は属性の判定（REFERENCE_ATTRIBUTES・javascript:）でそのまま見ている
+    if (SMIL_ELEMENTS.has(localName(name))) {
+      const valueByLocalName = (local: string): string | undefined => {
+        for (const [attrName, attrValue] of attributes) {
+          if (localName(attrName) === local) return attrValue;
+        }
+        return undefined;
+      };
+      const targetAttribute = valueByLocalName('attributename');
+      if (targetAttribute !== undefined) {
+        // デコード後の値を接頭辞なしの局所名・小文字にしてから見る（`xlink:href` → `href`）
+        const target = localName(targetAttribute.trim());
+        if (
+          target.startsWith('href') || target.startsWith('style') || target.startsWith('on')
+          || REFERENCE_ATTRIBUTES.has(target)
+        ) {
+          return INVALID(`attributeName not allowed: ${targetAttribute}`);
+        }
+      }
+      const animatedValues = valueByLocalName('values');
+      if (animatedValues !== undefined) {
+        // `values` は `;` で分けた各値をそれぞれ見る（`0;javascript:...` をすり抜けさせない）
+        for (const part of animatedValues.split(';')) {
+          const violation = animationValueViolation(part);
+          if (violation !== null) return INVALID(`animation value not allowed: ${violation}`);
+        }
+      }
+      for (const local of ['from', 'to', 'by']) {
+        const value = valueByLocalName(local);
+        if (value === undefined) continue;
+        const violation = animationValueViolation(value);
+        if (violation !== null) return INVALID(`animation value not allowed: ${violation}`);
+      }
+    }
+
+    // ルートは SVG（または名前空間を書いていない素の SVG）の `svg` だけ
+    if (rootAttributes === null && localName(name) === 'svg' && (elementNs === null || elementNs === SVG_NS)) {
       rootAttributes = attributes;
     }
 
