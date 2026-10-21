@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "底图缺失",
     "badge_missing_poi": "POI 参照缺失",
     "badge_missing_asset": "资源缺失",
-    "badge_pois_format": "POI 格式不受支持"
+    "badge_pois_format": "POI 格式不受支持",
+    "recent_searches_label": "最近的搜索条件",
+    "recent_search_apply": "搜索“{{q}}”",
+    "recent_search_remove": "从历史记录中删除“{{q}}”",
+    "recent_search_record_failed": "无法保存搜索历史"
   }
 }

@@ -20,6 +20,9 @@
       :aria-label="searchPlaceholder"
       :placeholder="searchPlaceholder"
       @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+      @change="emit('commit:query', ($event.target as HTMLInputElement).value)"
+      @compositionstart="emit('composition-start')"
+      @compositionend="emit('composition-end')"
     >
 
     <slot name="range"></slot>
@@ -37,7 +40,16 @@ const props = defineProps<{
   // optional: kindNameKey 構築（「{{name}}を検索…」）を上書きする完全な placeholder キー
   searchPlaceholderKey?: string;
 }>();
-const emit = defineEmits<{ create: []; "update:query": [value: string] }>();
+const emit = defineEmits<{
+  create: [];
+  "update:query": [value: string];
+  // レビュー指示 1: 検索入力の確定（Enter と blur で発火する @change）を即時記録の契機にする。
+  // 既存の props / emit / testid は変えない。
+  "commit:query": [value: string];
+  // レビュー指示 2: 日本語入力の変換区間（isComposing）を親へ伝え、変換中の文字を記録しない
+  "composition-start": [];
+  "composition-end": [];
+}>();
 
 const { t } = useTranslation();
 const searchPlaceholder = computed(() =>

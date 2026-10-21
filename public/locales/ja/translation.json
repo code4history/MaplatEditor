@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "ベースマップ欠損",
     "badge_missing_poi": "POI参照欠損",
     "badge_missing_asset": "アセット欠損",
-    "badge_pois_format": "POI形式未対応"
+    "badge_pois_format": "POI形式未対応",
+    "recent_searches_label": "直近の検索条件",
+    "recent_search_apply": "「{{q}}」で検索",
+    "recent_search_remove": "「{{q}}」を履歴から削除",
+    "recent_search_record_failed": "検索履歴を保存できませんでした"
   }
 }

@@ -10,8 +10,16 @@
       :total="total"
       :loaded="loaded"
       :new-draft="newDrafts.length > 0"
+      :recent-searches="recentItems"
+      :recent-active-query="query"
+      :recent-error="recentError"
       @create="createNewMap"
       @update:query="updateQuery"
+      @commit:query="recordRecentNow"
+      @composition-start="beginRecentComposition"
+      @composition-end="endRecentComposition"
+      @apply-recent="onApplyRecent"
+      @remove-recent="onRemoveRecent"
       @retry="retry"
       @load-more="loadMore"
     >
@@ -73,6 +81,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceDelete } from "../composables/useResourceDelete";
 import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { useRecentSearches } from "../composables/useRecentSearches";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
 import ResourceDraftCard from "../components/resource-list/ResourceDraftCard.vue";
@@ -112,6 +121,18 @@ const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, 
 );
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("map");
+// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+const {
+  items: recentItems,
+  error: recentError,
+  record: recordRecent,
+  recordNow: recordRecentNow,
+  beginComposition: beginRecentComposition,
+  endComposition: endRecentComposition,
+  apply: applyRecent,
+  remove: removeRecent,
+  flush: flushRecent,
+} = useRecentSearches("map");
 
 // P6: viewport 先頭の item uid を anchor として返す
 function firstVisibleUid(): string | null {
@@ -124,6 +145,8 @@ function firstVisibleUid(): string | null {
   return null;
 }
 onBeforeRouteLeave(() => {
+  // nov26-editor-feat1: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
+  flushRecent();
   const root = shellRef.value?.contentRef ?? null;
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
 });
@@ -149,7 +172,18 @@ async function restoreOrLoad(): Promise<void> {
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
 
 function updateQuery(value: string): void {
+  // 入力のたびに呼ぶ（記録は 800 ms 停止後。変換中は予約しない）
+  recordRecent(value);
   void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } });
+}
+// チップの適用: その q で検索し、使った条件を先頭へ移動する（bbox は変えない）
+function onApplyRecent(q: string): void {
+  void applyRecent(q);
+  updateQuery(q);
+}
+// チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
+function onRemoveRecent(q: string): void {
+  void removeRecent(q);
 }
 // M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
 function createNewMap(): void {

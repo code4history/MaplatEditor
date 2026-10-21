@@ -11,7 +11,18 @@
         class="form-control form-control-sm"
         :placeholder="t('resource_list.search_placeholder', { name: t('resource_list.kind_asset') })"
         @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+        @change="emit('commit:query', ($event.target as HTMLInputElement).value)"
+        @compositionstart="emit('composition-start')"
+        @compositionend="emit('composition-end')"
       >
+      <!-- nov26-editor-feat1 §4.7: チップ行は検索入力の直下 -->
+      <RecentSearchChips
+        :entries="recentSearches ?? []"
+        :active-query="recentActiveQuery"
+        :error="recentError"
+        @apply="(q) => emit('apply-recent', q)"
+        @remove="(q) => emit('remove-recent', q)"
+      />
       <small class="text-muted d-block mt-1">{{ t("assetlist.count_label", { num: items.length }) }}</small>
     </div>
 
@@ -54,6 +65,7 @@ import { useAssetThumbnails } from "../../composables/useAssetThumbnails";
 import type { AssetDraftSummary } from "../../types/assetDraft";
 import type { ImageAssetRow } from "../../electron";
 import ResourceMasterRow from "../resource-list/ResourceMasterRow.vue";
+import RecentSearchChips from "../resource-list/RecentSearchChips.vue";
 import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import { createAssetListAdapter } from "./assetListAdapter";
 
@@ -63,9 +75,20 @@ const props = defineProps<{
   activeLang: string;
   draftUids: Set<string>;
   draftSummaries: AssetDraftSummary[];
+  // nov26-editor-feat1: 直近の検索条件（新しい順）と現在の検索語
+  recentSearches?: ReadonlyArray<{ q: string }>;
+  recentActiveQuery?: string;
+  recentError?: string | null;
 }>();
 const emit = defineEmits<{
   "update:query": [value: string];
+  // レビュー指示 1/2: 検索入力の確定（Enter と blur）と変換区間
+  "commit:query": [value: string];
+  "composition-start": [];
+  "composition-end": [];
+  // nov26-editor-feat1: チップの適用・削除
+  "apply-recent": [q: string];
+  "remove-recent": [q: string];
   "loaded": [items: ImageAssetRow[]];
   "select": [uid: string];
   "select-draft": [uid: string];

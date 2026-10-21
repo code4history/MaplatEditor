@@ -18,6 +18,12 @@ interface AppSettings {
   jpegDecodeMaxResolutionMP: number | null;
   /** nov26-m7-t6: 起動時に更新を確認する（既定オン）。オフでもメニューの「更新を確認…」は使える */
   updateCheckEnabled: boolean;
+  /**
+   * nov26-editor-feat1: 一覧トップの直近の検索条件（`{ [kind]: { q, at }[] }`）。
+   * **型のためだけに足す**（`[key: string]: any` があるため実行時の追加作業は無い）。
+   * 正規化は renderer 側の 1 か所（src/utils/recentSearches.ts）で行い、main は値を持ち運ぶだけ。
+   */
+  recentSearches?: unknown;
   [key: string]: any;
 }
 

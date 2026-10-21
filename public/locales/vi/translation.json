@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "Thiếu bản đồ nền",
     "badge_missing_poi": "Thiếu tham chiếu POI",
     "badge_missing_asset": "Thiếu tài nguyên",
-    "badge_pois_format": "Định dạng POI không được hỗ trợ"
+    "badge_pois_format": "Định dạng POI không được hỗ trợ",
+    "recent_searches_label": "Tìm kiếm gần đây",
+    "recent_search_apply": "Tìm \"{{q}}\"",
+    "recent_search_remove": "Xóa \"{{q}}\" khỏi lịch sử",
+    "recent_search_record_failed": "Không thể lưu lịch sử tìm kiếm"
   }
 }

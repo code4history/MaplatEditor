@@ -1103,6 +1103,10 @@
     "badge_missing_base_map": "베이스맵 누락",
     "badge_missing_poi": "POI 참조 누락",
     "badge_missing_asset": "에셋 누락",
-    "badge_pois_format": "지원되지 않는 POI 형식"
+    "badge_pois_format": "지원되지 않는 POI 형식",
+    "recent_searches_label": "최근 검색 조건",
+    "recent_search_apply": "\"{{q}}\" 검색",
+    "recent_search_remove": "\"{{q}}\"을(를) 기록에서 삭제",
+    "recent_search_record_failed": "검색 기록을 저장하지 못했습니다"
   }
 }
