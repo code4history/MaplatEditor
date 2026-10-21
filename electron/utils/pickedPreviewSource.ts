@@ -5,7 +5,7 @@
  *   新しい IPC（`imageassets:readPickedSource`）は renderer が指定した画像の**バイト列**を返す。
  *   renderer が任意の絶対パスを渡して main に読ませる形にすると、既存に無い能力
  *   （任意ファイル読み出し）を renderer に与えることになる（設計書 §8）。∴ **token 方式**にする:
- *   main が `dialog.showOpenDialog` で利用者が選んだパスだけをこの store に覚え、
+ *   main が選択ダイアログで利用者が選んだパスだけをこの store に覚え、
  *   renderer は token でしか要求できない（パス文字列は IPC の引数に取らない）。
  *
  *   `assets-images.ts` は electron（dialog / BrowserWindow）に依存するため smoke から直接読めない。
