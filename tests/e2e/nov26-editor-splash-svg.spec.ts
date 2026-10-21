@@ -199,3 +199,77 @@ test.describe('nov26-editor-splash-svg: スプラッシュに SVG を指定す�
     }
   });
 });
+
+test.describe('nov26-editor-splash-svg: og:image を描けないとき', () => {
+  test('og:image を付けず、警告を 1 件だけ積む', async () => {
+    test.setTimeout(180_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-splash-svg-missing-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const zipPath = path.join(e2eRoot, 'missing-svg-app.zip');
+      await app.evaluate(async ({ dialog }, out) => {
+        dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
+        // 書き出し結果の警告（detail）を読めるように、自動 OK しつつ控える
+        const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
+        g.__splashSvgMessages = [];
+        dialog.showMessageBox = (async (_winOrOptions: unknown, maybeOptions?: unknown) => {
+          const options = (maybeOptions ?? _winOrOptions) as { message?: string; detail?: string };
+          g.__splashSvgMessages!.push({ message: options?.message, detail: options?.detail });
+          return { response: 0, checkboxChecked: false };
+        }) as typeof dialog.showMessageBox;
+      }, zipPath);
+
+      // 実体の無い SVG のスプラッシュ（描画に失敗する）
+      const appUid = await page.evaluate(async (slug) => {
+        const uid = crypto.randomUUID();
+        const r = await window.appedit.save({
+          uid, slug, create: true,
+          document: {
+            appID: slug, appName: { ja: 'Splash SVG missing' }, title: { ja: 'Splash SVG missing' },
+            description: {}, keywords: '', siteUrl: '', lang: 'ja',
+            sources: [],
+            startFrom: '', pois: [],
+            httpSettings: { pwaManifest: false },
+            appSettings: { splash: `${crypto.randomUUID()}.svg` },
+            manifestSettings: {},
+          },
+        });
+        if (!r || r.result !== 'Success') throw new Error(JSON.stringify(r));
+        return uid;
+      }, 'nov26-splash-svg-missing');
+
+      await openHash(page, `#/appedit?uid=${appUid}`);
+      await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30_000 });
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30_000 });
+      await page.getByTestId('app-export-options-confirm').click();
+      await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120_000 });
+      for (let i = 0; i < 5; i++) {
+        const modal = page.locator('.modal.d-block');
+        if (await modal.count() === 0) break;
+        const ok = modal.locator('button', { hasText: 'OK' }).first();
+        if (await ok.count() === 0) break;
+        await ok.click({ timeout: 20_000 }).catch(() => {});
+        await page.waitForTimeout(300);
+      }
+
+      const { default: AdmZip } = await import('adm-zip');
+      const zip = new AdmZip(zipPath);
+      const indexHtml = (zip.readFile('index.html') ?? Buffer.from('')).toString('utf8');
+      expect(indexHtml).not.toContain('og:image');
+      const pngEntries = zip.getEntries().filter((e) => /_og\.png$/.test(e.entryName));
+      expect(pngEntries, 'og:image の PNG を残さない').toEqual([]);
+
+      const messages = await app.evaluate(async () => {
+        const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
+        return g.__splashSvgMessages ?? [];
+      });
+      const ogWarnings = messages
+        .flatMap((m) => String(m.detail ?? '').split('\n'))
+        .filter((line) => line.includes('og:image'));
+      expect(ogWarnings.length, `og:image の警告は 1 件: ${JSON.stringify(messages)}`).toBe(1);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+});
