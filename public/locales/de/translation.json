@@ -444,7 +444,8 @@
     "context_select_ground_truth": "Ground Truth wählen",
     "export_options_title": "Zu exportierende Inhalte",
     "export_option_tiles": "Kacheln (einschließlich Vorschaubilder)",
-    "export_option_json": "Karteneinstellungen (JSON und POIs)",
+    "export_option_tiles_help": "Kacheln sind das Kartenbild, das in kleine Quadrate aufgeteilt ist, damit die Karte angezeigt werden kann. Sie werden beim Öffnen der Karte verwendet. Enthalten ist auch das Vorschaubild (das kleine Bild in der Liste).",
+    "export_option_json": "Karteneinstellungsdatei (JSON und POI)",
     "export_option_originals": "Originalbild",
     "export_option_originals_note": "Fügt die ursprüngliche Bilddatei unverändert hinzu. Die Datei wird größer und kann Fotometadaten enthalten.",
     "export_option_none_selected": "Wählen Sie mindestens ein Element aus"

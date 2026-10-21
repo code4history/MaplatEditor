@@ -444,7 +444,8 @@
     "context_select_ground_truth": "Pilih ground truth",
     "export_options_title": "Isi yang diekspor",
     "export_option_tiles": "Tile (termasuk gambar mini)",
-    "export_option_json": "Pengaturan peta (JSON dan POI)",
+    "export_option_tiles_help": "Tile adalah gambar peta yang dibagi menjadi kotak-kotak kecil agar peta dapat ditampilkan. Tile dipakai saat peta dibuka. Termasuk gambar mini (gambar kecil yang tampil di daftar).",
+    "export_option_json": "Berkas pengaturan peta (JSON dan POI)",
     "export_option_originals": "Gambar asli",
     "export_option_originals_note": "Menyertakan berkas gambar asli apa adanya. Berkas menjadi lebih besar dan dapat berisi metadata foto.",
     "export_option_none_selected": "Pilih setidaknya satu item"

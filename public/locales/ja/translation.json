@@ -442,11 +442,12 @@
     "basemap_align_cancel": "キャンセル",
     "context_select_reference_point": "基準点を選ぶ",
     "context_select_ground_truth": "Ground Truth を選ぶ",
-    "export_options_title": "書き出す中身",
+    "export_options_title": "エクスポートする中身",
     "export_option_tiles": "タイル（サムネイルを含む）",
-    "export_option_json": "地図の設定（JSON・POI）",
-    "export_option_originals": "原画像",
-    "export_option_originals_note": "元の画像そのものを入れます。ファイルが大きくなり、写真の付帯情報を含むことがあります",
+    "export_option_tiles_help": "地図を表示するために、画像を小さな正方形に分けたものです。地図を開くときに使います。サムネイル（一覧に出る小さな画像）も含みます。",
+    "export_option_json": "地図の設定ファイル（JSON・POI）",
+    "export_option_originals": "オリジナル画像",
+    "export_option_originals_note": "オリジナル画像をそのまま入れます。ファイルが大きくなり、写真の付帯情報を含むことがあります",
     "export_option_none_selected": "1 つ以上選んでください"
   },
   "mapupload": {

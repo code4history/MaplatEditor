@@ -36,6 +36,15 @@ async function expectDefaultMapOptions(page: Page): Promise<void> {
   await expect(page.getByTestId('map-export-option-json')).toBeChecked();
   await expect(page.getByTestId('map-export-option-originals')).not.toBeChecked();
   await expect(page.getByTestId('map-export-options-confirm')).toBeEnabled();
+  // nov26-editor-export-wording: 「タイル」の横に標準の ? ヘルプ（ContextHelp）が描かれ、
+  // 説明（タイルとは何か）を aria-label/ポップオーバーの本文に持つ
+  const tilesHelp = modal.getByTestId('map-export-option-tiles-help');
+  await expect(tilesHelp).toBeVisible();
+  await expect(tilesHelp).toHaveAttribute(
+    'aria-label',
+    '地図を表示するために、画像を小さな正方形に分けたものです。地図を開くときに使います。サムネイル（一覧に出る小さな画像）も含みます。',
+  );
+  await expect(tilesHelp.locator('i.bi-question-circle')).toHaveCount(1);
 }
 
 /** 書き出しの完了の進捗モーダル（OK で閉じる）を閉じる。前例 m19-t1 の dismissStartupModals */
