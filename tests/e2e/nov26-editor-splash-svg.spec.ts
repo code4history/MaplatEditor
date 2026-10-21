@@ -267,7 +267,13 @@ test.describe('nov26-editor-splash-svg: og:image を描けないとき', () => {
       const ogWarnings = messages
         .flatMap((m) => String(m.detail ?? '').split('\n'))
         .filter((line) => line.includes('og:image'));
-      expect(ogWarnings.length, `og:image の警告は 1 件: ${JSON.stringify(messages)}`).toBe(1);
+      // 【NOV26-IR-EDITOR-SPLASH-SVG-0464 MINOR-4】スプラッシュの実体が無いときは「スプラッシュ画像が見つかりませんでした」
+      // の 1 件だけにし、og:image の警告を重ねない（原因 1 つに警告 1 件）
+      expect(ogWarnings.length, `og:image の警告は重ねない: ${JSON.stringify(messages)}`).toBe(0);
+      const missingSplash = messages
+        .flatMap((m) => String(m.detail ?? '').split('\n'))
+        .filter((line) => line.includes('スプラッシュ画像が見つかりませんでした'));
+      expect(missingSplash.length, 'スプラッシュの欠落の警告は 1 件').toBe(1);
     } finally {
       await quitElectronApplication(app);
     }

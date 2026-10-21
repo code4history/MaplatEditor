@@ -795,6 +795,8 @@ class AppExportService {
       return `img/${exportedSplashName(appID, splash)}`;
     }
     const ogName = exportedOgImageName(appID);
+    // 【0464 MINOR-4】スプラッシュの実体が無いときは missing_splash だけにし、og:image の警告を重ねない
+    if (!fs.existsSync(path.join(this.saveFolder, 'img', splash))) return undefined;
     try {
       await renderImagePng({
         sourcePath: path.join(this.saveFolder, 'img', splash),

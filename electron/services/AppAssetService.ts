@@ -20,6 +20,7 @@ import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
 import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
 // 同: SVG は Jimp でデコードできないので、中身が SVG として正しいかを別に確かめる
 import { checkSvgBytes, isSvgExt } from '../utils/svgSource';
+import { PREVIEW_MAX_BYTES } from '../utils/pickedPreviewSource';
 
 // m6-t8 §3.10: merc マスタのタイル URL は file://（旧）または app://bundle/__local（oct26-m4-t2ff。m4-t2 期の旧 app://local も受理）で
 // 渡ってくる。Node の fetch()/undici は file: / app: スキームを解決できないため、
@@ -159,6 +160,8 @@ class AppAssetService {
     if (isSvgExt(ext)) {
       let bytes: Buffer;
       try {
+        // 【0464 MINOR-1】巨大な SVG を main で丸ごと読まない（保存前の表示と同じ 20 MB を上限にする）
+        if ((await fs.stat(file)).size > PREVIEW_MAX_BYTES) return { err: 'InvalidImage' };
         bytes = await fs.readFile(file);
       } catch {
         return { err: 'InvalidImage' };

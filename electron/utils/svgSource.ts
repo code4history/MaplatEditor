@@ -160,6 +160,9 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     const nameMatch = NAME.exec(source.slice(index));
     if (!nameMatch) return INVALID('bad start tag');
     const name = nameMatch[0];
+    // 【NOV26-IR-EDITOR-SPLASH-SVG-0464 MINOR-2】書き出したサイトで SVG を直接開くと、中の script がサイトと
+    // 同じ origin で動く。スプラッシュは図柄だけでよいので、script と HTML を埋め込む foreignObject は受け付けない
+    if (/^(script|foreignobject)$/i.test(localName(name))) return INVALID(`element not allowed: ${name}`);
     index += name.length;
     if (rootName === null) rootName = name;
     else if (rootClosed) return INVALID('multiple roots');
@@ -196,6 +199,9 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       if (!textIsClean(value)) return INVALID(`unescaped & in attribute: ${attrName}`);
       index = valueEnd + 1;
       if (attributes.has(attrName)) return INVALID(`duplicate attribute: ${attrName}`);
+      // 【0464 MINOR-2】イベントの属性（onload 等）と javascript: の参照は受け付けない
+      if (/^on/i.test(localName(attrName))) return INVALID(`event attribute not allowed: ${attrName}`);
+      if (/^\s*javascript:/i.test(value)) return INVALID(`javascript: not allowed: ${attrName}`);
       attributes.set(attrName, value);
     }
 

@@ -114,6 +114,13 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><!-- 閉じない </svg>', "コメントが閉じていない"],
     ['<svg width="10" height="10" width="20"/>', "同じ属性が 2 つ"],
     ['<svg width="10" height="10"/><', "末尾に壊れた文字"],
+    // NOV26-IR-EDITOR-SPLASH-SVG-0464 MINOR-2: 書き出したサイトで直接開かれても script が動かないように
+    ['<svg width="10" height="10"><script>alert(1)</script></svg>', "script 要素"],
+    ['<svg xmlns:s="http://www.w3.org/2000/svg" width="10" height="10"><s:script>x</s:script></svg>', "名前空間つきの script"],
+    ['<svg width="10" height="10" onload="alert(1)"/>', "onload 属性"],
+    ['<svg width="10" height="10"><rect ONCLICK="x" width="1" height="1"/></svg>', "大文字のイベント属性"],
+    ['<svg width="10" height="10"><a href=" javascript:alert(1)"><rect width="1" height="1"/></a></svg>', "javascript: の参照"],
+    ['<svg width="10" height="10"><foreignObject width="10" height="10"><div/></foreignObject></svg>', "foreignObject"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);
