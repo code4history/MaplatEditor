@@ -422,14 +422,15 @@ try {
     }
 
     // ===================================================================
-    // (f) 11 言語に 9 キー（nov26-editor-export-wording でタイルの説明 export_option_tiles_help を追加）
+    // (f) 11 言語に 8 キー（nov26-editor-export-wording でタイルの説明 export_option_tiles_help を追加。
+    //     nov26-editor-appexport-dialog でアプリの書き出しが小窓へ移り、appedit.export_exclude_tiles は無くなった）
     // ===================================================================
     {
       const KEYS = [
         'mapedit.export_options_title', 'mapedit.export_option_tiles', 'mapedit.export_option_tiles_help',
         'mapedit.export_option_json',
         'mapedit.export_option_originals', 'mapedit.export_option_originals_note', 'mapedit.export_option_none_selected',
-        'appedit.export_exclude_tiles', 'dataupload.error_no_json',
+        'dataupload.error_no_json',
       ];
       const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
       const localesDir = ${p('public/locales')};
@@ -442,7 +443,7 @@ try {
           assert.ok(value.trim().length > 0, '(f) ' + lang + ' の ' + key + ' が空でない');
         }
       }
-      console.log('ok (f): 11 言語に 9 キーがある');
+      console.log('ok (f): 11 言語に 8 キーがある');
     }
 
     console.log('nov26-m6-t8 export options OK');

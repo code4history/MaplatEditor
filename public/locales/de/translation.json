@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Die POI-Daten mischen GeoJSON- und Nicht-GeoJSON-Formate. Sie werden im Viewer möglicherweise nicht korrekt angezeigt. Wandeln Sie POIs im Altformat in GeoJSON um.",
     "provider_source_note": "Die Kachel-URL wird automatisch aus dem API-Schlüssel und dem Typ erstellt, eine manuelle Eingabe ist nicht erforderlich.",
     "error_missing_base_map_master": "Die Basiskarte für diese Quelle fehlt. Sie wird von Export und Vorschau ausgeschlossen.",
-    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen.",
-    "export_exclude_tiles": "Kacheln nicht einschließen"
+    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",

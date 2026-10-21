@@ -700,8 +700,7 @@
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
     "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
     "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",
-    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền.",
-    "export_exclude_tiles": "Không bao gồm ô bản đồ"
+    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

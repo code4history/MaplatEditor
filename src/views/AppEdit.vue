@@ -1091,18 +1091,40 @@ async function resolveExportOverrideKeys(
   });
 }
 
-// nov26-m6-t8（#113・HR-19）: 「タイルを含めない」。既定は含める（外れている）。
-// 書き出しが終わったら（成功・失敗・取消のどれでも）外す（選択を覚えない）
-const appExportExcludeTiles = ref(false);
+// nov26-editor-appexport-dialog（人間決定「ボタン => 確認ダイアログ => 実施、と、地図のエクスポートと
+// 揃えてもらえないですか？」）: アプリの書き出しも地図の書き出しと同じく小窓で中身を選んでから実施する。
+// 開くたびに既定（タイルを含める）へ戻し、選んだ内容を覚えない（nov26-m6-t8 の HR-19 と同じ扱い）。
+// 地図側の askMapExportOptions / mapExportOptions / closeMapExportOptions（src/views/MapEdit.vue）と同型。
+const appExportOptionsVisible = ref(false);
+const appExportOptions = ref<{ includeTiles: boolean }>({ includeTiles: true });
+let appExportOptionsResolve: ((value: { includeTiles: boolean } | null) => void) | null = null;
+
+const askAppExportOptions = (): Promise<{ includeTiles: boolean } | null> => {
+  appExportOptions.value = { includeTiles: true };
+  appExportOptionsVisible.value = true;
+  return new Promise((resolve) => {
+    appExportOptionsResolve = resolve;
+  });
+};
+const closeAppExportOptions = (value: { includeTiles: boolean } | null) => {
+  appExportOptionsVisible.value = false;
+  const resolve = appExportOptionsResolve;
+  appExportOptionsResolve = null;
+  resolve?.(value ? { ...value } : null);
+};
 
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
+  // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
+  // 小窓で取り消したら何もしない
+  const exportOptions = await askAppExportOptions();
+  if (!exportOptions) return false;
   try {
     const document = cloneDocument(await window.appedit.request(appUid.value));
     const overrideKeys = await resolveExportOverrideKeys(document);
     if (overrideKeys === null) return false; // ユーザーがオンザフライ入力をキャンセル
     const result = await window.appedit.export(document, overrideKeys ?? undefined, {
-      includeTiles: !appExportExcludeTiles.value,
+      includeTiles: exportOptions.includeTiles,
     });
     if (result.result === "Canceled") return false;
     if (result.result === "Error") {
@@ -1146,7 +1168,6 @@ async function exportApp() {
     });
   } finally {
     exporting.value = false;
-    appExportExcludeTiles.value = false;
   }
 }
 
@@ -1377,17 +1398,6 @@ function onPoisChange(next: unknown[]) {
       @discard-draft="discardRestoredDraft"
     >
       <template #actions="{ disabled }">
-        <div class="form-check form-check-inline mb-0 me-1 small">
-          <input
-            id="appExportExcludeTiles"
-            v-model="appExportExcludeTiles"
-            type="checkbox"
-            class="form-check-input"
-            data-testid="app-export-exclude-tiles"
-            :disabled="disabled || exporting"
-          />
-          <label class="form-check-label" for="appExportExcludeTiles">{{ t("appedit.export_exclude_tiles") }}</label>
-        </div>
         <button
           type="button"
           class="btn btn-sm btn-outline-primary"
@@ -1821,6 +1831,39 @@ function onPoisChange(next: unknown[]) {
       :missing-kinds="exportKeyPromptMissingKinds"
       @submit="onExportKeyPromptSubmit"
     />
+
+    <!-- nov26-editor-appexport-dialog: 書き出す中身の選択。地図の書き出し（MapEdit.vue の
+         mapExportOptions）と同じマークアップ・同じ書き方。ビジー表示（z-index 1040）より前面の .modal（1055） -->
+    <div v-if="appExportOptionsVisible" class="modal show d-block" tabindex="-1" role="dialog" aria-modal="true"
+         data-testid="app-export-options">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5">{{ t("mapedit.export_options_title") }}</h2>
+          </div>
+          <div class="modal-body">
+            <div class="form-check">
+              <input id="appExportOptionTiles" type="checkbox" class="form-check-input"
+                     data-testid="app-export-option-tiles" v-model="appExportOptions.includeTiles" />
+              <label class="form-check-label" for="appExportOptionTiles">{{ t("mapedit.export_option_tiles") }}</label>
+              <!-- 地図と同じ「タイルとは何か」の ? ヘルプ -->
+              <ContextHelp
+                :text="t('mapedit.export_option_tiles_help')"
+                :ariaLabel="t('mapedit.export_option_tiles_help')"
+                data-testid="app-export-option-tiles-help"
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-testid="app-export-options-cancel"
+                    @click="closeAppExportOptions(null)">{{ t("common.cancel") }}</button>
+            <button type="button" class="btn btn-primary" data-testid="app-export-options-confirm"
+                    @click="closeAppExportOptions(appExportOptions)">{{ t("editor_ui.export_button") }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="appExportOptionsVisible" class="modal-backdrop show"></div>
   </div>
 </template>
 

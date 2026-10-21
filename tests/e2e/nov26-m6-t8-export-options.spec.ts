@@ -2,12 +2,14 @@
 //
 //   (a) 地図の書き出しで選択の画面が既定の状態（タイル・JSON が入り、原画像は外れている）で開き、
 //       原画像を入れタイルを外して書き出す → もう一度開くと既定に戻っている。3 つとも外すと押せない
-//   (b) アプリの書き出しで「タイルを含めない」を入れて書き出す → zip にタイルが無く、書き出しの後は外れている
+//   (b) アプリの書き出しはボタン → 小窓（nov26-editor-appexport-dialog）→ 実施。小窓で「タイル」を外して書き出すと
+//       zip にタイルが無く、小窓で取り消すと何もしない。開き直すと既定（タイルあり）に戻っている
 //   (c) タイルも原画像も外して書き出した zip を取り込み、その地図を一覧と編集画面で開いて、
 //       renderer の pageerror・main の console.error に例外が出ない（T8-MIN-2）
 //
 // 保存・開くのネイティブダイアログは差し替える（前例 tests/e2e/helpers/mapPackage.ts）。
 import { expect, test, type Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -168,7 +170,7 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
     }
   });
 
-  test('(b) アプリ: 「タイルを含めない」で書き出すと zip にタイルが無く、書き出しの後は外れている', async () => {
+  test('(b) アプリ: 小窓で「タイル」を外して書き出すと zip にタイルが無く、書き出しの後は既定へ戻っている', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m6t8-app-'));
     const { app, page } = await launch(e2eRoot);
@@ -193,40 +195,44 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
 
       await openHash(page, `#/appedit?uid=${appUid}`);
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30000 });
-      const exclude = page.getByTestId('app-export-exclude-tiles');
-      await expect(exclude).not.toBeChecked();
+      // nov26-editor-appexport-dialog: ボタンの横のチェックは無くなり、押すと小窓で選ぶ
+      await expect(page.getByTestId('app-export-exclude-tiles')).toHaveCount(0);
 
       // 既定（含める）
       const zipWith = path.join(e2eRoot, 'app-with.zip');
       await stubSaveDialog(app, zipWith);
       await page.locator('[data-editor-action="export"]').click();
+      await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByTestId('app-export-option-tiles')).toBeChecked();
+      await page.getByTestId('app-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
       await closeFinishedModals(page);
       const namesWith = await zipNames(zipWith);
       expect(namesWith.some((n) => n.startsWith(`tiles/${seeded.mapSlug}/`))).toBe(true);
 
-      // 「タイルを含めない」
+      // 「タイル」を外す
       const zipWithout = path.join(e2eRoot, 'app-without.zip');
       await stubSaveDialog(app, zipWithout);
-      await exclude.check();
       await page.locator('[data-editor-action="export"]').click();
+      await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByTestId('app-export-option-tiles')).toBeChecked(); // 前回の選択は覚えない
+      await page.getByTestId('app-export-option-tiles').uncheck();
+      await page.getByTestId('app-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
       await closeFinishedModals(page);
       const namesWithout = await zipNames(zipWithout);
       expect(namesWithout.filter((n) => n.startsWith('tiles/'))).toEqual([]);
       expect(namesWithout).toContain(`maps/${seeded.mapSlug}.json`);
-      // 書き出しの後は外れている（AC5）
-      await expect(exclude).not.toBeChecked();
 
-      // 取消（保存先の選択で取り消す）でも外れる
-      await app.evaluate(async ({ dialog }) => {
-        dialog.showSaveDialog = (async () => ({ canceled: true, filePath: undefined })) as unknown as typeof dialog.showSaveDialog;
-      });
-      await exclude.check();
+      // 小窓で取り消すと何もしない（保存先の選択も呼ばれない）
+      const zipCanceled = path.join(e2eRoot, 'app-canceled.zip');
+      await stubSaveDialog(app, zipCanceled);
       await page.locator('[data-editor-action="export"]').click();
-      await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 60000 });
-      await closeFinishedModals(page);
-      await expect(exclude).not.toBeChecked();
+      await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30000 });
+      await page.getByTestId('app-export-options-cancel').click();
+      await expect(page.getByTestId('app-export-options')).toHaveCount(0);
+      await page.waitForTimeout(1500);
+      expect(existsSync(zipCanceled)).toBe(false);
       console.log('  (b): PASS');
     } finally {
       await quitElectronApplication(app);

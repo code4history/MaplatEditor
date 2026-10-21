@@ -700,8 +700,7 @@
     "warn_mixed_pois": "POIデータにGeoJSON形式とそれ以外の形式が混在しています。ビューアで正しく表示されない可能性があります。旧形式のPOIはGeoJSONへ変換してください。",
     "provider_source_note": "APIキーと種別からタイルURLが自動的に構築されるため、直接入力の必要はありません。",
     "error_missing_base_map_master": "このソースのベースマップが見つかりません。書き出しとプレビューから除外されます。",
-    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。",
-    "export_exclude_tiles": "タイルを含めない"
+    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
