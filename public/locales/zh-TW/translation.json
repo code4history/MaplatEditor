@@ -406,6 +406,8 @@
     "edit_layer": "編輯地圖圖層",
     "edit_coordinate": "編輯座標",
     "no_selected_base_maps": "請從左側列表新增底圖。",
+    "base_map_google_key_missing": "由於未設定編輯器用的 Google Maps API 金鑰，Google 底圖未顯示在選項清單中（設定 > 底圖）。",
+    "base_map_google_failed": "無法載入 Google 底圖。請檢查 API 金鑰與網路連線。",
     "basemap_settings_note": "這些是編輯器顯示設定，而不是地圖內容。",
     "thumbnail_manage": "縮圖管理",
     "thumbnail_derive_52": "同時從512px建立52px",

@@ -391,6 +391,8 @@
     "edit_layer": "Edit map layer",
     "edit_coordinate": "Edit coordinate",
     "no_selected_base_maps": "Add base maps from the list on the left.",
+    "base_map_google_key_missing": "Google base maps are hidden because no Google Maps API key for the editor is set (Settings > Base map).",
+    "base_map_google_failed": "Could not load the Google base map. Check the API key and your network.",
     "basemap_settings_note": "These are editor display settings, not map content.",
     "thumbnail_manage": "Thumbnail management",
     "thumbnail_derive_52": "Also create 52px from 512px",

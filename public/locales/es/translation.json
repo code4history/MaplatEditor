@@ -406,6 +406,8 @@
     "edit_layer": "Editar capa del mapa",
     "edit_coordinate": "Editar coordenadas",
     "no_selected_base_maps": "Añada mapas base desde la lista de la izquierda.",
+    "base_map_google_key_missing": "Los mapas base de Google no se ofrecen porque no se ha configurado una clave de API de Google Maps para el editor (Configuración > Mapa base).",
+    "base_map_google_failed": "No se pudo cargar el mapa base de Google. Compruebe la clave de API y su conexión de red.",
     "basemap_settings_note": "Estos son ajustes de visualización del editor, no contenido del mapa.",
     "thumbnail_manage": "Gestión de miniaturas",
     "thumbnail_derive_52": "Crear también 52px desde 512px",

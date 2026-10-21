@@ -406,6 +406,8 @@
     "edit_layer": "지도 레이어 편집",
     "edit_coordinate": "좌표 편집",
     "no_selected_base_maps": "왼쪽 목록에서 베이스맵을 추가하세요.",
+    "base_map_google_key_missing": "편집기용 Google Maps API 키가 설정되어 있지 않아 Google 베이스맵을 선택지에 표시하지 않습니다 (설정 > 베이스맵).",
+    "base_map_google_failed": "Google 베이스맵을 불러오지 못했습니다. API 키와 네트워크를 확인하세요.",
     "basemap_settings_note": "이 설정은 지도 콘텐츠가 아니라 편집기 표시 설정입니다.",
     "thumbnail_manage": "썸네일 관리",
     "thumbnail_derive_52": "512px에서 52px도 생성",

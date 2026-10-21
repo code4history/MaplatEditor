@@ -406,6 +406,8 @@
     "edit_layer": "Kartenebene bearbeiten",
     "edit_coordinate": "Koordinaten bearbeiten",
     "no_selected_base_maps": "Fügen Sie Basiskarten aus der linken Liste hinzu.",
+    "base_map_google_key_missing": "Google-Basiskarten werden nicht angeboten, weil kein Google-Maps-API-Schlüssel für den Editor festgelegt ist (Einstellungen > Basiskarte).",
+    "base_map_google_failed": "Die Google-Basiskarte konnte nicht geladen werden. Prüfen Sie den API-Schlüssel und Ihre Netzwerkverbindung.",
     "basemap_settings_note": "Dies sind Editor-Anzeigeeinstellungen, kein Karteninhalt.",
     "thumbnail_manage": "Thumbnail-Verwaltung",
     "thumbnail_derive_52": "52px auch aus 512px erstellen",

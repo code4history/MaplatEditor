@@ -406,6 +406,8 @@
     "edit_layer": "Modifier le calque de carte",
     "edit_coordinate": "Modifier les coordonnées",
     "no_selected_base_maps": "Ajoutez des fonds de carte depuis la liste de gauche.",
+    "base_map_google_key_missing": "Les fonds de carte Google ne sont pas proposés car aucune clé d'API Google Maps pour l'éditeur n'est définie (Paramètres > Fond de carte).",
+    "base_map_google_failed": "Impossible de charger le fond de carte Google. Vérifiez la clé d’API et votre connexion réseau.",
     "basemap_settings_note": "Ce sont des paramètres d’affichage de l’éditeur, pas le contenu de la carte.",
     "thumbnail_manage": "Gestion des vignettes",
     "thumbnail_derive_52": "Créer aussi le 52px depuis le 512px",

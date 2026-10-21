@@ -289,6 +289,7 @@
     "test:e2e:nov26-m7-t6": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m7-t6-update-ux.spec.ts",
     "smoke:nov26-m7-t7-app-scheme-realpath": "node --experimental-strip-types scripts/nov26-m7-t7-app-scheme-realpath-smoke.mjs",
     "test:e2e:nov26-m7-t7": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m7-t7-app-scheme-realpath.spec.ts",
+    "smoke:nov26-editor-feat3": "node scripts/nov26-editor-feat3-smoke.mjs",
     "smoke:nov26-rc-editor174-pwa-assets": "node scripts/nov26-rc-editor174-pwa-assets-smoke.mjs",
     "smoke:nov26-rc-editor174-pwa-chromium": "node scripts/nov26-rc-editor174-pwa-chromium-smoke.mjs",
     "test:e2e:nov26-rc-editor174": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-rc-editor174-pwa-export.spec.ts"

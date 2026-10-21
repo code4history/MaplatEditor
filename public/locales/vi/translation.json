@@ -406,6 +406,8 @@
     "edit_layer": "Chỉnh sửa lớp bản đồ",
     "edit_coordinate": "Chỉnh sửa tọa độ",
     "no_selected_base_maps": "Thêm bản đồ nền từ danh sách bên trái.",
+    "base_map_google_key_missing": "Bản đồ nền Google không được hiển thị vì chưa đặt khóa API Google Maps cho trình biên tập (Cài đặt > Bản đồ nền).",
+    "base_map_google_failed": "Không thể tải bản đồ nền Google. Hãy kiểm tra khóa API và kết nối mạng.",
     "basemap_settings_note": "Đây là cài đặt hiển thị của trình chỉnh sửa, không phải nội dung bản đồ.",
     "thumbnail_manage": "Quản lý ảnh thu nhỏ",
     "thumbnail_derive_52": "Tạo cả 52px từ 512px",
