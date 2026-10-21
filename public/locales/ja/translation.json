@@ -468,13 +468,13 @@
     "success_upload": "正常に地図データが登録できました。",
     "error_too_large": "地図データの ZIP が大きすぎます（2 GiB を超えるものは取り込めません）。",
     "error_corrupt": "地図データの ZIP が壊れているため取り込めません。",
-    "error_no_json": "地図の設定（JSON）が含まれていないため取り込めません"
+    "error_no_json": "地図の設定ファイル（JSON）が含まれていないため取り込めません"
   },
   "database": {
     "migrating": "新型DB形式に移行中です。",
     "migrating_builtin_basemaps": "標準ベースマップを新型DBに登録しています。",
     "migrating_legacy_maps": "旧地図データを新型DBへ移行しています。",
-    "migrating_legacy_basemaps": "旧ベースマップ設定を新型DBへ移行しています。",
+    "migrating_legacy_basemaps": "旧ベースマップの設定ファイルを新型DBへ移行しています。",
     "archiving_legacy_files": "旧DBファイルを退避しています。",
     "migrated": "新型DB形式への移行が完了しました。",
     "migration_failed": "新型DB形式への移行に失敗しました。",
@@ -620,10 +620,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "表示ラベル",
-    "source_advanced": "詳細設定(JSON)",
-    "success_save": "アプリ設定を保存しました。",
-    "error_saving": "アプリ設定の保存に失敗しました。",
-    "confirm_no_save": "アプリ設定に変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
+    "source_advanced": "設定ファイル（JSON）を直接編集",
+    "success_save": "アプリの設定ファイルを保存しました。",
+    "error_saving": "アプリの設定ファイルの保存に失敗しました。",
+    "confirm_no_save": "アプリの設定ファイルに変更が加えられていますが保存されていません。\n保存せずに閉じてよいですか?",
     "roles": {
       "maplat": "Maplat",
       "base": "ベースマップ",
@@ -716,9 +716,9 @@
   },
   "merc": {
     "tab_title": "メルカトルタイルセット",
-    "tab_description": "この地図のGCP設定からメルカトルタイルセットを生成し、ベースマップとして登録します。",
+    "tab_description": "この地図の対応点（GCP）からメルカトルタイルセットを生成し、ベースマップとして登録します。",
     "generate": "メルカトルタイル生成",
-    "generate_not_ready": "GCP設定が未完了、または既に最新の状態で生成済みのため実行できません。",
+    "generate_not_ready": "対応点（GCP）が未完了、または既に最新の状態で生成済みのため実行できません。",
     "generating_tile": "メルカトルタイル生成中です。",
     "success_generation": "メルカトルタイル生成に成功しました。",
     "error_generation": "メルカトルタイル生成でエラーが発生しました。",
