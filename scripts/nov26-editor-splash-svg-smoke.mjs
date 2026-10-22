@@ -169,6 +169,32 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     // メタデータの要素の中でも、SVG の要素は許可リストで見る（メタデータの中の図柄はそのまま通す）
     '<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="10" height="10">'
       + '<sodipodi:namedview><rect width="1" height="1"/></sodipodi:namedview></svg>',
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像（PNG/JPEG/GIF/WebP の base64）は
+    // `image`・`feImage` の href／xlink:href に限って通す。Illustrator・Inkscape は図を
+    // 埋め込むとこの形で書き出す（今までは一律に拒否していて、画像入りの SVG を取り込めなかった）
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+      + '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' x="0px" y="0px" viewBox="0 0 100 100">\n'
+      + '<image style="overflow:visible;" width="100" height="100" xlink:href="data:image/png;base64,'
+      + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="'
+      + ' transform="matrix(1 0 0 1 0 0)"></image>\n'
+      + '</svg>\n',
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+      + '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" version="1.1">\n'
+      + '  <image width="10" height="10" x="0" y="0" preserveAspectRatio="none"'
+      + ' xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="/>\n'
+      + '</svg>\n',
+    // 空白（改行・タブ）を挟んだ base64 も通す
+    '<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><image width="1" height="1"'
+      + ' xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8\n\tz8BQDwAEAhQGAhKmMIQAAAABJRU5ErkJggg==="/></svg>',
+    // 属性名と値の引用符・対応する 4 つの型
+    '<svg width="10" height="10"><image href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA==" width="1" height="1"/></svg>',
+    "<svg width='10' height='10'><image x='0' y='0' width='1' height='1' href='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'/></svg>",
+    '<svg width="10" height="10"><image href="data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==" width="1" height="1"/></svg>',
+    // feImage も同じ扱い（フィルタの入力に埋め込み画像を使う）
+    '<svg width="10" height="10"><defs><filter id="f"><feImage href="data:image/pnG;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" result="r"/></filter></defs><rect filter="url(#f)" width="1" height="1"/></svg>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
@@ -308,6 +334,34 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><style>.a{fill:\\75 rl(http://x/a.svg#a)}</style><rect width="1" height="1"/></svg>', "<style> のエスケープで書いた url("],
     ['<svg width="10" height="10"><rect style="fill:\\75 rl(#a)" width="1" height="1"/></svg>', "style 属性のエスケープで書いた url("],
     ['<svg width="10" height="10"><style>.a{color:&#92;65 xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照で書いた CSS エスケープ"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】1. 宣言の区切りは引用符を見る。`<!DOCTYPE` はルートより前に
+    // 1 回だけ。それ以外の宣言（ATTLIST・ELEMENT・NOTATION・ENTITY）は場所を問わず拒否する
+    ['<!DOCTYPE svg SYSTEM "x>" [<!ATTLIST svg onload CDATA "...">]><svg width="10" height="10"/>', "引用符の中の > で区切って内部サブセットを隠した DOCTYPE"],
+    ["<!DOCTYPE svg SYSTEM 'x>' [<!ATTLIST svg onload CDATA \"...\">]><svg width=\"10\" height=\"10\"/>", "単一引用符版の同上"],
+    ['<!DOCTYPE svg PUBLIC "a>" "b>" [ <!ATTLIST svg onload CDATA "x"> ]><svg width="10" height="10"/>', "PUBLIC の引用符の中の > で区切って内部サブセットを隠した DOCTYPE"],
+    ['<!DOCTYPE svg SYSTEM "a"><!DOCTYPE svg SYSTEM "b"><svg width="10" height="10"/>', "2 つ目の DOCTYPE"],
+    ['<svg width="10" height="10"/><!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">', "ルートの後の DOCTYPE"],
+    ['<!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="10" height="10"><!ATTLIST svg onload CDATA "x"></svg>', "ルートの中の ATTLIST"],
+    ['<svg width="10" height="10"/><!ATTLIST svg onload CDATA "x">', "ルートの後の ATTLIST"],
+    ['<!ATTLIST svg onload CDATA "x"><svg width="10" height="10"/>', "ルートより前の裸の ATTLIST"],
+    ['<!ELEMENT svg ANY><svg width="10" height="10"/>', "ELEMENT の宣言"],
+    ['<!NOTATION x SYSTEM "http://x"><svg width="10" height="10"/>', "NOTATION の宣言"],
+    ['<!ENTITY x "javascript:alert(1)"><svg width="10" height="10"/>', "ルートより前の実体の宣言"],
+    ['<!element svg ANY><svg width="10" height="10"/>', "小文字の ELEMENT の宣言"],
+    ['<!DoCtYpE svg SYSTEM "a"><!aTtLiSt svg onload CDATA "x"><svg width="10" height="10"/>', "大文字小文字を混ぜた DOCTYPE の後の ATTLIST"],
+    ['<!DOCTYPE svg SYSTEM "http://x><svg width="10" height="10"/>', "閉じない引用符の DOCTYPE"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】2. 埋め込みのラスター画像として通すのは
+    // `image`・`feImage` の href／xlink:href の PNG/JPEG/GIF/WebP の base64 だけ
+    ['<svg width="10" height="10"><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=" width="1" height="1"/></svg>', "image の data:image/svg+xml"],
+    ['<svg width="10" height="10"><use href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" width="1" height="1"/></svg>', "use の data:image/png"],
+    ['<svg width="10" height="10"><a href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="><rect width="1" height="1"/></a></svg>', "a の data:image/png"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><image xlink:href="data:image/png;base64,iVBORw0KGgoAA!AAAABJRU5ErkJggg==" width="1" height="1"/></svg>', "base64 に記号の混じる埋め込み画像"],
+    ['<svg width="10" height="10"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUg%20AAAAA" width="1" height="1"/></svg>', "base64 に % の混じる埋め込み画像"],
+    ['<svg width="10" height="10"><image href="data:image/png,&lt;script&gt;alert(1)&lt;/script&gt;" width="1" height="1"/></svg>', "base64 でない data:image/png"],
+    ['<svg width="10" height="10"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==&#33;" width="1" height="1"/></svg>', "文字参照で記号を足した埋め込み画像"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><feImage xlink:href="data:image/svg+xml;base64,PHN2Zy8+" result="r"/></svg>', "feImage の data:image/svg+xml"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);

@@ -22,6 +22,12 @@
 // DOCTYPE の内部サブセットをまるごと拒否すること・XML 宣言の encoding を UTF-8 に限ること・
 // CSS のエスケープ（`\`）を拒否すること。
 //
+// 【NOV26-IM-M12-SVG-HARDEN-0480】レビュー（Major 2）を受けて 2 点を直した: 宣言の区切りは
+// 引用符を見て決めること（`>` を引用符の中に書いて内部サブセットの `[` を隠せなくする。
+// `<!DOCTYPE` はルートより前に 1 回だけ、それ以外の宣言は場所を問わず拒否）と、
+// `image`・`feImage` の href／xlink:href に限って埋め込みのラスター画像（PNG/JPEG/GIF/WebP の
+// base64）を通すこと（Illustrator・Inkscape は図をこの形で埋め込む）。
+//
 // electron に依存しない（node の smoke から直接読む）。
 
 export type SvgMarkupCheck = { ok: true } | { ok: false; reason: string };
@@ -94,6 +100,24 @@ const SMIL_ELEMENTS = new Set(['animate', 'animatemotion', 'animatetransform', '
 /** 外部の資源を指せる属性（`data:` を拒否する対象） */
 const REFERENCE_ATTRIBUTES = new Set(['href', 'src', 'action', 'formaction', 'poster', 'background', 'cite', 'longdesc']);
 
+/**
+ * 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像としてだけ通す `data:` の前置き。
+ * `image`・`feImage` の href／xlink:href に限り、この前置きの後ろが base64 の文字と空白だけなら通す
+ * （Illustrator・Inkscape は図を PNG などの base64 で埋め込む）。`data:image/svg+xml` は通さない。
+ */
+const EMBEDDED_RASTER_PREFIXES = [
+  'data:image/png;base64,',
+  'data:image/jpeg;base64,',
+  'data:image/gif;base64,',
+  'data:image/webp;base64,',
+];
+
+/** 埋め込み画像の本体として許す文字（base64 の文字と、行折り返しの空白） */
+const EMBEDDED_RASTER_BODY = /^[A-Za-z0-9+/=\s]*$/;
+
+/** 埋め込みのラスター画像を参照できる要素（どれも SVG の名前空間か名前空間なしで通ったもの） */
+const EMBEDDED_RASTER_ELEMENTS = new Set(['image', 'feimage']);
+
 /** XML の定義済み実体（これ以外の名前つき実体は受け付けない） */
 const PREDEFINED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 
@@ -139,6 +163,30 @@ function decodeReferences(text: string): string | null {
 function normalizeValue(value: string): string {
   // `\p{Cc}` は制御文字（タブ・改行・NUL など）。空白と幅の無い文字も落とす
   return value.replace(/[\p{Cc}\s\u00ad\u200b-\u200f]/gu, '').toLowerCase();
+}
+
+/**
+ * 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像として通せる `data:` か（デコード済みの値を渡す）。
+ * 前置き（`data:image/png;base64,` など 4 つ）は正規化して比べるので、`data:i&#9;mage/png;base64,` の
+ * ように文字を挟んだものも前置きとしては通し（挿入された文字は意味を持たない）、本体は base64 の
+ * 文字（大文字小文字と `+` `/` `=` をそのまま）と空白だけを許す。base64 でない `data:` は通さない。
+ */
+function embeddedRasterAllowed(value: string): boolean {
+  const normalized = normalizeValue(value);
+  const prefix = EMBEDDED_RASTER_PREFIXES.find(candidate => normalized.startsWith(candidate));
+  if (prefix === undefined) return false;
+  // 本体は正規化すると小文字になり base64 の大文字小文字が潰れるので、元の値のまま見る
+  // （前置きの分だけ「意味のある文字」を読み飛ばした残りが本体）
+  let consumed = 0;
+  let index = 0;
+  for (; index < value.length && consumed < prefix.length; index += 1) {
+    const char = value[index];
+    if (normalizeValue(char) === '') continue;
+    if (char.toLowerCase() !== prefix[consumed]) return false;
+    consumed += 1;
+  }
+  if (consumed < prefix.length) return false;
+  return EMBEDDED_RASTER_BODY.test(value.slice(index));
 }
 
 /**
@@ -269,6 +317,8 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
   let rootAttributes: Map<string, string> | null = null;
   let index = 0;
   let rootClosed = false;
+  /** 【NOV26-IM-M12-SVG-HARDEN-0480】DOCTYPE は 1 回だけ通す */
+  let sawDoctype = false;
 
   const skipWhitespace = () => {
     while (index < source.length && /\s/.test(source[index])) index += 1;
@@ -331,19 +381,43 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       index = end + 2;
       continue;
     }
-    // DOCTYPE（ルートより前だけ）
+    // 宣言（`<!` で始まるもの。コメントと CDATA は上で処理済み）
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】区切りは引用符を見て決める。以前は `<!` の後を引用符を見ずに
+    // 最初の `>` で区切っていたため、`<!DOCTYPE svg SYSTEM "x>" [<!ATTLIST svg onload CDATA "..">]>`
+    // のように `>` を引用符の中に書くと、内部サブセットの `[` を見ないまま素通りできた。
+    // 通すのはルートより前の `<!DOCTYPE` 1 回だけで、`<!ATTLIST`・`<!ELEMENT`・`<!NOTATION`・
+    // `<!ENTITY` などの宣言は、内部サブセットでなくてもルートの外でも、場所を問わず拒否する
     if (source.startsWith('<!', index)) {
-      if (rootName !== null) return INVALID('declaration after root');
-      const end = source.indexOf('>', index + 2);
+      const head = (/^<![A-Za-z]*/.exec(source.slice(index)) ?? ['<!'])[0];
+      const keyword = head.slice(2).toLowerCase();
+      if (keyword !== 'doctype') return INVALID(`declaration not allowed: <!${keyword || ''}`);
+      if (rootName !== null) return INVALID('DOCTYPE after root');
+      if (sawDoctype) return INVALID('multiple DOCTYPE');
+      sawDoctype = true;
+      // 引用符（`"` と `'`）の中の `>` `[` は見ない。閉じない引用符は宣言が閉じないものとして拒否する
+      let quote: string | null = null;
+      let internalSubset = false;
+      let end = -1;
+      for (let cursor = index + 2; cursor < source.length; cursor += 1) {
+        const char = source[cursor];
+        if (quote !== null) {
+          if (char === quote) quote = null;
+        } else if (char === '"' || char === "'") {
+          quote = char;
+        } else if (char === '[') {
+          internalSubset = true;
+        } else if (char === '>') {
+          end = cursor;
+          break;
+        }
+      }
       if (end < 0) return INVALID('unterminated declaration');
-      const declaration = source.slice(index, end + 1);
-      // 【NOV26-IM-M12-SVG-HARDEN-0479】内部サブセット（`[ ... ]`）はまるごと拒否する。
-      // 実体の宣言だけでなく ATTLIST の既定値（`<!ATTLIST svg onload CDATA "x">`）でも、
-      // この検査が見ていない属性を補えるため。あわせて `[` `]` の数え方（引用符の中の `]` や `>`）の
-      // 取り違えも消える。外部 ID だけの DOCTYPE（今までどおり）は通す
-      if (declaration.includes('[')) return INVALID('internal subset in DOCTYPE');
+      // 内部サブセット（`[ ... ]`）はまるごと拒否する。実体の宣言だけでなく ATTLIST の既定値
+      // （`<!ATTLIST svg onload CDATA "x">`）でも、この検査が見ていない属性を補えるため。
+      // 外部 ID だけの DOCTYPE（今までどおり）は通す
+      if (internalSubset) return INVALID('internal subset in DOCTYPE');
       // 【SR-C1-M-1】念のため、実体の宣言そのものも拒否する（`&x;` で javascript: を持ち込める）
-      if (ENTITY_DECLARATION.test(declaration)) return INVALID('entity declaration in DOCTYPE');
+      if (ENTITY_DECLARATION.test(source.slice(index, end + 1))) return INVALID('entity declaration in DOCTYPE');
       index = end + 1;
       continue;
     }
@@ -473,7 +547,14 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       // 【SR-C1-M-1】文字参照・制御文字・空白を挟んだ javascript: / vbscript: も参照しない
       if (/^(?:javascript|vbscript):/.test(normalized)) return INVALID(`script scheme not allowed: ${attrName}`);
       if (REFERENCE_ATTRIBUTES.has(attrLocal) && normalized.startsWith('data:')) {
-        return INVALID(`data: not allowed: ${attrName}`);
+        // 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像だけは、`image`・`feImage` の
+        // href／xlink:href に限って通す（Illustrator・Inkscape の埋め込み画像がこの形）。
+        // 他の要素（`a`・`use` 等）の `data:` と `data:image/svg+xml` は今までどおり拒否する
+        const embeddedRaster = EMBEDDED_RASTER_ELEMENTS.has(localName(name))
+          && attrLocal === 'href'
+          && (attrNs === null || attrNs === XLINK_NS)
+          && embeddedRasterAllowed(attrValue);
+        if (!embeddedRaster) return INVALID(`data: not allowed: ${attrName}`);
       }
       // 【SR-C1-M-1】style 属性は expression(・javascript:・@import を受け付けない。
       // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
