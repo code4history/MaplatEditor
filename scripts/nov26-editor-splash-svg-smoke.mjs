@@ -8,6 +8,18 @@
 //       （PWA アイコン・アセット・地図画像は従来どおり）
 //   (b) 取り込み: uploadSplash は SVG を XML として確かめ（ルート svg・大きさあり）、
 //       `{uuid}.svg` で img/ へ複製する。壊れた SVG は InvalidImage
+//       【NOV26-SR-M12-C1-0465 SR-C1-M-1】文字参照で書いた javascript:/vbscript:/data:・
+//       XHTML（および他の）名前空間の要素・属性・DTD の内部実体・style の expression(/@import は拒否する。
+//       【NOV26-IM-M12-SVG-HARDEN-0474】style の url( は一律に拒否せず、デコードした中身が
+//       文書内参照（url(#id)）のときだけ通す（イラレは .st0{fill:url(#SVGID_1_);} でグラデーションを引く）
+//       【NOV26-IM-M12-SVG-HARDEN-0478】文書の先頭の XML 宣言以外の処理命令（xml-stylesheet 等）・
+//       許可リスト外の SVG 名前空間の要素（handler・listener・unknownElement 等）・SMIL のアニメーションで
+//       参照・style・イベントを指す attributeName・アニメーションの値に書いた javascript:/vbscript:/data: は拒否する。
+//       一方、Inkscape 1.x の既定保存（Inkscape SVG）のメタデータ（inkscape/sodipodi/RDF/DC/CC）は通す
+//       【NOV26-IM-M12-SVG-HARDEN-0479】レビュー（Major 3・Minor 1）の決定: SMIL の属性は名前空間なしの
+//       完全一致の名前で引き（同じ局所名が名前空間違いで複数あれば拒否）・DOCTYPE の内部サブセットは
+//       まるごと拒否（外部 ID だけは通す）・XML 宣言の encoding は UTF-8 か未指定だけ・BOM は UTF-8 の
+//       ものだけ・`<style>` と style 属性の CSS に `\`（エスケープ）があれば拒否
 //   (c) 保存前の表示: 拡張子 allowlist を経路で分ける（スプラッシュは svg 可・アセットは不可）
 //   (d) 書き出し: スプラッシュの複製と app JSON の splash は拡張子のまま。og:image は
 //       SVG のとき Chromium で描いた PNG（1200x630・背景で余白）
@@ -22,7 +34,7 @@ import path from "node:path";
 
 // electron 非依存の純粋モジュール（node の型ストリップで直接読む）
 import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS } from "../electron/utils/imagePickFilters.ts";
-import { checkSvgMarkup, isSvgExt } from "../electron/utils/svgSource.ts";
+import { checkSvgBytes, checkSvgMarkup, isSvgExt } from "../electron/utils/svgSource.ts";
 import {
   ASSET_PREVIEW_ALLOWED_EXTS,
   SPLASH_PREVIEW_ALLOWED_EXTS,
@@ -91,8 +103,98 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     '<svg width="10" height="10"><style><![CDATA[ .a { fill: red; } ]]></style><path d="M0 0h10v10z" /></svg>',
     // % 指定でも viewBox があれば大きさが決まる（実在の書き方）
     '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"><defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs><text x="1" y="2">a &amp; b</text></svg>',
-    // DOCTYPE の内部サブセット（`[ ... ]` の中の `>` で切らない）
-    '<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg width="1" height="1"/>',
+    // DOCTYPE の内部サブセット（`[ ... ]`）は
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】まるごと拒否の側へ移した（ATTLIST の既定値で検査の見ていない
+    // 属性を補えるため）。外部 ID だけの DOCTYPE は今までどおり通す
+    '<!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="1" height="1"/>',
+    '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="1" height="1"/>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】XML 宣言の encoding は書かないか `UTF-8` だけ
+    // （大文字小文字・前後の空白は問わない）
+    '<?xml version="1.0"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding="UTF-8"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding="utf-8" standalone="no"?><svg width="1" height="1"/>',
+    '<?xml version="1.0" encoding=" utf-8 "?><svg width="1" height="1"/>',
+    // BOM は UTF-8 のもの（1 つだけ）を今までどおり許す
+    '\uFEFF<svg width="1" height="1"/>',
+    // Illustrator の典型的な書き出し（xlink の宣言・style 要素・xml:space・fill="url(#id)" は属性なので可）
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+      + '<!-- Generator: Adobe Illustrator 27.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->\n'
+      + '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' x="0px" y="0px" viewBox="0 0 100 100" style="enable-background:new 0 0 100 100;" xml:space="preserve">\n'
+      + '<style type="text/css">\n\t.st0{fill:#FFFFFF;}\n\t.st1{fill:none;stroke:#000000;stroke-width:2;}\n</style>\n'
+      + '<rect class="st0" width="100" height="100"/>\n'
+      + '<circle class="st1" cx="50" cy="50" r="20"/>\n'
+      + '<defs><linearGradient id="SVGID_1_"><stop offset="0" stop-color="#fff"/></linearGradient></defs>\n'
+      + '<rect x="0" y="0" width="10" height="10" fill="url(#SVGID_1_)"/>\n'
+      + '</svg>\n',
+    // Inkscape の書き出し（メタデータの名前空間なしで保存したもの）
+    '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" version="1.1"><defs>'
+      + '<g id="arrow"><path d="M0,0 L10,5 L0,10 z"/></g></defs>'
+      + '<use xlink:href="#arrow" x="10" y="10"/><a href="https://example.com/"><text x="1" y="2">link</text></a></svg>',
+    // Figma の書き出し
+    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'
+      + '<path d="M12 2L2 22h20L12 2z" fill="#1E1E1E"/></svg>',
+    // 手書きの典型（名前空間の宣言なし・数値の文字参照・定義済み 5 実体）
+    '<svg viewBox="0 0 8 8"><title>a &#38; b</title><path d="M0 0 8 8" stroke="black" stroke-width="1"/></svg>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`#` で始まる名前）だけを許す。
+    // Illustrator のグラデーション参照の実在の形（style 属性・<style>・引用符つき・空白つき）
+    '<svg width="10" height="10"><rect style="fill:url(#SVGID_1_);" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url(#SVGID_1_);}</style><rect class="st0" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url(\'#a\');}</style><rect class="st0" width="1" height="1"/></svg>',
+    '<svg width="10" height="10"><style>.st0{fill:url( "#a" );}</style><rect class="st0" width="1" height="1"/></svg>',
+    // 文字参照を挟んだ url( も、デコードした結果が文書内参照なら通す（以前は一律に拒否していた）
+    '<svg width="10" height="10"><style>.a{fill:u&#114;l(#a)}</style><rect width="1" height="1"/></svg>',
+    // CDATA に書かれた <style> の中身も同じ扱い（以前は一律に拒否していた）
+    '<svg width="10" height="10"><style><![CDATA[ .a{fill:url(#a)} ]]></style><rect width="1" height="1"/></svg>',
+    // style 属性の文書内参照（以前は一律に拒否していた）
+    '<svg width="10" height="10"><rect style="fill:url(#g)" width="1" height="1"/></svg>',
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】Inkscape 1.x の既定保存（Inkscape SVG）。
+    // inkscape・sodipodi・RDF・Dublin Core・Creative Commons のメタデータは図柄に効かないので通す。
+    // 無害な SMIL のアニメーション（opacity の 0→1）も通す
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+      + '<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#"'
+      + ' xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:svg="http://www.w3.org/2000/svg"'
+      + ' xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"'
+      + ' xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" id="svg8"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" inkscape:version="1.2.2" sodipodi:docname="drawing.svg">\n'
+      + '  <defs id="defs2"/>\n'
+      + '  <sodipodi:namedview id="base" pagecolor="#ffffff" bordercolor="#666666" inkscape:zoom="0.35"'
+      + ' inkscape:cx="400" inkscape:cy="560"><inkscape:page x="0" y="0" width="210" height="297" id="page1"/></sodipodi:namedview>\n'
+      + '  <metadata id="metadata5"><rdf:RDF><cc:Work rdf:about=""><dc:format>image/svg+xml</dc:format>'
+      + '<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/></cc:Work></rdf:RDF></metadata>\n'
+      + '  <g inkscape:label="Layer 1" inkscape:groupmode="layer" id="layer1"><rect width="100" height="50" fill="#39f">'
+      + '<animate attributeName="opacity" values="0;1" dur="1s" repeatCount="indefinite"/></rect></g>\n'
+      + '</svg>\n',
+    // メタデータの要素の中でも、SVG の要素は許可リストで見る（メタデータの中の図柄はそのまま通す）
+    '<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="10" height="10">'
+      + '<sodipodi:namedview><rect width="1" height="1"/></sodipodi:namedview></svg>',
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像（PNG/JPEG/GIF/WebP の base64）は
+    // `image`・`feImage` の href／xlink:href に限って通す。Illustrator・Inkscape は図を
+    // 埋め込むとこの形で書き出す（今までは一律に拒否していて、画像入りの SVG を取り込めなかった）
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+      + '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' x="0px" y="0px" viewBox="0 0 100 100">\n'
+      + '<image style="overflow:visible;" width="100" height="100" xlink:href="data:image/png;base64,'
+      + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="'
+      + ' transform="matrix(1 0 0 1 0 0)"></image>\n'
+      + '</svg>\n',
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+      + '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+      + ' width="210mm" height="297mm" viewBox="0 0 210 297" version="1.1">\n'
+      + '  <image width="10" height="10" x="0" y="0" preserveAspectRatio="none"'
+      + ' xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="/>\n'
+      + '</svg>\n',
+    // 空白（改行・タブ）を挟んだ base64 も通す
+    '<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><image width="1" height="1"'
+      + ' xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8\n\tz8BQDwAEAhQGAhKmMIQAAAABJRU5ErkJggg==="/></svg>',
+    // 属性名と値の引用符・対応する 4 つの型
+    '<svg width="10" height="10"><image href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA==" width="1" height="1"/></svg>',
+    "<svg width='10' height='10'><image x='0' y='0' width='1' height='1' href='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'/></svg>",
+    '<svg width="10" height="10"><image href="data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==" width="1" height="1"/></svg>',
+    // feImage も同じ扱い（フィルタの入力に埋め込み画像を使う）
+    '<svg width="10" height="10"><defs><filter id="f"><feImage href="data:image/pnG;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" result="r"/></filter></defs><rect filter="url(#f)" width="1" height="1"/></svg>',
   ];
   for (const text of valid) {
     assert.deepEqual(checkSvgMarkup(text), { ok: true }, `正しい SVG を弾いた: ${text.slice(0, 60)}`);
@@ -121,10 +223,174 @@ console.log("ok: (a) スプラッシュの filter だけに svg を足し、他�
     ['<svg width="10" height="10"><rect ONCLICK="x" width="1" height="1"/></svg>', "大文字のイベント属性"],
     ['<svg width="10" height="10"><a href=" javascript:alert(1)"><rect width="1" height="1"/></a></svg>', "javascript: の参照"],
     ['<svg width="10" height="10"><foreignObject width="10" height="10"><div/></foreignObject></svg>', "foreignObject"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】1. 文字参照で書いた javascript:（字面だけの検査をすり抜ける）
+    ['<svg width="10" height="10"><a href="&#106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "10 進の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#x6A;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "16 進の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#0000106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "0 詰めの文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="java&#9;script:alert(1)"><rect width="1" height="1"/></a></svg>', "タブを挟んだ javascript:"],
+    ['<svg width="10" height="10"><a href="java&#10;script:alert(1)"><rect width="1" height="1"/></a></svg>', "改行を挟んだ javascript:"],
+    ['<svg width="10" height="10"><a href="java&#x0d;&#x0a;script:alert(1)"><rect width="1" height="1"/></a></svg>', "CR LF を挟んだ javascript:"],
+    ['<svg xml:space="preserve" width="10" height="10"><a href="&#x6a;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "xml:space と併用した文字参照の javascript:"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><a xlink:href="&#106;avascript:alert(1)"><rect width="1" height="1"/></a></svg>', "xlink:href の文字参照の javascript:"],
+    ['<svg width="10" height="10"><a href="&#118;bscript:msgbox(1)"><rect width="1" height="1"/></a></svg>', "文字参照の vbscript:"],
+    ['<svg width="10" height="10"><image href="&#100;ata:text/html,&lt;script&gt;" width="1" height="1"/></svg>', "文字参照の data: の参照"],
+    ['<svg width="10" height="10"><use href="&#100;ata:image/svg+xml,&lt;svg/&gt;" width="1" height="1"/></svg>', "data: を use で参照"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】2. XHTML 名前空間の要素
+    ['<svg xmlns:html="http://www.w3.org/1999/xhtml" width="10" height="10"><html:iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"/></svg>', "XHTML の接頭辞つき iframe"],
+    ['<svg width="10" height="10"><iframe xmlns="http://www.w3.org/1999/xhtml" srcdoc="x"/></svg>', "既定の名前空間を XHTML にした iframe"],
+    ['<svg xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><g><h:p>よみこみ</h:p></g></svg>', "入れ子の中の XHTML 要素"],
+    ['<svg xmlns:h="http://www.w3.org/1999/xhtml" h:x="1" width="10" height="10"/>', "XHTML 名前空間の属性"],
+    ['<svg xmlns="http://www.w3.org/1999/xhtml" width="10" height="10"/>', "ルート自体を XHTML にした"],
+    ['<svg width="10" height="10"><g xmlns="http://www.w3.org/1999/xhtml"><p>x</p></g></svg>', "途中で既定の名前空間を XHTML に切り替えた"],
+    ['<svg width="10" height="10"><undeclared:x/></svg>', "宣言していない接頭辞"],
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】通すのは上に挙げた 5 つのメタデータの名前空間だけ。
+    // 古い sodipodi の名前空間（0.0.dtd）と Illustrator の i: は今までどおり拒否する
+    ['<svg xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.0.dtd" width="10" height="10"><sodipodi:namedview/></svg>', "許可していない sodipodi の名前空間（0.0.dtd）"],
+    ['<svg xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/" width="10" height="10"><i:pgf/></svg>', "Illustrator の i: のメタデータ"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】3. DTD の内部実体
+    ['<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY x "javascript:alert(1)"> ]><svg width="10" height="10"><a href="&x;"><rect width="1" height="1"/></a></svg>', "実体を属性で参照"],
+    ['<?xml version="1.0"?><!DOCTYPE svg [ <!ENTITY x "<script>alert(1)</script>"> ]><svg width="10" height="10"><text>&x;</text></svg>', "実体を本文で参照"],
+    ['<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg width="1" height="1"/>', "使っていない実体の宣言（以前は通していた例）"],
+    ['<!DOCTYPE svg [<!ENTITY % p "<!ENTITY x \'y\'>"> ]><svg width="1" height="1"/>', "パラメータ実体の宣言"],
+    ['<!DOCTYPE svg [<!entity x "y">]><svg width="1" height="1"/>', "小文字の実体宣言"],
+    ['<svg width="10" height="10"><text>&foo;</text></svg>', "宣言の無い名前つき実体（本文）"],
+    ['<svg width="10" height="10"><a href="&foo;"><rect width="1" height="1"/></a></svg>', "宣言の無い名前つき実体（属性）"],
+    ['<svg width="10" height="10"><text>&nbsp;</text></svg>', "定義済み 5 以外の HTML の実体"],
+
+    // 【NOV26-SR-M12-C1-0465 SR-C1-M-1】style の expression(・javascript:・@import
+    ['<svg width="10" height="10"><style>@import url("http://example.invalid/x.css");</style><rect width="1" height="1"/></svg>', "<style> の @import"],
+    ['<svg width="10" height="10"><style>.a{color:&#101;xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照を挟んだ <style> の expression("],
+    ['<svg width="10" height="10"><rect style="width:expression(alert(1))" width="1" height="1"/></svg>', "style 属性の expression("],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0474】url( のうち文書内参照でないもの
+    ['<svg width="10" height="10"><style>.a{fill:url(http://x/a.svg#a)}</style><rect width="1" height="1"/></svg>', "<style> の url( の外部参照（http）"],
+    ['<svg width="10" height="10"><rect style="fill:url(data:image/svg+xml;base64,AAAA)" width="1" height="1"/></svg>', "style 属性の url( の data:"],
+    ['<svg width="10" height="10"><style>.a{fill:url(a.svg#x)}</style><rect width="1" height="1"/></svg>', "<style> の url( の相対パス"],
+    // 文書内参照の後に続く 2 つ目の url( も見る（最初の 1 つだけ見て通さない）
+    ['<svg width="10" height="10"><style>.a{fill:url(#a)} .b{fill:url(//x)}</style><rect width="1" height="1"/></svg>', "文書内参照の後に続く url(//x)"],
+    ['<svg width="10" height="10"><style>.a{fill:url(\\23 a)}</style><rect width="1" height="1"/></svg>', "<style> の url( の CSS エスケープ"],
+    ['<svg width="10" height="10"><style>.a{fill:url()}</style><rect width="1" height="1"/></svg>', "空の url("],
+    ['<svg width="10" height="10"><style>.a{fill:url(var(--x))}</style><rect width="1" height="1"/></svg>', "関数の入れ子の url("],
+    ['<svg width="10" height="10"><g style="x:java&#9;script:alert(1)"/></svg>', "style 属性の javascript:"],
+    ['<svg width="10" height="10"><g STYLE="x:java&#x0a;script:alert(1)"/></svg>', "大文字の style 属性"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】1. 文書の先頭の XML 宣言以外の処理命令
+    ['<?xml-stylesheet href="x.css"?><svg width="10" height="10"/>', "先頭の xml-stylesheet（href つき）"],
+    ['<?xml-stylesheet type="text/xsl" href="x.xsl"?><svg width="10" height="10"/>', "先頭の xml-stylesheet（XSLT）"],
+    ['<?xml version="1.0"?><?xml version="1.0"?><svg width="10" height="10"/>', "2 つ目の XML 宣言"],
+    ['<svg width="10" height="10"><?xml version="1.0"?><rect width="1" height="1"/></svg>', "ルートの中の XML 宣言"],
+    ['<svg width="10" height="10"><?xml-stylesheet href="x.css"?><rect width="1" height="1"/></svg>', "ルートの中の xml-stylesheet"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】2. SMIL のアニメーション
+    ['<svg width="10" height="10"><animate attributeName="href" values="#a;javascript:alert(1)" dur="1s" repeatCount="indefinite"/></svg>', "attributeName が href の animate（values に javascript:）"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><set attributeName="xlink:href" to="&#106;avascript:alert(1)"/></svg>', "attributeName が xlink:href の set（文字参照の javascript:）"],
+    ['<svg width="10" height="10"><animate attributeName="ONCLICK" values="alert(1)" dur="1s"/></svg>', "attributeName が onclick の animate"],
+    ['<svg width="10" height="10"><animate attributeName="style" values="fill:red" dur="1s"/></svg>', "attributeName が style の animate"],
+    ['<svg width="10" height="10"><animate attributeName="src" values="a.png" dur="1s"/></svg>', "attributeName が参照の属性（src）の animate"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" values="0;java&#115;cript:alert(1)" dur="1s"/></svg>', "values の 2 つ目が文字参照の javascript:"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" from="0" to="data:text/html,x" dur="1s"/></svg>', "to の data:"],
+    ['<svg width="10" height="10"><animate attributeName="opacity" by="&#118;bscript:msgbox(1)" dur="1s"/></svg>', "by の文字参照の vbscript:"],
+    ['<svg width="10" height="10"><animateMotion dur="1s"><mpath href="&#100;ata:image/svg+xml,&lt;svg/&gt;"/></animateMotion></svg>', "mpath の data: の参照"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】3. 許可リスト外の SVG 名前空間の要素
+    ['<svg width="10" height="10"><handler type="application/ecmascript">alert(1)</handler></svg>', "handler"],
+    ['<svg width="10" height="10"><listener event="load" handler="#x"/></svg>', "listener"],
+    ['<svg width="10" height="10"><unknownElement/></svg>', "許可リスト外の要素"],
+    ['<svg xmlns:svg="http://www.w3.org/2000/svg" width="10" height="10"><svg:handler/></svg>', "接頭辞つきの許可リスト外の要素"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0478】4. メタデータ名前空間の子孫でも名前空間の判定はそのまま
+    ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo><h:iframe/></i:foo></svg>', "inkscape の要素の子の XHTML の iframe"],
+    ['<svg xmlns:i="http://www.inkscape.org/namespaces/inkscape" xmlns:h="http://www.w3.org/1999/xhtml" width="10" height="10"><i:foo h:x="1"/></svg>', "メタデータの要素の XHTML 名前空間の属性"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】1. SMIL の属性は名前空間なしの属性だけを完全一致の名前で引く。
+    // 接頭辞を落とした局所名で最初の値を返していたため、`inkscape:attributeName` を本物より前に
+    // 置くと本物の `attributeName="href"` を見落とせた
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate inkscape:attributeName="x" attributeName="href" inkscape:values="0" values="#a;javascript:alert(1)"/></svg>', "メタデータの接頭辞を本物の属性の前に置いた animate"],
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate attributeName="href" inkscape:attributeName="x" values="#a;javascript:alert(1)" inkscape:values="0"/></svg>', "属性の順を入れ替えた同上"],
+    ['<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="10" height="10"><animate attributeName="opacity" inkscape:attributeName="x" values="0;1" dur="1s"/></svg>', "同じ局所名の属性が名前空間違いで 2 つある animate"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】2. DTD の内部サブセットはまるごと拒否（ATTLIST の既定値で、
+    // この検査が見ていない属性を補えるため。`[` `]` の数え方の取り違えも同時に消える）
+    ['<!DOCTYPE svg [<!ATTLIST svg onload CDATA "x">]><svg width="10" height="10"/>', "ATTLIST の既定値で onload を補う内部サブセット"],
+    ['<?xml version="1.0" standalone="no"?><!DOCTYPE svg [ <!ATTLIST svg foo CDATA #IMPLIED> ]><svg width="1" height="1"/>', "無害に見える ATTLIST の内部サブセット（以前は通していた例）"],
+    ['<!DOCTYPE svg [<!ATTLIST svg a CDATA "]">]><svg width="10" height="10"/>', "宣言の中に \"]\" を含む内部サブセット"],
+    ['<!DOCTYPE svg [<!ATTLIST svg a CDATA ">">]><svg width="10" height="10"/>', "宣言の中に \">\" を含む内部サブセット"],
+    ['<!DOCTYPE svg []><svg width="10" height="10"/>', "空の内部サブセット"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】3. XML 宣言の encoding は書かないか `UTF-8` だけ
+    ['<?xml version="1.0" encoding="ISO-2022-JP"?><svg width="10" height="10"/>', "ISO-2022-JP の宣言"],
+    ['<?xml version="1.0" encoding="Shift_JIS"?><svg width="10" height="10"/>', "Shift_JIS の宣言"],
+    ['<?xml version="1.0" encoding="UTF-16"?><svg width="10" height="10"/>', "UTF-16 の宣言"],
+    ["<?xml version='1.0' encoding='UTF-16LE'?><svg width=\"10\" height=\"10\"/>", "単一引用符の UTF-16LE の宣言"],
+    ['<?xml version="1.0" encoding="utf8"?><svg width="10" height="10"/>', "utf8 の綴り違いの宣言"],
+    ['\uFFFE<?xml version="1.0"?><svg width="10" height="10"/>', "UTF-16 の BOM を逆の符号で読んだもの"],
+    ['\uFEFF\uFEFF<svg width="10" height="10"/>', "BOM が 2 つ"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0479】4. CSS のエスケープ（`@\\69 mport`・`\\75 rl(` など）
+    ['<svg width="10" height="10"><style>@\\69 mport url("http://example.invalid/x.css");</style><rect width="1" height="1"/></svg>', "<style> のエスケープで書いた @import"],
+    ['<svg width="10" height="10"><style>.a{fill:\\75 rl(http://x/a.svg#a)}</style><rect width="1" height="1"/></svg>', "<style> のエスケープで書いた url("],
+    ['<svg width="10" height="10"><rect style="fill:\\75 rl(#a)" width="1" height="1"/></svg>', "style 属性のエスケープで書いた url("],
+    ['<svg width="10" height="10"><style>.a{color:&#92;65 xpression(alert(1))}</style><rect width="1" height="1"/></svg>', "文字参照で書いた CSS エスケープ"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】1. 宣言の区切りは引用符を見る。`<!DOCTYPE` はルートより前に
+    // 1 回だけ。それ以外の宣言（ATTLIST・ELEMENT・NOTATION・ENTITY）は場所を問わず拒否する
+    ['<!DOCTYPE svg SYSTEM "x>" [<!ATTLIST svg onload CDATA "...">]><svg width="10" height="10"/>', "引用符の中の > で区切って内部サブセットを隠した DOCTYPE"],
+    ["<!DOCTYPE svg SYSTEM 'x>' [<!ATTLIST svg onload CDATA \"...\">]><svg width=\"10\" height=\"10\"/>", "単一引用符版の同上"],
+    ['<!DOCTYPE svg PUBLIC "a>" "b>" [ <!ATTLIST svg onload CDATA "x"> ]><svg width="10" height="10"/>', "PUBLIC の引用符の中の > で区切って内部サブセットを隠した DOCTYPE"],
+    ['<!DOCTYPE svg SYSTEM "a"><!DOCTYPE svg SYSTEM "b"><svg width="10" height="10"/>', "2 つ目の DOCTYPE"],
+    ['<svg width="10" height="10"/><!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">', "ルートの後の DOCTYPE"],
+    ['<!DOCTYPE svg SYSTEM "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="10" height="10"><!ATTLIST svg onload CDATA "x"></svg>', "ルートの中の ATTLIST"],
+    ['<svg width="10" height="10"/><!ATTLIST svg onload CDATA "x">', "ルートの後の ATTLIST"],
+    ['<!ATTLIST svg onload CDATA "x"><svg width="10" height="10"/>', "ルートより前の裸の ATTLIST"],
+    ['<!ELEMENT svg ANY><svg width="10" height="10"/>', "ELEMENT の宣言"],
+    ['<!NOTATION x SYSTEM "http://x"><svg width="10" height="10"/>', "NOTATION の宣言"],
+    ['<!ENTITY x "javascript:alert(1)"><svg width="10" height="10"/>', "ルートより前の実体の宣言"],
+    ['<!element svg ANY><svg width="10" height="10"/>', "小文字の ELEMENT の宣言"],
+    ['<!DoCtYpE svg SYSTEM "a"><!aTtLiSt svg onload CDATA "x"><svg width="10" height="10"/>', "大文字小文字を混ぜた DOCTYPE の後の ATTLIST"],
+    ['<!DOCTYPE svg SYSTEM "http://x><svg width="10" height="10"/>', "閉じない引用符の DOCTYPE"],
+
+    // 【NOV26-IM-M12-SVG-HARDEN-0480】2. 埋め込みのラスター画像として通すのは
+    // `image`・`feImage` の href／xlink:href の PNG/JPEG/GIF/WebP の base64 だけ
+    ['<svg width="10" height="10"><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=" width="1" height="1"/></svg>', "image の data:image/svg+xml"],
+    ['<svg width="10" height="10"><use href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" width="1" height="1"/></svg>', "use の data:image/png"],
+    ['<svg width="10" height="10"><a href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="><rect width="1" height="1"/></a></svg>', "a の data:image/png"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><image xlink:href="data:image/png;base64,iVBORw0KGgoAA!AAAABJRU5ErkJggg==" width="1" height="1"/></svg>', "base64 に記号の混じる埋め込み画像"],
+    ['<svg width="10" height="10"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUg%20AAAAA" width="1" height="1"/></svg>', "base64 に % の混じる埋め込み画像"],
+    ['<svg width="10" height="10"><image href="data:image/png,&lt;script&gt;alert(1)&lt;/script&gt;" width="1" height="1"/></svg>', "base64 でない data:image/png"],
+    ['<svg width="10" height="10"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==&#33;" width="1" height="1"/></svg>', "文字参照で記号を足した埋め込み画像"],
+    ['<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><feImage xlink:href="data:image/svg+xml;base64,PHN2Zy8+" result="r"/></svg>', "feImage の data:image/svg+xml"],
   ];
   for (const [text, why] of invalid) {
     const result = checkSvgMarkup(text);
     assert.equal(result.ok, false, `${why} を正しい SVG として通した: ${text.slice(0, 60)}`);
+  }
+
+  // 【NOV26-IM-M12-SVG-HARDEN-0479】バイト列の BOM は UTF-8 のものだけを通す。
+  // UTF-16 の文書（BOM つき）は UTF-8 として読めないので拒否する
+  {
+    const encode = (text) => new TextEncoder().encode(text);
+    const document = '<?xml version="1.0" encoding="UTF-16"?><svg width="10" height="10"/>';
+    const utf16 = (littleEndian) => {
+      const bytes = new Uint8Array(2 + document.length * 2);
+      bytes[0] = littleEndian ? 0xff : 0xfe;
+      bytes[1] = littleEndian ? 0xfe : 0xff;
+      for (let i = 0; i < document.length; i += 1) {
+        const code = document.charCodeAt(i);
+        bytes[2 + i * 2 + (littleEndian ? 0 : 1)] = code & 0xff;
+        bytes[2 + i * 2 + (littleEndian ? 1 : 0)] = code >> 8;
+      }
+      return bytes;
+    };
+    assert.deepEqual(
+      checkSvgBytes(new Uint8Array([0xef, 0xbb, 0xbf, ...encode('<svg width="10" height="10"/>')])),
+      { ok: true },
+      "UTF-8 の BOM つきの SVG を弾いた",
+    );
+    assert.equal(checkSvgBytes(utf16(false)).ok, false, "UTF-16BE（FE FF）の BOM つきの SVG を通した");
+    assert.equal(checkSvgBytes(utf16(true)).ok, false, "UTF-16LE（FF FE）の BOM つきの SVG を通した");
   }
 
   const service = await readSrc("electron/services/AppAssetService.ts");
