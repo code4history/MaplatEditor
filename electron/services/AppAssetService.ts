@@ -236,7 +236,8 @@ class AppAssetService {
     if (!checkSvgBytes(bytes).ok) return { err: 'InvalidImage' };
     const size = svgIntrinsicSizeFromBytes(bytes);
     if (!size) return { err: 'InvalidImage' };
-    if (size.width !== size.height) return { err: 'NotSquare' };
+    // SVG は拡縮しても劣化しないので縦横比は問わない。描画は長い辺に合わせて縦横中央に contain する
+    // （書き出しの PWA 画像・下の退避用 PNG とも。余白は背景色）。正方形の要求は raster だけに残す
     const relPath = newIconSourceRel('svg');
     const dest = path.join(this.saveFolder, relPath);
     await fs.ensureDir(path.dirname(dest));

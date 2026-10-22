@@ -521,12 +521,12 @@ console.log("ok: (f) og:image の警告文言が 11 言語にある");
   const saveSvgPwaIcon = methodOf(service, "saveSvgPwaIcon");
   assert.match(saveSvgPwaIcon, /checkSvg(?:Bytes|Markup)\(/, "SVG のアイコンが中身を確かめていない");
   assert.match(saveSvgPwaIcon, /InvalidImage/, "壊れた SVG に InvalidImage を返さない");
-  assert.match(saveSvgPwaIcon, /NotSquare/, "正方形判定がない");
-  assert.match(saveSvgPwaIcon, /svgIntrinsicSize/, "正方形判定が viewBox/width・height を見ていない");
+  assert.doesNotMatch(saveSvgPwaIcon, /NotSquare/, "SVG に正方形を要求している（拡縮できるので縦横比は問わない）");
+  assert.match(saveSvgPwaIcon, /svgIntrinsicSize/, "大きさの無い SVG を弾いていない");
   assert.match(saveSvgPwaIcon, /renderImagePng\(/, "退避用の PNG を描いていない");
   assert.match(saveSvgPwaIcon, /dest\.replace\(\/\\\.svg\$\/i/, "退避用 PNG の名前が同じ uuid になっていない");
 
-  // SVG の正方形判定は viewBox（無ければ width/height）で行う
+  // SVG の大きさは viewBox（無ければ width/height）で読む（大きさの無いものは弾く）
   assert.deepEqual(
     svgIntrinsicSize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="10" height="20"/>'),
     { width: 512, height: 512 },
@@ -549,6 +549,6 @@ console.log("ok: (f) og:image の警告文言が 11 言語にある");
     "バイト列から大きさを読めていない",
   );
 }
-console.log("ok: (g) PWA アイコン元画像は svg を選べて、viewBox で正方形を判定する");
+console.log("ok: (g) PWA アイコン元画像は svg を選べて、縦横比を問わない");
 
 console.log("nov26-editor-splash-svg smoke: ALL PASS");

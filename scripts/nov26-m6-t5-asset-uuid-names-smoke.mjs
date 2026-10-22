@@ -159,14 +159,14 @@ await writeFile(
       const wideSvg = nodePath.join(dirA, 'icon-wide.svg');
       await fs.writeFile(wideSvg, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 300"><rect width="512" height="300"/></svg>');
       (globalThis as any).__pickImagePath = wideSvg;
-      assert.equal((await AppAssetService.uploadPwaIcon(fakeWin, 'my-app')).err, 'NotSquare',
-        '(a) viewBox が正方形でなければ NotSquare');
+      const rWide = await AppAssetService.uploadPwaIcon(fakeWin, 'my-app');
+      assert.ok(!rWide.err, '(a) SVG は縦横比を問わない（長い辺に合わせて中央に contain する）: ' + JSON.stringify(rWide));
 
       const widthOnlySvg = nodePath.join(dirA, 'icon-size.svg');
       await fs.writeFile(widthOnlySvg, '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"/>');
       (globalThis as any).__pickImagePath = widthOnlySvg;
-      assert.equal((await AppAssetService.uploadPwaIcon(fakeWin, 'my-app')).err, 'NotSquare',
-        '(a) viewBox が無いときは width/height で正方形を判定する');
+      const rSize = await AppAssetService.uploadPwaIcon(fakeWin, 'my-app');
+      assert.ok(!rSize.err, '(a) viewBox が無く width/height だけの長方形の SVG も受け付ける: ' + JSON.stringify(rSize));
 
       const brokenSvg = nodePath.join(dirA, 'icon-broken.svg');
       await fs.writeFile(brokenSvg, '<svg width="512" height="512"><g></svg>');
