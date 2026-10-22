@@ -24,6 +24,8 @@ import { checkSvgBytes, isSvgExt, svgIntrinsicSizeFromBytes } from '../utils/svg
 import { renderImagePng } from '../utils/pwaChromiumRenderer';
 import { PWA_DEFAULT_BACKGROUND } from '../utils/pwaAssets';
 import { PREVIEW_MAX_BYTES } from '../utils/pickedPreviewSource';
+// NOV26-IM-NETFETCH-CONTINGENCY-0483: 取得は transport 経由（製品では net.fetch）。
+import { getFetchTransport } from './fetchTransport';
 
 // m6-t8 §3.10: merc マスタのタイル URL は file://（旧）または app://bundle/__local（oct26-m4-t2ff。m4-t2 期の旧 app://local も受理）で
 // 渡ってくる。Node の fetch()/undici は file: / app: スキームを解決できないため、
@@ -37,8 +39,15 @@ async function readTile(url: string): Promise<Buffer> {
     if (localPath !== null) return fs.readFile(localPath);
     throw new Error(`invalid local app url: ${url}`);
   }
-  const res = await fetch(url, {
+  // NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: 製品（Electron main）では transport 経由で
+  // Chromium のネットワークスタックに載る。タイル画像が `Content-Encoding: br` で返っても、
+  // Node 同梱 brotli の CVE-2026-111497 を通らない（file: / app: の分岐は従来どおりこの前段で
+  // fs 直読み）。0484 以降、外部取得用の専用 session では http/https 以外（リダイレクト先を
+  // 含む）が拒否されるため、302 で app:/file: へ飛ばされても保存フォルダは読めない。
+  const res = await getFetchTransport()(url, {
     signal: AbortSignal.timeout(10000),
+    // 専用 session でクッキーも共有しないが、念のため明示する
+    credentials: 'omit',
     // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
     headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
   });

@@ -9,6 +9,14 @@ import path from 'node:path'
 import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
 // oct26-m16-t2 (F-C1): main window・About ウィンドウの遷移ガード
 import { installNavigationGuard } from './navigation-guard'
+// NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: main プロセスの外向き fetch を Chromium の
+// ネットワークスタックへ載せる。IPC ハンドラ登録より前（module のトップレベル）で行うので、
+// どの経路も Node の fetch で外へ出ない。0484 以降は外部取得専用の session
+// （maplat-remote-fetch）で取得し、http/https 以外（リダイレクト先を含む）を拒否する。
+import { installFetchTransport } from './services/fetchTransport'
+import { remoteSessionFetchTransport } from './services/electronFetchTransport'
+
+installFetchTransport(remoteSessionFetchTransport)
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
