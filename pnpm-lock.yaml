@@ -159,7 +159,7 @@ importers:
         version: 8.71.2(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
       '@vitejs/plugin-vue':
         specifier: ^6.0.5
-        version: 6.0.10(vite@7.3.6(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2))(vue@3.5.44(typescript@6.0.3))
+        version: 6.0.10(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2))(vue@3.5.44(typescript@6.0.3))
       app-builder-bin:
         specifier: 4.0.0
         version: 4.0.0
@@ -194,8 +194,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
       vite:
-        specifier: ^7.3.5
-        version: 7.3.6(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2)
+        specifier: ^7.3.7
+        version: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2)
       vite-plugin-electron:
         specifier: ^0.28.6
         version: 0.28.8(vite-plugin-electron-renderer@0.14.7)
@@ -3644,8 +3644,8 @@ packages:
       vite-plugin-electron-renderer:
         optional: true
 
-  vite@7.3.6:
-    resolution: {integrity: sha512-4XP60spRGjSZFf1qYH+dJIkK2znL3zQfl9KkOV9MkkRR/3Dls0dxaBsQPTloEc5BLXWPL9vsOxopxyKoMmDueg==}
+  vite@7.3.7:
+    resolution: {integrity: sha512-AHEzTORMbi7/7aXp7w7KZ5+DCUdSeLsJz0grY8xHpc9DHdYb0vQu6DqJfm2tOw3gDExNgPgnJTXxM6syYFHaCA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -6038,10 +6038,10 @@ snapshots:
       '@typescript-eslint/types': 8.71.2
       eslint-visitor-keys: 5.0.1
 
-  '@vitejs/plugin-vue@6.0.10(vite@7.3.6(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2))(vue@3.5.44(typescript@6.0.3))':
+  '@vitejs/plugin-vue@6.0.10(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2))(vue@3.5.44(typescript@6.0.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 7.3.6(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2)
+      vite: 7.3.7(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2)
       vue: 3.5.44(typescript@6.0.3)
 
   '@volar/language-core@2.4.15':
@@ -8409,7 +8409,7 @@ snapshots:
     optionalDependencies:
       vite-plugin-electron-renderer: 0.14.7
 
-  vite@7.3.6(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2):
+  vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(sass@1.105.2):
     dependencies:
       esbuild: 0.28.2
       fdir: 6.5.0(picomatch@4.0.7)
