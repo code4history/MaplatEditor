@@ -1675,7 +1675,7 @@ function onPoisChange(next: unknown[]) {
               <div class="col-md-6">
                 <label class="form-label small fw-bold d-flex align-items-center gap-1">{{ t("appedit.manifest_icon_source") }} <ContextHelp :text="t('appedit.manifest_icon_note')" :ariaLabel="t('appedit.manifest_icon_note')" /></label>
                 <div class="d-flex align-items-center gap-2">
-                  <input v-model="appData.manifestSettings.iconSource" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': !!assetUploadError }" readonly>
+                  <input v-model="appData.manifestSettings.iconSource" data-testid="appedit-icon-source" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': !!assetUploadError }" readonly>
                   <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-testid="appedit-icon-upload" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
                 </div>
                 <!-- M12-T11 (R3/C32): inline text-danger から DF field へ -->

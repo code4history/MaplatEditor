@@ -138,6 +138,42 @@ await writeFile(
       const r2 = await AppAssetService.uploadPwaIcon(fakeWin, 'my-app');
       assert.notEqual(r2.path, r.path, '(a)/AC2 同じ appID でも別名（先の画像を上書きしない）');
       console.log('ok: (a) PWA アイコンは pwa/{uuid}.png（AC1）');
+
+      // NOV26-IM-PWA-ICON-SOURCE-0481: PWA アイコン元画像は SVG も受け付ける
+      const svgSquare = nodePath.join(dirA, 'icon-square.svg');
+      const SVG_SQUARE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#00ff00"/></svg>';
+      await fs.writeFile(svgSquare, SVG_SQUARE);
+      (globalThis as any).__pickImagePath = svgSquare;
+      const rs = await AppAssetService.uploadPwaIcon(fakeWin, 'my-app');
+      assert.ok(!rs.err, '(a) SVG の PWA アイコンが成功する: ' + JSON.stringify(rs));
+      assert.match(rs.path, new RegExp('^pwa/' + UUID + '\\.svg$'), '(a) SVG は pwa/{uuid}.svg: ' + rs.path);
+      assert.equal(await fs.readFile(nodePath.join(dataDir, rs.path), 'utf8'), SVG_SQUARE, '(a) SVG はそのまま保存する');
+
+      // 正方形の判定は viewBox の幅と高さで行う（512 の下限は SVG には課さない）
+      const smallSvg = nodePath.join(dirA, 'icon-small.svg');
+      await fs.writeFile(smallSvg, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100"/></svg>');
+      (globalThis as any).__pickImagePath = smallSvg;
+      const rSmall = await AppAssetService.uploadPwaIcon(fakeWin, 'my-app');
+      assert.ok(!rSmall.err, '(a) 512 未満の SVG も受け付ける（大きさの下限は SVG には課さない）: ' + JSON.stringify(rSmall));
+
+      const wideSvg = nodePath.join(dirA, 'icon-wide.svg');
+      await fs.writeFile(wideSvg, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 300"><rect width="512" height="300"/></svg>');
+      (globalThis as any).__pickImagePath = wideSvg;
+      assert.equal((await AppAssetService.uploadPwaIcon(fakeWin, 'my-app')).err, 'NotSquare',
+        '(a) viewBox が正方形でなければ NotSquare');
+
+      const widthOnlySvg = nodePath.join(dirA, 'icon-size.svg');
+      await fs.writeFile(widthOnlySvg, '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"/>');
+      (globalThis as any).__pickImagePath = widthOnlySvg;
+      assert.equal((await AppAssetService.uploadPwaIcon(fakeWin, 'my-app')).err, 'NotSquare',
+        '(a) viewBox が無いときは width/height で正方形を判定する');
+
+      const brokenSvg = nodePath.join(dirA, 'icon-broken.svg');
+      await fs.writeFile(brokenSvg, '<svg width="512" height="512"><g></svg>');
+      (globalThis as any).__pickImagePath = brokenSvg;
+      assert.equal((await AppAssetService.uploadPwaIcon(fakeWin, 'my-app')).err, 'InvalidImage',
+        '(a) 壊れた SVG は InvalidImage（スプラッシュと同じ扱い）');
+      console.log('ok: (a) PWA アイコンの SVG は検査・正方形判定を通して pwa/{uuid}.svg へ複製する');
     }
 
     // ===== (a) ベースマップのアイコン（generateTmsThumbnail(uid, …)）=====

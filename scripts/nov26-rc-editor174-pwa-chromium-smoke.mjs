@@ -9,8 +9,10 @@
 //   AC4   favicon.ico が 196x196 PNG を包んだ ICO
 //   AC5   幾何 = 背景塗り＋余白 10%（W 基準）＋ contain 中央寄せ
 //   AC12  54 枚の所要を元画像 512px と 4000px で記録（閾値では落とさない）
-//   AC13  読めないスプラッシュの差し替えで missing_splash 警告が 1 件
+//   AC13  スプラッシュ画像が無くても PWA の 54 枚はアイコン元画像からそろう（missing_splash は 1 件）
 //   AC14  描画後に非表示ウィンドウが残らない
+//   AC15  apple-splash はアイコン元画像から描く（スプラッシュ画像の色が出ない）
+//   AC16  退避経路（jimp）でも favicon・mstile を作る（NOV26-IM-PWA-ICON-SOURCE-0481）
 //
 // 起動方式は scripts/m1-electron-storage-adapter-smoke.mjs と同じ（vite で SSR ビルドし、
 // electron バイナリで実行する）。Electron が無い環境では SKIP する。
@@ -254,28 +256,43 @@ try {
           const W = splash.bitmap.width;
           const at = (x: number, y: number) => intToRGBA(splash.getPixelColor(x, y));
           assert.ok(isBg(at(0, 0)), 'AC5: スプラッシュの四隅は背景色のはず');
+          // AC15: apple-splash は**アイコン元画像**から描く（スプラッシュ画像の青が出ない）
           const center = at(Math.floor(W / 2), Math.floor(1136 / 2));
-          assert.ok(center.b > 200 && center.r < 60, 'AC5: スプラッシュ中央は元画像色（青）のはず: ' + JSON.stringify(center));
-          assert.ok(isBg(at(Math.floor(W / 2), 60)), 'AC5: 余白 60px は背景色のはず（パディングは W 基準）');
-          assert.ok(!isBg(at(Math.floor(W / 2), 68)), 'AC5: 68px は図柄が始まっているはず');
+          assert.ok(center.r > 200 && center.b < 60,
+            'AC15: apple-splash の中央はアイコン元画像の色（赤）のはず: ' + JSON.stringify(center));
+          // 余白は W 基準の 10%: 640 の 10% = 64。四角いアイコンは 512x512 で中央寄せ
+          let left = -1;
+          let right = -1;
+          const mid = 568;
+          for (let x = 0; x < W; x++) {
+            const red = at(x, mid).b < 120;
+            if (red && left < 0) left = x;
+            if (red) right = x;
+          }
+          assert.ok(Math.abs(right - left + 1 - 512) <= 1,
+            'AC5: 図柄の幅は 512（640 - 2*64）のはず: 実測 ' + (right - left + 1));
         }
         console.log('ok AC5: 幾何は背景塗り＋パディング 10%（W 基準）＋ contain 中央寄せ');
 
-        // ===== AC13: 読めないスプラッシュの差し替えは警告 1 件 =====
+        // ===== AC13/AC15: スプラッシュ画像が無くても、PWA の 54 枚はアイコン元画像からそろう =====
         {
-          await writeFile(nodePath.join(dataDir, 'img', 'broken.webp'), Buffer.from('not a real webp'));
           const substituted = await AppExportService.exportApp(fakeWin as any, makeDoc({
-            appSettings: { splash: 'broken.webp' },
+            appSettings: { splash: 'missing.png' },
           }));
-          assert.equal(substituted.result, 'Success', 'AC13: 差し替えても書き出しは成功するはず');
+          assert.equal(substituted.result, 'Success', 'AC13: スプラッシュが無くても書き出しは成功するはず');
           assert.equal(substituted.warnings.filter((k: string) => k === 'appedit.export.missing_splash').length, 1,
-            'AC13: 読めないスプラッシュは missing_splash 警告を 1 件積むはず: ' + JSON.stringify(substituted.warnings));
+            'AC13: 無いスプラッシュは missing_splash 警告を 1 件積むはず: ' + JSON.stringify(substituted.warnings));
           assert.ok(!substituted.warnings.includes('appedit.export.pwa_fallback'),
-            'AC13: 差し替えで pwa_fallback には落ちないはず: ' + JSON.stringify(substituted.warnings));
-          assert.equal(windowCountAfterRender(), baseWindowCount, 'AC14: 差し替え経路でもウィンドウが残らないはず');
+            'AC13: PWA の描画は退避に落ちないはず: ' + JSON.stringify(substituted.warnings));
+          assert.equal(windowCountAfterRender(), baseWindowCount, 'AC14: スプラッシュ無しでもウィンドウが残らないはず');
           const substitutedDir = await extract(String(substituted.outDir));
           const files = (await readdir(nodePath.join(substitutedDir, 'pwa', APP_ID))).filter((f: string) => f.endsWith('.png'));
-          assert.equal(files.length, 54, 'AC13: スプラッシュはアイコン画像で代替され 54 枚そろうはず: ' + files.length);
+          assert.equal(files.length, 54, 'AC13: スプラッシュが無くても 54 枚そろうはず: ' + files.length);
+          // AC15: スプラッシュ画像の代わりにアイコン元画像（赤）で描けている
+          const splash = await Jimp.read(nodePath.join(substitutedDir, 'pwa', APP_ID, 'apple-splash-640-1136.png'));
+          const center = intToRGBA(splash.getPixelColor(320, 568));
+          assert.ok(center.r > 200 && center.b < 60,
+            'AC15: apple-splash の中央はアイコン元画像の色（赤）のはず: ' + JSON.stringify(center));
         }
         {
           // 同梱の既定 SVG 経路（iconSource 未指定）: Chromium が SVG をそのまま描く
@@ -292,7 +309,59 @@ try {
           const corner = intToRGBA(svgIcon.getPixelColor(0, 0));
           assert.ok(isBg(corner), '既定 SVG 経路でも四隅は背景色のはず: ' + JSON.stringify(corner));
         }
-        console.log('ok AC13: 読めないスプラッシュは 1 件の警告で差し替え、既定 SVG 経路も 54 枚そろう');
+        console.log('ok AC13: スプラッシュが無くてもアイコン元画像から 54 枚そろう（既定 SVG 経路も同じ）');
+
+        // ===== AC16: 退避経路（jimp）でも favicon・mstile を作る =====
+        {
+          const dest = nodePath.join(timingRoot, 'fallback-png');
+          const fallback = await (AppExportService as any).generateFallbackIcons(
+            nodePath.join(dataDir, 'icon.png'), dest, APP_ID,
+          );
+          const names = (await readdir(dest)).sort();
+          const expected = [
+            'apple-icon-180.png',
+            'favicon-196.png',
+            'manifest-icon-192.maskable.png',
+            'manifest-icon-512.maskable.png',
+            'mstile-icon-128.png',
+            'mstile-icon-270.png',
+            'mstile-icon-558-270.png',
+            'mstile-icon-558.png',
+          ];
+          for (const name of expected) {
+            assert.ok(names.includes(name), 'AC16: 退避経路でも ' + name + ' を作るはず: ' + JSON.stringify(names));
+          }
+          assert.equal(fallback.icons.length, 4, 'AC16: manifest の icons は 192/512 x any/maskable');
+          assert.match(fallback.htmlMeta.favicon, /favicon-196\.png/, 'AC16: favicon の htmlMeta が favicon を指すはず');
+          assert.match(fallback.htmlMeta.msTileImage, /mstile-icon-558-270\.png/, 'AC16: mstile の htmlMeta を作るはず');
+          // 縦横比を保つ（558x270 に四角い画像を引き伸ばさない）: 中央の行の図柄幅は 270（高さいっぱい）
+          const wide = await Jimp.read(nodePath.join(dest, 'mstile-icon-558-270.png'));
+          const atWide = (x: number) => intToRGBA(wide.getPixelColor(x, 135));
+          let left = -1;
+          let right = -1;
+          for (let x = 0; x < 558; x++) {
+            if (atWide(x).g < 120) {
+              if (left < 0) left = x;
+              right = x;
+            }
+          }
+          assert.ok(Math.abs(right - left + 1 - 270) <= 1,
+            'AC16: 四角い元画像は 558x270 に引き伸ばさない（幅 270 で中央寄せ）: 実測 ' + (right - left + 1));
+
+          // SVG のアイコン元画像は「同じ名前の png」を退避に使う（同梱デフォルトに落とさない）
+          const svgDir = nodePath.join(timingRoot, 'fallback-svg');
+          await mkdir(svgDir, { recursive: true });
+          const svgPath = nodePath.join(svgDir, 'icon.svg');
+          await writeFile(svgPath, '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" fill="#00ff00"/></svg>');
+          await (new Jimp({ width: 512, height: 512, color: 0x0000ffff })).write(nodePath.join(svgDir, 'icon.png'));
+          const svgDest = nodePath.join(timingRoot, 'fallback-svg-out');
+          await (AppExportService as any).generateFallbackIcons(svgPath, svgDest, APP_ID);
+          const svgFallback = await Jimp.read(nodePath.join(svgDest, 'favicon-196.png'));
+          const svgCenter = intToRGBA(svgFallback.getPixelColor(98, 98));
+          assert.ok(svgCenter.b > 200 && svgCenter.r < 60,
+            'AC16: SVG の退避は同名 png（青）を使うはず: ' + JSON.stringify(svgCenter));
+        }
+        console.log('ok AC16: 退避経路でも favicon・mstile・apple-icon を作り、SVG は同名 png を使う');
 
         // ===== AC12: 54 枚の所要を 512px と 4000px で記録（閾値では落とさない）=====
         {
@@ -307,14 +376,12 @@ try {
             const t0 = Date.now();
             const result = await renderer.renderPwaAssets({
               iconSourcePath: sourcePath,
-              splashSourcePath: sourcePath,
               outputDir: dest,
               background: BACKGROUND,
             });
             const elapsed = Date.now() - t0;
             assert.equal(result.iconSaved.length, 8, 'AC12: アイコンは 8 件のはず');
             assert.equal(result.splashSaved.length, 46, 'AC12: スプラッシュは 46 件のはず');
-            assert.equal(result.splashUsedFallback, false, 'AC12: 元画像が読めるので差し替えは起きないはず');
             const files = await readdir(dest);
             assert.equal(files.length, 54, 'AC12: 54 ファイル書けるはず');
             assert.equal(windowCountAfterRender(), baseWindowCount, 'AC14: 描画後にウィンドウが残らないはず');

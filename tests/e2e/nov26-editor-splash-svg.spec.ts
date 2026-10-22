@@ -13,6 +13,7 @@
 //
 // 保存ダイアログは差し替える（前例 tests/e2e/nov26-rc-editor174-pwa-export.spec.ts）。
 import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -61,8 +62,16 @@ test.describe('nov26-editor-splash-svg: スプラッシュに SVG を指定す�
 
       const saveFolder = await saveFolderOf(page);
       expect(saveFolder).toBeTruthy();
-      // PWA 有効のアプリを先に作る（PWA のスプラッシュ 46 枚も SVG から描けることを見る）
-      const appUid = await page.evaluate(async (slug) => {
+      // NOV26-IM-PWA-ICON-SOURCE-0481: PWA の起動画面は **アイコン元画像** から描く。
+      // ここでは赤い 512 のアイコン元画像を置き、apple-splash に青（スプラッシュの図柄）が出ないことを見る
+      const iconUuid = randomUUID();
+      const iconRel = `pwa/${iconUuid}.png`;
+      const { mkdir } = await import('node:fs/promises');
+      const { Jimp } = await import('jimp');
+      await mkdir(path.join(saveFolder, 'pwa'), { recursive: true });
+      await new Jimp({ width: 512, height: 512, color: 0xff0000ff }).write(path.join(saveFolder, iconRel) as `${string}.png`);
+      // PWA 有効のアプリを先に作る
+      const appUid = await page.evaluate(async ({ slug, icon }) => {
         const uid = crypto.randomUUID();
         const r = await window.appedit.save({
           uid, slug, create: true,
@@ -73,12 +82,12 @@ test.describe('nov26-editor-splash-svg: スプラッシュに SVG を指定す�
             startFrom: '', pois: [],
             httpSettings: { pwaManifest: true },
             appSettings: {},
-            manifestSettings: { backgroundColor: '#f6f0d3' },
+            manifestSettings: { iconSource: icon, backgroundColor: '#f6f0d3' },
           },
         });
         if (!r || r.result !== 'Success') throw new Error(JSON.stringify(r));
         return uid;
-      }, APP_ID);
+      }, { slug: APP_ID, icon: iconRel });
 
       await openHash(page, `#/appedit?uid=${appUid}`);
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30_000 });
@@ -176,7 +185,7 @@ test.describe('nov26-editor-splash-svg: スプラッシュに SVG を指定す�
         expect(Math.abs(right - left + 1 - 840)).toBeLessThanOrEqual(2);
       }
 
-      // (5) PWA のスプラッシュも SVG から描ける（46 枚 + アイコン 8 枚）
+      // (5) PWA の起動画面はアイコン元画像（赤）から描く（スプラッシュの図柄（青）ではない）
       const pwaEntries = [...entries.keys()].filter((name) => name.startsWith(`pwa/${APP_ID}/`) && name.endsWith('.png'));
       expect(pwaEntries.length).toBe(54);
       {
@@ -189,8 +198,8 @@ test.describe('nov26-editor-splash-svg: スプラッシュに SVG を指定す�
         expect([near(corner.r, BACKGROUND.r), near(corner.g, BACKGROUND.g), near(corner.b, BACKGROUND.b)],
           `PWA スプラッシュの四隅は背景色のはず: ${JSON.stringify(corner)}`).toEqual([true, true, true]);
         const center = intToRGBA(image.getPixelColor(660, 1434));
-        expect([near(center.r, FIGURE.r), near(center.g, FIGURE.g), near(center.b, FIGURE.b)],
-          `PWA スプラッシュの中央は図柄の色（SVG を <img> で描けている）: ${JSON.stringify(center)}`).toEqual([true, true, true]);
+        expect([near(center.r, 255), near(center.g, 0), near(center.b, 0)],
+          `PWA スプラッシュの中央はアイコン元画像の色（赤）のはず: ${JSON.stringify(center)}`).toEqual([true, true, true]);
       }
 
       expect(pageErrors).toEqual([]);
