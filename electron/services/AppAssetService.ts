@@ -19,7 +19,7 @@ import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
 // nov26-editor-splash-svg (#462): スプラッシュだけ SVG も選べる（他の経路は Jimp で読む ∴ 従来の集合）
 import { IMAGE_FILTERS, PWA_ICON_IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
 // 同: SVG は Jimp でデコードできないので、中身が SVG として正しいかを別に確かめる
-import { checkSvgBytes, isNearlySquare, isSvgExt, svgIntrinsicSizeFromBytes } from '../utils/svgSource';
+import { checkSvgBytes, isSvgExt, svgIntrinsicSizeFromBytes } from '../utils/svgSource';
 // NOV26-IM-PWA-ICON-SOURCE-0481: SVG のアイコン元画像には、退避用の 512x512 PNG を同じ uuid で描く
 import { renderImagePng } from '../utils/pwaChromiumRenderer';
 import { PWA_DEFAULT_BACKGROUND } from '../utils/pwaAssets';
@@ -236,7 +236,8 @@ class AppAssetService {
     if (!checkSvgBytes(bytes).ok) return { err: 'InvalidImage' };
     const size = svgIntrinsicSizeFromBytes(bytes);
     if (!size) return { err: 'InvalidImage' };
-    if (!isNearlySquare(size)) return { err: 'NotSquare' };
+    // SVG は拡縮しても劣化しないので縦横比は問わない。描画は長い辺に合わせて縦横中央に contain する
+    // （書き出しの PWA 画像・下の退避用 PNG とも。余白は背景色）。正方形の要求は raster だけに残す
     const relPath = newIconSourceRel('svg');
     const dest = path.join(this.saveFolder, relPath);
     await fs.ensureDir(path.dirname(dest));
