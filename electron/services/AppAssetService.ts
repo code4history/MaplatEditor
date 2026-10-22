@@ -17,9 +17,12 @@ import { writeImageByExt } from '../utils/thumbnail512Codec';
 // nov26-m6-t5: 画像の内部名の命名規則（UUID）は assetImageRefs が唯一の定義
 import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
 // nov26-editor-splash-svg (#462): スプラッシュだけ SVG も選べる（他の経路は Jimp で読む ∴ 従来の集合）
-import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
+import { IMAGE_FILTERS, PWA_ICON_IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
 // 同: SVG は Jimp でデコードできないので、中身が SVG として正しいかを別に確かめる
-import { checkSvgBytes, isSvgExt } from '../utils/svgSource';
+import { checkSvgBytes, isSvgExt, svgIntrinsicSizeFromBytes } from '../utils/svgSource';
+// NOV26-IM-PWA-ICON-SOURCE-0481: SVG のアイコン元画像には、退避用の 512x512 PNG を同じ uuid で描く
+import { renderImagePng } from '../utils/pwaChromiumRenderer';
+import { PWA_DEFAULT_BACKGROUND } from '../utils/pwaAssets';
 import { PREVIEW_MAX_BYTES } from '../utils/pickedPreviewSource';
 
 // m6-t8 §3.10: merc マスタのタイル URL は file://（旧）または app://bundle/__local（oct26-m4-t2ff。m4-t2 期の旧 app://local も受理）で
@@ -191,9 +194,16 @@ class AppAssetService {
   // nov26-m6-t5 (#109): 書き込み先は `pwa/{uuid}.png`（タスク設計 §2）。旧 `pwa/{appID}_icon.png` は
   // 同じ appID の別アプリ（取込・複製）の画像を上書きしていた。引数 appID は使わなくなったが、
   // IPC（appassets:upload-pwa-icon）と preload の形を変えないため残す。
+  //
+  // NOV26-IM-PWA-ICON-SOURCE-0481: SVG も受け付ける（人間の指示）。SVG はスプラッシュと同じ検査
+  // （`checkSvgBytes`・上限 20MB）に通し、正方形かどうかは `viewBox`（無ければ width/height）で
+  // 判定する（大きさの下限 512 は raster だけに課す）。保存は `pwa/{uuid}.svg` にそのまま複製し、
+  // **退避用に同じ uuid の `pwa/{uuid}.png`（512x512）も描く**（描けない場合も SVG の登録は成立させる）。
   async uploadPwaIcon(win: BrowserWindow, _appID: string): Promise<UploadResult> {
-    const file = await this.pickImage(win);
+    const file = await this.pickImage(win, PWA_ICON_IMAGE_FILTERS);
     if (!file) return { err: 'Canceled' };
+    const ext = lowerExtOf(path.basename(file));
+    if (isSvgExt(ext)) return this.saveSvgPwaIcon(file);
     let image;
     try {
       image = await Jimp.read(file);
@@ -211,6 +221,41 @@ class AppAssetService {
       path: relPath,
       fileUrl: this.toFileUrl(dest),
     };
+  }
+
+  /** SVG の PWA アイコン元画像を `pwa/{uuid}.svg` へ複製し、退避用の同名 PNG を描く */
+  private async saveSvgPwaIcon(file: string): Promise<UploadResult> {
+    let bytes: Buffer;
+    try {
+      // スプラッシュと同じ上限（保存前の表示＝20 MB）で、main が巨大な SVG を丸ごと読まない
+      if ((await fs.stat(file)).size > PREVIEW_MAX_BYTES) return { err: 'InvalidImage' };
+      bytes = await fs.readFile(file);
+    } catch {
+      return { err: 'InvalidImage' };
+    }
+    if (!checkSvgBytes(bytes).ok) return { err: 'InvalidImage' };
+    const size = svgIntrinsicSizeFromBytes(bytes);
+    if (!size) return { err: 'InvalidImage' };
+    if (size.width !== size.height) return { err: 'NotSquare' };
+    const relPath = newIconSourceRel('svg');
+    const dest = path.join(this.saveFolder, relPath);
+    await fs.ensureDir(path.dirname(dest));
+    // UUID 名なので衝突しないが、万一あっても既存の画像を上書きしない
+    await fs.copy(file, dest, { overwrite: false, errorOnExist: true });
+    // 退避用の PNG（同じ uuid）。jimp の退避経路が iconSource の隣の png を拾う
+    try {
+      await renderImagePng({
+        sourcePath: dest,
+        outputPath: dest.replace(/\.svg$/i, '.png'),
+        width: 512,
+        height: 512,
+        background: PWA_DEFAULT_BACKGROUND,
+      });
+    } catch (e) {
+      // 描けなくても SVG の登録は成立させる（書き出しの退避は同梱のデフォルトへ落ちる）
+      console.error('[AppAssetService] PWA icon PNG backup failed', e);
+    }
+    return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 
   // ユーザー定義ベースマップのアイコン自動生成:

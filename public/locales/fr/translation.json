@@ -694,6 +694,7 @@
       "failed": "Échec de l'export",
       "pwa_fallback": "La génération des images PWA a échoué ; seules les icônes de base ont été générées.",
       "no_icon_source": "Aucune image source d'icône PWA n'étant définie, aucune icône n'a été générée.",
+      "pwa_icon_default": "Aucune image d'icône PWA n'étant enregistrée, le logo Maplat par défaut a été utilisé pour les icônes et les écrans de démarrage.",
       "missing_thumbnail": "Certaines miniatures de fonds de carte/superpositions sont introuvables.",
       "missing_splash": "L'image de l'écran de démarrage est introuvable.",
       "og_image_failed": "L'image de carte pour les réseaux sociaux (og:image) n'a pas pu être dessinée et n'a donc pas été incluse."

@@ -45,8 +45,6 @@ const STEP_TIMEOUT_MS = 60_000;
 export type PwaRenderResult = {
   iconSaved: PwaImageSpec[];
   splashSaved: PwaImageSpec[];
-  /** スプラッシュの元画像が読めず、アイコン元画像で描いた（呼び出し側が警告を積む） */
-  splashUsedFallback: boolean;
 };
 
 let guardInstalled = false;
@@ -186,13 +184,17 @@ async function loadShell(
 }
 
 /**
- * アイコン 8 枚 → スプラッシュ 46 枚を描いて書き出す（順序は従来と同じ）。
+ * アイコン 8 枚 → 起動画面 46 枚を描いて書き出す（順序は従来と同じ）。
  * 1 回の呼び出しで非表示ウィンドウを 1 枚だけ作り、`finally` で必ず壊す。
  * 描けない場合は throw する（呼び出し側が従来の jimp 退避へ落とす）。
+ *
+ * NOV26-IM-PWA-ICON-SOURCE-0481: 起動画面（apple-splash）も **アイコン元画像** から描く。
+ * スプラッシュ画像（`appSettings.splash`）は Maplat がモーダルで出すスプラッシュと og:image にだけ使う。
+ * 描き方は従来ライブラリの起動画面の既定（背景色の上に中央寄せ・余白は背景色）と同じで、
+ * 既存の `pwaImageBox` / `pwaZoomFor` をそのまま使う。
  */
 export async function renderPwaAssets(args: {
   iconSourcePath: string;
-  splashSourcePath?: string;
   outputDir: string;
   background: string;
 }): Promise<PwaRenderResult> {
@@ -231,19 +233,13 @@ export async function renderPwaAssets(args: {
       iconSaved.push(spec);
     }
 
-    let splashUrl = args.splashSourcePath ? fileUrl(args.splashSourcePath) : iconUrl;
-    let splashUsedFallback = false;
-    if (splashUrl !== iconUrl && !(await canLoadImage(renderWindow, splashUrl))) {
-      // 読めない画像（壊れた webp 等）はアイコン元画像で代替する。黙って差し替えない（呼び出し側が警告を積む）
-      splashUsedFallback = true;
-      splashUrl = iconUrl;
-    }
+    // 起動画面も同じアイコン元画像から描く（スプラッシュ画像は使わない）
     const splashSaved: PwaImageSpec[] = [];
     for (const spec of splashSpecs) {
-      await drawSpec(renderWindow, spec, splashUrl, pwaZoomFor(spec, availWidth, availHeight), appliedZoom);
+      await drawSpec(renderWindow, spec, iconUrl, pwaZoomFor(spec, availWidth, availHeight), appliedZoom);
       splashSaved.push(spec);
     }
-    return { iconSaved, splashSaved, splashUsedFallback };
+    return { iconSaved, splashSaved };
   } finally {
     if (win && !win.isDestroyed()) win.destroy();
     await fs.remove(tmpDir).catch(() => {});

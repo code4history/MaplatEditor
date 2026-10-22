@@ -694,6 +694,7 @@
       "failed": "导出失败",
       "pwa_fallback": "PWA图像生成失败,仅生成了基本图标。",
       "no_icon_source": "PWA图标原始图像未设置,因此未生成图标。",
+      "pwa_icon_default": "未登记PWA图标用图像，因此使用默认的Maplat标志生成了图标和启动画面。",
       "missing_thumbnail": "部分底图/叠加层的缩略图未找到。",
       "missing_splash": "未找到启动画面图像。",
       "og_image_failed": "未能绘制社交卡片图像(og:image)，因此未加入。"

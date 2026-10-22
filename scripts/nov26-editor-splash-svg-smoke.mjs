@@ -33,8 +33,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 // electron 非依存の純粋モジュール（node の型ストリップで直接読む）
-import { IMAGE_FILTERS, SPLASH_IMAGE_FILTERS } from "../electron/utils/imagePickFilters.ts";
-import { checkSvgBytes, checkSvgMarkup, isSvgExt } from "../electron/utils/svgSource.ts";
+import { IMAGE_FILTERS, PWA_ICON_IMAGE_FILTERS, SPLASH_IMAGE_FILTERS } from "../electron/utils/imagePickFilters.ts";
+import {
+  checkSvgBytes,
+  checkSvgMarkup,
+  isSvgExt,
+  svgIntrinsicSize,
+  svgIntrinsicSizeFromBytes,
+} from "../electron/utils/svgSource.ts";
 import {
   ASSET_PREVIEW_ALLOWED_EXTS,
   SPLASH_PREVIEW_ALLOWED_EXTS,
@@ -47,7 +53,10 @@ const readSrc = (rel) => readFile(path.join(projectRoot, rel), "utf8");
 
 // クラスのメソッド本体（`  async name(...) {` から 2 桁インデントの `}` まで）を取り出す
 function methodOf(source, name) {
-  const start = source.indexOf(`  async ${name}(`);
+  const start = Math.max(
+    source.indexOf(`  async ${name}(`),
+    source.indexOf(`  private async ${name}(`),
+  );
   assert.ok(start >= 0, `${name}() がソースに見つからない`);
   const end = source.indexOf("\n  }\n", start);
   assert.ok(end > start, `${name}() の終わりが見つからない`);
@@ -496,5 +505,50 @@ console.log("ok: (e) Maplat UI はスプラッシュを <img src> で表示す�
   }
 }
 console.log("ok: (f) og:image の警告文言が 11 言語にある");
+
+// --- (g) PWA アイコン元画像の SVG（NOV26-IM-PWA-ICON-SOURCE-0481） ---------------------
+{
+  // 指定ダイアログの filter: PWA アイコンの経路だけ svg を足す（共通の IMAGE_FILTERS は変えない）
+  const pwaIcon = PWA_ICON_IMAGE_FILTERS.flatMap((filter) => filter.extensions);
+  assert.ok(pwaIcon.includes("svg"), "PWA アイコンの filter に svg がない（人間は拡張子の選択肢を忘れがち）");
+  for (const ext of IMAGE_FILTERS.flatMap((filter) => filter.extensions)) {
+    assert.ok(pwaIcon.includes(ext), `PWA アイコンの filter から ${ext} が消えている`);
+  }
+  const service = await readSrc("electron/services/AppAssetService.ts");
+  const uploadPwaIcon = methodOf(service, "uploadPwaIcon");
+  assert.match(uploadPwaIcon, /pickImage\(\s*win\s*,\s*PWA_ICON_IMAGE_FILTERS\s*\)/, "uploadPwaIcon が PWA アイコン用 filter で選んでいない");
+  assert.match(uploadPwaIcon, /isSvgExt\(/, "uploadPwaIcon が SVG かどうかを見ていない（Jimp は SVG を読めない）");
+  const saveSvgPwaIcon = methodOf(service, "saveSvgPwaIcon");
+  assert.match(saveSvgPwaIcon, /checkSvg(?:Bytes|Markup)\(/, "SVG のアイコンが中身を確かめていない");
+  assert.match(saveSvgPwaIcon, /InvalidImage/, "壊れた SVG に InvalidImage を返さない");
+  assert.match(saveSvgPwaIcon, /NotSquare/, "正方形判定がない");
+  assert.match(saveSvgPwaIcon, /svgIntrinsicSize/, "正方形判定が viewBox/width・height を見ていない");
+  assert.match(saveSvgPwaIcon, /renderImagePng\(/, "退避用の PNG を描いていない");
+  assert.match(saveSvgPwaIcon, /dest\.replace\(\/\\\.svg\$\/i/, "退避用 PNG の名前が同じ uuid になっていない");
+
+  // SVG の正方形判定は viewBox（無ければ width/height）で行う
+  assert.deepEqual(
+    svgIntrinsicSize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="10" height="20"/>'),
+    { width: 512, height: 512 },
+    "viewBox を優先していない",
+  );
+  assert.deepEqual(
+    svgIntrinsicSize('<svg xmlns="http://www.w3.org/2000/svg" width="512px" height="512"/>'),
+    { width: 512, height: 512 },
+    "viewBox が無いとき width/height を読めていない（px 付き）",
+  );
+  assert.deepEqual(
+    svgIntrinsicSize('<?xml version="1.0"?><!-- c --><svg width="300" height="200"/>'),
+    { width: 300, height: 200 },
+    "XML 宣言・コメントの後ろのルートを読めていない",
+  );
+  assert.equal(svgIntrinsicSize('<svg width="100%"/>'), null, "大きさの無い SVG を大きさありとして扱っている");
+  assert.deepEqual(
+    svgIntrinsicSizeFromBytes(new TextEncoder().encode('<svg viewBox="0 0 100 100"/>')),
+    { width: 100, height: 100 },
+    "バイト列から大きさを読めていない",
+  );
+}
+console.log("ok: (g) PWA アイコン元画像は svg を選べて、viewBox で正方形を判定する");
 
 console.log("nov26-editor-splash-svg smoke: ALL PASS");

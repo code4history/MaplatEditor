@@ -292,6 +292,118 @@ function hasSize(attributes: Map<string, string>): boolean {
 }
 
 /**
+ * SVG の「固有の大きさ」（NOV26-IM-PWA-ICON-SOURCE-0481）。
+ * PWA アイコンの元画像は正方形でなければならない（`NotSquare`）。raster は Jimp の画素数で
+ * 判定できるが、SVG は画素を持たないので `viewBox` の幅と高さ（無ければ `width`・`height`）で判定する。
+ *
+ * `checkSvgMarkup` を通ったテキストにだけ使う前提（整形式・属性は引用符つきで重複なし・`>` は
+ * 引用符の中にしか現れない）。ここではルートの開始タグだけを読み、値の数値化だけを行う。
+ * 読めなければ null（呼び出し側は InvalidImage にする）。
+ */
+export type SvgIntrinsicSize = { width: number; height: number };
+
+/** `<!DOCTYPE ...>` などを引用符を意識して読み飛ばし、次の文字位置を返す（読めなければ -1） */
+function skipMarkupDeclaration(text: string, start: number): number {
+  let quote = '';
+  for (let i = start + 2; i < text.length; i++) {
+    const char = text[i];
+    if (quote) {
+      if (char === quote) quote = '';
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === '>') {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+/** ルートの開始タグの属性を読む（ルートが `svg` でなければ null） */
+function readRootSvgAttributes(text: string): Map<string, string> | null {
+  let i = 0;
+  while (i < text.length) {
+    const lt = text.indexOf('<', i);
+    if (lt < 0) return null;
+    if (text.startsWith('<!--', lt)) {
+      const end = text.indexOf('-->', lt + 4);
+      if (end < 0) return null;
+      i = end + 3;
+      continue;
+    }
+    if (text.startsWith('<?', lt)) {
+      const end = text.indexOf('?>', lt + 2);
+      if (end < 0) return null;
+      i = end + 2;
+      continue;
+    }
+    if (text.startsWith('<!', lt)) {
+      const end = skipMarkupDeclaration(text, lt);
+      if (end < 0) return null;
+      i = end;
+      continue;
+    }
+    const nameMatch = NAME.exec(text.slice(lt + 1));
+    if (!nameMatch) return null;
+    const name = nameMatch[0];
+    let j = lt + 1 + name.length;
+    const attributes = new Map<string, string>();
+    while (j < text.length) {
+      while (j < text.length && /\s/.test(text[j])) j++;
+      if (j >= text.length) return null;
+      if (text[j] === '>' || text.startsWith('/>', j)) {
+        return localName(name) === 'svg' ? attributes : null;
+      }
+      const attr = NAME.exec(text.slice(j));
+      if (!attr) return null;
+      j += attr[0].length;
+      while (j < text.length && /\s/.test(text[j])) j++;
+      if (text[j] !== '=') return null;
+      j++;
+      while (j < text.length && /\s/.test(text[j])) j++;
+      const quote = text[j];
+      if (quote !== '"' && quote !== "'") return null;
+      const end = text.indexOf(quote, j + 1);
+      if (end < 0) return null;
+      attributes.set(attr[0], text.slice(j + 1, end));
+      j = end + 1;
+    }
+    return null;
+  }
+  return null;
+}
+
+/** 整形式と確認済みの SVG テキストから、`viewBox`（優先）か `width`+`height` の大きさを数値で読む */
+export function svgIntrinsicSize(text: string): SvgIntrinsicSize | null {
+  if (typeof text !== 'string') return null;
+  const attributes = readRootSvgAttributes(text);
+  if (!attributes) return null;
+  const viewBox = attributes.get('viewBox');
+  if (viewBox !== undefined && validViewBox(viewBox)) {
+    const parts = viewBox.trim().split(/[\s,]+/);
+    return { width: Number(parts[2]), height: Number(parts[3]) };
+  }
+  const rawWidth = attributes.get('width');
+  const rawHeight = attributes.get('height');
+  if (rawWidth === undefined || rawHeight === undefined) return null;
+  const width = LENGTH.exec(rawWidth.trim());
+  const height = LENGTH.exec(rawHeight.trim());
+  if (!width || !height) return null;
+  if (!(Number(width[1]) > 0) || !(Number(height[1]) > 0)) return null;
+  return { width: Number(width[1]), height: Number(height[1]) };
+}
+
+/** ファイルのバイト列から `<svg>` の大きさを読む（UTF-8 として読めなければ null） */
+export function svgIntrinsicSizeFromBytes(bytes: Uint8Array): SvgIntrinsicSize | null {
+  let text: string;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+  return svgIntrinsicSize(text);
+}
+
+/**
  * SVG のテキストを確かめる。
  * 通る条件: 先頭以外に要素が無い・ルートが `svg`（接頭辞つき可）・要素が対応している・
  * 属性が引用符つきで重複が無い・ルートに width+height（px/単位なし）か viewBox がある・

@@ -10,7 +10,13 @@ import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
-import { composePwaHtmlMeta, composePwaManifestIcons } from '../utils/pwaAssets';
+import {
+  composePwaHtmlMeta,
+  composePwaManifestIcons,
+  getPwaIconSpecs,
+  PWA_DEFAULT_BACKGROUND,
+  type PwaImageSpec,
+} from '../utils/pwaAssets';
 import { renderImagePng, renderPwaAssets } from '../utils/pwaChromiumRenderer';
 // nov26-editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
 import { isSvgExt } from '../utils/svgSource';
@@ -99,6 +105,30 @@ export const OG_IMAGE_WIDTH = 1200;
 export const OG_IMAGE_HEIGHT = 630;
 // 描画に失敗したら og:image を付けない（警告 1 件。名前は既存の appedit.export.* の並びに合わせる）
 export const OG_IMAGE_FAILED_WARNING = 'appedit.export.og_image_failed';
+// NOV26-IM-PWA-ICON-SOURCE-0482: PWA アイコン用の画像 (manifestSettings.iconSource) が未登録、
+// または登録はあるが実体が無く同梱デフォルトへ落ちたときの警告（1 件）。
+// 「実体が無い」を別キーで伝える既存の警告は無い（missing_splash はスプラッシュ、
+// warn_unresolved_icon は POI アイコン）ため、両方とも同じキーで伝える（人間の指示）。
+export const PWA_ICON_DEFAULT_WARNING = 'appedit.export.pwa_icon_default';
+
+/**
+ * CSS の背景色を jimp の色（0xRRGGBBAA）にする（NOV26-IM-PWA-ICON-SOURCE-0481 の退避経路）。
+ * 読めない書式は既定の背景色（`PWA_DEFAULT_BACKGROUND`）にする。
+ */
+function cssColorToRgbaInt(value: unknown): number {
+  const text = String(value ?? '').trim();
+  const hex = /^#([0-9a-fA-F]{3})$/.exec(text) ?? /^#([0-9a-fA-F]{6})$/.exec(text);
+  if (hex) {
+    const body = hex[1].length === 3 ? hex[1].split('').map(c => c + c).join('') : hex[1];
+    return Number.parseInt(body, 16) * 256 + 0xff;
+  }
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i.exec(text);
+  if (rgb) {
+    const channel = (raw: string) => Math.max(0, Math.min(255, Number(raw)));
+    return ((channel(rgb[1]) * 65536) + (channel(rgb[2]) * 256) + channel(rgb[3])) * 256 + 0xff;
+  }
+  return 0xf6f0d3ff;
+}
 
 /** og:image に使う PNG の書き出し名（スプラッシュの複製名とは別ファイル。1 箇所で導く） */
 export function exportedOgImageName(appID: string): string {
@@ -622,7 +652,8 @@ class AppExportService {
 
       // 6) PWAアイコン/スプラッシュ生成 + manifest (pwaManifest 有効時)。favicon.ico は常時生成する。
       //    アイコン元画像 (manifestSettings.iconSource) 未指定時は同梱のデフォルト SVG (Maplat ロゴ)
-      //    へフォールバックするため、デフォルト経路でも manifest の icons は空にならない
+      //    へフォールバックするため、デフォルト経路でも manifest の icons は空にならない。
+      //    既定ロゴに落ちたことは generatePwaAssets が pwa_icon_default 警告で伝える（0482）
       let htmlMeta: Record<string, string> = {};
       if (document.httpSettings?.pwaManifest) {
         const generated = await this.generatePwaAssets(outDir, appID, document, warnings);
@@ -841,12 +872,14 @@ class AppExportService {
 
   // アイコン元画像 (描画/jimp への入力) の解決。manifestSettings.iconSource (saveFolder 相対)
   // が未指定または実体無しの場合は、アプリ同梱のデフォルト SVG (Maplat ロゴ、512x512 viewBox) に
-  // フォールバックする。SVG は描画に使う Chromium がそのままラスタライズできるので直接渡す
-  private resolveIconInput(document: any): string {
+  // フォールバックする。SVG は描画に使う Chromium がそのままラスタライズできるので直接渡す。
+  // フォールバックしたか (usedDefault) も返す: 以前は黙って既定ロゴになっていたため、
+  // 呼び出し側が警告 1 件を出せるようにする (NOV26-IM-PWA-ICON-SOURCE-0482)
+  private resolveIconInput(document: any): { input: string; usedDefault: boolean } {
     const iconSourceRel = String(document.manifestSettings?.iconSource || '');
     const userIcon = iconSourceRel ? path.join(this.saveFolder, iconSourceRel) : '';
-    if (userIcon && fs.existsSync(userIcon)) return userIcon;
-    return resolveResourceAsset('pwa/appicon-default.svg') || '';
+    if (userIcon && fs.existsSync(userIcon)) return { input: userIcon, usedDefault: false };
+    return { input: resolveResourceAsset('pwa/appicon-default.svg') || '', usedDefault: true };
   }
 
   // PWA のアイコン/スプラッシュ生成 (#174)。描画は Electron 自身の Chromium（非表示ウィンドウ）で行い、
@@ -857,9 +890,9 @@ class AppExportService {
     document: any,
     warnings: string[],
   ): Promise<{ icons: any[]; htmlMeta: Record<string, string> }> {
-    const iconSource = this.resolveIconInput(document);
-    const splashName = String(document.appSettings?.splash || '');
-    const splashSource = splashName ? path.join(this.saveFolder, 'img', splashName) : '';
+    const { input: iconSource, usedDefault } = this.resolveIconInput(document);
+    // NOV26-IM-PWA-ICON-SOURCE-0481: 起動画面（apple-splash）もアイコン元画像から描く。
+    // スプラッシュ画像（appSettings.splash）は Maplat のモーダル用と og:image にだけ使う
     const backgroundColor = document.manifestSettings?.backgroundColor || '#f6f0d3';
     const pagDir = path.join(outDir, 'pwa', appID);
 
@@ -867,6 +900,12 @@ class AppExportService {
       // 同梱デフォルトも解決できない場合のみ (通常起き得ない)
       warnings.push('appedit.export.no_icon_source');
       return { icons: [], htmlMeta: {} };
+    }
+
+    // NOV26-IM-PWA-ICON-SOURCE-0482: 未登録（または実体なし）で既定ロゴに落ちたことを黙って隠さない。
+    // 警告は 1 件だけ積む（mergeWarnings で重複を防ぐ）
+    if (usedDefault) {
+      mergeWarnings(warnings, [PWA_ICON_DEFAULT_WARNING]);
     }
 
     // raster 入力の解像度チェック: 長辺 512px 未満は生成アイコンが粗くなるため警告して続行。
@@ -887,12 +926,9 @@ class AppExportService {
       // ファイル名・寸法・manifest・htmlMeta は従来と同一（pwaAssets の純関数が決める）
       const rendered = await renderPwaAssets({
         iconSourcePath: iconSource,
-        splashSourcePath: splashSource && fs.existsSync(splashSource) ? splashSource : undefined,
         outputDir: pagDir,
         background: backgroundColor,
       });
-      // スプラッシュが読めずアイコン元画像で描いた場合は黙って差し替えない
-      if (rendered.splashUsedFallback) warnings.push('appedit.export.missing_splash');
       const pathOverride = `pwa/${appID}`;
       return {
         icons: composePwaManifestIcons(rendered.iconSaved, pathOverride),
@@ -907,40 +943,56 @@ class AppExportService {
       warnings.push('appedit.export.pwa_fallback');
       // 【NOV26-IR-EDITOR174-0453 MIN-3】途中まで描いた画像を残すと退避のアイコンと混ざって zip に入るので、先に空にする
       await fs.emptyDir(pagDir).catch(() => undefined);
-      return await this.generateFallbackIcons(iconSource, pagDir, appID);
+      return await this.generateFallbackIcons(iconSource, pagDir, appID, document.manifestSettings?.backgroundColor);
     }
   }
 
-  // フォールバック: jimpで192/512アイコンのみ生成。
-  // jimp は SVG をデコードできないため、SVG 入力 (デフォルト SVG 含む) は同梱のプリレンダ済み
-  // デフォルト PNG (512x512) に差し替える
+  /**
+   * jimp へ渡す raster 入力を決める。
+   * jimp は SVG をデコードできないので、iconSource が SVG のときは
+   * **同じ名前の png（uploadPwaIcon が描いた退避用の 512x512）** があればそれを使い、
+   * 無いときだけ同梱のプリレンダ済みデフォルト PNG (512x512) に落とす。
+   */
+  private rasterIconInput(iconSource: string): string {
+    if (!isSvgExt(path.extname(iconSource).slice(1))) return iconSource;
+    const sibling = iconSource.replace(/\.svg$/i, '.png');
+    if (fs.existsSync(sibling)) return sibling;
+    return resolveResourceAsset('pwa/appicon-default.png') || iconSource;
+  }
+
+  /**
+   * フォールバック: Chromium で描けなかったときに jimp でアイコンを作る。
+   * 【NOV26-IM-PWA-ICON-SOURCE-0481】以前は manifest-icon の 192/512 しか作らず、
+   * favicon・mstile・apple-icon が zip から丸ごと欠けていた（人間の報告）。
+   * 退避でも **アイコン 8 枚すべて**（favicon-196.png・mstile-icon-*・apple-icon-180.png を含む）を作り、
+   * index.html の htmlMeta も基準と同じ形にする（favicon.ico は writeFaviconIco が
+   * favicon-196.png を包んで作る）。
+   */
   private async generateFallbackIcons(
     iconSource: string,
     pagDir: string,
     appID: string,
+    backgroundColor: unknown = PWA_DEFAULT_BACKGROUND,
   ): Promise<{ icons: any[]; htmlMeta: Record<string, string> }> {
-    if (iconSource.toLowerCase().endsWith('.svg')) {
-      iconSource = resolveResourceAsset('pwa/appicon-default.png') || iconSource;
-    }
+    const input = this.rasterIconInput(iconSource);
     await fs.ensureDir(pagDir);
-    const icons: any[] = [];
-    for (const size of [192, 512]) {
-      const image = await Jimp.read(iconSource);
-      image.resize({ w: size, h: size });
-      const fileName = `manifest-icon-${size}.png`;
-      await image.write(path.join(pagDir, fileName) as `${string}.${string}`);
-      icons.push({
-        src: `pwa/${appID}/${fileName}`,
-        sizes: `${size}x${size}`,
-        type: 'image/png',
-        purpose: 'maskable any',
-      });
+    const base = await Jimp.read(input);
+    const background = cssColorToRgbaInt(backgroundColor);
+    const saved: PwaImageSpec[] = [];
+    for (const spec of getPwaIconSpecs(pagDir)) {
+      // 縦横比を保って contain し、余白は背景色で埋める（PWA の描画と同じ見え方）
+      const fitted = base.clone().contain({ w: spec.width, h: spec.height });
+      const canvas = new Jimp({ width: spec.width, height: spec.height, color: background });
+      canvas.composite(fitted, 0, 0);
+      await canvas.write(spec.path as `${string}.${string}`);
+      saved.push(spec);
     }
-    const htmlMeta = {
-      favicon: `<link rel="icon" type="image/png" sizes="192x192" href="pwa/${appID}/manifest-icon-192.png">`,
-      appleTouchIcon: `<link rel="apple-touch-icon" href="pwa/${appID}/manifest-icon-192.png">`,
+    const pathOverride = `pwa/${appID}`;
+    return {
+      icons: composePwaManifestIcons(saved, pathOverride),
+      // 起動画面（apple-splash）は退避では描かない（htmlMeta には出さない）
+      htmlMeta: composePwaHtmlMeta({ icon: saved, splash: [] }, pathOverride, { favicon: true, mstile: true }),
     };
-    return { icons, htmlMeta };
   }
 
   // favicon.ico をパッケージルートへ生成する (pwaManifest 無効時も常時)。
@@ -969,11 +1021,10 @@ class AppExportService {
           return;
         }
       }
-      // jimp は SVG をデコードできないため、SVG 入力は同梱のプリレンダ済みデフォルト PNG に差し替える
-      let input = this.resolveIconInput(document);
-      if (input.toLowerCase().endsWith('.svg')) {
-        input = resolveResourceAsset('pwa/appicon-default.png') || '';
-      }
+      // jimp は SVG をデコードできないため、SVG 入力は同名の png（無ければ同梱デフォルト）に差し替える。
+      // ここは pwaManifest 無効時にも通る favicon 単独の経路なので、既定ロゴへ落ちても警告は出さない
+      // （既定ロゴの警告は PWA の画像を作る generatePwaAssets 側の責務。NOV26-IM-PWA-ICON-SOURCE-0482）
+      const input = this.rasterIconInput(this.resolveIconInput(document).input);
       if (!input || !fs.existsSync(input)) return;
       const image = await Jimp.read(input);
       image.resize({ w: 196, h: 196 });
