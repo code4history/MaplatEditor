@@ -9,6 +9,13 @@ import path from 'node:path'
 import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
 // oct26-m16-t2 (F-C1): main window・About ウィンドウの遷移ガード
 import { installNavigationGuard } from './navigation-guard'
+// NOV26-IM-NETFETCH-CONTINGENCY-0483: main プロセスの外向き fetch を Chromium の
+// ネットワークスタック（net.fetch）へ載せる。IPC ハンドラ登録より前（module の
+// トップレベル）で行うので、どの経路も Node の fetch で外へ出ない。
+import { installFetchTransport } from './services/fetchTransport'
+import { netFetchTransport } from './services/electronFetchTransport'
+
+installFetchTransport(netFetchTransport)
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
