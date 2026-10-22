@@ -393,6 +393,16 @@ export function svgIntrinsicSize(text: string): SvgIntrinsicSize | null {
 }
 
 /** ファイルのバイト列から `<svg>` の大きさを読む（UTF-8 として読めなければ null） */
+/**
+ * SVG の幅と高さを正方形とみなすか。Illustrator 等は書き出しで座標を丸めるため、
+ * `viewBox="0 0 761 760.99"` のように見た目は正方形でもわずかにずれる。
+ * 長い辺の 0.5% 以内の差は正方形として扱う（描画は contain なので余白は 1px 未満）。
+ */
+export function isNearlySquare(size: SvgIntrinsicSize): boolean {
+  const longer = Math.max(size.width, size.height);
+  return Math.abs(size.width - size.height) <= longer * 0.005;
+}
+
 export function svgIntrinsicSizeFromBytes(bytes: Uint8Array): SvgIntrinsicSize | null {
   let text: string;
   try {

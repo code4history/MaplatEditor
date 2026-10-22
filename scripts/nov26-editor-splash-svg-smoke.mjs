@@ -40,6 +40,7 @@ import {
   isSvgExt,
   svgIntrinsicSize,
   svgIntrinsicSizeFromBytes,
+  isNearlySquare,
 } from "../electron/utils/svgSource.ts";
 import {
   ASSET_PREVIEW_ALLOWED_EXTS,
@@ -542,6 +543,11 @@ console.log("ok: (f) og:image の警告文言が 11 言語にある");
     { width: 300, height: 200 },
     "XML 宣言・コメントの後ろのルートを読めていない",
   );
+  // 書き出しの丸めで生じるわずかな差は正方形とみなす（PlatSeries の appicon.svg は viewBox="0 0 761 760.99"）
+  assert.equal(isNearlySquare(svgIntrinsicSize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 761 760.99"/>')), true, "丸めの差 0.01 を正方形でないとしている");
+  assert.equal(isNearlySquare({ width: 512, height: 512 }), true);
+  assert.equal(isNearlySquare({ width: 512, height: 500 }), false, "2% ずれた長方形を正方形としている");
+  assert.equal(isNearlySquare({ width: 300, height: 200 }), false);
   assert.equal(svgIntrinsicSize('<svg width="100%"/>'), null, "大きさの無い SVG を大きさありとして扱っている");
   assert.deepEqual(
     svgIntrinsicSizeFromBytes(new TextEncoder().encode('<svg viewBox="0 0 100 100"/>')),
