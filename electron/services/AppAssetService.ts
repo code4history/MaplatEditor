@@ -39,12 +39,15 @@ async function readTile(url: string): Promise<Buffer> {
     if (localPath !== null) return fs.readFile(localPath);
     throw new Error(`invalid local app url: ${url}`);
   }
-  // NOV26-IM-NETFETCH-CONTINGENCY-0483: 製品（Electron main）では transport 経由で
-  // net.fetch（Chromium のネットワークスタック）に載る。タイル画像が `Content-Encoding: br`
-  // で返っても、Node 同梱 brotli の CVE-2026-111497 を通らない
-  // （file: / app: の分岐は従来どおりこの前段で fs 直読み）。
+  // NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: 製品（Electron main）では transport 経由で
+  // Chromium のネットワークスタックに載る。タイル画像が `Content-Encoding: br` で返っても、
+  // Node 同梱 brotli の CVE-2026-111497 を通らない（file: / app: の分岐は従来どおりこの前段で
+  // fs 直読み）。0484 以降、外部取得用の専用 session では http/https 以外（リダイレクト先を
+  // 含む）が拒否されるため、302 で app:/file: へ飛ばされても保存フォルダは読めない。
   const res = await getFetchTransport()(url, {
     signal: AbortSignal.timeout(10000),
+    // 専用 session でクッキーも共有しないが、念のため明示する
+    credentials: 'omit',
     // 識別可能なUAを明示する(既定のnode UAを拒否するタイルサーバー対策も兼ねる)
     headers: { 'User-Agent': 'MaplatEditor (https://github.com/code4history/MaplatEditor)' },
   });
