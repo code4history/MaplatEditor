@@ -676,6 +676,7 @@
       "failed": "Export failed",
       "pwa_fallback": "PWA image generation failed, so only basic icons were generated.",
       "no_icon_source": "PWA icon source is not set, so no icons were generated.",
+      "pwa_icon_default": "No PWA icon image is registered, so the default Maplat logo was used for the icons and launch screens.",
       "missing_thumbnail": "Some base map/overlay thumbnails were not found.",
       "missing_splash": "The splash image was not found.",
       "og_image_failed": "The social media card image (og:image) could not be rendered, so it was not included."

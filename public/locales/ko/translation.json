@@ -694,6 +694,7 @@
       "failed": "내보내기에 실패했습니다",
       "pwa_fallback": "PWA 이미지 생성에 실패하여 기본 아이콘만 생성했습니다.",
       "no_icon_source": "PWA 아이콘 원본 이미지가 설정되지 않아 아이콘을 생성하지 않았습니다.",
+      "pwa_icon_default": "PWA 아이콘용 이미지가 등록되어 있지 않아 기본 Maplat 로고로 아이콘과 시작 화면을 만들었습니다.",
       "missing_thumbnail": "일부 베이스맵/오버레이의 썸네일 이미지를 찾을 수 없었습니다.",
       "missing_splash": "스플래시 이미지를 찾을 수 없었습니다.",
       "og_image_failed": "SNS 카드 이미지(og:image)를 그리지 못해 포함하지 않았습니다."

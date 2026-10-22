@@ -9,6 +9,9 @@
 //   (3) 「PWA アイコン用の画像」に SVG を登録できる（拡張子フィルタ・正方形判定・
 //       退避用の同名 PNG・保存前のプレビュー）
 //   (4) SVG をアイコン元画像にしても 54 枚そろい、zip に元の SVG は入らない
+//   (5) 未登録で書き出すと、既定 Maplat ロゴを使った旨の警告が 1 つ出る
+//   (5b) 登録はあるが実体が無いときも同じ警告が 1 つ出る
+//   (6) 登録済みならその警告は出ない（NOV26-IM-PWA-ICON-SOURCE-0482）
 import { expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
@@ -64,6 +67,90 @@ async function exportTo(
     await ok.click({ timeout: 20_000 }).catch(() => {});
     await page.waitForTimeout(300);
   }
+}
+
+// NOV26-IM-PWA-ICON-SOURCE-0482: アイコン元画像が未登録（または実体なし）のとき、
+// 黙って既定の Maplat ロゴになるのではなく警告を 1 つ出す。文言は i18n（ja）の正本。
+const DEFAULT_ICON_WARNING =
+  'PWA アイコン用の画像が登録されていないため、既定の Maplat ロゴでアイコンと起動画面を作りました。';
+
+type ExportDialog = { message?: string; detail?: string };
+
+/**
+ * 書き出し結果のダイアログを捕まえる。
+ * 警告は warnings 配列のキーをレンダラ側で t(key) して detail に並べるので、
+ * 「ユーザーに警告が出たか」はこの detail を見るのが実経路（AppEdit.exportSavedApp）。
+ */
+async function stubExportDialogRecorder(app: Awaited<ReturnType<typeof launch>>['app']) {
+  await app.evaluate(async ({ dialog }) => {
+    const g = globalThis as unknown as { __exportDialogs?: ExportDialog[] };
+    g.__exportDialogs = [];
+    dialog.showMessageBox = (async (...args: unknown[]) => {
+      const options = args.find(
+        (arg): arg is ExportDialog => !!arg && typeof arg === 'object' && 'message' in (arg as object),
+      );
+      g.__exportDialogs!.push({ message: options?.message, detail: options?.detail });
+      return { response: 0, checkboxChecked: false };
+    }) as typeof dialog.showMessageBox;
+  });
+}
+
+/** 直前の書き出しまでに記録したダイアログを取出し、記録を空にする */
+async function takeExportDialogs(
+  app: Awaited<ReturnType<typeof launch>>['app'],
+): Promise<ExportDialog[]> {
+  return app.evaluate(async () => {
+    const g = globalThis as unknown as { __exportDialogs?: ExportDialog[] };
+    const captured = g.__exportDialogs ?? [];
+    g.__exportDialogs = [];
+    return captured;
+  });
+}
+
+/** 書き出し完了ダイアログの detail に並んだ警告行（1 警告 = 1 行） */
+function warningLines(dialogs: ExportDialog[]): string[] {
+  const done = dialogs.filter((entry) => (entry.message ?? '').includes('エクスポートが完了しました'));
+  return done.flatMap((entry) => (entry.detail ?? '').split('\n').filter((line) => line.trim() !== ''));
+}
+
+/** アプリを 1 件作る（iconSource は null で「未登録」） */
+async function seedApp(
+  page: Awaited<ReturnType<typeof launch>>['page'],
+  slug: string,
+  iconSource: string | null,
+): Promise<string> {
+  return page.evaluate(async ({ slug, iconSource }) => {
+    const uid = crypto.randomUUID();
+    const manifestSettings: Record<string, string> = { backgroundColor: '#f6f0d3' };
+    if (iconSource !== null) manifestSettings.iconSource = iconSource;
+    const r = await window.appedit.save({
+      uid, slug, create: true,
+      document: {
+        appID: slug, appName: { ja: slug }, title: { ja: slug },
+        description: {}, keywords: '', siteUrl: '', lang: 'ja',
+        sources: [],
+        startFrom: '', pois: [],
+        httpSettings: { pwaManifest: true },
+        appSettings: {},
+        manifestSettings,
+      },
+    });
+    if (!r || r.result !== 'Success') throw new Error(JSON.stringify(r));
+    return uid;
+  }, { slug, iconSource });
+}
+
+/** 書き出して、完了ダイアログに出た警告行を返す（zip も実在を確かめる） */
+async function exportAndCollectWarnings(
+  app: Awaited<ReturnType<typeof launch>>['app'],
+  page: Awaited<ReturnType<typeof launch>>['page'],
+  zipPath: string,
+): Promise<string[]> {
+  await exportTo(app, page, zipPath);
+  const dialogs = await takeExportDialogs(app);
+  expect(dialogs.length, '書き出し完了ダイアログが記録されているはず').toBeGreaterThan(0);
+  expect(await readFile(zipPath).then((data) => data.length), `${zipPath} が作られているはず`).toBeGreaterThan(0);
+  return warningLines(dialogs);
 }
 
 test.describe('nov26-pwa-icon-source: PWA の画像はアイコン元画像から作る', () => {
@@ -200,6 +287,92 @@ test.describe('nov26-pwa-icon-source: PWA の画像はアイコン元画像か�
         const center = intToRGBA(image.getPixelColor(660, 1434));
         expect(center.b, `apple-splash にスプラッシュ画像の青が出ている: ${JSON.stringify(center)}`).toBeLessThan(200);
       }
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  // (5) NOV26-IM-PWA-ICON-SOURCE-0482: 未登録のとき、黙って既定の Maplat ロゴになるのではなく
+  //     警告を 1 つ出す（「実体が無い」を別キーで伝える既存の警告は無いので同じキーでよい）
+  test('(5) 未登録で書き出すと既定ロゴの警告が 1 つ出る', async () => {
+    test.setTimeout(360_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-pwa-icon-unregistered-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await stubExportDialogRecorder(app);
+      const saveFolder = await saveFolderOf(page);
+      expect(saveFolder).toBeTruthy();
+
+      // manifestSettings.iconSource を持たないアプリ
+      const unregisteredUid = await seedApp(page, 'nov26-pwa-icon-unregistered', null);
+      await openHash(page, `#/appedit?uid=${unregisteredUid}`);
+      await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('appedit-icon-source')).toHaveValue('');
+      const unregistered = await exportAndCollectWarnings(
+        app, page, path.join(e2eRoot, 'pwa-icon-unregistered.zip'),
+      );
+      expect(
+        unregistered.filter((line) => line === DEFAULT_ICON_WARNING).length,
+        `未登録の書き出しは既定ロゴの警告を 1 つ出すはず: ${JSON.stringify(unregistered)}`,
+      ).toBe(1);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  // (5b) 登録はあるが実体が無い（保存フォルダからファイルが消えた）ときも同じ警告を 1 つ出す
+  test('(5b) アイコン元画像の実体が無いときも既定ロゴの警告が 1 つ出る', async () => {
+    test.setTimeout(360_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-pwa-icon-missing-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await stubExportDialogRecorder(app);
+      const saveFolder = await saveFolderOf(page);
+      expect(saveFolder).toBeTruthy();
+
+      // 登録だけしてファイルは置かない
+      const missingRel = `pwa/${randomUUID()}.png`;
+      const missingUid = await seedApp(page, 'nov26-pwa-icon-missing', missingRel);
+      await openHash(page, `#/appedit?uid=${missingUid}`);
+      await expect(page.getByTestId('appedit-icon-source')).toHaveValue(missingRel);
+      const missing = await exportAndCollectWarnings(
+        app, page, path.join(e2eRoot, 'pwa-icon-missing.zip'),
+      );
+      expect(
+        missing.filter((line) => line === DEFAULT_ICON_WARNING).length,
+        `実体が無い登録も同じ警告を 1 つ出すはず: ${JSON.stringify(missing)}`,
+      ).toBe(1);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  // (6) 登録済み（実体あり）なら既定ロゴへ落ちないので警告は出ない
+  test('(6) アイコン元画像が登録済みなら既定ロゴの警告は出ない', async () => {
+    test.setTimeout(360_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-pwa-icon-registered-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await stubExportDialogRecorder(app);
+      const saveFolder = await saveFolderOf(page);
+      expect(saveFolder).toBeTruthy();
+
+      const iconRel = `pwa/${randomUUID()}.png`;
+      const { Jimp } = await import('jimp');
+      await mkdir(path.join(saveFolder, 'pwa'), { recursive: true });
+      await new Jimp({ width: 512, height: 512, color: 0xff0000ff })
+        .write(path.join(saveFolder, iconRel) as `${string}.png`);
+
+      const registeredUid = await seedApp(page, 'nov26-pwa-icon-registered', iconRel);
+      await openHash(page, `#/appedit?uid=${registeredUid}`);
+      await expect(page.getByTestId('appedit-icon-source')).toHaveValue(iconRel);
+      const registered = await exportAndCollectWarnings(
+        app, page, path.join(e2eRoot, 'pwa-icon-registered.zip'),
+      );
+      expect(
+        registered.filter((line) => line === DEFAULT_ICON_WARNING),
+        `登録済みの書き出しは既定ロゴの警告を出さないはず: ${JSON.stringify(registered)}`,
+      ).toEqual([]);
     } finally {
       await quitElectronApplication(app);
     }

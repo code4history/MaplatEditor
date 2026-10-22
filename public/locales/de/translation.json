@@ -694,6 +694,7 @@
       "failed": "Export fehlgeschlagen",
       "pwa_fallback": "Die Erzeugung der PWA-Bilder ist fehlgeschlagen, daher wurden nur die Basissymbole erzeugt.",
       "no_icon_source": "Da kein PWA-Symbol-Quellbild festgelegt wurde, wurden keine Symbole erzeugt.",
+      "pwa_icon_default": "Da kein Bild für das PWA-Symbol registriert ist, wurde für die Symbole und Startbildschirme das Standard-Maplat-Logo verwendet.",
       "missing_thumbnail": "Für einige Basiskarten/Overlays wurden keine Miniaturansichten gefunden.",
       "missing_splash": "Das Splash-Bild wurde nicht gefunden.",
       "og_image_failed": "Das Kartenbild für soziale Medien (og:image) konnte nicht gezeichnet werden und wurde daher weggelassen."
