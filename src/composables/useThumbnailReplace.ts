@@ -34,8 +34,10 @@ export interface ThumbnailReplaceHost {
   /**
    * 置換の**書き込み先キーと拡張子**。null = キー未確定。
    * **規則 T3 のゲートはこの 1 つだけに依存する**（設計 §4.3.1）。
+   * `copy512From` は 52px 単独置換のとき、512px の実体を引き継ぐ元の 52px パス
+   * （issue #192。書き込み先が他者のファイルから自分の uid 名へ変わる場合だけ設定される）。
    */
-  writeTarget: () => { fileKey: string; ext: string } | null;
+  writeTarget: () => { fileKey: string; ext: string; copy512From?: string } | null;
   /** キー未確定の理由（i18n 済み文言）。writeTarget() が null のときだけ使う */
   disabledReason: () => string;
   /**
@@ -136,7 +138,9 @@ export function useThumbnailReplace(host: ThumbnailReplaceHost): ThumbnailReplac
     thumbnailError.value = "";
     const derive52 = kind === "512" ? derive52Model.value : false;
     try {
-      const result = await window.appAssets.replaceMapThumbnail(target.fileKey, kind, derive52, target.ext);
+      const result = await window.appAssets.replaceMapThumbnail(
+        target.fileKey, kind, derive52, target.ext, target.copy512From,
+      );
       if (result?.err) {
         if (result.err !== "Canceled") thumbnailError.value = i18next.t("appedit.error_invalid_image");
         return;
