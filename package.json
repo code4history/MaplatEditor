@@ -173,6 +173,7 @@
     "smoke:m12-t29-draft-leftover-fix": "node scripts/m12-t29-draft-leftover-fix-smoke.mjs",
     "smoke:m19-t1-preview-bundle-namespaceID": "node scripts/m19-t1-preview-bundle-namespaceID-smoke.mjs",
     "smoke:m19-t2-basemap-thumbnail-512": "node scripts/m19-t2-basemap-thumbnail-512-smoke.mjs",
+    "smoke:issue-192-thumbnail-replace": "node scripts/issue-192-thumbnail-replace-smoke.mjs",
     "test:e2e:m19-t2": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t2-basemap-thumbnail-512.spec.ts",
     "smoke:m19-t8-builtin-osm-data-attr": "node scripts/m19-t8-builtin-osm-data-attr-smoke.mjs",
     "smoke:m12-t5-viewer-freshness-guard": "node scripts/m12-t5/check-viewer-freshness.mjs --self-test",

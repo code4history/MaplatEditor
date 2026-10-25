@@ -111,6 +111,12 @@ class AppAssetService {
   // m19-t2: 拡張子非依存へ一般化し、地図（.jpg 規約）とベースマップ（実 thumbnail の拡張子）で共有する。
   // `ext` は末尾の省略可能引数であり、既定 'jpg' により地図側の呼び出し（MapEdit.vue）は無改修で従前どおり。
   //
+  // issue #192: `copy512From` は 52px 単独置換のときだけ使う。書き込み先が他者の uid 名から
+  // 自分の uid 名へ切り替わった直後（ベースマップの複製直後）は、自分の 512px がまだ無い。
+  // そのまま 52px だけ書くと、置換後の thumbnail（自分の uid 名）から導く 512px が実体を失う。
+  // ∴ 元の 52px パスを受け取り、その 512px が実在して自分の 512px が無いときだけ**複製**する
+  // （元ファイルは読むだけで書き換えない。既存の自分の 512px は上書きしない）。
+  //
   // 【返値セマンティクス】（タスク設計 §6.1.1 が唯一の定義。既存の fileUrl / fileUrl52 と同型）
   //   kind='52'                : path = 52px  / path52 = undefined      （derive52 は無視される）
   //   kind='512', derive52=true: path = 512px / path52 = 52px
@@ -124,6 +130,7 @@ class AppAssetService {
     kind: '512' | '52',
     derive52: boolean,
     ext: string = 'jpg',
+    copy512From?: string,
   ): Promise<{ fileUrl?: string; fileUrl52?: string; path?: string; path52?: string; err?: string }> {
     const file = await this.pickImage(win);
     if (!file) return { err: 'Canceled' };
@@ -150,10 +157,40 @@ class AppAssetService {
       }
     } else {
       const written52 = await this.writeThumbnail(image, ICON_LONG_SIDE, rel52);
+      // issue #192: 52px だけを置換するとき、元の 512px を自分の uid 名へ引き継ぐ。
+      // 生成した 52px を書いた後に行う（52px の書き込みに失敗したら 512px だけ増やさない）。
+      if (copy512From) await this.copyThumbnail512IfMissing(copy512From, rel52);
       result.path = written52.path;
       result.fileUrl = written52.fileUrl;
     }
     return result;
+  }
+
+  /**
+   * issue #192: 52px 単独置換で 512px の対を保つための複製。
+   * `fromRel52` の 512px（`thumb512PathFor`）が実在し、`toRel52` の 512px が無いときだけ複製する。
+   * 元ファイルは読むだけで、削除・移動・書き換えを一切しない。失敗しても置換自体は成立させる。
+   */
+  private async copyThumbnail512IfMissing(fromRel52: string, toRel52: string): Promise<void> {
+    // renderer から渡る相対パスを fs へ直接渡さない（入れ子・絶対パス・`..` を拒否）
+    // `\` も区切りとして拒否する（Windows では `..\..\x.png` の形で保存フォルダの外を指せるため）
+    const relPattern = /^tmbs\/[^/\\]+\.[A-Za-z0-9]+$/;
+    if (!relPattern.test(fromRel52) || !relPattern.test(toRel52)) return;
+    const fromRel512 = thumb512PathFor(fromRel52);
+    const toRel512 = thumb512PathFor(toRel52);
+    if (!fromRel512 || !toRel512) return;
+    const from = path.join(this.saveFolder, fromRel512);
+    const to = path.join(this.saveFolder, toRel512);
+    const tmbsDir = path.join(this.saveFolder, 'tmbs');
+    if (!isUnderFolder(from, tmbsDir) || !isUnderFolder(to, tmbsDir)) return;
+    try {
+      if (!(await fs.pathExists(from)) || (await fs.pathExists(to))) return;
+      await fs.ensureDir(path.dirname(to));
+      await fs.copy(from, to, { overwrite: false, errorOnExist: false });
+    } catch (e: any) {
+      // 52px は置換済みで参照も自分の uid 名へ移る。512px の引き継ぎだけが失敗したことを黙らせない
+      console.warn(`[AppAssetService] 512px の引き継ぎに失敗: ${fromRel512} -> ${toRel512} (${e?.message ?? e})`);
+    }
   }
 
   // スプラッシュ画像: サイズ自由。img/ へ複製する。

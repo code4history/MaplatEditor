@@ -482,6 +482,11 @@ import { localFileUrl } from "../../utils/appUrl";
 // m19-t12: サムネイル置換は地図管理と共有する単一実装を通す。
 // 512px パスの派生（thumb512PathFor）も当該 composable の内部へ移った。
 import { useThumbnailReplace } from "../../composables/useThumbnailReplace";
+// issue #192: 書き込み先の決定（規則 K）は純関数へ切り出し、smoke から実装を直接叩く。
+import {
+  resolveBaseMapThumbnailWriteTarget,
+  shouldForceDerive52,
+} from "./baseMapThumbnailTarget";
 import type { BaseMapSaveResult } from "../../electron";
 
 const props = withDefaults(defineProps<{
@@ -1091,11 +1096,9 @@ const iconFileKey = () => document.value.uid;
 // 規則 K（§6.2.2）: 置換の書き込みキーと拡張子は **document.thumbnail から**採る。
 // iconFileKey() から採ると、アイコン生成後に slug を変えた未保存文書でキーの出所が割れ、
 // 置換が無言の no-op になって孤児ファイルだけが残る。
-const THUMBNAIL_KEY_PATTERN = /^tmbs\/(.+)\.([A-Za-z0-9]+)$/;
-const thumbnailKeyParts = computed<{ fileKey: string; ext: string } | null>(() => {
-  const match = THUMBNAIL_KEY_PATTERN.exec(document.value.thumbnail ?? "");
-  return match ? { fileKey: match[1], ext: match[2] } : null; // null = K2（新たに tmbs/ 配下へ作る）
-});
+// issue #192: ただし thumbnail が**この文書の uid 名でない**とき（複製直後・旧 slug 名など、
+// 他者のファイルを指し得るとき）は、事前採番済みの自分の uid 名へ書く（K1'）。
+// 規則 K の分解・書き込み先・派生強制の述語は baseMapThumbnailTarget.ts が持つ。
 
 // m19-t12: 置換の実装本体は useThumbnailReplace（地図管理と共有する**単一実装**）。
 // ここが持つのはベースマップ固有の注入値だけである。
@@ -1119,26 +1122,33 @@ const {
 } = useThumbnailReplace({
   rel52: () => document.value.thumbnail || null,
   writeTarget: () => {
-    const parts = thumbnailKeyParts.value;
-    if (parts) return parts; // K1: キーと拡張子は document.thumbnail から採る（規則 K）
-    const fileKey = iconFileKey(); // K2: 新たに tmbs/ 配下へ作る（nov26-m6-t5: 未保存でも uid 名）
-    // 規則 K0: slug 未入力なら書かない（uploadIcon と同じガード）。nov26-m6-t5 で書き込みキーは uid に
-    // なったが、ボタンの有効条件は従来どおり slug で決める（m19-t12 の規則 T3: この状態はボタンの
-    // disabled + 理由表示として押す前に見える。tests/e2e/m19-t12-thumbnail-replace-parity.spec.ts E4）。
-    return document.value.slug ? { fileKey, ext: "png" } : null;
+    // 規則 K: 自分の uid 名を指しているときは thumbnail から採る（K1）。
+    // 複製直後・旧 slug 名など他者のファイルを指すときは自分の uid 名へ切り替える（K1'）。
+    // 同梱画像・URL・空は従来どおり自分の uid 名へ作る（K2 / K0）。
+    return resolveBaseMapThumbnailWriteTarget({
+      thumbnail: document.value.thumbnail,
+      ownKey: iconFileKey(),
+      slug: document.value.slug,
+    });
   },
   disabledReason: () => t("basemap.errors.id_required"),
   // §6.5: parity から意図的に逸脱する唯一の点。
   // ベースマップは thumbnail を文書属性として持つ（地図は uid 規約で暗黙）ため、52px の実体が
   // 無いまま thumbnail を tmbs/{key}.{ext} へ向けると一覧・書き出し・viewer のアイコンが空になる。
-  // ∴ 規則 K が K2 に落ちる場合（または K1 でも実体が無い場合）は 52px の派生を強制する。
+  // ∴ 規則 K が K2 に落ちる場合（または K1' / K1 でも実体が無い場合）は 52px の派生を強制する。
   //
-  // **K1 判定（thumbnailKeyParts !== null）の連言を落としてはならない。** 落とすと K2
+  // **K1 判定の連言を落としてはならない。** 落とすと K2
   // （thumbnail がプリセット basemap_icons/*.png）でも fileUrl が同梱リソースを truthy で
   // 解決するため「52px の実体あり」と誤判定し、強制 ON が外れる。その状態で derive OFF の
   // 512px 単独置換を行うと 512px だけが tmbs/ に生じ、m19-t2 が §6.5 で塞いだ孤児 512px が
   // 再発する（E2E の E6 / AC6b がこの退行を捕らえる番人である）。
-  forceDerive52: ({ exists52 }) => !(thumbnailKeyParts.value !== null && exists52),
+  // issue #192: 実体があっても**他者の uid 名**を指している間は強制を外さない（自分の 52px ではない）。
+  // 外すと 512px だけ自分の uid 名へ書き、指し先を移したときに 52px が欠ける。
+  forceDerive52: ({ exists52 }) => shouldForceDerive52({
+    thumbnail: document.value.thumbnail,
+    ownKey: iconFileKey(),
+    exists52,
+  }),
   raw52UrlRef: thumbnailUrl,
   onPointerMoved: (next) => { rebaseThumbnailPointer(next); },
 });
