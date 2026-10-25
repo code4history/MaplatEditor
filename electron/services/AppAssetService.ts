@@ -173,12 +173,16 @@ class AppAssetService {
    */
   private async copyThumbnail512IfMissing(fromRel52: string, toRel52: string): Promise<void> {
     // renderer から渡る相対パスを fs へ直接渡さない（入れ子・絶対パス・`..` を拒否）
-    if (!/^tmbs\/[^/]+\.[A-Za-z0-9]+$/.test(fromRel52)) return;
+    // `\` も区切りとして拒否する（Windows で `tmbs/..\..\x.png` が保存フォルダの外を指すため）
+    const relPattern = /^tmbs\/[^/\\]+\.[A-Za-z0-9]+$/;
+    if (!relPattern.test(fromRel52) || !relPattern.test(toRel52)) return;
     const fromRel512 = thumb512PathFor(fromRel52);
     const toRel512 = thumb512PathFor(toRel52);
     if (!fromRel512 || !toRel512) return;
     const from = path.join(this.saveFolder, fromRel512);
     const to = path.join(this.saveFolder, toRel512);
+    const tmbsDir = path.join(this.saveFolder, 'tmbs');
+    if (!isUnderFolder(from, tmbsDir) || !isUnderFolder(to, tmbsDir)) return;
     try {
       if (!(await fs.pathExists(from)) || (await fs.pathExists(to))) return;
       await fs.ensureDir(path.dirname(to));
