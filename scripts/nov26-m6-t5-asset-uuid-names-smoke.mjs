@@ -234,7 +234,10 @@ if (stderr) process.stderr.write(stderr);
   assert.equal(decl[0].trim(), 'const iconFileKey = () => document.value.uid;', `(c)/AC1 iconFileKey は uid を返す: ${decl[0]}`);
   assert.equal(/revision\.value === null \? document\.value\.slug/.test(src), false, '(c) 未保存なら slug、の分岐が残っていない');
   // K0 の判定（slug 未入力なら null）は slug で行い、ボタンの有効条件を変えない（§4.1）
-  assert.ok(/return document\.value\.slug \? \{ fileKey, ext: "png" \} : null;/.test(src), '(c) K0 は slug 未入力で null を返す');
+  // #192 で書き込み先の決定は baseMapThumbnailTarget.ts の純関数へ切り出した（K0 の判定もそこにある）
+  assert.ok(/resolveBaseMapThumbnailWriteTarget\(\{[\s\S]*?slug: document\.value\.slug,[\s\S]*?\}\)/.test(src), '(c) writeTarget は slug を渡して書き込み先の決定を呼ぶ');
+  const targetSrc = await readFile(path.join(projectRoot, 'src/components/basemap/baseMapThumbnailTarget.ts'), 'utf8');
+  assert.ok(/if \(!parts && !input\.slug\) return null;/.test(targetSrc), '(c) K0 は slug 未入力で null を返す');
   console.log('ok: (c) BaseMapEdit.vue の iconFileKey は uid・K0 は slug で判定（AC1）');
 }
 

@@ -173,7 +173,7 @@ class AppAssetService {
    */
   private async copyThumbnail512IfMissing(fromRel52: string, toRel52: string): Promise<void> {
     // renderer から渡る相対パスを fs へ直接渡さない（入れ子・絶対パス・`..` を拒否）
-    // `\` も区切りとして拒否する（Windows で `tmbs/..\..\x.png` が保存フォルダの外を指すため）
+    // `\` も区切りとして拒否する（Windows では `..\..\x.png` の形で保存フォルダの外を指せるため）
     const relPattern = /^tmbs\/[^/\\]+\.[A-Za-z0-9]+$/;
     if (!relPattern.test(fromRel52) || !relPattern.test(toRel52)) return;
     const fromRel512 = thumb512PathFor(fromRel52);
