@@ -94,8 +94,8 @@ importers:
         specifier: ^25.10.10
         version: 25.10.10(typescript@6.0.3)
       i18next-http-backend:
-        specifier: ^3.0.6
-        version: 3.0.6
+        specifier: ^4.0.2
+        version: 4.0.4
       i18next-vue:
         specifier: ^5.4.0
         version: 5.4.0(i18next@25.10.10(typescript@6.0.3))(vue@3.5.44(typescript@6.0.3))
@@ -2499,6 +2499,10 @@ packages:
 
   i18next-http-backend@3.0.6:
     resolution: {integrity: sha512-mBOqy8993jtqAoj6XaI1XeC/8/9v6EPS+681ziegrPvTB0DoaCY7PpTS0SpY56qLMoS4OI1TZEM2Zf59zNh05w==}
+
+  i18next-http-backend@4.0.4:
+    resolution: {integrity: sha512-nG9OQKvUsPiTVUBg1rCGmvmWhzxC9GOxVbGdTYyejHVMSUjutt1hiBNVSzhB/ZE7keL9Xkb880kUfhDovV5T5g==}
+    engines: {node: '>=18'}
 
   i18next-vue@5.4.0:
     resolution: {integrity: sha512-GDj0Xvmis5Xgcvo9gMBJMgJCtewYMLZP6gAEPDDGCMjA+QeB4uS4qUf1MK79mkz/FukhaJdC+nlj0y1qk6NO2Q==}
@@ -7267,6 +7271,8 @@ snapshots:
       cross-fetch: 4.1.0
     transitivePeerDependencies:
       - encoding
+
+  i18next-http-backend@4.0.4: {}
 
   i18next-vue@5.4.0(i18next@25.10.10(typescript@6.0.3))(vue@3.5.44(typescript@6.0.3)):
     dependencies:
