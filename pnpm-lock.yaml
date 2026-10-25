@@ -24,7 +24,7 @@ overrides:
   '@babel/runtime': 7.29.7
   '@thednp/position-observer': 1.1.3
   '@types/lodash': 4.17.25
-  dompurify: 3.4.16
+  dompurify: 3.4.17
   strtok3: 10.3.5
   serialize-error>type-fest: 0.13.1
   type-fest: 5.8.0
@@ -40,17 +40,17 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@maplat/core':
-        specifier: ^1.1.0
-        version: 1.1.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+        specifier: ^1.2.0-rc.1
+        version: 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@maplat/tin':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.1.1-rc.1
+        version: 1.1.1-rc.1
       '@maplat/transform':
         specifier: ^1.1.0
         version: 1.1.0
       '@maplat/ui':
-        specifier: ^1.1.0
-        version: 1.1.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)
+        specifier: ^1.2.0-rc.1
+        version: 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -221,10 +221,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  '@babel/runtime@7.29.7':
-    resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/types@7.29.8':
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
@@ -235,12 +231,12 @@ packages:
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
 
-  '@c4h/chuci@1.0.1':
-    resolution: {integrity: sha512-+1AQLS8dH17l6N/KgUH7PZOEjZ2BDM6JmfWJcum/IF3Ki5pfsDuDdLrMB3uNmPm1XD0dGFc2IvaToAMBkDdoWQ==}
+  '@c4h/chuci@1.0.2-rc.1':
+    resolution: {integrity: sha512-rSg2iqDi+HnoiOjjwL5voeKBW92Ato/rDC4zZ4qA21cHxs7Y8ublpxQkb+cb0eG3q1DHkV00P7dFSSTWt21XJg==}
     engines: {pnpm: '>=9.0.0'}
 
-  '@c4h/weiwudi@1.1.0':
-    resolution: {integrity: sha512-7sMmBQ+1hyLqvTYZvaoZZEY7Ce+HZinmTtEaDY7mhfnyEnkBtkPTaKleXEbLLyLuIyFUeVb0vXHibO0Kd4aaFw==}
+  '@c4h/weiwudi@1.1.1-rc.1':
+    resolution: {integrity: sha512-vKmUytM+w8seuDGTkPcsrEIP7mktj1RMJTiR+xCx3GrMDExZqGdO40xbhst+sVqiNJvaM/uFHWijHkDVUZPb0A==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
     peerDependencies:
       workbox-routing: ^7.4.0
@@ -673,8 +669,8 @@ packages:
   '@mapbox/vector-tile@3.0.0':
     resolution: {integrity: sha512-Qf10S1uIHMk20ri/IVBnpS+esUEkVaR5Hftmz88jTInrpmWgPGJfPe3LVjjlE77trLx8tH6qjTG7uWH9hIq/0Q==}
 
-  '@maplat/core@1.1.0':
-    resolution: {integrity: sha512-0QUkgTKhigdWc9oWUei/G1Uv90DHD+AQ1a/jDdAbwb2mIskDWM7TGyaC8rLDd3lI8dGtM89mrKaXaYm2/2NHNg==}
+  '@maplat/core@1.2.0-rc.1':
+    resolution: {integrity: sha512-4Wo6eT51tjjijPROlUzM8VIVK1Ax2OEhBxt+Lzdkd/BX7FdmhtYqN7pN2L7a16VFC8sPvWzckA+DaLE0Lu4QPg==}
     engines: {pnpm: '>=9'}
     peerDependencies:
       mapbox-gl: ^2.0.0 || ^3.0.0
@@ -686,16 +682,16 @@ packages:
       maplibre-gl:
         optional: true
 
-  '@maplat/tin@1.1.0':
-    resolution: {integrity: sha512-0oamJz1A9GqcohqtX7TIYo2Pn4Ls8K6J8mgQc90ROU6AjhBKtoyq6k87yHa/nM98mBvYgPIYA0EPLq8nxjZu9g==}
+  '@maplat/tin@1.1.1-rc.1':
+    resolution: {integrity: sha512-J1zyByj/qymjploiyAWYPqhMwOPO3ahUxfnhQdxv5aN++iC5BHAikHQVZTjmsEncegIoKKSYlzGagSJjczK55g==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
 
   '@maplat/transform@1.1.0':
     resolution: {integrity: sha512-oBfH0vSJQx+xsVUE/tFI42JCSrXMKjFcoKbbN4yG2Cv5M2gaOhQyzn9ZO8RZFcQ18Do0c7WWpFbx72R+IhWeZw==}
     engines: {node: '>=20', pnpm: '>=9'}
 
-  '@maplat/ui@1.1.0':
-    resolution: {integrity: sha512-du+O4SuKca1Q37qisxDt8g0+h70UG1NTrfiLVeIH8vNw9o8bkAikpglwzskzESY5/knguxwo3NeGckJZM6eAng==}
+  '@maplat/ui@1.2.0-rc.1':
+    resolution: {integrity: sha512-3iD20GfswuiN5j6Zhm4NalpoZApGzcNkzpPVaKTRZpxEio/fjrMYuEuYrvWqBarFa1QpGjUq16mfyqwk1Okafw==}
     engines: {npm: use-pnpm-please, pnpm: '>=9.0.0'}
     peerDependencies:
       mapbox-gl: ^2.0.0 || ^3.0.0
@@ -1899,9 +1895,6 @@ packages:
   cross-dirname@0.1.0:
     resolution: {integrity: sha512-+R08/oI0nl3vfPcqftZRpytksBXDzOUveBq/NBVx0sUp1axwzPQrKinNx5yd5sxPu8j1wIy8AfnVQ+5eFdha6Q==}
 
-  cross-fetch@4.1.0:
-    resolution: {integrity: sha512-uKm5PU+MHTootlWEY+mZ4vvXoCn4fLQxT9dSc1sXVMSFkINTJVN8cAQROpwcKm8bJ/c7rgZVIBWzH5T78sNZZw==}
-
   cross-spawn-windows-exe@1.2.0:
     resolution: {integrity: sha512-mkLtJJcYbDCxEG7Js6eUnUNndWjyUZwJ3H7bErmmtOYU/Zb99DyUkpamuIZE0b3bhmJyZ7D90uS6f+CGxRRjOw==}
     engines: {node: '>= 10'}
@@ -2022,8 +2015,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
+  dompurify@3.4.17:
+    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
@@ -2497,9 +2490,6 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
-  i18next-http-backend@3.0.6:
-    resolution: {integrity: sha512-mBOqy8993jtqAoj6XaI1XeC/8/9v6EPS+681ziegrPvTB0DoaCY7PpTS0SpY56qLMoS4OI1TZEM2Zf59zNh05w==}
-
   i18next-http-backend@4.0.4:
     resolution: {integrity: sha512-nG9OQKvUsPiTVUBg1rCGmvmWhzxC9GOxVbGdTYyejHVMSUjutt1hiBNVSzhB/ZE7keL9Xkb880kUfhDovV5T5g==}
     engines: {node: '>=18'}
@@ -2509,14 +2499,6 @@ packages:
     peerDependencies:
       i18next: '>=23'
       vue: ^3.4.38
-
-  i18next@25.10.10:
-    resolution: {integrity: sha512-cqUW2Z3EkRx7NqSyywjkgCLK7KLCL6IFVFcONG7nVYIJ3ekZ1/N5jUsihHV6Bq37NfhgtczxJcxduELtjTwkuQ==}
-    peerDependencies:
-      typescript: ^5 || ^6
-    peerDependenciesMeta:
-      typescript:
-        optional: true
 
   i18next@26.5.7:
     resolution: {integrity: sha512-mY9cECbKtiOqpcB8d8ijNsiPZQoTFULehBlWXZzzURpTm9aLbE2c3T2FKdGZhdEjlTvXUGd0TvCisL06YafO0Q==}
@@ -2925,15 +2907,6 @@ packages:
 
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
-
-  node-fetch@2.7.0:
-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
-    engines: {node: 4.x || >=6.0.0}
-    peerDependencies:
-      encoding: ^0.1.0
-    peerDependenciesMeta:
-      encoding:
-        optional: true
 
   node-gyp@12.4.0:
     resolution: {integrity: sha512-OMcPNvqTCFUnNaBlmdgq+lfNqY7gTiSmNRDjY3uAXRyudeKZEZxu3CLtjMQrx4zZxCX2b/mpNqTtwuCJgXhHkw==}
@@ -3516,8 +3489,8 @@ packages:
   three@0.165.0:
     resolution: {integrity: sha512-cc96IlVYGydeceu0e5xq70H8/yoVT/tXBxV/W8A/U6uOq7DXc4/s1Mkmnu6SqoYGhSRWWYFOhVwvq6V0VtbplA==}
 
-  three@0.171.0:
-    resolution: {integrity: sha512-Y/lAXPaKZPcEdkKjh0JOAHVv8OOnv/NDJqm0wjfCzyQmfKxV7zvkwsnBgPBKTzJHToSOhRGQAGbPJObT59B/PQ==}
+  three@0.186.1:
+    resolution: {integrity: sha512-blFeqb49wRCSGUGj7gtpfnSGHy2lwDk94RhUmS1c/hTby70kvChbWpkJ4Pm1390LqzzvTmzgXKHPEafJwCb8jA==}
 
   tiny-async-pool@1.3.0:
     resolution: {integrity: sha512-01EAw5EDrcVrdgyCLgoSPvqznC0sVxDSVeiOz09FUpjh71G79VCqneOr+xvt7T1r76CF6ZZfPjHorN2+d+3mqA==}
@@ -3559,9 +3532,6 @@ packages:
   topojson-server@3.0.1:
     resolution: {integrity: sha512-/VS9j/ffKr2XAOjlZ9CgyyeLmgJ9dMwq6Y0YEON8O7p/tGGk+dCWnrE03zEdu7i4L7YsFZLEPZPzCvcB7lEEXw==}
     hasBin: true
-
-  tr46@0.0.3:
-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
 
   truncate-utf8-bytes@1.0.2:
     resolution: {integrity: sha512-95Pu1QXQvruGEhv62XCMO3Mm90GscOCClvrIUwCM0PYOXK3kaF3l3sIHxx71ThJfcbM2O5Au6SO3AWCSEfW4mQ==}
@@ -3736,9 +3706,6 @@ packages:
   webdriver-bidi-protocol@1.0.1:
     resolution: {integrity: sha512-WXWs/aXF2a6Al1Z2/V/7Gp2oPZOAAmHjJOTmv4KCXRJ122IMj3tSSMc6a4q3K4QOmhQbse/Ahr+oTVJOU2dUiw==}
 
-  webidl-conversions@3.0.1:
-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
-
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
@@ -3750,9 +3717,6 @@ packages:
   whatwg-mimetype@4.0.0:
     resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
     engines: {node: '>=18'}
-
-  whatwg-url@5.0.0:
-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
   when-exit@2.1.5:
     resolution: {integrity: sha512-VGkKJ564kzt6Ms1dbgPP/yuIoQCrsFAnRbptpC5wOEsDaNsbCB2bnfnaA8i/vRs5tjUSEOtIuvl9/MyVsvQZCg==}
@@ -3918,8 +3882,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.8
 
-  '@babel/runtime@7.29.7': {}
-
   '@babel/types@7.29.8':
     dependencies:
       '@babel/helper-string-parser': 7.29.7
@@ -3929,14 +3891,14 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@c4h/chuci@1.0.1':
+  '@c4h/chuci@1.0.2-rc.1':
     dependencies:
       gsplat: 1.2.9
       swiper: 12.2.0
-      three: 0.171.0
+      three: 0.186.1
       viewerjs: 1.11.8
 
-  '@c4h/weiwudi@1.1.0(workbox-routing@7.4.1)':
+  '@c4h/weiwudi@1.1.1-rc.1(workbox-routing@7.4.1)':
     dependencies:
       workbox-routing: 7.4.1
 
@@ -4455,12 +4417,12 @@ snapshots:
       '@types/geojson': 7946.0.16
       pbf: 5.1.2
 
-  '@maplat/core@1.1.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
+  '@maplat/core@1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
     dependencies:
-      '@c4h/weiwudi': 1.1.0(workbox-routing@7.4.1)
+      '@c4h/weiwudi': 1.1.1-rc.1(workbox-routing@7.4.1)
       '@maplat/transform': 1.1.0
       '@turf/turf': 7.4.0
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       lodash.template: 4.18.1
       ol: 10.11.0
       whatwg-fetch: 3.6.20
@@ -4470,7 +4432,7 @@ snapshots:
     transitivePeerDependencies:
       - workbox-routing
 
-  '@maplat/tin@1.1.0':
+  '@maplat/tin@1.1.1-rc.1':
     dependencies:
       '@maplat/transform': 1.1.0
       '@turf/turf': 7.4.0
@@ -4481,16 +4443,16 @@ snapshots:
     dependencies:
       '@turf/turf': 7.4.0
 
-  '@maplat/ui@1.1.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)':
+  '@maplat/ui@1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)':
     dependencies:
-      '@c4h/chuci': 1.0.1
-      '@c4h/weiwudi': 1.1.0(workbox-routing@7.4.1)
-      '@maplat/core': 1.1.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+      '@c4h/chuci': 1.0.2-rc.1
+      '@c4h/weiwudi': 1.1.1-rc.1(workbox-routing@7.4.1)
+      '@maplat/core': 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@turf/turf': 7.4.0
       '@types/page': 1.11.9
       bootstrap.native: 5.1.10
-      i18next: 25.10.10(typescript@6.0.3)
-      i18next-http-backend: 3.0.6
+      i18next: 26.5.7(typescript@6.0.3)
+      i18next-http-backend: 4.0.4
       mapbox-gl: 3.28.1
       maplibre-gl: 6.4.1
       ol: 10.11.0
@@ -4503,7 +4465,6 @@ snapshots:
       workbox-routing: 7.4.1
       workbox-strategies: 7.4.1
     transitivePeerDependencies:
-      - encoding
       - typescript
 
   '@maplibre/geojson-vt@6.1.1':
@@ -6524,12 +6485,6 @@ snapshots:
   cross-dirname@0.1.0:
     optional: true
 
-  cross-fetch@4.1.0:
-    dependencies:
-      node-fetch: 2.7.0
-    transitivePeerDependencies:
-      - encoding
-
   cross-spawn-windows-exe@1.2.0:
     dependencies:
       '@malept/cross-spawn-promise': 1.1.1
@@ -6654,7 +6609,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.16:
+  dompurify@3.4.17:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -7274,24 +7229,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  i18next-http-backend@3.0.6:
-    dependencies:
-      cross-fetch: 4.1.0
-    transitivePeerDependencies:
-      - encoding
-
   i18next-http-backend@4.0.4: {}
 
   i18next-vue@5.4.0(i18next@26.5.7(typescript@6.0.3))(vue@3.5.44(typescript@6.0.3)):
     dependencies:
       i18next: 26.5.7(typescript@6.0.3)
       vue: 3.5.44(typescript@6.0.3)
-
-  i18next@25.10.10(typescript@6.0.3):
-    dependencies:
-      '@babel/runtime': 7.29.7
-    optionalDependencies:
-      typescript: 6.0.3
 
   i18next@26.5.7(typescript@6.0.3):
     optionalDependencies:
@@ -7665,10 +7608,6 @@ snapshots:
   node-api-version@0.2.1:
     dependencies:
       semver: 7.8.5
-
-  node-fetch@2.7.0:
-    dependencies:
-      whatwg-url: 5.0.0
 
   node-gyp@12.4.0:
     dependencies:
@@ -8307,7 +8246,7 @@ snapshots:
 
   three@0.165.0: {}
 
-  three@0.171.0: {}
+  three@0.186.1: {}
 
   tiny-async-pool@1.3.0:
     dependencies:
@@ -8347,8 +8286,6 @@ snapshots:
   topojson-server@3.0.1:
     dependencies:
       commander: 2.20.3
-
-  tr46@0.0.3: {}
 
   truncate-utf8-bytes@1.0.2:
     dependencies:
@@ -8490,8 +8427,6 @@ snapshots:
 
   webdriver-bidi-protocol@1.0.1: {}
 
-  webidl-conversions@3.0.1: {}
-
   whatwg-encoding@3.1.1:
     dependencies:
       iconv-lite: 0.6.3
@@ -8499,11 +8434,6 @@ snapshots:
   whatwg-fetch@3.6.20: {}
 
   whatwg-mimetype@4.0.0: {}
-
-  whatwg-url@5.0.0:
-    dependencies:
-      tr46: 0.0.3
-      webidl-conversions: 3.0.1
 
   when-exit@2.1.5: {}
 
