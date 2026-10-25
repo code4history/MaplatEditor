@@ -324,7 +324,7 @@
     "electron-updater": "^6.8.10",
     "file-url": "^4.0.0",
     "fs-extra": "^11.3.3",
-    "i18next": "^25.10.10",
+    "i18next": "^26",
     "i18next-http-backend": "^4.0.2",
     "i18next-vue": "^5.4.0",
     "jimp": "^1.6.1",
