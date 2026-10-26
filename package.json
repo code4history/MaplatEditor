@@ -276,7 +276,6 @@
     "smoke:nov26-m6-t5-export-splash-name": "node scripts/nov26-m6-t5-export-splash-name-smoke.mjs",
     "test:e2e:nov26-m6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-m6-t5-predraft-after-migration.spec.ts",
     "smoke:nov26-m6-t11-export-query-allowlist": "node scripts/nov26-m6-t11-export-query-allowlist-smoke.mjs",
-    "smoke:nov26-m7-t1-artifact-signing-probe": "node scripts/nov26-m7-t1-artifact-signing-probe-smoke.mjs",
     "smoke:nov26-m6-t1-draft-discard": "node scripts/nov26-m6-t1-draft-discard-smoke.mjs",
     "smoke:nov26-m6-t2-electron43": "node scripts/nov26-m6-t2-electron43-smoke.mjs",
     "smoke:nov26-m7-t2-signing-pipeline": "node scripts/nov26-m7-t2-signing-pipeline-smoke.mjs",
@@ -304,7 +303,8 @@
     "test:e2e:nov26-editor-feat1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-feat1.spec.ts",
     "smoke:nov26-editor-splash-svg": "node scripts/nov26-editor-splash-svg-smoke.mjs",
     "test:e2e:nov26-editor-splash-svg": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-splash-svg.spec.ts",
-    "test:e2e:nov26-pwa-icon-source": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-pwa-icon-source.spec.ts"
+    "test:e2e:nov26-pwa-icon-source": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-pwa-icon-source.spec.ts",
+    "smoke:workflow-action-pinning": "node scripts/workflow-action-pinning-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

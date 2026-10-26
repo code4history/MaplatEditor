@@ -86,7 +86,7 @@ jobs:
       # nov26-m7-t2: Windows の署名の経路（none / artifact-signing / esigner）。後段の if: はこれだけを見る
       win_sign_path: ${{ steps.win-sign-path.outputs.path }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # #104: 全 checkout を expected_editor_sha（mode=full で必須）へ固定する。
           # push では inputs が空のため、actions/checkout の既定 ref（トリガー commit）へフォールバックする。
@@ -171,7 +171,7 @@ jobs:
           printf '{"editor_sha":"%s","version":"%s"}\n' "$(git rev-parse HEAD)" "$(jq -r .version package.json)" > build-meta.json
           cat build-meta.json
       - name: Upload build-meta
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: build-meta
           path: build-meta.json
@@ -196,7 +196,7 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
@@ -209,7 +209,7 @@ jobs:
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -286,7 +286,7 @@ jobs:
         run: pnpm run dist:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: mac-artifacts
           path: |
@@ -314,7 +314,7 @@ jobs:
       # 新しく署名してキャッシュへ足す候補の数（publish-win-sign-cache の起動条件）
       win_sign_cache_new: ${{ steps.cache-outbox.outputs.count }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
@@ -327,7 +327,7 @@ jobs:
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -475,7 +475,7 @@ jobs:
 
       - name: Upload the payload to sign (Artifact Signing)
         if: needs.prepare.outputs.win_sign_path == 'artifact-signing'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-sign-in-payload
           path: win-sign-in
@@ -484,7 +484,7 @@ jobs:
 
       - name: Upload stage 1 (Artifact Signing)
         if: needs.prepare.outputs.win_sign_path == 'artifact-signing'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-stage1
           path: release/win-stage1.tar
@@ -493,7 +493,7 @@ jobs:
 
       - name: Upload stage 1 metadata (Artifact Signing)
         if: needs.prepare.outputs.win_sign_path == 'artifact-signing'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-stage1-meta
           path: |
@@ -505,7 +505,7 @@ jobs:
       # Artifact Signing の経路では finalize-win が上げる（同名 artifact を二重に上げない）
       - name: Upload Windows artifacts
         if: needs.prepare.outputs.win_sign_path != 'artifact-signing'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-artifacts
           path: |
@@ -516,7 +516,7 @@ jobs:
       # 署名の記録と照合結果（全モード・失敗時も）。何を署名し、何がキャッシュに当たったかの監査用
       - name: Upload Windows signing records
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-sign-records
           path: |
@@ -540,7 +540,7 @@ jobs:
 
       - name: Upload signed-file cache candidates
         if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.prepare.outputs.win_sign_path == 'esigner' && steps.cache-outbox.outputs.count != '0' && steps.cache-outbox.outputs.count != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-sign-cache-outbox
           path: release/win-sign/cache-outbox/*.signed
@@ -572,7 +572,7 @@ jobs:
       CACHE_TAG: win-signed-cache
     steps:
       - name: Download signed-file cache candidates
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-sign-cache-outbox
           path: outbox
@@ -806,7 +806,7 @@ jobs:
       WIN_SIGN_COLLECT_DIR: release/win-sign/collect-pack1
       WIN_SIGN_SIGNED_DIR: release/win-sign/signed
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ inputs.expected_editor_sha }}
@@ -815,7 +815,7 @@ jobs:
         with:
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -827,19 +827,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-stage1
           path: release
 
       - name: Download stage 1 metadata
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-stage1-meta
           path: release
 
       - name: Download the signed payload
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-signed-payload
           path: release/win-sign/signed-payload
@@ -875,7 +875,7 @@ jobs:
         run: node scripts/win-sign/collect-sign-set.mjs --phase uninstaller --record release/win-sign/record-pack1.jsonl --collect-dir release/win-sign/collect-pack1 --out win-sign-in --manifest release/win-sign/manifest-uninstaller.json
 
       - name: Upload the uninstallers to sign
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-sign-in-uninstaller
           path: win-sign-in
@@ -884,7 +884,7 @@ jobs:
 
       - name: Upload the pack-win-1 record
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-pack1-record
           path: |
@@ -1068,7 +1068,7 @@ jobs:
       WIN_SIGN_COLLECT_DIR: release/win-sign/collect-pack2
       WIN_SIGN_SIGNED_DIR: release/win-sign/signed
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ inputs.expected_editor_sha }}
@@ -1077,7 +1077,7 @@ jobs:
         with:
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -1089,19 +1089,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download stage 1
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-stage1
           path: release
 
       - name: Download stage 1 metadata
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-stage1-meta
           path: release
 
       - name: Download the signed payload
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-signed-payload
           path: release/win-sign/signed-payload
@@ -1116,13 +1116,13 @@ jobs:
         run: node scripts/win-sign/apply-signed.mjs --phase payload --manifest release/win-sign/manifest-payload.json --signed release/win-sign/signed-payload --signer artifact-signing --release-dir release/${{ env.VERSION }} --signed-dir release/win-sign/signed
 
       - name: Download the pack-win-1 record
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-pack1-record
           path: release/win-sign
 
       - name: Download the signed uninstallers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-signed-uninstaller
           path: release/win-sign/signed-uninstaller
@@ -1152,7 +1152,7 @@ jobs:
         run: node scripts/win-sign/collect-sign-set.mjs --phase installer --record release/win-sign/record-pack2.jsonl --collect-dir release/win-sign/collect-pack2 --out win-sign-in --manifest release/win-sign/manifest-installer.json
 
       - name: Upload the installers to sign
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-sign-in-installer
           path: win-sign-in
@@ -1161,7 +1161,7 @@ jobs:
 
       - name: Upload the pack-win-2 record
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-pack2-record
           path: |
@@ -1341,7 +1341,7 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ inputs.expected_editor_sha }}
@@ -1350,7 +1350,7 @@ jobs:
         with:
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -1362,19 +1362,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download stage 1 metadata
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-stage1-meta
           path: release
 
       - name: Download the pack-win-2 record
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-pack2-record
           path: release/win-sign
 
       - name: Download the signed installers
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-signed-installer
           path: release/win-sign/signed-installer
@@ -1414,7 +1414,7 @@ jobs:
 
       # 中身は両モードで同じ 3 種類（MIN-4）: Setup.exe（x64・arm64）・その blockmap・latest.yml
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-artifacts
           path: |
@@ -1426,7 +1426,7 @@ jobs:
 
       - name: Upload the finalize-win record
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: win-finalize-record
           path: release/win-sign/coverage-artifact-signing.json
@@ -1443,17 +1443,17 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
           ref: ${{ inputs.expected_editor_sha }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: win-artifacts
           path: win-artifacts
@@ -1474,7 +1474,7 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
           persist-credentials: false
@@ -1487,7 +1487,7 @@ jobs:
           # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -1516,7 +1516,7 @@ jobs:
         run: pnpm run dist:linux
 
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: linux-artifacts
           path: |
@@ -1540,7 +1540,7 @@ jobs:
     steps:
       # 配布物の artifact だけを落とす（win-sign-records / win-sign-cache-outbox を Release に載せない）
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: '{build-meta,mac-artifacts,win-artifacts,linux-artifacts}'
           path: artifacts

@@ -3,7 +3,7 @@
  *
  *   [1] t3/AC1: win-sign.cjs が読み込み時に ES_* を process.env から外す・CodeSignTool の起動の形
  *       （偽の java で引数と env を記録する）・pwsh の子の env・ログの伏せ字・Azure のクライアントシークレットを使わない
- *   [2] t3/AC2: secrets.ES_* を参照するのは eSigner の本番 step だけ・secrets.AZURE_* は署名専用ジョブ（と probe）の
+ *   [2] t3/AC2: secrets.ES_* を参照するのは eSigner の本番 step だけ・secrets.AZURE_* は署名専用ジョブの
  *       azure/login だけ・署名専用ジョブの permissions は { id-token: write } だけ（signing-job-rules.mjs の規則 1・5）
  *   [3] scripts/ci/eval-gh-if.mjs の自己検査
  *   [4] t3/AC4（eSigner 側 (ii)）: build-win の eSigner の step の if: を評価で断言する
@@ -26,13 +26,11 @@ import { checkSigningJob } from './win-sign/signing-job-rules.mjs';
 const projectRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const WIN_SIGN = path.join(projectRoot, 'scripts/win-sign/win-sign.cjs');
 const WORKFLOW = path.join(projectRoot, '.github/workflows/build.yml');
-const PROBE = path.join(projectRoot, '.github/workflows/artifact-signing-probe.yml');
 const DOC = path.join(projectRoot, 'docs/release-signing.md');
 const ES_KEYS = ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET'];
 const SIGN_JOBS = ['sign-win-payload', 'sign-win-uninstaller', 'sign-win-installer'];
 
 const wf = yaml.load(readFileSync(WORKFLOW, 'utf8'));
-const probe = yaml.load(readFileSync(PROBE, 'utf8'));
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const runOf = (st) => (typeof st?.run === 'string' ? st.run : '');
 const usesOf = (st) => (typeof st?.uses === 'string' ? st.uses : '');
@@ -194,7 +192,6 @@ function checkSecretPlacement(workflow, { esignerStep, azureJobs }) {
 const ESIGNER_STEP = { job: 'build-win', name: 'Build and sign Windows (SSL.com eSigner)' };
 {
   const v = checkSecretPlacement(wf, { esignerStep: ESIGNER_STEP, azureJobs: SIGN_JOBS });
-  v.push(...checkSecretPlacement(probe, { esignerStep: { job: '-', name: '-' }, azureJobs: ['probe-sign'] }));
   const esStep = (wf.jobs['build-win'].steps ?? []).find((st) => st.name === ESIGNER_STEP.name);
   assert.ok(esStep, '[2] eSigner の本番 step が無い');
   assert.deepEqual(secretNames(esStep).filter((n) => n.startsWith('ES_')).sort(), [...ES_KEYS].sort(), '[2] eSigner の本番 step が ES_* の 4 つを参照する');
@@ -202,8 +199,6 @@ const ESIGNER_STEP = { job: 'build-win', name: 'Build and sign Windows (SSL.com 
     assert.deepEqual(wf.jobs[name]?.permissions, { 'id-token': 'write' }, `[2] ${name} の permissions が { id-token: write } だけでない`);
     for (const msg of checkSigningJob(name, wf.jobs[name])) v.push(msg);
   }
-  assert.deepEqual(probe.jobs['probe-sign']?.permissions, { 'id-token': 'write' }, '[2] probe-sign の permissions が { id-token: write } だけでない');
-  for (const msg of checkSigningJob('probe-sign', probe.jobs['probe-sign'])) v.push(msg);
   assert.deepEqual(v, [], `[2] 違反:\n${v.join('\n')}`);
 
   // 自己検査: 規則 1 が contents: read を戻した形を落とす・ES_ を他の step へ配ると落ちる
@@ -365,8 +360,7 @@ function esignerIfViolations(workflow) {
     ['E4: [Diagnostics.Process]::new()', (job) => prepend(job, signIdx(job), '$p = [System.Diagnostics.Process]::new()')],
   ];
   for (const [label, mut] of mutations) {
-    for (const [name, job0] of [['sign-win-payload', wf.jobs['sign-win-payload']], ['probe-sign', probe.jobs['probe-sign']]]) {
-      if (label.startsWith('規則 11') && name === 'probe-sign') continue; // 規則 11 は probe を除く
+    for (const [name, job0] of [['sign-win-payload', wf.jobs['sign-win-payload']]]) {
       const job = clone(job0);
       mut(job);
       assert.ok(checkSigningJob(name, job).length > 0, `[5] 自己検査: ${name} で変異「${label}」を見逃した`);
