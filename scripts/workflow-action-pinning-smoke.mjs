@@ -23,13 +23,16 @@ const WORKFLOW_DIR = path.join(projectRoot, '.github/workflows');
 const REMOVED_NAME = ['artifact', 'signing', 'probe'].join('-');
 
 const USES_LINE = /^\s*(?:-\s+)?uses:\s*(['"]?)([^\s'"#]+)\1\s*(?:#\s*(.*?))?\s*$/;
+// uses: のキーを持つ行の入口。ブロック形式（行頭・「- 」の後）、キーを引用符で囲んだ形（"uses":）、
+// flow 形式（{uses: …}・{ name: x, uses: … }）を拾う。読める形は USES_LINE だけで、それ以外は「読めない行」の違反にする
+const USES_KEY = [/^\s*(?:-\s*)?["']?uses["']?\s*:/, /[{,]\s*["']?uses["']?\s*:/];
 
 /** workflow のテキストから uses: を全数読む。読めない uses: 行は違反として返す */
 export function parseUses(text, file) {
   const entries = [];
   const violations = [];
   text.split(/\r?\n/).forEach((line, i) => {
-    if (/^\s*#/.test(line) || !/(^|\s|-)uses:/.test(line)) return;
+    if (/^\s*#/.test(line) || !USES_KEY.some((re) => re.test(line))) return;
     const m = USES_LINE.exec(line);
     if (!m) {
       violations.push(`${file}:${i + 1}: uses: の行を読めない: ${line.trim()}`);
@@ -140,14 +143,18 @@ assert.ok(workflowFiles.length > 0, 'workflow が 1 つも無い');
   );
   assert.ok(bad('      - uses: "actions/checkout@v4"\n').length > 0, '[4] 引用符つきのタグ参照を落とさない');
   assert.ok(bad('        uses: actions/setup-node@v4\n').length > 0, '[4] 「- 」の無い uses: のタグ参照を落とさない');
+  assert.ok(bad('      - {uses: actions/checkout@v4}\n').length > 0, '[4] flow 形式（{uses: …}）のタグ参照を落とさない');
+  assert.ok(bad('      - { name: x, uses: actions/checkout@v4 }\n').length > 0, '[4] flow 形式（2 つ目のキー）のタグ参照を落とさない');
+  assert.ok(bad('      - "uses": actions/checkout@v4\n').length > 0, '[4] キーを引用符で囲んだ uses: のタグ参照を落とさない');
   assert.deepEqual(
     bad(
       `      - uses: ./.github/actions/local\n      - uses: docker://alpine:3\n` +
         `      - uses: actions/checkout@${sha('a')} # v4.0.0\n      - uses: actions/checkout@${sha('a')} # v4.0.0\n` +
-        `      - uses: owner/repo/sub@${sha('c')} # v2\n      # - uses: actions/checkout@v4\n`,
+        `      - uses: owner/repo/sub@${sha('c')} # v2\n      # - uses: actions/checkout@v4\n` +
+        `        run: echo "uses: actions/checkout@v4"\n`,
     ),
     [],
-    '[4] 正しい入力（ローカル・docker・揃った SHA・注記つき・コメント行）を誤って落とす',
+    '[4] 正しい入力（ローカル・docker・揃った SHA・注記つき・コメント行・run: の中の文字列）を誤って落とす',
   );
   console.log('  [4/4] 自己検査: PASS');
 }

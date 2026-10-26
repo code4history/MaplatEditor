@@ -7,7 +7,8 @@
  *       azure/login だけ・署名専用ジョブの permissions は { id-token: write } だけ（signing-job-rules.mjs の規則 1・5）
  *   [3] scripts/ci/eval-gh-if.mjs の自己検査
  *   [4] t3/AC4（eSigner 側 (ii)）: build-win の eSigner の step の if: を評価で断言する
- *   [5] 規則 11（署名の記録を job summary に表で書く）と、拒否語の穴 E1〜E4（NOV26-M7T2-B31-MIN2）の変異の自己検査
+ *   [5] 規則 11（署名の記録を job summary に表で書く）と、拒否語の穴 E1〜E4（NOV26-M7T2-B31-MIN2）の変異の自己検査、
+ *       および規則 2〜10・github.token・shell の各規則の変異の自己検査（1 か所ずつ壊して違反が出ること）
  *   [6] t3/AC3: docs/release-signing.md の残るリスク (a)〜(d)
  *
  * 実行: node scripts/nov26-m7-t3-credential-exposure-smoke.mjs（rtk を付けない）
@@ -21,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import { evalGhIf, evalGhIfBool, isTruthy } from './ci/eval-gh-if.mjs';
-import { checkSigningJob } from './win-sign/signing-job-rules.mjs';
+import { checkSigningJob, ENDPOINT, TSA } from './win-sign/signing-job-rules.mjs';
 
 const projectRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const WIN_SIGN = path.join(projectRoot, 'scripts/win-sign/win-sign.cjs');
@@ -324,6 +325,11 @@ function esignerIfViolations(workflow) {
   const signIdx = (job) => job.steps.findIndex((st) => /\/dlib\b/.test(runOf(st)));
   const prepend = (job, i, text) => { job.steps[i].run = `${text}\n${runOf(job.steps[i])}`; };
   const injectStep = (job, at, run) => job.steps.splice(at, 0, { name: 'Injected', shell: 'pwsh', run });
+  const stepIdx = (job, pred) => {
+    const i = job.steps.findIndex(pred);
+    assert.ok(i >= 0, '[5] 自己検査の前提: 変異させる step が見つからない');
+    return i;
+  };
   const mutations = [
     ['規則 11: 記録の step から job summary を消す', (job) => {
       const i = job.steps.findIndex((st) => runOf(st).includes('signing-record.json'));
@@ -358,6 +364,68 @@ function esignerIfViolations(workflow) {
     ['E4: New-Object Diagnostics.Process', (job) => prepend(job, signIdx(job), '$p = New-Object Diagnostics.Process')],
     ['E4: New-Object -TypeName System.Diagnostics.Process', (job) => prepend(job, signIdx(job), '$p = New-Object -TypeName System.Diagnostics.Process')],
     ['E4: [Diagnostics.Process]::new()', (job) => prepend(job, signIdx(job), '$p = [System.Diagnostics.Process]::new()')],
+    // 規則 2〜10・github.token・shell の各規則が空振りしていないこと（1 か所ずつ壊して違反が出る）
+    ['規則 3: 署名ジョブに checkout を足す', (job) => {
+      job.steps.unshift({ uses: 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' });
+    }],
+    ['規則 3: 署名ジョブに pnpm の run を足す', (job) => injectStep(job, signIdx(job), 'pnpm install --frozen-lockfile')],
+    ['規則 6: Endpoint を ${{ inputs.x }} にする', (job) => {
+      const i = stepIdx(job, (st) => /CodeSigningAccountName/.test(runOf(st)));
+      job.steps[i].run = runOf(job.steps[i]).split(ENDPOINT).join('${{ inputs.x }}');
+    }],
+    ['規則 6: Endpoint を別のリテラルにする', (job) => {
+      const i = stepIdx(job, (st) => /CodeSigningAccountName/.test(runOf(st)));
+      job.steps[i].run = runOf(job.steps[i]).split(ENDPOINT).join('https://eus.codesigning.azure.net');
+    }],
+    ['規則 6: metadata を書く run: に式を足す（リテラルは残す）', (job) => {
+      const i = stepIdx(job, (st) => /CodeSigningAccountName/.test(runOf(st)));
+      job.steps[i].run = `${runOf(job.steps[i])}\n# \${{ github.sha }}`;
+    }],
+    ['規則 4: azure/login をタグにする', (job) => {
+      const i = stepIdx(job, (st) => usesOf(st).startsWith('azure/login@'));
+      job.steps[i].uses = 'azure/login@v2';
+    }],
+    ['規則 9: 入力の PE を & で起動する', (job) => injectStep(job, signIdx(job), '& .\\sign-in\\MaplatEditor.exe')],
+    ['規則 9: 入力の PE を Start-Process で起動する', (job) => injectStep(job, signIdx(job), 'Start-Process sign-in\\MaplatEditor.exe')],
+    ['規則 9: 入力の PE を Invoke-Item で起動する', (job) => injectStep(job, signIdx(job), 'Invoke-Item sign-in\\MaplatEditor.exe')],
+    ['規則 9: 入力の PE を ii で起動する', (job) => injectStep(job, signIdx(job), 'ii sign-in\\MaplatEditor.exe')],
+    ['規則 9: 入力の PE を [Diagnostics.Process]::Start で起動する', (job) => injectStep(job, signIdx(job), "[Diagnostics.Process]::Start('sign-in\\MaplatEditor.exe')")],
+    ['規則 9: bash から $GITHUB_WORKSPACE つきの絶対パスで起動する', (job) => {
+      job.steps.splice(signIdx(job), 0, { name: 'Injected', shell: 'bash', run: '"$GITHUB_WORKSPACE/sign-in/MaplatEditor.exe"' });
+    }],
+    ['規則 9: pwsh から $env:GITHUB_WORKSPACE つきのパスを & で起動する', (job) => injectStep(job, signIdx(job), '& "$env:GITHUB_WORKSPACE\\sign-in\\MaplatEditor.exe"')],
+    ['規則 9: ワークスペースの絶対パスから入力を指す（pwsh・& を使わない形）', (job) => injectStep(job, signIdx(job), '$p = "$env:GITHUB_WORKSPACE\\sign-in\\MaplatEditor.exe"; Get-Item $p')],
+    ['規則 5: azure/login 以外が secrets を参照する', (job) => {
+      job.steps.splice(signIdx(job), 0, { name: 'Injected', shell: 'pwsh', env: { X: '${{ secrets.AZURE_CLIENT_ID }}' }, run: 'echo hi' });
+    }],
+    ['規則 5: azure/login 以外が secrets を添字で参照する', (job) => {
+      job.steps.splice(signIdx(job), 0, { name: 'Injected', shell: 'pwsh', env: { X: "${{ secrets['AZURE_CLIENT_ID'] }}" }, run: 'echo hi' });
+    }],
+    ['規則 5: ジョブの env に secrets を丸ごと渡す', (job) => { job.env = { ...(job.env ?? {}), ALL: '${{ toJSON(secrets) }}' }; }],
+    ['規則 5: azure/login が許されていない secret を添字で参照する', (job) => {
+      const i = stepIdx(job, (st) => usesOf(st).startsWith('azure/login@'));
+      job.steps[i].with = { ...job.steps[i].with, extra: "${{ secrets['GITHUB_TOKEN'] }}" };
+    }],
+    ['規則 7: TSA を外す', (job) => {
+      const i = signIdx(job);
+      job.steps[i].run = runOf(job.steps[i]).split(`/tr ${TSA}`).join('');
+    }],
+    ['規則 8: NuGet の SHA-256 を env: から消す', (job) => {
+      const i = stepIdx(job, (st) => /nuget\.org/i.test(runOf(st)));
+      assert.ok(job.steps[i].env?.ARTIFACTSIGNING_SHA256, '[5] 自己検査の前提: NuGet の step の env: に ARTIFACTSIGNING_SHA256 が無い');
+      delete job.steps[i].env.ARTIFACTSIGNING_SHA256;
+    }],
+    ['規則 10: upload-artifact の retention-days を消す', (job) => {
+      const i = stepIdx(job, (st) => usesOf(st).startsWith('actions/upload-artifact@'));
+      delete job.steps[i].with['retention-days'];
+    }],
+    ['規則 2: environment を式にする', (job) => { job.environment = '${{ github.ref_name }}'; }],
+    ['shell: shell を指定しない run を足す（既定の shell に任せない）', (job) => {
+      job.steps.splice(signIdx(job), 0, { name: 'Injected', run: 'Get-ChildItem sign-in' });
+    }],
+    ['github.token: github.token を env へ渡す', (job) => {
+      job.steps.splice(signIdx(job), 0, { name: 'Injected', shell: 'pwsh', env: { T: '${{ github.token }}' }, run: 'echo hi' });
+    }],
   ];
   for (const [label, mut] of mutations) {
     for (const [name, job0] of [['sign-win-payload', wf.jobs['sign-win-payload']]]) {
@@ -366,7 +434,7 @@ function esignerIfViolations(workflow) {
       assert.ok(checkSigningJob(name, job).length > 0, `[5] 自己検査: ${name} で変異「${label}」を見逃した`);
     }
   }
-  console.log('  [5/6] 規則 11・E1〜E4 の変異: PASS');
+  console.log(`  [5/6] 規則 2〜14・github.token・shell の変異（${mutations.length} 件）: PASS`);
 }
 
 // ───────────────────────────────────────────────
