@@ -108,7 +108,9 @@ async function waitPreviewMap(frame: Frame, timeoutMs: number): Promise<MapState
       try { layers = m.getStyle()?.layers?.length ?? -1; } catch { layers = -1; }
       return { ready: true, map: true, styleLoaded: Boolean(m.isStyleLoaded()), loaded: Boolean(m.loaded()), layers };
     }).catch((e) => ({ ready: false, error: String(e) }));
-    if (last.styleLoaded && last.loaded) break;
+    // viewer は MapLibre の Map を空の style で作ってから、ベースマップの style に差し替える。空の style の段階でも
+    // isStyleLoaded()・loaded() は真になるので、層が入ったこと（layers > 0）まで待つ（待たないと層の数を早く読む）
+    if (last.styleLoaded && last.loaded && (last.layers ?? 0) > 0) break;
     await new Promise((r) => setTimeout(r, 500));
   }
   return last;
