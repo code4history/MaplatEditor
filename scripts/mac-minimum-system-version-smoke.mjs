@@ -12,7 +12,7 @@
  * 守っている不変条件:
  *   [1] electron-builder.config.cjs の mac.minimumSystemVersion が '13.0'
  *   [2] scripts/release/set-mac-minimum-system-version.mjs が雛形の latest-mac.yml に
- *       minimumSystemVersion: 22.0.0 を足す（他のキーと値はそのまま・2 回目は変えない・既にあれば上書きしない・
+ *       minimumSystemVersion: 22.0.0 を足す（他のキーと値はそのまま・2 回目は変えない・既に同じ値なら何もしない・既に違う値なら失敗する・
  *       不正な値と YAML でない入力を拒む）。CLI もファイルを書き換える
  *   [3] build.yml の build-mac で、その step が「Build macOS」の後・「Upload macOS artifacts」の前にあり、
  *       release/${{ env.VERSION }}/latest-mac.yml に 22.0.0 を渡す
@@ -60,18 +60,24 @@ const DARWIN_MIN = '22.0.0';
   assert.equal(r1.changed, true, '[2]: 雛形に minimumSystemVersion を足していない');
   const parsed = yaml.load(r1.text);
   assert.equal(parsed.minimumSystemVersion, DARWIN_MIN, `[2]: 足した値が文字列 '${DARWIN_MIN}' として読めない`);
-  const { minimumSystemVersion: _drop, ...rest } = parsed;
-  assert.deepEqual(rest, yaml.load(template), '[2]: 他のキー・値が変わった');
+  delete parsed.minimumSystemVersion;
+  assert.deepEqual(parsed, yaml.load(template), '[2]: 他のキー・値が変わった');
   assert.ok(r1.text.startsWith(template), '[2]: 既存の本文の文字列を書き換えた（末尾に足すだけであること）');
   // 冪等: 2 回目は変えない
   const r2 = addMinimumSystemVersion(r1.text, DARWIN_MIN);
   assert.equal(r2.changed, false, '[2]: 2 回目で変わった');
   assert.equal(r2.text, r1.text, '[2]: 2 回目で本文が変わった');
-  // 既にあれば上書きしない
-  const pre = template + 'minimumSystemVersion: 23.0.0\n';
-  const r3 = addMinimumSystemVersion(pre, DARWIN_MIN);
-  assert.equal(r3.changed, false, '[2]: 既にある minimumSystemVersion を上書きした');
-  assert.equal(yaml.load(r3.text).minimumSystemVersion, '23.0.0', '[2]: 既にある値が変わった');
+  // 既に同じ値があれば何もしない（引用符つきでも同じ値とみなす）
+  for (const same of [`minimumSystemVersion: ${DARWIN_MIN}\n`, `minimumSystemVersion: '${DARWIN_MIN}'\n`]) {
+    const r3 = addMinimumSystemVersion(template + same, DARWIN_MIN);
+    assert.equal(r3.changed, false, `[2]: 既に同じ値がある入力（${JSON.stringify(same)}）で変わった`);
+    assert.equal(r3.text, template + same, `[2]: 既に同じ値がある入力（${JSON.stringify(same)}）で本文が変わった`);
+  }
+  // 既に違う値があれば失敗する（黙って残すと、比べられない値で electron-updater が更新を案内する側に倒れうる）
+  for (const other of ['13.0', '21.0.0', '23.0.0', "''"]) {
+    assert.throws(() => addMinimumSystemVersion(`${template}minimumSystemVersion: ${other}\n`, DARWIN_MIN),
+      `[2]: 既に違う値 ${other} がある入力を拒まない`);
+  }
   // 末尾に改行の無い入力でも 1 行として足す
   const r4 = addMinimumSystemVersion(template.trimEnd(), DARWIN_MIN);
   assert.equal(yaml.load(r4.text).minimumSystemVersion, DARWIN_MIN, '[2]: 末尾に改行の無い入力で正しく足せない');
@@ -92,7 +98,19 @@ const DARWIN_MIN = '22.0.0';
   assert.equal(yaml.load(readFileSync(file, 'utf8')).minimumSystemVersion, DARWIN_MIN, '[2]: CLI がファイルに足していない');
   assert.throws(() => execFileSync(process.execPath, [path.join(projectRoot, SCRIPT_REL), path.join(dir, 'missing.yml'), DARWIN_MIN], { stdio: 'pipe' }),
     '[2]: CLI が存在しないファイルで失敗しない');
-  console.log(`  [2/5] ${SCRIPT_REL}（足す・冪等・上書きしない・拒む・CLI）: PASS`);
+  // CLI: 既に同じ値なら exit 0 で本文を変えない・違う値なら exit 非 0 で本文を変えない
+  const afterAdd = readFileSync(file, 'utf8');
+  execFileSync(process.execPath, [path.join(projectRoot, SCRIPT_REL), file, DARWIN_MIN], { stdio: 'pipe' });
+  assert.equal(readFileSync(file, 'utf8'), afterAdd, '[2]: CLI が既に同じ値のあるファイルを書き換えた');
+  for (const other of ['13.0', '21.0.0']) {
+    const otherFile = path.join(dir, `latest-mac-${other}.yml`);
+    const body = `${template}minimumSystemVersion: ${other}\n`;
+    writeFileSync(otherFile, body);
+    assert.throws(() => execFileSync(process.execPath, [path.join(projectRoot, SCRIPT_REL), otherFile, DARWIN_MIN], { stdio: 'pipe' }),
+      `[2]: CLI が既に違う値 ${other} のあるファイルで失敗しない`);
+    assert.equal(readFileSync(otherFile, 'utf8'), body, `[2]: CLI が既に違う値 ${other} のあるファイルを書き換えた`);
+  }
+  console.log(`  [2/5] ${SCRIPT_REL}（足す・冪等・同じ値は通す・違う値は拒む・不正値を拒む・CLI）: PASS`);
 }
 
 // [3] build.yml の step の位置

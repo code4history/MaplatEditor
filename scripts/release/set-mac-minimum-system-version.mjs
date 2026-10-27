@@ -9,7 +9,10 @@
  *
  * 使い方: node scripts/release/set-mac-minimum-system-version.mjs <latest-mac.yml> <Darwin の版 例 22.0.0>
  *   - 既存の本文は書き換えず、末尾に 1 行足すだけ（sha512 などの値の書式を保つ）
- *   - 既に minimumSystemVersion があれば上書きしない（知らせて何もしない）
+ *   - 既に minimumSystemVersion があり、渡した値と同じなら何もしない（exit 0）
+ *   - 既に minimumSystemVersion があり、渡した値と違えば失敗する（exit 非 0・ファイルは変えない）。
+ *     electron-updater 6.8.10 は比較で例外が出ると更新を案内する側に倒れるので、違う値（例 13.0）を
+ *     黙って残すと macOS 12 に更新が案内されうる
  *   - 値は X.Y.Z の形（semver の比較に使われる）。ファイルが無い・YAML の対応表でなければ失敗する
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -33,7 +36,10 @@ export function addMinimumSystemVersion(text, value) {
     throw new Error('latest-mac.yml が YAML の対応表として読めない');
   }
   if (Object.prototype.hasOwnProperty.call(doc, KEY)) {
-    return { text, changed: false };
+    if (doc[KEY] === value) {
+      return { text, changed: false };
+    }
+    throw new Error(`latest-mac.yml に既に ${KEY}: ${JSON.stringify(doc[KEY])} がある（渡した値 ${JSON.stringify(value)} と違う）`);
   }
   const base = text.length === 0 || text.endsWith('\n') ? text : `${text}\n`;
   const out = `${base}${KEY}: ${value}\n`;
@@ -58,6 +64,6 @@ if (isMain) {
     writeFileSync(file, text);
     console.log(`${file}: ${KEY}: ${value} を足した`);
   } else {
-    console.log(`${file}: ${KEY} は既にある（${JSON.stringify(yaml.load(before)[KEY])}）。上書きしない`);
+    console.log(`${file}: ${KEY}: ${value} は既にある。何もしない`);
   }
 }
