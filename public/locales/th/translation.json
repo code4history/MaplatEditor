@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "รองรับเฉพาะ http และ https",
     "style_gl_check_reason_invalid-json": "ไม่ใช่สไตล์ JSON",
     "style_gl_check_reason_not-v8": "ไม่ใช่สไตล์เวอร์ชัน 8",
-    "style_gl_check_reason_invalid-argument": "URL ไม่ถูกต้อง"
+    "style_gl_check_reason_invalid-argument": "URL ไม่ถูกต้อง",
+    "style_gl_check_reason_check-failed": "สไตล์ซับซ้อนเกินไปหรือเขียนในรูปแบบที่ไม่คาดคิด"
   },
   "settings": {
     "title": "การตั้งค่า",

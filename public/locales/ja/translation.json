@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "http と https だけに対応しています",
     "style_gl_check_reason_invalid-json": "JSON のスタイルではありません",
     "style_gl_check_reason_not-v8": "version 8 のスタイルではありません",
-    "style_gl_check_reason_invalid-argument": "URL が正しくありません"
+    "style_gl_check_reason_invalid-argument": "URL が正しくありません",
+    "style_gl_check_reason_check-failed": "スタイルが複雑すぎるか、想定外の書き方のため判定を止めました"
   },
   "settings": {
     "title": "設定",

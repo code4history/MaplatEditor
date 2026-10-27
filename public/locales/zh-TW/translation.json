@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "僅支援 http 與 https",
     "style_gl_check_reason_invalid-json": "不是 JSON 樣式",
     "style_gl_check_reason_not-v8": "不是版本 8 的樣式",
-    "style_gl_check_reason_invalid-argument": "URL 無效"
+    "style_gl_check_reason_invalid-argument": "URL 無效",
+    "style_gl_check_reason_check-failed": "樣式過於複雜或寫法超出預期"
   },
   "settings": {
     "title": "設定",

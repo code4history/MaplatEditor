@@ -32,5 +32,11 @@ export async function checkMaplibreStyle(url: unknown): Promise<MaplibreStyleSup
   } catch {
     return { result: 'unknown', reasons: [{ kind: 'invalid-json' }] };
   }
-  return judgeMaplibreStyleSupport(style);
+  // 判定の関数は例外を外へ出さない作りだが、IPC が reject すると画面は取得の失敗（network）と取り違えるので、
+  // ここでも包んで固有の理由を返す
+  try {
+    return judgeMaplibreStyleSupport(style);
+  } catch {
+    return { result: 'unknown', reasons: [{ kind: 'check-failed' }] };
+  }
 }

@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "chỉ hỗ trợ http và https",
     "style_gl_check_reason_invalid-json": "không phải kiểu JSON",
     "style_gl_check_reason_not-v8": "không phải kiểu phiên bản 8",
-    "style_gl_check_reason_invalid-argument": "URL không hợp lệ"
+    "style_gl_check_reason_invalid-argument": "URL không hợp lệ",
+    "style_gl_check_reason_check-failed": "kiểu quá phức tạp hoặc được viết theo cách không mong đợi"
   },
   "settings": {
     "title": "Cài đặt",

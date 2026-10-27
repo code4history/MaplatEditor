@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "hanya http dan https yang didukung",
     "style_gl_check_reason_invalid-json": "bukan gaya JSON",
     "style_gl_check_reason_not-v8": "bukan gaya versi 8",
-    "style_gl_check_reason_invalid-argument": "URL tidak valid"
+    "style_gl_check_reason_invalid-argument": "URL tidak valid",
+    "style_gl_check_reason_check-failed": "gaya terlalu rumit atau ditulis dengan cara yang tidak terduga"
   },
   "settings": {
     "title": "Pengaturan",

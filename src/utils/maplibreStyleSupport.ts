@@ -35,7 +35,9 @@ export type MaplibreStyleReasonKind =
   | "unsupported-scheme"
   | "invalid-json"
   | "not-v8"
-  | "invalid-argument";
+  | "invalid-argument"
+  // 判定の途中で止めた（式や値の入れ子が深すぎる・想定外の書き方で判定が例外になった）
+  | "check-failed";
 
 export interface MaplibreStyleReason {
   kind: MaplibreStyleReasonKind;
@@ -66,6 +68,18 @@ export function safeStyleName(value: unknown): string {
   return typeof value === "string" && SAFE_NAME.test(value) ? value : "…";
 }
 
+// 表（JSON から読んだオブジェクト）を style の本文から来た名前で引くときは、自分のキーだけを見る
+// （"constructor"・"toString"・"__proto__" などで Object.prototype のものを引かないため）
+function own<T>(table: unknown, key: unknown): T | undefined {
+  if (!table || typeof table !== "object" || typeof key !== "string") return undefined;
+  return Object.prototype.hasOwnProperty.call(table, key) ? (table as Record<string, T>)[key] : undefined;
+}
+
+// 式や値の入れ子の深さの上限。これを超える style は判定の途中で止めて「判定できない」にする
+// （再帰で呼び出しの深さが尽きるのを避ける。実際の style の式はこれよりずっと浅い）
+const MAX_DEPTH = 256;
+class StyleTooDeepError extends Error {}
+
 function cmp(a: string, b: string): number {
   const x = a.split(".").map(Number);
   const y = b.split(".").map(Number);
@@ -80,30 +94,32 @@ type Requirement = MaplibreStyleSupportTable["requirements"][number];
 type Ctx = { layer?: number; layerId?: string; source?: string; key?: string; operator?: string };
 
 /** 式（配列）の中の演算子を拾う。literal の中は値なので歩かない */
-function collectOperators(value: unknown, known: Set<string>, out: Set<string>): void {
+function collectOperators(value: unknown, known: Set<string>, out: Set<string>, depth = 0): void {
+  if (depth > MAX_DEPTH) throw new StyleTooDeepError();
   if (Array.isArray(value)) {
     if (typeof value[0] === "string" && known.has(value[0])) {
       out.add(value[0]);
       if (value[0] === "literal") return;
-      for (const item of value.slice(1)) collectOperators(item, known, out);
+      for (const item of value.slice(1)) collectOperators(item, known, out, depth + 1);
       return;
     }
-    for (const item of value) collectOperators(item, known, out);
+    for (const item of value) collectOperators(item, known, out, depth + 1);
     return;
   }
   if (value && typeof value === "object") {
-    for (const item of Object.values(value)) collectOperators(item, known, out);
+    for (const item of Object.values(value)) collectOperators(item, known, out, depth + 1);
   }
 }
 
-function hasNumberFormatUnit(value: unknown): boolean {
+function hasNumberFormatUnit(value: unknown, depth = 0): boolean {
+  if (depth > MAX_DEPTH) throw new StyleTooDeepError();
   if (!Array.isArray(value)) return false;
   if (value[0] === "number-format") {
     const options = value[2];
     if (options && typeof options === "object" && !Array.isArray(options) && "unit" in options) return true;
   }
   if (value[0] === "literal") return false;
-  return value.some((item) => hasNumberFormatUnit(item));
+  return value.some((item) => hasNumberFormatUnit(item, depth + 1));
 }
 
 function isLegacyFunction(value: unknown): value is Record<string, unknown> {
@@ -114,6 +130,16 @@ export function judgeMaplibreStyleSupport(
   style: unknown,
   table: MaplibreStyleSupportTable = MAPLIBRE_STYLE_SUPPORT_TABLE,
 ): MaplibreStyleSupportResult {
+  try {
+    return judge(style, table);
+  } catch {
+    // 入れ子が深すぎる・想定外の書き方。例外を外へ出さず「判定できない」を固有の理由で返す
+    // （呼び出し側が取得の失敗と取り違えないように）
+    return { result: "unknown", reasons: [{ kind: "check-failed" }] };
+  }
+}
+
+function judge(style: unknown, table: MaplibreStyleSupportTable): MaplibreStyleSupportResult {
   if (!style || typeof style !== "object" || Array.isArray(style)) {
     return { result: "unknown", reasons: [{ kind: "invalid-json" }] };
   }
@@ -190,7 +216,7 @@ export function judgeMaplibreStyleSupport(
         // paint の遷移のキー（<key>-transition）は、元のキーが遷移を持つなら元のキーと同じ扱い
         const transitionOf = section === "paint" && rawKey.endsWith("-transition") ? rawKey.slice(0, -"-transition".length) : null;
         const known = (t: any) =>
-          (t[section][type] ?? []).includes(rawKey) || (transitionOf !== null && (t.transitionable?.[type] ?? []).includes(transitionOf));
+          (own<string[]>(t[section], type) ?? []).includes(rawKey) || (transitionOf !== null && (own<string[]>(t.transitionable, type) ?? []).includes(transitionOf));
         const ctx: Ctx = { ...base, key: `${section}.${safeStyleName(rawKey)}` };
         if (!known(v6)) { push({ kind: "unknown-to-6", ...ctx }); continue; }
         const knownTo5 = known(v5);
@@ -214,8 +240,8 @@ export function judgeMaplibreStyleSupport(
     const base: Ctx = { source: safeStyleName(id) };
     if (!raw || typeof raw !== "object") continue;
     const type = raw.type;
-    const spec6 = typeof type === "string" ? v6.sources[type] : undefined;
-    const spec5 = typeof type === "string" ? v5.sources[type] : undefined;
+    const spec6 = own<any>(v6.sources, type);
+    const spec5 = own<any>(v5.sources, type);
     if (!spec6) { push({ kind: "unknown-to-6", ...base, key: "type" }); continue; }
     if (!spec5) push({ kind: "unknown-to-5", ...base, key: "type" });
     for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -225,10 +251,10 @@ export function judgeMaplibreStyleSupport(
       // "*" を持つ型（vector・raster・raster-dem）は、どちらの検証も知らないキーを通す
       if (!in6) { if (!spec6.wildcard) push({ kind: "unknown-to-6", ...ctx }); continue; }
       if (!in5 && !(spec5 && spec5.wildcard)) push({ kind: "unknown-to-5", ...ctx });
-      const enum6: string[] | undefined = spec6.enums?.[key];
+      const enum6 = own<string[]>(spec6.enums, key);
       if (enum6 && typeof value === "string") {
         if (!enum6.includes(value)) { push({ kind: "unknown-to-6", ...ctx }); continue; }
-        const enum5: string[] | undefined = spec5?.enums?.[key];
+        const enum5 = own<string[]>(spec5?.enums, key);
         if (enum5 && !enum5.includes(value)) push({ kind: "unknown-to-5", ...ctx });
         for (const r of findReqs((x) => x.scope === "source" && x.type === type && x.key === key && x.kind === "encoding-value" && (x as any).value === value)) {
           requirement(r, ctx);

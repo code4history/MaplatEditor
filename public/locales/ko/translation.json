@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "http와 https만 지원합니다",
     "style_gl_check_reason_invalid-json": "JSON 스타일이 아닙니다",
     "style_gl_check_reason_not-v8": "버전 8 스타일이 아닙니다",
-    "style_gl_check_reason_invalid-argument": "잘못된 URL"
+    "style_gl_check_reason_invalid-argument": "잘못된 URL",
+    "style_gl_check_reason_check-failed": "스타일이 너무 복잡하거나 예상하지 못한 형식입니다"
   },
   "settings": {
     "title": "설정",

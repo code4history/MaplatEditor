@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "seuls http et https sont pris en charge",
     "style_gl_check_reason_invalid-json": "ce n’est pas un style JSON",
     "style_gl_check_reason_not-v8": "ce n’est pas un style de version 8",
-    "style_gl_check_reason_invalid-argument": "URL non valide"
+    "style_gl_check_reason_invalid-argument": "URL non valide",
+    "style_gl_check_reason_check-failed": "le style est trop complexe ou écrit de façon inattendue"
   },
   "settings": {
     "title": "Paramètres",

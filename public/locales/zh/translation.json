@@ -185,7 +185,8 @@
     "style_gl_check_reason_unsupported-scheme": "仅支持 http 和 https",
     "style_gl_check_reason_invalid-json": "不是 JSON 样式",
     "style_gl_check_reason_not-v8": "不是版本 8 的样式",
-    "style_gl_check_reason_invalid-argument": "URL 无效"
+    "style_gl_check_reason_invalid-argument": "URL 无效",
+    "style_gl_check_reason_check-failed": "样式过于复杂或写法超出预期"
   },
   "settings": {
     "title": "设置",
