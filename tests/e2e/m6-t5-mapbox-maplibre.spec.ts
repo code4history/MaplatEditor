@@ -165,19 +165,16 @@ test('m6-t5 AC16: maplibre マスタ保存 → プレビュー HTML へ maplibre
     expect(s1.port).toBe(PREVIEW_PORT);
 
     const html1 = (await fetchBody(s1.port, `/preview/${s1.token}/`)).body;
-    // link と import map（MapLibre 6 系は ESM だけの配布）が SRI 付きで、ol.js より前。起動はモジュール
-    const cssIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre.version}/dist/maplibre-gl.css`);
-    const mapIdx = html1.indexOf('<script type="importmap">');
-    const moduleIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre.version}/dist/maplibre-gl.mjs`);
+    // link + script が SRI 付きで、ol.js より前。版を選んでいないアプリは既定の 5 系（5.6.2 の UMD）
+    const cssIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre5.version}/dist/maplibre-gl.css`);
+    const jsIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre5.version}/dist/maplibre-gl.js`);
     const olIdx = html1.indexOf('assets/ol.js');
     expect(cssIdx, 'preview HTML に maplibre-gl css CDN が無い').toBeGreaterThanOrEqual(0);
-    expect(mapIdx, 'preview HTML に import map が無い').toBeGreaterThanOrEqual(0);
-    expect(moduleIdx, 'preview HTML に maplibre-gl のモジュールの URL が無い').toBeGreaterThan(mapIdx);
+    expect(jsIdx, 'preview HTML に maplibre-gl js CDN が無い').toBeGreaterThanOrEqual(0);
     expect(olIdx).toBeGreaterThanOrEqual(0);
     expect(cssIdx).toBeLessThan(olIdx);
-    expect(mapIdx).toBeLessThan(olIdx);
-    expect(moduleIdx).toBeLessThan(olIdx);
-    expect(html1).toContain('<script type="module">');
+    expect(jsIdx).toBeLessThan(olIdx);
+    expect(html1).not.toContain('<script type="module">');
     expect(html1).toContain('integrity="sha384-');
     expect(html1).toContain('crossorigin="anonymous"');
     // maplibre のみのアプリに mapbox CDN は入らない

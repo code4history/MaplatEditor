@@ -15,36 +15,26 @@
 // 段を進めるのは「確かめが正常に終わり、getContext('webgl2') が厳密に null」のときだけ。
 // 確かめの例外・時間切れ・想定外の値は、その場で失敗させる。
 // 確かめはプレビューを開く前の素の BrowserWindow（about:blank）で行い、プレビューの不具合と切り離す。
-import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
+import { expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import AdmZip from 'adm-zip';
-import { mkdtemp, readFile, writeFile, mkdir } from 'node:fs/promises';
-import http from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import {
+  COLOR_HITS_MIN, DISTINCT_MIN, FIXTURE_STYLE, STYLE_ERROR, httpStatus as status, launchWithWebGlStage,
+  sampleWindow as sampleAppWindow, saveShot, serveStatic, stageNote as noteOf, type Sample, type Stage,
+} from './helpers/glRender';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
 import { PROVIDER_GL_CDN } from '../../electron/services/providerGlCdn';
 
-const projectRoot = path.resolve(import.meta.dirname, '../..');
 // 他の spec（45782・45784 等）と衝突しない固定ポート
 const PREVIEW_PORT = 45791;
-const FIXTURE_STYLE = path.join(import.meta.dirname, 'fixtures/provider-gl/line-layer-opacity-style.json');
 const KIRIEZU_STYLE = 'https://kanahiro.github.io/maplibre-style-server/styles/kiriezu.json';
 const OPENFREEMAP = 'https://tiles.openfreemap.org/planet';
-const SWIFTSHADER_ARGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
-const STYLE_ERROR = /layers\[\d+\]\.(paint|layout)\.|unknown property/;
 const LOAD_FAILED = 'MapLibre GL JS could not be loaded';
-// fixture の色（line-layer-opacity-style.json）
-const BG_RGB: [number, number, number] = [0x2a, 0x9d, 0x8f];
-const FILL_RGB: [number, number, number] = [0xe7, 0x6f, 0x51];
-// 6×6 の標本で数えた色の種類の閾値。5.6.2（描画されない）と 6 系（描画される）の実測の間に置く
-const DISTINCT_MIN = 4;
-// 20×20 の標本で、fixture の背景色・塗りの色に近い点の数の下限
-const COLOR_HITS_MIN = 10;
 
-type Stage = { n: 1 | 2 | 3; args: string[] };
 type ConsoleLine = { type: string; text: string };
 
 let app: ElectronApplication;
@@ -55,12 +45,8 @@ const consoleLines: ConsoleLine[] = [];
 let styleServer: { origin: string; close: () => Promise<void> };
 let mlApp: { uid: string; slug: string };
 
-const shotDir = process.env.PROVIDER_GL_SHOT_DIR || '';
-
 function stageNote(): string {
-  if (stage.n === 3) return '[provider-gl stage3] WebGL 2 が使えない（通常の起動・swiftshader の起動の両方で getContext("webgl2") が null）';
-  if (stage.n === 2) return `[provider-gl stage2] 起動引数 ${stage.args.join(' ')} で WebGL 2 が使える`;
-  return '[provider-gl stage1] 通常の起動で WebGL 2 が使える';
+  return noteOf(stage);
 }
 
 function annotateStage(): void {
@@ -72,103 +58,25 @@ function skipWithoutWebGl(): void {
   test.skip(stage.n === 3, stageNote());
 }
 
-async function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  try {
-    return await Promise.race([p, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-async function launch(root: string, extraArgs: string[]): Promise<{ app: ElectronApplication; page: Page }> {
-  const a = await electron.launch({
-    args: [...extraArgs, projectRoot, `--user-data-dir=${root}`],
-    cwd: projectRoot,
-    env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: root },
-  });
-  const p = await a.firstWindow();
-  await p.waitForLoadState('domcontentloaded');
-  return { app: a, page: p };
-}
-
-/** WebGL 2 が使えれば true、getContext('webgl2') が厳密に null なら false。それ以外はすべて例外 */
-async function probeWebGl2(a: ElectronApplication): Promise<boolean> {
-  const result = await withTimeout(
-    a.evaluate(async ({ BrowserWindow }) => {
-      const win = new BrowserWindow({ show: false, width: 64, height: 64 });
-      try {
-        await win.loadURL('about:blank');
-        return await win.webContents.executeJavaScript(
-          "(() => { const c = document.createElement('canvas').getContext('webgl2'); return c === null ? null : (typeof c === 'object' ? 'context' : String(c)); })()",
-        );
-      } finally {
-        win.destroy();
-      }
-    }),
-    30_000,
-    'WebGL 2 の確かめが 30 秒で終わらない',
-  );
-  if (result === 'context') return true;
-  if (result === null) return false;
-  throw new Error(`WebGL 2 の確かめが想定外の値を返した: ${JSON.stringify(result)}`);
-}
-
-function serveStatic(root: string, opts: { cors?: boolean } = {}): Promise<{ origin: string; close: () => Promise<void> }> {
-  const types: Record<string, string> = {
-    '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-    '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png',
-    '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
-  };
-  const server = http.createServer(async (req, res) => {
-    if (opts.cors) res.setHeader('access-control-allow-origin', '*');
-    const urlPath = decodeURIComponent(new URL(req.url || '/', 'http://x').pathname);
-    const rel = urlPath.endsWith('/') ? `${urlPath}index.html` : urlPath;
-    const file = path.resolve(root, `.${rel}`);
-    if (file !== root && !file.startsWith(root + path.sep)) { res.statusCode = 403; res.end(); return; }
-    try {
-      const body = await readFile(file);
-      res.setHeader('content-type', types[path.extname(file)] || 'application/octet-stream');
-      res.end(body);
-    } catch {
-      res.statusCode = 404;
-      res.end('not found');
-    }
-  });
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address() as AddressInfo;
-      resolve({ origin: `http://127.0.0.1:${port}`, close: () => new Promise<void>((r) => server.close(() => r())) });
-    });
-  });
-}
-
-async function status(url: string, timeoutMs: number): Promise<string> {
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-    return r.status === 200 ? 'ok' : `HTTP ${r.status}`;
-  } catch (e) {
-    return String((e as Error)?.message || e);
-  }
-}
-
+// 本 spec は 6 系（import map とモジュールの起動）の確かめなので、MapLibre のアプリは版の値に 6 を明示する
+// （値の無いアプリは既定の 5 系）
 async function seedMapLibreApp(slug: string, style: string): Promise<{ uid: string; slug: string }> {
   const baseMapUid = await seedBaseMap(page, `${slug}-base`, baseMapMasterDoc({ kind: 'maplibre', maptype: 'maplibre', style, url: '' }));
-  return seedApp(slug, [{ sourceType: 'tms', mapUid: `${slug}-base`, baseMapUid, role: 'base', startFrom: true, overrides: {} }]);
+  return seedApp(slug, [{ sourceType: 'tms', mapUid: `${slug}-base`, baseMapUid, role: 'base', startFrom: true, overrides: {} }], { maplibreMajorVersion: 6 });
 }
 
-async function seedApp(slug: string, sources: unknown[]): Promise<{ uid: string; slug: string }> {
-  const uid = await page.evaluate(async ({ slug: s, sources: src, previewPort }) => {
+async function seedApp(slug: string, sources: unknown[], extra: Record<string, unknown> = {}): Promise<{ uid: string; slug: string }> {
+  const uid = await page.evaluate(async ({ slug: s, sources: src, previewPort, extra: x }) => {
     const id = crypto.randomUUID();
     const saved = await (window as any).appedit.save({ uid: id, slug: s, create: true, document: {
       appID: s, appName: { ja: s }, title: { ja: s }, description: {}, keywords: '', siteUrl: '', lang: 'ja',
       sources: src, pois: [],
       appSettings: { homeLng: 139.767, homeLat: 35.681, defaultZoom: 15 },
-      httpSettings: { previewPort }, manifestSettings: {},
+      httpSettings: { previewPort }, manifestSettings: {}, ...x,
     } });
     if (!saved || saved.result !== 'Success') throw new Error(`app save failed: ${JSON.stringify(saved)}`);
     return id;
-  }, { slug, sources, previewPort: PREVIEW_PORT });
+  }, { slug, sources, previewPort: PREVIEW_PORT, extra });
   return { uid, slug };
 }
 
@@ -206,41 +114,8 @@ async function waitPreviewMap(frame: Frame, timeoutMs: number): Promise<MapState
   return last;
 }
 
-type Sample = { distinct6: number; bgHits: number; fillHits: number; png: Buffer };
-
-/** 窓の矩形を capturePage で撮り、6×6 の標本の色の種類と、20×20 の標本の fixture の色に近い点の数を数える */
-async function sampleWindow(target: Page, rect: { x: number; y: number; width: number; height: number }): Promise<Sample> {
-  const bw = await app.browserWindow(target);
-  const b64 = await bw.evaluate(async (w, r) => (await w.webContents.capturePage(r)).toPNG().toString('base64'), {
-    x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height),
-  });
-  const png = Buffer.from(b64, 'base64');
-  const { Jimp } = await import('jimp');
-  const img = await Jimp.read(png);
-  const { width, height, data } = img.bitmap;
-  const px = (x: number, y: number) => {
-    const i = (Math.min(height - 1, y) * width + Math.min(width - 1, x)) * 4;
-    return [data[i], data[i + 1], data[i + 2]];
-  };
-  const seen = new Set<string>();
-  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
-    seen.add(px(Math.floor((width / 6) * i + width / 12), Math.floor((height / 6) * j + height / 12)).join(','));
-  }
-  const near = (c: number[], t: number[]) => c.every((v, k) => Math.abs(v - t[k]) <= 12);
-  let bgHits = 0;
-  let fillHits = 0;
-  for (let i = 0; i < 20; i++) for (let j = 0; j < 20; j++) {
-    const c = px(Math.floor((width / 20) * i + width / 40), Math.floor((height / 20) * j + height / 40));
-    if (near(c, BG_RGB)) bgHits++;
-    if (near(c, FILL_RGB)) fillHits++;
-  }
-  return { distinct6: seen.size, bgHits, fillHits, png };
-}
-
-async function saveShot(name: string, png: Buffer): Promise<void> {
-  if (!shotDir) return;
-  await mkdir(shotDir, { recursive: true });
-  await writeFile(path.join(shotDir, `${name}.png`), png);
+function sampleWindow(target: Page, rect: { x: number; y: number; width: number; height: number }): Promise<Sample> {
+  return sampleAppWindow(app, target, rect);
 }
 
 async function iframeRect(): Promise<{ x: number; y: number; width: number; height: number }> {
@@ -293,26 +168,13 @@ test.describe.configure({ timeout: 300_000 });
 test.describe('MapLibre / Mapbox GL の注入と描画', () => {
   test.beforeAll(async () => {
     // 製品が実行時に使う CDN。届かなければ何も確かめられないので失敗にする（skip しない）
-    for (const url of [PROVIDER_GL_CDN.maplibre.css, PROVIDER_GL_CDN.mapbox.css]) {
+    for (const url of [PROVIDER_GL_CDN.maplibre6.css, PROVIDER_GL_CDN.mapbox.css]) {
       const s = await status(url, 15_000);
       if (s !== 'ok') throw new Error(`CDN に届かない: ${url}: ${s}`);
     }
 
     e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-provider-gl-'));
-    ({ app, page } = await launch(e2eRoot, []));
-    if (await probeWebGl2(app)) {
-      stage = { n: 1, args: [] };
-    } else {
-      await quitElectronApplication(app);
-      ({ app, page } = await launch(e2eRoot, SWIFTSHADER_ARGS));
-      if (await probeWebGl2(app)) {
-        stage = { n: 2, args: SWIFTSHADER_ARGS };
-      } else if (process.env.CI) {
-        stage = { n: 3, args: SWIFTSHADER_ARGS };
-      } else {
-        throw new Error('手元で WebGL 2 が使えない（通常の起動・swiftshader の起動の両方で getContext("webgl2") が null）。描画の確かめができないので止める');
-      }
-    }
+    ({ app, page, stage } = await launchWithWebGlStage(e2eRoot));
     console.log(stageNote());
 
     page.on('console', (m) => consoleLines.push({ type: m.type(), text: m.text() }));
