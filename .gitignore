@@ -35,6 +35,8 @@ tsconfig.node.tsbuildinfo
 # Electron ビルド成果物
 dist-electron/
 release/
+# 上の release/ はビルド成果物（直下の release/）のためのもの。リリース用のスクリプトの置き場は追跡する
+!/scripts/release/
 
 # Electrobun M2 PoC ビルド成果物
 build-electrobun/

@@ -304,7 +304,8 @@
     "smoke:nov26-editor-splash-svg": "node scripts/nov26-editor-splash-svg-smoke.mjs",
     "test:e2e:nov26-editor-splash-svg": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-editor-splash-svg.spec.ts",
     "test:e2e:nov26-pwa-icon-source": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/nov26-pwa-icon-source.spec.ts",
-    "smoke:workflow-action-pinning": "node scripts/workflow-action-pinning-smoke.mjs"
+    "smoke:workflow-action-pinning": "node scripts/workflow-action-pinning-smoke.mjs",
+    "smoke:mac-minimum-system-version": "node scripts/mac-minimum-system-version-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

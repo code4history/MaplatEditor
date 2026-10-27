@@ -91,6 +91,10 @@ const config = {
             { target: 'zip', arch: ['x64', 'arm64'] },
         ],
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
+        // 動作環境の下限: Electron 44 で macOS 12 の対応が外れたので macOS 13（Ventura）以上（Info.plist の
+        // LSMinimumSystemVersion）。自動更新の更新情報（latest-mac.yml）の下限は electron-builder が書かないため、
+        // build.yml が scripts/release/set-mac-minimum-system-version.mjs で Darwin の版（22.0.0）を足す
+        minimumSystemVersion: '13.0',
         // Hardened Runtime は公証に必須だが、APPLE_ID 未設定時は無効化
         hardenedRuntime: isMacSigning,
         gatekeeperAssess: false,

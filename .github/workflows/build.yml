@@ -285,6 +285,11 @@ jobs:
       - name: Build macOS
         run: pnpm run dist:mac
 
+      # 自動更新の更新情報に動作環境の下限を足す。electron-updater は os.release()（Darwin の版）と比べるので
+      # macOS 13 = Darwin 22.0.0。electron-builder は latest-mac.yml に書かないため後処理で足す（Upload の前）
+      - name: Set minimum system version in latest-mac.yml
+        run: node scripts/release/set-mac-minimum-system-version.mjs "release/${{ env.VERSION }}/latest-mac.yml" 22.0.0
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
