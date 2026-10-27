@@ -331,8 +331,8 @@ test.describe('MapLibre GL JS の版の選択とスタイルの判定', () => {
     await expect(check).toBeVisible({ timeout: 30_000 });
     await expect(check).toContainText('6 系が要ります', { timeout: 30_000 });
     await expect(check).toContainText('line-layer-opacity');
-    const box = await check.boundingBox();
-    if (box) await saveShot('S4-4-basemap-check-needs-v6', await page.screenshot({ clip: { x: 0, y: Math.max(0, box.y - 120), width: 1000, height: 200 } }));
+    // 画面の写しは人が見る対比の記録用（PROVIDER_GL_SHOT_DIR を指定したときだけ撮る。窓の大きさに依らない要素の写し）
+    if (process.env.PROVIDER_GL_SHOT_DIR) await saveShot('S4-4-basemap-check-needs-v6', await check.screenshot());
   });
 
   test('S5 判定の IPC: 引数の検査・取得の失敗・大きさの上限・時間切れ・判定の結果', async () => {
