@@ -36,7 +36,7 @@ import {
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
-import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, type ProviderGlKind } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, type ProviderGlKind } from './providerGlCdn';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import {
   resolvePreviewKey,
@@ -504,6 +504,22 @@ class AppPreviewService {
     const { token, app } = session;
     const title = escapeHtml(localizeTitle(app.title || app.appName || app.app_name, app.lang) || token);
     const manifestLink = session.viewerOption.pwaManifest ? `  <link rel="manifest" href="pwa/${token}_manifest.json">\n` : '';
+    // GL の要否は 1 つの値を GL の断片と起動のスクリプトの両方に渡す
+    const requiredProviderGl = new Set(session.requiredProviderGl || []);
+    const startupBody = [
+      `    const option = ${JSON.stringify(session.viewerOption)};`,
+      '    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject',
+      '      ? window.MaplatUi',
+      '      : window.MaplatUi && window.MaplatUi.MaplatUi',
+      '        ? window.MaplatUi.MaplatUi',
+      '        : window.Maplat;',
+      '    MaplatPreview.createObject(option).then((previewApp) => {',
+      '      // E2E・デバッグ用に viewer インスタンスを公開（m18-t5 AC5-12: iframe 内 ready/marker 到達の状態ベース待機に使用）',
+      '      window.__maplatPreview = previewApp;',
+      '    }).catch((e) => {',
+      `      document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';`,
+      '    });',
+    ].join('\n');
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -518,22 +534,9 @@ ${manifestLink}
 </head>
 <body>
   <div class="mainview"><div id="map_div"></div></div>
-${renderProviderGlCdnTags(new Set(session.requiredProviderGl || []))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(requiredProviderGl)}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
-  <script>
-    const option = ${JSON.stringify(session.viewerOption)};
-    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject
-      ? window.MaplatUi
-      : window.MaplatUi && window.MaplatUi.MaplatUi
-        ? window.MaplatUi.MaplatUi
-        : window.Maplat;
-    MaplatPreview.createObject(option).then((previewApp) => {
-      // E2E・デバッグ用に viewer インスタンスを公開（m18-t5 AC5-12: iframe 内 ready/marker 到達の状態ベース待機に使用）
-      window.__maplatPreview = previewApp;
-    }).catch((e) => {
-      document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';
-    });
-  </script>
+${renderViewerStartupScript(requiredProviderGl, startupBody)}
 </body>
 </html>`;
   }

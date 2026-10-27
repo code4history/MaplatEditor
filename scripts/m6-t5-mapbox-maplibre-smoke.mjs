@@ -203,14 +203,20 @@ const base = {
 
 // AC7/AC8/AC9
 {
+  // 版は字面で二重に持たず、ピン留めの定数から組む
   const html = renderProviderGlCdnTags(new Set(["maplibre"]));
-  assert.match(html, /maplibre-gl@5\.6\.2/);
+  assert.ok(html.includes(`maplibre-gl@${PROVIDER_GL_CDN.maplibre.version}/`), html);
   assert.match(html, /integrity="sha384-/);
   assert.match(html, /crossorigin="anonymous"/);
   assert.doesNotMatch(html, /mapbox-gl-js/);
+  // MapLibre 6 系は ESM だけの配布: モジュールは import map で読み、その integrity も持つ
+  const importMap = JSON.parse(/<script type="importmap">(.*)<\/script>/.exec(html)[1]);
+  const moduleUrl = importMap.imports["maplibre-gl"];
+  assert.equal(moduleUrl, PROVIDER_GL_CDN.maplibre.module);
+  assert.equal(importMap.integrity[moduleUrl], PROVIDER_GL_CDN.maplibre.moduleIntegrity);
   const both = renderProviderGlCdnTags(new Set(["mapbox", "maplibre"]));
-  assert.match(both, /mapbox-gl-js\/v3\.27\.0/);
-  assert.equal(PROVIDER_GL_CDN.maplibre.jsIntegrity.startsWith("sha384-"), true);
+  assert.ok(both.includes(`mapbox-gl-js/v${PROVIDER_GL_CDN.mapbox.version}/`), both);
+  assert.equal(PROVIDER_GL_CDN.maplibre.moduleIntegrity.startsWith("sha384-"), true);
   assert.equal(PROVIDER_GL_CDN.mapbox.jsIntegrity.startsWith("sha384-"), true);
 }
 
@@ -312,10 +318,13 @@ function satisfiesRange(version, range) {
   // 結果を session.requiredProviderGl として持ち回る。旧2形（maps ベース・
   // compose 済み要素ベース）のどちらへも戻らないことを固定する。
   assert.match(prev, /detectRequiredProviderGlFromAppSources\(previewableSources/);
-  assert.match(prev, /renderProviderGlCdnTags\(new Set\(session\.requiredProviderGl/);
+  // 判定の結果（session.requiredProviderGl）を 1 回だけ Set にし、GL の断片と起動のスクリプトの両方へ渡す
+  assert.match(prev, /const requiredProviderGl = new Set\(session\.requiredProviderGl/);
+  assert.match(prev, /renderProviderGlCdnTags\(requiredProviderGl\)/);
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(Object\.values\(session\.maps/);
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(session\.viewerSources/);
-  assert.match(exp, /detectRequiredProviderGlFromAppSources\(sources/);
+  assert.match(exp, /const requiredProviderGl = detectRequiredProviderGlFromAppSources\(sources/);
+  assert.match(exp, /renderProviderGlCdnTags\(requiredProviderGl\)/);
 }
 
 // AC12（v1.3）: provider 3種別は loadBaseMapVisibility の単一投入点で除外。

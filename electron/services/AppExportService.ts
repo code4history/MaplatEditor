@@ -46,7 +46,7 @@ import {
   type AppSource,
   type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
-import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
@@ -1128,6 +1128,23 @@ class AppExportService {
     if (mapboxKey) viewerOption.mapboxToken = mapboxKey;
     if (googleKey) viewerOption.googleApiKey = googleKey;
 
+    // GL の要否は 1 回だけ判定し、GL の断片と起動のスクリプトの両方に同じ値を渡す
+    const requiredProviderGl = detectRequiredProviderGlFromAppSources(sources, (source) => {
+      if (!baseMapLookup) return null;
+      const resolved = resolveAppSource(source, baseMapLookup);
+      return resolved.ok ? resolved.master.data : null;
+    });
+    const startupBody = [
+      `    var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};`,
+      renderExportedAppQueryScript(hasBasemap),
+      '    var MaplatApp = window.MaplatUi && window.MaplatUi.createObject',
+      '      ? window.MaplatUi',
+      '      : window.MaplatUi && window.MaplatUi.MaplatUi',
+      '        ? window.MaplatUi.MaplatUi',
+      '        : window.Maplat;',
+      '    MaplatApp.createObject(option);',
+    ].join('\n');
+
     return `<!DOCTYPE html>
 <html>
 
@@ -1153,22 +1170,9 @@ ${headLines.join('\n')}
     <div id="map_div"></div>
   </div>
 
-${renderProviderGlCdnTags(detectRequiredProviderGlFromAppSources(sources, (source) => {
-  if (!baseMapLookup) return null;
-  const resolved = resolveAppSource(source, baseMapLookup);
-  return resolved.ok ? resolved.master.data : null;
-}))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(requiredProviderGl)}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
-  <script>
-    var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};
-${renderExportedAppQueryScript(hasBasemap)}
-    var MaplatApp = window.MaplatUi && window.MaplatUi.createObject
-      ? window.MaplatUi
-      : window.MaplatUi && window.MaplatUi.MaplatUi
-        ? window.MaplatUi.MaplatUi
-        : window.Maplat;
-    MaplatApp.createObject(option);
-  </script>
+${renderViewerStartupScript(requiredProviderGl, startupBody)}
 </body>
 
 </html>
