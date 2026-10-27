@@ -324,6 +324,11 @@
           <p v-if="document.kind === 'maplibre'" class="form-text small text-muted" data-testid="basemap-style-maplibre-hint">
             {{ t('basemap.modal.style_maplibre_hint') }}
           </p>
+          <!-- MapLibre GL JS の 5 系で動くかの判定（保存は止めない・版はアプリの側で決めるので切り替えのボタンは置かない） -->
+          <div v-if="document.kind === 'maplibre' && document.style" class="small mt-1 d-flex align-items-start gap-2" data-testid="basemap-style-gl-check">
+            <span :class="styleGlCheckClass">{{ styleGlCheckText }}</span>
+            <button type="button" class="btn btn-link btn-sm p-0 text-nowrap" data-testid="basemap-style-gl-check-run" @click="runStyleGlCheck(true)">{{ t('basemap.style_gl_check_run') }}</button>
+          </div>
         </template>
         </div>
         <div class="col-6">
@@ -460,6 +465,11 @@ import { useInitialDraftPersist } from "../../composables/useInitialDraftPersist
 import type { SlugFieldState } from "../../composables/useSlugAvailability";
 import { UndoStack } from "../../services/editorUndoStack";
 import {
+  formatMaplibreStyleReasons,
+  type MaplibreStyleReasonKind,
+  type MaplibreStyleSupportResult,
+} from "../../utils/maplibreStyleSupport";
+import {
   fromBaseMapCatalogItem,
   newBaseMapDocument,
   normalizeKind,
@@ -519,6 +529,45 @@ const initial = props.item
     ? duplicateInitial(props.duplicateSourceItem, props.uid)
     : newBaseMapDocument(props.uid, resolveEditorLanguage(i18next.language));
 const document = ref<BaseMapEditDocument>(clone(initial));
+
+// ---- MapLibre の style の判定（5 系で動く／6 系が要る／判定できない）----
+// 取得は main（IPC）。結果は URL ごとに、この画面を開いている間だけ覚える。「判定し直す」は覚えを捨てて取り直す
+const styleGlChecks = ref<Record<string, MaplibreStyleSupportResult | "pending">>({});
+async function runStyleGlCheck(force = false): Promise<void> {
+  const url = document.value.kind === "maplibre" && typeof document.value.style === "string" ? document.value.style : "";
+  if (!url) return;
+  if (!force && styleGlChecks.value[url]) return;
+  styleGlChecks.value = { ...styleGlChecks.value, [url]: "pending" };
+  let result: MaplibreStyleSupportResult;
+  try {
+    result = await window.baseMaps.checkMaplibreStyle(url);
+  } catch {
+    result = { result: "unknown", reasons: [{ kind: "network" }] };
+  }
+  styleGlChecks.value = { ...styleGlChecks.value, [url]: result };
+}
+watch(
+  () => [document.value.kind, document.value.style],
+  () => { void runStyleGlCheck(false); },
+  { immediate: true },
+);
+const currentStyleGlCheck = computed(() => {
+  const url = typeof document.value.style === "string" ? document.value.style : "";
+  return url ? styleGlChecks.value[url] : undefined;
+});
+const styleGlCheckText = computed(() => {
+  const check = currentStyleGlCheck.value;
+  if (!check || check === "pending") return t("basemap.style_gl_check_running");
+  const reasons = formatMaplibreStyleReasons(check.reasons, (kind: MaplibreStyleReasonKind) => t(`basemap.style_gl_check_reason_${kind}`));
+  if (check.result === "v5-ok") return t("basemap.style_gl_check_v5_ok");
+  if (check.result === "needs-v6") return t("basemap.style_gl_check_needs_v6", { reasons });
+  return t("basemap.style_gl_check_unknown", { reasons });
+});
+const styleGlCheckClass = computed(() => {
+  const check = currentStyleGlCheck.value;
+  if (!check || check === "pending") return "text-muted";
+  return check.result === "v5-ok" ? "text-success" : check.result === "needs-v6" ? "text-warning-emphasis" : "text-muted";
+});
 let history = new UndoStack<BaseMapEditDocument>(clone(initial));
 const historyVersion = ref(0);
 const revision = ref<number | null>(props.item?.revision ?? null);

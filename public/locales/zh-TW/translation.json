@@ -173,7 +173,19 @@
       "presets_already_registered": "已註冊：{{names}}",
       "default_license_note": "適用 Google Maps Platform 服務條款。必須保留歸屬標示。",
       "default_data_license_note": "地圖資料與影像 © Google。請參閱 Google Maps Platform 服務條款。"
-    }
+    },
+    "style_gl_check_v5_ok": "可在 MapLibre GL JS 5 與 6 中使用",
+    "style_gl_check_needs_v6": "需要 MapLibre GL JS 6：{{reasons}}",
+    "style_gl_check_unknown": "無法判斷：{{reasons}}",
+    "style_gl_check_run": "重新判斷",
+    "style_gl_check_running": "正在判斷樣式…",
+    "style_gl_check_reason_network": "無法連線至樣式",
+    "style_gl_check_reason_http-status": "伺服器回傳了錯誤",
+    "style_gl_check_reason_too-large": "樣式過大",
+    "style_gl_check_reason_unsupported-scheme": "僅支援 http 與 https",
+    "style_gl_check_reason_invalid-json": "不是 JSON 樣式",
+    "style_gl_check_reason_not-v8": "不是版本 8 的樣式",
+    "style_gl_check_reason_invalid-argument": "URL 無效"
   },
   "settings": {
     "title": "設定",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "POI 資料中混雜了 GeoJSON 格式與其他格式，可能無法在檢視器中正確顯示。請將舊格式 POI 轉換為 GeoJSON。",
     "provider_source_note": "圖磚URL會根據API金鑰與種類自動建立，無需手動輸入。",
     "error_missing_base_map_master": "找不到此來源的底圖，將自匯出與預覽中排除。",
-    "warn_missing_base_map_master": "已排除找不到底圖的來源。"
+    "warn_missing_base_map_master": "已排除找不到底圖的來源。",
+    "maplibre_version": "MapLibre GL JS 版本",
+    "maplibre_version_5": "5（5.6.2，預設）",
+    "maplibre_version_6": "6（6.16.0）",
+    "maplibre_version_note": "在預覽與匯出的應用程式中顯示 MapLibre 底圖時使用的 MapLibre GL JS 版本。版本 6 支援較新的樣式功能，但需要支援 import map 與 WebGL 2 的瀏覽器。",
+    "maplibre_version_switch_6": "切換到版本 6",
+    "maplibre_version_6_confirm_message": "要在此應用程式中使用 MapLibre GL JS 版本 6 嗎？",
+    "maplibre_version_6_confirm_detail": "1. 可以使用較新的樣式功能（例如 line-layer-opacity）。\n2. 開啟匯出應用程式的瀏覽器需要支援 import map 與 WebGL 2。舊版瀏覽器（例如 Safari 16.3 及更早版本）將無法顯示地圖。\n3. 若以 Content-Security-Policy 發布匯出的應用程式，需要允許 script-src https://cdn.jsdelivr.net 與 worker-src blob:。",
+    "maplibre_version_6_confirm_ok": "切換到版本 6",
+    "maplibre_version_6_confirm_cancel": "取消",
+    "maplibre_version_warning": "底圖「{{name}}」使用了需要 MapLibre GL JS 6 的功能（{{reasons}}），在版本 5 中不會顯示。",
+    "maplibre_version_warning_unknown": "無法判斷底圖「{{name}}」能否在 MapLibre GL JS 5 中使用（{{reasons}}）。",
+    "maplibre_export_warning_message": "此應用程式中的部分 MapLibre 底圖需要 MapLibre GL JS 6，在版本 5 中不會顯示。",
+    "maplibre_export_warning_detail": "{{reasons}}\n\n若要顯示，請在應用程式管理畫面將「MapLibre GL JS 版本」切換為 6，儲存後再匯出一次。",
+    "maplibre_export_warning_continue": "仍要匯出",
+    "maplibre_export_warning_cancel": "取消"
   },
   "mapmodel": {
     "untitled": "標題未設定",

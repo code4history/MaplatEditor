@@ -173,7 +173,19 @@
       "presets_already_registered": "Ya registrado: {{names}}",
       "default_license_note": "Se aplican los términos de Google Maps Platform. La atribución debe permanecer visible.",
       "default_data_license_note": "Datos de mapas e imágenes © Google. Consulte los términos de Google Maps Platform."
-    }
+    },
+    "style_gl_check_v5_ok": "Funciona con MapLibre GL JS 5 y 6",
+    "style_gl_check_needs_v6": "Requiere MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "No se pudo comprobar: {{reasons}}",
+    "style_gl_check_run": "Volver a comprobar",
+    "style_gl_check_running": "Comprobando el estilo…",
+    "style_gl_check_reason_network": "no se pudo acceder al estilo",
+    "style_gl_check_reason_http-status": "el servidor devolvió un error",
+    "style_gl_check_reason_too-large": "el estilo es demasiado grande",
+    "style_gl_check_reason_unsupported-scheme": "solo se admiten http y https",
+    "style_gl_check_reason_invalid-json": "no es un estilo JSON",
+    "style_gl_check_reason_not-v8": "no es un estilo de la versión 8",
+    "style_gl_check_reason_invalid-argument": "URL no válida"
   },
   "settings": {
     "title": "Configuración",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
     "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
-    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró."
+    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró.",
+    "maplibre_version": "Versión de MapLibre GL JS",
+    "maplibre_version_5": "5 (5.6.2, predeterminada)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "La versión de MapLibre GL JS que se usa para mostrar los mapas base de MapLibre en la vista previa y en las apps exportadas. La versión 6 admite funciones de estilo más recientes, pero requiere un navegador compatible con import maps y WebGL 2.",
+    "maplibre_version_switch_6": "Cambiar a la versión 6",
+    "maplibre_version_6_confirm_message": "¿Usar la versión 6 de MapLibre GL JS en esta app?",
+    "maplibre_version_6_confirm_detail": "1. Estarán disponibles funciones de estilo más recientes (por ejemplo, line-layer-opacity).\n2. Los navegadores que abran la app exportada deben admitir import map y WebGL 2. Los navegadores antiguos (por ejemplo, Safari 16.3 o anterior) no mostrarán el mapa.\n3. Si sirve la app exportada con una Content-Security-Policy, permita script-src https://cdn.jsdelivr.net y worker-src blob:.",
+    "maplibre_version_6_confirm_ok": "Cambiar a la versión 6",
+    "maplibre_version_6_confirm_cancel": "Cancelar",
+    "maplibre_version_warning": "El mapa base \"{{name}}\" usa funciones que requieren MapLibre GL JS 6 ({{reasons}}). No se mostrará con la versión 5.",
+    "maplibre_version_warning_unknown": "No se pudo comprobar si el mapa base \"{{name}}\" funciona con MapLibre GL JS 5 ({{reasons}}).",
+    "maplibre_export_warning_message": "Algunos mapas base de MapLibre de esta app requieren MapLibre GL JS 6 y no se mostrarán con la versión 5.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nPara mostrarlos, cambie \"Versión de MapLibre GL JS\" a 6 en la pantalla de gestión de la app, guarde la app y vuelva a exportarla.",
+    "maplibre_export_warning_continue": "Exportar de todos modos",
+    "maplibre_export_warning_cancel": "Cancelar"
   },
   "mapmodel": {
     "untitled": "Título no establecido",

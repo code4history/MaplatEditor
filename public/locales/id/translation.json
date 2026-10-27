@@ -173,7 +173,19 @@
       "presets_already_registered": "Sudah terdaftar: {{names}}",
       "default_license_note": "Berlaku ketentuan Google Maps Platform. Atribusi harus tetap terlihat.",
       "default_data_license_note": "Data peta dan citra © Google. Lihat ketentuan Google Maps Platform."
-    }
+    },
+    "style_gl_check_v5_ok": "Berfungsi dengan MapLibre GL JS 5 dan 6",
+    "style_gl_check_needs_v6": "Memerlukan MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "Tidak dapat diperiksa: {{reasons}}",
+    "style_gl_check_run": "Periksa lagi",
+    "style_gl_check_running": "Memeriksa gaya…",
+    "style_gl_check_reason_network": "gaya tidak dapat dijangkau",
+    "style_gl_check_reason_http-status": "server mengembalikan galat",
+    "style_gl_check_reason_too-large": "gaya terlalu besar",
+    "style_gl_check_reason_unsupported-scheme": "hanya http dan https yang didukung",
+    "style_gl_check_reason_invalid-json": "bukan gaya JSON",
+    "style_gl_check_reason_not-v8": "bukan gaya versi 8",
+    "style_gl_check_reason_invalid-argument": "URL tidak valid"
   },
   "settings": {
     "title": "Pengaturan",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON.",
     "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual.",
     "error_missing_base_map_master": "Peta dasar untuk sumber ini tidak ditemukan. Sumber ini akan dikecualikan dari ekspor dan pratinjau.",
-    "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan."
+    "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan.",
+    "maplibre_version": "Versi MapLibre GL JS",
+    "maplibre_version_5": "5 (5.6.2, bawaan)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "Versi MapLibre GL JS yang dipakai untuk menampilkan peta dasar MapLibre di pratinjau dan di aplikasi yang diekspor. Versi 6 mendukung fitur gaya yang lebih baru, tetapi memerlukan peramban yang mendukung import map dan WebGL 2.",
+    "maplibre_version_switch_6": "Beralih ke versi 6",
+    "maplibre_version_6_confirm_message": "Gunakan MapLibre GL JS versi 6 untuk aplikasi ini?",
+    "maplibre_version_6_confirm_detail": "1. Fitur gaya yang lebih baru (misalnya line-layer-opacity) dapat digunakan.\n2. Peramban yang membuka aplikasi yang diekspor harus mendukung import map dan WebGL 2. Peramban lama (misalnya Safari 16.3 atau lebih lama) tidak akan menampilkan peta.\n3. Jika aplikasi yang diekspor disajikan dengan Content-Security-Policy, izinkan script-src https://cdn.jsdelivr.net dan worker-src blob:.",
+    "maplibre_version_6_confirm_ok": "Beralih ke versi 6",
+    "maplibre_version_6_confirm_cancel": "Batal",
+    "maplibre_version_warning": "Peta dasar \"{{name}}\" memakai fitur yang memerlukan MapLibre GL JS 6 ({{reasons}}). Peta ini tidak akan ditampilkan dengan versi 5.",
+    "maplibre_version_warning_unknown": "Tidak dapat memeriksa apakah peta dasar \"{{name}}\" berfungsi dengan MapLibre GL JS 5 ({{reasons}}).",
+    "maplibre_export_warning_message": "Beberapa peta dasar MapLibre di aplikasi ini memerlukan MapLibre GL JS 6 dan tidak akan ditampilkan dengan versi 5.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nUntuk menampilkannya, ubah \"Versi MapLibre GL JS\" ke 6 di layar pengelolaan aplikasi, simpan aplikasi, lalu ekspor lagi.",
+    "maplibre_export_warning_continue": "Tetap ekspor",
+    "maplibre_export_warning_cancel": "Batal"
   },
   "mapmodel": {
     "untitled": "Belum berjudul",

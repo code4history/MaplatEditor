@@ -307,7 +307,9 @@
     "smoke:workflow-action-pinning": "node scripts/workflow-action-pinning-smoke.mjs",
     "smoke:directgo-roundtrip": "node scripts/directgo-roundtrip-smoke.mjs",
     "smoke:directgo-edit": "node scripts/directgo-edit-smoke.mjs",
-    "smoke:provider-gl-esm": "node scripts/provider-gl-esm-smoke.mjs"
+    "smoke:provider-gl-esm": "node scripts/provider-gl-esm-smoke.mjs",
+    "smoke:maplibre-style-support": "node scripts/maplibre-style-support-smoke.mjs",
+    "smoke:maplibre-version-migration": "node scripts/maplibre-version-migration-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

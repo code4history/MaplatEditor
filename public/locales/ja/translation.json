@@ -173,7 +173,19 @@
       "presets_already_registered": "登録済み: {{names}}",
       "default_license_note": "Google Maps Platform の利用規約が適用されます。帰属表記は表示したままにしてください。",
       "default_data_license_note": "地図データおよび画像 © Google。Google Maps Platform の利用規約を参照してください。"
-    }
+    },
+    "style_gl_check_v5_ok": "5 系でも 6 系でも動きます",
+    "style_gl_check_needs_v6": "6 系が要ります: {{reasons}}",
+    "style_gl_check_unknown": "判定できませんでした: {{reasons}}",
+    "style_gl_check_run": "判定し直す",
+    "style_gl_check_running": "スタイルを判定しています…",
+    "style_gl_check_reason_network": "スタイルに届きません",
+    "style_gl_check_reason_http-status": "サーバーが誤りを返しました",
+    "style_gl_check_reason_too-large": "スタイルが大きすぎます",
+    "style_gl_check_reason_unsupported-scheme": "http と https だけに対応しています",
+    "style_gl_check_reason_invalid-json": "JSON のスタイルではありません",
+    "style_gl_check_reason_not-v8": "version 8 のスタイルではありません",
+    "style_gl_check_reason_invalid-argument": "URL が正しくありません"
   },
   "settings": {
     "title": "設定",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "POIデータにGeoJSON形式とそれ以外の形式が混在しています。ビューアで正しく表示されない可能性があります。旧形式のPOIはGeoJSONへ変換してください。",
     "provider_source_note": "APIキーと種別からタイルURLが自動的に構築されるため、直接入力の必要はありません。",
     "error_missing_base_map_master": "このソースのベースマップが見つかりません。書き出しとプレビューから除外されます。",
-    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。"
+    "warn_missing_base_map_master": "ベースマップが見つからないソースを除外しました。",
+    "maplibre_version": "MapLibre GL JS の版",
+    "maplibre_version_5": "5 系（5.6.2・既定）",
+    "maplibre_version_6": "6 系（6.16.0）",
+    "maplibre_version_note": "プレビューと書き出したアプリで MapLibre のベースマップを表示するときに使う版です。6 系は新しいスタイルの機能に対応しますが、import map と WebGL 2 に対応したブラウザが要ります。",
+    "maplibre_version_switch_6": "6 系に切り替える",
+    "maplibre_version_6_confirm_message": "このアプリで MapLibre GL JS の 6 系を使いますか？",
+    "maplibre_version_6_confirm_detail": "1. 新しいスタイルの機能（例: line-layer-opacity）が使えるようになります。\n2. 書き出したアプリを見るブラウザに import map と WebGL 2 への対応が要ります。古いブラウザ（例: Safari 16.3 以前）では地図が表示されません。\n3. 書き出したアプリを Content-Security-Policy 付きで配るときは、script-src https://cdn.jsdelivr.net と worker-src blob: の許可が要ります。",
+    "maplibre_version_6_confirm_ok": "6 系に切り替える",
+    "maplibre_version_6_confirm_cancel": "キャンセル",
+    "maplibre_version_warning": "ベースマップ「{{name}}」は 6 系の機能（{{reasons}}）を使っているため、5 系では表示されません。",
+    "maplibre_version_warning_unknown": "ベースマップ「{{name}}」が 5 系で動くかを判定できませんでした（{{reasons}}）。",
+    "maplibre_export_warning_message": "このアプリの MapLibre のベースマップの一部は 6 系が要るため、5 系では表示されません。",
+    "maplibre_export_warning_detail": "{{reasons}}\n\n表示するには、アプリ管理の画面の「MapLibre GL JS の版」で 6 系に切り替えて保存してから、もう一度書き出してください。",
+    "maplibre_export_warning_continue": "このまま書き出す",
+    "maplibre_export_warning_cancel": "やめる"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

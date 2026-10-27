@@ -59,6 +59,13 @@ import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
 import { navigateBackToList } from "../utils/listBackNavigation";
 import type { AppSaveResult } from "../electron";
+import { defaultAppHttpSettings, readAppHttpSettings, type AppHttpSettings } from "../utils/appHttpSettings";
+import {
+  formatMaplibreStyleReasons,
+  type MaplibreStyleReasonKind,
+  type MaplibreStyleSupportResult,
+} from "../utils/maplibreStyleSupport";
+import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
 
 import {
   LANGS_MAP,
@@ -72,19 +79,8 @@ interface AppSource extends SharedAppSource {
   thumbnail?: string;
 }
 
-interface HttpSettings {
-  previewPort: number;
-  pwaManifest: boolean;
-  overlay: boolean;
-  enableHideMarker: boolean;
-  enableMarkerList: boolean;
-  enableBorder: boolean;
-  enableCache: boolean;
-  stateUrl: boolean;
-  enableShare: boolean;
-  mapboxToken: string;
-  googleApiKey: string;
-}
+// 読み込みの規則（旧い http・文書の最上位の読み方を含む）は src/utils/appHttpSettings.ts の純関数にある
+type HttpSettings = AppHttpSettings;
 
 interface AppRuntimeSettings {
   splash: string;
@@ -113,6 +109,9 @@ interface AppDocument {
   siteUrl: string;
   lang: LangCode;
   sources: AppSource[];
+  // プレビューと書き出したアプリで使う MapLibre GL JS の系列（文書の最上位。既定 5）。
+  // 6 へは確認の窓（confirmSwitchToMaplibre6）を通したときだけ変わる
+  maplibreMajorVersion: 5 | 6;
   httpSettings: HttpSettings;
   appSettings: AppRuntimeSettings;
   manifestSettings: ManifestSettings;
@@ -174,21 +173,9 @@ const defaultApp = (): AppDocument => ({
   // 新規アプリのデフォルト言語は編集者のエディタUI言語(設定言語)に合わせる
   lang: resolveEditorLanguage(i18next.language),
   sources: [],
-  httpSettings: {
-    previewPort: 41781,
-    pwaManifest: true,
-    overlay: true,
-    enableHideMarker: true,
-    // マーカー一覧 UI (viewer の enableMarkerList、GUI 検証 D3)。viewer 既定 (無効) に合わせて
-    // false 既定 — 既存アプリ (キーなし保存形) の preview/export 出力を変えないため
-    enableMarkerList: false,
-    enableBorder: true,
-    enableCache: true,
-    stateUrl: true,
-    enableShare: true,
-    mapboxToken: "",
-    googleApiKey: "",
-  },
+  maplibreMajorVersion: 5,
+  // 値は src/utils/appHttpSettings.ts（読み込み時の欠落キーの補完と同じ既定）
+  httpSettings: defaultAppHttpSettings(),
   appSettings: {
     splash: "",
     homeLng: null,
@@ -212,8 +199,8 @@ const defaultApp = (): AppDocument => ({
 });
 
 // m19-t4b (人間要望 2026-08-10): 【新規作成時のみ効く既定値】。
-//   defaultApp() は「新規アプリの初期値」と「読み込み時の欠落キー補完」(:718 の
-//   `const defaults = defaultApp().httpSettings`) の 2 つを兼ねている。∴ defaultApp() の値を
+//   defaultApp() は「新規アプリの初期値」と「読み込み時の欠落キー補完」(httpSettings は
+//   src/utils/appHttpSettings.ts の defaultAppHttpSettings() を両方が使う) の 2 つを兼ねている。∴ defaultApp() の値を
 //   変えると既存アプリ・取り込みアプリの解釈まで変わる (:182-183 の既存コメントが述べる不変条件。
 //   tests/e2e/m11-t3-editor-shell.spec.ts が httpSettings: {} で seed して依存している)。
 //   1.0.0 データスキーマは凍結済みであり、既存データの値も解釈も書き換えない。
@@ -443,6 +430,116 @@ async function refreshBaseMapMasters() {
   } catch {
     baseMapMasters.value = [];
   }
+}
+
+// ---- MapLibre GL JS の版とスタイルの判定 ----
+// アプリの MapLibre のベースマップの style が 5 系で動くかを、main の IPC で判定する（取得は main）。
+// 結果は URL ごとに、この画面を開いている間だけ覚える。判定の結果は警告と勧めにだけ使い、版の値は変えない
+// （6 系へ変えるのは confirmSwitchToMaplibre6 だけ）。
+type MaplibreBaseMapRef = { name: string; style: string };
+const maplibreStyleChecks = ref<Record<string, MaplibreStyleSupportResult | "pending">>({});
+
+function collectMaplibreBaseMaps(sources: AppSource[], lang: string): MaplibreBaseMapRef[] {
+  const out: MaplibreBaseMapRef[] = [];
+  for (const source of sources) {
+    if (source.sourceType === "maplat") continue;
+    const resolved = resolveAppSource(source as any, baseMapLookup.value);
+    if (!resolved.ok) continue;
+    const data = resolved.master.data ?? {};
+    if ((data.kind ?? data.maptype) !== "maplibre" || typeof data.style !== "string" || !data.style) continue;
+    out.push({ name: localizedWithLang(data.title, lang) || resolved.master.mapID, style: data.style });
+  }
+  return out;
+}
+
+const appMaplibreBaseMaps = computed(() => collectMaplibreBaseMaps(appData.value.sources, appData.value.lang));
+
+async function refreshMaplibreStyleChecks(urls: string[], force = false): Promise<void> {
+  await Promise.all([...new Set(urls)].map(async (url) => {
+    if (!force && maplibreStyleChecks.value[url]) return;
+    maplibreStyleChecks.value = { ...maplibreStyleChecks.value, [url]: "pending" };
+    let result: MaplibreStyleSupportResult;
+    try {
+      result = await window.baseMaps.checkMaplibreStyle(url);
+    } catch {
+      result = { result: "unknown", reasons: [{ kind: "network" }] };
+    }
+    maplibreStyleChecks.value = { ...maplibreStyleChecks.value, [url]: result };
+  }));
+}
+
+watch(
+  () => appMaplibreBaseMaps.value.map((item) => item.style).join("\n"),
+  () => { void refreshMaplibreStyleChecks(appMaplibreBaseMaps.value.map((item) => item.style)); },
+  { immediate: true },
+);
+
+const translateStyleReason = (kind: MaplibreStyleReasonKind) => t(`basemap.style_gl_check_reason_${kind}`);
+
+/** 5 系のアプリで、6 系が要るベースマップ（warning）と判定できないベースマップ（info）を並べる */
+function maplibreVersionFindings(items: MaplibreBaseMapRef[], major: 5 | 6): { needs: DiagnosticItem[]; unknown: DiagnosticItem[] } {
+  const needs: DiagnosticItem[] = [];
+  const unknown: DiagnosticItem[] = [];
+  if (major === 6) return { needs, unknown };
+  items.forEach((item, index) => {
+    const check = maplibreStyleChecks.value[item.style];
+    if (!check || check === "pending") return;
+    const reasons = formatMaplibreStyleReasons(check.reasons, translateStyleReason);
+    if (check.result === "needs-v6") {
+      needs.push({ key: `needs-${index}`, severity: "warning", message: t("appedit.maplibre_version_warning", { name: item.name, reasons }) });
+    } else if (check.result === "unknown") {
+      unknown.push({ key: `unknown-${index}`, severity: "info", message: t("appedit.maplibre_version_warning_unknown", { name: item.name, reasons }) });
+    }
+  });
+  return { needs, unknown };
+}
+
+const appMaplibreFindings = computed(() => maplibreVersionFindings(appMaplibreBaseMaps.value, appData.value.maplibreMajorVersion));
+
+/** 6 系へ切り替える唯一の関数。判断の材料を出す確認の窓を通し、承諾したときだけ書く */
+async function confirmSwitchToMaplibre6(): Promise<void> {
+  if (translationMode.value || appData.value.maplibreMajorVersion === 6) return;
+  const { response } = await (window as any).dialog.showMessageBox({
+    type: "question",
+    buttons: [t("appedit.maplibre_version_6_confirm_ok"), t("appedit.maplibre_version_6_confirm_cancel")],
+    defaultId: 0,
+    cancelId: 1,
+    message: t("appedit.maplibre_version_6_confirm_message"),
+    detail: t("appedit.maplibre_version_6_confirm_detail"),
+  });
+  if (response !== 0) return;
+  appData.value.maplibreMajorVersion = 6;
+  recordHistory();
+  if (activeTab.value === "preview") await renderPreview();
+}
+
+/** 5 系（既定）へ戻すのは確認しない */
+async function selectMaplibre5(): Promise<void> {
+  if (translationMode.value || appData.value.maplibreMajorVersion === 5) return;
+  appData.value.maplibreMajorVersion = 5;
+  recordHistory();
+  if (activeTab.value === "preview") await renderPreview();
+}
+
+/** 書き出しの前: 保存済みの文書が 5 系で、6 系が要るベースマップがあれば確認の窓を出す。続けるなら true */
+async function confirmMaplibreExport(saved: any): Promise<boolean> {
+  if (!saved || saved.maplibreMajorVersion === 6) return true;
+  const lang = saved.lang || "ja";
+  const sources = (Array.isArray(saved.sources) ? saved.sources : []).map((source: any) => normalizeSource(source, lang));
+  const items = collectMaplibreBaseMaps(sources, lang);
+  await refreshMaplibreStyleChecks(items.map((item) => item.style));
+  const { needs } = maplibreVersionFindings(items, 5);
+  if (needs.length === 0) return true;
+  const reasons = needs.map((item) => item.message).join("\n");
+  const { response } = await (window as any).dialog.showMessageBox({
+    type: "warning",
+    buttons: [t("appedit.maplibre_export_warning_continue"), t("appedit.maplibre_export_warning_cancel")],
+    defaultId: 0,
+    cancelId: 1,
+    message: t("appedit.maplibre_export_warning_message"),
+    detail: t("appedit.maplibre_export_warning_detail", { reasons }),
+  });
+  return response === 0;
 }
 
 // nov26-m6-t4（#108）: Maplat 地図のソースのラベル欄のプレースホルダ用に、地図の文書から
@@ -725,7 +822,9 @@ function normalizeAppDocument(value: any): AppDocument {
   normalized.sources = Array.isArray(value.sources)
     ? value.sources.map((source: any) => normalizeSource(source, normalized.lang))
     : [];
-  normalized.httpSettings = normalizeHttpSettings(value.httpSettings || value.http || value);
+  normalized.httpSettings = readAppHttpSettings(value);
+  // 5・6 以外（無い・不正な値）は既定の 5（保存の入口の補完と同じ規則）
+  normalized.maplibreMajorVersion = value.maplibreMajorVersion === 6 ? 6 : 5;
   normalized.appSettings = normalizeAppSettings(value.appSettings || value);
   normalized.manifestSettings = normalizeManifestSettings(
     value.manifestSettings || value.manifest || {},
@@ -781,24 +880,6 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   // ここで補完してはならない（設計 P2 の廃止対象）。
   source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
   return source;
-}
-
-function normalizeHttpSettings(value: any): HttpSettings {
-  const defaults = defaultApp().httpSettings;
-  return {
-    ...defaults,
-    previewPort: Number(value.previewPort || defaults.previewPort),
-    pwaManifest: value.pwaManifest ?? defaults.pwaManifest,
-    overlay: value.overlay ?? defaults.overlay,
-    enableHideMarker: value.enableHideMarker ?? defaults.enableHideMarker,
-    enableMarkerList: value.enableMarkerList ?? defaults.enableMarkerList,
-    enableBorder: value.enableBorder ?? defaults.enableBorder,
-    enableCache: value.enableCache ?? defaults.enableCache,
-    stateUrl: value.stateUrl ?? defaults.stateUrl,
-    enableShare: value.enableShare ?? defaults.enableShare,
-    mapboxToken: value.mapboxToken || "",
-    googleApiKey: value.googleApiKey || "",
-  };
 }
 
 function normalizeAppSettings(value: any): AppRuntimeSettings {
@@ -1131,6 +1212,8 @@ async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
   // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
   // 小窓で取り消したら何もしない
+  // MapLibre の版: 5 系のままで 6 系が要るベースマップがあれば、書き出しの小窓より前に確かめる（ここでは切り替えない）
+  if (!(await confirmMaplibreExport(await window.appedit.request(appUid.value)))) return false;
   const exportOptions = await askAppExportOptions();
   if (!exportOptions) return false;
   try {
@@ -1592,6 +1675,20 @@ function onPoisChange(next: unknown[]) {
                   <label class="form-check"><input v-model="appData.httpSettings.enableShare" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.share_ui") }} <ContextHelp :text="t('appedit.share_ui_note')" :ariaLabel="t('appedit.share_ui_note')" /></label>
                 </div>
               </div>
+              <!-- MapLibre GL JS の版。ラジオは v-model を使わない: 6 は確認の窓（confirmSwitchToMaplibre6）を通したときだけ書く。
+                   6 のラジオは @click.prevent で、確認の前に表示が 6 に変わらないようにする -->
+              <div class="col-12" data-testid="app-maplibre-version">
+                <label class="form-label small fw-bold">{{ t("appedit.maplibre_version") }} <ContextHelp :text="t('appedit.maplibre_version_note')" :ariaLabel="t('appedit.maplibre_version_note')" /></label>
+                <div class="d-flex gap-3">
+                  <label class="form-check"><input type="radio" class="form-check-input" name="app-maplibre-version" data-testid="app-maplibre-version-5" :checked="appData.maplibreMajorVersion === 5" :disabled="translationMode" @change="selectMaplibre5"> {{ t("appedit.maplibre_version_5") }}</label>
+                  <label class="form-check"><input type="radio" class="form-check-input" name="app-maplibre-version" data-testid="app-maplibre-version-6" :checked="appData.maplibreMajorVersion === 6" :disabled="translationMode" @click.prevent="confirmSwitchToMaplibre6"> {{ t("appedit.maplibre_version_6") }}</label>
+                </div>
+                <div v-if="appMaplibreFindings.needs.length" class="mt-1" data-testid="app-maplibre-version-warning">
+                  <DiagnosticFeedback scope="section" :items="appMaplibreFindings.needs" />
+                  <button type="button" class="btn btn-sm btn-outline-primary mt-1" data-testid="app-maplibre-version-switch-6" :disabled="translationMode" @click="confirmSwitchToMaplibre6">{{ t("appedit.maplibre_version_switch_6") }}</button>
+                </div>
+                <DiagnosticFeedback v-if="appMaplibreFindings.unknown.length" class="mt-1" scope="section" data-testid="app-maplibre-version-info" :items="appMaplibreFindings.unknown" />
+              </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">{{ t("appedit.mapbox_token") }}</label>
                 <input v-model="appData.httpSettings.mapboxToken" type="text" class="form-control form-control-sm" :disabled="translationMode" @input="recordHistory">
@@ -1811,6 +1908,11 @@ function onPoisChange(next: unknown[]) {
       <!-- m19-t4b: 地図領域。言語切替バーがこの矩形と重ならないことを E2E が見る（AC14） -->
       <div v-show="activeTab === 'preview'" class="h-100 position-relative" data-testid="app-preview-pane">
         <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
+        <!-- 5 系のアプリで 6 系が要るベースマップがあるとき。プレビューは止めない（5 系で表示する） -->
+        <div v-if="appMaplibreFindings.needs.length" class="preview-maplibre-warning" data-testid="app-preview-maplibre-version-warning">
+          <DiagnosticFeedback scope="section" :items="appMaplibreFindings.needs" />
+          <button type="button" class="btn btn-sm btn-primary mt-1" data-testid="app-maplibre-version-switch-6" :disabled="translationMode" @click="confirmSwitchToMaplibre6">{{ t("appedit.maplibre_version_switch_6") }}</button>
+        </div>
         <!-- m19-t4b: 言語切替はタブ直下の 1 行メニューバーへ移した（設計 §6.5） -->
         <!-- M11-T7/AC8: section 診断(警告)へ移行(絶対配置の overlay 位置は .preview-error が担う) -->
         <DiagnosticFeedback
@@ -1933,6 +2035,14 @@ function onPoisChange(next: unknown[]) {
   width: 100%;
   height: 100%;
   border: 0;
+}
+/* viewer の左右の操作ボタン（幅 40px ほど）を覆わないように、左右を空ける */
+.preview-maplibre-warning {
+  position: absolute;
+  top: 12px;
+  left: 56px;
+  right: 56px;
+  z-index: 6;
 }
 .preview-error {
   position: absolute;

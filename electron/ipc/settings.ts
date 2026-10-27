@@ -3,6 +3,7 @@ import SettingsService from '../services/SettingsService';
 import MapDataService from '../services/MapDataService';
 import { resolveBaseMapListImage, resolveBaseMapRuntimeTileUrl } from '../services/resourceImageResolver';
 import { importTileJson } from '../services/TileJsonImportService';
+import { checkMaplibreStyle } from '../services/MaplibreStyleCheckService';
 
 export function registerSettingsHandlers() {
   ipcMain.handle('settings:get', (_, key: string) => {
@@ -95,5 +96,11 @@ export function registerSettingsHandlers() {
   // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
   ipcMain.handle('basemaps:import-tilejson', async (_, url: string) => {
     return await importTileJson(url);
+  });
+
+  // MapLibre のベースマップの style が MapLibre GL JS の 5 系で動くかの判定（引数は URL の文字列だけ。
+  // 返すのは判定の結果と理由の種類と場所だけ。検査は checkMaplibreStyle の中）
+  ipcMain.handle('basemaps:check-maplibre-style', async (_, url: unknown) => {
+    return await checkMaplibreStyle(url);
   });
 }

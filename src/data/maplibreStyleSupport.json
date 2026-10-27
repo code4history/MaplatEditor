@@ -1,0 +1,1646 @@
+{
+ "generatedBy": "scripts/generate-maplibre-style-support.mjs",
+ "maplibre5": "5.6.2",
+ "maplibre6": "6.16.0",
+ "sources": {
+  "v5": {
+   "styleSpec": "23.3.0",
+   "url": "https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-style-spec@23.3.0/src/reference/v8.json",
+   "bytes": 243558,
+   "integrity": "sha384-i4ALp3p43KS/8cq/WRAV4fUzqNZb9PKKwQy5Iay+JxEDaN77X4L3HAbUw9OBzGEe"
+  },
+  "v6": {
+   "styleSpec": "26.4.4",
+   "url": "https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-style-spec@26.4.4/src/reference/v8.json",
+   "bytes": 315799,
+   "integrity": "sha384-NN2fTKguurSXKRCvjlccsB7n9f6aQ3Xz35y+mqNsWiShsGuLUdDzOlswmxfPsh4X"
+  }
+ },
+ "v5": {
+  "layerTypes": [
+   "background",
+   "circle",
+   "color-relief",
+   "fill",
+   "fill-extrusion",
+   "heatmap",
+   "hillshade",
+   "line",
+   "raster",
+   "symbol"
+  ],
+  "paint": {
+   "background": [
+    "background-color",
+    "background-opacity",
+    "background-pattern"
+   ],
+   "circle": [
+    "circle-blur",
+    "circle-color",
+    "circle-opacity",
+    "circle-pitch-alignment",
+    "circle-pitch-scale",
+    "circle-radius",
+    "circle-stroke-color",
+    "circle-stroke-opacity",
+    "circle-stroke-width",
+    "circle-translate",
+    "circle-translate-anchor"
+   ],
+   "color-relief": [
+    "color-relief-color",
+    "color-relief-opacity"
+   ],
+   "fill": [
+    "fill-antialias",
+    "fill-color",
+    "fill-opacity",
+    "fill-outline-color",
+    "fill-pattern",
+    "fill-translate",
+    "fill-translate-anchor"
+   ],
+   "fill-extrusion": [
+    "fill-extrusion-base",
+    "fill-extrusion-color",
+    "fill-extrusion-height",
+    "fill-extrusion-opacity",
+    "fill-extrusion-pattern",
+    "fill-extrusion-translate",
+    "fill-extrusion-translate-anchor",
+    "fill-extrusion-vertical-gradient"
+   ],
+   "heatmap": [
+    "heatmap-color",
+    "heatmap-intensity",
+    "heatmap-opacity",
+    "heatmap-radius",
+    "heatmap-weight"
+   ],
+   "hillshade": [
+    "hillshade-accent-color",
+    "hillshade-exaggeration",
+    "hillshade-highlight-color",
+    "hillshade-illumination-altitude",
+    "hillshade-illumination-anchor",
+    "hillshade-illumination-direction",
+    "hillshade-method",
+    "hillshade-shadow-color"
+   ],
+   "line": [
+    "line-blur",
+    "line-color",
+    "line-dasharray",
+    "line-gap-width",
+    "line-gradient",
+    "line-offset",
+    "line-opacity",
+    "line-pattern",
+    "line-translate",
+    "line-translate-anchor",
+    "line-width"
+   ],
+   "raster": [
+    "raster-brightness-max",
+    "raster-brightness-min",
+    "raster-contrast",
+    "raster-fade-duration",
+    "raster-hue-rotate",
+    "raster-opacity",
+    "raster-resampling",
+    "raster-saturation"
+   ],
+   "symbol": [
+    "icon-color",
+    "icon-halo-blur",
+    "icon-halo-color",
+    "icon-halo-width",
+    "icon-opacity",
+    "icon-translate",
+    "icon-translate-anchor",
+    "text-color",
+    "text-halo-blur",
+    "text-halo-color",
+    "text-halo-width",
+    "text-opacity",
+    "text-translate",
+    "text-translate-anchor"
+   ]
+  },
+  "layout": {
+   "background": [
+    "visibility"
+   ],
+   "circle": [
+    "circle-sort-key",
+    "visibility"
+   ],
+   "color-relief": [
+    "visibility"
+   ],
+   "fill": [
+    "fill-sort-key",
+    "visibility"
+   ],
+   "fill-extrusion": [
+    "visibility"
+   ],
+   "heatmap": [
+    "visibility"
+   ],
+   "hillshade": [
+    "visibility"
+   ],
+   "line": [
+    "line-cap",
+    "line-join",
+    "line-miter-limit",
+    "line-round-limit",
+    "line-sort-key",
+    "visibility"
+   ],
+   "raster": [
+    "visibility"
+   ],
+   "symbol": [
+    "icon-allow-overlap",
+    "icon-anchor",
+    "icon-ignore-placement",
+    "icon-image",
+    "icon-keep-upright",
+    "icon-offset",
+    "icon-optional",
+    "icon-overlap",
+    "icon-padding",
+    "icon-pitch-alignment",
+    "icon-rotate",
+    "icon-rotation-alignment",
+    "icon-size",
+    "icon-text-fit",
+    "icon-text-fit-padding",
+    "symbol-avoid-edges",
+    "symbol-placement",
+    "symbol-sort-key",
+    "symbol-spacing",
+    "symbol-z-order",
+    "text-allow-overlap",
+    "text-anchor",
+    "text-field",
+    "text-font",
+    "text-ignore-placement",
+    "text-justify",
+    "text-keep-upright",
+    "text-letter-spacing",
+    "text-line-height",
+    "text-max-angle",
+    "text-max-width",
+    "text-offset",
+    "text-optional",
+    "text-overlap",
+    "text-padding",
+    "text-pitch-alignment",
+    "text-radial-offset",
+    "text-rotate",
+    "text-rotation-alignment",
+    "text-size",
+    "text-transform",
+    "text-variable-anchor",
+    "text-variable-anchor-offset",
+    "text-writing-mode",
+    "visibility"
+   ]
+  },
+  "transitionable": {
+   "background": [
+    "background-color",
+    "background-opacity",
+    "background-pattern"
+   ],
+   "circle": [
+    "circle-blur",
+    "circle-color",
+    "circle-opacity",
+    "circle-radius",
+    "circle-stroke-color",
+    "circle-stroke-opacity",
+    "circle-stroke-width",
+    "circle-translate"
+   ],
+   "color-relief": [
+    "color-relief-opacity"
+   ],
+   "fill": [
+    "fill-color",
+    "fill-opacity",
+    "fill-outline-color",
+    "fill-pattern",
+    "fill-translate"
+   ],
+   "fill-extrusion": [
+    "fill-extrusion-base",
+    "fill-extrusion-color",
+    "fill-extrusion-height",
+    "fill-extrusion-opacity",
+    "fill-extrusion-pattern",
+    "fill-extrusion-translate"
+   ],
+   "heatmap": [
+    "heatmap-intensity",
+    "heatmap-opacity",
+    "heatmap-radius"
+   ],
+   "hillshade": [
+    "hillshade-accent-color",
+    "hillshade-exaggeration",
+    "hillshade-highlight-color",
+    "hillshade-shadow-color"
+   ],
+   "line": [
+    "line-blur",
+    "line-color",
+    "line-dasharray",
+    "line-gap-width",
+    "line-offset",
+    "line-opacity",
+    "line-pattern",
+    "line-translate",
+    "line-width"
+   ],
+   "raster": [
+    "raster-brightness-max",
+    "raster-brightness-min",
+    "raster-contrast",
+    "raster-hue-rotate",
+    "raster-opacity",
+    "raster-saturation"
+   ],
+   "symbol": [
+    "icon-color",
+    "icon-halo-blur",
+    "icon-halo-color",
+    "icon-halo-width",
+    "icon-opacity",
+    "icon-translate",
+    "text-color",
+    "text-halo-blur",
+    "text-halo-color",
+    "text-halo-width",
+    "text-opacity",
+    "text-translate"
+   ]
+  },
+  "operators": [
+   "!",
+   "!=",
+   "!has",
+   "!in",
+   "%",
+   "*",
+   "+",
+   "-",
+   "/",
+   "<",
+   "<=",
+   "==",
+   ">",
+   ">=",
+   "^",
+   "abs",
+   "accumulated",
+   "acos",
+   "all",
+   "any",
+   "array",
+   "asin",
+   "at",
+   "atan",
+   "boolean",
+   "case",
+   "ceil",
+   "coalesce",
+   "collator",
+   "concat",
+   "cos",
+   "distance",
+   "downcase",
+   "e",
+   "elevation",
+   "feature-state",
+   "floor",
+   "format",
+   "geometry-type",
+   "get",
+   "global-state",
+   "has",
+   "heatmap-density",
+   "id",
+   "image",
+   "in",
+   "index-of",
+   "interpolate",
+   "interpolate-hcl",
+   "interpolate-lab",
+   "is-supported-script",
+   "length",
+   "let",
+   "line-progress",
+   "literal",
+   "ln",
+   "ln2",
+   "log10",
+   "log2",
+   "match",
+   "max",
+   "min",
+   "none",
+   "number",
+   "number-format",
+   "object",
+   "pi",
+   "properties",
+   "resolved-locale",
+   "rgb",
+   "rgba",
+   "round",
+   "sin",
+   "slice",
+   "sqrt",
+   "step",
+   "string",
+   "tan",
+   "to-boolean",
+   "to-color",
+   "to-number",
+   "to-rgba",
+   "to-string",
+   "typeof",
+   "upcase",
+   "var",
+   "within",
+   "zoom"
+  ],
+  "sources": {
+   "vector": {
+    "keys": [
+     "attribution",
+     "bounds",
+     "maxzoom",
+     "minzoom",
+     "promoteId",
+     "scheme",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "scheme": [
+      "tms",
+      "xyz"
+     ]
+    }
+   },
+   "raster": {
+    "keys": [
+     "attribution",
+     "bounds",
+     "maxzoom",
+     "minzoom",
+     "scheme",
+     "tileSize",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "scheme": [
+      "tms",
+      "xyz"
+     ]
+    }
+   },
+   "raster-dem": {
+    "keys": [
+     "attribution",
+     "baseShift",
+     "blueFactor",
+     "bounds",
+     "encoding",
+     "greenFactor",
+     "maxzoom",
+     "minzoom",
+     "redFactor",
+     "tileSize",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "encoding": [
+      "custom",
+      "mapbox",
+      "terrarium"
+     ]
+    }
+   },
+   "geojson": {
+    "keys": [
+     "attribution",
+     "buffer",
+     "cluster",
+     "clusterMaxZoom",
+     "clusterMinPoints",
+     "clusterProperties",
+     "clusterRadius",
+     "data",
+     "filter",
+     "generateId",
+     "lineMetrics",
+     "maxzoom",
+     "promoteId",
+     "tolerance",
+     "type"
+    ],
+    "wildcard": false,
+    "enums": {}
+   },
+   "video": {
+    "keys": [
+     "coordinates",
+     "type",
+     "urls"
+    ],
+    "wildcard": false,
+    "enums": {}
+   },
+   "image": {
+    "keys": [
+     "coordinates",
+     "type",
+     "url"
+    ],
+    "wildcard": false,
+    "enums": {}
+   }
+  },
+  "light": [
+   "anchor",
+   "color",
+   "intensity",
+   "position"
+  ],
+  "sky": [
+   "atmosphere-blend",
+   "fog-color",
+   "fog-ground-blend",
+   "horizon-color",
+   "horizon-fog-blend",
+   "sky-color",
+   "sky-horizon-blend"
+  ]
+ },
+ "v6": {
+  "layerTypes": [
+   "background",
+   "circle",
+   "color-relief",
+   "fill",
+   "fill-extrusion",
+   "heatmap",
+   "hillshade",
+   "line",
+   "raster",
+   "symbol"
+  ],
+  "paint": {
+   "background": [
+    "background-color",
+    "background-opacity",
+    "background-pattern"
+   ],
+   "circle": [
+    "circle-blur",
+    "circle-color",
+    "circle-opacity",
+    "circle-pitch-alignment",
+    "circle-pitch-scale",
+    "circle-radius",
+    "circle-stroke-color",
+    "circle-stroke-opacity",
+    "circle-stroke-width",
+    "circle-translate",
+    "circle-translate-anchor"
+   ],
+   "color-relief": [
+    "color-relief-color",
+    "color-relief-opacity",
+    "resampling"
+   ],
+   "fill": [
+    "fill-antialias",
+    "fill-color",
+    "fill-layer-opacity",
+    "fill-opacity",
+    "fill-outline-color",
+    "fill-pattern",
+    "fill-translate",
+    "fill-translate-anchor"
+   ],
+   "fill-extrusion": [
+    "fill-extrusion-base",
+    "fill-extrusion-color",
+    "fill-extrusion-height",
+    "fill-extrusion-opacity",
+    "fill-extrusion-pattern",
+    "fill-extrusion-translate",
+    "fill-extrusion-translate-anchor",
+    "fill-extrusion-vertical-gradient"
+   ],
+   "heatmap": [
+    "heatmap-color",
+    "heatmap-intensity",
+    "heatmap-opacity",
+    "heatmap-radius",
+    "heatmap-weight"
+   ],
+   "hillshade": [
+    "hillshade-accent-color",
+    "hillshade-exaggeration",
+    "hillshade-highlight-color",
+    "hillshade-illumination-altitude",
+    "hillshade-illumination-anchor",
+    "hillshade-illumination-direction",
+    "hillshade-method",
+    "hillshade-shadow-color",
+    "resampling"
+   ],
+   "line": [
+    "line-blur",
+    "line-color",
+    "line-dasharray",
+    "line-gap-width",
+    "line-gradient",
+    "line-layer-opacity",
+    "line-offset",
+    "line-opacity",
+    "line-pattern",
+    "line-translate",
+    "line-translate-anchor",
+    "line-width"
+   ],
+   "raster": [
+    "raster-brightness-max",
+    "raster-brightness-min",
+    "raster-contrast",
+    "raster-fade-duration",
+    "raster-hue-rotate",
+    "raster-opacity",
+    "raster-resampling",
+    "raster-saturation",
+    "resampling"
+   ],
+   "symbol": [
+    "icon-color",
+    "icon-halo-blur",
+    "icon-halo-color",
+    "icon-halo-width",
+    "icon-opacity",
+    "icon-translate",
+    "icon-translate-anchor",
+    "text-color",
+    "text-halo-blur",
+    "text-halo-color",
+    "text-halo-width",
+    "text-opacity",
+    "text-translate",
+    "text-translate-anchor"
+   ]
+  },
+  "layout": {
+   "background": [
+    "visibility"
+   ],
+   "circle": [
+    "circle-sort-key",
+    "visibility"
+   ],
+   "color-relief": [
+    "visibility"
+   ],
+   "fill": [
+    "fill-sort-key",
+    "visibility"
+   ],
+   "fill-extrusion": [
+    "fill-extrusion-rounded-corner-distance",
+    "visibility"
+   ],
+   "heatmap": [
+    "visibility"
+   ],
+   "hillshade": [
+    "visibility"
+   ],
+   "line": [
+    "line-cap",
+    "line-join",
+    "line-miter-limit",
+    "line-round-limit",
+    "line-sort-key",
+    "visibility"
+   ],
+   "raster": [
+    "visibility"
+   ],
+   "symbol": [
+    "icon-allow-overlap",
+    "icon-anchor",
+    "icon-ignore-placement",
+    "icon-image",
+    "icon-keep-upright",
+    "icon-offset",
+    "icon-optional",
+    "icon-overlap",
+    "icon-padding",
+    "icon-pitch-alignment",
+    "icon-rotate",
+    "icon-rotation-alignment",
+    "icon-size",
+    "icon-text-fit",
+    "icon-text-fit-padding",
+    "symbol-avoid-edges",
+    "symbol-height-anchor",
+    "symbol-height-offset",
+    "symbol-placement",
+    "symbol-sort-key",
+    "symbol-spacing",
+    "symbol-z-order",
+    "text-allow-overlap",
+    "text-anchor",
+    "text-field",
+    "text-font",
+    "text-ignore-placement",
+    "text-justify",
+    "text-keep-upright",
+    "text-letter-spacing",
+    "text-line-height",
+    "text-max-angle",
+    "text-max-width",
+    "text-offset",
+    "text-optional",
+    "text-overlap",
+    "text-padding",
+    "text-pitch-alignment",
+    "text-radial-offset",
+    "text-rotate",
+    "text-rotation-alignment",
+    "text-size",
+    "text-transform",
+    "text-variable-anchor",
+    "text-variable-anchor-offset",
+    "text-writing-mode",
+    "visibility"
+   ]
+  },
+  "transitionable": {
+   "background": [
+    "background-color",
+    "background-opacity",
+    "background-pattern"
+   ],
+   "circle": [
+    "circle-blur",
+    "circle-color",
+    "circle-opacity",
+    "circle-radius",
+    "circle-stroke-color",
+    "circle-stroke-opacity",
+    "circle-stroke-width",
+    "circle-translate"
+   ],
+   "color-relief": [
+    "color-relief-opacity"
+   ],
+   "fill": [
+    "fill-color",
+    "fill-layer-opacity",
+    "fill-opacity",
+    "fill-outline-color",
+    "fill-pattern",
+    "fill-translate"
+   ],
+   "fill-extrusion": [
+    "fill-extrusion-base",
+    "fill-extrusion-color",
+    "fill-extrusion-height",
+    "fill-extrusion-opacity",
+    "fill-extrusion-pattern",
+    "fill-extrusion-translate"
+   ],
+   "heatmap": [
+    "heatmap-intensity",
+    "heatmap-opacity",
+    "heatmap-radius"
+   ],
+   "hillshade": [
+    "hillshade-accent-color",
+    "hillshade-exaggeration",
+    "hillshade-highlight-color",
+    "hillshade-shadow-color"
+   ],
+   "line": [
+    "line-blur",
+    "line-color",
+    "line-dasharray",
+    "line-gap-width",
+    "line-layer-opacity",
+    "line-offset",
+    "line-opacity",
+    "line-pattern",
+    "line-translate",
+    "line-width"
+   ],
+   "raster": [
+    "raster-brightness-max",
+    "raster-brightness-min",
+    "raster-contrast",
+    "raster-hue-rotate",
+    "raster-opacity",
+    "raster-saturation"
+   ],
+   "symbol": [
+    "icon-color",
+    "icon-halo-blur",
+    "icon-halo-color",
+    "icon-halo-width",
+    "icon-opacity",
+    "icon-translate",
+    "text-color",
+    "text-halo-blur",
+    "text-halo-color",
+    "text-halo-width",
+    "text-opacity",
+    "text-translate"
+   ]
+  },
+  "operators": [
+   "!",
+   "!=",
+   "!has",
+   "!in",
+   "%",
+   "*",
+   "+",
+   "-",
+   "/",
+   "<",
+   "<=",
+   "==",
+   ">",
+   ">=",
+   "^",
+   "abs",
+   "accumulated",
+   "acos",
+   "all",
+   "any",
+   "array",
+   "asin",
+   "at",
+   "atan",
+   "boolean",
+   "case",
+   "ceil",
+   "coalesce",
+   "collator",
+   "concat",
+   "cos",
+   "distance",
+   "downcase",
+   "e",
+   "elevation",
+   "feature-state",
+   "floor",
+   "format",
+   "geometry-type",
+   "get",
+   "global-state",
+   "has",
+   "heatmap-density",
+   "id",
+   "image",
+   "in",
+   "index-of",
+   "interpolate",
+   "interpolate-hcl",
+   "interpolate-lab",
+   "is-supported-script",
+   "join",
+   "length",
+   "let",
+   "line-progress",
+   "literal",
+   "ln",
+   "ln2",
+   "log10",
+   "log2",
+   "match",
+   "max",
+   "min",
+   "none",
+   "number",
+   "number-format",
+   "object",
+   "pi",
+   "properties",
+   "resolved-locale",
+   "rgb",
+   "rgba",
+   "round",
+   "semiliteral",
+   "sin",
+   "slice",
+   "split",
+   "sqrt",
+   "step",
+   "string",
+   "tan",
+   "to-boolean",
+   "to-color",
+   "to-number",
+   "to-rgba",
+   "to-string",
+   "typeof",
+   "upcase",
+   "var",
+   "within",
+   "zoom"
+  ],
+  "sources": {
+   "vector": {
+    "keys": [
+     "attribution",
+     "bounds",
+     "encoding",
+     "maxzoom",
+     "minzoom",
+     "promoteId",
+     "scheme",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "encoding": [
+      "mlt",
+      "mvt"
+     ],
+     "scheme": [
+      "tms",
+      "xyz"
+     ]
+    }
+   },
+   "raster": {
+    "keys": [
+     "attribution",
+     "bounds",
+     "maxzoom",
+     "minzoom",
+     "scheme",
+     "tileSize",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "scheme": [
+      "tms",
+      "xyz"
+     ]
+    }
+   },
+   "raster-dem": {
+    "keys": [
+     "attribution",
+     "baseShift",
+     "blueFactor",
+     "bounds",
+     "encoding",
+     "greenFactor",
+     "maxzoom",
+     "minzoom",
+     "redFactor",
+     "tileSize",
+     "tiles",
+     "type",
+     "url",
+     "volatile"
+    ],
+    "wildcard": true,
+    "enums": {
+     "encoding": [
+      "custom",
+      "mapbox",
+      "terrarium"
+     ]
+    }
+   },
+   "geojson": {
+    "keys": [
+     "attribution",
+     "buffer",
+     "cluster",
+     "clusterMaxZoom",
+     "clusterMinPoints",
+     "clusterProperties",
+     "clusterRadius",
+     "data",
+     "filter",
+     "generateId",
+     "lineMetrics",
+     "maxzoom",
+     "promoteId",
+     "tolerance",
+     "type"
+    ],
+    "wildcard": false,
+    "enums": {}
+   },
+   "video": {
+    "keys": [
+     "coordinates",
+     "type",
+     "urls"
+    ],
+    "wildcard": false,
+    "enums": {}
+   },
+   "image": {
+    "keys": [
+     "coordinates",
+     "type",
+     "url"
+    ],
+    "wildcard": false,
+    "enums": {}
+   }
+  },
+  "light": [
+   "anchor",
+   "color",
+   "intensity",
+   "position"
+  ],
+  "sky": [
+   "atmosphere-blend",
+   "fog-color",
+   "fog-ground-blend",
+   "horizon-color",
+   "horizon-fog-blend",
+   "sky-color",
+   "sky-horizon-blend"
+  ]
+ },
+ "requirements": [
+  {
+   "scope": "root",
+   "key": "glyphs",
+   "kind": "omit-glyphs",
+   "js": "5.11.0"
+  },
+  {
+   "scope": "paint",
+   "type": "fill",
+   "key": "fill-layer-opacity",
+   "kind": "basic",
+   "js": "6.0.0"
+  },
+  {
+   "scope": "paint",
+   "type": "fill",
+   "key": "fill-layer-opacity",
+   "kind": "global-state",
+   "js": "6.0.0"
+  },
+  {
+   "scope": "layout",
+   "type": "fill",
+   "key": "fill-sort-key",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "fill",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "paint",
+   "type": "line",
+   "key": "line-layer-opacity",
+   "kind": "basic",
+   "js": "6.0.0"
+  },
+  {
+   "scope": "paint",
+   "type": "line",
+   "key": "line-layer-opacity",
+   "kind": "global-state",
+   "js": "6.0.0"
+  },
+  {
+   "scope": "paint",
+   "type": "line",
+   "key": "line-dasharray",
+   "kind": "data-driven",
+   "js": "5.8.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-cap",
+   "kind": "data-driven",
+   "js": "5.22.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-cap",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-join",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-miter-limit",
+   "kind": "data-driven",
+   "js": "5.22.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-miter-limit",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-round-limit",
+   "kind": "data-driven",
+   "js": "5.22.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-round-limit",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "line-sort-key",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "line",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-placement",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-spacing",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-avoid-edges",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-sort-key",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-z-order",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-allow-overlap",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-overlap",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-ignore-placement",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-optional",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-rotation-alignment",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-size",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-text-fit",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-text-fit-padding",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-image",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-rotate",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-padding",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-keep-upright",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-offset",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-anchor",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "icon-pitch-alignment",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-pitch-alignment",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-rotation-alignment",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-field",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-font",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-size",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-max-width",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-line-height",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-letter-spacing",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-justify",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-radial-offset",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-variable-anchor",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-variable-anchor-offset",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-anchor",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-max-angle",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-writing-mode",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-rotate",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-padding",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-keep-upright",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-transform",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-offset",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-allow-overlap",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-overlap",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-ignore-placement",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "text-optional",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-height-offset",
+   "kind": "basic",
+   "js": "6.6.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "symbol-height-offset",
+   "kind": "data-driven",
+   "js": "6.6.0"
+  },
+  {
+   "scope": "layout",
+   "type": "symbol",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "circle",
+   "key": "circle-sort-key",
+   "kind": "global-state",
+   "js": "5.7.0"
+  },
+  {
+   "scope": "layout",
+   "type": "circle",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "heatmap",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "fill-extrusion",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "fill-extrusion",
+   "key": "fill-extrusion-rounded-corner-distance",
+   "kind": "basic",
+   "js": "6.2.0"
+  },
+  {
+   "scope": "paint",
+   "type": "raster",
+   "key": "resampling",
+   "kind": "basic",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "layout",
+   "type": "raster",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "paint",
+   "type": "hillshade",
+   "key": "resampling",
+   "kind": "basic",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "layout",
+   "type": "hillshade",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "paint",
+   "type": "color-relief",
+   "key": "resampling",
+   "kind": "basic",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "layout",
+   "type": "color-relief",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "layout",
+   "type": "background",
+   "key": "visibility",
+   "kind": "global-state",
+   "js": "5.16.0"
+  },
+  {
+   "scope": "source",
+   "type": "vector",
+   "key": "encoding",
+   "kind": "encoding-value",
+   "value": "mlt",
+   "js": "5.12.0"
+  },
+  {
+   "scope": "operator",
+   "key": "semiliteral",
+   "kind": "basic",
+   "js": "6.6.0"
+  },
+  {
+   "scope": "operator",
+   "key": "number-format",
+   "kind": "unit",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "operator",
+   "key": "split",
+   "kind": "basic",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "operator",
+   "key": "join",
+   "kind": "basic",
+   "js": "5.20.0"
+  },
+  {
+   "scope": "light",
+   "key": "anchor",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "light",
+   "key": "position",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "light",
+   "key": "color",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "light",
+   "key": "intensity",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "sky-color",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "horizon-color",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "fog-color",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "fog-ground-blend",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "horizon-fog-blend",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "sky-horizon-blend",
+   "kind": "global-state",
+   "js": "6.1.0"
+  },
+  {
+   "scope": "sky",
+   "key": "atmosphere-blend",
+   "kind": "global-state",
+   "js": "6.1.0"
+  }
+ ]
+}

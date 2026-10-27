@@ -173,7 +173,19 @@
       "presets_already_registered": "Đã đăng ký: {{names}}",
       "default_license_note": "Áp dụng điều khoản Google Maps Platform. Phải giữ nguyên dòng ghi công.",
       "default_data_license_note": "Dữ liệu bản đồ và hình ảnh © Google. Xem điều khoản Google Maps Platform."
-    }
+    },
+    "style_gl_check_v5_ok": "Hoạt động với MapLibre GL JS 5 và 6",
+    "style_gl_check_needs_v6": "Cần MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "Không thể kiểm tra: {{reasons}}",
+    "style_gl_check_run": "Kiểm tra lại",
+    "style_gl_check_running": "Đang kiểm tra kiểu…",
+    "style_gl_check_reason_network": "không truy cập được kiểu",
+    "style_gl_check_reason_http-status": "máy chủ trả về lỗi",
+    "style_gl_check_reason_too-large": "kiểu quá lớn",
+    "style_gl_check_reason_unsupported-scheme": "chỉ hỗ trợ http và https",
+    "style_gl_check_reason_invalid-json": "không phải kiểu JSON",
+    "style_gl_check_reason_not-v8": "không phải kiểu phiên bản 8",
+    "style_gl_check_reason_invalid-argument": "URL không hợp lệ"
   },
   "settings": {
     "title": "Cài đặt",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
     "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
     "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",
-    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền."
+    "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền.",
+    "maplibre_version": "Phiên bản MapLibre GL JS",
+    "maplibre_version_5": "5 (5.6.2, mặc định)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "Phiên bản MapLibre GL JS dùng để hiển thị bản đồ nền MapLibre trong bản xem trước và trong ứng dụng đã xuất. Phiên bản 6 hỗ trợ các tính năng kiểu mới hơn nhưng cần trình duyệt hỗ trợ import map và WebGL 2.",
+    "maplibre_version_switch_6": "Chuyển sang phiên bản 6",
+    "maplibre_version_6_confirm_message": "Dùng MapLibre GL JS phiên bản 6 cho ứng dụng này?",
+    "maplibre_version_6_confirm_detail": "1. Có thể dùng các tính năng kiểu mới hơn (ví dụ line-layer-opacity).\n2. Trình duyệt mở ứng dụng đã xuất cần hỗ trợ import map và WebGL 2. Trình duyệt cũ (ví dụ Safari 16.3 trở về trước) sẽ không hiển thị bản đồ.\n3. Nếu phân phối ứng dụng đã xuất kèm Content-Security-Policy, hãy cho phép script-src https://cdn.jsdelivr.net và worker-src blob:.",
+    "maplibre_version_6_confirm_ok": "Chuyển sang phiên bản 6",
+    "maplibre_version_6_confirm_cancel": "Hủy",
+    "maplibre_version_warning": "Bản đồ nền \"{{name}}\" dùng các tính năng cần MapLibre GL JS 6 ({{reasons}}). Bản đồ này sẽ không hiển thị với phiên bản 5.",
+    "maplibre_version_warning_unknown": "Không thể kiểm tra bản đồ nền \"{{name}}\" có hoạt động với MapLibre GL JS 5 hay không ({{reasons}}).",
+    "maplibre_export_warning_message": "Một số bản đồ nền MapLibre trong ứng dụng này cần MapLibre GL JS 6 và sẽ không hiển thị với phiên bản 5.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nĐể hiển thị, hãy chuyển \"Phiên bản MapLibre GL JS\" sang 6 trên màn hình quản lý ứng dụng, lưu ứng dụng rồi xuất lại.",
+    "maplibre_export_warning_continue": "Vẫn xuất",
+    "maplibre_export_warning_cancel": "Hủy"
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

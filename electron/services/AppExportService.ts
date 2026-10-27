@@ -46,7 +46,7 @@ import {
   type AppSource,
   type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
-import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
 import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
@@ -1134,6 +1134,8 @@ class AppExportService {
       const resolved = resolveAppSource(source, baseMapLookup);
       return resolved.ok ? resolved.master.data : null;
     });
+    // MapLibre の系列（アプリの文書の最上位の maplibreMajorVersion）も 1 回だけ決め、同じ値を両方に渡す
+    const maplibreMajor = resolveMaplibreMajor(document);
     const startupBody = [
       `    var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};`,
       renderExportedAppQueryScript(hasBasemap),
@@ -1170,9 +1172,9 @@ ${headLines.join('\n')}
     <div id="map_div"></div>
   </div>
 
-${renderProviderGlCdnTags(requiredProviderGl)}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(requiredProviderGl, maplibreMajor)}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
-${renderViewerStartupScript(requiredProviderGl, startupBody)}
+${renderViewerStartupScript(requiredProviderGl, startupBody, maplibreMajor)}
 </body>
 
 </html>

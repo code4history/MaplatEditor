@@ -173,7 +173,19 @@
       "presets_already_registered": "Bereits registriert: {{names}}",
       "default_license_note": "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben.",
       "default_data_license_note": "Kartendaten und Bildmaterial © Google. Siehe Nutzungsbedingungen der Google Maps Platform."
-    }
+    },
+    "style_gl_check_v5_ok": "Funktioniert mit MapLibre GL JS 5 und 6",
+    "style_gl_check_needs_v6": "Benötigt MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "Prüfung nicht möglich: {{reasons}}",
+    "style_gl_check_run": "Erneut prüfen",
+    "style_gl_check_running": "Stil wird geprüft…",
+    "style_gl_check_reason_network": "Stil nicht erreichbar",
+    "style_gl_check_reason_http-status": "der Server hat einen Fehler gemeldet",
+    "style_gl_check_reason_too-large": "der Stil ist zu groß",
+    "style_gl_check_reason_unsupported-scheme": "nur http und https werden unterstützt",
+    "style_gl_check_reason_invalid-json": "kein JSON-Stil",
+    "style_gl_check_reason_not-v8": "kein Stil der Version 8",
+    "style_gl_check_reason_invalid-argument": "ungültige URL"
   },
   "settings": {
     "title": "Einstellungen",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "Die POI-Daten mischen GeoJSON- und Nicht-GeoJSON-Formate. Sie werden im Viewer möglicherweise nicht korrekt angezeigt. Wandeln Sie POIs im Altformat in GeoJSON um.",
     "provider_source_note": "Die Kachel-URL wird automatisch aus dem API-Schlüssel und dem Typ erstellt, eine manuelle Eingabe ist nicht erforderlich.",
     "error_missing_base_map_master": "Die Basiskarte für diese Quelle fehlt. Sie wird von Export und Vorschau ausgeschlossen.",
-    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen."
+    "warn_missing_base_map_master": "Quellen ohne auffindbare Basiskarte wurden ausgeschlossen.",
+    "maplibre_version": "MapLibre-GL-JS-Version",
+    "maplibre_version_5": "5 (5.6.2, Standard)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "Die Version von MapLibre GL JS, mit der MapLibre-Basiskarten in der Vorschau und in exportierten Apps angezeigt werden. Version 6 unterstützt neuere Stilfunktionen, benötigt aber einen Browser mit Import Maps und WebGL 2.",
+    "maplibre_version_switch_6": "Zu Version 6 wechseln",
+    "maplibre_version_6_confirm_message": "MapLibre GL JS Version 6 für diese App verwenden?",
+    "maplibre_version_6_confirm_detail": "1. Neuere Stilfunktionen (zum Beispiel line-layer-opacity) werden verfügbar.\n2. Browser, die die exportierte App öffnen, benötigen Unterstützung für import map und WebGL 2. Ältere Browser (zum Beispiel Safari 16.3 oder älter) zeigen die Karte nicht an.\n3. Wenn Sie die exportierte App mit einer Content-Security-Policy ausliefern, erlauben Sie script-src https://cdn.jsdelivr.net und worker-src blob:.",
+    "maplibre_version_6_confirm_ok": "Zu Version 6 wechseln",
+    "maplibre_version_6_confirm_cancel": "Abbrechen",
+    "maplibre_version_warning": "Die Basiskarte „{{name}}“ verwendet Funktionen, die MapLibre GL JS 6 benötigen ({{reasons}}). Mit Version 5 wird sie nicht angezeigt.",
+    "maplibre_version_warning_unknown": "Es konnte nicht geprüft werden, ob die Basiskarte „{{name}}“ mit MapLibre GL JS 5 funktioniert ({{reasons}}).",
+    "maplibre_export_warning_message": "Einige MapLibre-Basiskarten dieser App benötigen MapLibre GL JS 6 und werden mit Version 5 nicht angezeigt.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nUm sie anzuzeigen, stellen Sie in der App-Verwaltung „MapLibre-GL-JS-Version“ auf 6 um, speichern die App und exportieren erneut.",
+    "maplibre_export_warning_continue": "Trotzdem exportieren",
+    "maplibre_export_warning_cancel": "Abbrechen"
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",

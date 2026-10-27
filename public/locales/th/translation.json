@@ -173,7 +173,19 @@
       "presets_already_registered": "ลงทะเบียนแล้ว: {{names}}",
       "default_license_note": "ใช้ข้อกำหนดของ Google Maps Platform ต้องแสดงการระบุที่มาไว้",
       "default_data_license_note": "ข้อมูลแผนที่และภาพ © Google ดูข้อกำหนดของ Google Maps Platform"
-    }
+    },
+    "style_gl_check_v5_ok": "ใช้ได้กับ MapLibre GL JS 5 และ 6",
+    "style_gl_check_needs_v6": "ต้องใช้ MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "ไม่สามารถตรวจสอบได้: {{reasons}}",
+    "style_gl_check_run": "ตรวจสอบอีกครั้ง",
+    "style_gl_check_running": "กำลังตรวจสอบสไตล์…",
+    "style_gl_check_reason_network": "เข้าถึงสไตล์ไม่ได้",
+    "style_gl_check_reason_http-status": "เซิร์ฟเวอร์ส่งข้อผิดพลาดกลับมา",
+    "style_gl_check_reason_too-large": "สไตล์มีขนาดใหญ่เกินไป",
+    "style_gl_check_reason_unsupported-scheme": "รองรับเฉพาะ http และ https",
+    "style_gl_check_reason_invalid-json": "ไม่ใช่สไตล์ JSON",
+    "style_gl_check_reason_not-v8": "ไม่ใช่สไตล์เวอร์ชัน 8",
+    "style_gl_check_reason_invalid-argument": "URL ไม่ถูกต้อง"
   },
   "settings": {
     "title": "การตั้งค่า",
@@ -704,7 +716,22 @@
     "warn_mixed_pois": "ข้อมูล POI มีทั้งรูปแบบ GeoJSON และรูปแบบอื่นปะปนกัน อาจแสดงผลไม่ถูกต้องในวิวเวอร์ โปรดแปลง POI รูปแบบเก่าเป็น GeoJSON",
     "provider_source_note": "URL ไทล์จะถูกสร้างขึ้นโดยอัตโนมัติจากคีย์ API และประเภท จึงไม่จำเป็นต้องป้อนด้วยตนเอง",
     "error_missing_base_map_master": "ไม่พบแผนที่ฐานของแหล่งข้อมูลนี้ จะถูกยกเว้นจากการส่งออกและตัวอย่าง",
-    "warn_missing_base_map_master": "ยกเว้นแหล่งข้อมูลที่ไม่พบแผนที่ฐาน"
+    "warn_missing_base_map_master": "ยกเว้นแหล่งข้อมูลที่ไม่พบแผนที่ฐาน",
+    "maplibre_version": "เวอร์ชันของ MapLibre GL JS",
+    "maplibre_version_5": "5 (5.6.2, ค่าเริ่มต้น)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "เวอร์ชันของ MapLibre GL JS ที่ใช้แสดงแผนที่ฐาน MapLibre ในหน้าตัวอย่างและในแอปที่ส่งออก เวอร์ชัน 6 รองรับความสามารถของสไตล์ที่ใหม่กว่า แต่ต้องใช้เบราว์เซอร์ที่รองรับ import map และ WebGL 2",
+    "maplibre_version_switch_6": "เปลี่ยนเป็นเวอร์ชัน 6",
+    "maplibre_version_6_confirm_message": "ใช้ MapLibre GL JS เวอร์ชัน 6 กับแอปนี้หรือไม่?",
+    "maplibre_version_6_confirm_detail": "1. ใช้ความสามารถของสไตล์ที่ใหม่กว่าได้ (เช่น line-layer-opacity)\n2. เบราว์เซอร์ที่เปิดแอปที่ส่งออกต้องรองรับ import map และ WebGL 2 เบราว์เซอร์รุ่นเก่า (เช่น Safari 16.3 หรือเก่ากว่า) จะไม่แสดงแผนที่\n3. หากเผยแพร่แอปที่ส่งออกพร้อม Content-Security-Policy ต้องอนุญาต script-src https://cdn.jsdelivr.net และ worker-src blob:",
+    "maplibre_version_6_confirm_ok": "เปลี่ยนเป็นเวอร์ชัน 6",
+    "maplibre_version_6_confirm_cancel": "ยกเลิก",
+    "maplibre_version_warning": "แผนที่ฐาน \"{{name}}\" ใช้ความสามารถที่ต้องใช้ MapLibre GL JS 6 ({{reasons}}) จึงจะไม่แสดงในเวอร์ชัน 5",
+    "maplibre_version_warning_unknown": "ไม่สามารถตรวจสอบได้ว่าแผนที่ฐาน \"{{name}}\" ทำงานกับ MapLibre GL JS 5 ได้หรือไม่ ({{reasons}})",
+    "maplibre_export_warning_message": "แผนที่ฐาน MapLibre บางส่วนในแอปนี้ต้องใช้ MapLibre GL JS 6 และจะไม่แสดงในเวอร์ชัน 5",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nหากต้องการให้แสดง ให้เปลี่ยน \"เวอร์ชันของ MapLibre GL JS\" เป็น 6 ในหน้าจัดการแอป บันทึกแอป แล้วส่งออกอีกครั้ง",
+    "maplibre_export_warning_continue": "ส่งออกต่อไป",
+    "maplibre_export_warning_cancel": "ยกเลิก"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",
