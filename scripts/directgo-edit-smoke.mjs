@@ -2,8 +2,9 @@
 //   1. URL の検査の受理集合がビューアと同じ: isDangerousUrlString(入力) が
 //      「new URL(入力, 'https://maplat.invalid/') の protocol が http:/https: でない（例外も拒否）」と一致する
 //   2. url の内容の形と directgo が同じ検査を使う（url の形でも java<TAB>script: 等を拒否する）
-//   3. content-mode-link-format: href が無い・文字列でない・検査で拒否・blank が真偽値でない → error。
-//      形が 'link' でなくても directgo があれば検査する
+//   3. content-mode-link-format: href が無い・文字列でない・検査で拒否 → error。
+//      形が 'link' でなくても directgo があれば検査する。ただし空白を除いて空の href は「値なし」（ビューアも
+//      空文字は無視する）なので link 以外の形では error にしない。blank はビューアが真偽性で読むので型を問わない
 //   4. 内容の形の表: 'link' の値・使う欄・非互換の欄（link は空・他の 3 つは directgo を含む）
 //   5. 読み込み時の推定: directgo があれば html・url があっても 'link'
 //   6. 書き出しに内部の値（_maplatContentMode）が漏れず、directgo は残る
@@ -108,7 +109,6 @@ try {
     ['object without href', { _maplatContentMode: 'link', directgo: { blank: true } }],
     ['object with non-string href', { _maplatContentMode: 'link', directgo: { href: 1 } }],
     ['object with rejected href', { _maplatContentMode: 'link', directgo: { href: 'data:text/html,x', blank: true } }],
-    ['object with non-boolean blank', { _maplatContentMode: 'link', directgo: { href: 'https://a/', blank: 'yes' } }],
     ['number', { _maplatContentMode: 'link', directgo: 3 }],
     ['standard mode with rejected directgo (raw JSON)', { _maplatContentMode: 'standard', desc: 'd', directgo: 'javascript:alert(1)' }],
     ['no mode with rejected directgo', { desc: 'd', directgo: { href: 'vbscript:x' } }],
@@ -123,10 +123,32 @@ try {
     ['object blank false', { _maplatContentMode: 'link', directgo: { href: 'https://example.org/b', blank: false } }],
     ['in-app relative', { _maplatContentMode: 'link', directgo: '#!s:other/x:1/y:2/z:3' }],
     ['standard mode without directgo', { _maplatContentMode: 'standard', desc: 'd' }],
+    ['object with non-boolean blank (viewer reads truthiness)', { _maplatContentMode: 'link', directgo: { href: 'https://a/', blank: 'yes' } }],
   ];
   for (const [label, props] of linkGood) {
     check(`link-format ok: ${label}`, () => assert.ok(!codes(props).includes(linkError), JSON.stringify(codes(props))));
   }
+
+  // 空の directgo・真偽値でない blank で POI ソース全体の保存が止まらない（読み込み時の推定 → 検査の流れで）
+  const noErrorAfterLoad = (properties) => {
+    const fc = geo.normalizePoiSourceCollection(fcOf(properties), 'ja');
+    return geo.validateFeatureCollection(fc).filter((i) => i.level === 'error').map((i) => i.code);
+  };
+  const saveNotBlocked = [
+    ['empty directgo string', { desc: 'd', directgo: '' }],
+    ['whitespace-only directgo string', { desc: 'd', directgo: ' \t ' }],
+    ['object with empty href', { desc: 'd', directgo: { href: '  ' } }],
+    ['empty directgo string with explicit standard mode', { _maplatContentMode: 'standard', desc: 'd', directgo: '' }],
+    ['blank given as string "true"', { desc: 'd', directgo: { href: 'https://a/', blank: 'true' } }],
+    ['blank given as number 0', { desc: 'd', directgo: { href: 'https://a/', blank: 0 } }],
+  ];
+  for (const [label, props] of saveNotBlocked) {
+    check(`save not blocked: ${label}`, () => assert.deepEqual(noErrorAfterLoad(props), []));
+  }
+  check('empty directgo is not estimated as link', () => {
+    const fc = geo.normalizePoiSourceCollection(fcOf({ desc: 'd', directgo: ' ' }), 'ja');
+    assert.notEqual(fc.features[0].properties._maplatContentMode, 'link');
+  });
 
   // ---------- 4. 内容の形の表 ----------
   check('content mode values include link', () => {
@@ -175,6 +197,11 @@ try {
     assert.equal(mode.directgoHref(undefined), '');
     assert.equal(mode.directgoBlank({ href: 'https://b/', blank: true }), true);
     assert.equal(mode.directgoBlank('https://a/'), false);
+    // blank はビューアと同じく真偽性で読む（"true"・"false" はどちらも新しいタブ、0・"" は同じタブ）
+    assert.equal(mode.directgoBlank({ href: 'https://b/', blank: 'true' }), true);
+    assert.equal(mode.directgoBlank({ href: 'https://b/', blank: 'false' }), true);
+    assert.equal(mode.directgoBlank({ href: 'https://b/', blank: 0 }), false);
+    assert.equal(mode.directgoBlank({ href: 'https://b/', blank: '' }), false);
     // チェックなし → 文字列
     assert.equal(mode.buildDirectgoValue('https://a/', false, undefined), 'https://a/');
     assert.equal(mode.buildDirectgoValue('https://c/', false, 'https://a/'), 'https://c/');
@@ -185,6 +212,9 @@ try {
     assert.deepEqual(mode.buildDirectgoValue('https://d/', false, { href: 'https://b/', blank: false }), { href: 'https://d/', blank: false });
     // { href, blank: true } のチェックを外す → 文字列
     assert.equal(mode.buildDirectgoValue('https://b/', false, { href: 'https://b/', blank: true }), 'https://b/');
+    // 真偽値でない真の blank もチェックを外せば文字列（残すとビューアが新しいタブで開き続ける）
+    assert.equal(mode.buildDirectgoValue('https://b/', false, { href: 'https://b/', blank: 'true' }), 'https://b/');
+    assert.deepEqual(mode.buildDirectgoValue('https://b/', true, { href: 'https://b/', blank: 'true' }), { href: 'https://b/', blank: true });
     // 空の href は値を消す
     assert.equal(mode.buildDirectgoValue('  ', false, 'https://a/'), undefined);
     assert.equal(mode.buildDirectgoValue('', true, { href: 'https://a/', blank: true }), undefined);
