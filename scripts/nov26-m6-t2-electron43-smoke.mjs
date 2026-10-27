@@ -2,7 +2,7 @@
  * nov26-m6-t2（#115・#84・#99・#133）: Electron 43 群の受け入れ検査（静的）。
  *
  * 守っている不変条件:
- *   (a) electron は 43 系（44 系へ黙って上げない・39 系へ戻さない）
+ *   (a) electron は 44 系以上で、(e) の lock の実体と同じ系列（43 系へ戻さない・範囲と lock の食い違いを許さない）
  *   (b) electron-builder は 26.15.6 以上（上流 #9988 の backport #9989。NSIS のペイロードを BCJ に固定）
  *   (c) ci/pnpm-workspace.ci.yaml に electron>extract-zip と patchedDependencies が無く、
  *       @puppeteer/browsers>extract-zip は 1 件だけ残る（pwa-asset-generator 経路の置換 fork）
@@ -46,14 +46,17 @@ function callBlock(src, opener, label) {
   return src.slice(start, end);
 }
 
-// (a) electron は 43 系
-{
+// (a) electron は 44 系以上（43 系は 2027-01 に EOL。macOS 12 を切った 44 以降へ上げた後は 43 へ戻さない）。
+// 系列の固定は (e) で lock の実体と突き合わせる
+const ELECTRON_MIN_MAJOR = 44;
+const electronRangeMajor = (() => {
   const range = pkg.devDependencies?.electron ?? '';
   const v = parseRange(range);
   assert.ok(v, `(a): devDependencies.electron を解釈できない: ${range}`);
-  assert.equal(v[0], 43, `(a): electron は 43 系であること（現在: ${range}）`);
+  assert.ok(v[0] >= ELECTRON_MIN_MAJOR, `(a): electron は ${ELECTRON_MIN_MAJOR} 系以上であること（現在: ${range}）`);
   console.log(`  [1/8] (a) electron ${range}: PASS`);
-}
+  return v[0];
+})();
 
 // (b) electron-builder >= 26.15.6 かつ 26 系
 {
@@ -99,9 +102,11 @@ function callBlock(src, opener, label) {
   const ez2 = packages.split('\n').filter((l) => /^\s+'?extract-zip@2/.test(l));
   assert.deepEqual(ez2, [], `(e): packages: に extract-zip@2 の実体がある: ${ez2.join(' / ')}`);
   const electronKeys = packages.split('\n').filter((l) => /^\s+electron@\d/.test(l)).map((l) => l.trim());
+  const lockMajors = electronKeys.map((l) => Number(/^electron@(\d+)\./.exec(l)?.[1]));
   assert.ok(
-    electronKeys.length > 0 && electronKeys.every((l) => l.startsWith('electron@43.')),
-    `(e): packages: の electron が 43 系だけであること（現在: ${electronKeys.join(' / ')}）`
+    electronKeys.length > 0 && lockMajors.every((m) => m === electronRangeMajor && m >= ELECTRON_MIN_MAJOR),
+    `(e): packages: の electron が package.json の範囲と同じ ${electronRangeMajor} 系だけであること`
+      + `（${ELECTRON_MIN_MAJOR} 以上。現在: ${electronKeys.join(' / ')}）`
   );
   console.log(`  [5/8] (e) pnpm-lock.yaml（${electronKeys.join(' ')}）: PASS`);
 }

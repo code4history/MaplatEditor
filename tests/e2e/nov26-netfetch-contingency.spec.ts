@@ -2,7 +2,7 @@
 // Chromium のネットワークスタック（net.fetch）へ載せたことの e2e。
 //
 // 背景: Node 24.22.1 で直った CVE-2026-111497（Brotli 展開の範囲外書き込み）は
-// Electron 43.8.3 同梱の Node 24.22.0 に残っている。Node の fetch（undici）は
+// Electron 45.0.0 同梱の Node 24.22.0 に残っている（43.8.3 も同じ Node）。Node の fetch（undici）は
 // `Content-Encoding: br` を Node 同梱 brotli で自動展開するため、外部 URL を読む
 // 経路がこの CVE を通る。net.fetch は Chromium 側で展開するので通らない。
 //

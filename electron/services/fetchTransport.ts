@@ -2,7 +2,7 @@
 // 「どのスタックで実行するか」だけを持つ差し込み口。
 //
 // なぜ要るか: Node 24.22.1 で修正された CVE-2026-111497（Brotli 展開時の範囲外書き込み）は、
-// Electron 43.8.3 が同梱する Node 24.22.0 に残っている。Node の fetch（undici）は
+// Electron 45.0.0 が同梱する Node 24.22.0 に残っている（43.8.3 も同じ Node）。Node の fetch（undici）は
 // `Content-Encoding: br` の応答を Node 同梱の brotli で自動展開するため、外部 URL を
 // 読む経路がこの CVE を通る。Chromium のネットワークサービス（別プロセス）で取得・展開
 // すれば Node の brotli を通らない。
