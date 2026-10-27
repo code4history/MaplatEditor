@@ -870,6 +870,7 @@
       "pick_failed": "No se pudo seleccionar el archivo",
       "references_unavailable": "No se pudo obtener la información de referencias",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "El ZIP es demasiado grande (no se pueden importar archivos de más de 2 GiB)",
       "zip_corrupt": "El ZIP está dañado y no se puede importar"
@@ -941,6 +942,7 @@
     "content_mode_standard": "Standard",
     "content_mode_html": "HTML",
     "content_mode_url": "Web Page",
+    "content_mode_link": "Link",
     "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
     "content_mode_switch_title": "Switch Content Mode",
     "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
@@ -950,7 +952,12 @@
     "copy_ref": "Copy Reference",
     "insert_image": "Insert Image",
     "add_reference_asset": "Add Asset",
-    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted.",
+    "directgo_href": "Link target",
+    "directgo_blank": "Open in a new tab",
+    "directgo_examples": "Examples: https://example.org/ (external page) / #!s:<mapID>/x:<X>/y:<Y>/z:<zoom> (a position on another map in the same app; works when the app setting \"State URL\" is on)",
+    "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
+    "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
   "assetlist": {
     "master_detail": {

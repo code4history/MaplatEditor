@@ -21,6 +21,8 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   // M11-T9: Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
   "content-mode-url-format": "poisource.errors.content_mode_url_format",
   "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
+  // directgo（リンクの形）の値が不正（href が無い・拒否される URL・blank が真偽値でない）
+  "content-mode-link-format": "poisource.errors.content_mode_link_format",
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。

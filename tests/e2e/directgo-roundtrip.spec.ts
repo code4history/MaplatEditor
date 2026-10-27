@@ -1,6 +1,9 @@
 // directgo 往復 E2E: 手で書いた POI の `directgo` が、画面の操作を伴う経路で残るかを確かめる。
 // サービス層の経路（保存・変換・取り込み・書き出し・プレビュー）は scripts/directgo-roundtrip-smoke.mjs。
-//   E3 内容の形の切替: P1 を standard → url → standard と切り替え、その都度保存して directgo を確かめる
+//   E3 内容の形の切替: P1〜P3 はリンクの形と推定される。各 POI で、directgo を消す切替（リンク → 他の形）の
+//      確認の窓を取り消す・確定して Undo で戻す・「新しいタブで開く」を入れて外す、の往復をしてから保存し、
+//      P1〜P3 の directgo が入力と等価のまま残ることを確かめる
+//      （リンクから他の形へ確定して切り替えると directgo は消える。これは仕様: tests/e2e/directgo-edit.spec.ts の AC4）
 //   E4 生 JSON の窓:   directgo の無い P2 に生 JSON の窓で directgo を書き足し、適用・保存して確かめる
 //   続けて同じソースをアプリとして書き出し（zip の pois/*.geojson）・プレビュー（配信される pois/*.geojson）
 //   して、P1〜P3 の directgo が残ることを確かめる
@@ -89,13 +92,6 @@ async function selectFeature(page: Page, displayId: string): Promise<void> {
   }).click();
 }
 
-async function switchMode(page: Page, mode: 'standard' | 'html' | 'url'): Promise<void> {
-  await page.getByTestId(`poi-content-mode-tab-${mode}`).click();
-  const confirm = page.getByTestId('poi-content-mode-confirm');
-  if (await confirm.isVisible({ timeout: 1000 }).catch(() => false)) await confirm.click();
-  await expect(page.getByTestId(`poi-content-mode-tab-${mode}`)).toHaveClass(/active/, { timeout: 5000 });
-}
-
 async function save(page: Page): Promise<void> {
   await page.getByTestId('editor-save').click();
   await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60000 });
@@ -115,7 +111,7 @@ function expectDirectgoKept(
 }
 
 test.describe('directgo roundtrip', () => {
-  test('E3: 内容の形を standard → url → standard と切り替えて保存しても P1 の directgo が残る', async () => {
+  test('E3: リンクの形の切替と欄の操作を往復して保存しても P1〜P3 の directgo が残る', async () => {
     test.setTimeout(180_000);
     const fixture = await loadFixture();
     const expected = Object.fromEntries(fixture.features.map((f) => [f.id, f.properties.directgo]));
@@ -124,23 +120,44 @@ test.describe('directgo roundtrip', () => {
     try {
       const uid = await seedSource(page, `directgo-e3-${Date.now()}`, fixture);
       await openPoiSource(page, uid);
-      await selectFeature(page, 'p1');
-      // desc を持つ P1 は standard と推定される（形を明示しない手書きの POI）
-      await expect(page.getByTestId('poi-content-mode-tab-standard')).toHaveClass(/active/, { timeout: 5000 });
+      const linkTab = page.getByTestId('poi-content-mode-tab-link');
+      const confirm = page.getByTestId('poi-content-mode-confirm');
+      for (const id of ['p1', 'p2', 'p3']) {
+        const want = expected[id] as string | { href: string; blank?: boolean };
+        const wantHref = typeof want === 'string' ? want : want.href;
+        const wantBlank = typeof want === 'object' && want.blank === true;
+        await selectFeature(page, id);
+        // 形を明示しない手書きの POI は、directgo があればリンクと推定される
+        await expect(linkTab).toHaveClass(/active/, { timeout: 5000 });
+        await expect(page.getByTestId('poi-directgo-href')).toHaveValue(wantHref);
+        const blank = page.getByTestId('poi-directgo-blank');
+        if (wantBlank) await expect(blank).toBeChecked(); else await expect(blank).not.toBeChecked();
 
-      await switchMode(page, 'url');
+        // directgo を消す切替は確認の窓が出る。取り消せば何も変わらない
+        await page.getByTestId('poi-content-mode-tab-url').click();
+        await expect(confirm).toBeVisible({ timeout: 5000 });
+        await page.getByTestId('poi-content-mode-cancel').click();
+        await expect(linkTab).toHaveClass(/active/);
+        // 確定して standard にしてから Undo 1 回で戻る
+        await page.getByTestId('poi-content-mode-tab-standard').click();
+        await confirm.click();
+        await expect(page.getByTestId('poi-content-mode-tab-standard')).toHaveClass(/active/);
+        await page.locator('[data-editor-action="undo"]').click();
+        await expect(linkTab).toHaveClass(/active/);
+        await expect(page.getByTestId('poi-directgo-href')).toHaveValue(wantHref);
+        // 「新しいタブで開く」を切り替えて戻す（値の形は入力と同じに戻る）
+        if (wantBlank) { await blank.uncheck(); await blank.check(); } else { await blank.check(); await blank.uncheck(); }
+      }
       await save(page);
-      const afterUrl = await storedProperties(page, uid);
-      console.log(`record: E3 after url mode P1 _maplatContentMode=${JSON.stringify(afterUrl.p1?._maplatContentMode)} desc=${JSON.stringify(afterUrl.p1?.desc)}`);
-      expect(afterUrl.p1?._maplatContentMode).toBe('url');
-      expectDirectgoKept('E3 url', afterUrl, expected, ['p1', 'p2', 'p3']);
-
-      await switchMode(page, 'standard');
-      await save(page);
-      const afterStandard = await storedProperties(page, uid);
-      console.log(`record: E3 after standard mode P1 _maplatContentMode=${JSON.stringify(afterStandard.p1?._maplatContentMode)}`);
-      expect(afterStandard.p1?._maplatContentMode).toBe('standard');
-      expectDirectgoKept('E3 standard', afterStandard, expected, ['p1', 'p2', 'p3']);
+      const stored = await storedProperties(page, uid);
+      for (const id of ['p1', 'p2', 'p3']) {
+        console.log(`record: E3 ${id.toUpperCase()} _maplatContentMode=${JSON.stringify(stored[id]?._maplatContentMode)} desc=${JSON.stringify(stored[id]?.desc)}`);
+        expect(stored[id]?._maplatContentMode).toBe('link');
+      }
+      expectDirectgoKept('E3 link', stored, expected, ['p1', 'p2', 'p3']);
+      // リンクの形でも他の内容（P1・P2 の説明）は消えない
+      expect(stored.p1?.desc).toBeTruthy();
+      expect(stored.p2?.desc).toBeTruthy();
       console.log(`record: E3 message boxes ${JSON.stringify(await messageBoxLog(app))}`);
     } finally {
       await quitElectronApplication(app);

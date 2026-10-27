@@ -870,6 +870,7 @@
       "pick_failed": "ファイルを選択できませんでした",
       "references_unavailable": "参照情報を取得できませんでした",
       "content_mode_url_format": "URLに http/https 以外のプロトコル（javascript: 等）は使用できません。",
+      "content_mode_link_format": "リンク先に使えない値です。http/https の URL か、相対パス（#!s:… を含む）を入れてください（javascript: 等は使えません）。",
       "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。",
       "zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものは取り込めません）",
       "zip_corrupt": "ZIP が壊れているため取り込めません"
@@ -941,6 +942,7 @@
     "content_mode_standard": "標準表示",
     "content_mode_html": "HTML",
     "content_mode_url": "外部ページ",
+    "content_mode_link": "リンク",
     "content_mode_mismatch": "現在の表示形式と整合しないフィールド（{{fields}}）に値が残っています。表示形式を切り替えるとこれらの値は削除されます。",
     "content_mode_switch_title": "表示形式の切替",
     "content_mode_switch_warning": "{{fields}}の内容が削除されます。よろしいですか？",
@@ -950,7 +952,12 @@
     "copy_ref": "参照をコピー",
     "insert_image": "画像を挿入",
     "add_reference_asset": "素材を追加",
-    "missing_asset_refs": "参照先が存在しないアセット参照が{{count}}件あります。アセットが削除されていないか確認してください。"
+    "missing_asset_refs": "参照先が存在しないアセット参照が{{count}}件あります。アセットが削除されていないか確認してください。",
+    "directgo_href": "リンク先",
+    "directgo_blank": "新しいタブで開く",
+    "directgo_examples": "入力例: https://example.org/ （外部のページ）・#!s:<地図ID>/x:<X>/y:<Y>/z:<ズーム> （同じアプリの別の地図の位置。アプリの設定の「状態URL」がオンのときに動きます）",
+    "directgo_preview_note": "プレビューではリンクは開きません。書き出したアプリで確かめてください。",
+    "directgo_hidden_content": "リンクの形では情報窓は出ないため、次の内容は表示されません（データは残ります）: {{fields}}"
   },
   "assetlist": {
     "master_detail": {
