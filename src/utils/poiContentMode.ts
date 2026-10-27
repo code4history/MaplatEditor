@@ -54,16 +54,17 @@ export function directgoHref(value: unknown): string {
   return '';
 }
 
-// 「新しいタブで開く」か（オブジェクト形の blank が true のときだけ）。
+// 「新しいタブで開く」か。ビューアと同じく blank を真偽性で読む（`blank || false`）。
+// ∴ 真偽値でない "true"・"false" も新しいタブ、0・"" は同じタブ。
 export function directgoBlank(value: unknown): boolean {
   return !!value && typeof value === 'object' && !Array.isArray(value)
-    && (value as Record<string, unknown>).blank === true;
+    && !!(value as Record<string, unknown>).blank;
 }
 
 // フォームの入力から保存する directgo の値を作る。
 // チェックあり → { href, blank: true }。チェックなし → 文字列。ただし読んだ値が blank なし／偽の
 // オブジェクト（{ href } や { href, blank: false }）ならオブジェクトのまま保つ（既存データの形を不要に変えない）。
-// { href, blank: true } のチェックを外したときは文字列にする。href が空なら undefined（値を消す）。
+// { href, blank: 真 } のチェックを外したときは文字列にする（真偽値でない真の blank も。残すとビューアは新しいタブで開く）。href が空なら undefined（値を消す）。
 export function buildDirectgoValue(
   href: string,
   blank: boolean,
@@ -74,7 +75,7 @@ export function buildDirectgoValue(
     ? (previous as Record<string, unknown>)
     : undefined;
   if (blank) return { ...(prevObject ?? {}), href, blank: true };
-  if (!prevObject || prevObject.blank === true) return href;
+  if (!prevObject || directgoBlank(prevObject)) return href;
   return { ...prevObject, href };
 }
 

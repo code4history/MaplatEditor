@@ -226,8 +226,15 @@ export function isDangerousUrlString(s: string): boolean {
   return protocol !== "http:" && protocol !== "https:";
 }
 
+// href が空白を除いて空の文字列の directgo（"  " や { href: "" }）。値なしとして扱う。
+function isBlankDirectgo(value: unknown): boolean {
+  const href = typeof value === "string" ? value : isRecord(value) ? value.href : undefined;
+  return typeof href === "string" && href.trim() === "";
+}
+
 // directgo の値（ビューアの型 string | { href: string; blank?: boolean }）が正しいか。
-// href が無い・文字列でない・空・URL の検査で拒否・blank が真偽値でない → false。
+// href が無い・文字列でない・空・URL の検査で拒否 → false。
+// blank の型は問わない（ビューアは `blank || false` と真偽性で読むので、"true" 等でも動く）。
 // フォーム（PoiAttributeForm のリンク先の欄）も同じ判定を使う。
 export function isValidDirectgo(value: unknown): boolean {
   let href: unknown;
@@ -235,7 +242,6 @@ export function isValidDirectgo(value: unknown): boolean {
     href = value;
   } else if (isRecord(value)) {
     href = value.href;
-    if (value.blank !== undefined && typeof value.blank !== "boolean") return false;
   } else {
     return false;
   }
@@ -379,8 +385,11 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       });
     }
   }
-    // directgo: link の形のときと、形によらず directgo があるとき（生 JSON の窓で書いた値も弾く）に検査する
-    const hasDirectgo = props.directgo !== undefined && props.directgo !== null;
+    // directgo: link の形のときと、形によらず directgo があるとき（生 JSON の窓で書いた値も弾く）に検査する。
+    // href が空白を除いて空の値（"" や { href: "" }）は「値なし」とみなす（ビューアは空文字を無視し、
+    // 推定も link にしないので欄が出ない。error にすると直せないまま保存が止まる）。link の形では必須なので error
+    const hasDirectgo = props.directgo !== undefined && props.directgo !== null
+      && !isBlankDirectgo(props.directgo);
     if ((mode === 'link' || hasDirectgo) && !isValidDirectgo(props.directgo)) {
       issues.push({
         level: "error",
