@@ -163,12 +163,11 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const referenced = [...new Set([...src.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))].sort();
   assert.deepEqual(referenced, EXPECTED_SECRETS, 'AC1: secrets 参照が契約表と完全一致');
 
-  // AC1/D4: サードパーティ action は 40桁 SHA ピン
+  // AC1/D4: action は first-party の actions/* も含めてすべて 40桁 SHA ピン（全 workflow の検査は workflow-action-pinning-smoke.mjs）
   const uses = [...src.matchAll(/uses:\s*([^\s#]+)/g)].map((m) => m[1]);
   for (const u of uses) {
-    if (u.startsWith('actions/')) continue; // GitHub first-party は tag 許容
     const [, ref] = u.split('@');
-    assert.match(ref ?? '', /^[0-9a-f]{40}$/, `AC1: サードパーティ action が SHA ピンされている: ${u}`);
+    assert.match(ref ?? '', /^[0-9a-f]{40}$/, `AC1: action が SHA ピンされている: ${u}`);
   }
   // SAC（2026-10-03）: 署名は electron-builder のフック経由に一本化。esigner-codesign action は使わない
   assert.ok(!uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')),
