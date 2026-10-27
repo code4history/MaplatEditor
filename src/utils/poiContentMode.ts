@@ -1,21 +1,26 @@
 // POI Content Mode の純ロジック（型定義・モード別アクティブフィールド契約・legacy推定・Asset Reference URI収集）。
 // renderer(POI editor)と electron main(export/preview) の双方から import するため、
 // electron/node 固有 API は使わない。
-export type PoiContentMode = 'standard' | 'html' | 'url';
+// 'link' は情報窓を出さずに directgo（ビューアの型 `string | { href, blank? }`）へ移る形。
+export type PoiContentMode = 'standard' | 'html' | 'url' | 'link';
 
-export const CONTENT_MODE_VALUES: readonly PoiContentMode[] = ['standard', 'html', 'url'];
+export const CONTENT_MODE_VALUES: readonly PoiContentMode[] = ['standard', 'html', 'url', 'link'];
 
 // モード別アクティブフィールド契約。image は標準モードでは表示用メディア、html モードでは参照素材。
 const ACTIVE_FIELDS: Record<PoiContentMode, readonly string[]> = {
   standard: ['desc', 'address', 'image'],
   html: ['html', 'image'],
   url: ['url'],
+  link: ['directgo'],
 };
 
+// link は他の内容の欄を消さずに隠す（ビューアは directgo があれば情報窓を出さないため、残しても表示に出ない）。
+// 逆に link から他の形へ移るときは directgo を消す（残すとビューアが常に遷移し、その形の内容が出ない）。
 const INCOMPATIBLE_FIELDS: Record<PoiContentMode, readonly string[]> = {
-  standard: ['html', 'url'],
-  html: ['desc', 'address', 'url'],
-  url: ['desc', 'address', 'html', 'image'],
+  standard: ['html', 'url', 'directgo'],
+  html: ['desc', 'address', 'url', 'directgo'],
+  url: ['desc', 'address', 'html', 'image', 'directgo'],
+  link: [],
 };
 
 export function activeFieldsForMode(mode: PoiContentMode): readonly string[] {
@@ -37,9 +42,47 @@ function hasNonEmptyLangValue(value: unknown): boolean {
   return false;
 }
 
+// --- directgo（情報窓を出さずに移るリンク） ---
+
+// directgo の値（string | { href, blank? }）から href を取り出す。形が合わなければ空文字。
+export function directgoHref(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const href = (value as Record<string, unknown>).href;
+    return typeof href === 'string' ? href : '';
+  }
+  return '';
+}
+
+// 「新しいタブで開く」か（オブジェクト形の blank が true のときだけ）。
+export function directgoBlank(value: unknown): boolean {
+  return !!value && typeof value === 'object' && !Array.isArray(value)
+    && (value as Record<string, unknown>).blank === true;
+}
+
+// フォームの入力から保存する directgo の値を作る。
+// チェックあり → { href, blank: true }。チェックなし → 文字列。ただし読んだ値が blank なし／偽の
+// オブジェクト（{ href } や { href, blank: false }）ならオブジェクトのまま保つ（既存データの形を不要に変えない）。
+// { href, blank: true } のチェックを外したときは文字列にする。href が空なら undefined（値を消す）。
+export function buildDirectgoValue(
+  href: string,
+  blank: boolean,
+  previous: unknown,
+): string | Record<string, unknown> | undefined {
+  if (href.trim() === '') return undefined;
+  const prevObject = previous && typeof previous === 'object' && !Array.isArray(previous)
+    ? (previous as Record<string, unknown>)
+    : undefined;
+  if (blank) return { ...(prevObject ?? {}), href, blank: true };
+  if (!prevObject || prevObject.blank === true) return href;
+  return { ...prevObject, href };
+}
+
 // legacy Feature の properties から Content Mode を推定。
-// html > url > undefined（undefined = standard として扱うが、明示値は書かない）
+// link > html > url > undefined（undefined = standard として扱うが、明示値は書かない）。
+// directgo はビューアが最優先する（情報窓を出さずに移る）ので link を最優先にする。
 export function estimateContentMode(props: Record<string, unknown>): PoiContentMode | undefined {
+  if (directgoHref(props.directgo).trim() !== '') return 'link';
   if (hasNonEmptyLangValue(props.html)) return 'html';
   if (hasNonEmptyLangValue(props.url)) return 'url';
   return undefined;

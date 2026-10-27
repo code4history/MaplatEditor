@@ -6,7 +6,7 @@
 // 入力: tests/e2e/fixtures/directgo/
 //   directgo-pois.geojson     P1（文字列）・P2（{href, blank}）・P3（name だけ + 同じアプリ内の相対 URL）
 //   directgo-inline.json      同じ P1〜P3 を地図の inline の旧オブジェクト形にしたもの
-//   directgo-rejected.geojson P4（javascript: の値）。保存できるか・残るかを記録するだけ（assert しない）
+//   directgo-rejected.geojson P4（javascript: の値）。保存と取り込みが content-mode-link-format の error で拒まれる
 //
 // 経路（いずれも「開く → 何も変えずに保存 → 読む」と「開く → name だけ変えて保存 → 読む」の 2 通り）:
 //   E1 POI ソースの保存と再読込          PoiSourceService.save → get
@@ -18,7 +18,7 @@
 // 画面の操作が要る E3（内容の形の切替）と E4（生 JSON の窓）は tests/e2e/directgo-roundtrip.spec.ts。
 //
 // 出力: `result: <経路> <操作> <POI> <kept|missing|changed|rejected>` の行を全件出し、
-// P1〜P3 に kept 以外が 1 件でもあれば失敗する。P4 と P3 単独のソースの検証結果は `record:` 行で出す。
+// P1〜P3 に kept 以外が 1 件でもあれば失敗する。P4 が拒まれなければ失敗する。P3 単独のソースの検証結果は `record:` 行で出す。
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -333,29 +333,26 @@ try {
       recordAll('E7-inline', 'preview', legacyMap(e7.pois));
       recordAll('E7-exportForm', 'exportForm', featureMap(await PoiSourceService.exportForm(e1Uid)));
 
-      // ---------------- P4（javascript: の値）: 記録だけ ----------------
-      const p4Want = rejectedFixture.features[0].properties.directgo;
+      // ---------------- P4（javascript: の値）: 保存も取り込みも拒まれる ----------------
+      const isLinkFormatRejection = (r: any) => r?.result === 'Invalid'
+        && Array.isArray(r.issues)
+        && r.issues.some((i: any) => i.level === 'error' && i.code === 'content-mode-link-format');
       const p4Created = await PoiSourceService.createLocal({ slug: 'directgo-p4', title: { ja: 'directgo P4' }, lang: 'ja' });
       const p4Saved = await PoiSourceService.save(p4Created.uid, {
         slug: 'directgo-p4', title: { ja: 'directgo P4' }, fc: rejectedFixture, expectedRevision: p4Created.revision,
       });
-      console.log('record: P4 E1 save result ' + JSON.stringify(p4Saved));
-      if (p4Saved.result === 'Success') {
-        const p4After = await PoiSourceService.get(p4Created.uid);
-        console.log('record: P4 E1 directgo after save ' + classify(p4After.fc.features[0]?.properties?.directgo, p4Want)
-          + ' ' + JSON.stringify(p4After.fc.features[0]?.properties?.directgo));
-        const p4Export = await PoiSourceService.exportForm(p4Created.uid);
-        console.log('record: P4 E7 exportForm directgo ' + classify(p4Export?.features?.[0]?.properties?.directgo, p4Want)
-          + ' ' + JSON.stringify(p4Export?.features?.[0]?.properties?.directgo));
-      }
+      console.log('result: P4 E1 save ' + (isLinkFormatRejection(p4Saved) ? 'rejected' : 'accepted') + ' ' + JSON.stringify(p4Saved));
+      assert.ok(isLinkFormatRejection(p4Saved), 'P4: javascript: の directgo は保存で content-mode-link-format の error になるはず');
+      const p4Stored = await PoiSourceService.get(p4Created.uid);
+      assert.ok(
+        !(p4Stored?.fc?.features ?? []).some((f: any) => f?.properties?.directgo !== undefined),
+        'P4: 拒まれた保存の値は残らないはず',
+      );
       const p4Import = await PoiSourceService.importFile({
         slug: 'directgo-p4-import', title: { ja: 'directgo P4 import' }, filePath: ${JSON.stringify(paths.rejectedFixture)}, lang: 'ja',
       });
-      console.log('record: P4 E5 import result ' + JSON.stringify(p4Import));
-      if (p4Import.result === 'Success') {
-        const p4ImportAfter = await PoiSourceService.get(p4Import.uid);
-        console.log('record: P4 E5 directgo after import ' + classify(p4ImportAfter.fc.features[0]?.properties?.directgo, p4Want));
-      }
+      console.log('result: P4 E5 import ' + (isLinkFormatRejection(p4Import) ? 'rejected' : 'accepted') + ' ' + JSON.stringify(p4Import));
+      assert.ok(isLinkFormatRejection(p4Import), 'P4: javascript: の directgo は取り込みで content-mode-link-format の error になるはず');
 
       // ---------------- 判定 ----------------
       const bad = rows.filter((r) => r.outcome !== 'kept');
