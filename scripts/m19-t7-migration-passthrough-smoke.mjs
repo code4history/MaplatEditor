@@ -8,11 +8,11 @@
 //   AC-2 同じ時点で、ユーザーベースマップ行が lang / label を持つ
 //   AC-3 0.7.0 fixture から migrate() を 1 回走らせた結果が、変更前実装の結果と一致する
 //        （ゴールデン。ビルトイン行も比較対象に含める = 設計レビュー v1 MNR-2）
-//   AC-4 0.7.0 取込後の schema_migrations に残る marker が保持 3 件だけである
+//   AC-4 0.7.0 取込後の schema_migrations に残る marker が保持 4 件だけである
 //        （= 中間段を 1 つも通っていないことの直接の機械証明。3 件目は nov26-m6-t5 の
 //        画像の内部名の移行の印で、取込の段ではない一回限りの移行。取込の中間段を通っていない
 //        ことの証明は AC-1・AC-2 が担う）
-//   AC-5 SqliteDataService.ts に削除した段の残骸が無く、段数 5 / marker 定数 3 である
+//   AC-5 SqliteDataService.ts に削除した段の残骸が無く、段数 5 / marker 定数 4 である
 //
 // ★「取込トランザクション直後」の観測方法（実経路を迂回しない）:
 //   runLegacyMigrationIfNeeded は取込トランザクションを commit した直後に
@@ -174,11 +174,13 @@ if (!CAPTURE) {
   );
   console.log(`ok: AC-5(b) migrate() の段は 5 本（${stageNames.join(' / ')}）`);
 
-  // (c) marker 定数が 3 本ちょうど（nov26-m6-t5: 画像の内部名の移行の印 ASSET_UUID_NAMES_V1_ID が 3 本目。
+  // (c) marker 定数が 4 本ちょうど（画像の内部名の移行の印 ASSET_UUID_NAMES_V1_ID が 3 本目。
   //     取込の段ではない一回限りの移行で、段数 (b) には数えない＝ try/catch の中のモジュールの関数）
+  //     アプリの MapLibre GL JS の版を値の無いアプリに 5 で書く一回限りの移行の印 MAPLIBRE_VERSION_V1_ID が 4 本目
+  //     （同じく取込の段ではなく、try/catch の中のモジュールの関数）
   const markerConsts = sqliteLines.filter((l) => /^const .*_ID = '20/.test(l)).map((l) => l.trim());
-  assert.equal(markerConsts.length, 3, `AC-5(c): marker 定数は 3 本のはず。実際:\n${markerConsts.join('\n')}`);
-  console.log(`ok: AC-5(c) marker 定数は 3 本（${markerConsts.map((l) => l.split(' ')[1]).join(' / ')}）`);
+  assert.equal(markerConsts.length, 4, `AC-5(c): marker 定数は 4 本のはず。実際:\n${markerConsts.join('\n')}`);
+  console.log(`ok: AC-5(c) marker 定数は 4 本（${markerConsts.map((l) => l.split(' ')[1]).join(' / ')}）`);
 
   // (d) 写像の呼び出し点は adoptDeprecatedMapNames の 1 箇所だけ、かつ読み込み側から呼ばない
   //     （m19-t1 AC-18 の後継。新しい不変条件へ書き換えたもの = 設計 §6.2 / AC-6）
@@ -424,17 +426,19 @@ try {
     '2026-07-21-thumbnail-512-mining-v2',
     // 取込の段ではない一回限りの移行の印（nov26-m6-t5）。取込の中間段を通っていないことの証明は AC-1・AC-2 が担う
     '2026-10-11-asset-uuid-names-v1',
+    // アプリの MapLibre GL JS の版の移行（対象 0 件でも印を付ける。取込の中間段ではない）
+    '2026-12-maplibre-version-v1',
   ];
 
-  // --- AC-4: marker は保持 3 件だけ -------------------------------------------
+  // --- AC-4: marker は保持 4 件だけ -------------------------------------------
   if (!CAPTURE) {
     assert.deepEqual(
       final.markers,
       KEEP_MARKERS,
-      `AC-4: 0.7.0 取込後の marker は保持 3 件だけのはず（中間段を 1 つも通っていないことの直接の証明）。実際: ${final.markers.join(', ')}`,
+      `AC-4: 0.7.0 取込後の marker は保持 4 件だけのはず（中間段を 1 つも通っていないことの直接の証明）。実際: ${final.markers.join(', ')}`,
     );
     assert.deepEqual(reopened.markers, KEEP_MARKERS, 'AC-4: 再オープンで marker が増えてはいけない');
-    console.log(`ok: AC-4 marker は保持 3 件のみ（${final.markers.join(' / ')}）`);
+    console.log(`ok: AC-4 marker は保持 4 件のみ（${final.markers.join(' / ')}）`);
 
     // --- AC-4b: 撤去した段の marker が既に立っている DB（人間の live 相当）を開く ---
     assert.deepEqual(

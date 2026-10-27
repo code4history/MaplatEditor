@@ -203,14 +203,19 @@ const base = {
 
 // AC7/AC8/AC9
 {
-  const html = renderProviderGlCdnTags(new Set(["maplibre"]));
-  assert.match(html, /maplibre-gl@5\.6\.2/);
+  // 版は字面で二重に持たず、ピン留めの定数から組む。既定（5 系）は 5.6.2 の UMD を <script src> で入れる。
+  // 6 系（import map とモジュールの起動）の形は provider-gl-esm-smoke が見る
+  const html = renderProviderGlCdnTags(new Set(["maplibre"]), 5);
+  assert.ok(html.includes(`maplibre-gl@${PROVIDER_GL_CDN.maplibre5.version}/dist/maplibre-gl.js`), html);
+  assert.match(html, /<script src=/);
   assert.match(html, /integrity="sha384-/);
   assert.match(html, /crossorigin="anonymous"/);
   assert.doesNotMatch(html, /mapbox-gl-js/);
-  const both = renderProviderGlCdnTags(new Set(["mapbox", "maplibre"]));
-  assert.match(both, /mapbox-gl-js\/v3\.27\.0/);
-  assert.equal(PROVIDER_GL_CDN.maplibre.jsIntegrity.startsWith("sha384-"), true);
+  assert.doesNotMatch(html, /importmap/);
+  const both = renderProviderGlCdnTags(new Set(["mapbox", "maplibre"]), 5);
+  assert.ok(both.includes(`mapbox-gl-js/v${PROVIDER_GL_CDN.mapbox.version}/`), both);
+  assert.equal(PROVIDER_GL_CDN.maplibre5.jsIntegrity.startsWith("sha384-"), true);
+  assert.equal(PROVIDER_GL_CDN.maplibre6.moduleIntegrity.startsWith("sha384-"), true);
   assert.equal(PROVIDER_GL_CDN.mapbox.jsIntegrity.startsWith("sha384-"), true);
 }
 
@@ -268,25 +273,28 @@ function satisfiesRange(version, range) {
   const editorPkg = JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8"));
   const olVersion = (await readPkg("ol")).version;
   // Editor が実際に使う版: GL は CDN のピン留め版、ol は Editor の依存として解決した版
+  // MapLibre はアプリごとに 5 系・6 系を選べるので、両方の固定版が範囲を満たすことを見る
   const used = {
-    "maplibre-gl": PROVIDER_GL_CDN.maplibre.version,
-    "mapbox-gl": PROVIDER_GL_CDN.mapbox.version,
-    ol: olVersion,
+    "maplibre-gl": [PROVIDER_GL_CDN.maplibre5.version, PROVIDER_GL_CDN.maplibre6.version],
+    "mapbox-gl": [PROVIDER_GL_CDN.mapbox.version],
+    ol: [olVersion],
   };
   for (const name of ["@maplat/core", "@maplat/ui"]) {
     assert.ok(editorPkg.dependencies?.[name], `Editor の package.json が ${name} に依存していない`);
     const pkg = await readPkg(name);
-    for (const [dep, version] of Object.entries(used)) {
+    for (const [dep, versions] of Object.entries(used)) {
       const range = pkg.peerDependencies?.[dep];
       assert.ok(range, `${name}@${pkg.version} の peerDependencies に ${dep} が無い`);
-      assert.equal(
-        satisfiesRange(version, range),
-        true,
-        `Editor が使う ${dep}@${version} が ${name}@${pkg.version} の peerDependencies "${range}" を満たさない`,
-      );
+      for (const version of versions) {
+        assert.equal(
+          satisfiesRange(version, range),
+          true,
+          `Editor が使う ${dep}@${version} が ${name}@${pkg.version} の peerDependencies "${range}" を満たさない`,
+        );
+      }
     }
   }
-  console.log(`ok: (AC11) GL ${used["maplibre-gl"]}/${used["mapbox-gl"]} と ol ${olVersion} が公開物 @maplat/core・@maplat/ui の peerDependencies を満たす`);
+  console.log(`ok: (AC11) GL ${used["maplibre-gl"].join("・")}/${used["mapbox-gl"]} と ol ${olVersion} が公開物 @maplat/core・@maplat/ui の peerDependencies を満たす`);
 }
 
 // Export/Preview same module
@@ -312,10 +320,13 @@ function satisfiesRange(version, range) {
   // 結果を session.requiredProviderGl として持ち回る。旧2形（maps ベース・
   // compose 済み要素ベース）のどちらへも戻らないことを固定する。
   assert.match(prev, /detectRequiredProviderGlFromAppSources\(previewableSources/);
-  assert.match(prev, /renderProviderGlCdnTags\(new Set\(session\.requiredProviderGl/);
+  // 判定の結果（session.requiredProviderGl）を 1 回だけ Set にし、GL の断片と起動のスクリプトの両方へ渡す
+  assert.match(prev, /const requiredProviderGl = new Set\(session\.requiredProviderGl/);
+  assert.match(prev, /renderProviderGlCdnTags\(requiredProviderGl, session\.maplibreMajor\)/);
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(Object\.values\(session\.maps/);
   assert.doesNotMatch(prev, /detectRequiredProviderGl\(session\.viewerSources/);
-  assert.match(exp, /detectRequiredProviderGlFromAppSources\(sources/);
+  assert.match(exp, /const requiredProviderGl = detectRequiredProviderGlFromAppSources\(sources/);
+  assert.match(exp, /renderProviderGlCdnTags\(requiredProviderGl, maplibreMajor\)/);
 }
 
 // AC12（v1.3）: provider 3種別は loadBaseMapVisibility の単一投入点で除外。

@@ -334,6 +334,8 @@ export interface BaseMapsAPI {
     setAlways(baseMapUid: string, always: boolean): Promise<void>;
     // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
     importTileJson(url: string): Promise<TileJsonImportResult>;
+    // MapLibre のベースマップの style が MapLibre GL JS の 5 系で動くかの判定（取得は main）
+    checkMaplibreStyle(url: string): Promise<import("./utils/maplibreStyleSupport").MaplibreStyleSupportResult>;
 }
 
 export interface MapEditAPI {

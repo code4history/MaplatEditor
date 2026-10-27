@@ -173,7 +173,20 @@
       "presets_already_registered": "등록됨: {{names}}",
       "default_license_note": "Google Maps Platform 이용약관이 적용됩니다. 저작자 표시는 계속 보여야 합니다.",
       "default_data_license_note": "지도 데이터 및 이미지 © Google. Google Maps Platform 이용약관을 참조하세요."
-    }
+    },
+    "style_gl_check_v5_ok": "MapLibre GL JS 5와 6 모두에서 동작합니다",
+    "style_gl_check_needs_v6": "MapLibre GL JS 6이 필요합니다: {{reasons}}",
+    "style_gl_check_unknown": "확인할 수 없습니다: {{reasons}}",
+    "style_gl_check_run": "다시 확인",
+    "style_gl_check_running": "스타일을 확인하는 중…",
+    "style_gl_check_reason_network": "스타일에 접근할 수 없습니다",
+    "style_gl_check_reason_http-status": "서버가 오류를 반환했습니다",
+    "style_gl_check_reason_too-large": "스타일이 너무 큽니다",
+    "style_gl_check_reason_unsupported-scheme": "http와 https만 지원합니다",
+    "style_gl_check_reason_invalid-json": "JSON 스타일이 아닙니다",
+    "style_gl_check_reason_not-v8": "버전 8 스타일이 아닙니다",
+    "style_gl_check_reason_invalid-argument": "잘못된 URL",
+    "style_gl_check_reason_check-failed": "스타일이 너무 복잡하거나 예상하지 못한 형식입니다"
   },
   "settings": {
     "title": "설정",
@@ -704,7 +717,22 @@
     "warn_mixed_pois": "POI 데이터에 GeoJSON 형식과 그 외 형식이 혼재되어 있습니다. 뷰어에서 올바르게 표시되지 않을 수 있습니다. 구형 POI는 GeoJSON으로 변환하세요.",
     "provider_source_note": "타일 URL은 API 키와 종류로부터 자동으로 구성되므로 직접 입력할 필요가 없습니다.",
     "error_missing_base_map_master": "이 소스의 베이스맵을 찾을 수 없습니다. 내보내기와 미리보기에서 제외됩니다.",
-    "warn_missing_base_map_master": "베이스맵을 찾을 수 없는 소스를 제외했습니다."
+    "warn_missing_base_map_master": "베이스맵을 찾을 수 없는 소스를 제외했습니다.",
+    "maplibre_version": "MapLibre GL JS 버전",
+    "maplibre_version_5": "5 (5.6.2, 기본값)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "미리보기와 내보낸 앱에서 MapLibre 배경 지도를 표시할 때 사용하는 MapLibre GL JS 버전입니다. 버전 6은 새로운 스타일 기능을 지원하지만 import map과 WebGL 2를 지원하는 브라우저가 필요합니다.",
+    "maplibre_version_switch_6": "버전 6으로 전환",
+    "maplibre_version_6_confirm_message": "이 앱에서 MapLibre GL JS 버전 6을 사용하시겠습니까?",
+    "maplibre_version_6_confirm_detail": "1. 새로운 스타일 기능(예: line-layer-opacity)을 사용할 수 있습니다.\n2. 내보낸 앱을 여는 브라우저는 import map과 WebGL 2를 지원해야 합니다. 오래된 브라우저(예: Safari 16.3 이하)에서는 지도가 표시되지 않습니다.\n3. 내보낸 앱을 Content-Security-Policy와 함께 배포하는 경우 script-src https://cdn.jsdelivr.net 과 worker-src blob: 을 허용해야 합니다.",
+    "maplibre_version_6_confirm_ok": "버전 6으로 전환",
+    "maplibre_version_6_confirm_cancel": "취소",
+    "maplibre_version_warning": "배경 지도 \"{{name}}\"은(는) MapLibre GL JS 6이 필요한 기능({{reasons}})을 사용하므로 버전 5에서는 표시되지 않습니다.",
+    "maplibre_version_warning_unknown": "배경 지도 \"{{name}}\"이(가) MapLibre GL JS 5에서 동작하는지 확인할 수 없습니다({{reasons}}).",
+    "maplibre_export_warning_message": "이 앱의 일부 MapLibre 배경 지도는 MapLibre GL JS 6이 필요하므로 버전 5에서는 표시되지 않습니다.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\n표시하려면 앱 관리 화면의 \"MapLibre GL JS 버전\"을 6으로 바꾸고 앱을 저장한 뒤 다시 내보내세요.",
+    "maplibre_export_warning_continue": "그대로 내보내기",
+    "maplibre_export_warning_cancel": "취소"
   },
   "mapmodel": {
     "untitled": "제목 미설정",

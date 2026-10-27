@@ -178,6 +178,8 @@ contextBridge.exposeInMainWorld('baseMaps', {
   setAlways: (baseMapUid: string, always: boolean) => ipcRenderer.invoke('basemaps:set-always', baseMapUid, always),
   // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
   importTileJson: (url: string) => ipcRenderer.invoke('basemaps:import-tilejson', url),
+  // MapLibre のベースマップの style が MapLibre GL JS の 5 系で動くかの判定
+  checkMaplibreStyle: (url: string) => ipcRenderer.invoke('basemaps:check-maplibre-style', url),
 })
 
 contextBridge.exposeInMainWorld('appAssets', {

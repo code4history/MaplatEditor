@@ -36,7 +36,7 @@ import {
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
-import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, type ProviderGlKind } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor, type MaplibreMajor, type ProviderGlKind } from './providerGlCdn';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import {
   resolvePreviewKey,
@@ -56,6 +56,8 @@ type PreviewSession = {
   // m6-t10: GL CDN の要否は viewer 要素からは判定できなくなった（maptype/kind をマスタ所有へ移し、
   // 定義本体を maps/<slug>.json 側へ置いたため）。∴ 合成時にマスタから判定した結果を持ち回る
   requiredProviderGl: ProviderGlKind[];
+  // MapLibre の系列（アプリの文書の最上位の maplibreMajorVersion から resolveMaplibreMajor で 1 回だけ決める）
+  maplibreMajor: MaplibreMajor;
   // M4-T3: pois/<name>.geojson の実体。キーはファイル名 ('kyoto-poi.geojson')。
   // export が outDir/pois/ へ書き出すのと同じ内容を、preview はメモリから配信する
   poiDocuments: Record<string, unknown>;
@@ -365,6 +367,7 @@ class AppPreviewService {
           return resolved.ok ? resolved.master.data : null;
         }),
       ],
+      maplibreMajor: resolveMaplibreMajor(document),
       poiDocuments,
       manifest: this.createManifest(document),
       viewerOption: this.createViewerOption(token, document, hasViewerBasemapSource(previewableSources)),
@@ -504,6 +507,22 @@ class AppPreviewService {
     const { token, app } = session;
     const title = escapeHtml(localizeTitle(app.title || app.appName || app.app_name, app.lang) || token);
     const manifestLink = session.viewerOption.pwaManifest ? `  <link rel="manifest" href="pwa/${token}_manifest.json">\n` : '';
+    // GL の要否は 1 つの値を GL の断片と起動のスクリプトの両方に渡す
+    const requiredProviderGl = new Set(session.requiredProviderGl || []);
+    const startupBody = [
+      `    const option = ${JSON.stringify(session.viewerOption)};`,
+      '    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject',
+      '      ? window.MaplatUi',
+      '      : window.MaplatUi && window.MaplatUi.MaplatUi',
+      '        ? window.MaplatUi.MaplatUi',
+      '        : window.Maplat;',
+      '    MaplatPreview.createObject(option).then((previewApp) => {',
+      '      // E2E・デバッグ用に viewer インスタンスを公開（m18-t5 AC5-12: iframe 内 ready/marker 到達の状態ベース待機に使用）',
+      '      window.__maplatPreview = previewApp;',
+      '    }).catch((e) => {',
+      `      document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';`,
+      '    });',
+    ].join('\n');
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -518,22 +537,9 @@ ${manifestLink}
 </head>
 <body>
   <div class="mainview"><div id="map_div"></div></div>
-${renderProviderGlCdnTags(new Set(session.requiredProviderGl || []))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(requiredProviderGl, session.maplibreMajor)}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
-  <script>
-    const option = ${JSON.stringify(session.viewerOption)};
-    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject
-      ? window.MaplatUi
-      : window.MaplatUi && window.MaplatUi.MaplatUi
-        ? window.MaplatUi.MaplatUi
-        : window.Maplat;
-    MaplatPreview.createObject(option).then((previewApp) => {
-      // E2E・デバッグ用に viewer インスタンスを公開（m18-t5 AC5-12: iframe 内 ready/marker 到達の状態ベース待機に使用）
-      window.__maplatPreview = previewApp;
-    }).catch((e) => {
-      document.body.innerHTML = '<pre style="padding:12px;color:#842029;background:#f8d7da;">' + (e && e.stack || e) + '</pre>';
-    });
-  </script>
+${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMajor)}
 </body>
 </html>`;
   }
