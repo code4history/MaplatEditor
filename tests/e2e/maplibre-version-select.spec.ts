@@ -350,9 +350,10 @@ test.describe('MapLibre GL JS の版の選択とスタイルの判定', () => {
       if (req.url === '/v7.json') { res.end(JSON.stringify({ version: 7, sources: {}, layers: [] })); return; }
       if (req.url === '/proto.json') { res.end(JSON.stringify({ version: 8, sources: { s: { type: 'constructor' } }, layers: [] })); return; }
       if (req.url === '/deep.json') {
-        let deep: unknown = ['get', 'x'];
-        for (let i = 0; i < 100000; i++) deep = ['to-string', deep];
-        res.end(JSON.stringify({ version: 8, sources: {}, layers: [{ id: 'l', type: 'background', paint: { 'background-opacity': deep } }] }));
+        // JSON.stringify は深い入れ子で呼び出しの深さが尽きるので、文字列で組み立てる
+        const depth = 100000;
+        const deep = `${'["to-string",'.repeat(depth)}["get","x"]${']'.repeat(depth)}`;
+        res.end(`{"version":8,"sources":{},"layers":[{"id":"l","type":"background","paint":{"background-opacity":${deep}}}]}`);
         return;
       }
       res.statusCode = 404;
