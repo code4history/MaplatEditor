@@ -348,6 +348,13 @@ test.describe('MapLibre GL JS の版の選択とスタイルの判定', () => {
       if (req.url === '/slow.json') { setTimeout(() => res.end('{}'), 15_000); return; }
       if (req.url === '/notjson.json') { res.end('<html>'); return; }
       if (req.url === '/v7.json') { res.end(JSON.stringify({ version: 7, sources: {}, layers: [] })); return; }
+      if (req.url === '/proto.json') { res.end(JSON.stringify({ version: 8, sources: { s: { type: 'constructor' } }, layers: [] })); return; }
+      if (req.url === '/deep.json') {
+        let deep: unknown = ['get', 'x'];
+        for (let i = 0; i < 100000; i++) deep = ['to-string', deep];
+        res.end(JSON.stringify({ version: 8, sources: {}, layers: [{ id: 'l', type: 'background', paint: { 'background-opacity': deep } }] }));
+        return;
+      }
       res.statusCode = 404;
       res.end('secret body text');
     });
@@ -357,6 +364,11 @@ test.describe('MapLibre GL JS の版の選択とスタイルの判定', () => {
       expect(await check(`${origin}/big.json`)).toEqual({ result: 'unknown', reasons: [{ kind: 'too-large' }] });
       expect(await check(`${origin}/notjson.json`)).toEqual({ result: 'unknown', reasons: [{ kind: 'invalid-json' }] });
       expect(await check(`${origin}/v7.json`)).toEqual({ result: 'unknown', reasons: [{ kind: 'not-v8' }] });
+      // 判定の関数の中で例外になりうる style でも、取得の失敗（network）にならず、正しい理由で「判定できない」
+      expect(await check(`${origin}/proto.json`)).toEqual({ result: 'unknown', reasons: [{ kind: 'unknown-to-6', source: 's', key: 'type' }] });
+      const deep = await check(`${origin}/deep.json`);
+      expect(deep.result).toBe('unknown');
+      expect(deep.reasons.map((r: { kind: string }) => r.kind)).not.toContain('network');
       const missing = await check(`${origin}/missing.json`);
       expect(missing).toEqual({ result: 'unknown', reasons: [{ kind: 'http-status' }] });
       expect(JSON.stringify(missing)).not.toContain('secret');

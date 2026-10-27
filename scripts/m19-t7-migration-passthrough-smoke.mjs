@@ -174,7 +174,7 @@ if (!CAPTURE) {
   );
   console.log(`ok: AC-5(b) migrate() の段は 5 本（${stageNames.join(' / ')}）`);
 
-  // (c) marker 定数が 3 本ちょうど（nov26-m6-t5: 画像の内部名の移行の印 ASSET_UUID_NAMES_V1_ID が 3 本目。
+  // (c) marker 定数が 4 本ちょうど（画像の内部名の移行の印 ASSET_UUID_NAMES_V1_ID が 3 本目。
   //     取込の段ではない一回限りの移行で、段数 (b) には数えない＝ try/catch の中のモジュールの関数）
   //     アプリの MapLibre GL JS の版を値の無いアプリに 5 で書く一回限りの移行の印 MAPLIBRE_VERSION_V1_ID が 4 本目
   //     （同じく取込の段ではなく、try/catch の中のモジュールの関数）

@@ -146,6 +146,27 @@ if (mod) {
   await expectResult('geojson の source の知らないキー（"*" を持たない型）', withSource({ type: 'geojson', data: { type: 'FeatureCollection', features: [] }, sparkle: 1 }), 'unknown',
     has((r) => r.kind === 'unknown-to-6' && r.source === 'v' && r.key === 'sparkle', '知らない source のキー'));
   await expectResult('26.4.4 も知らない source の型', withSource({ type: 'sparkle' }), 'unknown');
+  // Object.prototype の名前を型として引いても例外にならず、知らない型として「判定できない」
+  for (const type of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    await expectResult(`source の type が "${type}"（Object.prototype の名前）`, withSource(JSON.parse(`{"type": ${JSON.stringify(type)}}`)), 'unknown',
+      has((r) => r.kind === 'unknown-to-6' && r.source === 'v' && r.key === 'type', '知らない source の型'));
+  }
+  await expectResult('層の型が "constructor"', withLayer({ id: 'z', type: 'constructor', source: 'west' }), 'unknown',
+    has((r) => r.kind === 'unknown-to-6' && r.key === 'type', '知らない層の型'));
+  await expectResult('paint のキーが "constructor"・"__proto__"', withLayer(JSON.parse('{"id":"l","type":"line","source":"west","paint":{"constructor":1,"__proto__":2}}')), 'unknown',
+    has((r) => r.kind === 'unknown-to-6' && r.key === 'paint.constructor', '知らない paint のキー'));
+  await expectResult('vector の source のキーが "constructor"（"*" を持つ型）', withSource(JSON.parse('{"type":"vector","tiles":["https://t.example.test/{z}/{x}/{y}.pbf"],"constructor":1}')), 'v5-ok');
+  // 式が極端に深い入れ子でも例外にならず、「判定できない」（判定の途中で止めた）
+  {
+    let deep = ['get', 'x'];
+    for (let i = 0; i < 200000; i++) deep = ['to-string', deep];
+    await expectResult('式が 20 万段の入れ子', withLayer(line({ 'line-width': deep })), 'unknown',
+      has((r) => r.kind === 'check-failed', '判定の途中で止めた'));
+    let deepObj = {};
+    for (let i = 0; i < 200000; i++) deepObj = { a: deepObj };
+    await expectResult('値のオブジェクトが 20 万段の入れ子', withLayer(line({ 'line-width': deepObj })), 'unknown',
+      has((r) => r.kind === 'check-failed', '判定の途中で止めた'));
+  }
   await expectResult('encoding の列挙に無い値', withSource({ ...vectorSource, encoding: 'pbf2' }), 'unknown',
     has((r) => r.kind === 'unknown-to-6' && r.key === 'encoding', '列挙に無い encoding'));
   await expectResult('version: 7', { ...clone(plain), version: 7 }, 'unknown', has((r) => r.kind === 'not-v8', 'not-v8'));
@@ -181,11 +202,38 @@ async function listFiles(dir) {
   }
   return out;
 }
-await check('字面: src/ で maplibreMajorVersion に 6 を代入するのは AppEdit.vue の confirmSwitchToMaplibre6 の中の 1 か所だけ', async () => {
+// 版に 6 を書く字面: 代入（=）・オブジェクトのキー（:。展開や Object.assign の引数もこの形）・角括弧の代入。
+// 比べる式（=== 6）・型（5 | 6）・既定の 5 には当たらない
+const SIX_WRITES = [
+  /\bmaplibreMajorVersion["'`]?\s*[:=]\s*6\b/g,
+  /\[\s*["'`]maplibreMajorVersion["'`]\s*\]\s*=\s*6\b/g,
+];
+function sixWrites(text) {
+  const out = [];
+  for (const re of SIX_WRITES) for (const m of text.matchAll(re)) out.push(m.index);
+  return out.sort((a, b) => a - b);
+}
+await check('字面の検査の自己検査: 6 を書く 5 通りの形を拾い、比べる式・型・既定の 5 を拾わない', () => {
+  for (const line of [
+    'appData.value.maplibreMajorVersion = 6;',
+    'appData.value = { ...appData.value, maplibreMajorVersion: 6 };',
+    '(appData.value as any)["maplibreMajorVersion"] = 6;',
+    "Object.assign(appData.value, { maplibreMajorVersion: 6 });",
+    'const doc = { "maplibreMajorVersion": 6 };',
+  ]) assert.equal(sixWrites(line).length, 1, line);
+  for (const line of [
+    'if (appData.value.maplibreMajorVersion === 6) return;',
+    ':checked="appData.maplibreMajorVersion === 6"',
+    'maplibreMajorVersion: 5 | 6;',
+    'maplibreMajorVersion: 5,',
+    'normalized.maplibreMajorVersion = value.maplibreMajorVersion === 6 ? 6 : 5;',
+  ]) assert.equal(sixWrites(line).length, 0, line);
+});
+await check('字面: src/ で maplibreMajorVersion に 6 を書くのは AppEdit.vue の confirmSwitchToMaplibre6 の中の 1 か所だけ', async () => {
   const hits = [];
   for (const file of await listFiles(path.join(projectRoot, 'src'))) {
     const text = await readFile(file, 'utf8');
-    for (const m of text.matchAll(/maplibreMajorVersion\s*=\s*6\b/g)) hits.push({ file: path.relative(projectRoot, file), index: m.index, text });
+    for (const index of sixWrites(text)) hits.push({ file: path.relative(projectRoot, file), index, text });
   }
   assert.equal(hits.length, 1, JSON.stringify(hits.map((h) => h.file)));
   assert.equal(hits[0].file, 'src/views/AppEdit.vue');
@@ -221,6 +269,7 @@ const NEW_KEYS = [
   'basemap.style_gl_check_reason_network', 'basemap.style_gl_check_reason_http-status', 'basemap.style_gl_check_reason_too-large',
   'basemap.style_gl_check_reason_unsupported-scheme', 'basemap.style_gl_check_reason_invalid-json',
   'basemap.style_gl_check_reason_not-v8', 'basemap.style_gl_check_reason_invalid-argument',
+  'basemap.style_gl_check_reason_check-failed',
 ];
 await check('文言: 新しいキーが 11 言語にあり、差し込み（{{…}}）の名前の集合が同じ', async () => {
   const langs = (await readdir(path.join(projectRoot, 'public/locales'), { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name).sort();
