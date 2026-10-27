@@ -260,6 +260,15 @@ async function openExport(uid: string, label: string): Promise<{ win: Page; line
     return await (window as any).appedit.export(loaded.document ?? loaded);
   }, uid);
   expect(result?.result, `export failed: ${JSON.stringify(result)}`).toBe('Success');
+  // 書き出しの進捗のモーダル（ESC・外のクリックでは閉じない）を OK で閉じる。残すと後のテストの操作を遮る
+  const progressModal = page.locator('.modal.d-block');
+  await progressModal.first().waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+  if (await progressModal.count()) {
+    const ok = progressModal.getByRole('button', { name: 'OK' });
+    await expect(ok).toBeEnabled({ timeout: 30_000 });
+    await ok.click();
+    await expect(progressModal).toHaveCount(0, { timeout: 30_000 });
+  }
   const dir = path.join(e2eRoot, `${label}-extract`);
   new AdmZip(zipPath).extractAllTo(dir, true);
   const server = await serveStatic(dir);
