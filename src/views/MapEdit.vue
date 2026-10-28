@@ -3029,11 +3029,13 @@ const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
 // 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
 // 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
 // IIIF から配信する地図は url_ を持たない ∴ URL・大きさだけで決める（url_ を混ぜない）。
-const tileIdentityKey = (md: any): string => {
+// IIIF から配信する地図のキー（url_ を混ぜない。無ければ null）
+const iiifTileIdentityKey = (md: any): string | null => {
     const delivery = deliveryForSource(md);
-    if (delivery) return ['iiif', delivery.url, md?.width, md?.height].join('|');
-    return [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
+    return delivery ? ['iiif', delivery.url, md?.width, md?.height].join('|') : null;
 };
+const tileIdentityKey = (md: any): string =>
+    iiifTileIdentityKey(md) ?? [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
 
 // 現在 illstSource が構築された時点のキー。exchangeTileSource() の成功時のみ更新する
 // （呼び出し元は :189 保存成功 / loadMapTiles 冒頭 / restoreHistoryState の3経路。設計 §4.1）
