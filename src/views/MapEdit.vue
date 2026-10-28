@@ -2340,6 +2340,12 @@ onMounted(async () => {
             // 書誌だけの道: 画像の取り込みが済んだ地図へ、iiif だけを結び付ける
             pendingIiifFromDraft = draftPayload.iiif;
           }
+          // 取り込みのときに写した書誌を、地図の metadata の同じ鍵へ入れる
+          if (draftPayload?.metadata && typeof draftPayload.metadata === 'object') {
+            for (const [key, value] of Object.entries(draftPayload.metadata as Record<string, unknown>)) {
+              fresh[key] = value;
+            }
+          }
           // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
           withoutHistory('W4', () => {
             setMapDocument(fresh);

@@ -89,10 +89,13 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTranslation } from 'i18next-vue';
+import i18next from 'i18next';
 // @ts-ignore
 import { listIiifCanvases } from '@maplat/core/src/iiif/manifest';
 import { verdictOf, type IiifFetchFacts, type IiifImportReason, type IiifImportVerdict } from '../../utils/iiifImportVerdict';
 import { iiifThumbnailUrls } from '../../utils/iiifThumbnailUrl';
+import { copyIiifMetadata } from '../../utils/iiifMetadataCopy';
+import { resolveEditorLanguage } from '../../utils/editorLanguages';
 
 const emit = defineEmits<{ close: [] }>();
 
@@ -109,6 +112,8 @@ const facts = ref<IiifFetchFacts | null>(null);
 const selectedIndex = ref<number | null>(null);
 const directInfo = ref(false);
 const stagedDraftId = ref<string | null>(null);
+// Manifest として読めた JSON（info.json を直接入れた道では持たない）
+const manifestJson = ref<unknown | null>(null);
 
 const verdictKindKey = computed(() =>
   verdict.value?.kind === 'deliverable'
@@ -140,6 +145,7 @@ function resetResult(): void {
   facts.value = null;
   selectedIndex.value = null;
   directInfo.value = false;
+  manifestJson.value = null;
 }
 
 /** 取得の結果から、判定に渡す事実だけを取り出す。 */
@@ -174,6 +180,7 @@ async function inspect(): Promise<void> {
     }
     if (listed.ok) {
       canvases.value = listed.canvases;
+      manifestJson.value = result.json;
       return;
     }
     // Manifest として読めないときは、同じ応答を info.json として判定する。
@@ -243,6 +250,34 @@ function iiifOf(): Record<string, unknown> {
   return iiif;
 }
 
+/**
+ * 選んだ canvas の書誌を写し、結び付きの記録に残す。
+ * Manifest から来たときだけ写し、info.json を直接入れた道では写さない。
+ * 写せなかったときは取り込みを止めず、警告を 1 行だけ残す。
+ */
+function copyMetadataInto(iiif: Record<string, unknown>): Record<string, unknown> {
+  const manifest = manifestJson.value;
+  const canvas = selectedIndex.value === null ? null : canvases.value[selectedIndex.value];
+  if (!manifest || !canvas) return {};
+  const copied = copyIiifMetadata(
+    manifest,
+    canvas.id,
+    resolveEditorLanguage(i18next.language),
+  );
+  if (!copied.ok) {
+    console.warn('[IIIF import] metadata copy skipped:', copied.reason);
+    return {};
+  }
+  if (copied.warnings.length > 0) {
+    console.warn('[IIIF import] metadata copy warnings:', copied.warnings.join(' / '));
+  }
+  iiif.bindings = copied.bindings;
+  iiif.copiedValues = copied.copiedValues;
+  iiif.copiedMetadata = copied.copiedMetadata;
+  iiif.copiedAt = copied.copiedAt;
+  return copied.values;
+}
+
 /** 「IIIF から配信」を選んだ。預けて、サムネイルを取って、編集画面へ。 */
 async function chooseDeliverable(): Promise<void> {
   const current = verdict.value;
@@ -251,11 +286,14 @@ async function chooseDeliverable(): Promise<void> {
   error.value = null;
   warning.value = null;
   try {
+    const iiif = iiifOf();
+    const metadata = copyMetadataInto(iiif);
     const draftId = await window.iiifImport.stageDraft({
       delivery: { type: 'iiifImage', url: current.info.serviceUrl },
-      iiif: iiifOf(),
+      iiif,
       width: current.info.width,
       height: current.info.height,
+      metadata,
     });
     if (!draftId) {
       error.value = 'iiif_import.error.stage_failed';
@@ -289,7 +327,9 @@ async function chooseMetadataOnly(): Promise<void> {
   busy.value = true;
   error.value = null;
   try {
-    const draftId = await window.iiifImport.stageDraft({ iiif: iiifOf() });
+    const iiif = iiifOf();
+    const metadata = copyMetadataInto(iiif);
+    const draftId = await window.iiifImport.stageDraft({ iiif, metadata });
     if (!draftId) {
       error.value = 'iiif_import.error.stage_failed';
       return;

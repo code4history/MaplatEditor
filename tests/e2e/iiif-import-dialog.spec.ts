@@ -11,6 +11,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { mkdtemp, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 
@@ -200,6 +201,97 @@ test.describe('IIIF import dialog', () => {
       await expect(page.locator(`[data-resource-uid="${seeded.plainUid}"] [data-testid="map-row-iiif-delivery"]`)).toHaveCount(0);
     } finally {
       await quitElectronApplication(app);
+    }
+  });
+
+  test('取り込んだ地図に、最初に写した書誌と結び付きの記録が残る', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-iiif-metadata-copy-'));
+    await writeResponses(e2eRoot);
+    let app: ElectronApplication | null = null;
+    try {
+      const launched = await launch(e2eRoot);
+      app = launched.app;
+      const page = launched.page;
+      // 保存のときの確認（対応点が足りない等）は「はい」で進める
+      await app.evaluate(({ dialog }) => {
+        dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+      });
+      await forceJapanese(page);
+      await openMapList(page);
+
+      // 取り込みのダイアログ: Manifest → 3 コマ目 → 「IIIF から配信」
+      await page.getByTestId('map-import-iiif').click();
+      await expect(page.getByTestId('iiif-import-dialog')).toBeVisible();
+      await page.getByTestId('iiif-import-url').fill(MANIFEST_URL);
+      await page.getByTestId('iiif-import-inspect').click();
+      await expect(page.getByTestId('iiif-canvas-option')).toHaveCount(9);
+      await page.getByTestId('iiif-canvas-option').nth(2).click();
+      await expect(page.getByTestId('iiif-verdict-kind')).toHaveText('IIIF から配信');
+      await page.getByTestId('iiif-deliverable').click();
+
+      // 編集画面の地図のデータに、写した書誌と結び付きの記録が入っている
+      await page.waitForFunction(
+        () => !!(window as any).testDebug?.mapData?.value?.iiif?.copiedAt,
+        undefined,
+        { timeout: 60_000 },
+      );
+      const applied = await page.evaluate(() => {
+        const md = (window as any).testDebug.mapData.value;
+        return { title: md.title, attr: md.attr, iiif: md.iiif };
+      });
+      expect(applied.iiif.bindings).toBeTruthy();
+      expect(applied.iiif.copiedValues).toBeTruthy();
+      expect(Array.isArray(applied.iiif.copiedMetadata)).toBe(true);
+      expect(applied.iiif.copiedMetadata.length).toBeGreaterThan(0);
+      expect(typeof applied.iiif.copiedAt).toBe('string');
+      // 地図の題名が、写した時点の題名の値と同じ文字列であること
+      const copiedTitle = applied.iiif.copiedValues.title as Record<string, string>;
+      const appliedTitle = typeof applied.title === 'string' ? applied.title : applied.title?.ja;
+      expect(appliedTitle).toBe(copiedTitle.ja);
+
+      // 保存する（新規の地図なので ID を入れる。題名は IIIF から写した値をそのまま残す）
+      const slug = `iiif-metadata-${Date.now()}`;
+      await page.getByRole('tab', { name: 'メタデータ編集' }).click();
+      await page.getByTestId('map-slug').fill(slug);
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 30_000 });
+      await page.getByTestId('editor-save').click();
+      await page.waitForFunction(
+        () => !!(window as any).testDebug?.mapData?.value?.uid,
+        undefined,
+        { timeout: 60_000 },
+      );
+      const savedUid = await page.evaluate(() => (window as any).testDebug.mapData.value.uid as string);
+      expect(savedUid).toBeTruthy();
+      const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+
+      // 保存のフォルダの地図の JSON を読み、写した書誌が残っていることを確かめる
+      await quitElectronApplication(app);
+      app = null;
+      const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
+      try {
+        const row = db.prepare('SELECT data_json FROM maps WHERE slug = ?').get(slug) as
+          | { data_json: string }
+          | undefined;
+        expect(row).toBeTruthy();
+        const saved = JSON.parse(String(row!.data_json));
+        expect(saved.iiif).toBeTruthy();
+        expect(saved.iiif.bindings).toBeTruthy();
+        // 既定の結び付きは、この Manifest にある項目だけ（題名・帰属・ライセンス）
+        expect(Object.keys(saved.iiif.bindings).sort()).toEqual(['attr', 'license', 'title']);
+        expect(saved.iiif.copiedValues).toBeTruthy();
+        expect(Array.isArray(saved.iiif.copiedMetadata)).toBe(true);
+        expect(saved.iiif.copiedMetadata.length).toBeGreaterThan(0);
+        expect(typeof saved.iiif.copiedAt).toBe('string');
+        // 保存した地図の題名も、写した時点の題名の値と同じ文字列であること
+        const copiedTitle = saved.iiif.copiedValues.title as Record<string, string>;
+        const savedTitle = typeof saved.title === 'string' ? saved.title : saved.title?.ja;
+        expect(savedTitle).toBe(copiedTitle.ja);
+      } finally {
+        db.close();
+      }
+    } finally {
+      if (app) await quitElectronApplication(app);
     }
   });
 });

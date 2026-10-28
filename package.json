@@ -315,7 +315,8 @@
     "smoke:iiif-import-verdict": "node scripts/iiif-import-verdict-smoke.mjs",
     "smoke:iiif-import-save": "node scripts/iiif-import-save-smoke.mjs",
     "smoke:iiif-delivery-url": "node scripts/iiif-delivery-url-smoke.mjs",
-    "smoke:iiif-map-tiles": "node scripts/iiif-map-tiles-smoke.mjs"
+    "smoke:iiif-map-tiles": "node scripts/iiif-map-tiles-smoke.mjs",
+    "smoke:iiif-metadata-copy": "node scripts/iiif-metadata-copy-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
