@@ -23,6 +23,7 @@ const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'iiif-import-smoke.mjs');
 
 const fetchModulePath = path.join(projectRoot, 'electron/services/iiifFetch.ts');
+const serviceModulePath = path.join(projectRoot, 'electron/services/iiifImportService.ts');
 const classifyModulePath = path.join(projectRoot, 'src/utils/ipClassify.ts');
 
 try {
@@ -35,6 +36,7 @@ try {
       import { Readable } from 'node:stream';
 
       const { fetchIiifResource, createPinnedLookup } = await import(${JSON.stringify(fetchModulePath)});
+      const { inspectManifest, inspectInfo, fetchThumbnails } = await import(${JSON.stringify(serviceModulePath)});
       const { classifyAddress, BLOCKED_ADDRESS_RANGES } = await import(${JSON.stringify(classifyModulePath)});
 
       const tests = [];
@@ -541,6 +543,202 @@ try {
         assert.equal(relative.finalUrl, 'https://public.example/x', '(d) finalUrl: ' + relative.finalUrl);
         assert.equal(stateD.requests.length, 2, '(d) exactly two hops were requested');
         assert.equal(stateD.requests[1].path, '/x', '(d) the second hop path: ' + stateD.requests[1].path);
+      });
+
+      // ---- 取得の全数（4 種が同じ 1 本の道を通る） ----
+      // main の取得の入口を、偽の lookup・classify・request で呼ぶ。偽の request は
+      // 渡された options.lookup を 1 回呼ぶので、classify が呼ばれた回数が
+      // 「検査を通った回数」になる。応答はその場で作り、ポートは開かない。
+      const manifestUrl = 'https://iiif.example/iiif/manifest.json';
+      const infoServiceUrl = 'https://iiif.example/iiif/image';
+      const thumb52Url = 'https://iiif.example/iiif/image/full/52,/0/default.jpg';
+      const thumb512Url = 'https://iiif.example/iiif/image/full/512,/0/default.jpg';
+      const manifestPath = '/iiif/manifest.json';
+      const infoPath = '/iiif/image/info.json';
+      const thumb52Path = '/iiif/image/full/52,/0/default.jpg';
+      const thumb512Path = '/iiif/image/full/512,/0/default.jpg';
+      const manifestBody = JSON.stringify({
+        '@context': 'http://iiif.io/api/presentation/3/context.json',
+        id: 'https://iiif.example/iiif/manifest',
+        type: 'Manifest',
+        label: { none: ['sample'] },
+        items: [],
+      });
+      const infoBody = JSON.stringify({
+        '@context': 'http://iiif.io/api/image/3/context.json',
+        id: 'https://iiif.example/iiif/image',
+        type: 'ImageService3',
+        width: 4000,
+        height: 3000,
+      });
+      const thumb52Body = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+      const thumb512Body = Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x20, 0x01, 0x02]);
+
+      const serviceScript = (options) => {
+        const requestPath = String(options.path);
+        if (requestPath === manifestPath) {
+          return {
+            status: 200,
+            headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+            body: manifestBody,
+          };
+        }
+        if (requestPath === infoPath) {
+          return {
+            status: 200,
+            headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+            body: infoBody,
+          };
+        }
+        if (requestPath === thumb52Path) {
+          return { status: 200, headers: { 'content-type': 'image/jpeg' }, body: thumb52Body };
+        }
+        if (requestPath === thumb512Path) {
+          return { status: 200, headers: { 'content-type': 'image/jpeg' }, body: thumb512Body };
+        }
+        return null;
+      };
+
+      const publicDeps = (script, state) => ({
+        lookup: (hostname, options, callback) => {
+          callback(null, [{ address: '93.184.216.34', family: 4 }]);
+        },
+        classify: () => ({ blocked: false }),
+        request: makeFakeRequest(script, state),
+      });
+
+      test('fetch-single-path', async () => {
+        const state = newState();
+        // classify は request の lookup から呼ばれる ∴ 直前に積まれた要求の path が
+        // いま検査している取得になる。
+        const inspectedPaths = [];
+        const deps = {
+          lookup: (hostname, options, callback) => {
+            callback(null, [{ address: '93.184.216.34', family: 4 }]);
+          },
+          classify: () => {
+            const current = state.requests[state.requests.length - 1];
+            inspectedPaths.push(current ? String(current.path) : '');
+            return { blocked: false };
+          },
+          request: makeFakeRequest(serviceScript, state),
+        };
+
+        const manifest = await inspectManifest(manifestUrl, deps);
+        assert.equal(manifest.ok, true, 'the manifest must be fetched: ' + JSON.stringify(manifest));
+        const info = await inspectInfo(infoServiceUrl, deps);
+        assert.equal(info.ok, true, 'the info.json must be fetched: ' + JSON.stringify(info));
+        const thumbnails = await fetchThumbnails({ url52: thumb52Url, url512: thumb512Url }, deps);
+        assert.equal(thumbnails.url52.ok, true, 'the 52px thumbnail must be fetched');
+        assert.equal(thumbnails.url512.ok, true, 'the 512px thumbnail must be fetched');
+
+        const expected = [manifestPath, infoPath, thumb52Path, thumb512Path];
+        for (const requestPath of expected) {
+          const count = inspectedPaths.filter((entry) => entry === requestPath).length;
+          assert.equal(
+            count,
+            1,
+            requestPath + ' must pass the inspection exactly once but passed ' + count,
+          );
+        }
+        assert.equal(
+          inspectedPaths.length,
+          expected.length,
+          'every fetch must go through the inspection once but the inspections were ' +
+            JSON.stringify(inspectedPaths),
+        );
+        const inspected = expected.filter(
+          (requestPath) => inspectedPaths.filter((entry) => entry === requestPath).length === 1,
+        ).length;
+        return '(' + inspected + '/' + expected.length + ')';
+      });
+
+      test('inspect-returns-json-and-facts', async () => {
+        const state = newState();
+        const manifest = await inspectManifest(manifestUrl, publicDeps(serviceScript, state));
+        assert.equal(manifest.ok, true, 'the manifest must be fetched: ' + JSON.stringify(manifest));
+        assert.equal(typeof manifest.json, 'object', 'the manifest must be a parsed object');
+        assert.equal(manifest.json.type, 'Manifest', 'the parsed manifest type');
+        assert.equal(manifest.requestedUrl, manifestUrl, 'requestedUrl: ' + manifest.requestedUrl);
+        assert.equal(manifest.finalUrl, 'https://iiif.example' + manifestPath, 'finalUrl');
+        assert.equal(manifest.accessControlAllowOrigin, '*', 'accessControlAllowOrigin');
+
+        const info = await inspectInfo(infoServiceUrl, publicDeps(serviceScript, state));
+        assert.equal(info.ok, true, 'the info.json must be fetched: ' + JSON.stringify(info));
+        assert.equal(typeof info.json, 'object', 'the info.json must be a parsed object');
+        assert.equal(info.json.width, 4000, 'the parsed info.json width');
+        assert.equal(
+          info.requestedUrl,
+          'https://iiif.example' + infoPath,
+          'the requested url of the info.json: ' + info.requestedUrl,
+        );
+        assert.equal(info.finalUrl, 'https://iiif.example' + infoPath, 'finalUrl');
+      });
+
+      test('inspect-json-by-parse', async () => {
+        // Content-Type が JSON でも、本文が読めなければ not-json。
+        const brokenState = newState();
+        const broken = await inspectManifest(
+          manifestUrl,
+          publicDeps(
+            () => ({
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+              body: 'this is not json',
+            }),
+            brokenState,
+          ),
+        );
+        assert.equal(broken.ok, false, 'an unreadable body must be a failure: ' + JSON.stringify(broken));
+        assert.equal(broken.reason, 'not-json', 'expected not-json but got ' + String(broken.reason));
+
+        // Content-Type が JSON でなくても、本文が読めれば通す（ヘッダで決めない）。
+        const plainState = newState();
+        const plain = await inspectManifest(
+          manifestUrl,
+          publicDeps(
+            () => ({
+              status: 200,
+              headers: { 'content-type': 'text/plain' },
+              body: manifestBody,
+            }),
+            plainState,
+          ),
+        );
+        assert.equal(plain.ok, true, 'the header must not decide json: ' + JSON.stringify(plain));
+        assert.equal(plain.json.type, 'Manifest', 'the parsed manifest type');
+      });
+
+      test('info-url-normalized', async () => {
+        const state = newState();
+        const given = 'https://iiif.example' + infoPath;
+        const info = await inspectInfo(given, publicDeps(serviceScript, state));
+        assert.equal(info.ok, true, 'the info.json must be fetched: ' + JSON.stringify(info));
+        assert.equal(state.requests.length, 1, 'exactly one request must be made');
+        assert.equal(state.requests[0].path, infoPath, 'the path must not be doubled: ' + state.requests[0].path);
+        assert.equal(info.requestedUrl, given, 'requestedUrl: ' + info.requestedUrl);
+      });
+
+      test('thumbnail-bytes', async () => {
+        const state = newState();
+        const thumbnails = await fetchThumbnails(
+          { url52: thumb52Url, url512: thumb512Url },
+          publicDeps(serviceScript, state),
+        );
+        assert.equal(thumbnails.url52.ok, true, 'the 52px thumbnail must be fetched');
+        assert.equal(thumbnails.url52.contentType, 'image/jpeg', 'the 52px content type');
+        assert.equal(
+          Buffer.compare(thumbnails.url52.body, thumb52Body),
+          0,
+          'the 52px body must be the response bytes',
+        );
+        assert.equal(thumbnails.url512.ok, true, 'the 512px thumbnail must be fetched');
+        assert.equal(thumbnails.url512.contentType, 'image/jpeg', 'the 512px content type');
+        assert.equal(
+          Buffer.compare(thumbnails.url512.body, thumb512Body),
+          0,
+          'the 512px body must be the response bytes',
+        );
       });
 
       let failed = 0;
