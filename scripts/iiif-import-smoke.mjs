@@ -741,6 +741,294 @@ try {
         );
       });
 
+      // ---- 時間とバイト数の上限 ----
+      // 応答はその場で作り、ポートは開かない（request・lookup・classify を差し替える）。
+      // 種別ごとの上限は product の表と同じ値をここにも書く（表がずれたら赤になる）。
+      const limitBytes = {
+        manifest: 8 * 1024 * 1024,
+        info: 1024 * 1024,
+        thumbnail: 2 * 1024 * 1024,
+      };
+
+      const limitState = () => ({ requests: [], responses: 0, reads: 0, destroyed: 0 });
+
+      // 成功の戻り値は本文を持つので、失敗の知らせに本文を混ぜない。
+      const describeLimitResult = (result) =>
+        result.ok
+          ? { ok: true, bytes: result.body ? result.body.length : 0 }
+          : { ok: false, reason: result.reason, detail: result.detail };
+
+      // 本文は data の聞き手が付いて初めて読まれる。読まれたら reads を数える。
+      const limitMessage = (selected, state) => {
+        let sent = false;
+        const message = new Readable({
+          read() {
+            state.reads += 1;
+            if (sent) return;
+            sent = true;
+            for (const chunk of selected.chunks || []) message.push(Buffer.from(chunk));
+            message.push(null);
+          },
+        });
+        message.statusCode = selected.status;
+        message.headers = selected.headers || {};
+        return message;
+      };
+
+      const makeLimitRequest = (script, state) => (options, onResponse) => {
+        const req = new EventEmitter();
+        req.destroyed = false;
+        req.destroy = (error) => {
+          if (req.destroyed) return;
+          req.destroyed = true;
+          state.destroyed += 1;
+          if (error) req.emit('error', error);
+        };
+        req.end = () => {
+          state.requests.push(options);
+          const answer = () => {
+            const selected = script(options);
+            if (!selected) {
+              const missing = new Error('no scripted response for ' + options.hostname + String(options.path));
+              missing.code = 'ENOSCRIPT';
+              req.emit('error', missing);
+              return;
+            }
+            state.responses += 1;
+            onResponse(limitMessage(selected, state));
+          };
+          const lookup = options.lookup;
+          if (lookup) {
+            lookup(options.hostname, { all: true }, (error) => {
+              if (error) req.emit('error', error);
+              else answer();
+            });
+          } else {
+            answer();
+          }
+        };
+        return req;
+      };
+
+      // 応答を一切返さない要求（締め切りだけが働く）。
+      const silentRequest = (state) => (options) => {
+        const req = new EventEmitter();
+        req.destroyed = false;
+        req.destroy = (error) => {
+          if (req.destroyed) return;
+          req.destroyed = true;
+          state.destroyed += 1;
+          if (error) req.emit('error', error);
+        };
+        req.end = () => {
+          state.requests.push(options);
+        };
+        return req;
+      };
+
+      // 名前解決が答えない要求（締め切りが名前解決の段も囲む）。
+      const silentLookupRequest = (state) => (options) => {
+        const req = new EventEmitter();
+        req.destroyed = false;
+        req.destroy = (error) => {
+          if (req.destroyed) return;
+          req.destroyed = true;
+          state.destroyed += 1;
+          if (error) req.emit('error', error);
+        };
+        req.end = () => {
+          state.requests.push(options);
+          if (options.lookup) options.lookup(options.hostname, { all: true }, () => {});
+        };
+        return req;
+      };
+
+      const limitDeps = (script, state) => ({
+        lookup: publicLookup,
+        classify: () => ({ blocked: false }),
+        request: makeLimitRequest(script, state),
+      });
+
+      test('fetch-limits', async () => {
+        // (a) Content-Length が上限を超える応答は、本文を読む前に切って too-large。
+        for (const kind of ['manifest', 'info', 'thumbnail']) {
+          const limit = limitBytes[kind];
+          const state = limitState();
+          const result = await fetchIiifResource(
+            'https://iiif.example/too-large-' + kind,
+            { kind, timeoutMs: 3000 },
+            limitDeps(
+              () => ({
+                status: 200,
+                headers: { 'content-length': String(limit + 1) },
+                chunks: [Buffer.alloc(limit + 1)],
+              }),
+              state,
+            ),
+          );
+          assert.equal(
+            result.ok,
+            false,
+            kind + ': a declared length over the limit must be a failure: ' + JSON.stringify(describeLimitResult(result)),
+          );
+          assert.equal(
+            result.reason,
+            'too-large',
+            kind + ': expected too-large but got ' + String(result.reason),
+          );
+          assert.equal(state.reads, 0, kind + ': the body must not be read when the length is declared');
+          assert.ok(
+            state.destroyed >= 1,
+            kind + ': the request must be destroyed but destroy was not called',
+          );
+        }
+
+        // ちょうど上限は通す。
+        for (const kind of ['manifest', 'info', 'thumbnail']) {
+          const limit = limitBytes[kind];
+          const state = limitState();
+          const result = await fetchIiifResource(
+            'https://iiif.example/at-limit-' + kind,
+            { kind, timeoutMs: 3000 },
+            limitDeps(
+              () => ({
+                status: 200,
+                headers: { 'content-length': String(limit) },
+                chunks: [Buffer.alloc(limit)],
+              }),
+              state,
+            ),
+          );
+          assert.equal(
+            result.ok,
+            true,
+            kind + ': a body at the limit must be accepted (reason ' + String(result.reason) + ')',
+          );
+          assert.equal(result.body.length, limit, kind + ': the whole body must be read');
+        }
+
+        // (b) Content-Length が無いまま流し続ける応答は、累計が上限を超えた時点で切る。
+        for (const kind of ['manifest', 'info', 'thumbnail']) {
+          const limit = limitBytes[kind];
+          const state = limitState();
+          const result = await fetchIiifResource(
+            'https://iiif.example/streaming-' + kind,
+            { kind, timeoutMs: 3000 },
+            limitDeps(
+              () => ({
+                status: 200,
+                headers: {},
+                chunks: [Buffer.alloc(limit), Buffer.from([0x41])],
+              }),
+              state,
+            ),
+          );
+          assert.equal(
+            result.ok,
+            false,
+            kind + ': a body over the limit must be a failure: ' + JSON.stringify(describeLimitResult(result)),
+          );
+          assert.equal(
+            result.reason,
+            'too-large',
+            kind + ': expected too-large but got ' + String(result.reason),
+          );
+          assert.ok(
+            state.destroyed >= 1,
+            kind + ': the request must be destroyed when the body grows over the limit',
+          );
+        }
+
+        // (c) 応答が来ないまま締め切りを過ぎたら timeout。
+        const silentState = limitState();
+        const silent = await fetchIiifResource(
+          'https://iiif.example/silent',
+          { kind: 'info', timeoutMs: 200 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: silentRequest(silentState),
+          },
+        );
+        assert.equal(silent.ok, false, '(c) no response must be a failure: ' + JSON.stringify(silent));
+        assert.equal(silent.reason, 'timeout', '(c) expected timeout but got ' + String(silent.reason));
+
+        // 名前解決が答えない場合も、締め切りが名前解決の段を囲む。
+        const silentLookupState = limitState();
+        const silentLookup = await fetchIiifResource(
+          'https://iiif.example/silent-lookup',
+          { kind: 'info', timeoutMs: 200 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: silentLookupRequest(silentLookupState),
+          },
+        );
+        assert.equal(
+          silentLookup.ok,
+          false,
+          '(c) a silent lookup must be a failure: ' + JSON.stringify(silentLookup),
+        );
+        assert.equal(
+          silentLookup.reason,
+          'timeout',
+          '(c) expected timeout for a silent lookup but got ' + String(silentLookup.reason),
+        );
+
+        // (d) 200 以外は fetch-failed。
+        for (const status of [404, 500]) {
+          const state = limitState();
+          const result = await fetchIiifResource(
+            'https://iiif.example/status-' + status,
+            { kind: 'info', timeoutMs: 3000 },
+            limitDeps(() => ({ status, headers: {}, chunks: ['not ok'] }), state),
+          );
+          assert.equal(result.ok, false, '(d) status ' + status + ' must be a failure');
+          assert.equal(
+            result.reason,
+            'fetch-failed',
+            '(d) status ' + status + ' must be fetch-failed but got ' + String(result.reason),
+          );
+        }
+
+        // (e) 圧縮された応答は捨てる。
+        const gzipState = limitState();
+        const gzip = await fetchIiifResource(
+          'https://iiif.example/gzip',
+          { kind: 'info', timeoutMs: 3000 },
+          limitDeps(
+            () => ({ status: 200, headers: { 'content-encoding': 'gzip' }, chunks: ['compressed'] }),
+            gzipState,
+          ),
+        );
+        assert.equal(gzip.ok, false, '(e) a compressed response must be a failure: ' + JSON.stringify(gzip));
+        assert.equal(
+          gzip.reason,
+          'fetch-failed',
+          '(e) expected fetch-failed but got ' + String(gzip.reason),
+        );
+
+        // (f) 送るヘッダに cookie・authorization・accept-encoding が無い。
+        const headerState = limitState();
+        const fetched = await fetchIiifResource(
+          'https://iiif.example/headers',
+          { kind: 'info', timeoutMs: 3000 },
+          limitDeps(() => ({ status: 200, headers: {}, chunks: ['{}'] }), headerState),
+        );
+        assert.equal(fetched.ok, true, '(f) the fetch must succeed: ' + JSON.stringify(fetched));
+        assert.ok(headerState.requests.length >= 1, '(f) a request must be recorded');
+        const sentNames = Object.keys(headerState.requests[0].headers || {}).map((name) =>
+          String(name).toLowerCase(),
+        );
+        for (const forbidden of ['cookie', 'authorization', 'accept-encoding']) {
+          assert.equal(
+            sentNames.includes(forbidden),
+            false,
+            '(f) the request must not send ' + forbidden + ' but sent ' + sentNames.join(', '),
+          );
+        }
+      });
+
       let failed = 0;
       for (const item of tests) {
         try {

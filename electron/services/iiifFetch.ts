@@ -4,17 +4,27 @@ import https from 'node:https';
 import net from 'node:net';
 import { classifyAddress } from '../../src/utils/ipClassify';
 
-/** 応答を受け取るまでの既定の締め切り（全体で 1 本）。 */
-const DEFAULT_TIMEOUT_MS = 15000;
+/** 取得するものの種別。上限と受ける Content-Type は種別ごとに決まる。 */
+export type IiifResourceKind = 'manifest' | 'info' | 'thumbnail';
+
+/**
+ * 種別ごとの上限。締め切りは全体で 1 本、バイト数は本文の累計に掛ける。
+ * 値はここ 1 か所だけに置く。
+ */
+export const IIIF_FETCH_LIMITS: Record<
+  IiifResourceKind,
+  { timeoutMs: number; maxBytes: number }
+> = {
+  manifest: { timeoutMs: 15000, maxBytes: 8 * 1024 * 1024 },
+  info: { timeoutMs: 15000, maxBytes: 1024 * 1024 },
+  thumbnail: { timeoutMs: 15000, maxBytes: 2 * 1024 * 1024 },
+};
 
 /** 追う転送の回数の上限。6 回目で止める。 */
 const MAX_REDIRECTS = 5;
 
 /** 追う転送の状態のコード。 */
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
-
-/** 取得するものの種別。上限と受ける Content-Type は種別ごとに決まる。 */
-export type IiifResourceKind = 'manifest' | 'info' | 'thumbnail';
 
 /** 取得の失敗の理由。判定（配れるか）の語彙とは混ぜない。 */
 export type IiifFetchReason =
@@ -151,15 +161,18 @@ export function createPinnedLookup(lookup: IiifLookup, classify: IiifClassify): 
 }
 
 /** エラーを、例外にせず戻り値に載せられる形へ畳む。 */
-function failureFromError(error: unknown): IiifFetchFailure {
+function failureFromError(error: unknown, timedOut = false): IiifFetchFailure {
   const candidate = (error ?? {}) as NetworkError;
   const code = typeof candidate.code === 'string' ? candidate.code : undefined;
   const address = typeof candidate.address === 'string' ? candidate.address : undefined;
   const port = typeof candidate.port === 'number' ? candidate.port : undefined;
   const message = error instanceof Error ? error.message : String(error);
+  let reason: IiifFetchReason = 'fetch-failed';
+  if (timedOut || code === 'ETIMEDOUT') reason = 'timeout';
+  else if (code === 'EBLOCKEDADDRESS') reason = 'blocked-address';
   const failure: IiifFetchFailure = {
     ok: false,
-    reason: code === 'EBLOCKEDADDRESS' ? 'blocked-address' : 'fetch-failed',
+    reason,
     detail: message,
   };
   if (code !== undefined || address !== undefined || port !== undefined) {
@@ -175,6 +188,22 @@ function failureFromError(error: unknown): IiifFetchFailure {
 function headerValue(value: string | string[] | undefined): string | undefined {
   if (Array.isArray(value)) return value[0];
   return value;
+}
+
+/** `Content-Length` を数として読む。読めなければ undefined（累計の上限で測る）。 */
+function declaredLengthOf(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+/** 応答が圧縮されているか（`identity` 以外の `Content-Encoding` は受けない）。 */
+function isCompressed(value: string | undefined): boolean {
+  if (value === undefined) return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 && normalized !== 'identity';
 }
 
 /**
@@ -206,7 +235,8 @@ export function checkIiifUrlShape(
  * 名前の宛先は 1 回の解決で固定する（判定したアドレスと接続の宛先を食い違わせない）。
  * 転送（3xx）は自分で追う。各段で URL の形の検査・IP のリテラルの分類・
  * 新しい固定の lookup による接続、の同じ道を通す。追うのは 5 回まで。
- * 本文の大きさの上限はこの段では扱わない。
+ * 締め切りは全体で 1 本。本文は `Content-Length` を先に見て、無ければ読みながら
+ * 累計を測り、種別ごとの上限を超えたら切る。
  */
 export async function fetchIiifResource(
   url: string,
@@ -217,11 +247,14 @@ export async function fetchIiifResource(
   const lookup = deps.lookup ?? defaultLookup;
   const classify: IiifClassify = deps.classify ?? classifyAddress;
 
+  const limits = IIIF_FETCH_LIMITS[opts.kind] ?? IIIF_FETCH_LIMITS.manifest;
   const timeoutMs =
-    typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0 ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
+    typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0 ? opts.timeoutMs : limits.timeoutMs;
+  const maxBytes = limits.maxBytes;
 
   return new Promise<IiifFetchResult>((resolve) => {
     let settled = false;
+    let timedOut = false;
     let timer: NodeJS.Timeout | undefined;
     let currentReq: http.ClientRequest | undefined;
     const finish = (result: IiifFetchResult) => {
@@ -233,6 +266,7 @@ export async function fetchIiifResource(
 
     // 締め切りは全体で 1 本。転送のたびに延ばさない。過ぎたら直前の要求を壊して止める。
     timer = setTimeout(() => {
+      timedOut = true;
       const timeout: NetworkError = new Error('the request did not finish in ' + timeoutMs + ' ms');
       timeout.code = 'ETIMEDOUT';
       if (currentReq) currentReq.destroy(timeout);
@@ -288,7 +322,7 @@ export async function fetchIiifResource(
 
           if (REDIRECT_STATUSES.has(status)) {
             const location = headerValue(response.headers.location);
-            response.on('error', (error) => finish(failureFromError(error)));
+            response.on('error', (error) => finish(failureFromError(error, timedOut)));
             // 転送の応答の本文は読み捨てる。
             response.resume();
             if (!location) {
@@ -326,21 +360,74 @@ export async function fetchIiifResource(
             return;
           }
 
+          // 200 だけを受ける。それ以外は本文を読まずに捨てる。
+          if (status < 200 || status >= 300) {
+            const location = headerValue(response.headers.location);
+            response.on('error', () => {});
+            response.resume();
+            finish({
+              ok: false,
+              reason: 'fetch-failed',
+              detail:
+                'unexpected status ' + status + (location ? ' (location: ' + location + ')' : ''),
+            });
+            return;
+          }
+
+          // 圧縮された応答は捨てる（Accept-Encoding を送っていないので本来来ない）。
+          const contentEncoding = headerValue(response.headers['content-encoding']);
+          if (isCompressed(contentEncoding)) {
+            response.on('error', () => {});
+            response.resume();
+            finish({
+              ok: false,
+              reason: 'fetch-failed',
+              detail: 'the response is compressed: ' + String(contentEncoding),
+            });
+            return;
+          }
+
+          // Content-Length があれば、本文を読む前に上限と比べる。
+          const declaredLength = declaredLengthOf(headerValue(response.headers['content-length']));
+          if (declaredLength !== undefined && declaredLength > maxBytes) {
+            response.on('error', () => {});
+            response.destroy();
+            if (currentReq) currentReq.destroy();
+            finish({
+              ok: false,
+              reason: 'too-large',
+              detail:
+                'the declared length ' +
+                declaredLength +
+                ' is larger than the limit ' +
+                maxBytes,
+            });
+            return;
+          }
+
           const chunks: Buffer[] = [];
+          let received = 0;
+          let stopped = false;
           response.on('data', (chunk: Buffer | string) => {
-            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-          });
-          response.on('end', () => {
-            if (status < 200 || status >= 300) {
-              const location = headerValue(response.headers.location);
+            if (stopped) return;
+            const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+            received += buffer.length;
+            // Content-Length が無い（または足りない）ときは、読みながら累計で測る。
+            if (received > maxBytes) {
+              stopped = true;
+              response.destroy();
+              if (currentReq) currentReq.destroy();
               finish({
                 ok: false,
-                reason: 'fetch-failed',
-                detail:
-                  'unexpected status ' + status + (location ? ' (location: ' + location + ')' : ''),
+                reason: 'too-large',
+                detail: 'the body grew past the limit ' + maxBytes + ' while being read',
               });
               return;
             }
+            chunks.push(buffer);
+          });
+          response.on('end', () => {
+            if (settled) return;
             finish({
               ok: true,
               requestedUrl: url,
@@ -350,15 +437,15 @@ export async function fetchIiifResource(
               body: Buffer.concat(chunks),
             });
           });
-          response.on('error', (error) => finish(failureFromError(error)));
+          response.on('error', (error) => finish(failureFromError(error, timedOut)));
         });
       } catch (error) {
-        finish(failureFromError(error));
+        finish(failureFromError(error, timedOut));
         return;
       }
 
       currentReq = req;
-      req.on('error', (error) => finish(failureFromError(error)));
+      req.on('error', (error) => finish(failureFromError(error, timedOut)));
 
       req.end();
     };
