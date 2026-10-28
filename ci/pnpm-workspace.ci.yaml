@@ -31,7 +31,7 @@ allowBuilds:
 
 overrides:
   # 12 月の Core は RC まで npm に出ないため、IIIF の配信と書誌の関数が入った commit を指す。RC の日に外す
-  "@maplat/core": "github:code4history/MaplatCore#882d11c10e126d4036f2eb9fbdae3f90b94773bb"
+  "@maplat/core": "github:code4history/MaplatCore#4bb44575438d6683871f4138d1c4500808eb9e66"
   # @maplat/ui が引く Core は npm の版のままにする（Editor は UI の dist だけを使う。git の依存を推移で入れると
   # pnpm 11 の blockExoticSubdeps で install が止まる）
   "@maplat/ui>@maplat/core": "^1.2.0-rc.1"
