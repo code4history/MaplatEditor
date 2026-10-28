@@ -126,12 +126,13 @@ function reasonKey(reason: string): string {
   return 'iiif_import.reason.' + reason;
 }
 
-/** canvas の label（文字列か言語ごとの表）から 1 つ選ぶ。 */
+/** canvas の label（文字列か言語ごとの表）から、画面の言語に合わせて 1 つ選ぶ。 */
 function canvasLabel(label: unknown): string {
   if (typeof label === 'string') return label;
   if (label && typeof label === 'object') {
     const table = label as Record<string, string>;
-    return table.ja ?? table.en ?? Object.values(table)[0] ?? '';
+    const lang = resolveEditorLanguage(i18next.language);
+    return table[lang] ?? table.ja ?? table.en ?? Object.values(table)[0] ?? '';
   }
   return '';
 }
