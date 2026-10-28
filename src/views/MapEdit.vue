@@ -3028,8 +3028,7 @@ const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
 // タイル実体の同一性を決めるキー。mapID（スラッグ）と attr（帰属表示）は含めない。
 // 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
 // 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
-// IIIF から配信する地図は url_ を持たない ∴ URL・大きさだけで決める（url_ を混ぜない）。
-// IIIF から配信する地図のキー（url_ を混ぜない。無ければ null）
+// IIIF から配信する地図のキー（url_ を混ぜない。IIIF でなければ null）
 const iiifTileIdentityKey = (md: any): string | null => {
     const delivery = deliveryForSource(md);
     return delivery ? ['iiif', delivery.url, md?.width, md?.height].join('|') : null;
@@ -3064,7 +3063,7 @@ const exchangeTileSource = async (): Promise<any> => {
     if (delivery) {
         options.delivery = delivery;
     } else {
-        // oct26-m4-t2s2: v1.0.0 の未保存下書き（file://）・m4-t2 期（app://local）の url_ は renderer から読めず、
+        // 旧版の未保存下書き（file://）や旧形式（app://local）の url_ は renderer から読めず、
         // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
         // 同一性キー（tileIdentityKey）は生の url_ のまま
         options.url = displayTileUrl(mapData.value.url_);

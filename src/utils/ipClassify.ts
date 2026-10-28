@@ -1,4 +1,4 @@
-// 宛先の分類（§3.3-3）。DOM にも Node にも依らない純粋な TS。
+// 宛先の分類。DOM にも Node にも依らない純粋な TS。
 // main（electron/services/iiifFetch.ts）と renderer の両方が同じものを import する。
 //
 // 分類の規則: 文字列を IP として読み、IPv4 を写した IPv6 は中の IPv4 で判定する。
@@ -24,7 +24,7 @@ export type AddressRange = {
   embeddedIpv4?: EmbeddedIpv4;
   /**
    * 範囲そのものが拒むなら真（既定）。偽なら、写した IPv4 の判定に委ねる。
-   * §3.3-3 の表で「中の IPv4 で判定する」とされた行だけが偽。
+   * 宛先の分類の表で「中の IPv4 で判定する」とされた行だけが偽。
    */
   wholeRangeBlocks?: boolean;
 };
@@ -260,7 +260,7 @@ function extractEmbeddedIpv4(value: bigint, form: EmbeddedIpv4): string {
 }
 
 /**
- * 宛先のアドレスを §3.3-3 の表で分類する。
+ * 宛先のアドレスを、宛先の分類の表に従って分類する。
  *
  * IP として読めない文字列は安全側で拒む（名前を分類に渡すのは誤りなので、
  * `blocked: true`・`reason: "not-an-ip"` を返す）。
