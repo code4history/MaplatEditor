@@ -249,7 +249,7 @@ Documents otherwise.
 ## Quick Start
 
 <!-- release-pinned:start -->
-> **Current release: `v1.2.0-rc.1`** — This block is the only place in
+> **Current release: `v1.2.0-rc.2`** — This block is the only place in
 > this repository that carries a release version (ADR-0012); everything outside it is
 > written against the 1.0 release.
 
@@ -259,15 +259,15 @@ MaplatEditor is distributed as a desktop installer via GitHub Releases.
 
 | Platform | Installer |
 |---|---|
-| Windows (x64) | [MaplatEditor-Windows-1.2.0-rc.1-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Windows-1.2.0-rc.1-x64-Setup.exe) |
-| Windows (arm64) | [MaplatEditor-Windows-1.2.0-rc.1-arm64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Windows-1.2.0-rc.1-arm64-Setup.exe) |
-| macOS (Apple Silicon) | [MaplatEditor-Mac-1.2.0-rc.1-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Mac-1.2.0-rc.1-arm64.dmg) |
-| macOS (Intel) | [MaplatEditor-Mac-1.2.0-rc.1-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Mac-1.2.0-rc.1-x64.dmg) |
-| Linux (x86_64) | [MaplatEditor-Linux-1.2.0-rc.1-x86_64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Linux-1.2.0-rc.1-x86_64.AppImage) |
-| Linux (arm64) | [MaplatEditor-Linux-1.2.0-rc.1-arm64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.1/MaplatEditor-Linux-1.2.0-rc.1-arm64.AppImage) |
+| Windows (x64) | [MaplatEditor-Windows-1.2.0-rc.2-x64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Windows-1.2.0-rc.2-x64-Setup.exe) |
+| Windows (arm64) | [MaplatEditor-Windows-1.2.0-rc.2-arm64-Setup.exe](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Windows-1.2.0-rc.2-arm64-Setup.exe) |
+| macOS (Apple Silicon) | [MaplatEditor-Mac-1.2.0-rc.2-arm64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Mac-1.2.0-rc.2-arm64.dmg) |
+| macOS (Intel) | [MaplatEditor-Mac-1.2.0-rc.2-x64.dmg](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Mac-1.2.0-rc.2-x64.dmg) |
+| Linux (x86_64) | [MaplatEditor-Linux-1.2.0-rc.2-x86_64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Linux-1.2.0-rc.2-x86_64.AppImage) |
+| Linux (arm64) | [MaplatEditor-Linux-1.2.0-rc.2-arm64.AppImage](https://github.com/code4history/MaplatEditor/releases/download/v1.2.0-rc.2/MaplatEditor-Linux-1.2.0-rc.2-arm64.AppImage) |
 
 > Release notes and checksums are on the
-> [v1.2.0-rc.1 release page](https://github.com/code4history/MaplatEditor/releases/tag/v1.2.0-rc.1).
+> [v1.2.0-rc.2 release page](https://github.com/code4history/MaplatEditor/releases/tag/v1.2.0-rc.2).
 <!-- release-pinned:end -->
 
 ### Screenshots
