@@ -289,3 +289,25 @@ export function classifyAddress(address: string): IpClassification {
 
   return { blocked: false };
 }
+
+/**
+ * 地図の配信先として渡してよい URL か（文字列だけで判定する）。
+ *
+ * `https:` だけを通す。ホストが IP のリテラルなら classifyAddress に掛け、
+ * 私的・loopback・link-local などを拒む。名前のホストはここでは拒まない
+ * （名前の解決はここではできない ∴ その先は取得する側の CORS と CSP が守る）。
+ * URL として読めない文字列は安全側で拒む。
+ */
+export function isAllowedDeliveryUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch (_e) {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = stripBrackets(parsed.hostname);
+  // IP のリテラルでなければ、ここでは拒まない（名前の解決はしない）。
+  if (parseIp(host) === null) return true;
+  return !classifyAddress(host).blocked;
+}

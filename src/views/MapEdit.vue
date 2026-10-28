@@ -76,6 +76,7 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
+import { isAllowedDeliveryUrl } from '../utils/ipClassify';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
@@ -2221,6 +2222,18 @@ const seedTinObjects = (tins: any[] | null): void => {
     });
 };
 
+// 開き直しで地図の源に渡す delivery を決める。URL の文字列の検査を通らないものは
+// 「配れない」として渡さない（renderer は取得しない）。
+const deliveryForSource = (mapData: any): any | undefined => {
+    const delivery = mapData?.delivery;
+    if (!delivery || typeof delivery.url !== 'string') return undefined;
+    if (!isAllowedDeliveryUrl(delivery.url)) {
+        console.warn('[MapEdit] delivery ignored: the url is not an allowed https address');
+        return undefined;
+    }
+    return delivery;
+};
+
 // onMounted は async で、await の途中に画面を離れる（unmount される）ことがある。そのまま続きを
 // 実行すると、離れた先の URL へ router.replace で draftUid を付け、onBeforeUnmount の後に
 // keydown・main-process のリスナーを登録して残してしまう。onBeforeUnmount で立てるこのフラグを
@@ -2300,6 +2313,10 @@ onMounted(async () => {
             if (data) {
                 // M11-T10 (R6): compiled tins を種付け用に確保(compiled 持ちは初回再計算を省く)
                 requestCompiledTins = extractCompiledTins(data);
+                // 配れない配信先は地図の源に渡さない（配れない地図として扱う）
+                const delivery = deliveryForSource(data);
+                if (delivery) data.delivery = delivery;
+                else delete data.delivery;
                 // バックエンドが mapID(=slug)/uid/revision/status を設定してくれている
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });

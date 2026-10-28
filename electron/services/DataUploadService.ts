@@ -29,6 +29,7 @@ import {
     type MapExportOptions,
 } from '../../src/utils/exportOptions';
 import { normalizeOriginalExt } from './MapOriginalImageService';
+import { isAllowedDeliveryUrl } from '../../src/utils/ipClassify';
 
 // m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
@@ -326,6 +327,17 @@ class DataUploadService {
             const mapID   = mapFile.split('.')[0];
             const mapPath = path.join(mapTmpFolder, mapFile);
             const mapData = await fs.readJson(mapPath);
+
+            // 配信先の URL の文字列を検査する。通らない地図は取り込まない
+            // （取り込むと、保存も開き直しもできない地図ができる）。
+            // 失敗の返し方は既存の文字列のコードに合わせる。
+            const delivery = (mapData as any)?.delivery;
+            if (
+                delivery &&
+                !(typeof delivery.url === 'string' && isAllowedDeliveryUrl(delivery.url))
+            ) {
+                throw 'Corrupt';
+            }
 
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);

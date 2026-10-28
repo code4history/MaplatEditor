@@ -9,6 +9,7 @@
 import type { IiifDeliveryReason } from '@maplat/core/src/iiif/delivery';
 // @ts-ignore
 import { checkIiifDelivery } from '@maplat/core/src/iiif/delivery';
+import { isAllowedDeliveryUrl } from './ipClassify';
 
 /** Core の理由に Editor の語を足したもの。 */
 export type IiifImportReason =
@@ -129,6 +130,10 @@ export function verdictOf(input: IiifVerdictInput): IiifImportVerdict {
   const json = toInfoObject(facts.infoJson) ?? {};
   // id が無い info.json は、取ってきた URL から末尾の /info.json を外して画像サービスの URL にする
   const serviceUrl = imageId ?? facts.finalUrl.replace(/\/info\.json$/, '');
+  // 配れると決まった URL も、文字列の検査に通す（IP のリテラルの私的・loopback な宛先は配らない）
+  if (!isAllowedDeliveryUrl(serviceUrl)) {
+    return metadataOnly('blocked-address');
+  }
   return {
     kind: 'deliverable',
     info: {
