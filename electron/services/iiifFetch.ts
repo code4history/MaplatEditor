@@ -4,6 +4,12 @@ import https from 'node:https';
 import net from 'node:net';
 import { classifyAddress } from '../../src/utils/ipClassify';
 
+/**
+ * CORS の答えを受け取るために送る Origin。ある特定のサイトではなく「どこか別のサイト」から
+ * 読んだときの答えを見たいので、例示用に予約された名前（RFC 2606）を使う。
+ */
+const CORS_PROBE_ORIGIN = 'https://example.org';
+
 /** 取得するものの種別。上限と受ける Content-Type は種別ごとに決まる。 */
 export type IiifResourceKind = 'manifest' | 'info' | 'thumbnail';
 
@@ -291,7 +297,12 @@ export async function fetchIiifResource(
         path: (parsed.pathname || '/') + parsed.search,
         method: 'GET',
         // Cookie・Authorization・Accept-Encoding は送らない。
-        headers: { accept: 'application/json, application/ld+json, image/*;q=0.9, */*;q=0.1' },
+        // Origin は付ける。CORS の応答ヘッダを Origin のある要求にだけ返すサーバーがあり
+        // （Vary: Origin）、付けないと「どこからでも読めるか」の答えを受け取れない。
+        headers: {
+          accept: 'application/json, application/ld+json, image/*;q=0.9, */*;q=0.1',
+          origin: CORS_PROBE_ORIGIN,
+        },
         agent: false,
       };
 

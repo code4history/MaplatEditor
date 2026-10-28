@@ -714,6 +714,25 @@ try {
         assert.equal(info.finalUrl, 'https://iiif.example' + infoPath, 'finalUrl');
       });
 
+      test('sends-cors-probe-origin', async () => {
+        // CORS の応答ヘッダを Origin のある要求にだけ返すサーバーがある（Vary: Origin）。
+        // 取得は Origin を付けて、ブラウザから読んだときと同じ答えを受け取る。
+        const state = newState();
+        const originOnlyScript = (options) => {
+          const response = serviceScript(options);
+          if (!response) return null;
+          const hasOrigin = Boolean(options.headers && (options.headers.origin || options.headers.Origin));
+          const headers = { ...response.headers };
+          if (!hasOrigin) delete headers['access-control-allow-origin'];
+          return { ...response, headers: { ...headers, vary: 'Origin' } };
+        };
+        const info = await inspectInfo(infoServiceUrl, publicDeps(originOnlyScript, state));
+        assert.equal(info.ok, true, 'the info.json must be fetched: ' + JSON.stringify(info));
+        assert.equal(info.accessControlAllowOrigin, '*', 'the CORS answer must be read with an Origin header');
+        const manifest = await inspectManifest(manifestUrl, publicDeps(originOnlyScript, state));
+        assert.equal(manifest.accessControlAllowOrigin, '*', 'the manifest must be read with an Origin header too');
+      });
+
       test('inspect-json-by-parse', async () => {
         // Content-Type が JSON でも、本文が読めなければ not-json。
         const brokenState = newState();
