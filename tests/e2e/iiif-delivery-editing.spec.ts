@@ -249,6 +249,19 @@ test.describe('IIIF delivery editing', () => {
       expect(applied.width).toBe(4074);
       expect(applied.height).toBe(2705);
 
+      // 取り込んだ直後の新規の地図は、まだ何も保存していない。上の帯は未保存として出る。
+      const saveState = page.getByTestId('editor-save-state');
+      await expect(saveState).toBeVisible({ timeout: 30_000 });
+      await expect(saveState).toHaveText(/未保存/);
+      await expect(saveState).not.toHaveText(/保存済み/);
+      // 新規の地図に必須の欄（題名・ID・帰属）を埋めれば、対応点を打つ前でも保存ボタンが押せる
+      // （取り込んだまま保存しておける）
+      await page.getByRole('tab', { name: 'メタデータ編集' }).click();
+      await page.getByTestId('map-title').fill('IIIF から配信する地図');
+      await page.getByTestId('map-slug').fill(`iiif-delivery-early-${Date.now()}`);
+      await page.getByTestId('map-attr').fill('国立国会図書館');
+      await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 30_000 });
+
       // 左の地図に IIIF の源が出る（renderer の info.json とタイルの取得が NDL の下へ飛ぶ）
       await page.getByTestId('map-tab-gcps').click();
       await expect(page.locator('#illstMap canvas')).toBeVisible({ timeout: 30_000 });

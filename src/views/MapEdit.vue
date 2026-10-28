@@ -2242,8 +2242,6 @@ const deliveryForSource = (mapData: any): any | undefined => {
 // keydown・main-process のリスナーを登録して残してしまう。onBeforeUnmount で立てるこのフラグを
 // await の後で見て、unmount 済みなら続き（URL 書き換え・下書きの open・リスナー登録・地図の初期化）をしない。
 let isUnmounted = false;
-// 書誌だけの道で受け取った結び付き（画像の取り込みが済んだ地図へ、あとから結び付ける）
-let pendingIiifFromDraft: Record<string, unknown> | null = null;
 // onMounted の await の後で作る watch は component に紐付かないため、onBeforeUnmount で明示的に止める
 let stopActiveTabWatch: (() => void) | undefined;
 
@@ -2252,6 +2250,11 @@ onMounted(async () => {
     const uid = route.query.uid as string | undefined;
     const isNew = !uid || uid === 'new';
     let requestCompiledTins: any[] | null = null;
+    // IIIF の取り込みで中身を入れた（未保存として扱い、預かりの警告を 1 回出す）
+    let iiifImportApplied = false;
+    const iiifImportWarnings: string[] = [];
+    // 書誌だけの道で、地図の画像の選択を開く（地図データの ZIP の選択ではない）
+    let openImagePickerAfterMount = false;
 
     if (isNew) {
         // 新規地図: defaultMap で初期化
@@ -2301,14 +2304,17 @@ onMounted(async () => {
           // IIIF の取り込みから来た新規の道: 預かり所から中身を 1 回だけ受け取る。
           // 画像を切り出さず（タイルを作らず）、配信先・大きさ・結び付きを地図のデータへ入れる。
           const draftId = typeof route.query.draft === 'string' ? route.query.draft : '';
-          const importMode = route.query.import === 'iiif' ? 'iiif' : route.query.import === '1' ? 'metadata' : null;
+          // 配信の道（import=iiif）と、書誌だけの道（import=iiif-image）。地図データの ZIP の
+          // 取り込み（import=1）は別の道で、預かりを使わない。
+          const importMode = route.query.import === 'iiif'
+            ? 'delivery'
+            : route.query.import === 'iiif-image' ? 'metadata-only' : null;
           let draftPayload: any = null;
           if (importMode && draftId) {
             draftPayload = await window.iiifImport.takeDraft(draftId, newMapUid);
           }
-          // 期限切れなどで受け取れない・配信の道なのに預かりが無い: 画像の無い地図を開かず、
-          // 理由を出して一覧へ戻る
-          if ((importMode && draftId && !draftPayload) || (importMode === 'iiif' && !draftPayload)) {
+          // 期限切れなどで受け取れない: 画像の無い地図を開かず、理由を出して一覧へ戻る
+          if (importMode && !draftPayload) {
             await (window as any).dialog.showMessageBox({
               type: 'warning',
               buttons: ['OK'],
@@ -2320,7 +2326,14 @@ onMounted(async () => {
           }
           const fresh: any = defaultMapData();
           fresh.lang = resolveEditorLanguage(i18next.language);
-          if (importMode === 'iiif' && draftPayload) {
+          // 取り込みの中身を入れる前の、空の新規地図を保存済み判定の基準にする。
+          // 取り込んだだけでは何も保存していない ∴ 未保存として扱う。
+          // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+          withoutHistory('W4', () => {
+            setMapDocument(fresh);
+            originalMapData.value = cloneDeep(mapData.value);
+          });
+          if (importMode === 'delivery' && draftPayload) {
             const delivery = deliveryForSource(draftPayload);
             if (!delivery) {
               await (window as any).dialog.showMessageBox({
@@ -2332,29 +2345,36 @@ onMounted(async () => {
               await router.push({ name: 'MapList' });
               return;
             }
-            if (typeof draftPayload.width === 'number') fresh.width = draftPayload.width;
-            if (typeof draftPayload.height === 'number') fresh.height = draftPayload.height;
-            fresh.delivery = delivery;
-            if (draftPayload.iiif && typeof draftPayload.iiif === 'object') fresh.iiif = draftPayload.iiif;
-          } else if (importMode === 'metadata' && draftPayload?.iiif && typeof draftPayload.iiif === 'object') {
-            // 書誌だけの道: 画像の取り込みが済んだ地図へ、iiif だけを結び付ける
-            pendingIiifFromDraft = draftPayload.iiif;
+            if (typeof draftPayload.width === 'number') mapData.value.width = draftPayload.width;
+            if (typeof draftPayload.height === 'number') mapData.value.height = draftPayload.height;
+            mapData.value.delivery = delivery;
+            if (draftPayload.iiif && typeof draftPayload.iiif === 'object') mapData.value.iiif = draftPayload.iiif;
+          } else if (importMode === 'metadata-only' && draftPayload?.iiif && typeof draftPayload.iiif === 'object') {
+            // 書誌だけの道: 画像はこのあと利用者が選ぶ ∴ ここでは結び付きと書誌だけを入れる
+            mapData.value.iiif = draftPayload.iiif;
           }
           // 取り込みのときに写した書誌を、地図の metadata の同じ鍵へ入れる
           if (draftPayload?.metadata && typeof draftPayload.metadata === 'object') {
             for (const [key, value] of Object.entries(draftPayload.metadata as Record<string, unknown>)) {
-              fresh[key] = value;
+              mapData.value[key] = value;
             }
           }
-          // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
-          withoutHistory('W4', () => {
-            setMapDocument(fresh);
-            originalMapData.value = cloneDeep(mapData.value);
-          });
+          if (importMode && draftPayload) {
+            // 取り込んだ直後は未保存（保存ボタンを押せる）
+            iiifImportApplied = true;
+            // 預かりに載っている警告（サムネイルを作れなかった等）は、編集画面の側で 1 回だけ出す
+            if (Array.isArray(draftPayload.warnings) && draftPayload.warnings.length > 0) {
+              iiifImportWarnings.push(...draftPayload.warnings);
+            }
+          }
           // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
           // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
           if (route.query.import === '1') {
             void nextTick(() => { void importMap(); });
+          }
+          // 書誌だけの道: 画像のファイルの選択を自動で開く（地図データの ZIP の選択ではない）
+          if (importMode === 'metadata-only') {
+            openImagePickerAfterMount = true;
           }
         }
     } else {
@@ -2419,6 +2439,9 @@ onMounted(async () => {
     // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
     // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
     if (copyFromUidSource.value) historyStack.value?.markDirty();
+    // IIIF の取り込みで中身を入れた新規の地図は、まだ何も保存していない ∴ 未保存として扱う
+    // (履歴の起点は取り込む前の空の新規地図。保存するまで保存ボタンを押せる)
+    if (iiifImportApplied) historyStack.value?.markDirty();
     // M11-T7: 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
     const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
@@ -2437,6 +2460,11 @@ onMounted(async () => {
     initMaps();
     if (mapData.value.url_ || deliveryForSource(mapData.value)) {
         setTimeout(() => loadMapTiles(), 100);
+    }
+    // 書誌だけの道: 画像のファイルの選択を自動で開く（地図データの ZIP の選択ではない）。
+    // mapUpload は url_ と大きさだけを足すので、写した書誌と iiif の結び付きは残る。
+    if (openImagePickerAfterMount) {
+        void nextTick(() => { void mapUpload(); });
     }
 
     // GCP タブへの切り替えを監視: v-show でマップコンテナが非表示の間は
@@ -4302,11 +4330,6 @@ const importMap = async () => {
             adoptLoaded({ uid: histMap.uid, slug: histMap.mapID, revision: histMap.revision });
             mapID.value = histMap.mapID;
             setMapDocument(histMap);
-            // 書誌だけの道: 取り込んだ画像の地図へ、IIIF の結び付きだけを残す（配信はしない）
-            if (pendingIiifFromDraft) {
-                mapData.value.iiif = pendingIiifFromDraft;
-                pendingIiifFromDraft = null;
-            }
             originalMapData.value = cloneDeep(mapData.value);
             sub_maps.value = cloneDeep(histMap.sub_maps || []);
             gcps.value = cloneDeep(histMap.gcps || []);

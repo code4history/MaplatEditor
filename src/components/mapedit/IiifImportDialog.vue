@@ -322,7 +322,7 @@ async function chooseDeliverable(): Promise<void> {
   }
 }
 
-/** 「書誌だけ IIIF から」を選んだ。iiif だけを預けて、編集画面へ。 */
+/** 「書誌だけ IIIF から」を選んだ。iiif だけを預けて、画像の選択を自動で開く編集画面へ。 */
 async function chooseMetadataOnly(): Promise<void> {
   if (busy.value) return;
   busy.value = true;
@@ -336,7 +336,8 @@ async function chooseMetadataOnly(): Promise<void> {
       return;
     }
     stagedDraftId.value = draftId;
-    await router.push(`/mapedit?new=1&import=1&draft=${encodeURIComponent(draftId)}`);
+    // 地図データの ZIP の取り込み（import=1）とは別の道。編集画面が画像の選択を開く。
+    await router.push(`/mapedit?new=1&import=iiif-image&draft=${encodeURIComponent(draftId)}`);
   } catch (_error) {
     error.value = 'iiif_import.error.stage_failed';
   } finally {
