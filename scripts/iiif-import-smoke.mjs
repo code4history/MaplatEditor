@@ -31,6 +31,8 @@ try {
     `
       import assert from 'node:assert/strict';
       import http from 'node:http';
+      import { EventEmitter } from 'node:events';
+      import { Readable } from 'node:stream';
 
       const { fetchIiifResource, createPinnedLookup } = await import(${JSON.stringify(fetchModulePath)});
       const { classifyAddress, BLOCKED_ADDRESS_RANGES } = await import(${JSON.stringify(classifyModulePath)});
@@ -333,6 +335,212 @@ try {
           'blocked-address',
           'the default classify must block 127.0.0.1 but got ' + String(result.reason),
         );
+      });
+
+      // ---- 転送（リダイレクト）の各段で同じ検査を通ること ----
+      // 応答とヘッダをその場で作り、ポートを開かない
+      // （request・lookup・classify をすべて差し替える）。
+      const fakeMessage = (statusCode, headers, body) => {
+        const message = new Readable({ read() {} });
+        message.statusCode = statusCode;
+        message.headers = headers || {};
+        process.nextTick(() => {
+          if (body) message.push(Buffer.from(body));
+          message.push(null);
+        });
+        return message;
+      };
+
+      // 偽の request は http.ClientRequest に似た最小の EventEmitter。
+      // 本物の接続と同じく、渡された options.lookup を必ず 1 回呼んでから応答する
+      // （各段で名前解決と分類を通るのを測るため）。
+      const makeFakeRequest = (script, state) => (options, onResponse) => {
+        const req = new EventEmitter();
+        req.destroyed = false;
+        req.destroy = (error) => {
+          req.destroyed = true;
+          if (error) req.emit('error', error);
+        };
+        req.end = () => {
+          state.requests.push(options);
+          const answer = () => {
+            const selected = script(options);
+            if (!selected) {
+              const missing = new Error('no scripted response for ' + options.hostname + String(options.path));
+              missing.code = 'ENOSCRIPT';
+              req.emit('error', missing);
+              return;
+            }
+            state.responses += 1;
+            onResponse(fakeMessage(selected.status, selected.headers, selected.body));
+          };
+          const lookup = options.lookup;
+          if (lookup) {
+            lookup(options.hostname, { all: true }, (error) => {
+              if (error) req.emit('error', error);
+              else answer();
+            });
+          } else {
+            answer();
+          }
+        };
+        return req;
+      };
+
+      const redirectOn = (to, status) => ({
+        status: status || 302,
+        headers: { location: to },
+        body: 'moved',
+      });
+      const newState = () => ({ requests: [], responses: 0 });
+      const publicLookup = (hostname, options, callback) => {
+        callback(null, [{ address: '93.184.216.34', family: 4 }]);
+      };
+
+      test('redirect-each-hop', async () => {
+        // (a) 公開の URL から内部（127.0.0.1）への転送は、2 段目の要求で拒む。
+        const stateA = newState();
+        const resultA = await fetchIiifResource(
+          'https://public.example/a',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: (hostname, options, callback) => {
+              if (hostname === 'internal.example') {
+                callback(null, [{ address: '127.0.0.1', family: 4 }]);
+              } else {
+                callback(null, [{ address: '93.184.216.34', family: 4 }]);
+              }
+            },
+            classify: classifyAddress,
+            request: makeFakeRequest(
+              (options) =>
+                options.path === '/a'
+                  ? redirectOn('https://internal.example/b')
+                  : { status: 200, headers: {}, body: 'internal' },
+              stateA,
+            ),
+          },
+        );
+        assert.equal(resultA.ok, false, '(a) must be a failure: ' + JSON.stringify(resultA));
+        assert.equal(
+          resultA.reason,
+          'blocked-address',
+          '(a) expected blocked-address but got ' + JSON.stringify(resultA),
+        );
+        assert.equal(
+          stateA.responses,
+          1,
+          '(a) the second hop must not be read but responses was ' + stateA.responses,
+        );
+
+        // (b) 転送先の scheme が http なら not-https、file なら bad-url。
+        const resultHttp = await fetchIiifResource(
+          'https://public.example/a',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: makeFakeRequest(
+              (options) =>
+                options.path === '/a'
+                  ? redirectOn('http://public.example/c')
+                  : { status: 200, headers: {}, body: 'ok' },
+              newState(),
+            ),
+          },
+        );
+        assert.equal(resultHttp.ok, false, '(b) http must be a failure: ' + JSON.stringify(resultHttp));
+        assert.equal(
+          resultHttp.reason,
+          'not-https',
+          '(b) expected not-https but got ' + JSON.stringify(resultHttp),
+        );
+        const resultFile = await fetchIiifResource(
+          'https://public.example/a',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: makeFakeRequest(
+              (options) =>
+                options.path === '/a'
+                  ? redirectOn('file:///etc/passwd')
+                  : { status: 200, headers: {}, body: 'ok' },
+              newState(),
+            ),
+          },
+        );
+        assert.equal(resultFile.ok, false, '(b) file must be a failure: ' + JSON.stringify(resultFile));
+        assert.equal(
+          resultFile.reason,
+          'bad-url',
+          '(b) expected bad-url but got ' + JSON.stringify(resultFile),
+        );
+
+        // (c) 5 回までは追って最終の 200 を受ける。6 回目の転送で止まる。
+        const chain = (prefix, redirectCount) => (options) => {
+          const index = Number(String(options.path).slice(prefix.length));
+          if (index < redirectCount) {
+            return redirectOn('https://public.example' + prefix + (index + 1));
+          }
+          return { status: 200, headers: {}, body: 'done' };
+        };
+        const followed = await fetchIiifResource(
+          'https://public.example/r0',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: makeFakeRequest(chain('/r', 5), newState()),
+          },
+        );
+        assert.equal(followed.ok, true, '(c) five redirects must succeed: ' + JSON.stringify(followed));
+        assert.equal(followed.requestedUrl, 'https://public.example/r0', '(c) requestedUrl');
+        assert.equal(followed.finalUrl, 'https://public.example/r5', '(c) finalUrl: ' + followed.finalUrl);
+        assert.equal(String(followed.body), 'done', '(c) the final body must be read');
+
+        const stopped = await fetchIiifResource(
+          'https://public.example/t0',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: makeFakeRequest(chain('/t', 6), newState()),
+          },
+        );
+        assert.equal(stopped.ok, false, '(c) six redirects must be a failure: ' + JSON.stringify(stopped));
+        assert.equal(
+          stopped.reason,
+          'fetch-failed',
+          '(c) expected fetch-failed but got ' + JSON.stringify(stopped),
+        );
+        assert.ok(
+          /redirect/i.test(String(stopped.detail)),
+          '(c) detail must say too many redirects: ' + String(stopped.detail),
+        );
+
+        // (d) 相対の Location は現在の URL を基準に解決する。
+        const stateD = newState();
+        const relative = await fetchIiifResource(
+          'https://public.example/a',
+          { kind: 'manifest', timeoutMs: 3000 },
+          {
+            lookup: publicLookup,
+            classify: () => ({ blocked: false }),
+            request: makeFakeRequest(
+              (options) =>
+                options.path === '/a'
+                  ? redirectOn('/x')
+                  : { status: 200, headers: {}, body: 'ok' },
+              stateD,
+            ),
+          },
+        );
+        assert.equal(relative.ok, true, '(d) a relative redirect must succeed: ' + JSON.stringify(relative));
+        assert.equal(relative.requestedUrl, 'https://public.example/a', '(d) requestedUrl');
+        assert.equal(relative.finalUrl, 'https://public.example/x', '(d) finalUrl: ' + relative.finalUrl);
+        assert.equal(stateD.requests.length, 2, '(d) exactly two hops were requested');
+        assert.equal(stateD.requests[1].path, '/x', '(d) the second hop path: ' + stateD.requests[1].path);
       });
 
       let failed = 0;

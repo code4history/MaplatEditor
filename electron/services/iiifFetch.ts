@@ -7,6 +7,12 @@ import { classifyAddress } from '../../src/utils/ipClassify';
 /** 応答を受け取るまでの既定の締め切り（全体で 1 本）。 */
 const DEFAULT_TIMEOUT_MS = 15000;
 
+/** 追う転送の回数の上限。6 回目で止める。 */
+const MAX_REDIRECTS = 5;
+
+/** 追う転送の状態のコード。 */
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
 /** 取得するものの種別。上限と受ける Content-Type は種別ごとに決まる。 */
 export type IiifResourceKind = 'manifest' | 'info' | 'thumbnail';
 
@@ -198,7 +204,9 @@ export function checkIiifUrlShape(
  * 通ったときだけ取得する。失敗は例外にせず戻り値で返す。
  *
  * 名前の宛先は 1 回の解決で固定する（判定したアドレスと接続の宛先を食い違わせない）。
- * リダイレクト・本文の大きさの上限はこの段では扱わない。
+ * 転送（3xx）は自分で追う。各段で URL の形の検査・IP のリテラルの分類・
+ * 新しい固定の lookup による接続、の同じ道を通す。追うのは 5 回まで。
+ * 本文の大きさの上限はこの段では扱わない。
  */
 export async function fetchIiifResource(
   url: string,
@@ -209,48 +217,13 @@ export async function fetchIiifResource(
   const lookup = deps.lookup ?? defaultLookup;
   const classify: IiifClassify = deps.classify ?? classifyAddress;
 
-  const shape = checkIiifUrlShape(url);
-  if (!shape.ok) {
-    return { ok: false, reason: shape.reason };
-  }
-
-  const parsed = shape.url;
-  const hostname = parsed.hostname.replace(/^\[/, '').replace(/\]$/, '');
   const timeoutMs =
     typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0 ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
-
-  const requestOptions: https.RequestOptions = {
-    hostname,
-    port: parsed.port ? Number(parsed.port) : 443,
-    path: (parsed.pathname || '/') + parsed.search,
-    method: 'GET',
-    // Cookie・Authorization・Accept-Encoding は送らない。
-    headers: { accept: 'application/json, application/ld+json, image/*;q=0.9, */*;q=0.1' },
-    agent: false,
-  };
-
-  if (net.isIP(hostname)) {
-    // IP のリテラルは名前解決を通らないので、要求の前に文字列のまま分類に掛ける。
-    const verdict = classify(hostname);
-    if (verdict.blocked) {
-      return {
-        ok: false,
-        reason: 'blocked-address',
-        detail: verdict.reason ?? 'the address ' + hostname + ' is not allowed',
-      };
-    }
-  } else {
-    // 依頼の口（net の LookupFunction）はアドレスを必ず渡す形なので、
-    // 省略可能な受け手との差だけを型の上で埋める。
-    requestOptions.lookup = createPinnedLookup(lookup, classify) as unknown as NonNullable<
-      https.RequestOptions['lookup']
-    >;
-    requestOptions.servername = hostname;
-  }
 
   return new Promise<IiifFetchResult>((resolve) => {
     let settled = false;
     let timer: NodeJS.Timeout | undefined;
+    let currentReq: http.ClientRequest | undefined;
     const finish = (result: IiifFetchResult) => {
       if (settled) return;
       settled = true;
@@ -258,50 +231,138 @@ export async function fetchIiifResource(
       resolve(result);
     };
 
-    let req: http.ClientRequest;
-    try {
-      req = request(requestOptions, (response) => {
-        const chunks: Buffer[] = [];
-        response.on('data', (chunk: Buffer | string) => {
-          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-        });
-        response.on('end', () => {
-          const status = response.statusCode ?? 0;
-          if (status < 200 || status >= 300) {
-            const location = headerValue(response.headers.location);
-            finish({
-              ok: false,
-              reason: 'fetch-failed',
-              detail: 'unexpected status ' + status + (location ? ' (location: ' + location + ')' : ''),
-            });
-            return;
-          }
-          finish({
-            ok: true,
-            requestedUrl: url,
-            finalUrl: url,
-            accessControlAllowOrigin: headerValue(response.headers['access-control-allow-origin']),
-            contentType: headerValue(response.headers['content-type']),
-            body: Buffer.concat(chunks),
-          });
-        });
-        response.on('error', (error) => finish(failureFromError(error)));
-      });
-    } catch (error) {
-      finish(failureFromError(error));
-      return;
-    }
-
-    req.on('error', (error) => finish(failureFromError(error)));
-
-    // 締め切りは全体で 1 本。過ぎたら要求を壊して止める。
+    // 締め切りは全体で 1 本。転送のたびに延ばさない。過ぎたら直前の要求を壊して止める。
     timer = setTimeout(() => {
       const timeout: NetworkError = new Error('the request did not finish in ' + timeoutMs + ' ms');
       timeout.code = 'ETIMEDOUT';
-      req.destroy(timeout);
+      if (currentReq) currentReq.destroy(timeout);
       finish({ ok: false, reason: 'timeout', detail: String(timeout.message) });
     }, timeoutMs);
 
-    req.end();
+    const attempt = (targetUrl: string, redirects: number) => {
+      if (settled) return;
+
+      const shape = checkIiifUrlShape(targetUrl);
+      if (!shape.ok) {
+        finish({ ok: false, reason: shape.reason });
+        return;
+      }
+
+      const parsed = shape.url;
+      const hostname = parsed.hostname.replace(/^\[/, '').replace(/\]$/, '');
+
+      const requestOptions: https.RequestOptions = {
+        hostname,
+        port: parsed.port ? Number(parsed.port) : 443,
+        path: (parsed.pathname || '/') + parsed.search,
+        method: 'GET',
+        // Cookie・Authorization・Accept-Encoding は送らない。
+        headers: { accept: 'application/json, application/ld+json, image/*;q=0.9, */*;q=0.1' },
+        agent: false,
+      };
+
+      if (net.isIP(hostname)) {
+        // IP のリテラルは名前解決を通らないので、要求の前に文字列のまま分類に掛ける。
+        const verdict = classify(hostname);
+        if (verdict.blocked) {
+          finish({
+            ok: false,
+            reason: 'blocked-address',
+            detail: verdict.reason ?? 'the address ' + hostname + ' is not allowed',
+          });
+          return;
+        }
+      } else {
+        // 依頼の口（net の LookupFunction）はアドレスを必ず渡す形なので、
+        // 省略可能な受け手との差だけを型の上で埋める。
+        requestOptions.lookup = createPinnedLookup(lookup, classify) as unknown as NonNullable<
+          https.RequestOptions['lookup']
+        >;
+        requestOptions.servername = hostname;
+      }
+
+      let req: http.ClientRequest;
+      try {
+        req = request(requestOptions, (response) => {
+          const status = response.statusCode ?? 0;
+
+          if (REDIRECT_STATUSES.has(status)) {
+            const location = headerValue(response.headers.location);
+            response.on('error', (error) => finish(failureFromError(error)));
+            // 転送の応答の本文は読み捨てる。
+            response.resume();
+            if (!location) {
+              finish({
+                ok: false,
+                reason: 'fetch-failed',
+                detail: 'status ' + status + ' without a location',
+              });
+              return;
+            }
+            if (redirects >= MAX_REDIRECTS) {
+              finish({
+                ok: false,
+                reason: 'fetch-failed',
+                detail:
+                  'too many redirects (more than ' +
+                  MAX_REDIRECTS +
+                  ') at ' +
+                  targetUrl,
+              });
+              return;
+            }
+            let next: URL;
+            try {
+              next = new URL(location, parsed);
+            } catch {
+              finish({
+                ok: false,
+                reason: 'bad-url',
+                detail: 'the location is not a url: ' + location,
+              });
+              return;
+            }
+            attempt(next.toString(), redirects + 1);
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer | string) => {
+            chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+          });
+          response.on('end', () => {
+            if (status < 200 || status >= 300) {
+              const location = headerValue(response.headers.location);
+              finish({
+                ok: false,
+                reason: 'fetch-failed',
+                detail:
+                  'unexpected status ' + status + (location ? ' (location: ' + location + ')' : ''),
+              });
+              return;
+            }
+            finish({
+              ok: true,
+              requestedUrl: url,
+              finalUrl: targetUrl,
+              accessControlAllowOrigin: headerValue(response.headers['access-control-allow-origin']),
+              contentType: headerValue(response.headers['content-type']),
+              body: Buffer.concat(chunks),
+            });
+          });
+          response.on('error', (error) => finish(failureFromError(error)));
+        });
+      } catch (error) {
+        finish(failureFromError(error));
+        return;
+      }
+
+      currentReq = req;
+      req.on('error', (error) => finish(failureFromError(error)));
+
+      req.end();
+    };
+
+    attempt(url, 0);
   });
 }
