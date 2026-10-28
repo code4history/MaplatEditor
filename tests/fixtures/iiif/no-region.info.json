@@ -1,0 +1,1 @@
+{"@context": "http://iiif.io/api/image/2/context.json", "@id": "https://iiif.example.test/no-region", "protocol": "http://iiif.io/api/image", "width": 4074, "height": 2705, "tiles": [{"width": 512, "scaleFactors": [1, 2, 4, 8]}], "profile": ["http://iiif.io/api/image/2/level0.json"]}
