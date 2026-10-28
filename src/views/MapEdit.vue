@@ -2404,6 +2404,16 @@ onMounted(async () => {
     }
 
     if (isUnmounted) return;
+    // IIIF の取り込みの預かりに載っていた警告を、ここで 1 回だけ出す。
+    // 取り込みのダイアログはすぐ閉じるので、そちらに出しても読まれない。
+    if (iiifImportWarnings.length > 0) {
+        await (window as any).dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK'],
+            message: t('iiif_import.thumbnail_unavailable'),
+        });
+        if (isUnmounted) return;
+    }
     // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
     currentLang.value = (mapData.value.lang || 'ja') as LangCode;
 

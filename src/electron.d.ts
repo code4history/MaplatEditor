@@ -410,7 +410,19 @@ export type IiifImportThumbnailsResult =
     | { ok: false; reason: string; detail?: string };
 
 // 下書きに預ける中身（renderer が作る）。中身の意味づけは renderer が持つ。
-export type IiifImportDraftPayload = Record<string, unknown>;
+// warnings は編集画面の側で 1 回だけ出す警告の印。
+export type IiifImportDraftPayload = {
+    /** 配信先（IIIF の画像サービス）。書誌だけの道では持たない。 */
+    delivery?: { type: 'iiifImage'; url: string };
+    /** 地図データの iiif 節（結び付きと写した書誌）。 */
+    iiif?: Record<string, unknown>;
+    width?: number;
+    height?: number;
+    /** 写した地図の書誌（鍵 → 値）。 */
+    metadata?: Record<string, unknown>;
+    /** 編集画面の側で 1 回だけ出す警告の印。 */
+    warnings?: string[];
+};
 
 export interface IiifImportAPI {
     inspect(args: IiifImportInspectArgs): Promise<IiifImportInspectResult>;

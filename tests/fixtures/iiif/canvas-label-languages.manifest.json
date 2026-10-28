@@ -1,0 +1,67 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@type": "sc:Manifest",
+  "@id": "https://iiif.example.test/manifest/canvas-labels/manifest.json",
+  "label": "見本の地図",
+  "attribution": "見本の所蔵機関",
+  "license": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "sequences": [
+    {
+      "@type": "sc:Sequence",
+      "canvases": [
+        {
+          "@id": "https://iiif.example.test/manifest/canvas-labels/canvas/1",
+          "@type": "sc:Canvas",
+          "label": { "ja": ["第一面"], "en": ["Sheet 1"], "de": ["Blatt 1"] },
+          "width": 2000,
+          "height": 1500,
+          "images": [
+            {
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "https://iiif.example.test/manifest/canvas-labels/canvas/1",
+              "resource": {
+                "@id": "https://iiif.example.test/image/canvas-labels-1/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 2000,
+                "height": 1500,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://iiif.example.test/image/canvas-labels-1",
+                  "profile": "http://iiif.io/api/image/2/level1.json"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "@id": "https://iiif.example.test/manifest/canvas-labels/canvas/2",
+          "@type": "sc:Canvas",
+          "label": { "ja": ["第二面"], "en": ["Sheet 2"], "de": ["Blatt 2"] },
+          "width": 2000,
+          "height": 1500,
+          "images": [
+            {
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "https://iiif.example.test/manifest/canvas-labels/canvas/2",
+              "resource": {
+                "@id": "https://iiif.example.test/image/canvas-labels-2/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 2000,
+                "height": 1500,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://iiif.example.test/image/canvas-labels-2",
+                  "profile": "http://iiif.io/api/image/2/level1.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

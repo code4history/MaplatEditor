@@ -14,6 +14,7 @@ import {
   stageDraft,
   takeDraft,
   discardDraft,
+  addDraftWarnings,
   iiifDraftFolder,
   type IiifImportDraftPayload,
   type IiifInspectResult,
@@ -112,6 +113,11 @@ export const registerIiifImportHandlers = () => {
 
     if (!saved.ok) {
       return { ok: false as const, reason: saved.errorCode, detail: saved.err };
+    }
+
+    // 512px の失敗は捨てず、預かりに印を足す（編集画面の側で 1 回だけ警告を出す）。
+    if (warnings.length > 0 || saved.warnings.length > 0) {
+      addDraftWarnings(draftId, ['thumbnail-512-failed']);
     }
 
     return { ok: true as const, warnings: [...warnings, ...saved.warnings] };

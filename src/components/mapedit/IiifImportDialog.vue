@@ -51,8 +51,6 @@
         </template>
         <p v-else class="small mb-2" data-testid="iiif-verdict-reason">{{ t(verdict.message) }}</p>
 
-        <p v-if="warning" class="small text-warning mb-2" data-testid="iiif-thumbnail-warning">{{ warning }}</p>
-
         <div class="d-flex flex-wrap gap-2">
           <button
             v-if="verdict.kind === 'deliverable'"
@@ -92,12 +90,15 @@ import { useTranslation } from 'i18next-vue';
 import i18next from 'i18next';
 // @ts-ignore
 import { listIiifCanvases } from '@maplat/core/src/iiif/manifest';
-import { verdictOf, type IiifFetchFacts, type IiifImportReason, type IiifImportVerdict } from '../../utils/iiifImportVerdict';
+import { verdictOf, type IiifFetchFacts, type IiifImportVerdict } from '../../utils/iiifImportVerdict';
 import { iiifThumbnailUrls } from '../../utils/iiifThumbnailUrl';
 import { copyIiifMetadata } from '../../utils/iiifMetadataCopy';
 import { resolveEditorLanguage } from '../../utils/editorLanguages';
 
 const emit = defineEmits<{ close: [] }>();
+
+// サムネイルを作れなかったことを預かりに載せる印（編集画面の側で文にして 1 回だけ出す）
+const IIIF_THUMBNAIL_WARNING = 'thumbnail-unavailable';
 
 const { t } = useTranslation();
 const router = useRouter();
@@ -105,7 +106,6 @@ const router = useRouter();
 const url = ref('');
 const busy = ref(false);
 const error = ref<string | null>(null);
-const warning = ref<string | null>(null);
 const canvases = ref<Array<{ id: string; label: unknown; width: number; height: number; imageService?: string }>>([]);
 const verdict = ref<IiifImportVerdict | null>(null);
 const facts = ref<IiifFetchFacts | null>(null);
@@ -140,7 +140,6 @@ function canvasLabel(label: unknown): string {
 /** 入力と判定の状態を戻す（URL は残す）。 */
 function resetResult(): void {
   error.value = null;
-  warning.value = null;
   canvases.value = [];
   verdict.value = null;
   facts.value = null;
@@ -168,7 +167,8 @@ async function inspect(): Promise<void> {
   try {
     const result = await window.iiifImport.inspect({ manifestUrl: entered });
     if (!result.ok) {
-      verdict.value = verdictOf({ failure: { reason: result.reason as IiifImportReason } });
+      // 取得そのものが失敗したときは、理由をここ（赤い行）に 1 回だけ出す。
+      // 判定は作らない ∴ 読めていない Manifest の「書誌だけ」は選べない。
       error.value = reasonKey(result.reason);
       return;
     }
@@ -206,13 +206,11 @@ async function selectCanvas(index: number): Promise<void> {
   }
   selectedIndex.value = index;
   verdict.value = null;
-  warning.value = null;
   error.value = null;
   busy.value = true;
   try {
     const result = await window.iiifImport.inspect({ serviceUrl: canvas.imageService });
     if (!result.ok) {
-      verdict.value = verdictOf({ failure: { reason: result.reason as IiifImportReason } });
       error.value = reasonKey(result.reason);
       return;
     }
@@ -285,16 +283,20 @@ async function chooseDeliverable(): Promise<void> {
   if (!current || current.kind !== 'deliverable' || busy.value) return;
   busy.value = true;
   error.value = null;
-  warning.value = null;
   try {
     const iiif = iiifOf();
     const metadata = copyMetadataInto(iiif);
+    // サムネイルの URL は預ける前に分かる。作れないときの警告は、預かりの中身に載せて
+    // 編集画面の側で 1 回だけ出す（この画面はすぐ閉じるので、ここに出すと読まれない）。
+    const thumbnailUrls = facts.value ? iiifThumbnailUrls(facts.value.infoJson) : null;
+    const warnings = thumbnailUrls ? [] : [IIIF_THUMBNAIL_WARNING];
     const draftId = await window.iiifImport.stageDraft({
       delivery: { type: 'iiifImage', url: current.info.serviceUrl },
       iiif,
       width: current.info.width,
       height: current.info.height,
       metadata,
+      warnings,
     });
     if (!draftId) {
       error.value = 'iiif_import.error.stage_failed';
@@ -302,10 +304,7 @@ async function chooseDeliverable(): Promise<void> {
     }
     stagedDraftId.value = draftId;
 
-    const thumbnailUrls = facts.value ? iiifThumbnailUrls(facts.value.infoJson) : null;
-    if (!thumbnailUrls) {
-      warning.value = t('iiif_import.thumbnail_unavailable');
-    } else {
+    if (thumbnailUrls) {
       const saved = await window.iiifImport.thumbnails({ draftId, ...thumbnailUrls });
       if (!saved.ok) {
         await window.iiifImport.discardDraft(draftId);

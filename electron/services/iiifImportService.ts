@@ -133,8 +133,22 @@ export async function fetchThumbnails(
 // 受け渡しに使う。預けた中身は 1 回だけ返し、返したら消す。期限を過ぎたものは中身と
 // サムネイルの下書きのフォルダごと消す。
 
-/** 預ける中身（renderer が作る）。中身の意味づけは renderer が持つ。 */
-export type IiifImportDraftPayload = Record<string, unknown>;
+/**
+ * 預ける中身（renderer が作る）。中身の意味づけは renderer が持つ。
+ * `warnings` は編集画面の側で 1 回だけ出す警告の印。
+ */
+export type IiifImportDraftPayload = {
+  /** 配信先（IIIF の画像サービス）。書誌だけの道では持たない。 */
+  delivery?: { type: 'iiifImage'; url: string };
+  /** 地図データの iiif 節（結び付きと写した書誌）。 */
+  iiif?: Record<string, unknown>;
+  width?: number;
+  height?: number;
+  /** 写した地図の書誌（鍵 → 値）。 */
+  metadata?: Record<string, unknown>;
+  /** 編集画面の側で 1 回だけ出す警告の印。 */
+  warnings?: string[];
+};
 
 /** 預かりの期限（ミリ秒）。 */
 export const IIIF_DRAFT_TTL_MS = 15 * 60 * 1000;
@@ -147,6 +161,8 @@ type IiifDraftEntry = {
   expiresAt: number;
   /** サムネイルの下書きのフォルダ（既存の検証つきの関数で解決した絶対パス）。 */
   folder: string | null;
+  /** 預けた後に分かった警告の印（サムネイルの取得の結果など）。 */
+  warnings: string[];
 };
 
 const iiifDrafts = new Map<string, IiifDraftEntry>();
@@ -222,8 +238,19 @@ export async function stageDraft(payload: IiifImportDraftPayload): Promise<strin
     payload,
     expiresAt: draftClock() + IIIF_DRAFT_TTL_MS,
     folder: draftFolderOf(draftId),
+    warnings: [],
   });
   return draftId;
+}
+
+/**
+ * 預けた後に分かった警告の印を足す（サムネイルの取得の結果など）。
+ * 預かっていない・期限切れの id は何もしない。
+ */
+export function addDraftWarnings(draftId: string, warnings: string[]): void {
+  const entry = iiifDrafts.get(draftId);
+  if (!entry || warnings.length === 0) return;
+  entry.warnings.push(...warnings);
 }
 
 /** 預かっている下書きのサムネイルのフォルダ（無い・期限切れなら null）。 */
@@ -258,7 +285,10 @@ export async function takeDraft(
     }
   }
 
-  return entry.payload;
+  // 預けた中身の警告と、預けた後に分かった警告（サムネイルの取得など）を合わせて返す。
+  if (entry.warnings.length === 0) return entry.payload;
+  const carried = Array.isArray(entry.payload.warnings) ? entry.payload.warnings : [];
+  return { ...entry.payload, warnings: [...carried, ...entry.warnings] };
 }
 
 /** 預かりを捨てる（中身とサムネイルのフォルダを消す）。預かっていなければ false。 */
