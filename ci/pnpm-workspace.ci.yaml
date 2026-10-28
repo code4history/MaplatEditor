@@ -54,7 +54,8 @@ overrides:
   # GHSA-q2hr-2g5m-vwhr（Medium）は 2.1.7 で修正。経路は electron-builder（ビルド時）
   brace-expansion: "^2.1.7"
   # 2026-10-03: fast-uri GHSA-hrr3-gc8f-f4qj（Medium）は 3.1.8 で修正。経路は electron-store（実行時）
-  fast-uri: "^3.1.8"
+  # 2026-10-28: GHSA-w74x-v6f9-j3xg・GHSA-wjr9-j795-jxcr（Medium）・GHSA-xhq7-xmqj-769h・GHSA-333x-w4r6-6crp（Low）は 3.1.9 で修正
+  fast-uri: "^3.1.9"
   file-type: "^21.3.1"
   ip-address: "^10.3.1"
   minimatch: "^9.0.7"
