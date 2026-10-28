@@ -350,7 +350,9 @@ class DataUploadService {
             const hasTiles = fs.existsSync(tilePath);
             const hasTmb = fs.existsSync(tmbPath);
             if (contents.tiles) {
-                if (!hasTiles) throw 'NoTile';
+                // IIIF から配信する地図はタイルの実体を持たない ∴ タイルの欠けは正常として扱う
+                // （url_ も作られない）。サムネイルは一覧の画像に使うため従来どおり要求する
+                if (!hasTiles && !delivery) throw 'NoTile';
                 if (!hasTmb)  throw 'NoTmb';
             }
 
