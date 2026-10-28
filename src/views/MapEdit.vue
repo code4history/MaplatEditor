@@ -1402,8 +1402,11 @@ const saveError = computed(() => {
 });
 
 // 旧実装 map.js L.169-171
+// IIIF から配信する地図は url_ を持たない ∴ 配信先（検査を通ったもの）でも表示できる。
+const hasAllowedDelivery = (md: any): boolean =>
+    !!md?.delivery && typeof md.delivery.url === 'string' && isAllowedDeliveryUrl(md.delivery.url);
 const gcpsEditReady = computed(() =>
-    !!(mapData.value.width && mapData.value.height && mapData.value.url_)
+    !!(mapData.value.width && mapData.value.height && (mapData.value.url_ || hasAllowedDelivery(mapData.value)))
 );
 
 // 旧実装 map.js L.165-168
@@ -2239,6 +2242,8 @@ const deliveryForSource = (mapData: any): any | undefined => {
 // keydown・main-process のリスナーを登録して残してしまう。onBeforeUnmount で立てるこのフラグを
 // await の後で見て、unmount 済みなら続き（URL 書き換え・下書きの open・リスナー登録・地図の初期化）をしない。
 let isUnmounted = false;
+// 書誌だけの道で受け取った結び付き（画像の取り込みが済んだ地図へ、あとから結び付ける）
+let pendingIiifFromDraft: Record<string, unknown> | null = null;
 // onMounted の await の後で作る watch は component に紐付かないため、onBeforeUnmount で明示的に止める
 let stopActiveTabWatch: (() => void) | undefined;
 
@@ -2293,8 +2298,48 @@ onMounted(async () => {
             });
           }
         } else {
+          // IIIF の取り込みから来た新規の道: 預かり所から中身を 1 回だけ受け取る。
+          // 画像を切り出さず（タイルを作らず）、配信先・大きさ・結び付きを地図のデータへ入れる。
+          const draftId = typeof route.query.draft === 'string' ? route.query.draft : '';
+          const importMode = route.query.import === 'iiif' ? 'iiif' : route.query.import === '1' ? 'metadata' : null;
+          let draftPayload: any = null;
+          if (importMode && draftId) {
+            draftPayload = await window.iiifImport.takeDraft(draftId, newMapUid);
+          }
+          // 期限切れなどで受け取れない・配信の道なのに預かりが無い: 画像の無い地図を開かず、
+          // 理由を出して一覧へ戻る
+          if ((importMode && draftId && !draftPayload) || (importMode === 'iiif' && !draftPayload)) {
+            await (window as any).dialog.showMessageBox({
+              type: 'warning',
+              buttons: ['OK'],
+              message: t('iiif_import.error.stage_failed'),
+            });
+            if (isUnmounted) return;
+            await router.push({ name: 'MapList' });
+            return;
+          }
           const fresh: any = defaultMapData();
           fresh.lang = resolveEditorLanguage(i18next.language);
+          if (importMode === 'iiif' && draftPayload) {
+            const delivery = deliveryForSource(draftPayload);
+            if (!delivery) {
+              await (window as any).dialog.showMessageBox({
+                type: 'warning',
+                buttons: ['OK'],
+                message: t('iiif_import.reason.blocked-address'),
+              });
+              if (isUnmounted) return;
+              await router.push({ name: 'MapList' });
+              return;
+            }
+            if (typeof draftPayload.width === 'number') fresh.width = draftPayload.width;
+            if (typeof draftPayload.height === 'number') fresh.height = draftPayload.height;
+            fresh.delivery = delivery;
+            if (draftPayload.iiif && typeof draftPayload.iiif === 'object') fresh.iiif = draftPayload.iiif;
+          } else if (importMode === 'metadata' && draftPayload?.iiif && typeof draftPayload.iiif === 'object') {
+            // 書誌だけの道: 画像の取り込みが済んだ地図へ、iiif だけを結び付ける
+            pendingIiifFromDraft = draftPayload.iiif;
+          }
           // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
           withoutHistory('W4', () => {
             setMapDocument(fresh);
@@ -2384,7 +2429,7 @@ onMounted(async () => {
     removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
 
     initMaps();
-    if (mapData.value.url_) {
+    if (mapData.value.url_ || deliveryForSource(mapData.value)) {
         setTimeout(() => loadMapTiles(), 100);
     }
 
@@ -2977,8 +3022,12 @@ const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
 // タイル実体の同一性を決めるキー。mapID（スラッグ）と attr（帰属表示）は含めない。
 // 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
 // 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
-const tileIdentityKey = (md: any): string =>
-    [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
+// IIIF から配信する地図は url_ を持たない ∴ URL・大きさだけで決める（url_ を混ぜない）。
+const tileIdentityKey = (md: any): string => {
+    const delivery = deliveryForSource(md);
+    if (delivery) return ['iiif', delivery.url, md?.width, md?.height].join('|');
+    return [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
+};
 
 // 現在 illstSource が構築された時点のキー。exchangeTileSource() の成功時のみ更新する
 // （呼び出し元は :189 保存成功 / loadMapTiles 冒頭 / restoreHistoryState の3経路。設計 §4.1）
@@ -2988,12 +3037,11 @@ let illstSourceExchangeCount = 0;
 
 const exchangeTileSource = async (): Promise<any> => {
     if (!illstMap) return null;
-    const options = {
+    // IIIF から配信する地図はタイルの実体（url_）を持たない ∴ url を渡さず、
+    // 配信先と大きさを渡して Core の 1 つの関数にタイルの URL を作らせる。
+    const delivery = deliveryForSource(mapData.value);
+    const options: any = {
         mapID: mapID.value,
-        // oct26-m4-t2s2: v1.0.0 の未保存下書き（file://）・m4-t2 期（app://local）の url_ は renderer から読めず、
-        // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
-        // 同一性キー（tileIdentityKey）は生の url_ のまま
-        url: displayTileUrl(mapData.value.url_),
         width: mapData.value.width,
         height: mapData.value.height,
         attr: mapData.value.attr,
@@ -3005,6 +3053,14 @@ const exchangeTileSource = async (): Promise<any> => {
         // で決まる現行契約を維持（ADR-0007/0017/0018）
         thumbnail: await resolveSourceThumbnail(mapUid.value || mapID.value)
     };
+    if (delivery) {
+        options.delivery = delivery;
+    } else {
+        // oct26-m4-t2s2: v1.0.0 の未保存下書き（file://）・m4-t2 期（app://local）の url_ は renderer から読めず、
+        // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
+        // 同一性キー（tileIdentityKey）は生の url_ のまま
+        options.url = displayTileUrl(mapData.value.url_);
+    }
     try {
         const source = await mapSourceFactory(options, {});
         illstSource = source;
@@ -4239,6 +4295,11 @@ const importMap = async () => {
             adoptLoaded({ uid: histMap.uid, slug: histMap.mapID, revision: histMap.revision });
             mapID.value = histMap.mapID;
             setMapDocument(histMap);
+            // 書誌だけの道: 取り込んだ画像の地図へ、IIIF の結び付きだけを残す（配信はしない）
+            if (pendingIiifFromDraft) {
+                mapData.value.iiif = pendingIiifFromDraft;
+                pendingIiifFromDraft = null;
+            }
             originalMapData.value = cloneDeep(mapData.value);
             sub_maps.value = cloneDeep(histMap.sub_maps || []);
             gcps.value = cloneDeep(histMap.gcps || []);

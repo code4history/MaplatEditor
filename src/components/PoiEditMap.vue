@@ -46,6 +46,7 @@ import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
 import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
+import { isAllowedDeliveryUrl } from "../utils/ipClassify";
 // t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
 import { resolveSourceThumbnail } from "../utils/sourceThumbnail";
@@ -505,24 +506,44 @@ const setupBaseMaps = async (): Promise<void> => {
   const layers = await Promise.all(
     [...baseMapList.value].reverse().map(async (tms) => {
       let source;
+      // IIIF から配信する地図はタイルの実体を持たない ∴ url ではなく配信先と大きさを渡す。
+      // 文字列の検査を通ったものだけを渡す（通らないものは「配れない」として扱う）。
+      const deliveryOf = (item: any): any => {
+        const delivery = item?.delivery;
+        if (!delivery || typeof delivery.url !== "string") return undefined;
+        return isAllowedDeliveryUrl(delivery.url) ? delivery : undefined;
+      };
+      const delivery = deliveryOf(tms);
       try {
         if (["osm", "gsi", "gsi_ortho"].includes(tms.mapID)) {
           source = await mapSourceFactory(tms.mapID, {});
         } else {
           source = await mapSourceFactory(
-            {
-              mapID: tms.mapID || "custom",
-              // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
-              // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
-              url: tms.url_ || tms.url,
-              attr: tms.attr,
-              maptype: "base",
-              maxZoom: tms.maxZoom || 18,
-              minZoom: tms.minZoom || 0,
-              // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
-              // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
-              thumbnail: await resolveSourceThumbnail(tms.mapID),
-            },
+            delivery
+              ? {
+                  mapID: tms.mapID || "custom",
+                  delivery,
+                  width: tms.width,
+                  height: tms.height,
+                  attr: tms.attr,
+                  // 配信先からタイルを作る道（HistMap_tin）を通す
+                  noload: true,
+                  imageExtension: tms.imageExtension || "jpg",
+                  thumbnail: await resolveSourceThumbnail(tms.mapID),
+                }
+              : {
+                  mapID: tms.mapID || "custom",
+                  // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
+                  // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
+                  url: tms.url_ || tms.url,
+                  attr: tms.attr,
+                  maptype: "base",
+                  maxZoom: tms.maxZoom || 18,
+                  minZoom: tms.minZoom || 0,
+                  // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+                  // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
+                  thumbnail: await resolveSourceThumbnail(tms.mapID),
+                },
             {},
           );
         }
