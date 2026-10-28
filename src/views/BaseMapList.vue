@@ -223,7 +223,10 @@ async function closeEditor(): Promise<void> {
 }
 
 async function saved(uid: string): Promise<void> {
+  // 読み直しの間に利用者が別の画面や行へ移ったら、保存した行へ引き戻さない
+  const routeAtSave = route.fullPath;
   await loadBaseMaps();
+  if (route.fullPath !== routeAtSave) return;
   await select(uid, false);
 }
 
