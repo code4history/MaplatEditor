@@ -67,6 +67,24 @@ function fixtureError(message: string): NodeJS.ErrnoException {
   return error;
 }
 
+/** 表から 1 行引く。完全一致を先に探し、無ければ末尾が `*` の行のうち最も長い前置きに合うもの。 */
+function findFixture(table: IiifResponseTable, url: string): IiifResponseFixture | undefined {
+  const exact = table[url];
+  if (exact) return exact;
+  let bestKey: string | null = null;
+  let bestPrefix = -1;
+  for (const key of Object.keys(table)) {
+    if (!key.endsWith('*')) continue;
+    const prefix = key.slice(0, -1);
+    if (!url.startsWith(prefix)) continue;
+    if (prefix.length > bestPrefix) {
+      bestKey = key;
+      bestPrefix = prefix.length;
+    }
+  }
+  return bestKey === null ? undefined : table[bestKey];
+}
+
 type FixtureRequest = EventEmitter & {
   destroyed: boolean;
   destroy: (error?: Error) => void;
@@ -88,7 +106,7 @@ function createFixtureDeps(table: IiifResponseTable, baseDir: string): IiifFetch
     };
     req.end = () => {
       const url = requestUrlOf(options);
-      const fixture = table[url];
+      const fixture = findFixture(table, url);
       if (!fixture) {
         req.emit('error', fixtureError('no fixture for ' + url));
         return;

@@ -56,7 +56,10 @@ async function attachMapListExtras<T extends Record<string, any>>(
   pageSize: number,
 ): Promise<typeof paged> {
   await attachDiagnostics(paged, pageSize, attachMapDiagnostics);
-  return attachImages(paged, pageSize, resolveMapListImage512);
+  const attached = await attachImages(paged, pageSize, resolveMapListImage512);
+  // 一覧の印に使う真偽 1 つだけを足す（配信先の URL などの中身は返さない）。
+  attached.docs = attached.docs.map((doc) => ({ ...doc, iiifDelivery: Boolean(doc.delivery) }) as T);
+  return attached;
 }
 
 async function attachAppListExtras<T extends Record<string, any>>(
