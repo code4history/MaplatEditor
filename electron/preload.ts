@@ -267,6 +267,17 @@ contextBridge.exposeInMainWorld('search', {
 
 contextBridge.exposeInMainWorld('isE2E', Boolean(process.env.MAPLAT_E2E_ROOT))
 
+// IIIF の取り込み: 取得と下書きの預かりは main が持ち、判定は renderer が行う。
+// 出すのは IPC の 6 本と同じ名前だけ（ipcRenderer は直接出さない）。
+contextBridge.exposeInMainWorld('iiifImport', {
+  inspect: (args: { manifestUrl?: string; serviceUrl?: string }) => ipcRenderer.invoke('iiifImport:inspect', args),
+  thumbnails: (args: { draftId: string; url52: string; url512: string }) => ipcRenderer.invoke('iiifImport:thumbnails', args),
+  stageDraft: (payload: Record<string, unknown>) => ipcRenderer.invoke('iiifImport:stageDraft', payload),
+  takeDraft: (draftId: string, mapUid?: string) => ipcRenderer.invoke('iiifImport:takeDraft', draftId, mapUid),
+  discardDraft: (draftId: string) => ipcRenderer.invoke('iiifImport:discardDraft', draftId),
+  recopy: (args: { manifestUrl: string }) => ipcRenderer.invoke('iiifImport:recopy', args),
+})
+
 contextBridge.exposeInMainWorld('slugReservations', {
   reserve: (payload: { slug: string; assetUid: string; assetKind: string; draftUid: string }) =>
     ipcRenderer.invoke('slug-reservations:reserve', payload),

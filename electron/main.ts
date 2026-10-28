@@ -179,6 +179,8 @@ app.on('before-quit', () => {
   forceQuit = true
   // M1-T6 (d-2): アプリ終了時にプレビューサーバを解放する
   void AppPreviewService.shutdown()
+  // 取り込みの下書きの預かり所に残っているものを消す（期限を待たない）
+  clearAllIiifDrafts()
 })
 
 // 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
@@ -212,6 +214,8 @@ import { registerAssetHandlers } from './ipc/assets'
 import { registerImageAssetHandlers } from './ipc/assets-images'
 import { registerSlugReservationHandlers } from './ipc/slugReservations'
 import { registerSearchHandlers } from './ipc/search'
+import { registerIiifImportHandlers } from './ipc/iiifimport'
+import { clearAllIiifDrafts } from './services/iiifImportService'
 
 import { ipcMain } from 'electron'
 
@@ -347,6 +351,12 @@ app.whenReady().then(async () => {
   ipcMain.removeHandler('search:extent')
   ipcMain.removeHandler('search:appCoverage')
   ipcMain.removeHandler('search:resourceBbox')
+  ipcMain.removeHandler('iiifImport:inspect')
+  ipcMain.removeHandler('iiifImport:thumbnails')
+  ipcMain.removeHandler('iiifImport:stageDraft')
+  ipcMain.removeHandler('iiifImport:takeDraft')
+  ipcMain.removeHandler('iiifImport:discardDraft')
+  ipcMain.removeHandler('iiifImport:recopy')
 
   ipcMain.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
@@ -366,6 +376,7 @@ app.whenReady().then(async () => {
   registerImageAssetHandlers()
   registerSlugReservationHandlers()
   registerSearchHandlers()
+  registerIiifImportHandlers()
   // M12-T20 (§6.3): 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
   await gcOrphanDraftTiles()
   createWindow()

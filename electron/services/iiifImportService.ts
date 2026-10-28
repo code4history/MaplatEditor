@@ -2,8 +2,14 @@
 //
 // 取得の道は electron/services/iiifFetch.ts の fetchIiifResource 1 本だけを通す
 // （別の道を作らない）。ここでは配れるかの判定をせず、取れた事実と JSON を返す
-// だけにする。renderer とのやり取り（IPC）はこの段には置かない。
+// だけにする。renderer とのやり取り（IPC）は electron/ipc/iiifimport.ts が持つ。
+//
+// あわせて、取り込みの結果を新規モードへ渡すための下書きの預かり所（main のメモリ・
+// 期限つき）を置く。預ける中身は renderer が作り、ここは中身の意味づけをしない。
 
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   fetchIiifResource,
   type IiifFetchDeps,
@@ -11,6 +17,7 @@ import {
   type IiifFetchReason,
   type IiifFetchResult,
 } from './iiifFetch';
+import { draftTileRoot, resolveDraftTileDir } from './draftTilePaths';
 
 /** 取得の依存の差し込み口。省略したら本物（名前解決・分類・要求）を使う。 */
 export type IiifServiceDeps = Partial<IiifFetchDeps>;
@@ -117,4 +124,168 @@ export async function fetchThumbnails(
   const url52 = await fetchIiifResource(urls.url52, { kind: 'thumbnail' }, deps);
   const url512 = await fetchIiifResource(urls.url512, { kind: 'thumbnail' }, deps);
   return { url52, url512 };
+}
+
+// ---- 下書きの預かり所（main のメモリ・期限つき）------------------------------------
+//
+// 取り込みの結果（`delivery`・`iiif`・`width`・`height`・写した書誌）は URL の query に
+// 載せきれない。renderer が作った中身を main がしばらく預かり、短い不透明な id だけを
+// 受け渡しに使う。預けた中身は 1 回だけ返し、返したら消す。期限を過ぎたものは中身と
+// サムネイルの下書きのフォルダごと消す。
+
+/** 預ける中身（renderer が作る）。中身の意味づけは renderer が持つ。 */
+export type IiifImportDraftPayload = Record<string, unknown>;
+
+/** 預かりの期限（ミリ秒）。 */
+export const IIIF_DRAFT_TTL_MS = 15 * 60 * 1000;
+
+/** サムネイルの下書きのフォルダの名前の前置き（`iiif-<draftId>`）。 */
+const IIIF_DRAFT_FOLDER_PREFIX = 'iiif-';
+
+type IiifDraftEntry = {
+  payload: IiifImportDraftPayload;
+  expiresAt: number;
+  /** サムネイルの下書きのフォルダ（既存の検証つきの関数で解決した絶対パス）。 */
+  folder: string | null;
+};
+
+const iiifDrafts = new Map<string, IiifDraftEntry>();
+
+let draftClock: () => number = () => Date.now();
+
+/**
+ * 預かり所の時計を差し替える。省略すると実時計へ戻す。
+ * 期限の判定を、待たずに進めて確かめるための口。
+ */
+export function setIiifDraftStoreClock(clock?: () => number): void {
+  draftClock = clock ?? (() => Date.now());
+}
+
+/** サムネイルの下書きのフォルダを、既存の検証つきの関数で解決する（手で組み立てない）。 */
+function draftFolderOf(draftId: unknown): string | null {
+  if (typeof draftId !== 'string' || draftId.length === 0) return null;
+  return resolveDraftTileDir(draftTileRoot, IIIF_DRAFT_FOLDER_PREFIX + draftId);
+}
+
+/** 下書きのフォルダを丸ごと消す（無ければ何もしない）。 */
+async function removeDraftFolder(folder: string): Promise<void> {
+  await fs.promises.rm(folder, { recursive: true, force: true });
+}
+
+/** 期限を過ぎた預かりを、中身とフォルダごと消す。 */
+async function sweepExpiredDrafts(): Promise<void> {
+  const now = draftClock();
+  for (const [draftId, entry] of iiifDrafts) {
+    if (entry.expiresAt > now) continue;
+    iiifDrafts.delete(draftId);
+    if (entry.folder) {
+      try {
+        await removeDraftFolder(entry.folder);
+      } catch {
+        // 消せなくても預かりからは外す（残骸は起動時の孤児の回収が拾う）
+      }
+    }
+  }
+}
+
+/** 下書きのフォルダの中身を、保存のときに使う場所へ移す（移せなければ下書きに残す）。 */
+async function moveDraftFolderContents(source: string, target: string): Promise<void> {
+  await fs.promises.mkdir(target, { recursive: true });
+  const names = await fs.promises.readdir(source);
+  for (const name of names) {
+    const from = path.join(source, name);
+    const to = path.join(target, name);
+    const stat = await fs.promises.stat(from).catch(() => null);
+    if (!stat) continue;
+    if (stat.isDirectory()) {
+      await fs.promises.rm(to, { recursive: true, force: true });
+      await fs.promises.rename(from, to);
+      continue;
+    }
+    try {
+      await fs.promises.rename(from, to);
+    } catch {
+      await fs.promises.copyFile(from, to);
+      await fs.promises.unlink(from);
+    }
+  }
+}
+
+/**
+ * 取り込みの結果を預かり、短い不透明な id を返す。期限は 15 分。
+ * サムネイルの下書きのフォルダは、この id から既存の検証つきの関数で解決する。
+ */
+export async function stageDraft(payload: IiifImportDraftPayload): Promise<string> {
+  await sweepExpiredDrafts();
+  const draftId = crypto.randomUUID();
+  iiifDrafts.set(draftId, {
+    payload,
+    expiresAt: draftClock() + IIIF_DRAFT_TTL_MS,
+    folder: draftFolderOf(draftId),
+  });
+  return draftId;
+}
+
+/** 預かっている下書きのサムネイルのフォルダ（無い・期限切れなら null）。 */
+export function iiifDraftFolder(draftId: string): string | null {
+  const entry = iiifDrafts.get(draftId);
+  if (!entry) return null;
+  if (entry.expiresAt <= draftClock()) return null;
+  return entry.folder;
+}
+
+/**
+ * 預かりから中身を 1 回だけ返して消す。`mapUid` があれば、サムネイルの下書きの
+ * フォルダの中身を、保存のときに既存の決まりで動かす場所（`resolveDraftTileDir`）へ
+ * 移す。無い・期限切れの id は null。
+ */
+export async function takeDraft(
+  draftId: string,
+  mapUid?: string,
+): Promise<IiifImportDraftPayload | null> {
+  await sweepExpiredDrafts();
+  const entry = iiifDrafts.get(draftId);
+  if (!entry) return null;
+  iiifDrafts.delete(draftId);
+
+  const target = typeof mapUid === 'string' && mapUid.length > 0 ? resolveDraftTileDir(draftTileRoot, mapUid) : null;
+  if (entry.folder && target) {
+    try {
+      await moveDraftFolderContents(entry.folder, target);
+      await removeDraftFolder(entry.folder);
+    } catch {
+      // 移せなかったときは下書きの場所に残す（起動時の孤児の回収が拾う）
+    }
+  }
+
+  return entry.payload;
+}
+
+/** 預かりを捨てる（中身とサムネイルのフォルダを消す）。預かっていなければ false。 */
+export async function discardDraft(draftId: string): Promise<boolean> {
+  await sweepExpiredDrafts();
+  const entry = iiifDrafts.get(draftId);
+  if (!entry) return false;
+  iiifDrafts.delete(draftId);
+  if (entry.folder) {
+    try {
+      await removeDraftFolder(entry.folder);
+    } catch {
+      // 消せなくても預かりからは外す
+    }
+  }
+  return true;
+}
+
+/** アプリの終了のときに、残っている預かりを全部消す（同期的に消す）。 */
+export function clearAllIiifDrafts(): void {
+  for (const [draftId, entry] of iiifDrafts) {
+    iiifDrafts.delete(draftId);
+    if (!entry.folder) continue;
+    try {
+      fs.rmSync(entry.folder, { recursive: true, force: true });
+    } catch {
+      // 消せなくても預かりからは外す
+    }
+  }
 }

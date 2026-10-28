@@ -18,6 +18,7 @@ const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-import-verdict-'));
 const entryFile = path.join(workDir, 'iiif-import-verdict-smoke-entry.ts');
+const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'iiif-import-verdict-smoke.mjs');
 
@@ -26,6 +27,30 @@ const serviceModulePath = path.join(projectRoot, 'electron/services/iiifImportSe
 const verdictModulePath = path.join(projectRoot, 'src/utils/iiifImportVerdict.ts');
 
 try {
+  // 取得の入口は下書きの預かり所のために electron の app を読む。前例と同じく
+  // electron をスタブして束ねる（この試験は取得の口をすべて差し替えるので app は使わない）。
+  await writeFile(
+    electronStubFile,
+    `
+      const handlers = new Map();
+      export const __handlers = handlers;
+      export const app = {
+        getPath(name) {
+          if (name === 'documents') return ${JSON.stringify(path.join(workDir, 'documents'))};
+          if (name === 'temp') return ${JSON.stringify(path.join(workDir, 'temp'))};
+          return ${JSON.stringify(workDir)};
+        },
+        getName() { return 'MaplatEditorSmoke'; },
+        isPackaged: false,
+      };
+      export const ipcMain = { handle: (ch, fn) => handlers.set(ch, fn), removeHandler: (ch) => handlers.delete(ch) };
+      export const dialog = {
+        async showOpenDialog() { return { canceled: true, filePaths: [] }; },
+      };
+      export const BrowserWindow = class {};
+      export const session = { defaultSession: { webRequest: { onBeforeRequest: () => {} } } };
+    `,
+  );
   await writeFile(
     entryFile,
     `
@@ -268,6 +293,7 @@ try {
     logLevel: 'silent',
     resolve: {
       alias: [
+        { find: 'electron', replacement: electronStubFile },
         {
           find: '@maplat/core/src',
           replacement: path.join(projectRoot, 'node_modules/@maplat/core/src'),

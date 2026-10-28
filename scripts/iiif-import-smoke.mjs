@@ -1,10 +1,10 @@
 // IIIF 取り込みの取得層（electron/services/iiifFetch.ts）の smoke。
 //
 // 前例（scripts/m12-t13-resolver-containment-smoke.mjs）と同じ形で、main の TS を
-// vite の ssr build で束ね、子プロセスで走らせる。electron に依存しないので
-// スタブは要らない。試験は 1 つずつ `ok: <機能の名前>` を出し、1 つでも失敗したら
-// exit 1 で終わる。この先の段で試験を足せるよう、entry の中の `test(...)` に
-// 1 件ずつ並べる形にしている。
+// vite の ssr build で束ね、子プロセスで走らせる。下書きの預かり所は electron の
+// app を読むので、前例と同じく electron をスタブして束ねる。試験は 1 つずつ
+// `ok: <機能の名前>` を出し、1 つでも失敗したら exit 1 で終わる。この先の段で
+// 試験を足せるよう、entry の中の `test(...)` に 1 件ずつ並べる形にしている。
 //
 // 使い方: node scripts/iiif-import-smoke.mjs
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -19,24 +19,63 @@ const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-import-'));
 const entryFile = path.join(workDir, 'iiif-import-smoke-entry.ts');
+const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'iiif-import-smoke.mjs');
 
 const fetchModulePath = path.join(projectRoot, 'electron/services/iiifFetch.ts');
 const serviceModulePath = path.join(projectRoot, 'electron/services/iiifImportService.ts');
+const draftPathsModulePath = path.join(projectRoot, 'electron/services/draftTilePaths.ts');
+const thumbnailPathsModulePath = path.join(projectRoot, 'src/utils/thumbnailPaths.ts');
 const classifyModulePath = path.join(projectRoot, 'src/utils/ipClassify.ts');
 
 try {
+  await writeFile(
+    electronStubFile,
+    `
+      const handlers = new Map();
+      export const __handlers = handlers;
+      export const app = {
+        getPath(name) {
+          if (name === 'documents') return ${JSON.stringify(path.join(workDir, 'documents'))};
+          if (name === 'temp') return ${JSON.stringify(path.join(workDir, 'temp'))};
+          return ${JSON.stringify(workDir)};
+        },
+        getName() { return 'MaplatEditorSmoke'; },
+        isPackaged: false,
+      };
+      export const ipcMain = { handle: (ch, fn) => handlers.set(ch, fn), removeHandler: (ch) => handlers.delete(ch) };
+      export const dialog = {
+        async showOpenDialog() { return { canceled: true, filePaths: [] }; },
+      };
+      export const BrowserWindow = class {};
+      export const session = { defaultSession: { webRequest: { onBeforeRequest: () => {} } } };
+    `,
+  );
   await writeFile(
     entryFile,
     `
       import assert from 'node:assert/strict';
       import http from 'node:http';
+      import fs from 'node:fs/promises';
+      import nodePath from 'node:path';
       import { EventEmitter } from 'node:events';
       import { Readable } from 'node:stream';
 
       const { fetchIiifResource, createPinnedLookup } = await import(${JSON.stringify(fetchModulePath)});
-      const { inspectManifest, inspectInfo, fetchThumbnails } = await import(${JSON.stringify(serviceModulePath)});
+      const {
+        inspectManifest,
+        inspectInfo,
+        fetchThumbnails,
+        stageDraft,
+        takeDraft,
+        discardDraft,
+        setIiifDraftStoreClock,
+        iiifDraftFolder,
+        IIIF_DRAFT_TTL_MS,
+      } = await import(${JSON.stringify(serviceModulePath)});
+      const { draftTileRoot, resolveDraftTileDir } = await import(${JSON.stringify(draftPathsModulePath)});
+      const { THUMB_512_TMP_BASENAME } = await import(${JSON.stringify(thumbnailPathsModulePath)});
       const { classifyAddress, BLOCKED_ADDRESS_RANGES } = await import(${JSON.stringify(classifyModulePath)});
 
       const tests = [];
@@ -1029,6 +1068,74 @@ try {
         }
       });
 
+      // ---- 下書きの預かり所（main のメモリ）----
+      // 預けた中身は 1 回だけ返し、2 回目は null。期限（15 分）を過ぎたものは
+      // 中身とサムネイルのフォルダごと消える。時計は差し替えの口で進める。
+      test('draft-store', async () => {
+        let clockNow = Date.UTC(2026, 0, 1, 0, 0, 0);
+        setIiifDraftStoreClock(() => clockNow);
+
+        const payload = {
+          delivery: { type: 'iiifImage', url: 'https://iiif.example/iiif/2/abc' },
+          iiif: { manifest: 'https://iiif.example/iiif/2/manifest', canvas: 'https://iiif.example/iiif/2/canvas/1' },
+          width: 1200,
+          height: 800,
+          copiedMetadata: { title: '見本の地図' },
+        };
+
+        const draftId = await stageDraft(payload);
+        assert.equal(typeof draftId, 'string', 'stageDraft must return a string id');
+        assert.ok(draftId.length >= 8, 'the id must be a real identifier: ' + String(draftId));
+        assert.equal(
+          draftId.includes('https'),
+          false,
+          'the id must not embed the payload: ' + draftId,
+        );
+
+        const folder = iiifDraftFolder(draftId);
+        assert.equal(typeof folder, 'string', 'the draft folder must resolve');
+        await fs.mkdir(folder, { recursive: true });
+        await fs.writeFile(nodePath.join(folder, 'thumbnail.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+        await fs.writeFile(nodePath.join(folder, THUMB_512_TMP_BASENAME), Buffer.from('webp'));
+
+        const mapUid = 'draft-store-map';
+        const taken = await takeDraft(draftId, mapUid);
+        assert.deepEqual(taken, payload, 'takeDraft must return the staged payload');
+
+        const second = await takeDraft(draftId, mapUid);
+        assert.equal(second, null, 'takeDraft must return the payload only once');
+
+        const moved = resolveDraftTileDir(draftTileRoot, mapUid);
+        assert.equal(typeof moved, 'string', 'the destination folder must resolve');
+        const moved52 = await fs.readFile(nodePath.join(moved, 'thumbnail.jpg'));
+        assert.deepEqual(moved52, Buffer.from([0xff, 0xd8, 0xff, 0xd9]), 'the 52px draft must move');
+        const moved512 = await fs.readFile(nodePath.join(moved, THUMB_512_TMP_BASENAME));
+        assert.deepEqual(moved512, Buffer.from('webp'), 'the 512px draft must move');
+        const folderAfter = await fs.stat(folder).then(() => true).catch(() => false);
+        assert.equal(folderAfter, false, 'the source folder must be gone after the move');
+
+        const expiringId = await stageDraft({ delivery: { type: 'iiifImage', url: 'https://iiif.example/iiif/2/exp' } });
+        const expiringFolder = iiifDraftFolder(expiringId);
+        await fs.mkdir(expiringFolder, { recursive: true });
+        await fs.writeFile(nodePath.join(expiringFolder, 'thumbnail.jpg'), Buffer.from([0xff, 0xd8]));
+        clockNow += IIIF_DRAFT_TTL_MS + 1;
+        const expired = await takeDraft(expiringId, 'draft-store-expired');
+        assert.equal(expired, null, 'an expired draft must be gone');
+        const expiredFolderAfter = await fs.stat(expiringFolder).then(() => true).catch(() => false);
+        assert.equal(expiredFolderAfter, false, 'the expired folder must be removed');
+
+        const discardedId = await stageDraft({ delivery: { type: 'iiifImage', url: 'https://iiif.example/iiif/2/dis' } });
+        const discardedFolder = iiifDraftFolder(discardedId);
+        await fs.mkdir(discardedFolder, { recursive: true });
+        await fs.writeFile(nodePath.join(discardedFolder, 'thumbnail.jpg'), Buffer.from([0xff, 0xd8]));
+        const discarded = await discardDraft(discardedId);
+        assert.equal(discarded, true, 'discardDraft must report the discard');
+        const afterDiscard = await takeDraft(discardedId, 'draft-store-discarded');
+        assert.equal(afterDiscard, null, 'a discarded draft must be gone');
+        const discardedFolderAfter = await fs.stat(discardedFolder).then(() => true).catch(() => false);
+        assert.equal(discardedFolderAfter, false, 'the discarded folder must be removed');
+      });
+
       let failed = 0;
       for (const item of tests) {
         try {
@@ -1053,6 +1160,9 @@ try {
   await build({
     configFile: false,
     logLevel: 'silent',
+    resolve: {
+      alias: [{ find: 'electron', replacement: electronStubFile }],
+    },
     build: {
       emptyOutDir: true,
       outDir,
@@ -1071,6 +1181,8 @@ try {
     cwd: projectRoot,
     timeout: 120000,
     maxBuffer: 1024 * 1024 * 8,
+    // 下書きのタイルの置き場を、この試験の作業ディレクトリの中に閉じ込める
+    env: { ...process.env, MAPLAT_E2E_ROOT: path.join(workDir, 'e2e-root') },
   });
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
