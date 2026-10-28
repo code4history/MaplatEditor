@@ -23,6 +23,7 @@ const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'iiif-import-smoke.mjs');
 
 const fetchModulePath = path.join(projectRoot, 'electron/services/iiifFetch.ts');
+const classifyModulePath = path.join(projectRoot, 'src/utils/ipClassify.ts');
 
 try {
   await writeFile(
@@ -32,6 +33,7 @@ try {
       import http from 'node:http';
 
       const { fetchIiifResource, createPinnedLookup } = await import(${JSON.stringify(fetchModulePath)});
+      const { classifyAddress, BLOCKED_ADDRESS_RANGES } = await import(${JSON.stringify(classifyModulePath)});
 
       const tests = [];
       const test = (name, fn) => { tests.push({ name, fn }); };
@@ -209,11 +211,135 @@ try {
         );
       });
 
+      // §3.3-3 の分類の規則。表の各行に 1 つ以上の拒む見本を当て、行数を数える。
+      const blockedAddressSamples = [
+        // クラウドのメタデータ（最優先で拒む）
+        '169.254.169.254',
+        'fd00:ec2::254',
+        '100.100.100.200',
+        // loopback
+        '127.0.0.1',
+        '::1',
+        // private
+        '10.1.2.3',
+        '172.16.0.1',
+        '192.168.1.1',
+        'fc00::1',
+        // link-local
+        '169.254.1.1',
+        'fe80::1',
+        // 未指定・この機械
+        '0.0.0.0',
+        '::',
+        // IPv4 を写した IPv6
+        '::ffff:127.0.0.1',
+        // NAT の内側（CGNAT）
+        '100.64.0.1',
+        // マルチキャスト
+        '224.0.0.1',
+        'ff02::1',
+        // その他の予約
+        '192.0.0.1',
+        '192.0.2.1',
+        '198.18.0.1',
+        '198.51.100.1',
+        '203.0.113.1',
+        '240.0.0.1',
+        '255.255.255.255',
+        '2001:db8::1',
+        '64:ff9b::7f00:1',
+        '2002:7f00:1::',
+        // 追加の予約
+        '::7f00:1',
+        '::ffff:0:7f00:1',
+        '64:ff9b:1::1',
+        '2001::1',
+        'fec0::1',
+        '100::1',
+        '192.88.99.1',
+        // 境界（172.16.0.0/12 の上限）
+        '172.31.255.255',
+        // [ ] 付きでも同じ
+        '[::1]',
+      ];
+      const allowedAddressSamples = [
+        '93.184.216.34',
+        '2606:2800:220:1::1',
+        // 境界（172.16.0.0/12 の外・100.64.0.0/10 の外）
+        '172.32.0.1',
+        '100.128.0.1',
+      ];
+      const notAnIpSamples = ['example.org', 'localhost', 'not an ip', '999.1.1.1', ''];
+
+      test('address-blocklist', async () => {
+        for (const address of blockedAddressSamples) {
+          const verdict = classifyAddress(address);
+          assert.equal(
+            verdict.blocked,
+            true,
+            address + ' must be blocked but was allowed: ' + JSON.stringify(verdict),
+          );
+        }
+        for (const address of allowedAddressSamples) {
+          const verdict = classifyAddress(address);
+          assert.equal(
+            verdict.blocked,
+            false,
+            address + ' must be allowed but was blocked: ' + JSON.stringify(verdict),
+          );
+        }
+        for (const address of notAnIpSamples) {
+          const verdict = classifyAddress(address);
+          assert.equal(verdict.blocked, true, address + ' must be blocked: ' + JSON.stringify(verdict));
+          assert.equal(
+            verdict.reason,
+            'not-an-ip',
+            address + ' must be refused as not-an-ip: ' + JSON.stringify(verdict),
+          );
+        }
+
+        // 表の行数と、拒む見本が当たった行の数を突き合わせる。
+        const rows = Array.isArray(BLOCKED_ADDRESS_RANGES) ? BLOCKED_ADDRESS_RANGES : [];
+        assert.ok(rows.length > 0, 'the table must not be empty');
+        const hitKinds = new Map();
+        for (const address of blockedAddressSamples) {
+          const verdict = classifyAddress(address);
+          if (verdict.kind) hitKinds.set(verdict.kind, (hitKinds.get(verdict.kind) || 0) + 1);
+        }
+        const missed = rows.filter((row) => !hitKinds.has(row.kind)).map((row) => row.kind);
+        assert.deepEqual(missed, [], 'the table has rows with no blocked sample: ' + missed.join(', '));
+        const hitRows = rows.length - missed.length;
+        return '(' + hitRows + '/' + rows.length + ')';
+      });
+
+      // 既定の classify が classifyAddress に替わっていることを、依存を渡さずに測る。
+      // 拒むアドレスなので、取得の口（request）は触らない。
+      test('default-classify-blocks-private', async () => {
+        let requestCalls = 0;
+        const result = await fetchIiifResource(
+          'https://127.0.0.1:9/info.json',
+          { kind: 'info', timeoutMs: 3000 },
+          {
+            request: () => {
+              requestCalls += 1;
+              throw new Error('request must not be called for a blocked address');
+            },
+          },
+        );
+        assert.equal(requestCalls, 0, 'the blocked address must not reach the request');
+        assert.equal(result.ok, false, 'must be a failure: ' + JSON.stringify(result));
+        assert.equal(
+          result.reason,
+          'blocked-address',
+          'the default classify must block 127.0.0.1 but got ' + String(result.reason),
+        );
+      });
+
       let failed = 0;
       for (const item of tests) {
         try {
-          await item.fn();
-          console.log('ok: ' + item.name);
+          const suffix = await item.fn();
+          console.log('ok: ' + item.name + (suffix ? ' ' + suffix : ''));
         } catch (error) {
           failed += 1;
           console.error('fail: ' + item.name + ': ' + (error instanceof Error ? error.message : String(error)));

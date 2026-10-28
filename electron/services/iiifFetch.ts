@@ -2,6 +2,7 @@ import dns from 'node:dns';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
+import { classifyAddress } from '../../src/utils/ipClassify';
 
 /** 応答を受け取るまでの既定の締め切り（全体で 1 本）。 */
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -87,9 +88,6 @@ const defaultLookup: IiifLookup = (hostname, options, callback) => {
     callback(err, address, family),
   );
 };
-
-// 宛先の分類は取得の道を組み立てる段で入れる。それまでは何も拒まない。
-const allowAll: IiifClassify = () => ({ blocked: false });
 
 /** 名前解決のエラーに、接続の相手の事実を添えて返すための型。 */
 type NetworkError = NodeJS.ErrnoException & { address?: string; port?: number };
@@ -209,7 +207,7 @@ export async function fetchIiifResource(
 ): Promise<IiifFetchResult> {
   const request: IiifRequest = deps.request ?? https.request;
   const lookup = deps.lookup ?? defaultLookup;
-  const classify = deps.classify ?? allowAll;
+  const classify: IiifClassify = deps.classify ?? classifyAddress;
 
   const shape = checkIiifUrlShape(url);
   if (!shape.ok) {
