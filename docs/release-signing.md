@@ -441,6 +441,16 @@ Artifact Signing の法人の身元確認には期限があり、切れると証
 （C-8 の例外。残るリスクをここに書く）へ進む。なお pack-win-2 が「差し替えられなかったアンインストーラー」を赤にするので、
 不成立のまま署名済みでない成果物が出ることは無い。
 
+**実測（2026-10-30・1.2.0-rc.2 の run 40789858962・40945342825）: 手当てが足りず不成立だった。** pack-win-2 が 2 回とも
+「前の phase（uninstaller）の would-sign が残っている」で止まった（1 回目は x64・arm64 とも、2 回目は arm64 だけ）。
+両 run の pack-win-1 のアンインストーラーを展開すると、解凍後の NSIS ヘッダーは大きさも文字列の集合も同じで、**言語の並びだけ**が違った。
+app-builder-lib（26.17.0。26.18.1 でも同じ）は LangString のファイル `messages.yml`・`assistedMessages.yml` を並行に書き出して
+**書き終えた順に** `!include` する。makensis は先に現れた LangString の言語の並びで言語表を作り、2 つの yml は言語の並びが違うため、
+どちらが先に書き終わるかでアンインストーラーのバイト列が変わる（x64 / arm64 の別ではなく、ビルドごとの当たり外れ）。
+手当て: `scripts/win-sign/nsis-message-order.cjs` が取り込みを呼んだ順（messages → assistedMessages）に直列にする
+（`electron-builder.config.cjs` が Windows 署名の有効なビルドで入れる。上流の形が変わったら落ちる）。
+検査: `node scripts/win-sign-nsis-message-order-smoke.mjs`（実物の NsisTarget でスクリプトの順を確かめる。makensis は動かさない）。
+
 ### 署名履歴の確かめ方（nov26-m7-t3）
 
 **(i) GitHub の側**: Artifact Signing の経路の各 run で、署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・
