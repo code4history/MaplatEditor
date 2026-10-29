@@ -85,6 +85,7 @@ try {
     const { default: AppExportService } = await import(${p('electron/services/AppExportService.ts')});
     const { buildAndWriteMapZip } = await import(${p('electron/utils/mapDownloadZip.ts')});
     const { parseExportManifest, EXPORT_MANIFEST_NAME } = await import(${p('src/utils/exportOptions.ts')});
+    const { normalizeAppSource, composeViewerSource } = await import(${p('src/utils/appSourceModel.ts')});
 
     const put = (rel: string, data: string | Buffer) => {
       const abs = nodePath.join(dataDir, rel);
@@ -158,6 +159,69 @@ try {
       assert.equal(zip.manifest.tiles, zip.has('tiles/'),
         label + ': 目録の tiles が ZIP の tiles/ の有無と一致する（目録=' + JSON.stringify(zip.manifest) + '）');
     };
+
+    // =====================================================================
+    // 0. アプリの設定の sources[] の IIIF の書誌の表示の指定
+    // =====================================================================
+    {
+      // (a) 保存された値の濾過: 受け入れるのは 'all' と 'hidden' だけ。
+      // 是正の見分け: 直す前は iiifMetadata を知らないので、この 1 つ目で落ちる
+      const all = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-all', role: 'maplat', overrides: {}, iiifMetadata: 'all',
+      });
+      assert.equal(all.iiifMetadata, 'all', 'ソースのトップレベルに all が残る');
+
+      const hidden = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-hidden', role: 'maplat', overrides: {}, iiifMetadata: 'hidden',
+      });
+      assert.equal(hidden.iiifMetadata, 'hidden', 'ソースのトップレベルに hidden が残る');
+
+      const bogus = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-bogus', role: 'maplat', overrides: {}, iiifMetadata: 'bogus',
+      });
+      assert.equal('iiifMetadata' in bogus, false, '知らない値は捨てる');
+
+      const inOverrides = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-overrides', role: 'maplat',
+        overrides: { iiifMetadata: 'all' },
+      });
+      assert.equal('iiifMetadata' in inOverrides, false, 'overrides の中の同名の鍵はトップレベルへ移さない');
+      assert.equal('iiifMetadata' in (inOverrides.overrides || {}), false, 'overrides の中の同名の鍵は残さない');
+
+      const nonMaplat = normalizeAppSource({
+        sourceType: 'tms', mapUid: 'meta-map-tms', role: 'base', overrides: {}, iiifMetadata: 'all',
+      });
+      assert.equal('iiifMetadata' in nonMaplat, false, 'maplat 以外のソースは持たない');
+
+      // maplat のソースは overrides を持たない形で保存される（差分の器を使わない）。
+      // その保存形から読み戻しても値が残る（読み込み・プレビュー・書き出しが通る道）。
+      const savedForm = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-saved', role: 'maplat', startFrom: false, iiifMetadata: 'all',
+      });
+      assert.equal(savedForm.iiifMetadata, 'all', 'overrides を持たない保存形でも all が残る');
+      const savedFormBogus = normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-saved-bogus', role: 'maplat', iiifMetadata: 'bogus',
+      });
+      assert.equal('iiifMetadata' in savedFormBogus, false, 'overrides を持たない保存形でも知らない値は捨てる');
+
+      // (b) アプリの JSON の出力: 値があるときだけ出す（未設定ならキーが無い＝Viewer の既定）
+      const composedAll = composeViewerSource(all);
+      assert.equal(composedAll.iiifMetadata, 'all', 'all のソースには iiifMetadata が出る');
+
+      const composedHidden = composeViewerSource(hidden);
+      assert.equal(composedHidden.iiifMetadata, 'hidden', 'hidden のソースには iiifMetadata が出る');
+
+      const composedUnset = composeViewerSource(normalizeAppSource({
+        sourceType: 'maplat', mapUid: 'meta-map-unset', role: 'maplat', overrides: {},
+      }));
+      assert.equal('iiifMetadata' in composedUnset, false, '未設定のソースには iiifMetadata のキーが無い');
+
+      // (c) maplat 以外のソースには出ない
+      const composedTms = composeViewerSource({ ...(nonMaplat as any), iiifMetadata: 'all' });
+      assert.equal('iiifMetadata' in composedTms, false, 'maplat 以外のソースには iiifMetadata を出さない');
+
+      console.log('ok: app-source-iiif-metadata');
+    }
 
     // =====================================================================
     // 1. アプリの書き出し

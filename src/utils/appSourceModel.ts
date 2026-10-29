@@ -1,6 +1,10 @@
 import { isProviderKind, resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
 import { BASE_MAP_LANG_ATTRS, BASE_MAP_META_LANG_ATTRS, normalizeLangResource } from "./langResource";
 import type { LangResource } from "./langResource";
+// 書誌の表の出し方の語彙は Core が持つ（Editor に同じ union を書き写さない）。
+// 型だけの import なので実行時には消える。
+// @ts-ignore
+import type { IiifMetadataDisplay } from '@maplat/core/src/iiif/manifest';
 
 // アプリ設定のソース(sources)モデル共有ロジック。
 // renderer(AppEdit)とelectron main(AppPreviewService/AppExportService)の両方から使う。
@@ -205,6 +209,10 @@ export interface AppSource {
   label?: Record<string, string>;
   // m6-t10: アプリ側の上書き差分のみ。マスタ値は持たない（ADR-0018）
   overrides?: Record<string, any>;
+  // 書誌の表の出し方。マスタ（地図）に対応物が無いアプリ所有の設定なのでトップレベルに置く
+  // （overrides の差分の器には入れない）。未設定は Viewer の既定（"hidden"）を意味する。
+  // maplat のソースだけが持つ。
+  iiifMetadata?: IiifMetadataDisplay;
   title?: string; // Editor表示専用(出力しない)
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
   // 旧保存形（data にマスタ全コピー）を読んだときの生値。resolveAppSource が
@@ -459,6 +467,12 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     };
     if (typeof raw.baseMapUid === "string") out.baseMapUid = raw.baseMapUid;
     if (raw.label && typeof raw.label === "object") out.label = { ...raw.label };
+    // 書誌の表の出し方はアプリ所有の値なので、知っている 2 語だけをトップレベルで拾う。
+    // それ以外（未設定・知らない文字列）は捨てる ＝ Viewer の既定（"hidden"）に委ねる。
+    // maplat 以外のソースはこの設定を持たない。
+    if (kind === "maplat" && (raw.iiifMetadata === "hidden" || raw.iiifMetadata === "all")) {
+      out.iiifMetadata = raw.iiifMetadata;
+    }
     if (typeof raw.title === "string") out.title = raw.title;
     if (typeof raw.mapSlug === "string") out.mapSlug = raw.mapSlug;
     return out;
@@ -483,7 +497,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     Boolean(data.noload);
 
   if (isMaplat) {
-    return {
+    const source: AppSource = {
       sourceType: "maplat",
       mapUid: mapRef,
       role: "maplat",
@@ -492,6 +506,13 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       title: typeof raw?.title === "string" ? raw.title : undefined,
       mapSlug: typeof raw?.mapSlug === "string" ? raw.mapSlug : undefined,
     };
+    // maplat のソースは overrides を持たない（差分の器を使わない）ため、保存済みの文書は
+    // 上の差分保持形ではなくこの道を通る。書誌の表の出し方もここで拾わないと、
+    // 読み込み・プレビュー・書き出しのたびに値が消える。知っている 2 語だけを受け入れる。
+    if (raw?.iiifMetadata === "hidden" || raw?.iiifMetadata === "all") {
+      source.iiifMetadata = raw.iiifMetadata;
+    }
+    return source;
   }
 
   if (isBaseLikeMaptype(maptype) && isViewerBuiltin(builtinRef || mapRef)) {
@@ -561,6 +582,9 @@ export function composeViewerSource(
     const out: Record<string, unknown> = { mapID: viewerMapID };
     const label = compactLangObject(source.label, options.lang);
     if (label) out.label = label;
+    // 書誌の表の出し方は、値があるときだけ出す。未設定ならキーを出さない
+    // （Viewer の既定は "hidden"）。
+    if (source.iiifMetadata) out.iiifMetadata = source.iiifMetadata;
     if (options.settingFilePrefix !== undefined) {
       out.maptype = "maplat";
       out.settingFile = `${options.settingFilePrefix}${viewerMapID}.json`;
