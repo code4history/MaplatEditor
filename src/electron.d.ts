@@ -396,6 +396,43 @@ export interface WmtsGenAPI {
     }>;
 }
 
+// IIIF の取り込み: main は取得の事実と検査を通した JSON だけを返す（判定は renderer）。
+export type IiifImportInspectArgs = { manifestUrl: string } | { serviceUrl: string };
+
+export type IiifImportInspectResult =
+    | { ok: true; json: unknown; requestedUrl: string; finalUrl: string; accessControlAllowOrigin?: string }
+    | { ok: false; reason: string; detail?: string };
+
+export type IiifImportThumbnailsArgs = { draftId: string; url52: string; url512: string };
+
+export type IiifImportThumbnailsResult =
+    | { ok: true; warnings: Array<{ errorCode: string; err: string }> }
+    | { ok: false; reason: string; detail?: string };
+
+// 下書きに預ける中身（renderer が作る）。中身の意味づけは renderer が持つ。
+// warnings は編集画面の側で 1 回だけ出す警告の印。
+export type IiifImportDraftPayload = {
+    /** 配信先（IIIF の画像サービス）。書誌だけの道では持たない。 */
+    delivery?: { type: 'iiifImage'; url: string };
+    /** 地図データの iiif 節（結び付きと写した書誌）。 */
+    iiif?: Record<string, unknown>;
+    width?: number;
+    height?: number;
+    /** 写した地図の書誌（鍵 → 値）。 */
+    metadata?: Record<string, unknown>;
+    /** 編集画面の側で 1 回だけ出す警告の印。 */
+    warnings?: string[];
+};
+
+export interface IiifImportAPI {
+    inspect(args: IiifImportInspectArgs): Promise<IiifImportInspectResult>;
+    thumbnails(args: IiifImportThumbnailsArgs): Promise<IiifImportThumbnailsResult>;
+    stageDraft(payload: IiifImportDraftPayload): Promise<string | null>;
+    takeDraft(draftId: string, mapUid?: string): Promise<IiifImportDraftPayload | null>;
+    discardDraft(draftId: string): Promise<boolean>;
+    recopy(args: { manifestUrl: string }): Promise<IiifImportInspectResult>;
+}
+
 declare global {
   interface Window {
     settings: SettingsAPI;
@@ -413,6 +450,7 @@ declare global {
     slugReservations: SlugReservationApi;
     search: SearchAPI;
     wmtsGen: WmtsGenAPI;
+    iiifImport: IiifImportAPI;
     isE2E: boolean;
     testDebug?: any;
   }

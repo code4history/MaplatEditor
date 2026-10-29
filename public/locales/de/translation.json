@@ -1,4 +1,41 @@
 {
+  "iiif_import": {
+    "open": "Import from IIIF",
+    "title": "Import a map from IIIF",
+    "url_label": "Manifest or info.json URL",
+    "url_placeholder": "https://…",
+    "inspect": "Load",
+    "canvas_heading": "Choose a canvas to import",
+    "cancel": "Cancel",
+    "size": "{{width}} × {{height}}",
+    "detail": "version {{version}} · level {{level}} · {{tiling}}",
+    "thumbnail_unavailable": "A thumbnail could not be created for this image service. The import will continue.",
+    "error": {
+      "inspect_failed": "The URL could not be read.",
+      "no_image_service": "This canvas has no image service.",
+      "stage_failed": "The import could not be prepared.",
+      "thumbnail_failed": "The thumbnails could not be saved."
+    },
+    "verdict": {
+      "deliverable": "Deliver from IIIF",
+      "metadata_only": "Metadata only from IIIF"
+    },
+    "reason": {
+      "bad-url": "This is not a valid URL, so it cannot be delivered.",
+      "fetch-failed": "The resource could not be fetched, so it cannot be delivered.",
+      "timeout": "The fetch timed out, so it cannot be delivered.",
+      "too-large": "The image is too large, so it cannot be delivered.",
+      "not-json": "info.json could not be read as JSON.",
+      "unsupported-version": "This IIIF version is not supported.",
+      "unsupported-level0": "This level 0 tiling is not supported.",
+      "size-mismatch": "The image size does not match the map record.",
+      "not-https": "The URL is not https, so it cannot be delivered.",
+      "cors-not-wildcard": "CORS is not *, so it cannot be delivered.",
+      "blocked-address": "This address is not allowed, so it cannot be delivered.",
+      "not-manifest": "This could not be read as a IIIF Manifest.",
+      "bad-argument": "The input is not valid."
+    }
+  },
   "app": {
     "title": "Maplat Editor"
   },

@@ -67,6 +67,38 @@ test('AC1: 6項目を日本語と英語で入力し保存・一覧へ戻る・�
  } finally { await quitElectronApplication(app); }
 });
 
+test('保存の直後に一覧へ戻ると、一覧の読み直しが遅れても編集画面が開き直さない', async () => {
+ test.setTimeout(180000);
+ const { app, page } = await launch();
+ try {
+  const item = await seed(page);
+  await open(page, item.slug);
+  await page.getByTestId('basemap-source-metadata').locator('summary').click();
+  await page.getByTestId('basemap-meta-era').fill('era 日本語');
+  await page.getByTestId('basemap-meta-era').press('Tab');
+  // 保存の後の一覧の読み直しを遅らせる（遅い CI と同じ順序を確実に作る）
+  await app.evaluate(({ ipcMain }) => {
+   const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: unknown[]) => unknown>;
+   const original = handlers.get('search:baseMaps');
+   if (!original) throw new Error('search:baseMaps の handler がない');
+   ipcMain.removeHandler('search:baseMaps');
+   ipcMain.handle('search:baseMaps', async (...args) => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return original(...args);
+   });
+  });
+  await expect(page.getByTestId('editor-save')).toBeEnabled();
+  await page.getByTestId('editor-save').click();
+  await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
+  await page.evaluate(() => { location.hash = '/basemaps'; });
+  await expect(page.getByTestId('basemap-title')).toHaveCount(0);
+  // 遅らせた読み直しが終わった後も、一覧のままである
+  await page.waitForTimeout(3000);
+  await expect(page.getByTestId('basemap-title')).toHaveCount(0);
+  expect(await page.evaluate(() => location.hash)).toBe('#/basemaps');
+ } finally { await quitElectronApplication(app); }
+});
+
 test('AC4: 未設定では閉じて始まりビルトインには任意欄がない', async () => {
  const { app, page } = await launch();
  try {

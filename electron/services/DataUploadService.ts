@@ -29,6 +29,7 @@ import {
     type MapExportOptions,
 } from '../../src/utils/exportOptions';
 import { normalizeOriginalExt } from './MapOriginalImageService';
+import { isAllowedDeliveryUrl } from '../../src/utils/ipClassify';
 
 // m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
@@ -327,6 +328,17 @@ class DataUploadService {
             const mapPath = path.join(mapTmpFolder, mapFile);
             const mapData = await fs.readJson(mapPath);
 
+            // 配信先の URL の文字列を検査する。通らない地図は取り込まない
+            // （取り込むと、保存も開き直しもできない地図ができる）。
+            // 失敗の返し方は既存の文字列のコードに合わせる。
+            const delivery = (mapData as any)?.delivery;
+            if (
+                delivery &&
+                !(typeof delivery.url === 'string' && isAllowedDeliveryUrl(delivery.url))
+            ) {
+                throw 'Corrupt';
+            }
+
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
 
@@ -338,7 +350,9 @@ class DataUploadService {
             const hasTiles = fs.existsSync(tilePath);
             const hasTmb = fs.existsSync(tmbPath);
             if (contents.tiles) {
-                if (!hasTiles) throw 'NoTile';
+                // IIIF から配信する地図はタイルの実体を持たない ∴ タイルの欠けは正常として扱う
+                // （url_ も作られない）。サムネイルは一覧の画像に使うため従来どおり要求する
+                if (!hasTiles && !delivery) throw 'NoTile';
                 if (!hasTmb)  throw 'NoTmb';
             }
 

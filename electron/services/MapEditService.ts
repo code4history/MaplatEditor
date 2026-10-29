@@ -10,7 +10,7 @@ import SettingsService from './SettingsService';
 import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
 // M12-T20 (§5.0/§5.1): 下書き staging (draft-tiles) のパス解決は共通バリデータのみを使う
-import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl } from './draftTilePaths';
+import { draftTileRoot, isDraftTileUrl, resolveDraftTileDir, resolveStagingDirFromUrl } from './draftTilePaths';
 // m19-t5: 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
 // （インライン派生を製品コードに残さない。タスク設計 v1.0 §4.1 / §4.3 W5・W6）。
 import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
@@ -29,6 +29,14 @@ export function isStrictErrorCompiled(compiled: any): boolean {
 export function hasStrictError(json: any): boolean {
     if (isStrictErrorCompiled(json.compiled)) return true;
     return Array.isArray(json.sub_maps) && json.sub_maps.some((subMap: any) => isStrictErrorCompiled(subMap.compiled));
+}
+
+// 複製のとき、呼び出し側が渡していない配信情報と結び付きの記録を複製元の行から写す。
+// 写さないと、IIIF から配信する地図を複製した結果が「配信先も結び付きも無い普通の地図」になる。
+// 呼び出し側が値を渡しているときはそちらを優先する（上書きしない）。
+function inheritIiifFields(target: any, source: any): void {
+    if (target.delivery === undefined && source?.delivery !== undefined) target.delivery = source.delivery;
+    if (target.iiif === undefined && source?.iiif !== undefined) target.iiif = source.iiif;
 }
 
 class MapEditService {
@@ -230,6 +238,11 @@ class MapEditService {
         }
         const stagingCheck = stagingDir !== null;
 
+        // IIIF から配信する地図はタイルの実体を持たない ∴ url_ が無い（deriveRuntimeTileUrl が
+        // url も tiles/<uid>/0/0 も無いとき undefined を返す）。staging/tmp の移動が起きない
+        // ため、取り込みで下書きに置いたサムネイルだけを tmbs の正しい場所へ移す分岐を持つ
+        const urlLessDeliveryMap = !url_ && Boolean((mapObject as any).delivery);
+
         // M13-T2 (§5.3): 新規原本アップロード(tmpCheck/stagingCheck)で未対応拡張子なら、DB write に
         // 一切触れる前に reject する。既存地図の更新(両検査とも false)は従来どおり legacy
         // imageExtension をそのまま使うため、この reject の対象外(AC-T2-3)
@@ -287,6 +300,7 @@ class MapEditService {
                             copySourceUid = source.uid;
                             copySourceSlug = source.slug;
                             copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
+                            inheritIiifFields(compiled, source);
                         }
                     }
                     const created = await SqliteDataService.createMap(slug, compiled, request.uid ?? undefined);
@@ -326,6 +340,7 @@ class MapEditService {
                             copySourceUid = source.uid;
                             copySourceSlug = source.slug;
                             copySourceImageExtension = source.imageExtension || source.imageExtention || undefined;
+                            inheritIiifFields(compiled, source);
                         }
                     }
                     const created = await SqliteDataService.createMap(slug, compiled);
@@ -458,6 +473,27 @@ class MapEditService {
                     const oldOriginal = path.join(originalFolder, `${renamedFromSlug}.${imageExtension}`);
                     if (!(await fs.pathExists(newOriginal)) && (await fs.pathExists(oldOriginal))) {
                         await fs.move(oldOriginal, newOriginal);
+                    }
+                } else if (urlLessDeliveryMap) {
+                    // タイルの実体を持たない地図は tiles/<uid> を作らない。取り込みの下書きに
+                    // 置いた 52px／512px のサムネイルだけを、既存の地図と同じ tmbs の場所へ移す
+                    const draftDir = resolveDraftTileDir(draftTileRoot, savedUid);
+                    if (draftDir && (await fs.pathExists(draftDir))) {
+                        const draftThumb = path.join(draftDir, 'thumbnail.jpg');
+                        try { await fs.remove(newThumbnail); } catch { /* noop */ }
+                        if (await fs.pathExists(draftThumb)) {
+                            await fs.move(draftThumb, newThumbnail);
+                        }
+                        const draftThumb512 = path.join(draftDir, THUMB_512_TMP_BASENAME);
+                        const newThumbnail512 = path.join(saveFolder, thumb512PathFor(thumb52PathFor(savedUid, 'jpg'))!);
+                        try { await fs.remove(newThumbnail512); } catch { /* noop */ }
+                        if (await fs.pathExists(draftThumb512)) {
+                            await fs.move(draftThumb512, newThumbnail512);
+                        }
+                        // 中身を移し終えた空の下書きのフォルダだけを片付ける（他のものは残す）
+                        try {
+                            if ((await fs.readdir(draftDir)).length === 0) await fs.remove(draftDir);
+                        } catch { /* noop */ }
                     }
                 }
             } catch (e: any) {

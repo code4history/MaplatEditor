@@ -6,7 +6,7 @@ import {
   type ResourceDiagnostics,
 } from "../../utils/resourceDiagnosticsBadges";
 
-export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string; resourceDiagnostics?: ResourceDiagnostics }
+export interface MapListRow { uid: string; mapID: string; title: string; image: string | null; width?: number; height?: number; previewDisabled?: boolean; previewDisabledReason?: string; resourceDiagnostics?: ResourceDiagnostics; iiifDelivery?: boolean }
 
 export interface MapListAdapterDeps {
   hasDraft: (uid: string) => boolean;
@@ -31,6 +31,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         previewDisabled: Boolean(doc.resourceDiagnostics?.kind === "map" && doc.resourceDiagnostics.strictError),
         previewDisabledReason: "appedit.preview.strict_error",
         resourceDiagnostics: doc.resourceDiagnostics,
+        iiifDelivery: Boolean(doc.iiifDelivery),
       }));
       return { items, total: result.total, nextCursor: result.next ?? null };
     },
@@ -44,6 +45,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
         badges: deps.diagnosticsLabels ? buildResourceDiagnosticsBadges(item.resourceDiagnostics, deps.diagnosticsLabels) : [],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
+        iiifDelivery: Boolean(item.iiifDelivery),
         actions: ["duplicate", "delete"],
       };
     },

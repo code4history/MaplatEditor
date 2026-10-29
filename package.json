@@ -309,7 +309,14 @@
     "smoke:directgo-edit": "node scripts/directgo-edit-smoke.mjs",
     "smoke:provider-gl-esm": "node scripts/provider-gl-esm-smoke.mjs",
     "smoke:maplibre-style-support": "node scripts/maplibre-style-support-smoke.mjs",
-    "smoke:maplibre-version-migration": "node scripts/maplibre-version-migration-smoke.mjs"
+    "smoke:maplibre-version-migration": "node scripts/maplibre-version-migration-smoke.mjs",
+    "smoke:iiif-import": "node scripts/iiif-import-smoke.mjs",
+    "smoke:iiif-thumbnail-safety": "node scripts/iiif-thumbnail-safety-smoke.mjs",
+    "smoke:iiif-import-verdict": "node scripts/iiif-import-verdict-smoke.mjs",
+    "smoke:iiif-import-save": "node scripts/iiif-import-save-smoke.mjs",
+    "smoke:iiif-delivery-url": "node scripts/iiif-delivery-url-smoke.mjs",
+    "smoke:iiif-map-tiles": "node scripts/iiif-map-tiles-smoke.mjs",
+    "smoke:iiif-metadata-copy": "node scripts/iiif-metadata-copy-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

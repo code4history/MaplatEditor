@@ -18,7 +18,7 @@ import { Jimp } from 'jimp';
 import { ProgressReporter } from '../utils/ProgressReporter';
 import SettingsService from './SettingsService';
 import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
-import { resolveDecodeSafety } from '../utils/decodeSafety';
+import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
 // m19-t5: 512px 中間ファイルの名前は派生規約と同じ場所で導き、符号化は宛先拡張子だけで決める
 // 唯一の実装へ委譲する（タスク設計 v1.0 §4.1 / §4.2）。
 import { THUMB_512_TMP_BASENAME } from '../../src/utils/thumbnailPaths';
@@ -223,6 +223,132 @@ async function makeThumbnail512(
     await writeImageByExt(canvas, to);
 }
 
+/** 利用者が明示した JPEG デコードのキャップ（`null` は自動） */
+type JpegDecodeCaps = { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null };
+
+/** 復号へ渡す上限。Jimp の `fromBuffer` の `image/jpeg` へそのまま渡す */
+type JpegFromBufferOptions = { maxMemoryUsageInMB: number; maxResolutionInMP: number };
+
+type JpegPreflightFailureKnown =
+    | {
+          ok: false;
+          errorCode: 'jpeg_machine_limit';
+          err: string;
+          machine: { requiredHeapMB: number; availableHeapMB: number; megapixels: number };
+      }
+    | {
+          ok: false;
+          errorCode: 'jpeg_memory_limit';
+          err: string;
+          configuredMB: number;
+          prediction?: { requiredMemoryMB: number; recommendedMemoryMB: number };
+      }
+    | {
+          ok: false;
+          errorCode: 'jpeg_resolution_limit';
+          err: string;
+          configuredMP: number;
+          prediction?: { megapixels: number; recommendedResolutionMP: number };
+      };
+
+type JpegPreflightSuccess = {
+    ok: true;
+    budget: JpegDecodeBudget | null;
+    fromBufferOptions: JpegFromBufferOptions;
+};
+
+/** JPEG 以外を受け取ったときだけ `not_jpeg` が増える（`unknownFormat` で決まる） */
+type JpegPreflightResult =
+    | JpegPreflightFailureKnown
+    | { ok: false; errorCode: 'not_jpeg'; err: string }
+    | JpegPreflightSuccess;
+
+/**
+ * decode の前の判定の共通の芯（budget と safety と caps の比較だけ）。
+ * imageCutter（PNG も通す）と saveIiifThumbnails（JPEG 以外を捨てる）の両方がこれを呼ぶ
+ * （判定の写しを作らない）。
+ *
+ * 「JPEG 以外・`budget` が `null` のときに捨てるか、安全枠で続けるか」は呼び出し側が
+ * `options.unknownFormat` で決める（拡張子・Content-Type の判断は呼び出し側）。
+ */
+function preflightJpegDecode(
+    buffer: Buffer,
+    caps: JpegDecodeCaps | null,
+    safety: DecodeSafety,
+    options: { unknownFormat: 'reject' | 'machineSafety' }
+): JpegPreflightResult {
+    // 1. ヘッダだけを読む（復号しない）
+    const budget = estimateJpegDecodeBudget(buffer);
+
+    // 2. JPEG でない・SOF を読めない: 捨てるか安全枠で続けるかを呼び出し側の指定で決める
+    if (!budget) {
+        if (options.unknownFormat === 'reject') {
+            return { ok: false, errorCode: 'not_jpeg', err: 'not a JPEG image: SOF header is missing' };
+        }
+        return {
+            ok: true,
+            budget: null,
+            fromBufferOptions: {
+                maxMemoryUsageInMB: safety.maxMemoryMB,
+                maxResolutionInMP: safety.maxResolutionMP,
+            },
+        };
+    }
+
+    // 3. この機械では構造的に扱えない。jpeg-js の会計ガードは通っても V8 ヒープが尽きて
+    // プロセスごと落ちる領域であり、例外として catch できない ∴ 復号せずに止める。
+    if (budget.decoderHeapMB > safety.maxDecoderHeapMB) {
+        return {
+            ok: false,
+            errorCode: 'jpeg_machine_limit',
+            err: `jpeg decode machine limit: required heap ${budget.decoderHeapMB}MiB > available ${safety.maxDecoderHeapMB}MiB`,
+            machine: {
+                requiredHeapMB: budget.decoderHeapMB,
+                availableHeapMB: safety.maxDecoderHeapMB,
+                megapixels: budget.megapixels,
+            },
+        };
+    }
+
+    // 4. 利用者が明示したキャップに当たった場合のみ弾く（自動のときは素通り）。
+    // 判定は「デコードへ渡す予定の自動値」に対して行う — キャップで頭打ちにした値を
+    // 渡して「デコード途中で落ちる」状態を作らないため。
+    if (caps !== null && caps.maxMemoryUsageInMB !== null && budget.recommendedMemoryMB > caps.maxMemoryUsageInMB) {
+        return {
+            ok: false,
+            errorCode: 'jpeg_memory_limit',
+            err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured cap ${caps.maxMemoryUsageInMB}MB`,
+            configuredMB: caps.maxMemoryUsageInMB,
+            prediction: {
+                requiredMemoryMB: budget.requiredMemoryMB,
+                recommendedMemoryMB: budget.recommendedMemoryMB,
+            },
+        };
+    }
+    if (caps !== null && caps.maxResolutionInMP !== null && budget.recommendedResolutionMP > caps.maxResolutionInMP) {
+        return {
+            ok: false,
+            errorCode: 'jpeg_resolution_limit',
+            err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured cap ${caps.maxResolutionInMP}MP`,
+            configuredMP: caps.maxResolutionInMP,
+            prediction: {
+                megapixels: budget.megapixels,
+                recommendedResolutionMP: budget.recommendedResolutionMP,
+            },
+        };
+    }
+
+    // 5. 通ったら、呼び出し側がそのまま復号へ渡せる値を返す（budget は時間のかかる取り込みの確認用）
+    return {
+        ok: true,
+        budget,
+        fromBufferOptions: {
+            maxMemoryUsageInMB: budget.recommendedMemoryMB,
+            maxResolutionInMP: budget.recommendedResolutionMP,
+        },
+    };
+}
+
 /**
  * 旧実装 MapUpload.imageCutter() 相当
  * 画像を 256x256 タイルピラミッドに分割し、サムネイルを生成する
@@ -263,64 +389,26 @@ export async function imageCutter(
 
         // M5-T6 (§5.4) / M5-T8 (§5.0): デコードもタイル化も始める前に判定する。
         // ここで戻る経路は **outFolder のクリアに到達しない**ため、既存の下書きタイルを壊さない
-        // （この順序が不変条件。AC12 が番人）。予測できない入力（PNG 等）は null が返る。
-        budget = estimateJpegDecodeBudget(sourceBuffer);
-        if (budget) {
-            // D2: この機械では構造的に扱えない。jpeg-js の会計ガードは通っても V8 ヒープが
-            // 尽きてプロセスごと落ちる領域であり、例外として catch できない。∴ 確認を出さず
-            // ここで止める（人間指示 2026-08-03）。
-            if (budget.decoderHeapMB > safety.maxDecoderHeapMB) {
-                return {
-                    err: `jpeg decode machine limit: required heap ${budget.decoderHeapMB}MiB > available ${safety.maxDecoderHeapMB}MiB`,
-                    errorCode: 'jpeg_machine_limit',
-                    machine: {
-                        requiredHeapMB: budget.decoderHeapMB,
-                        availableHeapMB: safety.maxDecoderHeapMB,
-                        megapixels: budget.megapixels,
-                    },
-                };
-            }
-
-            // D3 / D4: 利用者が明示したキャップに当たった場合のみ弾く（自動のときは素通り）。
-            // 判定は「デコードへ渡す予定の自動値」に対して行う — キャップで頭打ちにした値を
-            // 渡して「デコード途中で落ちる」状態を作らないため。
-            if (caps.maxMemoryUsageInMB !== null && budget.recommendedMemoryMB > caps.maxMemoryUsageInMB) {
-                return {
-                    err: `jpeg decode memory limit: required ${budget.requiredMemoryMB}MB > configured cap ${caps.maxMemoryUsageInMB}MB`,
-                    errorCode: 'jpeg_memory_limit',
-                    configuredMB: caps.maxMemoryUsageInMB,
-                    prediction: {
-                        requiredMemoryMB: budget.requiredMemoryMB,
-                        recommendedMemoryMB: budget.recommendedMemoryMB,
-                    },
-                };
-            }
-            if (caps.maxResolutionInMP !== null && budget.recommendedResolutionMP > caps.maxResolutionInMP) {
-                return {
-                    err: `jpeg decode resolution limit: ${budget.megapixels}MP > configured cap ${caps.maxResolutionInMP}MP`,
-                    errorCode: 'jpeg_resolution_limit',
-                    configuredMP: caps.maxResolutionInMP,
-                    prediction: {
-                        megapixels: budget.megapixels,
-                        recommendedResolutionMP: budget.recommendedResolutionMP,
-                    },
-                };
-            }
-
-            // D5: 上限は足りているが非常に時間がかかる。**確認を取るまで進まない**。
-            // ここも outFolder より前なので、キャンセルしても後始末は要らない。
-            if (!options.confirmed && budget.megapixels > LONG_IMPORT_THRESHOLD_MP) {
-                return { needsConfirmation: 'long_import', megapixels: budget.megapixels };
-            }
-
-            effectiveMemoryMB = budget.recommendedMemoryMB;
-            effectiveResolutionMP = budget.recommendedResolutionMP;
-        } else {
-            // D1: 予測できない（PNG・SOF 解析不能）。PNG では jpeg オプションが参照されないため
-            // 実害は無いが、値の出どころを「機械が耐えられる量」に揃えておく。
-            effectiveMemoryMB = safety.maxMemoryMB;
-            effectiveResolutionMP = safety.maxResolutionMP;
+        // （この順序が不変条件）。予測できない入力（PNG 等）は安全枠で続ける。
+        const preflight = preflightJpegDecode(sourceBuffer, caps, safety, { unknownFormat: 'machineSafety' });
+        if (!preflight.ok) {
+            // この道では JPEG 以外を捨てない ∴ `not_jpeg` は返らない（型の網羅のための分岐）
+            if (preflight.errorCode === 'not_jpeg') return { err: preflight.err, errorCode: 'unknown' };
+            // 戻り値の形は従来の imageCutter のまま（判定の芯の ok の印は外へ出さない）
+            const { ok: _preflightOk, ...rejected } = preflight;
+            void _preflightOk;
+            return rejected;
         }
+        budget = preflight.budget;
+
+        // D5: 上限は足りているが非常に時間がかかる。**確認を取るまで進まない**。
+        // ここも outFolder より前なので、キャンセルしても後始末は要らない。
+        if (!options.confirmed && budget !== null && budget.megapixels > LONG_IMPORT_THRESHOLD_MP) {
+            return { needsConfirmation: 'long_import', megapixels: budget.megapixels };
+        }
+
+        effectiveMemoryMB = preflight.fromBufferOptions.maxMemoryUsageInMB;
+        effectiveResolutionMP = preflight.fromBufferOptions.maxResolutionInMP;
     } catch (err) {
         return { err: err instanceof Error ? err.message : String(err), errorCode: 'unknown' };
     }
@@ -509,4 +597,102 @@ export async function showMapSelectDialog(
 
     // M12-T20: stagingDir は IPC handler が resolveDraftTileDir で解決済み（§6.1）
     return await imageCutter(win, filePath, stagingDir, options);
+}
+
+/** 52px サムネイルを置く下書きの名前（置き場は呼び出し側が解決済み） */
+const THUMB_52_DRAFT_BASENAME = 'thumbnail.jpg';
+
+/** IIIF から取得したサムネイルのバイトと、応答の Content-Type */
+export interface IiifThumbnailSource {
+    body: Buffer;
+    contentType?: string;
+}
+
+/** 復号の差し替えの口（既定はこのファイルの Jimp の呼び方と同じ） */
+export interface IiifThumbnailDeps {
+    decodeJpeg?: (buffer: Buffer, options: JpegFromBufferOptions) => Promise<DecodedJpegImage>;
+}
+
+/** 復号済みの画像（`writeImageByExt` が受け取る形） */
+type DecodedJpegImage = {
+    bitmap: { data: Uint8Array; width: number; height: number };
+    write: (dest: `${string}.${string}`) => Promise<unknown>;
+};
+
+/** 512px を書けなかった理由（取り込み全体は失敗させない） */
+export interface IiifThumbnailWarning {
+    errorCode: 'not_jpeg' | 'jpeg_machine_limit' | 'jpeg_memory_limit' | 'jpeg_resolution_limit' | 'unknown';
+    err: string;
+}
+
+export type SaveIiifThumbnailsResult =
+    | { ok: true; warnings: IiifThumbnailWarning[] }
+    | { ok: false; errorCode: 'not_jpeg' | 'unknown'; err: string };
+
+/** Content-Type が JPEG か（パラメータ付きでも先頭の型だけを見る） */
+function isJpegContentType(contentType: string | undefined): boolean {
+    if (typeof contentType !== 'string') return false;
+    return contentType.split(';')[0].trim().toLowerCase() === 'image/jpeg';
+}
+
+/** 既定の復号。呼び方は imageCutter の `Jimp.fromBuffer` と同じ形に保つ */
+function defaultDecodeJpeg(buffer: Buffer, options: JpegFromBufferOptions): Promise<DecodedJpegImage> {
+    return Jimp.fromBuffer(buffer, { 'image/jpeg': options });
+}
+
+/**
+ * IIIF から取得したサムネイルを下書きの場所へ書く。
+ *
+ * - 52px: 取得したバイトをそのまま `thumbnail.jpg` へ書く（復号しない）
+ * - 512px: Content-Type の検査 → 復号の前の判定 → 復号 → `writeImageByExt` で
+ *   `THUMB_512_TMP_BASENAME` へ書く（拡張子の符号化は宛先だけで決まる）
+ *
+ * 512px が書けなくても 52px が書けていれば全体は成功とし、理由は `warnings` に載せる。
+ * パスは呼び出し側が解決済みの下書きの場所（`outFolder`）を受け取り、この関数では組み立てない。
+ */
+export async function saveIiifThumbnails(
+    outFolder: string,
+    thumbnails: { thumb52?: IiifThumbnailSource; thumb512?: IiifThumbnailSource },
+    deps: IiifThumbnailDeps = {}
+): Promise<SaveIiifThumbnailsResult> {
+    const { thumb52, thumb512 } = thumbnails;
+
+    if (!thumb52) {
+        return { ok: false, errorCode: 'unknown', err: 'thumbnail 52px is missing' };
+    }
+    if (!isJpegContentType(thumb52.contentType)) {
+        return { ok: false, errorCode: 'not_jpeg', err: 'thumbnail 52px is not JPEG' };
+    }
+
+    try {
+        await fs.ensureDir(outFolder);
+        // 52px は復号しない。取得したバイトをそのまま置く（符号化の指定はしない）
+        await fs.writeFile(path.resolve(outFolder, THUMB_52_DRAFT_BASENAME), thumb52.body);
+    } catch (err) {
+        return { ok: false, errorCode: 'unknown', err: err instanceof Error ? err.message : String(err) };
+    }
+
+    const warnings: IiifThumbnailWarning[] = [];
+    if (thumb512) {
+        if (!isJpegContentType(thumb512.contentType)) {
+            warnings.push({ errorCode: 'not_jpeg', err: 'thumbnail 512px is not JPEG' });
+        } else {
+            try {
+                const caps = SettingsService.getJpegDecodeCaps();
+                const safety = resolveDecodeSafety();
+                const preflight = preflightJpegDecode(thumb512.body, caps, safety, { unknownFormat: 'reject' });
+                if (!preflight.ok) {
+                    warnings.push({ errorCode: preflight.errorCode, err: preflight.err });
+                } else {
+                    const decodeJpeg = deps.decodeJpeg ?? defaultDecodeJpeg;
+                    const image = await decodeJpeg(thumb512.body, preflight.fromBufferOptions);
+                    await writeImageByExt(image, path.resolve(outFolder, THUMB_512_TMP_BASENAME));
+                }
+            } catch (err) {
+                warnings.push({ errorCode: 'unknown', err: err instanceof Error ? err.message : String(err) });
+            }
+        }
+    }
+
+    return { ok: true, warnings };
 }

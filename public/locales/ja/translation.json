@@ -1,4 +1,41 @@
 {
+  "iiif_import": {
+    "open": "IIIF から取り込む",
+    "title": "IIIF から地図を取り込む",
+    "url_label": "Manifest または info.json の URL",
+    "url_placeholder": "https://…",
+    "inspect": "読み込む",
+    "canvas_heading": "取り込むコマを選ぶ",
+    "cancel": "やめる",
+    "size": "{{width}} × {{height}}",
+    "detail": "version {{version}}・level {{level}}・{{tiling}}",
+    "thumbnail_unavailable": "この画像サービスではサムネイルを作れませんでした。取り込みは続けます。",
+    "error": {
+      "inspect_failed": "URL を読み込めませんでした。",
+      "no_image_service": "このコマには画像サービスがありません。",
+      "stage_failed": "取り込みの準備ができませんでした。",
+      "thumbnail_failed": "サムネイルを保存できませんでした。"
+    },
+    "verdict": {
+      "deliverable": "IIIF から配信",
+      "metadata_only": "書誌だけ IIIF から"
+    },
+    "reason": {
+      "bad-url": "URL として読めないため配信できません。",
+      "fetch-failed": "取得できなかったため配信できません。",
+      "timeout": "取得が時間切れになったため配信できません。",
+      "too-large": "画像が大きすぎるため配信できません。",
+      "not-json": "info.json を JSON として読めませんでした。",
+      "unsupported-version": "対応していない IIIF の版です。",
+      "unsupported-level0": "この level 0 のタイルの形には対応していません。",
+      "size-mismatch": "画像の大きさが地図の記録と違います。",
+      "not-https": "https でない URL のため配信できません。",
+      "cors-not-wildcard": "CORS が * でないため配信できません。",
+      "blocked-address": "拒む宛先のため配信できません。",
+      "not-manifest": "IIIF の Manifest として読めませんでした。",
+      "bad-argument": "入力が正しくありません。"
+    }
+  },
   "app": {
     "title": "Maplat Editor"
   },

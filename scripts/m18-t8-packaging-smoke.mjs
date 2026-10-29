@@ -236,11 +236,21 @@ function findAsar() {
   );
   const manifest = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
 
+  // CI の pnpm-workspace.yaml の overrides で直接の依存を差し替えたときは、lock の specifier が
+  // overrides の値になる（package.json の範囲ではない）。その組は lock の overrides と突き合わせる
+  const overridesBlock = lock.match(/\noverrides:\n((?: {2}.+\n)+)/);
+  const lockOverrides = new Map(
+    overridesBlock
+      ? [...overridesBlock[1].matchAll(/^ {2}('?[^'\n]+'?): (.+)$/gm)].map((m) => [m[1].replace(/^'|'$/g, ''), m[2].trim()])
+      : []
+  );
+  const specOf = (k, v) => (lockOverrides.has(k) ? lockOverrides.get(k) : v);
+
   const missing = Object.keys(manifest).filter((k) => !lockSpecs.has(k));
   const extra = [...lockSpecs.keys()].filter((k) => !(k in manifest));
   const mismatched = Object.entries(manifest)
-    .filter(([k, v]) => lockSpecs.has(k) && lockSpecs.get(k) !== v)
-    .map(([k, v]) => `${k}（manifest: ${v} / lock: ${lockSpecs.get(k)}）`);
+    .filter(([k, v]) => lockSpecs.has(k) && lockSpecs.get(k) !== specOf(k, v))
+    .map(([k, v]) => `${k}（manifest: ${specOf(k, v)} / lock: ${lockSpecs.get(k)}）`);
 
   assert.deepEqual(missing, [], `AC12: lockfile に無い依存: ${missing.join(', ')}`);
   assert.deepEqual(extra, [], `AC12: package.json から消えたのに lockfile に残る依存: ${extra.join(', ')}`);
