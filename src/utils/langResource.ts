@@ -99,6 +99,22 @@ export function compactMapLangFields<T extends Record<string, any>>(document: T)
   return out as T;
 }
 
+// 地図ドキュメントの IIIF の書誌の写し (iiif.copiedMetadata) の label・value を
+// 交換形に畳み込む(非破壊)。書き出した maps/{slug}.json は交換形(ADR-0005) ∴
+// デフォルト言語だけの行はプレーン文字列にする。多言語の行は表のまま残す。
+// 写し直しの比較に言語が要る iiif.copiedValues は畳まない。
+export function compactIiifCopiedMetadata<T extends Record<string, any>>(document: T): T {
+  const iiif = (document as any).iiif;
+  if (!iiif || !Array.isArray(iiif.copiedMetadata)) return document;
+  const defaultLang = typeof document.lang === "string" && document.lang ? document.lang : "ja";
+  const copiedMetadata = iiif.copiedMetadata.map((entry: any) => ({
+    ...entry,
+    label: compactLangResource(entry?.label, defaultLang) ?? entry?.label,
+    value: compactLangResource(entry?.value, defaultLang) ?? entry?.value,
+  }));
+  return { ...document, iiif: { ...iiif, copiedMetadata } } as T;
+}
+
 // LangResource (内部形 {lang: text} / 交換形の文字列) → 表示テキストへの解決。
 // 優先順位: 現在言語 → 言語の basename (en-US→en) → ja → en → 任意の非空値。
 // 該当が無ければ空文字を返す (呼び出し側で slug 等へのフォールバックを行うこと)。

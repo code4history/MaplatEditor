@@ -100,10 +100,21 @@ try {
     const SLUG_A = 'iiifdeliverymap';
     const SLUG_B = 'iiifbookonlymap';
     const deliveryA = { type: 'iiifImage', url: 'https://iiif.example.org/iiif/2/A/info.json' };
+    // 書誌の写し: label・value は保存のときは多言語の表。書き出しでは交換形へ畳む。
+    // 1 行目は地図の既定の言語（ja）だけ、2 行目は多言語（畳まない）。
+    const copiedMetadataA = [
+      { from: 'manifest', label: { ja: '題名' }, value: { ja: '新潟市圖' } },
+      { from: 'canvas', label: { ja: 'ラベル', en: 'Label' }, value: { ja: '値', en: 'value' } },
+    ];
+    // 比べるのに言語が要るので、書き出しでも畳まない（保存のときと同じ形）
+    const copiedValuesA = { title: { ja: '新潟市圖' }, label: { ja: '値', en: 'value' } };
     const iiifA = {
       manifest: 'https://iiif.example.org/iiif/2/A/manifest',
       canvas: 'https://iiif.example.org/iiif/2/A/canvas/1',
       bindings: { title: ['label'] },
+      copiedValues: copiedValuesA,
+      copiedMetadata: copiedMetadataA,
+      copiedAt: '2026-01-01T00:00:00.000Z',
     };
     const iiifB = {
       manifest: 'https://iiif.example.org/iiif/2/B/manifest',
@@ -244,6 +255,18 @@ try {
       assert.deepEqual(mapA.delivery, deliveryA, 'maps/<slug>.json に delivery が入る');
       assert.ok(mapA.iiif, 'maps/<slug>.json に iiif が入る');
       assert.equal(mapA.url_, undefined, 'maps/<slug>.json に url_ が入らない');
+      // 是正の見分け: 直す前は 1 行目が { ja: '題名' } のままなので、この 2 行で落ちる
+      assert.equal(mapA.iiif.copiedMetadata[0].label, '題名',
+        'アプリの書き出しで 1 行目の label が文字列になる');
+      assert.equal(mapA.iiif.copiedMetadata[0].value, '新潟市圖',
+        'アプリの書き出しで 1 行目の value が文字列になる');
+      assert.deepEqual(mapA.iiif.copiedMetadata[1].label, { ja: 'ラベル', en: 'Label' },
+        '多言語の行の label は表のまま');
+      assert.deepEqual(mapA.iiif.copiedMetadata[1].value, { ja: '値', en: 'value' },
+        '多言語の行の value は表のまま');
+      assert.deepEqual(mapA.iiif.copiedValues, {
+        title: { ja: '新潟市圖' }, label: { ja: '値', en: 'value' },
+      }, 'copiedValues は保存のときと同じ形（畳まない）');
 
       // B（書誌だけ IIIF から）: 今のままタイルを同梱する
       assert.ok(zip.has('tiles/' + SLUG_B + '/'), 'タイルを同梱する地図の tiles/ がある');
@@ -289,6 +312,18 @@ try {
       const mapJsonA = a.json('maps/' + SLUG_A + '.json');
       assert.deepEqual(mapJsonA.delivery, deliveryA, '地図の JSON に delivery が入る');
       assert.ok(mapJsonA.iiif, '地図の JSON に iiif が入る');
+      // 是正の見分け: 直す前は 1 行目が { ja: '題名' } のままなので、この 2 行で落ちる
+      assert.equal(mapJsonA.iiif.copiedMetadata[0].label, '題名',
+        '地図 1 枚の ZIP で 1 行目の label が文字列になる');
+      assert.equal(mapJsonA.iiif.copiedMetadata[0].value, '新潟市圖',
+        '地図 1 枚の ZIP で 1 行目の value が文字列になる');
+      assert.deepEqual(mapJsonA.iiif.copiedMetadata[1].label, { ja: 'ラベル', en: 'Label' },
+        '多言語の行の label は表のまま');
+      assert.deepEqual(mapJsonA.iiif.copiedMetadata[1].value, { ja: '値', en: 'value' },
+        '多言語の行の value は表のまま');
+      assert.deepEqual(mapJsonA.iiif.copiedValues, {
+        title: { ja: '新潟市圖' }, label: { ja: '値', en: 'value' },
+      }, 'copiedValues は保存のときと同じ形（畳まない）');
       assertManifestMatchesTiles('地図 A', a);
 
       const mapObjectB = {
@@ -308,6 +343,7 @@ try {
       assertManifestMatchesTiles('地図 B', b);
 
       console.log('ok: map-zip-layout');
+      console.log('ok: copied-metadata-exchange-form');
     }
 
     console.log('ok: export-zip-layout');

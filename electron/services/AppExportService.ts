@@ -51,7 +51,7 @@ import {
 } from '../../src/utils/appSourceModel';
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
-import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
+import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
@@ -485,7 +485,8 @@ class AppExportService {
         const mapDoc = maplatDocs.get(source)!;
         const slug = String(mapDoc.slug);
         // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
-        const mapJson = compactMapLangFields({ ...mapDoc });
+        // IIIF の書誌の写し (iiif.copiedMetadata) も同じ規則で畳む（地図 1 枚の ZIP と同じ関数）
+        const mapJson = compactIiifCopiedMetadata(compactMapLangFields({ ...mapDoc }));
         delete (mapJson as any)._id;
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;

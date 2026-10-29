@@ -6,7 +6,7 @@ import { writeZipStreaming } from './zipWriter';
 import recursiveFs from 'recursive-fs';
 import SettingsService from '../services/SettingsService';
 import * as storeHandler from './store_handler';
-import { compactMapLangFields } from '../../src/utils/langResource';
+import { compactIiifCopiedMetadata, compactMapLangFields } from '../../src/utils/langResource';
 // m19-t5: 読み込み元（uid キー）と ZIP 内の出力名（slug 名）の双方を派生規約の単一モジュールから導く
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { ProgressReporter } from './ProgressReporter';
@@ -40,7 +40,11 @@ import {
 export async function composeDownloadMapJson(
   mapObject: any, tins: any[]
 ): Promise<{ compiled: any; warnings: string[]; files: IconFile[]; documents: PoiDocument[] }> {
-  const compiled = compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins));
+  // 言語の畳み込みに加え、IIIF の書誌の写し (iiif.copiedMetadata) も交換形へ畳む
+  // (アプリの書き出しと同じ関数。写し直しの比較に言語が要る copiedValues は畳まない)
+  const compiled = compactIiifCopiedMetadata(
+    compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins)),
+  );
   // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
   delete (compiled as any).uid;
   delete (compiled as any).slug;
