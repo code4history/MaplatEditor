@@ -7,7 +7,7 @@
 // 値の洗浄は呼び出し側が渡せる（省略したら Core の sanitizeIiifHtml）。
 // Node には window が無いので、smoke は偽の洗浄を渡して Core の結果と比べる。
 // @ts-ignore
-import { IIIF_BINDABLE_KEYS, compareIiifCopy, proposeIiifBindings, resolveIiifMetadata } from '@maplat/core/src/iiif/manifest';
+import { IIIF_BINDABLE_KEYS, compareIiifCopy, listIiifCanvases, proposeIiifBindings, resolveIiifMetadata } from '@maplat/core/src/iiif/manifest';
 // @ts-ignore
 import type { IiifBindings, IiifFrom, IiifMetadataEntry, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
 import type { Localized } from '@maplat/core/common';
@@ -256,6 +256,18 @@ export function planIiifRecopy(
     options,
   );
   if (!fresh.ok) return { ok: false, reason: fresh.reason };
+  // IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
+  // 画像が差し替わると打った GCP が合わなくなるため、合わなければ 1 つも写さない。
+  // 「書誌だけ」の地図は手元の画像の大きさが canvas と違ってよいので、この検査をしない。
+  if (map.delivery !== undefined && map.delivery !== null) {
+    const listed = listIiifCanvases(reply.json);
+    const canvas = listed.ok
+      ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
+      : undefined;
+    if (canvas === undefined || canvas.width !== map.width || canvas.height !== map.height) {
+      return { ok: false, reason: 'size-mismatch' };
+    }
+  }
   const copiedValues = iiif.copiedValues ?? {};
   const compared: IiifComparedRow[] = compareIiifCopy(map, copiedValues, fresh.copiedValues, lang);
   const rows: IiifRecopyRow[] = compared.map((row) => {
@@ -297,6 +309,9 @@ export function applyIiifRecopy(
   const chosen: Record<string, Record<string, string>> = {};
   for (const row of plan.rows) {
     if (row.next === undefined) continue;
+    // ライセンスの注記は Core の表に無い鍵で、ライセンスの鍵に付いて動く。
+    // 単独で選ばれても上書きしない（ライセンスを選んだときだけ、下で一緒に動かす）。
+    if (!Object.prototype.hasOwnProperty.call(IIIF_BINDABLE_KEYS, row.key)) continue;
     if (!selected.some((item) => item.key === row.key && item.lang === row.lang)) continue;
     const table = chosen[row.key] ?? (chosen[row.key] = {});
     table[row.lang] = row.next;

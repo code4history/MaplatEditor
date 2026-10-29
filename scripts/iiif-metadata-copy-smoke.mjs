@@ -64,6 +64,7 @@ try {
         setIiifBinding,
       } = await import(${JSON.stringify(copyModulePath)});
 
+      const projectRoot = ${JSON.stringify(projectRoot)};
       const fixtureDir = ${JSON.stringify(fixtureDir)};
       const fixture = (name) => JSON.parse(readFileSync(path.join(fixtureDir, name), 'utf8'));
 
@@ -483,6 +484,116 @@ try {
           applyIiifRecopy(map, plan, [], { sanitize, now }),
           before,
           'nothing selected must change nothing',
+        );
+      });
+
+      // 失敗したときに地図を書き換えないことの確認。是正を見分けるのは、
+      // (1) 3 通りの失敗で ok:false と期待する理由を返すこと、(2) 呼んだ後の地図の
+      // JSON が控えと同じであること（比べる前の値を基準に取る）、(3) delivery の無い
+      // 地図では同じ Manifest でも size-mismatch にならないこと、(4) 画面の案内の
+      // 文言が空でなく「取り込み直」「re-import」を含まないこと。
+      test('recopy-fail-keeps-data', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          title: { ja: '地図の題名', en: 'Map title' },
+          attr: { ja: '地図の帰属', en: 'Map attribution' },
+          license: { ja: '地図のライセンス', en: 'Map license' },
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+          delivery: { type: 'iiifImage', url: 'https://dl.ndl.go.jp/api/iiif/948741' },
+          width: 4074,
+          height: 2705,
+        };
+        // 基準は変える前の値で取る。
+        const before = JSON.stringify(map);
+
+        const resized = structuredClone(ndl);
+        resized.sequences[0].canvases[2].width = 4075;
+        const failures = [
+          ['fetch-failed', { ok: false, reason: 'fetch-failed' }],
+          ['not-json', { ok: false, reason: 'not-json' }],
+          ['size-mismatch', { ok: true, json: resized }],
+        ];
+        for (const [reason, reply] of failures) {
+          const plan = planIiifRecopy(reply, map, { sanitize });
+          assert.equal(plan.ok, false, reason + ': the plan must fail');
+          assert.equal(plan.reason, reason, reason + ': the reason must match the failure');
+          assert.equal(plan.rows, undefined, reason + ': a failed plan must not list rows');
+          assert.equal(
+            JSON.stringify(map),
+            before,
+            reason + ': the map must not change by a single byte',
+          );
+        }
+
+        // delivery の無い「書誌だけ」の地図は、画像の大きさを比べない。
+        const metadataOnly = { ...map };
+        delete metadataOnly.delivery;
+        const plan = planIiifRecopy({ ok: true, json: resized }, metadataOnly, { sanitize });
+        assert.equal(
+          plan.ok,
+          true,
+          'a map without delivery must not fail even when the canvas size changed',
+        );
+
+        // 画面の案内。11 の言語で空でなく、取り込み直しを勧める語を含まない。
+        const locales = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
+        let checked = 0;
+        for (const locale of locales) {
+          const dict = JSON.parse(
+            readFileSync(path.join(projectRoot, 'public/locales/' + locale + '/translation.json'), 'utf8'),
+          );
+          const text = dict?.iiif_metadata?.recopy_failed_help;
+          assert.ok(
+            typeof text === 'string' && text.trim() !== '',
+            locale + ': the failure help must not be empty',
+          );
+          assert.equal(
+            /取り込み直|re-import/i.test(text),
+            false,
+            locale + ': the failure help must not suggest importing the map again',
+          );
+          checked += 1;
+        }
+        return '(' + checked + '/' + locales.length + ')';
+      });
+
+      // 注記の行だけを選んでも何も変わらないことの確認。是正を見分けるのは、
+      // 注記（Core の表に無い鍵）を単独で選んだとき戻り値が入力と deepEqual で
+      // あること。直す前は注記だけが新しい値に書き換わって落ちる。
+      test('license-note-follows-license', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        // ライセンスの値に注記が付く Manifest にする（注記に新しい値がある状態）。
+        const withNote = { ok: true, json: structuredClone(reply.json) };
+        withNote.json.license = 'https://example.org/terms';
+        const plan = planIiifRecopy(withNote, map, { sanitize });
+        assert.equal(plan.ok, true, 'the plan for the license with a note must succeed');
+        const noteRow = plan.rows.find((row) => row.key === 'licenseNote');
+        assert.ok(noteRow, 'the note row must be compared');
+        assert.notEqual(noteRow.next, undefined, 'the note row must have a new value');
+        const before = structuredClone(map);
+        const applied = applyIiifRecopy(map, plan, [{ key: 'licenseNote', lang }], { sanitize });
+        assert.deepEqual(applied, before, 'choosing a note row alone must change nothing');
+        // ライセンスを選べば、注記も一緒に動く（今の道）。
+        const withLicense = applyIiifRecopy(map, plan, [{ key: 'license', lang }], { sanitize });
+        assert.equal(
+          withLicense.licenseNote,
+          'https://example.org/terms',
+          'the note must move together with the license',
         );
       });
 

@@ -54,6 +54,7 @@
     "recopy_no_value": "(no value)",
     "recopy_select": "Overwrite",
     "recopy_apply": "Overwrite with the selected values",
+    "recopy_failed_help": "If the copy did not work, please correct the bibliographic fields by hand.",
     "recopy_reason": {
       "unchanged": "Unchanged",
       "human-edited": "Edited by hand",

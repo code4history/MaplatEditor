@@ -186,8 +186,15 @@ function update(key: string, from: IiifFrom | null): void {
 }
 
 // 比べた結果の一覧。変わらない行は出さない（上書きの対象にしない）。
+// ライセンスの注記は Core の表に無い鍵で、ライセンスに付いて動くので一覧に出さない
+//（単独では選べない）。
+const recopyKeys = new Set(keys);
 const recopyRows = computed<IiifRecopyRow[]>(() =>
-  props.recopy ? props.recopy.rows.filter((row) => row.reason !== 'unchanged') : [],
+  props.recopy
+    ? props.recopy.rows.filter(
+        (row) => row.reason !== 'unchanged' && recopyKeys.has(row.key),
+      )
+    : [],
 );
 
 // 上書きする行の選択。既定は「IIIF の側が変わった」行だけにする
@@ -197,7 +204,7 @@ watch(
   () => props.recopy,
   (plan) => {
     picked.value = (plan ? plan.rows : [])
-      .filter((row) => row.reason === 'iiif-changed' && row.next !== undefined)
+      .filter((row) => row.reason === 'iiif-changed' && row.next !== undefined && recopyKeys.has(row.key))
       .map(rowId);
   },
 );

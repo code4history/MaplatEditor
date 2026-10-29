@@ -5116,7 +5116,11 @@ const goBack = async () => {
                                 @recopy="compareIiifWithManifest"
                                 @apply-recopied="applyIiifRecopied"
                             />
-                            <DiagnosticFeedback v-if="iiifCopyError" scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
+                            <div v-if="iiifCopyError" data-testid="iiif-recopy-error">
+                                <DiagnosticFeedback scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
+                                <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
+                                <p class="small text-muted mb-0 mt-1">{{ t("iiif_metadata.recopy_failed_help") }}</p>
+                            </div>
                         </div>
                     </div>
 

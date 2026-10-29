@@ -54,6 +54,7 @@
     "recopy_no_value": "（値なし）",
     "recopy_select": "上書きする",
     "recopy_apply": "選んだ値で上書きする",
+    "recopy_failed_help": "うまく写せなかったときは、書誌の欄で手で直してください。",
     "recopy_reason": {
       "unchanged": "変わらない",
       "human-edited": "人が直した",
