@@ -1132,6 +1132,21 @@ const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
 
 // --- IIIF の書誌の写し（Manifest が結び付いている地図だけ） ---
+/**
+ * 写しの結果（新しい地図データ）を、今の地図データへ鍵ごとに反映する。
+ * 地図データそのものは差し替えない（文書の差し替えは setMapDocument だけが行う）。
+ * 変わった鍵だけを書き、新しい側で消えた鍵（ライセンスの注記など）は消す。
+ */
+const patchMapDataFrom = (next: Record<string, any>): void => {
+    const current = mapData.value as Record<string, any>;
+    for (const key of Object.keys(current)) {
+        if (!(key in next)) delete current[key];
+    }
+    for (const [key, value] of Object.entries(next)) {
+        if (current[key] !== value) current[key] = value;
+    }
+};
+
 const iiifCopyError = ref<string | null>(null);
 
 /** 結び付けの変更は地図のデータを変えるだけ（保存は利用者の「保存」で行う）。 */
@@ -1172,7 +1187,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
             copiedMetadata: copied.copiedMetadata,
             copiedAt: copied.copiedAt
         };
-        mapData.value = next;
+        patchMapDataFrom(next);
     } catch (_error) {
         iiifCopyError.value = 'iiif_import.error.inspect_failed';
     }
@@ -1204,7 +1219,7 @@ const compareIiifWithManifest = async (): Promise<void> => {
 /** 利用者が選んだ行だけを上書きする（地図を変えるだけで、保存は利用者の「保存」で行う）。 */
 const applyIiifRecopied = (selected: Array<{ key: string; lang: string }>): void => {
     if (!iiifRecopyPlan.value) return;
-    mapData.value = applyIiifRecopy(mapData.value, iiifRecopyPlan.value, selected);
+    patchMapDataFrom(applyIiifRecopy(mapData.value, iiifRecopyPlan.value, selected));
     iiifRecopyPlan.value = null;
 };
 
