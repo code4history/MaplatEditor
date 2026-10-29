@@ -10,6 +10,9 @@ import { compactMapLangFields } from '../../src/utils/langResource';
 // m19-t5: 読み込み元（uid キー）と ZIP 内の出力名（slug 名）の双方を派生規約の単一モジュールから導く
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { ProgressReporter } from './ProgressReporter';
+// IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
+// アプリの書き出しと同じ判定を使う
+import { hasIiifDelivery } from './iiifDelivery';
 import {
   createPoiExternalizationContext,
   externalizeMapDocumentPois,
@@ -152,18 +155,23 @@ export async function buildAndWriteMapZip(
   }
 
   // タイルファイルを再帰的に収集(読み込みはtiles/{uid}、zip内はtiles/{slug})
+  // IIIF のまま配る地図は画像を配信元から読むので、タイルの実体を同梱しない
+  // (サムネイルは下の tileTargets で今のまま積む)
+  const iiifDelivery = hasIiifDelivery(compiled);
   const tileFileTargets: [string, string, string][] = [];
   const tileRoot = path.join(tileFolder, fileKey);
-  try {
-    const { files: tileFiles } = await recursiveFs.read(tileRoot);
-    for (const file of tileFiles) {
-      const localPath = path.resolve(file);
-      const zipName = path.basename(localPath);
-      const relDir = path.relative(tileRoot, path.dirname(localPath));
-      const zipPath = ['tiles', slug, ...relDir.split(path.sep).filter(Boolean)].join('/');
-      tileFileTargets.push([localPath, zipPath, zipName]);
-    }
-  } catch (_e) { /* タイルなし */ }
+  if (!iiifDelivery) {
+    try {
+      const { files: tileFiles } = await recursiveFs.read(tileRoot);
+      for (const file of tileFiles) {
+        const localPath = path.resolve(file);
+        const zipName = path.basename(localPath);
+        const relDir = path.relative(tileRoot, path.dirname(localPath));
+        const zipPath = ['tiles', slug, ...relDir.split(path.sep).filter(Boolean)].join('/');
+        tileFileTargets.push([localPath, zipPath, zipName]);
+      }
+    } catch (_e) { /* タイルなし */ }
+  }
 
   // 原画像（選んだときだけ）。内部は uid キー、ZIP 内は slug 名（ADR-0007）。実体が無ければ黙って省く
   const originalTargets: [string, string, string][] = [];
@@ -189,7 +197,7 @@ export async function buildAndWriteMapZip(
   // contents が既定と同じなら目録を入れない ∴ 既定の書き出し物は現行とバイト単位で同じ中身になる（AC2）
   const exists = (target: [string, string, string]) => fs.existsSync(target[0]);
   const contents: MapExportOptions = {
-    tiles: options.tiles && tileFileTargets.some(exists) && exists(tileTargets[0]),
+    tiles: options.tiles && !iiifDelivery && tileFileTargets.some(exists) && exists(tileTargets[0]),
     json: options.json && exists(jsonTargets[0]),
     originals: originalTargets.length > 0,
   };

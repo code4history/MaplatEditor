@@ -8,6 +8,9 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+// IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
+// 地図 1 枚の ZIP と同じ判定を使う
+import { hasIiifDelivery } from '../utils/iiifDelivery';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -401,7 +404,11 @@ class AppExportService {
       for (const source of maplatSources) {
         const mapDoc = maplatDocs.get(source)!;
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        const count = includeTiles && fs.existsSync(tileDir) ? await countTileFiles(tileDir) : 0;
+        // IIIF のまま配る地図はタイルを同梱しないので、分母にも数えない
+        const count =
+          includeTiles && !hasIiifDelivery(mapDoc) && fs.existsSync(tileDir)
+            ? await countTileFiles(tileDir)
+            : 0;
         tileFileCounts.set(source, count);
         totalTileFiles += count;
       }
@@ -524,8 +531,10 @@ class AppExportService {
 
         // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)。
         // ファイル単位でコピーしつつ進捗を報告する(まとまった大きな地図でもバーが動き続ける)
+        // IIIF のまま配る地図は画像を配信元から読むので、タイルの実体を同梱しない
+        // (サムネイルは下で今のまま同梱する)
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        if (includeTiles && fs.existsSync(tileDir)) {
+        if (includeTiles && !hasIiifDelivery(mapDoc) && fs.existsSync(tileDir)) {
           await copyTilesWithProgress(tileDir, path.join(outDir, 'tiles', slug), slug, reporter, progressState);
         }
         const thumb = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}.jpg`);
