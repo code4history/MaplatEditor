@@ -36,6 +36,17 @@
       "bad-argument": "The input is not valid."
     }
   },
+  "iiif_metadata": {
+    "heading": "Binding to the IIIF metadata",
+    "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
+    "field": "Field",
+    "bind": "Copy",
+    "from": "Source",
+    "from_manifest": "Manifest",
+    "from_canvas": "This canvas",
+    "copy": "Copy from IIIF",
+    "copy_language": "Language to copy: {{language}}"
+  },
   "common": {
     "close": "Close",
     "back": "Back",

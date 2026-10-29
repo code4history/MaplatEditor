@@ -36,6 +36,17 @@
       "bad-argument": "入力が正しくありません。"
     }
   },
+  "iiif_metadata": {
+    "heading": "IIIF の書誌との結び付け",
+    "help": "欄ごとに、IIIF から写すかどうかと、取り出し元（Manifest か、選んだコマ）を選べます。",
+    "field": "欄",
+    "bind": "写す",
+    "from": "取り出し元",
+    "from_manifest": "Manifest",
+    "from_canvas": "このコマ",
+    "copy": "IIIF から写す",
+    "copy_language": "写す言語: {{language}}"
+  },
   "app": {
     "title": "Maplat Editor"
   },

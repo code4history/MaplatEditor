@@ -25,6 +25,8 @@ import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
 import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
+import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
+import { applyIiifValues, copyIiifMetadataWithBindings } from '../utils/iiifMetadataCopy';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
@@ -73,6 +75,8 @@ import ContextMenu from '../libs/ol-contextmenu/main';
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
+// @ts-ignore
+import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -1119,6 +1123,53 @@ const dataAttr = createLangComputed('dataAttr');
 const licenseNote = createLangComputed('licenseNote');
 const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
+
+// --- IIIF の書誌の写し（Manifest が結び付いている地図だけ） ---
+const iiifCopyError = ref<string | null>(null);
+
+/** 結び付けの変更は地図のデータを変えるだけ（保存は利用者の「保存」で行う）。 */
+const onIiifBindingsChange = (bindings: IiifBindings) => {
+    mapData.value.iiif.bindings = bindings;
+};
+
+/** 理由の語を i18n の鍵にする。 */
+const iiifReasonKey = (reason: string): string => 'iiif_import.reason.' + reason;
+
+/**
+ * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
+ * 写しただけでは保存しない。取得や解決が失敗したら何も変えず、理由を 1 行だけ出す。
+ */
+const copyIiifFromManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    const lang = (mapData.value.lang || 'ja') as string;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        if (!result.ok) {
+            iiifCopyError.value = iiifReasonKey(result.reason);
+            return;
+        }
+        const copied = copyIiifMetadataWithBindings(
+            result.json,
+            { canvas: mapData.value.iiif.canvas, bindings: mapData.value.iiif.bindings },
+            lang
+        );
+        if (!copied.ok) {
+            iiifCopyError.value = iiifReasonKey(copied.reason);
+            return;
+        }
+        // 写した値と写した時点の控えを、同じ 1 つの新しい地図データに入れる。
+        const next = applyIiifValues(mapData.value, copied.values, lang);
+        next.iiif = {
+            ...mapData.value.iiif,
+            copiedValues: copied.copiedValues,
+            copiedMetadata: copied.copiedMetadata,
+            copiedAt: copied.copiedAt
+        };
+        mapData.value = next;
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_import.error.inspect_failed';
+    }
+};
 
 // テンプレート変数名とlangAttrキー名のマッピング
 // テンプレート: title, label, author, createAt(=createdAt), era, owner(=contributor), mapper
@@ -5014,6 +5065,19 @@ const goBack = async () => {
                          <div class="col-12">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_description_desc')" :ariaLabel="t('mapedit.map_description_desc')" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- IIIF の Manifest が結び付いている地図だけ、写す鍵と取り出し元を選べる -->
+                    <div v-if="mapData.iiif?.manifest" class="row g-2 mt-2">
+                        <div class="col-12">
+                            <IiifBindingPanel
+                                :iiif="mapData.iiif"
+                                :lang="mapData.lang || 'ja'"
+                                @update:bindings="onIiifBindingsChange"
+                                @copy="copyIiifFromManifest"
+                            />
+                            <DiagnosticFeedback v-if="iiifCopyError" scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
                         </div>
                     </div>
 
