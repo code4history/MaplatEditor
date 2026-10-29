@@ -38,6 +38,10 @@
   },
   "iiif_metadata": {
     "heading": "Binding to the IIIF metadata",
+    "readonly_heading": "Metadata copied from IIIF",
+    "manifest_heading": "Manifest metadata",
+    "canvas_heading": "Metadata of this canvas",
+    "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
     "bind": "Copy",

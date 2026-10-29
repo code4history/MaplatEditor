@@ -26,6 +26,7 @@ import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
 import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
 import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
+import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
 import {
     applyIiifRecopy,
     applyIiifValues,
@@ -5121,6 +5122,11 @@ const goBack = async () => {
                                 <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
                                 <p class="small text-muted mb-0 mt-1">{{ t("iiif_metadata.recopy_failed_help") }}</p>
                             </div>
+                            <!-- 写した書誌の確認（読み取り専用）。全件を Manifest とこのコマに分けて出す -->
+                            <IiifMetadataTable
+                                :metadata="mapData.iiif?.copiedMetadata"
+                                :lang="mapData.lang || 'ja'"
+                            />
                         </div>
                     </div>
 

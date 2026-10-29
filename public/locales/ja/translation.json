@@ -38,6 +38,10 @@
   },
   "iiif_metadata": {
     "heading": "IIIF の書誌との結び付け",
+    "readonly_heading": "IIIF から写した書誌",
+    "manifest_heading": "Manifest の書誌",
+    "canvas_heading": "このコマの書誌",
+    "empty": "項目がありません",
     "help": "欄ごとに、IIIF から写すかどうかと、取り出し元（Manifest か、選んだコマ）を選べます。",
     "field": "欄",
     "bind": "写す",
