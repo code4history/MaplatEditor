@@ -45,7 +45,21 @@
     "from_manifest": "Manifest",
     "from_canvas": "このコマ",
     "copy": "IIIF から写す",
-    "copy_language": "写す言語: {{language}}"
+    "copy_language": "写す言語: {{language}}",
+    "recopy": "IIIF から写し直す",
+    "recopy_help": "IIIF から Manifest を取り直して、いまの値・写した時点の値・新しい値を比べます。選んだ行だけを上書きするので、手で直した値は選ばないかぎり残ります。",
+    "recopy_current": "いまの値",
+    "recopy_copied": "写した時点の値",
+    "recopy_next": "新しい値",
+    "recopy_no_value": "（値なし）",
+    "recopy_select": "上書きする",
+    "recopy_apply": "選んだ値で上書きする",
+    "recopy_reason": {
+      "unchanged": "変わらない",
+      "human-edited": "人が直した",
+      "iiif-changed": "IIIF の側が変わった",
+      "both": "人が直した・IIIF の側も変わった"
+    }
   },
   "app": {
     "title": "Maplat Editor"

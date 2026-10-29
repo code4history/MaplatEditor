@@ -49,15 +49,18 @@ try {
 
       const {
         IIIF_BINDABLE_KEYS,
+        compareIiifCopy,
         listIiifCanvases,
         proposeIiifBindings,
         resolveIiifMetadata,
       } = await import(${JSON.stringify(coreModulePath)});
       const {
+        applyIiifRecopy,
         applyIiifValues,
         copyIiifMetadata,
         copyIiifMetadataWithBindings,
         iiifBindableKeys,
+        planIiifRecopy,
         setIiifBinding,
       } = await import(${JSON.stringify(copyModulePath)});
 
@@ -81,6 +84,44 @@ try {
         { label: 'ndl-third-canvas', manifest: ndl, canvasId: ndlCanvases.canvases[2].id },
         { label: 'minimal-first-canvas', manifest: minimal, canvasId: minimalCanvases.canvases[0].id },
       ];
+
+      // 写し直しの題材。NDL の 3 コマ目で最初の写しを作り、試験の中でだけ
+      // Manifest の写しを書き換えて「新しい Manifest」にする（資料のファイルは変えない）。
+      // 4 つの鍵で 4 通りを作る:
+      //   title         … 人が直しておらず IIIF も同じ（変わらない）
+      //   officialTitle … 人が直した（人が直した）
+      //   attr          … IIIF の側が変わった（IIIF の側が変わった）
+      //   license       … 人が直し、IIIF の側も変わった（両方）
+      const buildRecopyScenario = () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const proposed = proposeIiifBindings(ndl, canvasId);
+        const bindings = setIiifBinding(proposed, 'officialTitle', 'manifest');
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, { sanitize });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        // 人が手で直した値（officialTitle と license）
+        map.officialTitle = '手で直した題名';
+        map.license = '手で直したライセンス';
+        // 新しい Manifest（写しを書き換える。資料のファイルは変えない）
+        const changed = structuredClone(ndl);
+        changed.attribution = '新しい帰属';
+        changed.license = 'https://creativecommons.org/licenses/by/4.0/';
+        changed.metadata[1].value = '新潟市圖（改訂）';
+        const reply = { ok: true, json: changed, requestedUrl: ndl['@id'], finalUrl: ndl['@id'] };
+        return { map, reply, lang, canvasId };
+      };
 
       test('copy-matches-core', async () => {
         let passed = 0;
@@ -263,6 +304,185 @@ try {
           fallback.title,
           { ja: '古い題名', en: 'New title' },
           'the first language of the value must be used when the map language is missing',
+        );
+      });
+
+      // 写し直しの 4 通り。是正を見分けるのは、(1) 4 通りそれぞれの理由の語が
+      // 表のとおりであること、(2) その理由が Core の compareIiifCopy の
+      // humanEdited／iiifChanged と一致すること、(3) 行の今の値・写した時点の値・
+      // 新しい値が 3 つの出どころと一致すること、(4) 計画が地図を変えないこと。
+      test('recopy-table', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        const snapshot = structuredClone(map);
+        const plan = planIiifRecopy(reply, map, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        assert.deepEqual(map, snapshot, 'the plan must not change the map');
+
+        const compared = compareIiifCopy(map, map.iiif.copiedValues, plan.fresh.copiedValues, lang);
+        assert.equal(plan.rows.length, compared.length, 'the plan must have one row per compared item');
+        const coreByRow = new Map(compared.map((row) => [row.key + '/' + row.lang, row]));
+
+        const expectations = [
+          ['title/ja', 'unchanged'],
+          ['officialTitle/ja', 'human-edited'],
+          ['attr/ja', 'iiif-changed'],
+          ['license/ja', 'both'],
+        ];
+        let passed = 0;
+        for (const [id, expectedReason] of expectations) {
+          const row = plan.rows.find((item) => item.key + '/' + item.lang === id);
+          assert.ok(row, id + ': the row must be in the plan');
+          assert.equal(row.reason, expectedReason, id + ': the reason must match the table');
+          const core = coreByRow.get(id);
+          assert.ok(core, id + ': Core must compare the row');
+          assert.equal(
+            core.humanEdited,
+            expectedReason === 'human-edited' || expectedReason === 'both',
+            id + ': humanEdited must match the reason',
+          );
+          assert.equal(
+            core.iiifChanged === true,
+            expectedReason === 'iiif-changed' || expectedReason === 'both',
+            id + ': iiifChanged must match the reason',
+          );
+          passed += 1;
+        }
+
+        // 行の 3 つの値は、地図・写した時点の控え・新しい取得から取る。
+        const attrRow = plan.rows.find((item) => item.key === 'attr');
+        assert.equal(attrRow.current, map.attr, 'the current value must come from the map');
+        assert.equal(attrRow.copied, map.iiif.copiedValues.attr.ja, 'the copied value must come from copiedValues');
+        assert.equal(attrRow.next, plan.fresh.copiedValues.attr.ja, 'the next value must come from the fresh copy');
+        const noteRow = plan.rows.find((item) => item.key === 'licenseNote');
+        assert.equal(
+          noteRow.next,
+          undefined,
+          'a value that disappeared from the IIIF side must have no next value',
+        );
+        return '(' + passed + '/' + expectations.length + ')';
+      });
+
+      // 選んだ行だけの上書き。是正を見分けるのは、(1) 選んだ iiif-changed の行だけ
+      // 地図の値と copiedValues が新しい値になること、(2) 選ばなかった人が直した行
+      // （human-edited・both）の地図の値と copiedValues が変える前のままであること、
+      // (3) copiedMetadata が新しい取得の値になり copiedAt が差し替えた時計になること、
+      // (4) 何も選ばなければ戻り値が入力と同じであること、(5) 入力の地図を変えないこと。
+      test('copied-values-rebuilt', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        const plan = planIiifRecopy(reply, map, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        // 基準は変える前の値で取る。
+        const before = structuredClone(map);
+
+        const selected = plan.rows
+          .filter((row) => row.reason === 'iiif-changed')
+          .map((row) => ({ key: row.key, lang: row.lang }));
+        assert.ok(
+          selected.some((row) => row.key === 'attr'),
+          'the IIIF-changed row must be selectable',
+        );
+
+        const nowText = '2026-01-02T03:04:05.000Z';
+        const now = () => new Date(nowText);
+        const next = applyIiifRecopy(map, plan, selected, { sanitize, now });
+
+        // (a) 選んだ行の値と copiedValues が新しい値になる
+        assert.equal(
+          next.attr,
+          plan.fresh.copiedValues.attr[lang],
+          'the selected field must take the new value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.attr,
+          plan.fresh.copiedValues.attr,
+          'the selected key must take the new copied values',
+        );
+
+        // (b) 選ばなかった手で直した行の値と copiedValues は変える前のまま
+        assert.equal(
+          next.officialTitle,
+          before.officialTitle,
+          'a hand-edited row that was not selected must keep the hand value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.officialTitle,
+          before.iiif.copiedValues.officialTitle,
+          'a hand-edited row that was not selected must keep the copied values',
+        );
+        assert.equal(
+          next.license,
+          before.license,
+          'the both row that was not selected must keep the hand value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.license,
+          before.iiif.copiedValues.license,
+          'the both row that was not selected must keep the copied values',
+        );
+
+        assert.deepEqual(
+          next.iiif.copiedValues.licenseNote,
+          before.iiif.copiedValues.licenseNote,
+          'a row with no new value must not be overwritten',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.title,
+          before.iiif.copiedValues.title,
+          'an unchanged row that was not selected must stay as it was',
+        );
+
+        // (c) copiedMetadata は新しい取得の値、copiedAt は差し替えた時計
+        assert.deepEqual(
+          next.iiif.copiedMetadata,
+          plan.fresh.copiedMetadata,
+          'copiedMetadata must be rebuilt from the fresh manifest',
+        );
+        assert.notDeepEqual(
+          next.iiif.copiedMetadata,
+          before.iiif.copiedMetadata,
+          'the fresh copiedMetadata must differ from the old one',
+        );
+        assert.equal(next.iiif.copiedAt, nowText, 'copiedAt must use the injected clock');
+
+        // ライセンスを選んだら、その注記も新しい値にそろえる（無ければ消す）。
+        const noteDeleted = applyIiifRecopy(map, plan, [{ key: 'license', lang }], { sanitize, now });
+        assert.equal(
+          noteDeleted.license,
+          plan.fresh.copiedValues.license[lang],
+          'the selected license must take the new value',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(noteDeleted, 'licenseNote'),
+          false,
+          'a license note that the new value does not have must be removed',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(noteDeleted.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a license note that the new value does not have must be removed from copiedValues',
+        );
+        const withNote = { ok: true, json: structuredClone(reply.json) };
+        withNote.json.license = 'https://example.org/terms';
+        const notePlan = planIiifRecopy(withNote, map, { sanitize });
+        assert.equal(notePlan.ok, true, 'the plan for the license with a note must succeed');
+        const noteAdded = applyIiifRecopy(map, notePlan, [{ key: 'license', lang }], { sanitize, now });
+        assert.equal(
+          noteAdded.licenseNote,
+          'https://example.org/terms',
+          'the license note of the new value must be copied with the license',
+        );
+        assert.deepEqual(
+          noteAdded.iiif.copiedValues.licenseNote,
+          { [lang]: 'https://example.org/terms' },
+          'the license note of the new value must be kept with the license',
+        );
+
+        // (4) 入力は変えない (5) 何も選ばなければ何も変えない
+        assert.deepEqual(map, before, 'the input map must not be changed');
+        assert.deepEqual(
+          applyIiifRecopy(map, plan, [], { sanitize, now }),
+          before,
+          'nothing selected must change nothing',
         );
       });
 

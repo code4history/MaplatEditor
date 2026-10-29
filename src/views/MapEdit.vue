@@ -26,7 +26,13 @@ import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
 import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
 import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
-import { applyIiifValues, copyIiifMetadataWithBindings } from '../utils/iiifMetadataCopy';
+import {
+    applyIiifRecopy,
+    applyIiifValues,
+    copyIiifMetadataWithBindings,
+    planIiifRecopy,
+    type IiifRecopyPlanSuccess
+} from '../utils/iiifMetadataCopy';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
@@ -1169,6 +1175,36 @@ const copyIiifFromManifest = async (): Promise<void> => {
     } catch (_error) {
         iiifCopyError.value = 'iiif_import.error.inspect_failed';
     }
+};
+
+// --- IIIF の書誌の写し直し ---
+const iiifRecopyPlan = ref<IiifRecopyPlanSuccess | null>(null);
+
+/**
+ * Manifest を取り直して、いまの値・写した時点の値・新しい値を比べる。
+ * 比べるだけで地図は変えない。比べられなかったら理由を 1 行だけ出し、一覧は残さない。
+ */
+const compareIiifWithManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    iiifRecopyPlan.value = null;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const plan = planIiifRecopy(result, mapData.value);
+        if (!plan.ok) {
+            iiifCopyError.value = iiifReasonKey(plan.reason);
+            return;
+        }
+        iiifRecopyPlan.value = plan;
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_import.error.inspect_failed';
+    }
+};
+
+/** 利用者が選んだ行だけを上書きする（地図を変えるだけで、保存は利用者の「保存」で行う）。 */
+const applyIiifRecopied = (selected: Array<{ key: string; lang: string }>): void => {
+    if (!iiifRecopyPlan.value) return;
+    mapData.value = applyIiifRecopy(mapData.value, iiifRecopyPlan.value, selected);
+    iiifRecopyPlan.value = null;
 };
 
 // テンプレート変数名とlangAttrキー名のマッピング
@@ -5074,8 +5110,11 @@ const goBack = async () => {
                             <IiifBindingPanel
                                 :iiif="mapData.iiif"
                                 :lang="mapData.lang || 'ja'"
+                                :recopy="iiifRecopyPlan"
                                 @update:bindings="onIiifBindingsChange"
                                 @copy="copyIiifFromManifest"
+                                @recopy="compareIiifWithManifest"
+                                @apply-recopied="applyIiifRecopied"
                             />
                             <DiagnosticFeedback v-if="iiifCopyError" scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
                         </div>

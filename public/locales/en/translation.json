@@ -45,7 +45,21 @@
     "from_manifest": "Manifest",
     "from_canvas": "This canvas",
     "copy": "Copy from IIIF",
-    "copy_language": "Language to copy: {{language}}"
+    "copy_language": "Language to copy: {{language}}",
+    "recopy": "Compare with IIIF again",
+    "recopy_help": "Fetch the Manifest again and compare the current value, the value copied earlier and the new value. Only the rows you select are overwritten, so values you edited by hand stay unless you select them.",
+    "recopy_current": "Current",
+    "recopy_copied": "Copied",
+    "recopy_next": "New",
+    "recopy_no_value": "(no value)",
+    "recopy_select": "Overwrite",
+    "recopy_apply": "Overwrite with the selected values",
+    "recopy_reason": {
+      "unchanged": "Unchanged",
+      "human-edited": "Edited by hand",
+      "iiif-changed": "Changed in IIIF",
+      "both": "Edited by hand and changed in IIIF"
+    }
   },
   "common": {
     "close": "Close",

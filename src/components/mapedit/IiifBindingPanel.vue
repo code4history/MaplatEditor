@@ -40,22 +40,79 @@
           </select>
         </div>
       </div>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm mt-2"
-        data-testid="iiif-copy"
-        @click="emit('copy')"
-      >{{ t("iiif_metadata.copy") }}</button>
+      <div class="d-flex flex-wrap gap-1 mt-2">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-testid="iiif-copy"
+          @click="emit('copy')"
+        >{{ t("iiif_metadata.copy") }}</button>
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          data-testid="iiif-recopy"
+          @click="emit('recopy')"
+        >{{ t("iiif_metadata.recopy") }}</button>
+      </div>
+
+      <!-- 比べた結果。変わらない行は出さず、既定では IIIF の側が変わった行だけを選んでおく -->
+      <div v-if="recopy" class="mt-2" data-testid="iiif-recopy-table">
+        <p class="small text-muted mb-1">{{ t("iiif_metadata.recopy_help") }}</p>
+        <div class="row g-1 mb-1 small text-muted">
+          <div class="col-md-2">{{ t("iiif_metadata.field") }}</div>
+          <div class="col-md-3">{{ t("iiif_metadata.recopy_current") }}</div>
+          <div class="col-md-3">{{ t("iiif_metadata.recopy_copied") }}</div>
+          <div class="col-md-2">{{ t("iiif_metadata.recopy_next") }}</div>
+          <div class="col-md-2">{{ t("iiif_metadata.recopy_select") }}</div>
+        </div>
+        <div
+          v-for="row in recopyRows"
+          :key="rowId(row)"
+          class="row g-1 align-items-center mb-1"
+          :data-testid="'iiif-recopy-row-' + row.key + '-' + row.lang"
+        >
+          <div class="col-md-2 small">{{ labelOf(row.key) }}<span class="text-muted"> ({{ row.lang }})</span></div>
+          <div class="col-md-3 small text-break">{{ row.current ?? t("iiif_metadata.recopy_no_value") }}</div>
+          <div class="col-md-3 small text-break">{{ row.copied ?? t("iiif_metadata.recopy_no_value") }}</div>
+          <div class="col-md-2 small text-break">{{ row.next ?? t("iiif_metadata.recopy_no_value") }}</div>
+          <div class="col-md-2">
+            <div class="form-check mb-0">
+              <input
+                :id="pickId(row)"
+                class="form-check-input"
+                type="checkbox"
+                :data-testid="'iiif-recopy-pick-' + row.key + '-' + row.lang"
+                :checked="isPicked(row)"
+                :disabled="row.next === undefined"
+                @change="togglePick(row, ($event.target as HTMLInputElement).checked)"
+              >
+              <label class="form-check-label small" :for="pickId(row)">{{ t("iiif_metadata.recopy_reason." + row.reason) }}</label>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm mt-1"
+          data-testid="iiif-recopy-apply"
+          :disabled="pickedRows.length === 0"
+          @click="emit('apply-recopied', pickedRows)"
+        >{{ t("iiif_metadata.recopy_apply") }}</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 // @ts-ignore
 import type { IiifBindings, IiifFrom, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
-import { iiifBindableKeys, setIiifBinding } from '../../utils/iiifMetadataCopy';
+import {
+  iiifBindableKeys,
+  setIiifBinding,
+  type IiifRecopyPlanSuccess,
+  type IiifRecopyRow,
+} from '../../utils/iiifMetadataCopy';
 import { LANGS_MAP, type LangCode } from '../../utils/editorLanguages';
 
 const props = defineProps<{
@@ -63,11 +120,15 @@ const props = defineProps<{
   iiif: MaplatIiifSection;
   /** 写す言語（地図の既定の言語）。 */
   lang: string;
+  /** 「IIIF から写し直す」で比べた結果（比べていないときは null）。 */
+  recopy?: IiifRecopyPlanSuccess | null;
 }>();
 
 const emit = defineEmits<{
   'update:bindings': [bindings: IiifBindings];
   copy: [];
+  recopy: [];
+  'apply-recopied': [selected: Array<{ key: string; lang: string }>];
 }>();
 
 const { t } = useTranslation();
@@ -84,6 +145,8 @@ const KEY_LABEL_I18N: Record<string, string> = {
   dataLicense: 'mapedit.map_gcp_license',
   description: 'mapedit.map_description',
   contributor: 'mapedit.map_owner',
+  licenseNote: 'mapedit.map_image_license_note',
+  dataLicenseNote: 'mapedit.map_gcp_license_note',
 };
 
 const bindings = computed<IiifBindings>(() => props.iiif.bindings ?? {});
@@ -120,5 +183,47 @@ function changeFrom(key: string, value: string): void {
 
 function update(key: string, from: IiifFrom | null): void {
   emit('update:bindings', setIiifBinding(bindings.value, key, from));
+}
+
+// 比べた結果の一覧。変わらない行は出さない（上書きの対象にしない）。
+const recopyRows = computed<IiifRecopyRow[]>(() =>
+  props.recopy ? props.recopy.rows.filter((row) => row.reason !== 'unchanged') : [],
+);
+
+// 上書きする行の選択。既定は「IIIF の側が変わった」行だけにする
+//（人が直した行は外しておき、手で直した値を黙って消さない）。
+const picked = ref<string[]>([]);
+watch(
+  () => props.recopy,
+  (plan) => {
+    picked.value = (plan ? plan.rows : [])
+      .filter((row) => row.reason === 'iiif-changed' && row.next !== undefined)
+      .map(rowId);
+  },
+);
+
+const pickedRows = computed<Array<{ key: string; lang: string }>>(() =>
+  recopyRows.value
+    .filter((row) => picked.value.includes(rowId(row)))
+    .map((row) => ({ key: row.key, lang: row.lang })),
+);
+
+function rowId(row: IiifRecopyRow): string {
+  return row.key + '-' + row.lang;
+}
+
+function pickId(row: IiifRecopyRow): string {
+  return 'iiif-recopy-pick-' + row.key + '-' + row.lang;
+}
+
+function isPicked(row: IiifRecopyRow): boolean {
+  return picked.value.includes(rowId(row));
+}
+
+function togglePick(row: IiifRecopyRow, checked: boolean): void {
+  const id = rowId(row);
+  picked.value = checked
+    ? picked.value.includes(id) ? picked.value : [...picked.value, id]
+    : picked.value.filter((item) => item !== id);
 }
 </script>

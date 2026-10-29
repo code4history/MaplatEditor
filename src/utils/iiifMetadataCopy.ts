@@ -7,7 +7,7 @@
 // 値の洗浄は呼び出し側が渡せる（省略したら Core の sanitizeIiifHtml）。
 // Node には window が無いので、smoke は偽の洗浄を渡して Core の結果と比べる。
 // @ts-ignore
-import { IIIF_BINDABLE_KEYS, proposeIiifBindings, resolveIiifMetadata } from '@maplat/core/src/iiif/manifest';
+import { IIIF_BINDABLE_KEYS, compareIiifCopy, proposeIiifBindings, resolveIiifMetadata } from '@maplat/core/src/iiif/manifest';
 // @ts-ignore
 import type { IiifBindings, IiifFrom, IiifMetadataEntry, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
 import type { Localized } from '@maplat/core/common';
@@ -140,26 +140,199 @@ export function applyIiifValues(
 ): Record<string, unknown> {
   const next: Record<string, unknown> = { ...target };
   for (const [key, value] of Object.entries(values)) {
-    let text: string | undefined;
-    let textLang = lang;
-    if (typeof value === 'string') {
-      text = value;
-    } else if (Object.prototype.hasOwnProperty.call(value, lang)) {
-      text = value[lang];
-    } else {
-      const first = Object.keys(value)[0];
-      if (first !== undefined) {
-        text = value[first];
-        textLang = first;
-      }
-    }
-    if (text === undefined) continue;
-    const current = target[key];
-    if (typeof current === 'object' && current !== null) {
-      next[key] = { ...(current as Record<string, string>), [textLang]: text };
-    } else {
-      next[key] = text;
-    }
+    const table = textTable(value, lang);
+    if (table === undefined) continue;
+    next[key] = mergeText(next[key], table, lang);
   }
+  return next;
+}
+
+/** 写した値を「言語 → 文字」の表にする。地図の言語が無ければ値の最初の言語を使う。 */
+function textTable(value: Localized | string, lang: string): Record<string, string> | undefined {
+  if (typeof value === 'string') return { [lang]: value };
+  if (Object.prototype.hasOwnProperty.call(value, lang)) return { [lang]: value[lang] };
+  const entry = Object.entries(value)[0];
+  return entry === undefined ? undefined : { [entry[0]]: entry[1] };
+}
+
+/**
+ * 地図の 1 つの欄に、言語ごとの文字を入れる（元は変えない）。
+ * 欄が言語つきなら他の言語を残し、文字列や未設定なら地図の言語の文字を 1 つ入れる。
+ */
+function mergeText(
+  current: unknown,
+  table: Record<string, string>,
+  defaultLang: string,
+): string | Record<string, string> | undefined {
+  if (typeof current === 'object' && current !== null) {
+    return { ...(current as Record<string, string>), ...table };
+  }
+  return Object.prototype.hasOwnProperty.call(table, defaultLang)
+    ? table[defaultLang]
+    : Object.values(table)[0];
+}
+
+/** 写し直した 1 行の理由。 */
+export type IiifRecopyReason = 'unchanged' | 'human-edited' | 'iiif-changed' | 'both';
+
+/** 写し直した 1 行。 */
+export type IiifRecopyRow = {
+  /** 地図の metadata の鍵。 */
+  key: string;
+  /** 値の言語。 */
+  lang: string;
+  /** 4 通りの理由。 */
+  reason: IiifRecopyReason;
+  /** いまの地図の値。 */
+  current: string | undefined;
+  /** 写した時点の値。 */
+  copied: string | undefined;
+  /** 取り直した Manifest の新しい値。無ければ undefined。 */
+  next: string | undefined;
+};
+
+/** この包みが地図の iiif 節から読む部分。 */
+type IiifSectionPart = {
+  canvas?: string;
+  bindings?: IiifBindings;
+  copiedValues?: Record<string, Record<string, string>>;
+};
+
+/** Core の compareIiifCopy が返す 1 行（真偽から 4 つの語へ移すための材料）。 */
+type IiifComparedRow = {
+  key: string;
+  lang: string;
+  humanEdited: boolean;
+  iiifChanged: boolean | undefined;
+};
+
+/** 取り直した Manifest の戻り値の形（main の inspect・recopy の戻り値）。 */
+export type IiifRecopyReply =
+  | { ok: true; json: unknown }
+  | { ok: false; reason: string; detail?: string };
+
+/** 比べられたときの結果。 */
+export type IiifRecopyPlanSuccess = {
+  ok: true;
+  /** 取り直した Manifest を今の結び付けで写した結果。 */
+  fresh: IiifMetadataCopySuccess;
+  /** 鍵・言語ごとの行。 */
+  rows: IiifRecopyRow[];
+};
+
+/** 比べられなかったときの結果。 */
+export type IiifRecopyPlanFailure = {
+  ok: false;
+  reason: string;
+};
+
+export type IiifRecopyPlan = IiifRecopyPlanSuccess | IiifRecopyPlanFailure;
+
+/** 地図から、ある言語の値として読める文字を取り出す（理由づけは Core が行う）。 */
+function currentText(value: unknown, language: string, defaultLang: string): string | undefined {
+  if (typeof value === 'string') return language === defaultLang ? value : undefined;
+  if (typeof value !== 'object' || value === null) return undefined;
+  const found = (value as Record<string, unknown>)[language];
+  return typeof found === 'string' ? found : undefined;
+}
+
+/**
+ * 取り直した Manifest と地図を比べ、鍵・言語ごとに理由を付けた行を返す（地図は変えない）。
+ * 人が直したか・IIIF の側が変わったかの判定は Core の compareIiifCopy に任せ、
+ * ここではその真偽を 4 つの語へ移すだけにする。
+ */
+export function planIiifRecopy(
+  reply: IiifRecopyReply,
+  map: Record<string, unknown>,
+  options: IiifMetadataCopyOptions = {},
+): IiifRecopyPlan {
+  if (!reply.ok) return { ok: false, reason: reply.reason };
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const lang = typeof map.lang === 'string' && map.lang !== '' ? map.lang : 'ja';
+  const fresh = copyIiifMetadataWithBindings(
+    reply.json,
+    { canvas: iiif.canvas, bindings: iiif.bindings },
+    lang,
+    options,
+  );
+  if (!fresh.ok) return { ok: false, reason: fresh.reason };
+  const copiedValues = iiif.copiedValues ?? {};
+  const compared: IiifComparedRow[] = compareIiifCopy(map, copiedValues, fresh.copiedValues, lang);
+  const rows: IiifRecopyRow[] = compared.map((row) => {
+    const iiifChanged = row.iiifChanged === true;
+    let reason: IiifRecopyReason;
+    if (row.humanEdited && iiifChanged) reason = 'both';
+    else if (row.humanEdited) reason = 'human-edited';
+    else if (iiifChanged) reason = 'iiif-changed';
+    else reason = 'unchanged';
+    return {
+      key: row.key,
+      lang: row.lang,
+      reason,
+      current: currentText(map[row.key], row.lang, lang),
+      copied: copiedValues[row.key]?.[row.lang],
+      next: fresh.copiedValues[row.key]?.[row.lang],
+    };
+  });
+  return { ok: true, fresh, rows };
+}
+
+/**
+ * 選んだ鍵・言語の行だけを、取り直した Manifest の値で上書きした新しい地図を返す。
+ * 選ばなかった行の地図の値と copiedValues は変えない（手で直した値を黙って消さない）。
+ * 1 行でも上書きしたら、copiedMetadata と copiedAt は新しい取得の値で作り直す。
+ */
+export function applyIiifRecopy(
+  map: Record<string, unknown>,
+  plan: IiifRecopyPlan,
+  selected: ReadonlyArray<{ key: string; lang: string }>,
+  options: IiifMetadataCopyOptions = {},
+): Record<string, unknown> {
+  if (!plan.ok) return map;
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const lang = typeof map.lang === 'string' && map.lang !== '' ? map.lang : 'ja';
+
+  // 選ばれた行のうち、新しい値がある行だけを上書きする
+  //（IIIF の側で値が消えた行は選べない）。
+  const chosen: Record<string, Record<string, string>> = {};
+  for (const row of plan.rows) {
+    if (row.next === undefined) continue;
+    if (!selected.some((item) => item.key === row.key && item.lang === row.lang)) continue;
+    const table = chosen[row.key] ?? (chosen[row.key] = {});
+    table[row.lang] = row.next;
+  }
+  const keys = Object.keys(chosen);
+  if (keys.length === 0) return map;
+
+  const next: Record<string, unknown> = { ...map };
+  const copiedValues: Record<string, Record<string, string>> = {};
+  for (const [key, table] of Object.entries(iiif.copiedValues ?? {})) {
+    copiedValues[key] = { ...table };
+  }
+  for (const key of keys) {
+    const table = chosen[key];
+    next[key] = mergeText(next[key], table, lang);
+    copiedValues[key] = { ...(copiedValues[key] ?? {}), ...table };
+    // ライセンスの鍵は、注記の鍵（鍵の名前 + Note）も新しい値にそろえる（無ければ消す）。
+    const noteKey = key + 'Note';
+    if (copiedValues[noteKey] === undefined && plan.fresh.values[noteKey] === undefined) continue;
+    const note = plan.fresh.values[noteKey];
+    if (note === undefined) {
+      delete next[noteKey];
+      delete copiedValues[noteKey];
+      continue;
+    }
+    next[noteKey] = note;
+    const freshNote = plan.fresh.copiedValues[noteKey];
+    if (freshNote === undefined) delete copiedValues[noteKey];
+    else copiedValues[noteKey] = { ...freshNote };
+  }
+
+  next.iiif = {
+    ...iiif,
+    copiedValues,
+    copiedMetadata: plan.fresh.copiedMetadata,
+    copiedAt: (options.now ? options.now() : new Date()).toISOString(),
+  };
   return next;
 }
