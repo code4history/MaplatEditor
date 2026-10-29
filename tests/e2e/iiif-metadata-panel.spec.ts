@@ -196,6 +196,9 @@ test.describe('IIIF metadata panel', () => {
       await expect(canvasSection).toContainText('このコマの書誌');
       await expect(canvasSection).toContainText('項目がありません');
       await expect(canvasSection.getByTestId('iiif-metadata-row')).toHaveCount(0);
+      // 1.0.0 で廃止した属性の欄は、結び付けの一覧に出さない。
+      // 直す前のコードでは鍵の名前のまま欄が出るので、この assert で落ちる。
+      await expect(page.getByTestId('iiif-binding-officialTitle')).toHaveCount(0);
 
       // (b) 写し直し: 題名を手で直し、Manifest を帰属だけ変えた写しに差し替えてから写し直す。
       const editedTitle = '手で直した題名';
@@ -232,6 +235,10 @@ test.describe('IIIF metadata panel', () => {
       // 代わりの手は「書誌の欄で手で直す」。取り込み直しは案内しない。
       // 直す前のコードでは失敗の案内が出ない（この assert で落ちる）。
       await expect(error).toContainText('書誌の欄で手で直してください');
+      // 写し直しは配信の話ではないので、取り込みの判定の文（配信できません）を流用しない。
+      // 直す前のコードではこの 2 つの assert で落ちる。
+      await expect(error).not.toContainText('配信');
+      await expect(error).toContainText('Manifest を取得できませんでした');
       // 失敗したときは、題名も帰属も 1 つも変わらない。
       await expect(page.getByTestId('map-title')).toHaveValue(editedTitle);
       await expect(page.getByTestId('map-attr')).toHaveValue(EDITED_ATTRIBUTION);

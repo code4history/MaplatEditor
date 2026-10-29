@@ -64,6 +64,19 @@
       "human-edited": "人が直した",
       "iiif-changed": "IIIF の側が変わった",
       "both": "人が直した・IIIF の側も変わった"
+    },
+    "copy_failed": {
+      "fetch-failed": "Manifest を取得できませんでした。",
+      "timeout": "Manifest の取得が時間切れになりました。",
+      "too-large": "Manifest が大きすぎるため読みませんでした。",
+      "not-https": "https でない URL のため取得しませんでした。",
+      "blocked-address": "この宛先からは取得できません。",
+      "bad-url": "Manifest の URL が正しくありません。",
+      "not-json": "Manifest が JSON として読めませんでした。",
+      "not-manifest": "IIIF の Manifest として読めませんでした。",
+      "unsupported-version": "この版の IIIF の Manifest には対応していません。",
+      "size-mismatch": "Manifest のこのコマの大きさが地図の画像と違うため、写しませんでした。",
+      "unknown": "書誌を写せませんでした。"
     }
   },
   "app": {

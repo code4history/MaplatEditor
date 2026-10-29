@@ -1154,8 +1154,26 @@ const onIiifBindingsChange = (bindings: IiifBindings) => {
     mapData.value.iiif.bindings = bindings;
 };
 
-/** 理由の語を i18n の鍵にする。 */
-const iiifReasonKey = (reason: string): string => 'iiif_import.reason.' + reason;
+/** 写し・写し直しで理由として出せる語（これ以外は共通の文にする）。 */
+const IIIF_COPY_FAILURE_REASONS = [
+    'fetch-failed',
+    'timeout',
+    'too-large',
+    'not-https',
+    'blocked-address',
+    'bad-url',
+    'not-json',
+    'not-manifest',
+    'unsupported-version',
+    'size-mismatch'
+];
+
+/**
+ * 写し・写し直しの失敗の理由を i18n の鍵にする。
+ * 写しは配信ではないので、取り込みの判定の文（配信できません）は使わない。
+ */
+const iiifCopyFailureKey = (reason: string): string =>
+    'iiif_metadata.copy_failed.' + (IIIF_COPY_FAILURE_REASONS.includes(reason) ? reason : 'unknown');
 
 /**
  * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
@@ -1167,7 +1185,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
     try {
         const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
         if (!result.ok) {
-            iiifCopyError.value = iiifReasonKey(result.reason);
+            iiifCopyError.value = iiifCopyFailureKey(result.reason);
             return;
         }
         const copied = copyIiifMetadataWithBindings(
@@ -1176,7 +1194,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
             lang
         );
         if (!copied.ok) {
-            iiifCopyError.value = iiifReasonKey(copied.reason);
+            iiifCopyError.value = iiifCopyFailureKey(copied.reason);
             return;
         }
         // 写した値と写した時点の控えを、同じ 1 つの新しい地図データに入れる。
@@ -1189,7 +1207,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
         };
         patchMapDataFrom(next);
     } catch (_error) {
-        iiifCopyError.value = 'iiif_import.error.inspect_failed';
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
     }
 };
 
@@ -1207,12 +1225,12 @@ const compareIiifWithManifest = async (): Promise<void> => {
         const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
         const plan = planIiifRecopy(result, mapData.value);
         if (!plan.ok) {
-            iiifCopyError.value = iiifReasonKey(plan.reason);
+            iiifCopyError.value = iiifCopyFailureKey(plan.reason);
             return;
         }
         iiifRecopyPlan.value = plan;
     } catch (_error) {
-        iiifCopyError.value = 'iiif_import.error.inspect_failed';
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
     }
 };
 

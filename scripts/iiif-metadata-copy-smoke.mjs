@@ -10,6 +10,8 @@
 //
 // 使い方: node scripts/iiif-metadata-copy-smoke.mjs
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { readFileSync, readdirSync } from 'node:fs';
+import assert from 'node:assert/strict';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
@@ -649,6 +651,60 @@ try {
   });
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
+
+  // 写し・写し直しの失敗の文（画面の文言）が、11 の言語すべてにそろっていること。
+  // 取り込みの判定の文（「配信できません」）を流用していないことも、ここで見る。
+  const localeDir = path.join(projectRoot, 'public/locales');
+  const localeFiles = readdirSync(localeDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(localeDir, entry.name, 'translation.json'));
+  const copyFailureReasons = [
+    'fetch-failed',
+    'timeout',
+    'too-large',
+    'not-https',
+    'blocked-address',
+    'bad-url',
+    'not-json',
+    'not-manifest',
+    'unsupported-version',
+    'size-mismatch',
+    'unknown',
+  ];
+  for (const file of localeFiles) {
+    const messages = JSON.parse(readFileSync(file, 'utf8')).iiif_metadata?.copy_failed;
+    assert.ok(messages, '写しの失敗の文が無い: ' + file);
+    for (const reason of copyFailureReasons) {
+      assert.equal(typeof messages[reason], 'string', '理由の文が無い ' + reason + ': ' + file);
+      assert.ok(messages[reason].trim().length > 0, '理由の文が空 ' + reason + ': ' + file);
+    }
+    for (const [reason, message] of Object.entries(messages)) {
+      assert.ok(
+        !/配信|取り込み直|re-import/i.test(message),
+        '理由 ' + reason + ' の文が配信や取り込みの言い方になっている: ' + file,
+      );
+    }
+  }
+  console.log('ok: copy-failure-messages (' + localeFiles.length + ' files)');
+
+  // 写す・写し直すの失敗は、取り込みの判定の文ではなく写し専用の文を使う。
+  const mapEditSource = readFileSync(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+  assert.ok(
+    mapEditSource.includes('iiif_metadata.copy_failed.'),
+    '写しの失敗に専用の文を使っていない',
+  );
+  console.log('ok: copy-failure-uses-own-messages');
+
+  // 地図の 1.0.0 で廃止した属性は、結び付けの一覧に出さない（一覧は Core の表から引く）。
+  const panelSource = readFileSync(
+    path.join(projectRoot, 'src/components/mapedit/IiifBindingPanel.vue'),
+    'utf8',
+  );
+  assert.ok(
+    panelSource.includes('DEPRECATED_EXACT_NAME_KEY') && panelSource.includes('iiifBindableKeys().filter'),
+    '廃止した属性を結び付けの一覧から外していない',
+  );
+  console.log('ok: binding-list-skips-deprecated-attribute');
 } catch (error) {
   if (error && typeof error === 'object' && 'stdout' in error && error.stdout) {
     process.stdout.write(String(error.stdout));

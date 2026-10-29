@@ -64,6 +64,19 @@
       "human-edited": "Edited by hand",
       "iiif-changed": "Changed in IIIF",
       "both": "Edited by hand and changed in IIIF"
+    },
+    "copy_failed": {
+      "fetch-failed": "The Manifest could not be fetched.",
+      "timeout": "Fetching the Manifest timed out.",
+      "too-large": "The Manifest was not read because it is too large.",
+      "not-https": "The URL is not https, so it was not fetched.",
+      "blocked-address": "This destination cannot be fetched from.",
+      "bad-url": "The Manifest URL is not valid.",
+      "not-json": "The Manifest could not be read as JSON.",
+      "not-manifest": "This could not be read as an IIIF Manifest.",
+      "unsupported-version": "This version of the IIIF Manifest is not supported.",
+      "size-mismatch": "The canvas size in the Manifest is different from the map image, so nothing was copied.",
+      "unknown": "The metadata could not be copied."
     }
   },
   "app": {
