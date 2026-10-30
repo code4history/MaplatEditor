@@ -12,6 +12,7 @@ import { IIIF_BINDABLE_KEYS, compareIiifCopy, listIiifCanvases, proposeIiifBindi
 import type { IiifBindings, IiifFrom, IiifMetadataEntry, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
 import type { Localized } from '@maplat/core/common';
 import { sanitizeIiifHtml } from '@maplat/core/common';
+import { DEPRECATED_EXACT_NAME_KEY } from './mapNameUnification';
 
 /** 包みの受け取れる指定。 */
 export type IiifMetadataCopyOptions = {
@@ -48,8 +49,23 @@ export type IiifMetadataCopyFailure = {
 export type IiifMetadataCopy = IiifMetadataCopySuccess | IiifMetadataCopyFailure;
 
 /**
+ * 地図に書き戻さない鍵を外した結び付けを返す（元は変えない）。
+ *
+ * 1.0.0 で廃止した属性は Editor に欄が無く、写すと保存時の正規化で
+ * 「廃止した属性 → 題名、旧題名 → 表示ラベル」が当たり、利用者が見ていない値で題名が
+ * 置き換わる。他の道具や手書きの結び付けに残っていても写さないよう、Core へ渡す前にここで外す。
+ * 外す場所はこの 1 か所に閉じる。
+ */
+function withoutRetiredKeys(bindings: IiifBindings): IiifBindings {
+  const next: IiifBindings = { ...bindings };
+  delete next[DEPRECATED_EXACT_NAME_KEY];
+  return next;
+}
+
+/**
  * 選んだ canvas の書誌を、地図の metadata の鍵へ写す。
- * selector の規則も値の取り出し方も Core に任せ、ここでは何も読み替えない。
+ * selector の規則も値の取り出し方も Core に任せ、ここでは何も読み替えない
+ *（廃止した属性を外すことだけをここで行う）。
  */
 export function copyIiifMetadata(
   manifest: unknown,
@@ -58,7 +74,7 @@ export function copyIiifMetadata(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const bindings = proposeIiifBindings(manifest, canvasId);
+  const bindings = withoutRetiredKeys(proposeIiifBindings(manifest, canvasId));
   const resolved = resolveIiifMetadata(manifest, { canvas: canvasId, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
@@ -75,9 +91,12 @@ export function copyIiifMetadata(
   };
 }
 
-/** 写す鍵の一覧。Core の表の鍵をそのまま返し、Editor に一覧を持たない。 */
+/**
+ * 写す鍵の一覧。Core の表の鍵から廃止した属性だけを外して返し、Editor に一覧を持たない。
+ * 並びは Core の表の順。
+ */
 export function iiifBindableKeys(): string[] {
-  return Object.keys(IIIF_BINDABLE_KEYS);
+  return Object.keys(IIIF_BINDABLE_KEYS).filter((key) => key !== DEPRECATED_EXACT_NAME_KEY);
 }
 
 /**
@@ -102,7 +121,8 @@ export function setIiifBinding(
 
 /**
  * 選んだ結び付けのまま Manifest を取り直して写す。
- * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは何も読み替えない。
+ * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは廃止した属性を外すことだけを行う。
+ * 戻り値の結び付けも外した後のもの（写し直しはこの関数を通るので同じく外れる）。
  */
 export function copyIiifMetadataWithBindings(
   manifest: unknown,
@@ -111,7 +131,7 @@ export function copyIiifMetadataWithBindings(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const bindings = iiif.bindings ?? {};
+  const bindings = withoutRetiredKeys(iiif.bindings ?? {});
   const resolved = resolveIiifMetadata(manifest, { canvas: iiif.canvas, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
