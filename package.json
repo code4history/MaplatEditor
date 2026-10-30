@@ -280,6 +280,7 @@
     "smoke:nov26-m6-t1-draft-discard": "node scripts/nov26-m6-t1-draft-discard-smoke.mjs",
     "smoke:nov26-m6-t2-electron43": "node scripts/nov26-m6-t2-electron43-smoke.mjs",
     "smoke:nov26-m7-t2-signing-pipeline": "node scripts/nov26-m7-t2-signing-pipeline-smoke.mjs",
+    "smoke:win-sign-nsis-message-order": "node scripts/win-sign-nsis-message-order-smoke.mjs",
     "smoke:nov26-m7-t3-credential-exposure": "node scripts/nov26-m7-t3-credential-exposure-smoke.mjs",
     "smoke:nov26-m6-t3-zip-guards": "node scripts/nov26-m6-t3-zip-guards-smoke.mjs",
     "smoke:nov26-m6-t3-zip-errors": "node scripts/nov26-m6-t3-zip-errors-smoke.mjs",
