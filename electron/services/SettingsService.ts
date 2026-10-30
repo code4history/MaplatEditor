@@ -1,4 +1,5 @@
 import { dialogDefaultPath, type RememberedDialogFolders } from '../utils/dialogFolders';
+import { resolveTmpFolder } from '../utils/tmpFolder';
 import Store from 'electron-store';
 import { app, dialog } from 'electron';
 import fs from 'fs-extra';
@@ -156,9 +157,13 @@ class SettingsService extends EventEmitter {
   }
 
   public get(key: string): any {
-    // tmpFolder は OS の一時ディレクトリから動的に算出（旧実装: settings.getSetting('tmpFolder') 相当）
+    // tmpFolder は保存せず毎回解決する。getPath は app に束縛して渡す（this を失うと Electron が投げる）
     if (key === 'tmpFolder') {
-      return path.join(app.getPath('temp'), app.getName());
+      return resolveTmpFolder({
+        platform: process.platform,
+        getPath: (name) => app.getPath(name),
+        appName: app.getName(),
+      });
     }
     if (key === 'lang') {
       return this.ensureLang();

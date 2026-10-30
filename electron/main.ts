@@ -37,6 +37,7 @@ process.env.APP_ROOT = path.join(__dirname, '..')
 
 // バックエンドのエラー/警告をレンダラのコンソールへ転送する (#18)
 import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
+import { assertOwnedDirectory } from './utils/tmpFolder'
 installBackendErrorForwarding()
 
 // m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
@@ -259,7 +260,21 @@ async function gcOrphanDraftTiles(): Promise<void> {
   }
 }
 
+// 一時フォルダは取り込みの展開先で、app:// の配信ルートでもある。他人が先に作った場所やリンクは使わない
+async function ensureTmpFolderOwned(tmpFolder: string): Promise<boolean> {
+  try {
+    await assertOwnedDirectory(tmpFolder, { lstat: fs.lstat, mkdir: fs.mkdir, getuid: process.getuid })
+    return true
+  } catch (error) {
+    console.error('[main] temp folder check failed', tmpFolder, error)
+    dialog.showErrorBox('MaplatEditor', `The temporary folder cannot be used safely:\n${tmpFolder}`)
+    app.exit(1)
+    return false
+  }
+}
+
 app.whenReady().then(async () => {
+  if (!(await ensureTmpFolderOwned(SettingsService.get('tmpFolder')))) return
   // 既定の session の権限は拒否が既定。判定は decidePermission に閉じる（画面で開く前に掛ける）
   session.defaultSession.setPermissionRequestHandler((_contents, permission, callback, details) => {
     callback(decidePermission(permission, details.requestingUrl, trustedDevServerUrl))

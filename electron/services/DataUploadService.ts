@@ -7,7 +7,7 @@ import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
-import { assertSafeArchiveEntries } from '../../src/utils/poiPackage';
+import { assertArchiveStructure, assertSafeArchiveEntries } from '../../src/utils/poiPackage';
 import {
   zipEntryInfos,
   importManagedPoiDocuments,
@@ -20,7 +20,14 @@ import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { transcodeImage } from '../utils/thumbnail512Codec';
-import { ZIP_IMPORT_MAX_BYTES, ZipImportError, classifyZipReadError } from '../utils/zipImportGuard';
+import {
+  MAP_ARCHIVE_LIMITS,
+  ZIP_IMPORT_MAX_BYTES,
+  ZipImportError,
+  assertMapArchiveLimits,
+  classifyZipReadError,
+  type MapArchiveLimits,
+} from '../utils/zipImportGuard';
 import {
     DEFAULT_MAP_EXPORT_OPTIONS,
     EXPORT_MANIFEST_NAME,
@@ -241,7 +248,7 @@ class DataUploadService {
         return residue;
     }
 
-    async extractZip(zipFile: string): Promise<any> {
+    async extractZip(zipFile: string, deps?: { limits?: Partial<MapArchiveLimits> }): Promise<any> {
         const { tileFolder, uiThumbnailFolder, tmpFolder } = this.folders;
         const dataTmpFolder = path.join(tmpFolder, 'zip');
 
@@ -292,7 +299,10 @@ class DataUploadService {
             //
             // ここで throw しても **まだ何も書いていない** ため、補償は不要である
             // （完全ロールバック。§6.3.2 の residue は付かない）。
-            assertSafeArchiveEntries(zipEntryInfos(zip, 'map package'), 'map package');
+            const entryInfos = zipEntryInfos(zip, 'map package');
+            assertArchiveStructure(entryInfos, zipSize, 'map package');
+            assertSafeArchiveEntries(entryInfos, 'map package');
+            assertMapArchiveLimits(entryInfos, zipSize, { ...MAP_ARCHIVE_LIMITS, ...deps?.limits });
 
             zip.extractAllTo(dataTmpFolder, true);
 
@@ -513,7 +523,9 @@ class DataUploadService {
             // m5-t4 の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
             const zipError = classifyZipReadError(err);
-            const message = zipError?.kind === 'too-large'
+            const message = zipError?.kind === 'too-large' ||
+                zipError?.kind === 'too-many-entries' ||
+                zipError?.kind === 'expands-too-large'
                 ? 'TooLarge'
                 : zipError?.kind === 'corrupt'
                     ? 'Corrupt'
