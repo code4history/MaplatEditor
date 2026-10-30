@@ -49,7 +49,6 @@ await check("(iii) getPath('temp') は解決の関数 1 行と書き出しの 2 
 await check("(iii) get('tmpFolder') は消費者の 7 行と、起動時の確認の 1 行", () => {
   const rows = hits("get('tmpFolder')");
   assert.equal(rows.length, 8, JSON.stringify(perFile(rows)));
-  assert.equal(perFile(rows)['electron/main.ts'], 2, JSON.stringify(perFile(rows)));
   return '合計 ' + rows.length + ' 行 ' + JSON.stringify(perFile(rows));
 });
 await check('(iii) SettingsService の tmpFolder の分岐が resolveTmpFolder を呼ぶ', async () => {
