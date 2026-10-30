@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "gaya terlalu rumit atau ditulis dengan cara yang tidak terduga"
   },
   "settings": {
+    "save_folder_failed": "Folder data tidak dapat disimpan. Folder jaringan tidak dapat digunakan. Pengaturan lain juga tidak disimpan.",
     "title": "Pengaturan",
     "basic_settings": "Pengaturan dasar",
     "base_map": "Pengaturan peta dasar",

@@ -251,6 +251,7 @@
     "style_gl_check_reason_check-failed": "the style is too complex or written in an unexpected way"
   },
   "settings": {
+    "save_folder_failed": "The data folder could not be saved. Network folders cannot be used. No other settings were saved.",
     "title": "Settings",
     "basic_settings": "Basic settings",
     "base_map": "Base map settings",

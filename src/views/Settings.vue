@@ -450,8 +450,20 @@ const resetSettings = async () => {
 };
 
 const saveSettings = async () => {
+    // 保存フォルダは main が拒否することがある（ネットワーク上のフォルダなど）。
+    // 途中まで保存しないよう最初に送り、失敗したら利用者に伝えて止める
+    try {
+        await window.settings.set("saveFolder", state.saveFolder);
+    } catch (e) {
+        console.error("Failed to save the data folder:", e);
+        await (window as any).dialog.showMessageBox({
+            type: "error",
+            buttons: ["OK"],
+            message: t("settings.save_folder_failed"),
+        });
+        return;
+    }
     await window.settings.set("lang", state.lang);
-    await window.settings.set("saveFolder", state.saveFolder);
     // M5-T8: 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
     await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
     await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);

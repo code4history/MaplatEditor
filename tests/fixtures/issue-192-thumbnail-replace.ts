@@ -27,7 +27,7 @@ const at = (rel: string) => path.join(root, rel);
 // これで composable → IPC → AppAssetService の経路をそのまま通す。
 registerAppAssetHandlers();
 const handlers = (globalThis as any).__ipcHandlers as Record<string, (...args: any[]) => any>;
-const rendererFrame = { url: 'app://bundle/index.html' };
+const rendererFrame = { url: 'app://bundle/index.html', parent: null };
 assert.ok(handlers?.['appassets:replace-map-thumbnail'], 'replace-map-thumbnail handler が登録されている');
 (globalThis as any).window = {
   appAssets: {

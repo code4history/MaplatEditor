@@ -192,7 +192,6 @@ const assetsImages = await readSrc("electron/ipc/assets-images.ts");
   // renderer からパスを受け取る形になっていない（任意パス読み出しの禁止）
   assert.doesNotMatch(assetsImages, /readPickedSource['"][^\n]*filePath/, "readPickedSource がパス文字列を受け取っている");
 
-
   const guardSmoke = await readSrc("scripts/oct26-m4-t2-ipc-guard-smoke.mjs");
   assert.match(guardSmoke, /"imageassets:readPickedSource"/, "ipc-guard smoke の対象表に新 IPC がない");
 

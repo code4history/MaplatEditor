@@ -147,7 +147,7 @@ try {
       const db = await SqliteDataService.getDb();
       registerSettingsHandlers();
       registerSearchHandlers();
-      const call = (channel: string, ...args: any[]) => __handlers.get(channel)({ senderFrame: { url: 'app://bundle/index.html' } }, ...args);
+      const call = (channel: string, ...args: any[]) => __handlers.get(channel)({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, ...args);
 
       // --- seed: 地図1件 + merc ベースマップ1件 + 非 merc 4種 ---
       const mapSlug = 'm22-t1-map';

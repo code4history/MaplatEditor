@@ -11,6 +11,7 @@
 //   (f2) saveFolder はフォルダのダイアログの返り値に結びつく（handler を実際に呼ぶ）
 //   (g) 許可キーの表が renderer の使うキーと一致し、e2e が表の外のキーを使わない
 //   (h) 設定画面はダイアログのキャンセルで未保存の選択を捨てる（main の覚えた値と揃える）
+//   (i) saveFolder の保存の失敗は画面に出し、ほかの設定を途中まで保存しない
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -147,6 +148,22 @@ await check('(h) the settings screen drops the unsaved choice when the dialog is
   assert.match(body[1], /else[\s\S]*state\.saveFolder = original\.saveFolder/);
 });
 
+await check('(i) a refused saveFolder is reported before anything else is saved', async () => {
+  const source = await readFile(path.join(projectRoot, 'src/views/Settings.vue'), 'utf8');
+  const body = /const saveSettings = async \(\) => \{([\s\S]*?)\n\};/.exec(source);
+  assert.ok(body, 'saveSettings was not found');
+  const folder = body[1].indexOf('window.settings.set("saveFolder"');
+  const lang = body[1].indexOf('window.settings.set("lang"');
+  assert.ok(folder >= 0 && folder < lang, 'saveFolder must be saved first');
+  assert.match(body[1], /catch[\s\S]*showMessageBox[\s\S]*settings\.save_folder_failed[\s\S]*return;/);
+  const locales = await readdir(path.join(projectRoot, 'public/locales'));
+  assert.equal(locales.length, 11);
+  for (const locale of locales) {
+    const text = await readFile(path.join(projectRoot, 'public/locales', locale, 'translation.json'), 'utf8');
+    assert.ok(JSON.parse(text).settings?.save_folder_failed, `${locale}: settings.save_folder_failed`);
+  }
+});
+
 // ---- (b)〜(f2) は TS を読むので vite で束ねる ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
@@ -237,8 +254,9 @@ try {
         removeAllListeners(channel: string) { calls.removeAllListeners += 1; handlers.delete(channel); },
       };
     }
-    const frame = (url: string) => ({ senderFrame: { url } });
-    const throwingFrame = { senderFrame: { get url(): string { throw new Error('disposed'); } } };
+    const frame = (url: string) => ({ senderFrame: { url, parent: null } });
+    const subframe = (url: string) => ({ senderFrame: { url, parent: { url } } });
+    const throwingFrame = { senderFrame: { parent: null, get url(): string { throw new Error('disposed'); } } };
 
     await check('(b) handle checks the sender frame', async () => {
       const ipcMain = fakeIpcMain();
@@ -253,6 +271,8 @@ try {
         frame('data:text/html,x'),
         frame('app://bundle/__local/x.html'),
         frame('http://localhost:5173/'),
+        subframe('app://bundle/index.html'),
+        { senderFrame: { url: 'app://bundle/index.html' } },
         { senderFrame: null },
         {},
         throwingFrame,
@@ -268,8 +288,9 @@ try {
       ipc.handle('x', () => 'ok');
       assert.equal(await ipcMain.handlers.get('x')(frame('http://localhost:5173/')), 'ok');
       await assert.rejects(async () => ipcMain.handlers.get('x')(frame('http://localhost:5174/')), /untrusted/);
-      assert.equal(isTrustedSender({ url: 'http://localhost:5173/' }, 'http://localhost:5173'), true);
-      assert.equal(isTrustedSender({ url: 'http://localhost:5173/' }, null), false);
+      assert.equal(isTrustedSender({ url: 'http://localhost:5173/', parent: null }, 'http://localhost:5173'), true);
+      assert.equal(isTrustedSender({ url: 'http://localhost:5173/', parent: {} }, 'http://localhost:5173'), false);
+      assert.equal(isTrustedSender({ url: 'http://localhost:5173/', parent: null }, null), false);
       assert.equal(isTrustedSender(null), false);
     });
 
@@ -279,7 +300,7 @@ try {
       let calls = 0;
       ipc.on('sync', (event: any) => { calls += 1; event.returnValue = { ok: true }; });
       const send = ipcMain.handlers.get('sync');
-      for (const bad of [{ senderFrame: null }, throwingFrame, frame('http://evil.example/')]) {
+      for (const bad of [{ senderFrame: null }, throwingFrame, frame('http://evil.example/'), subframe('app://bundle/index.html')]) {
         const event: any = { ...bad };
         Object.defineProperty(event, 'senderFrame', Object.getOwnPropertyDescriptor(bad, 'senderFrame') ?? { value: undefined });
         send(event);
@@ -361,7 +382,7 @@ try {
       const { registerSettingsHandlers } = await import(${p('electron/ipc/settings.ts')});
       registerSettingsHandlers();
       SettingsService.set('saveFolder', dataDir);
-      const event = { senderFrame: { url: 'app://bundle/index.html' }, sender: {} };
+      const event = { senderFrame: { url: 'app://bundle/index.html', parent: null }, sender: {} };
       const call = (channel: string, ...args: any[]) => __handlers.get(channel)(event, ...args);
       const chosen = nodePath.join(dataDir, 'chosen');
       const other = nodePath.join(dataDir, 'other');

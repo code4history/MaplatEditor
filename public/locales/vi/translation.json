@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "kiểu quá phức tạp hoặc được viết theo cách không mong đợi"
   },
   "settings": {
+    "save_folder_failed": "Không thể lưu thư mục dữ liệu. Không thể dùng thư mục mạng. Các cài đặt khác cũng chưa được lưu.",
     "title": "Cài đặt",
     "basic_settings": "Cài đặt cơ bản",
     "base_map": "Cài đặt bản đồ nền",

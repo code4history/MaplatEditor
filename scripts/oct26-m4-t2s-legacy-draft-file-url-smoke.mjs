@@ -195,18 +195,18 @@ await writeFile(
       // ---------------- [2] mapedit:stagingStatus ----------------
       await check(L('[2-a] stagingStatus: staging url_ で staging が在れば alive=true'), async () => {
         assert.ok(stagingStatus, 'mapedit:stagingStatus が登録されていない');
-        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html' } }, legacy1);
+        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, legacy1);
         assert.equal(st.alive, true, JSON.stringify(st));
       });
       await check(L('[2-b] stagingStatus: staging url_ で staging が無ければ alive=false（復元時警告が働く）'), async () => {
         const goneUrl = mk(nodePath.join(draftTileRoot, uidOf('9', formNo))) + '/{z}/{x}/{y}.jpg';
-        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html' } }, goneUrl);
+        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, goneUrl);
         assert.equal(st.alive, false, JSON.stringify(st));
       });
       await check(L('[2-c] stagingStatus: 後方互換 tmp url_ で tmp/tiles が無ければ alive=false'), async () => {
         const tmpTiles = nodePath.join(SettingsService.get('tmpFolder'), 'tiles');
         assert.equal(await fs.pathExists(tmpTiles), false, '前提: この時点で tmp/tiles は無い（前の形の [5] で移動済み）');
-        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html' } }, mk(tmpTiles) + '/{z}/{x}/{y}.jpg');
+        const st = await stagingStatus({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, mk(tmpTiles) + '/{z}/{x}/{y}.jpg');
         assert.equal(st.alive, false, JSON.stringify(st));
       });
 

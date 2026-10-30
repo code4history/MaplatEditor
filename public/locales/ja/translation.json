@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "スタイルが複雑すぎるか、想定外の書き方のため判定を止めました"
   },
   "settings": {
+    "save_folder_failed": "データフォルダを保存できませんでした。ネットワーク上のフォルダは使えません。ほかの設定も保存していません。",
     "title": "設定",
     "basic_settings": "基本設定",
     "base_map": "ベースマップ設定",

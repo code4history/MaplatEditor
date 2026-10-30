@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "样式过于复杂或写法超出预期"
   },
   "settings": {
+    "save_folder_failed": "无法保存数据文件夹。不能使用网络文件夹。其他设置也未保存。",
     "title": "设置",
     "basic_settings": "基本设置",
     "base_map": "底图设置",

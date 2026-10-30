@@ -17,18 +17,17 @@ export interface IpcRegistryDeps {
   warn: (...args: unknown[]) => void;
 }
 
-/** 検査が見る frame の形。破棄された frame の `url` は参照だけで例外になることがある */
-type SenderFrame = { url: string } | null | undefined;
+/** 検査が見る frame の形。破棄された frame のプロパティは参照だけで例外になることがある */
+type SenderFrame = { url: string; parent: unknown } | null | undefined;
 
 export function isTrustedSender(frame: SenderFrame, devServerUrl?: string | null): boolean {
   if (!frame) return false;
-  let url: string;
   try {
-    url = frame.url;
+    // preload は main frame にだけ載るので、URL が正しくても subframe からの呼び出しは通さない
+    return frame.parent === null && isAllowedNavigationUrl(frame.url, devServerUrl);
   } catch {
     return false;
   }
-  return isAllowedNavigationUrl(url, devServerUrl);
 }
 
 function describeSender(frame: SenderFrame): string {
