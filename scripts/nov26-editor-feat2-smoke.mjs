@@ -187,13 +187,11 @@ console.log("ok: (f) refreshPreview の優先順（picked→duplicate→保存�
 const assetsImages = await readSrc("electron/ipc/assets-images.ts");
 {
   assert.match(assetsImages, /runGuarded\(\s*['"]imageassets:readPickedSource['"]/, "新 IPC が runGuarded で wrap されていない");
-  assert.match(assetsImages, /ipcMain\.handle\(\s*['"]imageassets:readPickedSource['"]\s*,\s*\(_\s*,\s*token\)/, "新 IPC がパスではなく token を受け取っていない");
+  assert.match(assetsImages, /ipc\.handle\(\s*['"]imageassets:readPickedSource['"]\s*,\s*\(_\s*,\s*token\)/, "新 IPC がパスではなく token を受け取っていない");
   assert.match(assetsImages, /const token = \w+\.register\(filePath\)/, "pickImageFile が token を発行していない");
   // renderer からパスを受け取る形になっていない（任意パス読み出しの禁止）
   assert.doesNotMatch(assetsImages, /readPickedSource['"][^\n]*filePath/, "readPickedSource がパス文字列を受け取っている");
 
-  const mainTs = await readSrc("electron/main.ts");
-  assert.match(mainTs, /removeHandler\(\s*['"]imageassets:readPickedSource['"]\s*\)/, "removeHandler の事前解除表に新 IPC がない");
 
   const guardSmoke = await readSrc("scripts/oct26-m4-t2-ipc-guard-smoke.mjs");
   assert.match(guardSmoke, /"imageassets:readPickedSource"/, "ipc-guard smoke の対象表に新 IPC がない");

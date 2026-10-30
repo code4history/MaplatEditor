@@ -14,6 +14,7 @@ import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
 import { appUrlToLocalPath, isLocalAppUrl } from '../utils/appScheme';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import SqliteDataService from './SqliteDataService';
+import { jsonForScript } from '../utils/scriptJson';
 import {
   collectPoiUids,
   hasSharedPoiUid,
@@ -510,7 +511,7 @@ class AppPreviewService {
     // GL の要否は 1 つの値を GL の断片と起動のスクリプトの両方に渡す
     const requiredProviderGl = new Set(session.requiredProviderGl || []);
     const startupBody = [
-      `    const option = ${JSON.stringify(session.viewerOption)};`,
+      `    const option = ${jsonForScript(session.viewerOption)};`,
       '    const MaplatPreview = window.MaplatUi && window.MaplatUi.createObject',
       '      ? window.MaplatUi',
       '      : window.MaplatUi && window.MaplatUi.MaplatUi',

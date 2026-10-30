@@ -10,7 +10,8 @@
  * - M5-T8: 取り込み前の確認往復（設計 §5.6）。同一チャネルへ `confirmed` を載せて再送する
  *   （`useRevisionedAssetSave` の revision 衝突と同形＝既存デザイン踏襲）
  */
-import { ipcMain, BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
+import { ipc } from './registry';
 import { selectMapImage, imageCutter } from '../services/MapUploadService';
 import { draftTileRoot, resolveDraftTileDir } from '../services/draftTilePaths';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
@@ -30,7 +31,7 @@ const pendingSelections = new Map<number, { filePath: string; draftAssetUid: str
 
 export function registerMapUploadHandlers() {
     // 旧実装: ipcMain.on('mapupload_showMapSelectDialog', ...)
-    ipcMain.handle(
+    ipc.handle(
         'mapupload:showMapSelectDialog',
         async (event, mapImageLabel: string, draftAssetUid: string, confirmed?: boolean) => {
             const win = BrowserWindow.fromWebContents(event.sender);

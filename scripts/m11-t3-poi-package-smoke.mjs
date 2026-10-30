@@ -105,8 +105,8 @@ assert.match(poiIpc, /inspectPoiExport/);
 assert.match(poiIpc, /writePoiExport/);
 assert.match(poiIpc, /extensions:\s*\[['"]zip['"]\]/);
 const exportHandler = poiIpc.slice(
-  poiIpc.indexOf("ipcMain.handle('poisource:exportFile'"),
-  poiIpc.indexOf("ipcMain.handle('poisource:pickImportFile'"),
+  poiIpc.indexOf("ipc.handle('poisource:exportFile'"),
+  poiIpc.indexOf("ipc.handle('poisource:pickImportFile'"),
 );
 // oct26-m4-t2s: oct26-m4-t2（#100）で書き出しは runGuarded('poisource:exportFile', () => writePoiExport(...)) に
 // 包まれ、`await writePoiExport` の字面は消えた。順序の断言は呼び出し `writePoiExport(` の位置で行い、

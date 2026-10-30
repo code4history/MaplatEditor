@@ -143,7 +143,7 @@ try {
 
       const downloadSaved = __handlers.get('mapedit:download-saved');
       assert.ok(downloadSaved, 'mapedit:download-saved ハンドラが登録されているはず');
-      const fakeEvent = { sender: {} };
+      const fakeEvent = { sender: {}, senderFrame: { url: 'app://bundle/index.html' } };
 
       // --- 共通 fixture ---
       // GCP は 4点。buildPreviewSource の ensurePreviewCompiled() が compiled を生成できる最小構成

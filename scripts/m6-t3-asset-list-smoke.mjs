@@ -88,11 +88,6 @@ try {
     'utf8'
   );
   const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
-  assert.match(
-    electronMain,
-    /removeHandler\('imageassets:update-metadata'\)/,
-    'Electron再登録cleanupがimageassets:update-metadataを解除していない'
-  );
   assert.doesNotMatch(
     electronMain,
     /removeHandler\('imageassets:rename'\)/,

@@ -152,7 +152,7 @@ try {
       await SqliteDataService.getDb();
       registerMapEditHandlers();
       const downloadSaved = __handlers.get('mapedit:download-saved');
-      const fakeEvent = { sender: {} };
+      const fakeEvent = { sender: {}, senderFrame: { url: 'app://bundle/index.html' } };
 
       const GCPS = [
         [[10, 10], [135.0, 35.0]],

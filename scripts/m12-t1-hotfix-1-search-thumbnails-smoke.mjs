@@ -105,7 +105,7 @@ try {
       const { registerSearchHandlers } = await import(${JSON.stringify(path.join(projectRoot, 'electron/ipc/search.ts'))});
       await SqliteDataService.getDb();
       registerSearchHandlers();
-      const call = (channel: string, ...args: any[]) => __handlers.get(channel)(null, ...args);
+      const call = (channel: string, ...args: any[]) => __handlers.get(channel)({ senderFrame: { url: 'app://bundle/index.html' } }, ...args);
 
       const mapSlug = 'thumb-map';
       const appSlug = 'thumb-app';

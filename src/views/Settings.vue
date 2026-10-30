@@ -429,6 +429,9 @@ const showFolderDialog = async () => {
   const path = await window.settings.showSaveFolderDialog();
   if (path) {
     state.saveFolder = path; // Only update state, not original, so it becomes dirty
+  } else {
+    // キャンセルで main は選択を忘れるので、未保存の選択も捨てる（残すと保存が拒否される）
+    state.saveFolder = original.saveFolder;
   }
 };
 

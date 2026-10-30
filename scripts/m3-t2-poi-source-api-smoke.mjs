@@ -122,14 +122,6 @@ try {
     'main.ts で registerPoisourceHandlers() が呼ばれていない'
   );
 
-  // HMR 対策の removeHandler が全チャネル分あること
-  for (const channel of CHANNELS) {
-    assert.match(
-      mainSource,
-      new RegExp(`ipcMain\\.removeHandler\\s*\\(\\s*['"]${channel}['"]\\s*\\)`),
-      `main.ts に ${channel} の removeHandler がない`
-    );
-  }
   for (const retired of RETIRED_CHANNELS) {
     assert.doesNotMatch(
       mainSource,
@@ -186,8 +178,8 @@ try {
 
   assert.match(
     poisourceHandler,
-    /ipcMain\.handle/,
-    'poisource.ts が ipcMain.handle を使っていない'
+    /ipc\.handle/,
+    'poisource.ts が ipc.handle を使っていない'
   );
   for (const channel of CHANNELS) {
     assert.match(
