@@ -125,7 +125,7 @@ try {
 
       const downloadSavedHandler = __handlers.get('mapedit:download-saved');
       assert.ok(downloadSavedHandler, 'mapedit:download-saved ハンドラが登録されているはず');
-      const fakeEvent = { sender: {} };
+      const fakeEvent = { sender: {}, senderFrame: { url: 'app://bundle/index.html', parent: null } };
       const fakeWin: any = { webContents: { send() {} } };
       const exportDir = ${JSON.stringify(exportDir)};
 

@@ -24,6 +24,7 @@ import { renderImagePng, renderPwaAssets } from '../utils/pwaChromiumRenderer';
 // nov26-editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
 import { isSvgExt } from '../utils/svgSource';
 import { packIco } from '../utils/icoPack';
+import { jsonForScript } from '../utils/scriptJson';
 import {
   collectPoiUids,
   hasSharedPoiUid,
@@ -98,6 +99,17 @@ export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 export function exportedSplashName(appID: string, splash: string): string {
   const ext = path.extname(splash).slice(1).toLowerCase() || 'png';
   return `${appID}_splash.${ext}`;
+}
+
+/**
+ * スプラッシュの実体のパス。設定の値はアプリの文書（取り込んだものを含む）から来るので、
+ * ファイル名だけを受け付けて `img/` の外を指せないようにする。受け付けない値は null。
+ */
+export function resolveSplashSource(saveFolder: string, splash: string): string | null {
+  // eslint-disable-next-line no-control-regex -- 制御文字を拒否する検査そのもの
+  if (!splash || splash === '.' || splash === '..' || /[\\/\u0000-\u001f]/.test(splash)) return null;
+  if (path.basename(splash) !== splash) return null;
+  return path.join(saveFolder, 'img', splash);
 }
 
 // nov26-editor-splash-svg (#462): SNS のカード画像（og:image）。多くの SNS は SVG をカードに描かないので、
@@ -642,8 +654,8 @@ class AppExportService {
       // 4) スプラッシュ画像
       const splash = String(document.appSettings?.splash || '');
       if (splash) {
-        const from = path.join(this.saveFolder, 'img', splash);
-        if (fs.existsSync(from)) {
+        const from = resolveSplashSource(this.saveFolder, splash);
+        if (from && fs.existsSync(from)) {
           // 拡張子のまま複製する（SVG もそのまま。app JSON の splash も同じ名前を指す）
           await fs.copy(from, path.join(outDir, 'img', exportedSplashName(appID, splash)));
         } else {
@@ -831,16 +843,17 @@ class AppExportService {
     document: any,
     warnings: string[],
   ): Promise<string | undefined> {
-    if (!splash) return undefined;
+    const source = resolveSplashSource(this.saveFolder, splash);
+    if (!source) return undefined;
     if (!isSvgExt(path.extname(splash).slice(1))) {
       return `img/${exportedSplashName(appID, splash)}`;
     }
     const ogName = exportedOgImageName(appID);
     // 【0464 MINOR-4】スプラッシュの実体が無いときは missing_splash だけにし、og:image の警告を重ねない
-    if (!fs.existsSync(path.join(this.saveFolder, 'img', splash))) return undefined;
+    if (!fs.existsSync(source)) return undefined;
     try {
       await renderImagePng({
-        sourcePath: path.join(this.saveFolder, 'img', splash),
+        sourcePath: source,
         outputPath: path.join(outDir, 'img', ogName),
         width: OG_IMAGE_WIDTH,
         height: OG_IMAGE_HEIGHT,
@@ -1147,7 +1160,7 @@ class AppExportService {
     // MapLibre の系列（アプリの文書の最上位の maplibreMajorVersion）も 1 回だけ決め、同じ値を両方に渡す
     const maplibreMajor = resolveMaplibreMajor(document);
     const startupBody = [
-      `    var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};`,
+      `    var option = ${jsonForScript(viewerOption, 2).replace(/\n/g, '\n    ')};`,
       renderExportedAppQueryScript(hasBasemap),
       '    var MaplatApp = window.MaplatUi && window.MaplatUi.createObject',
       '      ? window.MaplatUi',

@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "스타일이 너무 복잡하거나 예상하지 못한 형식입니다"
   },
   "settings": {
+    "save_folder_failed": "데이터 폴더를 저장하지 못했습니다. 네트워크 폴더는 사용할 수 없습니다. 다른 설정도 저장되지 않았습니다.",
     "title": "설정",
     "basic_settings": "기본 설정",
     "base_map": "베이스맵 설정",

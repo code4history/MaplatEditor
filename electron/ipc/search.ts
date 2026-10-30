@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipc } from './registry';
 import SqliteDataService from '../services/SqliteDataService';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
@@ -95,7 +95,7 @@ async function attachBaseMapListExtras<T extends Record<string, any>>(
 type SearchFilter = { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number };
 
 export function registerSearchHandlers() {
-  ipcMain.handle('search:maps', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:maps', async (_event, filter: SearchFilter) => {
     const docs = await SqliteDataService.searchMaps(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'map');
@@ -105,7 +105,7 @@ export function registerSearchHandlers() {
     return attachMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
-  ipcMain.handle('search:apps', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:apps', async (_event, filter: SearchFilter) => {
     const docs = await SqliteDataService.searchApps(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'app');
@@ -115,7 +115,7 @@ export function registerSearchHandlers() {
     return attachAppListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
-  ipcMain.handle('search:poiSources', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:poiSources', async (_event, filter: SearchFilter) => {
     const docs = await SqliteDataService.searchPoiSources(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'poi-source');
@@ -125,7 +125,7 @@ export function registerSearchHandlers() {
     return attachDiagnostics(paginate(docs, filter.page, filter.pageSize), filter.pageSize, attachPoiSourceDiagnostics);
   });
 
-  ipcMain.handle('search:baseMaps', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:baseMaps', async (_event, filter: SearchFilter) => {
     const docs = await SqliteDataService.searchBaseMaps(filter.q ?? '');
     if (filter.bbox) {
       const filtered = filterBaseMapsByBbox(docs, filter.bbox);
@@ -134,20 +134,20 @@ export function registerSearchHandlers() {
     return attachBaseMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
   });
 
-  ipcMain.handle('search:imageAssets', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:imageAssets', async (_event, filter: SearchFilter) => {
     const docs = await SqliteDataService.searchAssets(filter.q ?? '');
     return paginate(docs, filter.page, filter.pageSize);
   });
 
-  ipcMain.handle('search:extent', async (_event, kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) => {
+  ipc.handle('search:extent', async (_event, kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) => {
     return SqliteDataService.searchExtent(bbox, kind);
   });
 
-  ipcMain.handle('search:appCoverage', async (_event, appUid: string, mapUids?: string[]) => {
+  ipc.handle('search:appCoverage', async (_event, appUid: string, mapUids?: string[]) => {
     return SqliteDataService.appCoverage(appUid, mapUids);
   });
 
-  ipcMain.handle('search:resourceBbox', async (_event, kind: 'map', uid: string) => {
+  ipc.handle('search:resourceBbox', async (_event, kind: 'map', uid: string) => {
     return SqliteDataService.resourceBbox(kind, uid);
   });
 }

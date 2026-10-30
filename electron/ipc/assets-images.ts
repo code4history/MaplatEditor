@@ -1,7 +1,8 @@
 import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import path from 'node:path';
 import { open, realpath } from 'node:fs/promises';
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
+import { ipc } from './registry';
 import imageAssetService from '../services/ImageAssetService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
@@ -68,22 +69,22 @@ async function readPickedSource(token: string) {
 // 画像アセット IPC (Phase 2 Task 4, ADR-0007)。channel prefix は imageassets:* を使う
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
-  ipcMain.handle('imageassets:add', (_, input) =>
+  ipc.handle('imageassets:add', (_, input) =>
     runGuarded('imageassets:add', () => imageAssetService.add(input)));
-  ipcMain.handle('imageassets:list', () => imageAssetService.list());
-  ipcMain.handle('imageassets:search', (_, query) => imageAssetService.search(query));
-  ipcMain.handle('imageassets:get', (_, ref) => imageAssetService.get(ref));
-  ipcMain.handle('imageassets:update-metadata', (_, uid, input) =>
+  ipc.handle('imageassets:list', () => imageAssetService.list());
+  ipc.handle('imageassets:search', (_, query) => imageAssetService.search(query));
+  ipc.handle('imageassets:get', (_, ref) => imageAssetService.get(ref));
+  ipc.handle('imageassets:update-metadata', (_, uid, input) =>
     runGuarded('imageassets:update-metadata', () => imageAssetService.updateMetadata(uid, input)));
-  ipcMain.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
-  ipcMain.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
+  ipc.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
+  ipc.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
   // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)
-  ipcMain.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
+  ipc.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
   // インポート用ファイル選択 (poisource:pickImportFile と同型)。SVG / webp は Jimp でデコードできず
   // add が invalid-request で拒否するため、フィルタから外す(選ばせても必ず失敗する形式を
   // ダイアログに出さない)。webp は Jimp 1.6 が decode 非対応(実機で
   // "Mime type image/webp does not support decoding" を確認済み。@jimp/wasm-webp 導入は本 Phase 対象外)
-  ipcMain.handle('imageassets:pickImageFile', async (event) => {
+  ipc.handle('imageassets:pickImageFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
       defaultPath: dialogDefaultPath('image'),
@@ -101,6 +102,6 @@ export function registerImageAssetHandlers() {
     return { filePath, fileName: path.basename(filePath), token };
   });
   // feat2: 指定した画像の一次画像（保存前のプレビュー）。引数は token だけ
-  ipcMain.handle('imageassets:readPickedSource', (_, token) =>
+  ipc.handle('imageassets:readPickedSource', (_, token) =>
     runGuarded('imageassets:readPickedSource', () => readPickedSource(token)));
 }

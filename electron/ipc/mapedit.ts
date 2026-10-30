@@ -1,5 +1,6 @@
 import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
-import { ipcMain, BrowserWindow, dialog } from 'electron';
+import { BrowserWindow, dialog } from 'electron';
+import { ipc } from './registry';
 import fs from 'fs-extra';
 import path from 'path';
 // #105: タイル URL は file:// から app://local へ移行する
@@ -67,7 +68,7 @@ async function createTinFromGcpsAsync(
 
 export const registerMapEditHandlers = () => {
     // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間はslugでも解決される
-    ipcMain.handle('mapedit:request', async (_event, uidOrMapID: string) => {
+    ipc.handle('mapedit:request', async (_event, uidOrMapID: string) => {
         try {
             return await StorageAdapter.readMapForEdit(uidOrMapID);
         } catch (e) {
@@ -76,7 +77,7 @@ export const registerMapEditHandlers = () => {
         }
     });
 
-    ipcMain.handle('mapedit:preview-source', async (_event, uidOrMapID: string) => {
+    ipc.handle('mapedit:preview-source', async (_event, uidOrMapID: string) => {
         try {
             return await StorageAdapter.readMapForPreview(uidOrMapID);
         } catch (e) {
@@ -86,7 +87,7 @@ export const registerMapEditHandlers = () => {
     });
 
     // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
-    ipcMain.handle('mapedit:save', async (_event, payload: any) => {
+    ipc.handle('mapedit:save', async (_event, payload: any) => {
         try {
             const result = await StorageAdapter.saveMapForEdit(payload);
             if (result && 'result' in result && result.result === 'Success') {
@@ -104,7 +105,7 @@ export const registerMapEditHandlers = () => {
     });
 
     // TIN計算をNode.jsプロセスで実行してコンパイル済みデータを返す
-    ipcMain.handle('mapedit:updateTin', async (
+    ipc.handle('mapedit:updateTin', async (
         _event,
         gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any
     ) => {
@@ -126,7 +127,7 @@ export const registerMapEditHandlers = () => {
     //        fs に一切触れず alive:false（§5.0 の表 — 表示のみに接続されるため安全側）。
     // savedTilesExist: uid 指定時に saveFolder/tiles/{uid} の実在（同バリデータ・root 差し替え。
     //        null または uid 未指定なら false）。保存確定直後クラッシュの誤誘導防止（§6.4）
-    ipcMain.handle('mapedit:stagingStatus', async (_event, url_: string, uid?: string) => {
+    ipc.handle('mapedit:stagingStatus', async (_event, url_: string, uid?: string) => {
         let alive = true;
         if (typeof url_ === 'string' && url_) {
             if (isDraftTileUrl(draftTileRoot, url_)) {
@@ -167,7 +168,7 @@ export const registerMapEditHandlers = () => {
      * 決定だけを行う。パス組み立ては resolveDraftTileDir を通す（'..' 等での親領域参照を
      * 構造的に排除する。M12-T20 §6.1 と同じ防御）。
      */
-    ipcMain.handle('mapedit:deriveRuntimeTileUrl', async (_event, url?: string, mapRef?: string) => {
+    ipc.handle('mapedit:deriveRuntimeTileUrl', async (_event, url?: string, mapRef?: string) => {
         // url が非空ならタイル実体を見る必要がない（deriveRuntimeTileUrl が url をそのまま返す）
         if (typeof url === 'string' && url) return deriveRuntimeTileUrl({ url }, '');
 
@@ -186,7 +187,7 @@ export const registerMapEditHandlers = () => {
     });
 
     // 旧実装: mapedit_getWmtsFolder 相当
-    ipcMain.handle('mapedit:getWmtsFolder', async () => {
+    ipc.handle('mapedit:getWmtsFolder', async () => {
         const saveFolder = SettingsService.get('saveFolder') as string;
         return path.join(saveFolder, 'wmts');
     });
@@ -195,7 +196,7 @@ export const registerMapEditHandlers = () => {
     // M13-T1 (§2.6): compose + tmpFile書き出し + targets構築 + tileRoot収集 + ProgressReporter +
     // AdmZip + fs.move は buildAndWriteMapZip (mapDownloadZip.ts) へ移設した。
     // win 解決・mapDoc/slug/fileKey 解決・dialog/Canceled 判定のみここに残す
-    ipcMain.handle('mapedit:download', async (event, mapObject: any, tins: any[]) => {
+    ipc.handle('mapedit:download', async (event, mapObject: any, tins: any[]) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
         // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (ADR-0007: viewer互換)。
@@ -221,7 +222,7 @@ export const registerMapEditHandlers = () => {
     // M13-T1 (§2.1): 保存済み地図専用のstrict-free搬出。strict_error/missing map判定を行わず、
     // 例外は全てcatchして'Error'へ写像する薄いラッパー(実処理はMapPurposeService側)
     // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
-    ipcMain.handle('mapedit:download-saved', async (event, mapRef: string, options?: Partial<MapExportOptions>) => {
+    ipc.handle('mapedit:download-saved', async (event, mapRef: string, options?: Partial<MapExportOptions>) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
         return await runGuarded('mapedit:download-saved',
             () => MapPurposeService.downloadSavedMap(win, mapRef, options));
@@ -229,7 +230,7 @@ export const registerMapEditHandlers = () => {
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
     // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
-    ipcMain.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
+    ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
         const ret = await dialog.showOpenDialog(win, {
@@ -291,7 +292,7 @@ export const registerMapEditHandlers = () => {
     // mercMap の表示範囲に重なる地図リストを検索して送信する（デバウンス付き）
     let extentCheckInProgress: boolean = false;
     let extentPending: number[] | null = null;
-    ipcMain.handle('mapedit:checkExtentMap', async (event, extent: number[]) => {
+    ipc.handle('mapedit:checkExtentMap', async (event, extent: number[]) => {
         const win = BrowserWindow.fromWebContents(event.sender);
         if (!win) return;
 

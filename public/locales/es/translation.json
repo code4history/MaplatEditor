@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "el estilo es demasiado complejo o tiene una forma inesperada"
   },
   "settings": {
+    "save_folder_failed": "No se pudo guardar la carpeta de datos. No se pueden usar carpetas de red. No se ha guardado ningún otro ajuste.",
     "title": "Configuración",
     "basic_settings": "Configuración básica",
     "base_map": "Configuración de mapa base",

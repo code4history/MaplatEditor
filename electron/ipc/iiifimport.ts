@@ -6,7 +6,7 @@
 //
 // 返すのは構造化複製できる値だけにする（Buffer も Error も IPC を越えさせない）。
 
-import { ipcMain } from 'electron';
+import { ipc } from './registry';
 import {
   inspectManifest,
   inspectInfo,
@@ -59,7 +59,7 @@ function badArgument(detail: string) {
  */
 export const registerIiifImportHandlers = () => {
   // Manifest か info.json を取得して、検査を通した JSON と応答の事実を返す。
-  ipcMain.handle('iiifImport:inspect', async (_event, arg: unknown) => {
+  ipc.handle('iiifImport:inspect', async (_event, arg: unknown) => {
     const args = objectArg(arg);
     if (!args) return badArgument('the argument must be an object');
 
@@ -74,7 +74,7 @@ export const registerIiifImportHandlers = () => {
   });
 
   // サムネイル 2 枚を取得して、その下書きのフォルダへ書く。画像のバイトは返さない。
-  ipcMain.handle('iiifImport:thumbnails', async (_event, arg: unknown) => {
+  ipc.handle('iiifImport:thumbnails', async (_event, arg: unknown) => {
     const args = objectArg(arg);
     if (!args) return badArgument('the argument must be an object');
 
@@ -124,28 +124,28 @@ export const registerIiifImportHandlers = () => {
   });
 
   // 取り込みの結果を預かり、短い不透明な id を返す（引数が使えなければ null）。
-  ipcMain.handle('iiifImport:stageDraft', async (_event, payload: unknown) => {
+  ipc.handle('iiifImport:stageDraft', async (_event, payload: unknown) => {
     const args = objectArg(payload);
     if (!args) return null;
     return await stageDraft(args as IiifImportDraftPayload);
   });
 
   // 預けた中身を 1 回だけ返す（無い・期限切れは null）。
-  ipcMain.handle('iiifImport:takeDraft', async (_event, draftId: unknown, mapUid: unknown) => {
+  ipc.handle('iiifImport:takeDraft', async (_event, draftId: unknown, mapUid: unknown) => {
     const id = textArg(draftId);
     if (!id) return null;
     return await takeDraft(id, textArg(mapUid) ?? undefined);
   });
 
   // 預かりを捨てる。
-  ipcMain.handle('iiifImport:discardDraft', async (_event, draftId: unknown) => {
+  ipc.handle('iiifImport:discardDraft', async (_event, draftId: unknown) => {
     const id = textArg(draftId);
     if (!id) return false;
     return await discardDraft(id);
   });
 
   // Manifest を取り直して、inspect と同じ形で返す（サムネイルは取らない）。
-  ipcMain.handle('iiifImport:recopy', async (_event, arg: unknown) => {
+  ipc.handle('iiifImport:recopy', async (_event, arg: unknown) => {
     const args = objectArg(arg);
     if (!args) return badArgument('the argument must be an object');
     const manifestUrl = textArg(args.manifestUrl);
