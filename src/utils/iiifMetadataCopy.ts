@@ -192,6 +192,70 @@ function mergeText(
     : Object.values(table)[0];
 }
 
+/**
+ * ライセンスの鍵を写したとき、その注記の鍵（鍵の名前 + Note）も新しい値にそろえる。
+ * 注記は Core の表に無い鍵で、ライセンスの鍵に付いて動く。
+ * 新しい値に注記があれば入れ、無くても前回の写しの控えに注記があれば
+ *（IIIF から写したものなので）地図からも控えからも消す。
+ * 控えにも無ければ、地図の注記は人が書いたものとして触らない。
+ */
+function followLicenseNote(
+  target: Record<string, unknown>,
+  copiedValues: Record<string, Record<string, string>>,
+  key: string,
+  freshValues: Record<string, Localized | string>,
+  freshCopiedValues: Record<string, Record<string, string>>,
+  previousCopiedValues: Record<string, Record<string, string>>,
+): void {
+  const noteKey = key + 'Note';
+  if (previousCopiedValues[noteKey] === undefined && freshValues[noteKey] === undefined) return;
+  const note = freshValues[noteKey];
+  if (note === undefined) {
+    delete target[noteKey];
+    delete copiedValues[noteKey];
+    return;
+  }
+  target[noteKey] = note;
+  const freshNote = freshCopiedValues[noteKey];
+  if (freshNote === undefined) delete copiedValues[noteKey];
+  else copiedValues[noteKey] = { ...freshNote };
+}
+
+/**
+ * 写した値を地図の metadata へ入れ、写した時点の控えを差し替えた新しいオブジェクトを返す（元は変えない）。
+ * ライセンスの鍵を写したときは、その注記の鍵もライセンスに付いて動かす（写し直しの道と同じ扱い）。
+ * 写した日時は写しの値を使う。
+ */
+export function applyIiifCopy(
+  map: Record<string, unknown>,
+  copied: IiifMetadataCopySuccess,
+  lang: string,
+): Record<string, unknown> {
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const next = applyIiifValues(map, copied.values, lang);
+  const copiedValues: Record<string, Record<string, string>> = {};
+  for (const [key, table] of Object.entries(copied.copiedValues)) {
+    copiedValues[key] = { ...table };
+  }
+  for (const key of Object.keys(copied.values)) {
+    followLicenseNote(
+      next,
+      copiedValues,
+      key,
+      copied.values,
+      copied.copiedValues,
+      iiif.copiedValues ?? {},
+    );
+  }
+  next.iiif = {
+    ...iiif,
+    copiedValues,
+    copiedMetadata: copied.copiedMetadata,
+    copiedAt: copied.copiedAt,
+  };
+  return next;
+}
+
 /** 写し直した 1 行の理由。 */
 export type IiifRecopyReason = 'unchanged' | 'human-edited' | 'iiif-changed' | 'both';
 
@@ -389,19 +453,15 @@ export function applyIiifRecopy(
     const table = chosen[key];
     next[key] = mergeText(next[key], table, lang);
     copiedValues[key] = { ...(copiedValues[key] ?? {}), ...table };
-    // ライセンスの鍵は、注記の鍵（鍵の名前 + Note）も新しい値にそろえる（無ければ消す）。
-    const noteKey = key + 'Note';
-    if (copiedValues[noteKey] === undefined && plan.fresh.values[noteKey] === undefined) continue;
-    const note = plan.fresh.values[noteKey];
-    if (note === undefined) {
-      delete next[noteKey];
-      delete copiedValues[noteKey];
-      continue;
-    }
-    next[noteKey] = note;
-    const freshNote = plan.fresh.copiedValues[noteKey];
-    if (freshNote === undefined) delete copiedValues[noteKey];
-    else copiedValues[noteKey] = { ...freshNote };
+    // ライセンスの鍵は、注記の鍵も新しい値にそろえる（無ければ消す）。
+    followLicenseNote(
+      next,
+      copiedValues,
+      key,
+      plan.fresh.values,
+      plan.fresh.copiedValues,
+      copiedValues,
+    );
   }
 
   next.iiif = {

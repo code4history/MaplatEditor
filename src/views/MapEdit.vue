@@ -28,8 +28,8 @@ import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/
 import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
 import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
 import {
+    applyIiifCopy,
     applyIiifRecopy,
-    applyIiifValues,
     copyIiifForMap,
     planIiifRecopy,
     type IiifRecopyPlanSuccess
@@ -1191,14 +1191,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
             return;
         }
         // 写した値と写した時点の控えを、同じ 1 つの新しい地図データに入れる。
-        const next = applyIiifValues(mapData.value, copied.values, lang);
-        next.iiif = {
-            ...mapData.value.iiif,
-            copiedValues: copied.copiedValues,
-            copiedMetadata: copied.copiedMetadata,
-            copiedAt: copied.copiedAt
-        };
-        patchMapDataFrom(next);
+        patchMapDataFrom(applyIiifCopy(mapData.value, copied, lang));
     } catch (_error) {
         iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
     }

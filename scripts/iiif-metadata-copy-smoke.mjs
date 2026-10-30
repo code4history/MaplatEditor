@@ -58,6 +58,7 @@ try {
         resolveIiifMetadata,
       } = await import(${JSON.stringify(coreModulePath)});
       const {
+        applyIiifCopy,
         applyIiifRecopy,
         applyIiifValues,
         copyIiifForMap,
@@ -689,6 +690,156 @@ try {
           'https://example.org/terms',
           'the note must move together with the license',
         );
+      });
+
+      // IIIF から写す道でも、ライセンスの注記をライセンスに付いて動かすことの確認。
+      // 是正を見分けるのは、(1) 前回の写しの控えに注記があり、新しいライセンスに
+      // 注記が無ければ、地図からも控えからも消えること、(2) 新しいライセンスにも
+      // 注記があれば新しい値になること、(3) 前回の控えに注記が無ければ、地図の
+      // 注記は人が書いたものとして残すこと、(4) copiedValues・copiedMetadata・
+      // copiedAt だけが写しの値になり、他の iiif の鍵は元のままであること、
+      // (5) 入力の地図を変えないこと。
+      test('copy-drops-stale-license-note', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        // NDL の Manifest のライセンスは表に無い URI なので、最初の写しに注記が付く。
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        assert.equal(
+          first.values.licenseNote,
+          ndl.license,
+          'the first copy must have the license note',
+        );
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        assert.equal(map.licenseNote, ndl.license, 'the map must have the note of the first copy');
+        assert.deepEqual(
+          map.iiif.copiedValues.licenseNote,
+          { [lang]: ndl.license },
+          'the copied values must have the note of the first copy',
+        );
+        const before = structuredClone(map);
+
+        // 新しい Manifest のライセンスは Creative Commons の URI（注記を出さない）。
+        const changed = structuredClone(ndl);
+        changed.license = 'https://creativecommons.org/licenses/by/4.0/';
+        const copied = copyIiifMetadataWithBindings(
+          changed,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(copied.ok, true, 'the copy of the changed manifest must succeed');
+        assert.equal(copied.values.licenseNote, undefined, 'the new license must not have a note');
+        const next = applyIiifCopy(map, copied, lang);
+
+        // (1) ライセンスは新しい値になり、古い注記は地図からも控えからも消える。
+        assert.equal(next.license, copied.values.license, 'the license must take the new value');
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(next, 'licenseNote'),
+          false,
+          'a stale license note must be removed from the map',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(next.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a stale license note must be removed from the copied values',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.license,
+          copied.copiedValues.license,
+          'the license of the copied values must be the new one',
+        );
+
+        // (4) 写しの 3 つの鍵だけが新しくなり、結び付けなどは元のまま。
+        assert.deepEqual(
+          next.iiif.copiedMetadata,
+          copied.copiedMetadata,
+          'copiedMetadata must be the fresh one',
+        );
+        assert.equal(next.iiif.copiedAt, copied.copiedAt, 'copiedAt must be the fresh one');
+        assert.equal(next.iiif.manifest, before.iiif.manifest, 'the manifest must stay as it was');
+        assert.equal(next.iiif.canvas, before.iiif.canvas, 'the canvas must stay as it was');
+        assert.deepEqual(next.iiif.bindings, before.iiif.bindings, 'the bindings must stay as they were');
+        // (5) 入力の地図は変えない。
+        assert.deepEqual(map, before, 'the input map must not be changed');
+
+        // (2) 新しい Manifest のライセンスにも注記があれば、注記は新しい値になる。
+        const withNote = structuredClone(ndl);
+        withNote.license = 'https://example.org/terms';
+        const copiedNote = copyIiifMetadataWithBindings(
+          withNote,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(copiedNote.ok, true, 'the copy of the license with a note must succeed');
+        const withNewNote = applyIiifCopy(map, copiedNote, lang);
+        assert.equal(
+          withNewNote.licenseNote,
+          'https://example.org/terms',
+          'the note of the new license must be copied',
+        );
+        assert.deepEqual(
+          withNewNote.iiif.copiedValues.licenseNote,
+          { [lang]: 'https://example.org/terms' },
+          'the note of the new license must be kept with the license',
+        );
+
+        // (3) 前回の控えに注記が無ければ、地図の注記は人が書いたものとして残す。
+        const plain = structuredClone(ndl);
+        plain.license = 'https://creativecommons.org/licenses/by/4.0/';
+        const firstPlain = copyIiifMetadataWithBindings(
+          plain,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(firstPlain.ok, true, 'the first copy of the plain license must succeed');
+        assert.equal(
+          firstPlain.values.licenseNote,
+          undefined,
+          'the plain license must not have a note',
+        );
+        const handNote = {
+          ...applyIiifValues({}, firstPlain.values, lang),
+          licenseNote: '手で書いた注記',
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: firstPlain.copiedValues,
+            copiedMetadata: firstPlain.copiedMetadata,
+            copiedAt: firstPlain.copiedAt,
+          },
+          lang,
+        };
+        const kept = applyIiifCopy(handNote, copied, lang);
+        assert.equal(
+          kept.licenseNote,
+          '手で書いた注記',
+          'a hand-written note must stay when the previous copy has no note',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(kept.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a hand-written note must not enter the copied values',
+        );
+        assert.equal(kept.license, copied.values.license, 'the license must take the new value');
+        return '(4/4)';
       });
 
       // 1.0.0 で廃止した属性は、結び付けに残っていても写さない。直す前は、手書きの
