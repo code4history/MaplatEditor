@@ -99,8 +99,6 @@ try {
     /registerAssetDraftHandlers\s*\(\)/,
     'main.ts に registerAssetDraftHandlers() 呼び出しがない'
   );
-  assert.match(mainSource, /removeHandler\(['"]asset-drafts:put['"]\)/, 'asset-drafts:put cleanupがない');
-  assert.match(mainSource, /removeHandler\(['"]asset-drafts:get['"]\)/, 'asset-drafts:get cleanupがない');
 
   console.log('  [2/7] IPC handler 構造: PASS');
 

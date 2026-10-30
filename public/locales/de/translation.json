@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "der Stil ist zu komplex oder unerwartet aufgebaut"
   },
   "settings": {
+    "save_folder_failed": "Der Datenordner konnte nicht gespeichert werden. Netzwerkordner können nicht verwendet werden. Andere Einstellungen wurden nicht gespeichert.",
     "title": "Einstellungen",
     "basic_settings": "Grundeinstellungen",
     "base_map": "Basiskarten-Einstellungen",

@@ -118,7 +118,7 @@ await writeFile(
     registerMapEditHandlers();
     const derive = __handlers.get('mapedit:deriveRuntimeTileUrl');
     assert.ok(derive, 'mapedit:deriveRuntimeTileUrl が登録されていない（IPC 未実装）');
-    const call = (url: any, mapRef: any) => derive({} as any, url, mapRef);
+    const call = (url: any, mapRef: any) => derive({ senderFrame: { url: 'app://bundle/index.html', parent: null } } as any, url, mapRef);
 
     // ---- フィクスチャ ------------------------------------------------------
     // 保存済みタイル: <saveFolder>/tiles/<uid>/0/0/0.jpg

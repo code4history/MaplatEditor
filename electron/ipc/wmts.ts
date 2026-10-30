@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
+import { ipc } from './registry';
 import WmtsGeneratorService from '../services/WmtsGeneratorService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
@@ -9,7 +10,7 @@ import { runGuarded } from '../utils/inflightGuard';
 // 削除しない。
 // 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
 export function registerWmtsHandlers() {
-    ipcMain.handle('wmtsGen:generate', async (
+    ipc.handle('wmtsGen:generate', async (
         event,
         uid: string,
         mapID: string,

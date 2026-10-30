@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, protocol, net, autoUpdater } from 'electron'
+import { app, BrowserWindow, Menu, dialog, protocol, net, autoUpdater, session } from 'electron'
 import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -9,6 +9,9 @@ import path from 'node:path'
 import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
 // oct26-m16-t2 (F-C1): main window・About ウィンドウの遷移ガード
 import { installNavigationGuard } from './navigation-guard'
+import { ipc, trustedDevServerUrl } from './ipc/registry'
+import { decidePermission } from './utils/permissionPolicy'
+import { resolveAppSchemeRoots } from './services/localRoots'
 // NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: main プロセスの外向き fetch を Chromium の
 // ネットワークスタックへ載せる。IPC ハンドラ登録より前（module のトップレベル）で行うので、
 // どの経路も Node の fetch で外へ出ない。0484 以降は外部取得専用の session
@@ -218,7 +221,6 @@ import { registerSearchHandlers } from './ipc/search'
 import { registerIiifImportHandlers } from './ipc/iiifimport'
 import { clearAllIiifDrafts } from './services/iiifImportService'
 
-import { ipcMain } from 'electron'
 
 // M13-T3: 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
 import SqliteDataService from './services/SqliteDataService'
@@ -273,107 +275,27 @@ async function ensureTmpFolderOwned(tmpFolder: string): Promise<boolean> {
 
 app.whenReady().then(async () => {
   if (!(await ensureTmpFolderOwned(SettingsService.get('tmpFolder')))) return
+  // 既定の session の権限は拒否が既定。判定は decidePermission に閉じる（画面で開く前に掛ける）
+  session.defaultSession.setPermissionRequestHandler((_contents, permission, callback, details) => {
+    callback(decidePermission(permission, details.requestingUrl, trustedDevServerUrl))
+  })
+  session.defaultSession.setPermissionCheckHandler((_contents, permission, requestingOrigin, details) => {
+    return decidePermission(permission, details.requestingUrl ?? requestingOrigin, trustedDevServerUrl)
+  })
+
   // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
   // ローカルリソースは許可ルートと候補の両方を realpath した実体で判定し（#138・nov26-m7-t7）、判定した実体を
   // net.fetch で配信し、それ以外は 403。
   // oct26-m4-t2ff: 解決・失敗 status の写像・防御ヘッダは createAppSchemeHandler（appScheme.ts）が持つ。
   // ここでは要求ごとの許可ルートと実ファイルの読み方だけを渡す。
   protocol.handle(APP_SCHEME, createAppSchemeHandler({
-    getRoots: () => {
-      const saveFolder = SettingsService.get('saveFolder');
-      const fallbackRoot = path.join(process.env.APP_ROOT, 'dist');
-      return {
-        bundleRoots: [RENDERER_DIST, path.join(process.env.APP_ROOT, 'public')],
-        // MAJ-1 是正: localFileUrl() が URL 化する置き場所（saveFolder / draftTileRoot /
-        // tmpFolder 配下の tiles）を正規の配信ルートとして許可する。allowlist を広げすぎないため、
-        // tmpFolder は「tiles サブディレクトリのみ」を許可する（mapDownloadZip 等の zip 一時領域は
-        // ローカルリソースとして配信されない）。
-        localRoots: [
-          typeof saveFolder === 'string' && saveFolder ? saveFolder : fallbackRoot,
-          draftTileRoot,
-          path.join(SettingsService.get('tmpFolder') as string, 'tiles'),
-        ],
-      };
-    },
+    getRoots: resolveAppSchemeRoots,
     // MIN-1 是正: Content-Type は net.fetch(file://…) に依存せず handler 側で mimeFor から明示する
     fetchFile: (filePath) => net.fetch(pathToFileURL(filePath).toString()),
     warn: (...args) => console.warn(...args),
   }));
 
-  // HMR時の「2重登録」エラーを防ぐため、既存ハンドラを事前に解除する
-  ipcMain.removeHandler('settings:get')
-  ipcMain.removeHandler('settings:set')
-  ipcMain.removeHandler('settings:select-folder')
-  ipcMain.removeHandler('maplist:request')
-  ipcMain.removeHandler('maplist:delete')
-  ipcMain.removeHandler('mapedit:request')
-  ipcMain.removeHandler('mapedit:preview-source')
-  ipcMain.removeHandler('mapedit:get-tms-list')
-  ipcMain.removeHandler('mapedit:get-base-map-visibility')
-  ipcMain.removeHandler('mapedit:set-base-map-visibility')
-  ipcMain.removeHandler('mapedit:updateTin')
-  ipcMain.removeHandler('mapedit:save')
-  ipcMain.removeHandler('mapedit:stagingStatus')
-  ipcMain.removeHandler('mapedit:checkExtentMap')
-  ipcMain.removeHandler('mapupload:showMapSelectDialog')
-  ipcMain.removeHandler('mapedit:getWmtsFolder')
-  ipcMain.removeHandler('mapedit:download')
-  ipcMain.removeHandler('mapedit:download-saved')
-  ipcMain.removeHandler('mapedit:uploadCsv')
-  ipcMain.removeHandler('dataupload:showDataSelectDialog')
-  ipcMain.removeHandler('wmtsGen:generate')
-  ipcMain.removeHandler('dialog:showMessageBox')
-  ipcMain.removeHandler('asset-drafts:put')
-  ipcMain.removeHandler('asset-drafts:get')
-  ipcMain.removeHandler('asset-drafts:remove')
-  ipcMain.removeHandler('asset-drafts:list')
-  ipcMain.removeAllListeners('asset-drafts:flush-sync')
-  ipcMain.removeHandler('applist:request')
-  ipcMain.removeHandler('applist:delete')
-  ipcMain.removeHandler('appedit:request')
-  ipcMain.removeHandler('appedit:save')
-  ipcMain.removeHandler('appedit:prepare-preview')
-  ipcMain.removeHandler('poisource:list')
-  ipcMain.removeHandler('poisource:get')
-  ipcMain.removeHandler('poisource:createLocal')
-  ipcMain.removeHandler('poisource:save')
-  ipcMain.removeHandler('poisource:importFile')
-  ipcMain.removeHandler('poisource:registerRemote')
-  ipcMain.removeHandler('poisource:refreshRemote')
-  ipcMain.removeHandler('poisource:cloneToLocal')
-  ipcMain.removeHandler('poisource:findReferences')
-  ipcMain.removeHandler('poisource:delete')
-  ipcMain.removeHandler('poisource:exportFile')
-  ipcMain.removeHandler('asset:checkSlug')
-  ipcMain.removeHandler('imageassets:add')
-  ipcMain.removeHandler('imageassets:list')
-  ipcMain.removeHandler('imageassets:search')
-  ipcMain.removeHandler('imageassets:get')
-  ipcMain.removeHandler('imageassets:update-metadata')
-  ipcMain.removeHandler('imageassets:delete')
-  ipcMain.removeHandler('imageassets:getFilePath')
-  ipcMain.removeHandler('imageassets:readPickedSource')
-  // Minor-2 (M11-T7): slug reservation channels の HMR cleanup
-  ipcMain.removeHandler('slug-reservations:reserve')
-  ipcMain.removeHandler('slug-reservations:move')
-  ipcMain.removeHandler('slug-reservations:release')
-  ipcMain.removeHandler('slug-reservations:check')
-  ipcMain.removeHandler('search:maps')
-  ipcMain.removeHandler('search:apps')
-  ipcMain.removeHandler('search:poiSources')
-  ipcMain.removeHandler('search:baseMaps')
-  ipcMain.removeHandler('search:imageAssets')
-  ipcMain.removeHandler('search:extent')
-  ipcMain.removeHandler('search:appCoverage')
-  ipcMain.removeHandler('search:resourceBbox')
-  ipcMain.removeHandler('iiifImport:inspect')
-  ipcMain.removeHandler('iiifImport:thumbnails')
-  ipcMain.removeHandler('iiifImport:stageDraft')
-  ipcMain.removeHandler('iiifImport:takeDraft')
-  ipcMain.removeHandler('iiifImport:discardDraft')
-  ipcMain.removeHandler('iiifImport:recopy')
-
-  ipcMain.handle('dialog:showMessageBox', async (event, options) => {
+  ipc.handle('dialog:showMessageBox', async (event, options) => {
     return await dialog.showMessageBox(BrowserWindow.fromWebContents(event.sender)!, options)
   })
 

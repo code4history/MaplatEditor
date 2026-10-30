@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "le style est trop complexe ou écrit de façon inattendue"
   },
   "settings": {
+    "save_folder_failed": "Impossible d'enregistrer le dossier de données. Les dossiers réseau ne peuvent pas être utilisés. Aucun autre paramètre n'a été enregistré.",
     "title": "Paramètres",
     "basic_settings": "Paramètres de base",
     "base_map": "Paramètres du fond de carte",

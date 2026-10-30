@@ -269,6 +269,7 @@
     "style_gl_check_reason_check-failed": "樣式過於複雜或寫法超出預期"
   },
   "settings": {
+    "save_folder_failed": "無法儲存資料資料夾。不能使用網路資料夾。其他設定也未儲存。",
     "title": "設定",
     "basic_settings": "基本設定",
     "base_map": "底圖設定",

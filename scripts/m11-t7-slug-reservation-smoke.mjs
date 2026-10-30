@@ -1288,16 +1288,6 @@ assert.match(ipcSrc, /requireString.*assetUid|!assetUid|assetUid\.trim\(\)|asset
 
 console.log("m11-t7 smoke Part L: OK");
 
-// --- Part M: Minor-2 HMR handler cleanup for slug reservation channels ---
-// HMR 再登録時の多重登録を防ぐため、removeHandler 一覧へ slug-reservations:* を追加する。
-const mainSrc = await readSrc("electron/main.ts");
-assert.match(mainSrc, /removeHandler\(['"]slug-reservations:reserve['"]/, "main must removeHandler slug-reservations:reserve on HMR");
-assert.match(mainSrc, /removeHandler\(['"]slug-reservations:move['"]/, "main must removeHandler slug-reservations:move on HMR");
-assert.match(mainSrc, /removeHandler\(['"]slug-reservations:release['"]/, "main must removeHandler slug-reservations:release on HMR");
-assert.match(mainSrc, /removeHandler\(['"]slug-reservations:check['"]/, "main must removeHandler slug-reservations:check on HMR");
-
-console.log("m11-t7 smoke Part M: OK");
-
 // --- Part N: AC4 実DB統合 - promote conflict が registerAsset INSERT を rollbackする ---
 // Service unit のSQL模擬ではなく、asset_registry + slug_reservations の両テーブルを使い、
 // promote conflict 時に asset_registry への INSERT が rollback されることを検証する。
