@@ -150,6 +150,15 @@ function setLangResource(key: LangKey, value: string | Record<string, string> | 
   writeOverride(key, normalized);
 }
 
+// 書誌の表の出し方（maplat のソースだけ）。「既定」を選ぶとキーごと外し、
+// Viewer の既定（"hidden"）に委ねる。
+function setIiifMetadata(raw: string) {
+  const next = copySource();
+  if (raw === "hidden" || raw === "all") next.iiifMetadata = raw;
+  else delete next.iiifMetadata;
+  commitSource(next);
+}
+
 // 数値（mercator シフト 2 欄）。空欄＝上書きなしなので解除へ倒す
 function setNumber(key: string, raw: string) {
   const value = raw === "" ? undefined : Number(raw);
@@ -221,6 +230,23 @@ function copyCoverageToEnvelope() {
           @update:model-value="setLangResource('label', $event)"
           @select-language="emit('select-language', $event)"
         />
+      </div>
+      <!-- IIIF から書誌を写した地図は、アプリにその書誌の表を出させられる。
+           出し方はマスタ（地図）に対応物が無いアプリ所有の設定なので、上書きの差分
+           （overrides）ではなくソースのトップレベルに置く。testid も override- 接頭辞にしない。 -->
+      <div class="col-md-6">
+        <label class="form-label small mb-0">{{ t("appedit.source_iiif_metadata") }}</label>
+        <select
+          class="form-select form-select-sm"
+          :value="source.iiifMetadata ?? ''"
+          :disabled="translationMode"
+          data-testid="app-source-iiif-metadata"
+          @change="setIiifMetadata(($event.target as HTMLSelectElement).value)"
+        >
+          <option value="">{{ t("appedit.source_iiif_metadata_default") }}</option>
+          <option value="hidden">{{ t("appedit.source_iiif_metadata_hidden") }}</option>
+          <option value="all">{{ t("appedit.source_iiif_metadata_all") }}</option>
+        </select>
       </div>
     </div>
 

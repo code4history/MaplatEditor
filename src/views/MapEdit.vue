@@ -25,6 +25,15 @@ import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
 import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
+import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
+import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
+import {
+    applyIiifRecopy,
+    applyIiifValues,
+    copyIiifMetadataWithBindings,
+    planIiifRecopy,
+    type IiifRecopyPlanSuccess
+} from '../utils/iiifMetadataCopy';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
@@ -73,6 +82,8 @@ import ContextMenu from '../libs/ol-contextmenu/main';
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
+// @ts-ignore
+import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -1119,6 +1130,116 @@ const dataAttr = createLangComputed('dataAttr');
 const licenseNote = createLangComputed('licenseNote');
 const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
+
+// --- IIIF の書誌の写し（Manifest が結び付いている地図だけ） ---
+/**
+ * 写しの結果（新しい地図データ）を、今の地図データへ鍵ごとに反映する。
+ * 地図データそのものは差し替えない（文書の差し替えは setMapDocument だけが行う）。
+ * 変わった鍵だけを書き、新しい側で消えた鍵（ライセンスの注記など）は消す。
+ */
+const patchMapDataFrom = (next: Record<string, any>): void => {
+    const current = mapData.value as Record<string, any>;
+    for (const key of Object.keys(current)) {
+        if (!(key in next)) delete current[key];
+    }
+    for (const [key, value] of Object.entries(next)) {
+        if (current[key] !== value) current[key] = value;
+    }
+};
+
+const iiifCopyError = ref<string | null>(null);
+
+/** 結び付けの変更は地図のデータを変えるだけ（保存は利用者の「保存」で行う）。 */
+const onIiifBindingsChange = (bindings: IiifBindings) => {
+    mapData.value.iiif.bindings = bindings;
+};
+
+/** 写し・写し直しで理由として出せる語（これ以外は共通の文にする）。 */
+const IIIF_COPY_FAILURE_REASONS = [
+    'fetch-failed',
+    'timeout',
+    'too-large',
+    'not-https',
+    'blocked-address',
+    'bad-url',
+    'not-json',
+    'not-manifest',
+    'unsupported-version',
+    'size-mismatch'
+];
+
+/**
+ * 写し・写し直しの失敗の理由を i18n の鍵にする。
+ * 写しは配信ではないので、取り込みの判定の文（配信できません）は使わない。
+ */
+const iiifCopyFailureKey = (reason: string): string =>
+    'iiif_metadata.copy_failed.' + (IIIF_COPY_FAILURE_REASONS.includes(reason) ? reason : 'unknown');
+
+/**
+ * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
+ * 写しただけでは保存しない。取得や解決が失敗したら何も変えず、理由を 1 行だけ出す。
+ */
+const copyIiifFromManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    const lang = (mapData.value.lang || 'ja') as string;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        if (!result.ok) {
+            iiifCopyError.value = iiifCopyFailureKey(result.reason);
+            return;
+        }
+        const copied = copyIiifMetadataWithBindings(
+            result.json,
+            { canvas: mapData.value.iiif.canvas, bindings: mapData.value.iiif.bindings },
+            lang
+        );
+        if (!copied.ok) {
+            iiifCopyError.value = iiifCopyFailureKey(copied.reason);
+            return;
+        }
+        // 写した値と写した時点の控えを、同じ 1 つの新しい地図データに入れる。
+        const next = applyIiifValues(mapData.value, copied.values, lang);
+        next.iiif = {
+            ...mapData.value.iiif,
+            copiedValues: copied.copiedValues,
+            copiedMetadata: copied.copiedMetadata,
+            copiedAt: copied.copiedAt
+        };
+        patchMapDataFrom(next);
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
+    }
+};
+
+// --- IIIF の書誌の写し直し ---
+const iiifRecopyPlan = ref<IiifRecopyPlanSuccess | null>(null);
+
+/**
+ * Manifest を取り直して、いまの値・写した時点の値・新しい値を比べる。
+ * 比べるだけで地図は変えない。比べられなかったら理由を 1 行だけ出し、一覧は残さない。
+ */
+const compareIiifWithManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    iiifRecopyPlan.value = null;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const plan = planIiifRecopy(result, mapData.value);
+        if (!plan.ok) {
+            iiifCopyError.value = iiifCopyFailureKey(plan.reason);
+            return;
+        }
+        iiifRecopyPlan.value = plan;
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
+    }
+};
+
+/** 利用者が選んだ行だけを上書きする（地図を変えるだけで、保存は利用者の「保存」で行う）。 */
+const applyIiifRecopied = (selected: Array<{ key: string; lang: string }>): void => {
+    if (!iiifRecopyPlan.value) return;
+    patchMapDataFrom(applyIiifRecopy(mapData.value, iiifRecopyPlan.value, selected));
+    iiifRecopyPlan.value = null;
+};
 
 // テンプレート変数名とlangAttrキー名のマッピング
 // テンプレート: title, label, author, createAt(=createdAt), era, owner(=contributor), mapper
@@ -5014,6 +5135,31 @@ const goBack = async () => {
                          <div class="col-12">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_description_desc')" :ariaLabel="t('mapedit.map_description_desc')" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- IIIF の Manifest が結び付いている地図だけ、写す鍵と取り出し元を選べる -->
+                    <div v-if="mapData.iiif?.manifest" class="row g-2 mt-2">
+                        <div class="col-12">
+                            <IiifBindingPanel
+                                :iiif="mapData.iiif"
+                                :lang="mapData.lang || 'ja'"
+                                :recopy="iiifRecopyPlan"
+                                @update:bindings="onIiifBindingsChange"
+                                @copy="copyIiifFromManifest"
+                                @recopy="compareIiifWithManifest"
+                                @apply-recopied="applyIiifRecopied"
+                            />
+                            <div v-if="iiifCopyError" data-testid="iiif-recopy-error">
+                                <DiagnosticFeedback scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
+                                <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
+                                <p class="small text-muted mb-0 mt-1">{{ t("iiif_metadata.recopy_failed_help") }}</p>
+                            </div>
+                            <!-- 写した書誌の確認（読み取り専用）。全件を Manifest とこのコマに分けて出す -->
+                            <IiifMetadataTable
+                                :metadata="mapData.iiif?.copiedMetadata"
+                                :lang="mapData.lang || 'ja'"
+                            />
                         </div>
                     </div>
 

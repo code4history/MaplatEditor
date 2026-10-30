@@ -36,6 +36,49 @@
       "bad-argument": "The input is not valid."
     }
   },
+  "iiif_metadata": {
+    "heading": "Binding to the IIIF metadata",
+    "readonly_heading": "Metadata copied from IIIF",
+    "manifest_heading": "Manifest metadata",
+    "canvas_heading": "Metadata of this canvas",
+    "empty": "No items",
+    "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
+    "field": "Field",
+    "bind": "Copy",
+    "from": "Source",
+    "from_manifest": "Manifest",
+    "from_canvas": "This canvas",
+    "copy": "Copy from IIIF",
+    "copy_language": "Language to copy: {{language}}",
+    "recopy": "Compare with IIIF again",
+    "recopy_help": "Fetch the Manifest again and compare the current value, the value copied earlier and the new value. Only the rows you select are overwritten, so values you edited by hand stay unless you select them.",
+    "recopy_current": "Current",
+    "recopy_copied": "Copied",
+    "recopy_next": "New",
+    "recopy_no_value": "(no value)",
+    "recopy_select": "Overwrite",
+    "recopy_apply": "Overwrite with the selected values",
+    "recopy_failed_help": "If the copy did not work, please correct the bibliographic fields by hand.",
+    "recopy_reason": {
+      "unchanged": "Unchanged",
+      "human-edited": "Edited by hand",
+      "iiif-changed": "Changed in IIIF",
+      "both": "Edited by hand and changed in IIIF"
+    },
+    "copy_failed": {
+      "fetch-failed": "The Manifest could not be fetched.",
+      "timeout": "Fetching the Manifest timed out.",
+      "too-large": "The Manifest was not read because it is too large.",
+      "not-https": "The URL is not https, so it was not fetched.",
+      "blocked-address": "This destination cannot be fetched from.",
+      "bad-url": "The Manifest URL is not valid.",
+      "not-json": "The Manifest could not be read as JSON.",
+      "not-manifest": "This could not be read as an IIIF Manifest.",
+      "unsupported-version": "This version of the IIIF Manifest is not supported.",
+      "size-mismatch": "The canvas size in the Manifest is different from the map image, so nothing was copied.",
+      "unknown": "The metadata could not be copied."
+    }
+  },
   "app": {
     "title": "Maplat Editor"
   },
@@ -672,6 +715,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "표시 라벨",
+    "source_iiif_metadata": "IIIF bibliographic table",
+    "source_iiif_metadata_default": "Default (do not show)",
+    "source_iiif_metadata_hidden": "Do not show",
+    "source_iiif_metadata_all": "Show a table of all bibliographic fields",
     "source_advanced": "설정 파일(JSON)을 직접 편집",
     "success_save": "앱 설정 파일을 저장했습니다.",
     "error_saving": "앱 설정 파일 저장에 실패했습니다.",

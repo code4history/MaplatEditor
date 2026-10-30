@@ -43,7 +43,7 @@
 import { normalizeLangResource } from './langResource';
 
 // 0.7.0 の正規属性（1.0.0 で廃止）。属性名を 1 箇所に閉じ込める
-const DEPRECATED_EXACT_NAME_KEY = 'officialTitle';
+export const DEPRECATED_EXACT_NAME_KEY = 'officialTitle';
 
 /** 2 つの言語キー集合の和集合（挿入順は base → extra） */
 function langKeyUnion(base: Record<string, string>, extra: Record<string, string>): string[] {
