@@ -75,6 +75,11 @@ overrides:
   # get-uri は最新の 8.0.1 でも basic-ftp ^5.3.1 を宣言するため、範囲の中では直らない。get-uri が使う API
   # （Client・access・lastMod・downloadTo・list・close）は 6 系にもある（6.2.3 で実測）。経路を get-uri に限定する
   "get-uri>basic-ftp": "^6.2.1"
+  # 2026-10-30（MaplatEditor#206）: zod GHSA-mrhx-c7xc-m3w5（high・3 系に修正版なし・4.6.6 で修正）。経路は
+  # jimp 1.6.1 の各プラグイン（@jimp/plugin-*・@jimp/types が `zod ^3.23.8` を宣言）だけで、jimp が使う API
+  # （z.object/number/tuple/union/literal/nativeEnum/instanceof・.min/.max/.optional/.parse）は 4 系の classic にも
+  # 同じ形で存在する（全 16 パッケージの dist で全数確認・2026-10-30）。jimp が zod 4 対応版を出したらこの行を外す。
+  zod: "^4.6.7"
   # 2026-10-18（nov26-m9-t3）: vite 7.3.7 は Rollup 4.64 で dist の分割が変わる（dist 806→825）。
   # rollup を base の解決版に留め、アプリの出力を保つ。12 月の見直しは t8／m13 が持つ。
   rollup: "4.62.4"
