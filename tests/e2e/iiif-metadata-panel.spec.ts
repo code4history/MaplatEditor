@@ -22,6 +22,9 @@ const CANVAS_3_FOLDER = `${CANVAS_3_SERVICE_URL}/`;
 // 資料の Manifest の帰属を、試験の中で作った写しだけ変える（資料のファイルは変えない）
 const EDITED_ATTRIBUTION = '試験で変えた帰属';
 
+// 帰属の欄を手で別の値にするときの文字（「IIIF から写す」で Manifest の帰属に戻ることを見る）
+const MANUAL_ATTRIBUTION = '手で入れた帰属';
+
 // 下地の地図に返す 1x1 の透明な PNG（外のタイルを取りに行かせない）
 const TRANSPARENT_TILE = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -154,13 +157,39 @@ async function openMetadataTab(page: Page): Promise<void> {
   await page.getByRole('tab', { name: 'メタデータ編集' }).click();
 }
 
+// 保存して、上の帯が「保存済み」になるまで待つ（他の編集画面の e2e と同じ形）。
+async function saveNow(page: Page): Promise<void> {
+  await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 30_000 });
+  await page.getByTestId('editor-save').click();
+  await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i, { timeout: 60_000 });
+}
+
+// 保存が通って地図の uid が決まるまで待ち、その uid を返す（保存済みの文書を読み戻すのに使う）。
+async function savedUid(page: Page): Promise<string> {
+  await page.waitForFunction(
+    () => !!(window as any).testDebug?.mapData?.value?.uid,
+    undefined,
+    { timeout: 60_000 },
+  );
+  return await page.evaluate(() => (window as any).testDebug.mapData.value.uid as string);
+}
+
+// 保存済みの地図の文書を保存の口から読み戻す（画面の値ではなく、保存した中身を見る）。
+async function savedMap(page: Page, uid: string): Promise<any> {
+  return await page.evaluate(async (target: string) => await window.mapedit.request(target), uid);
+}
+
 test.describe('IIIF metadata panel', () => {
   test('IIIF の書誌の確認の欄が全件を別の見出しで出し、写し直しの成否でも表示が正しい', async () => {
-    test.setTimeout(300_000);
+    // 保存を何度かはさむので、待ちの上限を広げる。
+    test.setTimeout(420_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-iiif-metadata-panel-'));
     const manifest = await readManifestFixture();
     const metadataCount = Array.isArray(manifest.metadata) ? manifest.metadata.length : 0;
     expect(metadataCount).toBeGreaterThan(0);
+    // 帰属の欄が「IIIF から写す」で戻る先（Manifest の attribution）
+    const manifestAttribution = typeof manifest.attribution === 'string' ? manifest.attribution : '';
+    expect(manifestAttribution.length).toBeGreaterThan(0);
 
     // 試験の中で作る「帰属を変えた Manifest の写し」。資料のファイルは変えない。
     const editedManifest = JSON.parse(JSON.stringify(manifest)) as ManifestFixture;
@@ -200,9 +229,30 @@ test.describe('IIIF metadata panel', () => {
       // 直す前のコードでは鍵の名前のまま欄が出るので、この assert で落ちる。
       await expect(page.getByTestId('iiif-binding-officialTitle')).toHaveCount(0);
 
+      // 取り込んだだけでは何も保存していない。まず 1 度保存して、保存済みを基準にする。
+      // 新規の地図なので ID を入れ、題名と帰属は IIIF から写した値のまま保存する。
+      await page.getByTestId('map-slug').fill(`iiif-metadata-panel-${Date.now()}`);
+      await saveNow(page);
+      const mapUid = await savedUid(page);
+
+      // (a2) 「IIIF から写す」: 手で別の値にした帰属が Manifest の帰属に戻り、写しただけでは保存しない。
+      // 取り込んだ直後の値のままだと写しても変わらない（変わらなければ未保存にもならない）ので、
+      // 先に手で別の値にして保存し、「保存済み」を基準に戻しておく。
+      await page.getByTestId('map-attr').fill(MANUAL_ATTRIBUTION);
+      await saveNow(page);
+      await page.getByTestId('iiif-copy').click();
+      // 写し終わりは、写した値（Manifest の帰属）が欄に出たことで見る。
+      await expect(page.getByTestId('map-attr')).toHaveValue(manifestAttribution, { timeout: 30_000 });
+      // 直す前（写した結果をそのまま保存する実装）では帯が「保存済み」のままなので、この assert で落ちる。
+      await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存/, { timeout: 30_000 });
+      await saveNow(page);
+
       // (b) 写し直し: 題名を手で直し、Manifest を帰属だけ変えた写しに差し替えてから写し直す。
       const editedTitle = '手で直した題名';
       await page.getByTestId('map-title').fill(editedTitle);
+      // 題名を手で直しただけでも未保存になるので、ここで保存して「保存済み」を基準に戻す。
+      // 保存せずに写し直すと、上書きが即保存する実装でも「未保存」になり、見分けられない。
+      await saveNow(page);
       await writeMainResponses(e2eRoot, editedManifestFile);
       await page.getByTestId('iiif-recopy').click();
 
@@ -217,15 +267,24 @@ test.describe('IIIF metadata panel', () => {
       await expect(page.getByTestId('iiif-recopy-pick-attr-ja')).toBeChecked();
       await expect(page.getByTestId('iiif-recopy-pick-title-ja')).not.toBeChecked();
 
+      // 上書きの直前に、保存済みの文書を控えておく（上書きで保存していないことを見る）。
+      const savedBeforeApply = await savedMap(page, mapUid);
       await page.getByTestId('iiif-recopy-apply').click();
       // 題名は手で直した値のまま、帰属は新しい値になる。
       // 直す前のコードでは「選んだ行だけ上書き」が無く、題名も上書きされてここで落ちる。
       await expect(page.getByTestId('map-title')).toHaveValue(editedTitle);
       await expect(page.getByTestId('map-attr')).toHaveValue(EDITED_ATTRIBUTION);
       // 写し直しただけでは保存しないので、画面は「未保存」のまま。
+      // 直す前（選んだ行の上書きをそのまま保存する実装）では帯が「保存済み」になるので、この assert で落ちる。
       const saveState = page.getByTestId('editor-save-state');
       await expect(saveState).toBeVisible({ timeout: 30_000 });
       await expect(saveState).toHaveText(/未保存/);
+      // 画面ではなく保存の口からも、上書きだけでは保存していないことを見る（保存済みの文書は変わらない）。
+      // 直す前（上書きをそのまま保存する実装）では、この assert でも落ちる。
+      const savedAfterApply = await savedMap(page, mapUid);
+      expect(savedAfterApply.title, '保存済みの題名は変わらない').toEqual(savedBeforeApply.title);
+      expect(savedAfterApply.attr, '保存済みの帰属は変わらない').toEqual(savedBeforeApply.attr);
+      expect(savedAfterApply.iiif.copiedAt, '保存済みの写した日時は変わらない').toEqual(savedBeforeApply.iiif.copiedAt);
 
       // (c) 写し直しの失敗: 表から Manifest の行を消すと、取得に失敗する。
       await writeMainResponses(e2eRoot, '');

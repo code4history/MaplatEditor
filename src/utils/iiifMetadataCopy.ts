@@ -12,6 +12,7 @@ import { IIIF_BINDABLE_KEYS, compareIiifCopy, listIiifCanvases, proposeIiifBindi
 import type { IiifBindings, IiifFrom, IiifMetadataEntry, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
 import type { Localized } from '@maplat/core/common';
 import { sanitizeIiifHtml } from '@maplat/core/common';
+import { DEPRECATED_EXACT_NAME_KEY } from './mapNameUnification';
 
 /** 包みの受け取れる指定。 */
 export type IiifMetadataCopyOptions = {
@@ -48,8 +49,23 @@ export type IiifMetadataCopyFailure = {
 export type IiifMetadataCopy = IiifMetadataCopySuccess | IiifMetadataCopyFailure;
 
 /**
+ * 地図に書き戻さない鍵を外した結び付けを返す（元は変えない）。
+ *
+ * 1.0.0 で廃止した属性は Editor に欄が無く、写すと保存時の正規化で
+ * 「廃止した属性 → 題名、旧題名 → 表示ラベル」が当たり、利用者が見ていない値で題名が
+ * 置き換わる。他の道具や手書きの結び付けに残っていても写さないよう、Core へ渡す前にここで外す。
+ * 外す場所はこの 1 か所に閉じる。
+ */
+function withoutRetiredKeys(bindings: IiifBindings): IiifBindings {
+  const next: IiifBindings = { ...bindings };
+  delete next[DEPRECATED_EXACT_NAME_KEY];
+  return next;
+}
+
+/**
  * 選んだ canvas の書誌を、地図の metadata の鍵へ写す。
- * selector の規則も値の取り出し方も Core に任せ、ここでは何も読み替えない。
+ * selector の規則も値の取り出し方も Core に任せ、ここでは何も読み替えない
+ *（廃止した属性を外すことだけをここで行う）。
  */
 export function copyIiifMetadata(
   manifest: unknown,
@@ -58,7 +74,7 @@ export function copyIiifMetadata(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const bindings = proposeIiifBindings(manifest, canvasId);
+  const bindings = withoutRetiredKeys(proposeIiifBindings(manifest, canvasId));
   const resolved = resolveIiifMetadata(manifest, { canvas: canvasId, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
@@ -75,9 +91,12 @@ export function copyIiifMetadata(
   };
 }
 
-/** 写す鍵の一覧。Core の表の鍵をそのまま返し、Editor に一覧を持たない。 */
+/**
+ * 写す鍵の一覧。Core の表の鍵から廃止した属性だけを外して返し、Editor に一覧を持たない。
+ * 並びは Core の表の順。
+ */
 export function iiifBindableKeys(): string[] {
-  return Object.keys(IIIF_BINDABLE_KEYS);
+  return Object.keys(IIIF_BINDABLE_KEYS).filter((key) => key !== DEPRECATED_EXACT_NAME_KEY);
 }
 
 /**
@@ -102,7 +121,8 @@ export function setIiifBinding(
 
 /**
  * 選んだ結び付けのまま Manifest を取り直して写す。
- * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは何も読み替えない。
+ * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは廃止した属性を外すことだけを行う。
+ * 戻り値の結び付けも外した後のもの（写し直しはこの関数を通るので同じく外れる）。
  */
 export function copyIiifMetadataWithBindings(
   manifest: unknown,
@@ -111,7 +131,7 @@ export function copyIiifMetadataWithBindings(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const bindings = iiif.bindings ?? {};
+  const bindings = withoutRetiredKeys(iiif.bindings ?? {});
   const resolved = resolveIiifMetadata(manifest, { canvas: iiif.canvas, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
@@ -172,6 +192,70 @@ function mergeText(
     : Object.values(table)[0];
 }
 
+/**
+ * ライセンスの鍵を写したとき、その注記の鍵（鍵の名前 + Note）も新しい値にそろえる。
+ * 注記は Core の表に無い鍵で、ライセンスの鍵に付いて動く。
+ * 新しい値に注記があれば入れ、無くても前回の写しの控えに注記があれば
+ *（IIIF から写したものなので）地図からも控えからも消す。
+ * 控えにも無ければ、地図の注記は人が書いたものとして触らない。
+ */
+function followLicenseNote(
+  target: Record<string, unknown>,
+  copiedValues: Record<string, Record<string, string>>,
+  key: string,
+  freshValues: Record<string, Localized | string>,
+  freshCopiedValues: Record<string, Record<string, string>>,
+  previousCopiedValues: Record<string, Record<string, string>>,
+): void {
+  const noteKey = key + 'Note';
+  if (previousCopiedValues[noteKey] === undefined && freshValues[noteKey] === undefined) return;
+  const note = freshValues[noteKey];
+  if (note === undefined) {
+    delete target[noteKey];
+    delete copiedValues[noteKey];
+    return;
+  }
+  target[noteKey] = note;
+  const freshNote = freshCopiedValues[noteKey];
+  if (freshNote === undefined) delete copiedValues[noteKey];
+  else copiedValues[noteKey] = { ...freshNote };
+}
+
+/**
+ * 写した値を地図の metadata へ入れ、写した時点の控えを差し替えた新しいオブジェクトを返す（元は変えない）。
+ * ライセンスの鍵を写したときは、その注記の鍵もライセンスに付いて動かす（写し直しの道と同じ扱い）。
+ * 写した日時は写しの値を使う。
+ */
+export function applyIiifCopy(
+  map: Record<string, unknown>,
+  copied: IiifMetadataCopySuccess,
+  lang: string,
+): Record<string, unknown> {
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const next = applyIiifValues(map, copied.values, lang);
+  const copiedValues: Record<string, Record<string, string>> = {};
+  for (const [key, table] of Object.entries(copied.copiedValues)) {
+    copiedValues[key] = { ...table };
+  }
+  for (const key of Object.keys(copied.values)) {
+    followLicenseNote(
+      next,
+      copiedValues,
+      key,
+      copied.values,
+      copied.copiedValues,
+      iiif.copiedValues ?? {},
+    );
+  }
+  next.iiif = {
+    ...iiif,
+    copiedValues,
+    copiedMetadata: copied.copiedMetadata,
+    copiedAt: copied.copiedAt,
+  };
+  return next;
+}
+
 /** 写し直した 1 行の理由。 */
 export type IiifRecopyReason = 'unchanged' | 'human-edited' | 'iiif-changed' | 'both';
 
@@ -228,6 +312,58 @@ export type IiifRecopyPlanFailure = {
 
 export type IiifRecopyPlan = IiifRecopyPlanSuccess | IiifRecopyPlanFailure;
 
+/**
+ * IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
+ * 画像が差し替わると打った GCP が合わなくなるため、合わなければ true を返さない。
+ * 「書誌だけ」の地図（delivery を持たない）は手元の画像の大きさが canvas と違ってよいので、
+ * この検査をせずに常に true を返す。
+ */
+export function checkDeliveredCanvasSize(json: unknown, map: Record<string, unknown>): boolean {
+  if (map.delivery === undefined || map.delivery === null) return true;
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const listed = listIiifCanvases(json);
+  const canvas = listed.ok
+    ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
+    : undefined;
+  return canvas !== undefined && canvas.width === map.width && canvas.height === map.height;
+}
+
+/** IIIF から写せなかったときの結果（取り直しの失敗も同じ形で返す）。 */
+export type IiifCopyForMapFailure = {
+  ok: false;
+  /** 写せなかった理由（取り直しの理由もそのまま入る）。 */
+  reason: string;
+  warnings: string[];
+};
+
+export type IiifCopyForMap = IiifMetadataCopySuccess | IiifCopyForMapFailure;
+
+/**
+ * 取り直した Manifest を、地図に結び付いている canvas と結び付けで写す。
+ * 写し直しの比較と同じく、配信の地図はコマの大きさも確かめ、合わなければ 1 つも写さない。
+ * 何も写さないときは、写しの途中で出た警告も返さない。
+ */
+export function copyIiifForMap(
+  reply: IiifRecopyReply,
+  map: Record<string, unknown>,
+  options: IiifMetadataCopyOptions = {},
+): IiifCopyForMap {
+  if (!reply.ok) return { ok: false, reason: reply.reason, warnings: [] };
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const lang = typeof map.lang === 'string' && map.lang !== '' ? map.lang : 'ja';
+  const copied = copyIiifMetadataWithBindings(
+    reply.json,
+    { canvas: iiif.canvas, bindings: iiif.bindings },
+    lang,
+    options,
+  );
+  if (!copied.ok) return { ok: false, reason: copied.reason, warnings: copied.warnings };
+  if (!checkDeliveredCanvasSize(reply.json, map)) {
+    return { ok: false, reason: 'size-mismatch', warnings: [] };
+  }
+  return copied;
+}
+
 /** 地図から、ある言語の値として読める文字を取り出す（理由づけは Core が行う）。 */
 function currentText(value: unknown, language: string, defaultLang: string): string | undefined {
   if (typeof value === 'string') return language === defaultLang ? value : undefined;
@@ -256,18 +392,7 @@ export function planIiifRecopy(
     options,
   );
   if (!fresh.ok) return { ok: false, reason: fresh.reason };
-  // IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
-  // 画像が差し替わると打った GCP が合わなくなるため、合わなければ 1 つも写さない。
-  // 「書誌だけ」の地図は手元の画像の大きさが canvas と違ってよいので、この検査をしない。
-  if (map.delivery !== undefined && map.delivery !== null) {
-    const listed = listIiifCanvases(reply.json);
-    const canvas = listed.ok
-      ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
-      : undefined;
-    if (canvas === undefined || canvas.width !== map.width || canvas.height !== map.height) {
-      return { ok: false, reason: 'size-mismatch' };
-    }
-  }
+  if (!checkDeliveredCanvasSize(reply.json, map)) return { ok: false, reason: 'size-mismatch' };
   const copiedValues = iiif.copiedValues ?? {};
   const compared: IiifComparedRow[] = compareIiifCopy(map, copiedValues, fresh.copiedValues, lang);
   const rows: IiifRecopyRow[] = compared.map((row) => {
@@ -328,19 +453,15 @@ export function applyIiifRecopy(
     const table = chosen[key];
     next[key] = mergeText(next[key], table, lang);
     copiedValues[key] = { ...(copiedValues[key] ?? {}), ...table };
-    // ライセンスの鍵は、注記の鍵（鍵の名前 + Note）も新しい値にそろえる（無ければ消す）。
-    const noteKey = key + 'Note';
-    if (copiedValues[noteKey] === undefined && plan.fresh.values[noteKey] === undefined) continue;
-    const note = plan.fresh.values[noteKey];
-    if (note === undefined) {
-      delete next[noteKey];
-      delete copiedValues[noteKey];
-      continue;
-    }
-    next[noteKey] = note;
-    const freshNote = plan.fresh.copiedValues[noteKey];
-    if (freshNote === undefined) delete copiedValues[noteKey];
-    else copiedValues[noteKey] = { ...freshNote };
+    // ライセンスの鍵は、注記の鍵も新しい値にそろえる（無ければ消す）。
+    followLicenseNote(
+      next,
+      copiedValues,
+      key,
+      plan.fresh.values,
+      plan.fresh.copiedValues,
+      copiedValues,
+    );
   }
 
   next.iiif = {

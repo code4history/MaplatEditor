@@ -114,7 +114,6 @@ import {
   type IiifRecopyRow,
 } from '../../utils/iiifMetadataCopy';
 import { LANGS_MAP, type LangCode } from '../../utils/editorLanguages';
-import { DEPRECATED_EXACT_NAME_KEY } from '../../utils/mapNameUnification';
 
 const props = defineProps<{
   /** 地図の iiif 節（Manifest と、選んだコマ・結び付けを持つ）。 */
@@ -135,8 +134,8 @@ const emit = defineEmits<{
 const { t } = useTranslation();
 
 // 鍵の一覧は Core の表から引く（Editor に一覧を持たない）。並びも Core の表の順。
-// ただし 1.0.0 で廃止した属性は、Editor に欄が無く、結び付けると地図に書き戻してしまうので外す。
-const keys = iiifBindableKeys().filter((key) => key !== DEPRECATED_EXACT_NAME_KEY);
+// 1.0.0 で廃止した属性を外すのは iiifBindableKeys の側なので、ここでは絞り込まない。
+const keys = iiifBindableKeys();
 
 // 鍵の見出しは既存の metadata の欄の文言を使う。対応の無い鍵は鍵の名前のまま出す。
 const KEY_LABEL_I18N: Record<string, string> = {
