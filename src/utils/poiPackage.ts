@@ -45,11 +45,14 @@ function isUnportableSegment(segment: string): boolean {
 /**
  * 重複の判定に使う鍵。Windows が落とす末尾のドットと空白を除き、APFS・NTFS が同じファイルとして扱う
  * 大小と Unicode の正規化を畳む。toUpperCase と toLowerCase の往復で ß/ss・ſ/s・ς/σ・ﬁ/fi も同じ鍵になる。
+ * ẞ だけは往復しても ß で止まるので、先に ss へ置き換える。
  */
 function entryNameKey(name: string): string {
   return name
     .split('/')
-    .map((segment) => segment.replace(/[. ]+$/, '').normalize('NFC').toUpperCase().toLowerCase().normalize('NFC'))
+    .map((segment) =>
+      segment.replace(/[. ]+$/, '').replace(/ẞ/g, 'ss').normalize('NFC').toUpperCase().toLowerCase().normalize('NFC'),
+    )
     .join('/');
 }
 
@@ -107,6 +110,8 @@ export function assertSafeArchiveEntries(
       name.startsWith('/') ||
       /^[A-Za-z]:/.test(name) ||
       name.split('/').some((segment) => segment === '..' || isUnportableSegment(segment)) ||
+      // 空のセグメント（a//b）は展開のときに畳まれ、a/b と同じファイルへ上書きされる。末尾はディレクトリの印なので通す
+      name.split('/').slice(0, -1).some((segment) => segment === '') ||
       entry.isSymlink
     ) {
       throw new Error(`Unsafe ${kindLabel} entry: ${name}`);

@@ -64,8 +64,14 @@ for (const pair of [
   ['tiles/m/\u017f.png', 'tiles/m/s.png'],
   ['tiles/m/\u03c2.png', 'tiles/m/\u03c3.png'],
   ['tiles/m/\ufb01.png', 'tiles/m/fi.png'],
+  ['tiles/m/ẞ.png', 'tiles/m/ss.png'],
+  ['tiles/m/ẞ.png', 'tiles/m/ß.png'],
 ]) {
   check('(4) 重複: ' + JSON.stringify(pair), () => rejects(pair, DUPLICATE));
+}
+// 展開のときに空のセグメントが畳まれ、tiles/a.png と同じファイルへ上書きされる
+for (const names of [['tiles//a.png'], ['tiles/a.png', 'tiles//a.png'], ['tiles/m//']]) {
+  check('(5) 空のセグメント: ' + JSON.stringify(names), () => rejects(names, UNSAFE));
 }
 check('(4) 末尾のドットを落とすと重なる名前は、重複の前に末尾のドットで拒否される', () => {
   rejects(['tiles/m/b.png', 'tiles/m/b.png.'], /^Error: (Unsafe|Duplicate) map package entry: /);
