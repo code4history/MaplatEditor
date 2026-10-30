@@ -60,6 +60,7 @@ try {
       const {
         applyIiifRecopy,
         applyIiifValues,
+        copyIiifForMap,
         copyIiifMetadata,
         copyIiifMetadataWithBindings,
         iiifBindableKeys,
@@ -576,6 +577,93 @@ try {
           checked += 1;
         }
         return '(' + checked + '/' + locales.length + ')';
+      });
+
+      // IIIF から写す道でも、配信の地図はコマの大きさを確かめることの確認。
+      // 是正を見分けるのは、(1) 配信の地図に大きさの違う Manifest を渡すと
+      // { ok: false, reason: 'size-mismatch' } を返し、写した値を返さないこと、
+      // (2) 同じ Manifest でも delivery の無い地図（書誌だけ）なら ok:true で、
+      // 写した値が copyIiifMetadataWithBindings を同じ引数で直接呼んだ結果と一致すること、
+      // (3) 配信の地図でもコマの大きさが合えば ok:true であること、
+      // (4) 取り直しが失敗したらその理由をそのまま返すこと、
+      // (5) 写し直しの比較（planIiifRecopy）の大きさの判定は変わらないこと。
+      test('copy-checks-delivered-canvas-size', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const metadata = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        const delivered = {
+          ...structuredClone(metadata),
+          delivery: { type: 'iiifImage', url: 'https://dl.ndl.go.jp/api/iiif/948741' },
+          width: 4074,
+          height: 2705,
+        };
+        const resized = structuredClone(ndl);
+        resized.sequences[0].canvases[2].width = 4075;
+        const before = JSON.stringify(delivered);
+
+        // (1) 配信の地図でコマの大きさが違えば、1 つも写さない
+        const mismatch = copyIiifForMap({ ok: true, json: resized }, delivered, { sanitize });
+        assert.equal(mismatch.ok, false, 'a delivered map with a resized canvas must not be copied');
+        assert.equal(mismatch.reason, 'size-mismatch', 'the reason must be size-mismatch');
+        assert.equal(mismatch.values, undefined, 'a failed copy must not return copied values');
+        assert.equal(
+          JSON.stringify(delivered),
+          before,
+          'the map must not change by a single byte',
+        );
+
+        // (2) 書誌だけの地図は、同じ Manifest でも写す。値は直接呼んだ写しと同じ。
+        const metadataOnly = structuredClone(metadata);
+        const copied = copyIiifForMap({ ok: true, json: resized }, metadataOnly, { sanitize });
+        assert.equal(copied.ok, true, 'a map without delivery must be copied');
+        const expected = copyIiifMetadataWithBindings(
+          resized,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(expected.ok, true, 'the direct copy must succeed');
+        assert.deepEqual(copied.values, expected.values, 'the values must match the direct copy');
+        assert.deepEqual(
+          copied.copiedValues,
+          expected.copiedValues,
+          'the copied values must match the direct copy',
+        );
+
+        // (3) 配信の地図でも、コマの大きさが合えば写す
+        const sameSize = copyIiifForMap({ ok: true, json: structuredClone(ndl) }, delivered, {
+          sanitize,
+        });
+        assert.equal(sameSize.ok, true, 'a delivered map with the same canvas size must be copied');
+        assert.deepEqual(sameSize.values, first.values, 'the values must be the copied values');
+
+        // (4) 取り直しの失敗は、その理由をそのまま返す
+        const fetchFailed = copyIiifForMap({ ok: false, reason: 'fetch-failed' }, delivered, {
+          sanitize,
+        });
+        assert.equal(fetchFailed.ok, false, 'a failed fetch must not be copied');
+        assert.equal(fetchFailed.reason, 'fetch-failed', 'the fetch reason must be kept');
+
+        // (5) 写し直しの比較では、これまでどおり大きさの違いを失敗にする
+        const plan = planIiifRecopy({ ok: true, json: resized }, delivered, { sanitize });
+        assert.equal(plan.ok, false, 'the recopy plan must still fail on a resized canvas');
+        assert.equal(plan.reason, 'size-mismatch', 'the recopy reason must still be size-mismatch');
       });
 
       // 注記の行だけを選んでも何も変わらないことの確認。是正を見分けるのは、

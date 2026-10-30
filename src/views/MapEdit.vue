@@ -30,7 +30,7 @@ import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
 import {
     applyIiifRecopy,
     applyIiifValues,
-    copyIiifMetadataWithBindings,
+    copyIiifForMap,
     planIiifRecopy,
     type IiifRecopyPlanSuccess
 } from '../utils/iiifMetadataCopy';
@@ -1177,6 +1177,7 @@ const iiifCopyFailureKey = (reason: string): string =>
 
 /**
  * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
+ * 配信の地図はコマの大きさも確かめる（画像が差し替わると打った GCP が合わなくなるため）。
  * 写しただけでは保存しない。取得や解決が失敗したら何も変えず、理由を 1 行だけ出す。
  */
 const copyIiifFromManifest = async (): Promise<void> => {
@@ -1184,15 +1185,7 @@ const copyIiifFromManifest = async (): Promise<void> => {
     const lang = (mapData.value.lang || 'ja') as string;
     try {
         const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
-        if (!result.ok) {
-            iiifCopyError.value = iiifCopyFailureKey(result.reason);
-            return;
-        }
-        const copied = copyIiifMetadataWithBindings(
-            result.json,
-            { canvas: mapData.value.iiif.canvas, bindings: mapData.value.iiif.bindings },
-            lang
-        );
+        const copied = copyIiifForMap(result, mapData.value);
         if (!copied.ok) {
             iiifCopyError.value = iiifCopyFailureKey(copied.reason);
             return;

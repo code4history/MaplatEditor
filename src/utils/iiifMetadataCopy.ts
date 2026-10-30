@@ -248,6 +248,58 @@ export type IiifRecopyPlanFailure = {
 
 export type IiifRecopyPlan = IiifRecopyPlanSuccess | IiifRecopyPlanFailure;
 
+/**
+ * IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
+ * 画像が差し替わると打った GCP が合わなくなるため、合わなければ true を返さない。
+ * 「書誌だけ」の地図（delivery を持たない）は手元の画像の大きさが canvas と違ってよいので、
+ * この検査をせずに常に true を返す。
+ */
+export function checkDeliveredCanvasSize(json: unknown, map: Record<string, unknown>): boolean {
+  if (map.delivery === undefined || map.delivery === null) return true;
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const listed = listIiifCanvases(json);
+  const canvas = listed.ok
+    ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
+    : undefined;
+  return canvas !== undefined && canvas.width === map.width && canvas.height === map.height;
+}
+
+/** IIIF から写せなかったときの結果（取り直しの失敗も同じ形で返す）。 */
+export type IiifCopyForMapFailure = {
+  ok: false;
+  /** 写せなかった理由（取り直しの理由もそのまま入る）。 */
+  reason: string;
+  warnings: string[];
+};
+
+export type IiifCopyForMap = IiifMetadataCopySuccess | IiifCopyForMapFailure;
+
+/**
+ * 取り直した Manifest を、地図に結び付いている canvas と結び付けで写す。
+ * 写し直しの比較と同じく、配信の地図はコマの大きさも確かめ、合わなければ 1 つも写さない。
+ * 何も写さないときは、写しの途中で出た警告も返さない。
+ */
+export function copyIiifForMap(
+  reply: IiifRecopyReply,
+  map: Record<string, unknown>,
+  options: IiifMetadataCopyOptions = {},
+): IiifCopyForMap {
+  if (!reply.ok) return { ok: false, reason: reply.reason, warnings: [] };
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const lang = typeof map.lang === 'string' && map.lang !== '' ? map.lang : 'ja';
+  const copied = copyIiifMetadataWithBindings(
+    reply.json,
+    { canvas: iiif.canvas, bindings: iiif.bindings },
+    lang,
+    options,
+  );
+  if (!copied.ok) return { ok: false, reason: copied.reason, warnings: copied.warnings };
+  if (!checkDeliveredCanvasSize(reply.json, map)) {
+    return { ok: false, reason: 'size-mismatch', warnings: [] };
+  }
+  return copied;
+}
+
 /** 地図から、ある言語の値として読める文字を取り出す（理由づけは Core が行う）。 */
 function currentText(value: unknown, language: string, defaultLang: string): string | undefined {
   if (typeof value === 'string') return language === defaultLang ? value : undefined;
@@ -276,18 +328,7 @@ export function planIiifRecopy(
     options,
   );
   if (!fresh.ok) return { ok: false, reason: fresh.reason };
-  // IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
-  // 画像が差し替わると打った GCP が合わなくなるため、合わなければ 1 つも写さない。
-  // 「書誌だけ」の地図は手元の画像の大きさが canvas と違ってよいので、この検査をしない。
-  if (map.delivery !== undefined && map.delivery !== null) {
-    const listed = listIiifCanvases(reply.json);
-    const canvas = listed.ok
-      ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
-      : undefined;
-    if (canvas === undefined || canvas.width !== map.width || canvas.height !== map.height) {
-      return { ok: false, reason: 'size-mismatch' };
-    }
-  }
+  if (!checkDeliveredCanvasSize(reply.json, map)) return { ok: false, reason: 'size-mismatch' };
   const copiedValues = iiif.copiedValues ?? {};
   const compared: IiifComparedRow[] = compareIiifCopy(map, copiedValues, fresh.copiedValues, lang);
   const rows: IiifRecopyRow[] = compared.map((row) => {
