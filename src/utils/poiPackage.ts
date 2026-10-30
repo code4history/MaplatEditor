@@ -5,6 +5,9 @@ export const POI_PACKAGE_MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export interface PoiPackageEntryInfo {
   name: string;
   size: number;
+  compressedSize: number;
+  /** 0 が STORED、8 が DEFLATED */
+  method: number;
   isSymlink?: boolean;
 }
 
@@ -27,6 +30,69 @@ export interface PoiPackageEntryInfo {
 //   POI 単体パッケージ: (b) を全 entry へ（= assertSafePoiPackageEntries）
 //   地図 ZIP:           (a) を全 entry へ、(b) を isPoiPayloadEntry で絞った集合へ
 
+// Windows の予約名。拡張子を付けても（CON.png）、末尾に空白があっても（CON .png）特別扱いされる。
+const WINDOWS_RESERVED_STEM = /^(CON|PRN|AUX|NUL|COM[0-9¹²³]|LPT[0-9¹²³]|CONIN\$|CONOUT\$)$/i;
+// eslint-disable-next-line no-control-regex -- 制御文字を拒否する検査そのもの（意図どおりの正規表現）
+const WINDOWS_FORBIDDEN_CHARACTER = /[\x00-\x1f\x7f<>:"|?*]/;
+
+/** どの OS へ運ばれても 1 つのファイルとして書けない名前のセグメントか。判定は OS で変えない。 */
+function isUnportableSegment(segment: string): boolean {
+  if (/[. ]$/.test(segment) || WINDOWS_FORBIDDEN_CHARACTER.test(segment)) return true;
+  const stem = segment.split('.')[0].replace(/ +$/, '');
+  return WINDOWS_RESERVED_STEM.test(stem);
+}
+
+/**
+ * 重複の判定に使う鍵。Windows が落とす末尾のドットと空白を除き、APFS・NTFS が同じファイルとして扱う
+ * 大小と Unicode の正規化を畳む。toUpperCase と toLowerCase の往復で ß/ss・ſ/s・ς/σ・ﬁ/fi も同じ鍵になる。
+ */
+function entryNameKey(name: string): string {
+  return name
+    .split('/')
+    .map((segment) => segment.replace(/[. ]+$/, '').normalize('NFC').toUpperCase().toLowerCase().normalize('NFC'))
+    .join('/');
+}
+
+/**
+ * ZIP の構造の検査。展開の前に呼ぶ。
+ *
+ * adm-zip は DEFLATED では宣言の展開後サイズで出力を打ち切るが、STORED では宣言を見ずに圧縮後の
+ * サイズ分を書く。(A) STORED の宣言と実体の一致を求めることで、どちらの方式でも
+ * 「書かれる量 ≤ Σ max(size, 1)」が成り立ち、宣言サイズに掛ける上限が意味を持つ。
+ * (B) は複数の entry が同じデータを指す ZIP を早く落とすための保険で、上限の根拠は (A) にある。
+ *
+ * 検査と展開は同じ中央ディレクトリの値を見るので、別の値を見せる隙は無い。
+ * 依存の版が上がったら smoke の map-zip-limits がこの前提を見張る。
+ */
+export function assertArchiveStructure(
+  entries: readonly PoiPackageEntryInfo[],
+  archiveBytes: number,
+  kindLabel: string,
+): void {
+  if (!Number.isFinite(archiveBytes) || archiveBytes <= 0) {
+    throw new Error(`Invalid ${kindLabel} archive size: ${archiveBytes}`);
+  }
+  let compressedTotal = 0;
+  for (const entry of entries) {
+    const name = String(entry.name);
+    if (
+      !Number.isSafeInteger(entry.compressedSize) ||
+      entry.compressedSize < 0 ||
+      !Number.isSafeInteger(entry.method) ||
+      entry.method < 0
+    ) {
+      throw new Error(`Invalid ${kindLabel} entry size: ${name}`);
+    }
+    if (entry.method === 0 && entry.size !== entry.compressedSize) {
+      throw new Error(`Unsafe ${kindLabel} entry: ${name}`);
+    }
+    compressedTotal += entry.compressedSize;
+  }
+  if (compressedTotal > archiveBytes) {
+    throw new Error(`Unsafe ${kindLabel} archive: entries overlap`);
+  }
+}
+
 /** (a) 安全検証。ZIP 種別に依らず全 entry へ適用する。 */
 export function assertSafeArchiveEntries(
   entries: readonly PoiPackageEntryInfo[],
@@ -40,13 +106,14 @@ export function assertSafeArchiveEntries(
       name.includes('\\') ||
       name.startsWith('/') ||
       /^[A-Za-z]:/.test(name) ||
-      name.split('/').some((segment) => segment === '..') ||
+      name.split('/').some((segment) => segment === '..' || isUnportableSegment(segment)) ||
       entry.isSymlink
     ) {
       throw new Error(`Unsafe ${kindLabel} entry: ${name}`);
     }
-    if (names.has(name)) throw new Error(`Duplicate ${kindLabel} entry: ${name}`);
-    names.add(name);
+    const key = entryNameKey(name);
+    if (names.has(key)) throw new Error(`Duplicate ${kindLabel} entry: ${name}`);
+    names.add(key);
     if (!Number.isSafeInteger(entry.size) || entry.size < 0) {
       throw new Error(`Invalid ${kindLabel} entry size: ${name}`);
     }

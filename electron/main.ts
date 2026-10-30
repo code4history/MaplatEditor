@@ -34,6 +34,7 @@ process.env.APP_ROOT = path.join(__dirname, '..')
 
 // バックエンドのエラー/警告をレンダラのコンソールへ転送する (#18)
 import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
+import { assertOwnedDirectory } from './utils/tmpFolder'
 installBackendErrorForwarding()
 
 // m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
@@ -257,7 +258,21 @@ async function gcOrphanDraftTiles(): Promise<void> {
   }
 }
 
+// 一時フォルダは取り込みの展開先で、app:// の配信ルートでもある。他人が先に作った場所やリンクは使わない
+async function ensureTmpFolderOwned(tmpFolder: string): Promise<boolean> {
+  try {
+    await assertOwnedDirectory(tmpFolder, { lstat: fs.lstat, mkdir: fs.mkdir, getuid: process.getuid })
+    return true
+  } catch (error) {
+    console.error('[main] temp folder check failed', tmpFolder, error)
+    dialog.showErrorBox('MaplatEditor', `The temporary folder cannot be used safely:\n${tmpFolder}`)
+    app.exit(1)
+    return false
+  }
+}
+
 app.whenReady().then(async () => {
+  if (!(await ensureTmpFolderOwned(SettingsService.get('tmpFolder')))) return
   // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
   // ローカルリソースは許可ルートと候補の両方を realpath した実体で判定し（#138・nov26-m7-t7）、判定した実体を
   // net.fetch で配信し、それ以外は 403。

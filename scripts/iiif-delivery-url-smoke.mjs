@@ -55,7 +55,7 @@ assert.match(
 console.log('ok: call-in-save-body');
 
 const zipMatch = dataUploadSource.match(
-  /    async extractZip\(zipFile: string\): Promise<any> \{[\s\S]*?\n    \}/u,
+  /    async extractZip\(zipFile: string(?:, deps\?: [^\n]*)?\): Promise<any> \{[\s\S]*?\n    \}/u,
 );
 assert.ok(zipMatch, 'ZIP の取り込みの関数 extractZip の定義が見つからない');
 assert.match(
