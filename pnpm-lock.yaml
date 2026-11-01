@@ -5,6 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@maplat/core': github:code4history/MaplatCore#4bb44575438d6683871f4138d1c4500808eb9e66
+  '@maplat/ui>@maplat/core': ^1.2.0-rc.1
   js-yaml: ^4.3.1
   http-cache-semantics: ^4.3.0
   conf>ajv: ^8.18.0
@@ -20,6 +22,7 @@ overrides:
   undici: ^7.29.1
   '@puppeteer/browsers>extract-zip': npm:@electron-internal/extract-zip@^1.0.5
   get-uri>basic-ftp: ^6.2.1
+  zod: ^4.6.7
   rollup: 4.62.4
   '@babel/runtime': 7.29.7
   '@thednp/position-observer': 1.1.3
@@ -40,8 +43,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@maplat/core':
-        specifier: ^1.2.0
-        version: 1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+        specifier: github:code4history/MaplatCore#4bb44575438d6683871f4138d1c4500808eb9e66
+        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/4bb44575438d6683871f4138d1c4500808eb9e66(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@maplat/tin':
         specifier: ^1.1.1
         version: 1.1.1
@@ -234,6 +237,15 @@ packages:
   '@c4h/chuci@1.0.2':
     resolution: {integrity: sha512-riPtOEI6t9VDHEOgjQLOcXrIckjoytmGGbrjosAylpg/dSjc4MnC8DX71YmR5CH1nkkK/nM8kWETxbJ6RQOBdQ==}
     engines: {pnpm: '>=9.0.0'}
+
+  '@c4h/quyuan@1.1.1':
+    resolution: {integrity: sha512-CwAzx5rQ6W819KHPXP31SDLZ2OkFcU+0KqOd7qN/jtAOIIaTf3NYrsV+kb95N4wqDTh6sve0n9dw3yuOZbkjIg==}
+    engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
+    peerDependencies:
+      '@c4h/chuci': ^1.0.2
+    peerDependenciesMeta:
+      '@c4h/chuci':
+        optional: true
 
   '@c4h/weiwudi@1.1.1':
     resolution: {integrity: sha512-hgk0fpXUohUAmfLBXzAct5GsfNndQTsORGqbvM2Qa4S6NvasrGVZNa63SUhA7FldCwKjngflgVt5S6Un1B3OMg==}
@@ -671,6 +683,20 @@ packages:
 
   '@maplat/core@1.2.0':
     resolution: {integrity: sha512-QN9oMGYqXRKAhYPShOh6iJQBcwT7VE2/EgHK+gAQY2jyMvaUxTN8ulguTkk5YdTMi8i99obCQm9ZNzkanGpGig==}
+    engines: {pnpm: '>=9'}
+    peerDependencies:
+      mapbox-gl: ^2.0.0 || ^3.0.0
+      maplibre-gl: ^5.0.0 || ^6.0.0
+      ol: ^9.0.0 || ^10.0.0
+    peerDependenciesMeta:
+      mapbox-gl:
+        optional: true
+      maplibre-gl:
+        optional: true
+
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/4bb44575438d6683871f4138d1c4500808eb9e66':
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/4bb44575438d6683871f4138d1c4500808eb9e66}
+    version: 1.2.0-rc.1
     engines: {pnpm: '>=9'}
     peerDependencies:
       mapbox-gl: ^2.0.0 || ^3.0.0
@@ -1582,6 +1608,9 @@ packages:
   '@zarrita/storage@0.2.0':
     resolution: {integrity: sha512-855ZXqtnds7spnT8vNvD+MXa3QExP1m2GqShe8yt7uZXHnQLgJHgkpVwFjE1B0KDDRO0ki09hmk6OboTaIfPsQ==}
 
+  a-sync-waterfall@1.0.1:
+    resolution: {integrity: sha512-RYTOHHdWipFUliRFMCS4X2Yn2X8M87V/OpSqWzKKOGhzqyUxzyVmhHDH9sAvG+ZuQf/TAOFsLCpMw09I1ufUnA==}
+
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
@@ -1660,6 +1689,9 @@ packages:
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+
+  asap@2.0.6:
+    resolution: {integrity: sha512-BSHWgDSAiKs50o2Re8ppvp3seVHXSRM44cdSsT9FfNEUUZLOGWVCsiWaRPWM1Znn+mqZ1OfVZ3z3DWEzSp7hRA==}
 
   asn1js@3.0.10:
     resolution: {integrity: sha512-S2s3aOytiKdFRdulw2qPE51MzjzVOisppcVv7jVFR+Kw0kxwvFrDcYA0h7Ndqbmj0HkMIXYWaoj7fli8kgx1eg==}
@@ -2936,6 +2968,16 @@ packages:
   numcodecs@0.3.2:
     resolution: {integrity: sha512-6YSPnmZgg0P87jnNhi3s+FVLOcIn3y+1CTIgUulA3IdASzK9fJM87sUFkpyA+be9GibGRaST2wCgkD+6U+fWKw==}
 
+  nunjucks@3.2.4:
+    resolution: {integrity: sha512-26XRV6BhkgK0VOxfbU5cQI+ICFUtMLixv1noZn1tGU38kQH5A5nmmbk/O45xdyBhD1esk47nKrY0mvQpZIhRjQ==}
+    engines: {node: '>= 6.9.0'}
+    hasBin: true
+    peerDependencies:
+      chokidar: ^3.3.0
+    peerDependenciesMeta:
+      chokidar:
+        optional: true
+
   object-keys@1.1.1:
     resolution: {integrity: sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA==}
     engines: {node: '>= 0.4'}
@@ -3863,9 +3905,6 @@ packages:
   zarrita@0.7.5:
     resolution: {integrity: sha512-ZriOSEne+Wf2iuM0yjDZvUKpHNlug3dO7qJ6mAxXoOgsYV18DPOkAkwB9e0rf21bHcKcOffFuwoZwn5g6pvUeA==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
@@ -3897,6 +3936,14 @@ snapshots:
       swiper: 12.2.0
       three: 0.186.1
       viewerjs: 1.11.8
+
+  '@c4h/quyuan@1.1.1(@c4h/chuci@1.0.2)':
+    dependencies:
+      nunjucks: 3.2.4
+    optionalDependencies:
+      '@c4h/chuci': 1.0.2
+    transitivePeerDependencies:
+      - chokidar
 
   '@c4h/weiwudi@1.1.1(workbox-routing@7.4.1)':
     dependencies:
@@ -4218,7 +4265,7 @@ snapshots:
     dependencies:
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-blur@1.6.1(supports-color@7.2.0)':
     dependencies:
@@ -4230,7 +4277,7 @@ snapshots:
   '@jimp/plugin-circle@1.6.1':
     dependencies:
       '@jimp/types': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-color@1.6.1(supports-color@7.2.0)':
     dependencies:
@@ -4238,7 +4285,7 @@ snapshots:
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
       tinycolor2: 1.6.0
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4249,7 +4296,7 @@ snapshots:
       '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4259,7 +4306,7 @@ snapshots:
       '@jimp/plugin-crop': 1.6.1(supports-color@7.2.0)
       '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4268,7 +4315,7 @@ snapshots:
       '@jimp/core': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4276,7 +4323,7 @@ snapshots:
     dependencies:
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-dither@1.6.1':
     dependencies:
@@ -4286,12 +4333,12 @@ snapshots:
     dependencies:
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-flip@1.6.1':
     dependencies:
       '@jimp/types': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-hash@1.6.1(supports-color@7.2.0)':
     dependencies:
@@ -4311,7 +4358,7 @@ snapshots:
   '@jimp/plugin-mask@1.6.1':
     dependencies:
       '@jimp/types': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-print@1.6.1(supports-color@7.2.0)':
     dependencies:
@@ -4324,20 +4371,20 @@ snapshots:
       parse-bmfont-binary: 1.0.6
       parse-bmfont-xml: 1.1.6
       simple-xml-to-json: 1.2.7
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
   '@jimp/plugin-quantize@1.6.1':
     dependencies:
       image-q: 4.0.0
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/plugin-resize@1.6.1(supports-color@7.2.0)':
     dependencies:
       '@jimp/core': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4348,7 +4395,7 @@ snapshots:
       '@jimp/plugin-resize': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -4359,13 +4406,13 @@ snapshots:
       '@jimp/plugin-hash': 1.6.1(supports-color@7.2.0)
       '@jimp/types': 1.6.1
       '@jimp/utils': 1.6.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
   '@jimp/types@1.6.1':
     dependencies:
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@jimp/utils@1.6.1':
     dependencies:
@@ -4430,6 +4477,23 @@ snapshots:
       mapbox-gl: 3.28.1
       maplibre-gl: 6.4.1
     transitivePeerDependencies:
+      - workbox-routing
+
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/4bb44575438d6683871f4138d1c4500808eb9e66(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
+    dependencies:
+      '@c4h/quyuan': 1.1.1(@c4h/chuci@1.0.2)
+      '@c4h/weiwudi': 1.1.1(workbox-routing@7.4.1)
+      '@maplat/transform': 1.1.0
+      '@turf/turf': 7.4.0
+      dompurify: 3.4.17
+      ol: 10.11.0
+      whatwg-fetch: 3.6.20
+    optionalDependencies:
+      mapbox-gl: 3.28.1
+      maplibre-gl: 6.4.1
+    transitivePeerDependencies:
+      - '@c4h/chuci'
+      - chokidar
       - workbox-routing
 
   '@maplat/tin@1.1.1':
@@ -6110,6 +6174,8 @@ snapshots:
       reference-spec-reader: 0.2.0
       unzipit: 2.0.0
 
+  a-sync-waterfall@1.0.1: {}
+
   abbrev@2.0.0: {}
 
   abbrev@4.0.0: {}
@@ -6209,6 +6275,8 @@ snapshots:
   arc@0.2.0: {}
 
   argparse@2.0.1: {}
+
+  asap@2.0.6: {}
 
   asn1js@3.0.10:
     dependencies:
@@ -7642,6 +7710,12 @@ snapshots:
     dependencies:
       fflate: 0.8.3
 
+  nunjucks@3.2.4:
+    dependencies:
+      a-sync-waterfall: 1.0.1
+      asap: 2.0.6
+      commander: 5.1.0
+
   object-keys@1.1.1:
     optional: true
 
@@ -8585,8 +8659,6 @@ snapshots:
     dependencies:
       '@zarrita/storage': 0.2.0
       numcodecs: 0.3.2
-
-  zod@3.25.76: {}
 
   zod@4.6.7: {}
 
