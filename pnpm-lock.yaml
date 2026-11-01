@@ -40,17 +40,17 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@maplat/core':
-        specifier: ^1.2.0-rc.1
-        version: 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+        specifier: ^1.2.0
+        version: 1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@maplat/tin':
-        specifier: ^1.1.1-rc.1
-        version: 1.1.1-rc.1
+        specifier: ^1.1.1
+        version: 1.1.1
       '@maplat/transform':
         specifier: ^1.1.0
         version: 1.1.0
       '@maplat/ui':
-        specifier: ^1.2.0-rc.1
-        version: 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)
+        specifier: ^1.2.0
+        version: 1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -231,12 +231,12 @@ packages:
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
 
-  '@c4h/chuci@1.0.2-rc.1':
-    resolution: {integrity: sha512-rSg2iqDi+HnoiOjjwL5voeKBW92Ato/rDC4zZ4qA21cHxs7Y8ublpxQkb+cb0eG3q1DHkV00P7dFSSTWt21XJg==}
+  '@c4h/chuci@1.0.2':
+    resolution: {integrity: sha512-riPtOEI6t9VDHEOgjQLOcXrIckjoytmGGbrjosAylpg/dSjc4MnC8DX71YmR5CH1nkkK/nM8kWETxbJ6RQOBdQ==}
     engines: {pnpm: '>=9.0.0'}
 
-  '@c4h/weiwudi@1.1.1-rc.1':
-    resolution: {integrity: sha512-vKmUytM+w8seuDGTkPcsrEIP7mktj1RMJTiR+xCx3GrMDExZqGdO40xbhst+sVqiNJvaM/uFHWijHkDVUZPb0A==}
+  '@c4h/weiwudi@1.1.1':
+    resolution: {integrity: sha512-hgk0fpXUohUAmfLBXzAct5GsfNndQTsORGqbvM2Qa4S6NvasrGVZNa63SUhA7FldCwKjngflgVt5S6Un1B3OMg==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
     peerDependencies:
       workbox-routing: ^7.4.0
@@ -669,8 +669,8 @@ packages:
   '@mapbox/vector-tile@3.0.0':
     resolution: {integrity: sha512-Qf10S1uIHMk20ri/IVBnpS+esUEkVaR5Hftmz88jTInrpmWgPGJfPe3LVjjlE77trLx8tH6qjTG7uWH9hIq/0Q==}
 
-  '@maplat/core@1.2.0-rc.1':
-    resolution: {integrity: sha512-4Wo6eT51tjjijPROlUzM8VIVK1Ax2OEhBxt+Lzdkd/BX7FdmhtYqN7pN2L7a16VFC8sPvWzckA+DaLE0Lu4QPg==}
+  '@maplat/core@1.2.0':
+    resolution: {integrity: sha512-QN9oMGYqXRKAhYPShOh6iJQBcwT7VE2/EgHK+gAQY2jyMvaUxTN8ulguTkk5YdTMi8i99obCQm9ZNzkanGpGig==}
     engines: {pnpm: '>=9'}
     peerDependencies:
       mapbox-gl: ^2.0.0 || ^3.0.0
@@ -682,16 +682,16 @@ packages:
       maplibre-gl:
         optional: true
 
-  '@maplat/tin@1.1.1-rc.1':
-    resolution: {integrity: sha512-J1zyByj/qymjploiyAWYPqhMwOPO3ahUxfnhQdxv5aN++iC5BHAikHQVZTjmsEncegIoKKSYlzGagSJjczK55g==}
+  '@maplat/tin@1.1.1':
+    resolution: {integrity: sha512-WdJfiuwTNLsjEYLF94HioNktJ5huNFZ4RP+x2NR91ichIvqrcAqfqR3BSElW+lTlX9OgMB2vaCMWNjdNcUNzvw==}
     engines: {node: '>=20.0.0', pnpm: '>=9.0.0'}
 
   '@maplat/transform@1.1.0':
     resolution: {integrity: sha512-oBfH0vSJQx+xsVUE/tFI42JCSrXMKjFcoKbbN4yG2Cv5M2gaOhQyzn9ZO8RZFcQ18Do0c7WWpFbx72R+IhWeZw==}
     engines: {node: '>=20', pnpm: '>=9'}
 
-  '@maplat/ui@1.2.0-rc.1':
-    resolution: {integrity: sha512-3iD20GfswuiN5j6Zhm4NalpoZApGzcNkzpPVaKTRZpxEio/fjrMYuEuYrvWqBarFa1QpGjUq16mfyqwk1Okafw==}
+  '@maplat/ui@1.2.0':
+    resolution: {integrity: sha512-jFRKLz6K/IrFFXhxioQtAH3itDtfcm592WiduGdN8gmM20YVo7Bjf1URZy1TagwZ9EGtB3IZ5bTqHhF4lDS19g==}
     engines: {npm: use-pnpm-please, pnpm: '>=9.0.0'}
     peerDependencies:
       mapbox-gl: ^2.0.0 || ^3.0.0
@@ -3891,14 +3891,14 @@ snapshots:
 
   '@borewit/text-codec@0.2.2': {}
 
-  '@c4h/chuci@1.0.2-rc.1':
+  '@c4h/chuci@1.0.2':
     dependencies:
       gsplat: 1.2.9
       swiper: 12.2.0
       three: 0.186.1
       viewerjs: 1.11.8
 
-  '@c4h/weiwudi@1.1.1-rc.1(workbox-routing@7.4.1)':
+  '@c4h/weiwudi@1.1.1(workbox-routing@7.4.1)':
     dependencies:
       workbox-routing: 7.4.1
 
@@ -4417,9 +4417,9 @@ snapshots:
       '@types/geojson': 7946.0.16
       pbf: 5.1.2
 
-  '@maplat/core@1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
+  '@maplat/core@1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
     dependencies:
-      '@c4h/weiwudi': 1.1.1-rc.1(workbox-routing@7.4.1)
+      '@c4h/weiwudi': 1.1.1(workbox-routing@7.4.1)
       '@maplat/transform': 1.1.0
       '@turf/turf': 7.4.0
       dompurify: 3.4.17
@@ -4432,7 +4432,7 @@ snapshots:
     transitivePeerDependencies:
       - workbox-routing
 
-  '@maplat/tin@1.1.1-rc.1':
+  '@maplat/tin@1.1.1':
     dependencies:
       '@maplat/transform': 1.1.0
       '@turf/turf': 7.4.0
@@ -4443,11 +4443,11 @@ snapshots:
     dependencies:
       '@turf/turf': 7.4.0
 
-  '@maplat/ui@1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)':
+  '@maplat/ui@1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(typescript@6.0.3)':
     dependencies:
-      '@c4h/chuci': 1.0.2-rc.1
-      '@c4h/weiwudi': 1.1.1-rc.1(workbox-routing@7.4.1)
-      '@maplat/core': 1.2.0-rc.1(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+      '@c4h/chuci': 1.0.2
+      '@c4h/weiwudi': 1.1.1(workbox-routing@7.4.1)
+      '@maplat/core': 1.2.0(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@turf/turf': 7.4.0
       '@types/page': 1.11.9
       bootstrap.native: 5.1.10
