@@ -1,0 +1,40 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://iiif.example.test/manifest/minimal/manifest.json",
+  "type": "Manifest",
+  "label": { "en": ["Minimal Sample Map"], "ja": ["最小の見本図"] },
+  "rights": "http://creativecommons.org/publicdomain/mark/1.0/",
+  "items": [
+    {
+      "id": "https://iiif.example.test/manifest/minimal/canvas/1",
+      "type": "Canvas",
+      "label": { "none": ["1"] },
+      "width": 4074,
+      "height": 2705,
+      "items": [
+        {
+          "id": "https://iiif.example.test/manifest/minimal/page/1",
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "id": "https://iiif.example.test/manifest/minimal/annotation/1",
+              "type": "Annotation",
+              "motivation": "painting",
+              "target": "https://iiif.example.test/manifest/minimal/canvas/1",
+              "body": {
+                "id": "https://iiif.example.test/image/minimal-1/full/max/0/default.jpg",
+                "type": "Image",
+                "format": "image/jpeg",
+                "width": 4074,
+                "height": 2705,
+                "service": [
+                  { "id": "https://iiif.example.test/image/minimal-1", "type": "ImageService3", "profile": "level1" }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

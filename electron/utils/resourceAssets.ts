@@ -9,7 +9,7 @@ import { bundleFileUrl } from './appScheme';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
 
-const resourceRoots = [
+export const resourceRoots = [
   path.resolve(appRoot, 'public'),
   path.resolve(appRoot, 'dist'),
   path.resolve(__dirname, '..', 'public'),

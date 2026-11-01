@@ -228,7 +228,7 @@ await writeFile(
     registerMapUploadHandlers();
     const handler = __handlers.get('mapupload:showMapSelectDialog');
     assert.ok(handler, 'mapupload:showMapSelectDialog が登録されている');
-    const ev = (id) => ({ sender: { id } });
+    const ev = (id) => ({ sender: { id }, senderFrame: { url: 'app://bundle/index.html', parent: null } });
 
     {
       // 100 MP 超だが機械安全枠内の寸法（= D5 だけが発火する）

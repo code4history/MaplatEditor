@@ -88,9 +88,9 @@ try {
     assert.deepEqual(activeFieldsForMode('html'), ['html', 'image']);
     assert.deepEqual(activeFieldsForMode('url'), ['url']);
 
-    assert.deepEqual(incompatibleFieldsForMode('standard'), ['html', 'url']);
-    assert.deepEqual(incompatibleFieldsForMode('html'), ['desc', 'address', 'url']);
-    assert.deepEqual(incompatibleFieldsForMode('url'), ['desc', 'address', 'html', 'image']);
+    assert.deepEqual(incompatibleFieldsForMode('standard'), ['html', 'url', 'directgo']);
+    assert.deepEqual(incompatibleFieldsForMode('html'), ['desc', 'address', 'url', 'directgo']);
+    assert.deepEqual(incompatibleFieldsForMode('url'), ['desc', 'address', 'html', 'image', 'directgo']);
     console.log('  case 2 (field contracts): PASS');
   }
 

@@ -10,8 +10,27 @@ import {
   YaxisMode
 } from "@maplat/transform";
 import type { Position } from "geojson";
+import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify";
 type LangResource = string | Record<string, string>;
 type TinLike = string | Transform | Compiled;
+
+/** IIIF Image API の画像を配るための情報。 */
+export interface IiifDelivery {
+  type: "iiifImage";
+  url: string;
+}
+
+/** IIIF から取り込んだときの結び付きの記録。 */
+export interface IiifSection {
+  manifest?: string;
+  canvas?: string;
+  image?: string;
+  bindings?: Record<string, unknown>;
+  copiedValues?: Record<string, unknown>;
+  copiedMetadata?: unknown[];
+  copiedAt?: string;
+  [key: string]: unknown;
+}
 
 export interface HistMapStore {
   title: LangResource;
@@ -55,6 +74,10 @@ export interface HistMapStore {
   // POI 配列 (Phase 7 / POI-137): {poiUid, cachedTitle} 参照要素と生要素 (URL/FC) の混在。
   // シリアライズ両方向 (histMap2Store / store2HistMap) で素通し保持する
   pois?: unknown[];
+  // IIIF から取り込んだ地図の配信情報と結び付きの記録。keys へも必ず追加する
+  // (無いと histMap2Store の保存で消える。licenseNote / pois と同じ穴)
+  delivery?: IiifDelivery;
+  iiif?: IiifSection;
 }
 
 interface SubMap {
@@ -87,7 +110,9 @@ const keys: (keyof HistMapStore)[] = [
   "imageExtension",
   "homePosition",
   "mercZoom",
-  "pois"
+  "pois",
+  "delivery",
+  "iiif"
 ];
 
 export async function store2HistMap(
@@ -198,7 +223,19 @@ export async function histMap2Store(
   tins: TinLike[]
 ): Promise<HistMapStore> {
   const ret: any = {};
+  // 保存の前に、配信先の URL の文字列を検査する。通らない delivery は落として警告を 1 行出す
+  // （配れない地図を配れる地図として保存しないため）。
+  const delivery = (histmap as any).delivery;
+  const deliveryAllowed =
+    !delivery ||
+    (typeof delivery.url === "string" && isAllowedDeliveryUrl(delivery.url));
+  if (delivery && !deliveryAllowed) {
+    console.warn(
+      "[store_handler] delivery dropped: the url is not an allowed https address"
+    );
+  }
   keys.forEach(key => {
+    if (key === "delivery" && !deliveryAllowed) return;
     ret[key] = histmap[key];
   });
   if ((histmap as any)["imageExtention"] || (histmap as any)["imageExtension"])

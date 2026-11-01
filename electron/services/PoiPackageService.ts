@@ -7,6 +7,7 @@ import type { FeatureCollection } from 'geojson';
 import { appUrlToLocalPath } from '../utils/appScheme';
 import { listIconSets } from '../../src/utils/iconRefs';
 import {
+  assertArchiveStructure,
   assertSafeArchiveEntries,
   assertPoiPayloadLimits,
   assertSafePoiPackageEntries,
@@ -96,11 +97,17 @@ export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackag
     }
     throw error;
   }
-  return entries.map((entry) => ({
-    name: entry.entryName,
-    size: Number(entry.header.size),
-    isSymlink: isSymlinkEntry(entry),
-  }));
+  return entries.map((entry) => {
+    // adm-zip の型定義は header の size と attr しか書いていないが、実体は中央ディレクトリの全項目を持つ
+    const header = entry.header as unknown as { size: number; compressedSize: number; method: number };
+    return {
+      name: entry.entryName,
+      size: Number(header.size),
+      compressedSize: Number(header.compressedSize),
+      method: Number(header.method),
+      isSymlink: isSymlinkEntry(entry),
+    };
+  });
 }
 
 export async function inspectPoiExport(fc: FeatureCollection): Promise<PoiExportInspection> {
@@ -229,6 +236,7 @@ export async function importManagedPoiDocuments(
   const zip = new AdmZip(filePath);
   const infos = zipEntryInfos(zip);
 
+  assertArchiveStructure(infos, (await fs.stat(filePath)).size, 'POI package');
   // (a) 安全検証は **絞り込み前に ZIP 全体へ**。API 自衛であり冪等
   //     （地図 ZIP の主たる検証点は DataUploadService.extractZip の展開前である）。
   assertSafeArchiveEntries(infos);
@@ -357,14 +365,16 @@ export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
   // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
   // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない
-  await assertZipImportSize(filePath, 'POI package');
+  const archiveBytes = await assertZipImportSize(filePath, 'POI package');
   const zip = new AdmZip(filePath);
 
   // POI 単体パッケージは **全 entry が payload** であるため、上限も全 entry へ掛ける。
   // 委譲先の importManagedPoiDocuments は (b) を pois/+imgs/ へ絞るため、委譲だけに任せると
   // **payload 外 entry（巨大 README・512 超の docs/ 等）による zip-bomb 検知が消える**。
   // ∴ 委譲の前に合成関数を全 entry へ直接呼ぶ。
-  assertSafePoiPackageEntries(zipEntryInfos(zip));
+  const infos = zipEntryInfos(zip);
+  assertArchiveStructure(infos, archiveBytes, 'POI package');
+  assertSafePoiPackageEntries(infos);
 
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
   // 1件制約は POI 単体パッケージの入力検証として維持する（地図 ZIP の都合で緩めない）

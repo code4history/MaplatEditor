@@ -8,6 +8,9 @@ import SettingsService from './SettingsService';
 import SqliteDataService from './SqliteDataService';
 import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
+// IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
+// 地図 1 枚の ZIP と同じ判定を使う
+import { hasIiifDelivery } from '../utils/iiifDelivery';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -21,6 +24,7 @@ import { renderImagePng, renderPwaAssets } from '../utils/pwaChromiumRenderer';
 // nov26-editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
 import { isSvgExt } from '../utils/svgSource';
 import { packIco } from '../utils/icoPack';
+import { jsonForScript } from '../utils/scriptJson';
 import {
   collectPoiUids,
   hasSharedPoiUid,
@@ -46,9 +50,9 @@ import {
   type AppSource,
   type BaseMapMasterLookup,
 } from '../../src/utils/appSourceModel';
-import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags } from './providerGlCdn';
+import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
-import { compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
+import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
@@ -95,6 +99,17 @@ export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 export function exportedSplashName(appID: string, splash: string): string {
   const ext = path.extname(splash).slice(1).toLowerCase() || 'png';
   return `${appID}_splash.${ext}`;
+}
+
+/**
+ * スプラッシュの実体のパス。設定の値はアプリの文書（取り込んだものを含む）から来るので、
+ * ファイル名だけを受け付けて `img/` の外を指せないようにする。受け付けない値は null。
+ */
+export function resolveSplashSource(saveFolder: string, splash: string): string | null {
+  // eslint-disable-next-line no-control-regex -- 制御文字を拒否する検査そのもの
+  if (!splash || splash === '.' || splash === '..' || /[\\/\u0000-\u001f]/.test(splash)) return null;
+  if (path.basename(splash) !== splash) return null;
+  return path.join(saveFolder, 'img', splash);
 }
 
 // nov26-editor-splash-svg (#462): SNS のカード画像（og:image）。多くの SNS は SVG をカードに描かないので、
@@ -401,7 +416,11 @@ class AppExportService {
       for (const source of maplatSources) {
         const mapDoc = maplatDocs.get(source)!;
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        const count = includeTiles && fs.existsSync(tileDir) ? await countTileFiles(tileDir) : 0;
+        // IIIF のまま配る地図はタイルを同梱しないので、分母にも数えない
+        const count =
+          includeTiles && !hasIiifDelivery(mapDoc) && fs.existsSync(tileDir)
+            ? await countTileFiles(tileDir)
+            : 0;
         tileFileCounts.set(source, count);
         totalTileFiles += count;
       }
@@ -478,7 +497,8 @@ class AppExportService {
         const mapDoc = maplatDocs.get(source)!;
         const slug = String(mapDoc.slug);
         // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
-        const mapJson = compactMapLangFields({ ...mapDoc });
+        // IIIF の書誌の写し (iiif.copiedMetadata) も同じ規則で畳む（地図 1 枚の ZIP と同じ関数）
+        const mapJson = compactIiifCopiedMetadata(compactMapLangFields({ ...mapDoc }));
         delete (mapJson as any)._id;
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;
@@ -524,8 +544,10 @@ class AppExportService {
 
         // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)。
         // ファイル単位でコピーしつつ進捗を報告する(まとまった大きな地図でもバーが動き続ける)
+        // IIIF のまま配る地図は画像を配信元から読むので、タイルの実体を同梱しない
+        // (サムネイルは下で今のまま同梱する)
         const tileDir = path.join(this.saveFolder, 'tiles', mapDoc.uid);
-        if (includeTiles && fs.existsSync(tileDir)) {
+        if (includeTiles && !hasIiifDelivery(mapDoc) && fs.existsSync(tileDir)) {
           await copyTilesWithProgress(tileDir, path.join(outDir, 'tiles', slug), slug, reporter, progressState);
         }
         const thumb = path.join(this.saveFolder, 'tmbs', `${mapDoc.uid}.jpg`);
@@ -632,8 +654,8 @@ class AppExportService {
       // 4) スプラッシュ画像
       const splash = String(document.appSettings?.splash || '');
       if (splash) {
-        const from = path.join(this.saveFolder, 'img', splash);
-        if (fs.existsSync(from)) {
+        const from = resolveSplashSource(this.saveFolder, splash);
+        if (from && fs.existsSync(from)) {
           // 拡張子のまま複製する（SVG もそのまま。app JSON の splash も同じ名前を指す）
           await fs.copy(from, path.join(outDir, 'img', exportedSplashName(appID, splash)));
         } else {
@@ -821,16 +843,17 @@ class AppExportService {
     document: any,
     warnings: string[],
   ): Promise<string | undefined> {
-    if (!splash) return undefined;
+    const source = resolveSplashSource(this.saveFolder, splash);
+    if (!source) return undefined;
     if (!isSvgExt(path.extname(splash).slice(1))) {
       return `img/${exportedSplashName(appID, splash)}`;
     }
     const ogName = exportedOgImageName(appID);
     // 【0464 MINOR-4】スプラッシュの実体が無いときは missing_splash だけにし、og:image の警告を重ねない
-    if (!fs.existsSync(path.join(this.saveFolder, 'img', splash))) return undefined;
+    if (!fs.existsSync(source)) return undefined;
     try {
       await renderImagePng({
-        sourcePath: path.join(this.saveFolder, 'img', splash),
+        sourcePath: source,
         outputPath: path.join(outDir, 'img', ogName),
         width: OG_IMAGE_WIDTH,
         height: OG_IMAGE_HEIGHT,
@@ -1128,6 +1151,25 @@ class AppExportService {
     if (mapboxKey) viewerOption.mapboxToken = mapboxKey;
     if (googleKey) viewerOption.googleApiKey = googleKey;
 
+    // GL の要否は 1 回だけ判定し、GL の断片と起動のスクリプトの両方に同じ値を渡す
+    const requiredProviderGl = detectRequiredProviderGlFromAppSources(sources, (source) => {
+      if (!baseMapLookup) return null;
+      const resolved = resolveAppSource(source, baseMapLookup);
+      return resolved.ok ? resolved.master.data : null;
+    });
+    // MapLibre の系列（アプリの文書の最上位の maplibreMajorVersion）も 1 回だけ決め、同じ値を両方に渡す
+    const maplibreMajor = resolveMaplibreMajor(document);
+    const startupBody = [
+      `    var option = ${jsonForScript(viewerOption, 2).replace(/\n/g, '\n    ')};`,
+      renderExportedAppQueryScript(hasBasemap),
+      '    var MaplatApp = window.MaplatUi && window.MaplatUi.createObject',
+      '      ? window.MaplatUi',
+      '      : window.MaplatUi && window.MaplatUi.MaplatUi',
+      '        ? window.MaplatUi.MaplatUi',
+      '        : window.Maplat;',
+      '    MaplatApp.createObject(option);',
+    ].join('\n');
+
     return `<!DOCTYPE html>
 <html>
 
@@ -1153,22 +1195,9 @@ ${headLines.join('\n')}
     <div id="map_div"></div>
   </div>
 
-${renderProviderGlCdnTags(detectRequiredProviderGlFromAppSources(sources, (source) => {
-  if (!baseMapLookup) return null;
-  const resolved = resolveAppSource(source, baseMapLookup);
-  return resolved.ok ? resolved.master.data : null;
-}))}  <script src="assets/ol.js"></script>
+${renderProviderGlCdnTags(requiredProviderGl, maplibreMajor)}  <script src="assets/ol.js"></script>
   <script src="assets/maplat_ui.umd.js"></script>
-  <script>
-    var option = ${JSON.stringify(viewerOption, null, 2).replace(/\n/g, '\n    ')};
-${renderExportedAppQueryScript(hasBasemap)}
-    var MaplatApp = window.MaplatUi && window.MaplatUi.createObject
-      ? window.MaplatUi
-      : window.MaplatUi && window.MaplatUi.MaplatUi
-        ? window.MaplatUi.MaplatUi
-        : window.Maplat;
-    MaplatApp.createObject(option);
-  </script>
+${renderViewerStartupScript(requiredProviderGl, startupBody, maplibreMajor)}
 </body>
 
 </html>

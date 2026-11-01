@@ -9,8 +9,7 @@
       <!-- Content Mode 選択タブ -->
       <PoiContentModeEditor
         :model-value="contentMode"
-        :has-incompatible-values="incompatibleFieldKeys.length > 0"
-        :incompatible-field-names="incompatibleFieldKeys"
+        :dropped-fields-for="droppedFieldsFor"
         :read-only="readOnly"
         @update:model-value="onModeChange"
       />
@@ -212,6 +211,52 @@
         </div>
       </template>
 
+      <!-- === link mode: 情報窓を出さずに移る（directgo） === -->
+      <template v-if="shownMode === 'link'">
+        <!-- 隠れている他の内容（消さない。情報窓が出ないので表示されないことを知らせる） -->
+        <DiagnosticFeedback
+          v-if="hiddenContentItems.length"
+          scope="section"
+          :items="hiddenContentItems"
+          class="mb-2"
+          data-testid="poi-directgo-hidden-content"
+        />
+        <div class="mb-2">
+          <label class="form-label fw-bold small mb-0" for="poi-directgo-href-input">{{ t("poiedit.directgo_href") }}</label>
+          <input
+            id="poi-directgo-href-input"
+            v-model="directgoHrefInput"
+            type="text"
+            class="form-control form-control-sm"
+            :class="{ 'is-invalid': !!directgoError }"
+            placeholder="https://"
+            data-testid="poi-directgo-href"
+            :disabled="readOnly"
+            @change="onDirectgoHrefChange"
+          />
+          <DiagnosticFeedback
+            v-if="directgoError"
+            scope="field"
+            :items="[{ key: 'content-mode-link-format', severity: 'danger', message: directgoError }]"
+            data-testid="poi-directgo-error"
+          />
+          <div class="form-text small" data-testid="poi-directgo-examples">{{ t("poiedit.directgo_examples") }}</div>
+        </div>
+        <div class="form-check mb-2">
+          <input
+            id="poi-directgo-blank-input"
+            type="checkbox"
+            class="form-check-input"
+            :checked="directgoBlankValue"
+            data-testid="poi-directgo-blank"
+            :disabled="readOnly"
+            @change="onDirectgoBlankChange(($event.target as HTMLInputElement).checked)"
+          />
+          <label class="form-check-label small" for="poi-directgo-blank-input">{{ t("poiedit.directgo_blank") }}</label>
+        </div>
+        <div class="small text-muted mb-2" data-testid="poi-directgo-note">{{ t("poiedit.directgo_preview_note") }}</div>
+      </template>
+
       <!-- icon / selectedIcon -->
       <IconRefField
         ref="iconFieldRef"
@@ -294,12 +339,15 @@ import PoiContentModeEditor from "./PoiContentModeEditor.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import type { DiagnosticItem } from "./editor-ui/editorUiTypes";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
-import { DISPLAY_ID_PATTERN, type PoiEditorFeature } from "../utils/poiGeoJson";
+import { DISPLAY_ID_PATTERN, isValidDirectgo, type PoiEditorFeature } from "../utils/poiGeoJson";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   incompatibleFieldsForMode,
   type PoiContentMode,
   CONTENT_MODE_VALUES,
+  buildDirectgoValue,
+  directgoBlank,
+  directgoHref,
 } from "../utils/poiContentMode";
 
 const props = defineProps<{
@@ -335,39 +383,51 @@ const contentMode = computed<PoiContentMode | undefined>(() => {
   return undefined;
 });
 
+// 欄に値が入っているか（LangResource・配列・オブジェクト形の directgo を含む）
+const hasFieldValue = (f: PoiEditorFeature, key: string): boolean => {
+  const value = f.properties[key];
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "object" && !Array.isArray(value)) {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && v.trim() !== "",
+    );
+  }
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+};
+
 // 非互換フィールド（現在のモードに合わないフィールドで非空の値を持つもの）
 const incompatibleFieldKeys = computed<string[]>(() => {
   const mode = contentMode.value;
   if (!mode) return [];
   const f = feature.value;
   if (!f) return [];
-  const incompatible = incompatibleFieldsForMode(mode);
-  return incompatible.filter((key) => {
-    const value = f.properties[key];
-    if (value === undefined || value === null) return false;
-    if (typeof value === "string") return value.trim() !== "";
-    if (typeof value === "object" && !Array.isArray(value)) {
-      return Object.values(value as Record<string, unknown>).some(
-        (v) => typeof v === "string" && v.trim() !== "",
-      );
-    }
-    if (Array.isArray(value)) return value.length > 0;
-    return true;
-  });
+  return incompatibleFieldsForMode(mode).filter((key) => hasFieldValue(f, key));
 });
+
+// 形を mode に切り替えると削除される欄のうち、値が入っているもの（確認の窓に出す）
+const droppedFieldsFor = (mode: PoiContentMode): string[] => {
+  const f = feature.value;
+  if (!f) return [];
+  return incompatibleFieldsForMode(mode).filter((key) => hasFieldValue(f, key));
+};
+
+const fieldDisplayName = (k: string): string => {
+  const displayNames: Record<string, string> = {
+    desc: t("poiedit.desc"),
+    address: t("poiedit.address"),
+    html: t("poiedit.html"),
+    url: t("poiedit.url"),
+    image: t("poiedit.images"),
+    directgo: t("poiedit.directgo_href"),
+  };
+  return displayNames[k] || k;
+};
 
 const incompatibleDiagnosticItems = computed<DiagnosticItem[]>(() => {
   if (incompatibleFieldKeys.value.length === 0) return [];
-  const fieldNames = incompatibleFieldKeys.value.map((k) => {
-    const displayNames: Record<string, string> = {
-      desc: t("poiedit.desc"),
-      address: t("poiedit.address"),
-      html: t("poiedit.html"),
-      url: t("poiedit.url"),
-      image: t("poiedit.images"),
-    };
-    return displayNames[k] || k;
-  });
+  const fieldNames = incompatibleFieldKeys.value.map(fieldDisplayName);
   return [
     {
       key: "content-mode-mismatch",
@@ -403,6 +463,51 @@ const shownMode = computed<PoiContentMode>(
   () => contentMode.value ?? "standard",
 );
 
+// --- link mode（directgo） ---
+const directgoHrefInput = ref("");
+const directgoValue = computed<unknown>(() => feature.value?.properties?.directgo);
+const directgoBlankValue = computed<boolean>(() => directgoBlank(directgoValue.value));
+
+// 保存されている値で判定する（フォームはエラー値も commit し、保存はライブ検証が止める）
+const directgoError = computed<string | null>(() => {
+  if (shownMode.value !== "link") return null;
+  return isValidDirectgo(directgoValue.value)
+    ? null
+    : t("poisource.errors.content_mode_link_format");
+});
+
+// link のとき隠れている他の内容（情報窓が出ないので表示されない。データは残る）
+const hiddenContentItems = computed<DiagnosticItem[]>(() => {
+  const f = feature.value;
+  if (!f || shownMode.value !== "link") return [];
+  const keys = ["desc", "address", "image", "html", "url"].filter((k) => hasFieldValue(f, k));
+  if (keys.length === 0) return [];
+  return [
+    {
+      key: "directgo-hidden-content",
+      severity: "info",
+      message: t("poiedit.directgo_hidden_content", { fields: keys.map(fieldDisplayName).join(" / ") }),
+    },
+  ];
+});
+
+const commitDirectgo = (href: string, blank: boolean): void => {
+  const id = uid.value;
+  if (!id || props.readOnly) return;
+  const current = directgoValue.value;
+  const next = buildDirectgoValue(href, blank, current);
+  if (JSON.stringify(next ?? null) === JSON.stringify(current ?? null)) return;
+  session.patchFeatureProperties(id, { directgo: next });
+};
+
+const onDirectgoHrefChange = (): void => {
+  commitDirectgo(directgoHrefInput.value, directgoBlankValue.value);
+};
+
+const onDirectgoBlankChange = (checked: boolean): void => {
+  commitDirectgo(directgoHrefInput.value, checked);
+};
+
 // --- ローカル編集バッファ ---
 const displayIdInput = ref("");
 const displayIdTransientError = ref<string | null>(null);
@@ -431,6 +536,7 @@ const reinitBuffers = (f: PoiEditorFeature | null): void => {
   coordTransientError.value = null;
   if (!f) {
     displayIdInput.value = "";
+    directgoHrefInput.value = "";
     lonInput.value = "";
     latInput.value = "";
     imageRows.value = [];
@@ -438,6 +544,7 @@ const reinitBuffers = (f: PoiEditorFeature | null): void => {
     return;
   }
   displayIdInput.value = typeof f.id === "string" ? f.id : String(f.id ?? "");
+  directgoHrefInput.value = directgoHref(f.properties?.directgo);
   const coords = f.geometry?.coordinates;
   lonInput.value = Array.isArray(coords) && coords[0] !== undefined ? String(coords[0]) : "";
   latInput.value = Array.isArray(coords) && coords[1] !== undefined ? String(coords[1]) : "";

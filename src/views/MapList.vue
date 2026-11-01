@@ -24,7 +24,15 @@
       @load-more="loadMore"
     >
       <template #secondary>
-        <ImportSlot kind="map" @import="onImportMap" />
+        <div class="d-flex gap-2">
+          <ImportSlot kind="map" @import="onImportMap" />
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-testid="map-import-iiif"
+            @click="iiifDialogOpen = true"
+          >{{ t("iiif_import.open") }}</button>
+        </div>
       </template>
       <template #range>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-testid="map-range-filter" @click="modalOpen = true">
@@ -59,6 +67,7 @@
     </ResourceListShell>
     <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="range_filter.modal_title" help-key="range_filter.modal_help" @update:model-value="apply" @close="modalOpen = false" />
 
+    <IiifImportDialog v-if="iiifDialogOpen" @close="iiifDialogOpen = false" />
     <DeleteConfirmDialog
       :visible="deletion.dialog.visible" :title="deletion.dialog.title"
       :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
@@ -89,6 +98,7 @@ import ImportSlot from "../components/resource-list/ImportSlot.vue";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
+import IiifImportDialog from "../components/mapedit/IiifImportDialog.vue";
 import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
@@ -98,6 +108,7 @@ const route = useRoute();
 const router = useRouter();
 const { bbox, modalOpen, envelopeForModal, apply, clear } = useBboxRangeFilter({ route, router });
 const { hasDraft, newDrafts, latestNewDraft, refreshDrafts, removeNewDraft } = useAssetDraftBadges("map");
+const iiifDialogOpen = ref(false);
 
 const query = computed(() => (typeof route.query.q === "string" ? route.query.q : ""));
 const bboxQuery = computed(() => (typeof route.query.bbox === "string" ? route.query.bbox : null));

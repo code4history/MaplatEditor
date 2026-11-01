@@ -195,10 +195,7 @@ function hasNonEmptyStringOrLangValue(value: unknown): boolean {
   return false;
 }
 
-// LangResource 値（全言語）の中に、url mode で許可されないプロトコル
-// （http/https 以外かつ先頭が protocol:// 形式）が 1 件でもあるか。
-// 許可: http: / https: で始まる、またはプロトコル文字列を持たない（相対パス・空）。
-// 拒否: javascript: / data: / vbscript: / ftp: / file: 等、何らかのプロトコル識別子を持つものすべて。
+// LangResource 値（全言語）の中に、isDangerousUrlString が拒否する値が 1 件でもあるか（url mode 用）。
 function hasDangerousUrlProtocol(value: unknown): boolean {
   if (typeof value === "string") {
     return isDangerousUrlString(value);
@@ -211,15 +208,45 @@ function hasDangerousUrlProtocol(value: unknown): boolean {
   return false;
 }
 
-function isDangerousUrlString(s: string): boolean {
-  const trimmed = s.trim();
-  if (trimmed === "") return false;
-  // プロトコル識別子がなければ相対パスとみなし許可
-  if (!/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return false;
-  // http: または https: は許可
-  if (/^https?:\/\//i.test(trimmed)) return false;
-  // その他のプロトコル（javascript:/data:/vbscript:/ftp:等）は拒否
-  return true;
+// URL の検査（url の内容の形と directgo が共用する 1 つの関数）。受理集合はビューアと同じ:
+// ビューアは new URL(値, location.href).protocol が http: / https: のときだけ開く（Maplat の poi_safe）。
+// ここでは基点に https のダミーを置き、相対（./x・#!s:…・?a=1・//host）を http(s) に解決させて許可する。
+// http/https 以外のスキーム（javascript:・data:・vbscript:・file: 等。java<TAB>script: や先頭の制御文字・
+// 空白を挟んだものも new URL が同じく解釈する）と、URL として解釈できないものは拒否する。
+// 空（前後の空白を除いて）は「値なし」として許可する（必須かどうかは呼び出し側が決める）。
+const URL_CHECK_BASE = "https://maplat.invalid/";
+export function isDangerousUrlString(s: string): boolean {
+  if (s.trim() === "") return false;
+  let protocol: string;
+  try {
+    protocol = new URL(s, URL_CHECK_BASE).protocol;
+  } catch {
+    return true;
+  }
+  return protocol !== "http:" && protocol !== "https:";
+}
+
+// href が空白を除いて空の文字列の directgo（"  " や { href: "" }）。値なしとして扱う。
+function isBlankDirectgo(value: unknown): boolean {
+  const href = typeof value === "string" ? value : isRecord(value) ? value.href : undefined;
+  return typeof href === "string" && href.trim() === "";
+}
+
+// directgo の値（ビューアの型 string | { href: string; blank?: boolean }）が正しいか。
+// href が無い・文字列でない・空・URL の検査で拒否 → false。
+// blank の型は問わない（ビューアは `blank || false` と真偽性で読むので、"true" 等でも動く）。
+// フォーム（PoiAttributeForm のリンク先の欄）も同じ判定を使う。
+export function isValidDirectgo(value: unknown): boolean {
+  let href: unknown;
+  if (typeof value === "string") {
+    href = value;
+  } else if (isRecord(value)) {
+    href = value.href;
+  } else {
+    return false;
+  }
+  if (typeof href !== "string" || href.trim() === "") return false;
+  return !isDangerousUrlString(href);
 }
 
 // feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
@@ -358,6 +385,18 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       });
     }
   }
+    // directgo: link の形のときと、形によらず directgo があるとき（生 JSON の窓で書いた値も弾く）に検査する。
+    // href が空白を除いて空の値（"" や { href: "" }）は「値なし」とみなす（ビューアは空文字を無視し、
+    // 推定も link にしないので欄が出ない。error にすると直せないまま保存が止まる）。link の形では必須なので error
+    const hasDirectgo = props.directgo !== undefined && props.directgo !== null
+      && !isBlankDirectgo(props.directgo);
+    if ((mode === 'link' || hasDirectgo) && !isValidDirectgo(props.directgo)) {
+      issues.push({
+        level: "error",
+        code: "content-mode-link-format",
+        featureId: id,
+      });
+    }
   }
 
   // 無コンテンツ warning (POI-108): ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning

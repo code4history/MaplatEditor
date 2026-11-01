@@ -73,13 +73,14 @@ const TAB_ITEMS: ContentModeTabItem[] = [
   { key: "standard", labelKey: "poiedit.content_mode_standard" },
   { key: "html", labelKey: "poiedit.content_mode_html" },
   { key: "url", labelKey: "poiedit.content_mode_url" },
+  { key: "link", labelKey: "poiedit.content_mode_link" },
 ];
 
 const props = withDefaults(
   defineProps<{
     modelValue: PoiContentMode | undefined;
-    hasIncompatibleValues: boolean;
-    incompatibleFieldNames: string[];
+    // 切替先の形で削除される欄のうち、値が入っているもの。空でなければ確認の窓を出す
+    droppedFieldsFor: (mode: PoiContentMode) => string[];
     readOnly?: boolean;
   }>(),
   { readOnly: false },
@@ -101,10 +102,11 @@ const currentValue = computed<PoiContentMode>(
 );
 
 const pendingMode = ref<PoiContentMode | null>(null);
+const pendingFields = ref<string[]>([]);
 const confirmVisible = ref(false);
 
 const confirmMessage = computed(() => {
-  const fields = props.incompatibleFieldNames;
+  const fields = pendingFields.value;
   if (fields.length === 0) return "";
   const names = fields.map((f) => {
     const displayNames: Record<string, string> = {
@@ -113,6 +115,7 @@ const confirmMessage = computed(() => {
       html: t("poiedit.html"),
       url: t("poiedit.url"),
       image: t("poiedit.images"),
+      directgo: t("poiedit.directgo_href"),
     };
     return displayNames[f] || f;
   });
@@ -127,8 +130,11 @@ function switchTo(mode: string): void {
   if (target === currentValue.value) return;
   if (!CONTENT_MODE_VALUES.includes(target)) return;
 
-  if (props.hasIncompatibleValues) {
+  // 切替で値の入った欄が消えるときだけ、消える欄を挙げて確認する
+  const dropped = props.droppedFieldsFor(target);
+  if (dropped.length > 0) {
     pendingMode.value = target;
+    pendingFields.value = dropped;
     confirmVisible.value = true;
   } else {
     emit("update:modelValue", target);
@@ -141,10 +147,12 @@ function confirmSwitch(): void {
   }
   confirmVisible.value = false;
   pendingMode.value = null;
+  pendingFields.value = [];
 }
 
 function cancelSwitch(): void {
   confirmVisible.value = false;
   pendingMode.value = null;
+  pendingFields.value = [];
 }
 </script>

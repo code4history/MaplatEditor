@@ -803,6 +803,15 @@ const wf = yaml.load(wfText);
   const v = checkBuildWorkflow(wf);
   assert.deepEqual(v, [], `t2/AC1 の build.yml の違反:\n  ${v.join('\n  ')}`);
   assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は m10 の PIN（t2/AC4）');
+  // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
+  {
+    const pinLine = 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413';
+    assert.ok(wfText.includes(pinLine), '[4] 自己検査の前提: build.yml に pnpm/action-setup の PIN の行が無い');
+    assert.ok(checkPnpmPin(wfText.replace(pinLine, 'pnpm/action-setup@v4')).length > 0,
+      '[4] 自己検査: pnpm/action-setup をタグにしても違反が出ない');
+    assert.ok(checkPnpmPin(wfText.replace(pinLine, `pnpm/action-setup@${'0'.repeat(40)}`)).length > 0,
+      '[4] 自己検査: pnpm/action-setup を別の SHA にしても違反が出ない');
+  }
   console.log('  [4/6] build.yml の静的検査（AC1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)）: PASS');
 }
 

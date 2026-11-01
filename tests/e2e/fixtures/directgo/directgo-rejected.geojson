@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "p4",
+      "geometry": { "type": "Point", "coordinates": [135.7711, 35.0146] },
+      "properties": {
+        "name": "P4 javascript directgo",
+        "desc": "P4 description",
+        "directgo": "javascript:alert(1)"
+      }
+    }
+  ]
+}

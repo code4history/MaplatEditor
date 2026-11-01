@@ -286,8 +286,8 @@ console.log('  [7/8] POI editor shares Header, Busy, language, and saved export 
 const poiIpc = await readFile(path.join(projectRoot, 'electron/ipc/poisource.ts'), 'utf8');
 const mapIpc = await readFile(path.join(projectRoot, 'electron/ipc/mapedit.ts'), 'utf8');
 const mapDownloadHandler = mapIpc.slice(
-  mapIpc.indexOf("ipcMain.handle('mapedit:download'"),
-  mapIpc.indexOf("ipcMain.handle('mapedit:uploadCsv'"),
+  mapIpc.indexOf("ipc.handle('mapedit:download'"),
+  mapIpc.indexOf("ipc.handle('mapedit:uploadCsv'"),
 );
 assert.ok(
   // M13-T1 (§1.5/§2.6): compose 呼び出しを内包する buildAndWriteMapZip へ移設したため、
@@ -297,8 +297,7 @@ assert.ok(
 );
 const preload = await readFile(path.join(projectRoot, 'electron/preload.ts'), 'utf8');
 const declarations = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
-const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
-assert.match(poiIpc, /ipcMain\.handle\(['"]poisource:exportFile['"]/);
+assert.match(poiIpc, /ipc\.handle\(['"]poisource:exportFile['"]/);
 assert.match(poiIpc, /dialog\.showSaveDialog/);
 assert.match(poiIpc, /poiSourceService\.exportForm\(uid\)/);
 assert.match(poiIpc, /inspectPoiExport\(fc\)/);
@@ -306,7 +305,6 @@ assert.match(poiIpc, /writePoiExport\(inspection, ret\.filePath\)/);
 assert.doesNotMatch(poiIpc, /filePath\s*:\s*input|input\.filePath/);
 assert.match(preload, /exportFile:\s*\(uid:\s*string\)\s*=>\s*ipcRenderer\.invoke\(['"]poisource:exportFile['"],\s*uid\)/);
 assert.match(declarations, /exportFile\(uid:\s*string\):\s*Promise<PoiSourceExportResult>/);
-assert.match(electronMain, /removeHandler\(['"]poisource:exportFile['"]\)/);
 
 const editorUiKeys = [
   'export_button',

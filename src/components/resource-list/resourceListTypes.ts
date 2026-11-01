@@ -38,6 +38,8 @@ export interface ResourceListItemViewModel {
   badges: ResourceListBadge[];
   selected: boolean;
   hasDraft: boolean;
+  /** IIIF の画像サービスのまま配信する地図か（一覧の印）。 */
+  iiifDelivery?: boolean;
   // capability。builtin Base Map 等 action 不能な item は空配列（D4改）。
   actions: Array<"duplicate" | "delete">;
   /** M12-T10 v2.0 HM4: selector variant で追加不可の理由（text-danger で常時表示 + :title ツールチップ） */

@@ -36,6 +36,7 @@ import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
 // nov26-m6-t5: 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
 import { runAssetUuidNamesColdBoot } from './AssetUuidNamesMigrationService';
+import { runMaplibreVersionColdBoot } from './MaplibreVersionMigrationService';
 import { copyVerified, sameContent } from './assetImageRefs';
 import { writeLegacyMigrationReport, appendMigrationWarnings } from './MigrationReportService';
 
@@ -173,6 +174,9 @@ const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 // 取込の段ではない（0.7.0 の取込行に限らず 1.0.0〜1.1.x のすべての行が対象で、到達先は 1.2.0 の命名の契約）。
 // 印の定数はこのファイルの行頭に集める規約に従い、AssetUuidNamesMigrationService へは引数で渡す（T5-R2-MIN-1）
 const ASSET_UUID_NAMES_V1_ID = '2026-10-11-asset-uuid-names-v1';
+// アプリの MapLibre GL JS の版（文書の最上位の maplibreMajorVersion）を、値の無い既存のアプリに 5 で書き込む
+// 一回限りの移行の印。MaplibreVersionMigrationService へは引数で渡す（印の定数はこのファイルの行頭に集める）
+const MAPLIBRE_VERSION_V1_ID = '2026-12-maplibre-version-v1';
 
 // ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
@@ -587,6 +591,11 @@ function normalizeAppDocument(document: any): any {
   delete normalized.uid;
   delete normalized.slug;
   delete normalized.revision;
+  // アプリの MapLibre GL JS の版（文書の最上位）。保存の入口（createApp・upsertApp）で必ず値を持たせる。
+  // 5・6 以外（無い・不正な値）は既定の 5。httpSettings には置かない（入れ物を作ると旧い行の読み方が変わる）
+  if (normalized.maplibreMajorVersion !== 5 && normalized.maplibreMajorVersion !== 6) {
+    normalized.maplibreMajorVersion = 5;
+  }
   return normalized;
 }
 
@@ -965,6 +974,14 @@ class SqliteDataService {
       await runAssetUuidNamesColdBoot(db, this.folders.saveFolder, ASSET_UUID_NAMES_V1_ID);
     } catch (e) {
       console.error('[SqliteDataService] asset UUID names migration failed unexpectedly; continuing DB initialization without it', e);
+    }
+
+    // アプリの MapLibre GL JS の版を、値の無い既存のアプリに 5（既定）で書き込む一回限りの移行。
+    // 失敗しても migrate() を失敗させない（印が付かず次の起動でやり直す。書き出しは値が無ければ 5 で読む）
+    try {
+      await runMaplibreVersionColdBoot(db, MAPLIBRE_VERSION_V1_ID);
+    } catch (e) {
+      console.error('[SqliteDataService] MapLibre version migration failed unexpectedly; continuing DB initialization without it', e);
     }
   }
 

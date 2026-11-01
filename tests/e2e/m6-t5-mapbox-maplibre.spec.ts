@@ -11,6 +11,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
 import { assertRowThumbnailRendered } from './helpers/resourceThumbnail';
+import { PROVIDER_GL_CDN } from '../../electron/services/providerGlCdn';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 // m1-t6（45782）・開発者実行中（41781）と衝突しない固定ポート
@@ -164,15 +165,16 @@ test('m6-t5 AC16: maplibre マスタ保存 → プレビュー HTML へ maplibre
     expect(s1.port).toBe(PREVIEW_PORT);
 
     const html1 = (await fetchBody(s1.port, `/preview/${s1.token}/`)).body;
-    // link + script が SRI 付きで、ol.js より前
-    const cssIdx = html1.indexOf('maplibre-gl@5.6.2/dist/maplibre-gl.css');
-    const jsIdx = html1.indexOf('maplibre-gl@5.6.2/dist/maplibre-gl.js');
+    // link + script が SRI 付きで、ol.js より前。版を選んでいないアプリは既定の 5 系（5.6.2 の UMD）
+    const cssIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre5.version}/dist/maplibre-gl.css`);
+    const jsIdx = html1.indexOf(`maplibre-gl@${PROVIDER_GL_CDN.maplibre5.version}/dist/maplibre-gl.js`);
     const olIdx = html1.indexOf('assets/ol.js');
     expect(cssIdx, 'preview HTML に maplibre-gl css CDN が無い').toBeGreaterThanOrEqual(0);
     expect(jsIdx, 'preview HTML に maplibre-gl js CDN が無い').toBeGreaterThanOrEqual(0);
     expect(olIdx).toBeGreaterThanOrEqual(0);
     expect(cssIdx).toBeLessThan(olIdx);
     expect(jsIdx).toBeLessThan(olIdx);
+    expect(html1).not.toContain('<script type="module">');
     expect(html1).toContain('integrity="sha384-');
     expect(html1).toContain('crossorigin="anonymous"');
     // maplibre のみのアプリに mapbox CDN は入らない

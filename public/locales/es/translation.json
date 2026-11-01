@@ -1,4 +1,84 @@
 {
+  "iiif_import": {
+    "open": "Import from IIIF",
+    "title": "Import a map from IIIF",
+    "url_label": "Manifest or info.json URL",
+    "url_placeholder": "https://…",
+    "inspect": "Load",
+    "canvas_heading": "Choose a canvas to import",
+    "cancel": "Cancel",
+    "size": "{{width}} × {{height}}",
+    "detail": "version {{version}} · level {{level}} · {{tiling}}",
+    "thumbnail_unavailable": "A thumbnail could not be created for this image service. The import will continue.",
+    "error": {
+      "inspect_failed": "The URL could not be read.",
+      "no_image_service": "This canvas has no image service.",
+      "stage_failed": "The import could not be prepared.",
+      "thumbnail_failed": "The thumbnails could not be saved."
+    },
+    "verdict": {
+      "deliverable": "Deliver from IIIF",
+      "metadata_only": "Metadata only from IIIF"
+    },
+    "reason": {
+      "bad-url": "This is not a valid URL, so it cannot be delivered.",
+      "fetch-failed": "The resource could not be fetched, so it cannot be delivered.",
+      "timeout": "The fetch timed out, so it cannot be delivered.",
+      "too-large": "The image is too large, so it cannot be delivered.",
+      "not-json": "info.json could not be read as JSON.",
+      "unsupported-version": "This IIIF version is not supported.",
+      "unsupported-level0": "This level 0 tiling is not supported.",
+      "size-mismatch": "The image size does not match the map record.",
+      "not-https": "The URL is not https, so it cannot be delivered.",
+      "cors-not-wildcard": "CORS is not *, so it cannot be delivered.",
+      "blocked-address": "This address is not allowed, so it cannot be delivered.",
+      "not-manifest": "This could not be read as a IIIF Manifest.",
+      "bad-argument": "The input is not valid."
+    }
+  },
+  "iiif_metadata": {
+    "heading": "Binding to the IIIF metadata",
+    "readonly_heading": "Metadata copied from IIIF",
+    "manifest_heading": "Manifest metadata",
+    "canvas_heading": "Metadata of this canvas",
+    "empty": "No items",
+    "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
+    "field": "Field",
+    "bind": "Copy",
+    "from": "Source",
+    "from_manifest": "Manifest",
+    "from_canvas": "This canvas",
+    "copy": "Copy from IIIF",
+    "copy_language": "Language to copy: {{language}}",
+    "recopy": "Compare with IIIF again",
+    "recopy_help": "Fetch the Manifest again and compare the current value, the value copied earlier and the new value. Only the rows you select are overwritten, so values you edited by hand stay unless you select them.",
+    "recopy_current": "Current",
+    "recopy_copied": "Copied",
+    "recopy_next": "New",
+    "recopy_no_value": "(no value)",
+    "recopy_select": "Overwrite",
+    "recopy_apply": "Overwrite with the selected values",
+    "recopy_failed_help": "If the copy did not work, please correct the bibliographic fields by hand.",
+    "recopy_reason": {
+      "unchanged": "Unchanged",
+      "human-edited": "Edited by hand",
+      "iiif-changed": "Changed in IIIF",
+      "both": "Edited by hand and changed in IIIF"
+    },
+    "copy_failed": {
+      "fetch-failed": "The Manifest could not be fetched.",
+      "timeout": "Fetching the Manifest timed out.",
+      "too-large": "The Manifest was not read because it is too large.",
+      "not-https": "The URL is not https, so it was not fetched.",
+      "blocked-address": "This destination cannot be fetched from.",
+      "bad-url": "The Manifest URL is not valid.",
+      "not-json": "The Manifest could not be read as JSON.",
+      "not-manifest": "This could not be read as an IIIF Manifest.",
+      "unsupported-version": "This version of the IIIF Manifest is not supported.",
+      "size-mismatch": "The canvas size in the Manifest is different from the map image, so nothing was copied.",
+      "unknown": "The metadata could not be copied."
+    }
+  },
   "app": {
     "title": "Maplat Editor"
   },
@@ -173,9 +253,23 @@
       "presets_already_registered": "Ya registrado: {{names}}",
       "default_license_note": "Se aplican los términos de Google Maps Platform. La atribución debe permanecer visible.",
       "default_data_license_note": "Datos de mapas e imágenes © Google. Consulte los términos de Google Maps Platform."
-    }
+    },
+    "style_gl_check_v5_ok": "Funciona con MapLibre GL JS 5 y 6",
+    "style_gl_check_needs_v6": "Requiere MapLibre GL JS 6: {{reasons}}",
+    "style_gl_check_unknown": "No se pudo comprobar: {{reasons}}",
+    "style_gl_check_run": "Volver a comprobar",
+    "style_gl_check_running": "Comprobando el estilo…",
+    "style_gl_check_reason_network": "no se pudo acceder al estilo",
+    "style_gl_check_reason_http-status": "el servidor devolvió un error",
+    "style_gl_check_reason_too-large": "el estilo es demasiado grande",
+    "style_gl_check_reason_unsupported-scheme": "solo se admiten http y https",
+    "style_gl_check_reason_invalid-json": "no es un estilo JSON",
+    "style_gl_check_reason_not-v8": "no es un estilo de la versión 8",
+    "style_gl_check_reason_invalid-argument": "URL no válida",
+    "style_gl_check_reason_check-failed": "el estilo es demasiado complejo o tiene una forma inesperada"
   },
   "settings": {
+    "save_folder_failed": "No se pudo guardar la carpeta de datos. No se pueden usar carpetas de red. No se ha guardado ningún otro ajuste.",
     "title": "Configuración",
     "basic_settings": "Configuración básica",
     "base_map": "Configuración de mapa base",
@@ -622,6 +716,10 @@
     "manifest_start_url": "start_url",
     "manifest_scope": "scope",
     "source_label": "Etiqueta visible",
+    "source_iiif_metadata": "IIIF bibliographic table",
+    "source_iiif_metadata_default": "Default (do not show)",
+    "source_iiif_metadata_hidden": "Do not show",
+    "source_iiif_metadata_all": "Show a table of all bibliographic fields",
     "source_advanced": "Editar directamente el archivo de configuración (JSON)",
     "success_save": "Se ha guardado el archivo de configuración de la aplicación.",
     "error_saving": "Error al guardar el archivo de configuración de la aplicación.",
@@ -704,7 +802,22 @@
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
     "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
-    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró."
+    "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró.",
+    "maplibre_version": "Versión de MapLibre GL JS",
+    "maplibre_version_5": "5 (5.6.2, predeterminada)",
+    "maplibre_version_6": "6 (6.16.0)",
+    "maplibre_version_note": "La versión de MapLibre GL JS que se usa para mostrar los mapas base de MapLibre en la vista previa y en las apps exportadas. La versión 6 admite funciones de estilo más recientes, pero requiere un navegador compatible con import maps y WebGL 2.",
+    "maplibre_version_switch_6": "Cambiar a la versión 6",
+    "maplibre_version_6_confirm_message": "¿Usar la versión 6 de MapLibre GL JS en esta app?",
+    "maplibre_version_6_confirm_detail": "1. Estarán disponibles funciones de estilo más recientes (por ejemplo, line-layer-opacity).\n2. Los navegadores que abran la app exportada deben admitir import map y WebGL 2. Los navegadores antiguos (por ejemplo, Safari 16.3 o anterior) no mostrarán el mapa.\n3. Si sirve la app exportada con una Content-Security-Policy, permita script-src https://cdn.jsdelivr.net y worker-src blob:.",
+    "maplibre_version_6_confirm_ok": "Cambiar a la versión 6",
+    "maplibre_version_6_confirm_cancel": "Cancelar",
+    "maplibre_version_warning": "El mapa base \"{{name}}\" usa funciones que requieren MapLibre GL JS 6 ({{reasons}}). No se mostrará con la versión 5.",
+    "maplibre_version_warning_unknown": "No se pudo comprobar si el mapa base \"{{name}}\" funciona con MapLibre GL JS 5 ({{reasons}}).",
+    "maplibre_export_warning_message": "Algunos mapas base de MapLibre de esta app requieren MapLibre GL JS 6 y no se mostrarán con la versión 5.",
+    "maplibre_export_warning_detail": "{{reasons}}\n\nPara mostrarlos, cambie \"Versión de MapLibre GL JS\" a 6 en la pantalla de gestión de la app, guarde la app y vuelva a exportarla.",
+    "maplibre_export_warning_continue": "Exportar de todos modos",
+    "maplibre_export_warning_cancel": "Cancelar"
   },
   "mapmodel": {
     "untitled": "Título no establecido",
@@ -870,6 +983,7 @@
       "pick_failed": "No se pudo seleccionar el archivo",
       "references_unavailable": "No se pudo obtener la información de referencias",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
+      "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "El ZIP es demasiado grande (no se pueden importar archivos de más de 2 GiB)",
       "zip_corrupt": "El ZIP está dañado y no se puede importar"
@@ -941,6 +1055,7 @@
     "content_mode_standard": "Standard",
     "content_mode_html": "HTML",
     "content_mode_url": "Web Page",
+    "content_mode_link": "Link",
     "content_mode_mismatch": "Fields incompatible with the current content mode ({{fields}}) contain values. Switching modes will delete these values.",
     "content_mode_switch_title": "Switch Content Mode",
     "content_mode_switch_warning": "The following fields will be deleted: {{fields}}. Continue?",
@@ -950,7 +1065,12 @@
     "copy_ref": "Copy Reference",
     "insert_image": "Insert Image",
     "add_reference_asset": "Add Asset",
-    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted."
+    "missing_asset_refs": "{{count}} asset reference(s) point to assets that no longer exist. Check whether the assets have been deleted.",
+    "directgo_href": "Link target",
+    "directgo_blank": "Open in a new tab",
+    "directgo_examples": "Examples: https://example.org/ (external page) / #!s:<mapID>/x:<X>/y:<Y>/z:<zoom> (a position on another map in the same app; works when the app setting \"State URL\" is on)",
+    "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
+    "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
   "assetlist": {
     "master_detail": {

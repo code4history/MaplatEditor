@@ -1,0 +1,32 @@
+{
+  "version": 8,
+  "name": "line-layer-opacity fixture",
+  "sources": {
+    "west": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "Polygon",
+              "coordinates": [[[139.6, 35.5], [139.767, 35.5], [139.767, 35.9], [139.6, 35.9], [139.6, 35.5]]]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#2a9d8f" } },
+    { "id": "west-fill", "type": "fill", "source": "west", "paint": { "fill-color": "#e76f51" } },
+    {
+      "id": "west-line",
+      "type": "line",
+      "source": "west",
+      "paint": { "line-color": "#264653", "line-width": 6, "line-layer-opacity": 0.85 }
+    }
+  ]
+}

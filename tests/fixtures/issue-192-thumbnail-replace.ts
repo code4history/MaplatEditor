@@ -27,12 +27,13 @@ const at = (rel: string) => path.join(root, rel);
 // これで composable → IPC → AppAssetService の経路をそのまま通す。
 registerAppAssetHandlers();
 const handlers = (globalThis as any).__ipcHandlers as Record<string, (...args: any[]) => any>;
+const rendererFrame = { url: 'app://bundle/index.html', parent: null };
 assert.ok(handlers?.['appassets:replace-map-thumbnail'], 'replace-map-thumbnail handler が登録されている');
 (globalThis as any).window = {
   appAssets: {
     replaceMapThumbnail: (mapUid: string, kind: '512' | '52', derive52: boolean, ext?: string, copy512From?: string) =>
-      handlers['appassets:replace-map-thumbnail']({ sender: {} }, mapUid, kind, derive52, ext, copy512From),
-    fileUrl: (relPath: string) => handlers['appassets:file-url']({}, relPath),
+      handlers['appassets:replace-map-thumbnail']({ sender: {}, senderFrame: rendererFrame }, mapUid, kind, derive52, ext, copy512From),
+    fileUrl: (relPath: string) => handlers['appassets:file-url']({ senderFrame: rendererFrame }, relPath),
   },
 };
 

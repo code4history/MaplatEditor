@@ -143,7 +143,7 @@ try {
   const mapeditIpc = await readProjectFile('electron/ipc/mapedit.ts');
   assert.match(
     mapeditIpc,
-    /mapedit_uploadCsv 相当（CSV インポート）\n\s*\/\/ M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）\n\s*ipcMain\.handle\('mapedit:uploadCsv'/,
+    /mapedit_uploadCsv 相当（CSV インポート）\n\s*\/\/ M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）\n\s*ipc\.handle\('mapedit:uploadCsv'/,
     '#15 mapedit:uploadCsv ハンドラの保全注記が欠落している',
   );
 

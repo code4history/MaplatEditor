@@ -1,0 +1,1048 @@
+// 取り込みのときの最初の書誌の写しの smoke。
+//
+// renderer の薄い包み（src/utils/iiifMetadataCopy.ts）が、Core の
+// proposeIiifBindings と resolveIiifMetadata をそのまま使っていることを確かめる。
+// 包みの戻り値を、同じ Manifest・同じ canvas・同じ偽の sanitize で Core を
+// 直接呼んだ結果と突き合わせる（期待する鍵の一覧を手で固定しない）。
+//
+// Node には window が無いので、洗浄の関数は包みにも Core にも偽物を渡す。
+// `@maplat/core/common` は DOM を読むので、束ねるときに小さな代役へ差し替える。
+//
+// 使い方: node scripts/iiif-metadata-copy-smoke.mjs
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { readFileSync, readdirSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { build } from 'vite';
+
+const execFileAsync = promisify(execFile);
+const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const scratchRoot = path.join(projectRoot, '.tmp-smoke');
+await mkdir(scratchRoot, { recursive: true });
+const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-metadata-copy-'));
+const entryFile = path.join(workDir, 'iiif-metadata-copy-smoke-entry.ts');
+const commonStubFile = path.join(workDir, 'common-stub.ts');
+const outDir = path.join(workDir, 'dist');
+const bundledFile = path.join(outDir, 'iiif-metadata-copy-smoke.mjs');
+
+const fixtureDir = path.join(projectRoot, 'tests/fixtures/iiif');
+const coreModulePath = path.join(projectRoot, 'node_modules/@maplat/core/src/iiif/manifest.ts');
+const copyModulePath = path.join(projectRoot, 'src/utils/iiifMetadataCopy.ts');
+const nameModulePath = path.join(projectRoot, 'src/utils/mapNameUnification.ts');
+
+try {
+  // `@maplat/core/common` は DOMPurify と DOM を読む。この試験は洗浄の関数を
+  // すべて差し替えるので、入口だけ小さな代役にする。
+  await writeFile(
+    commonStubFile,
+    `
+      export function sanitizeIiifHtml() {
+        throw new Error('sanitizeIiifHtml is not available without a window');
+      }
+    `,
+  );
+  await writeFile(
+    entryFile,
+    `
+      import assert from 'node:assert/strict';
+      import { readFileSync } from 'node:fs';
+      import path from 'node:path';
+
+      const {
+        IIIF_BINDABLE_KEYS,
+        compareIiifCopy,
+        listIiifCanvases,
+        proposeIiifBindings,
+        resolveIiifMetadata,
+      } = await import(${JSON.stringify(coreModulePath)});
+      const {
+        applyIiifCopy,
+        applyIiifRecopy,
+        applyIiifValues,
+        copyIiifForMap,
+        copyIiifMetadata,
+        copyIiifMetadataWithBindings,
+        iiifBindableKeys,
+        planIiifRecopy,
+        setIiifBinding,
+      } = await import(${JSON.stringify(copyModulePath)});
+      const { DEPRECATED_EXACT_NAME_KEY } = await import(${JSON.stringify(nameModulePath)});
+
+      const projectRoot = ${JSON.stringify(projectRoot)};
+      const fixtureDir = ${JSON.stringify(fixtureDir)};
+      const fixture = (name) => JSON.parse(readFileSync(path.join(fixtureDir, name), 'utf8'));
+
+      // 洗浄の関数は包みにも Core にも同じものを渡す（値がそのまま同じになることを見る）。
+      const sanitize = (html) => 'clean:' + html;
+
+      const tests = [];
+      const test = (name, fn) => { tests.push({ name, fn }); };
+
+      const ndl = fixture('ndl-948741.manifest.json');
+      const minimal = fixture('manifest-v3-minimal.manifest.json');
+      const ndlCanvases = listIiifCanvases(ndl);
+      assert.equal(ndlCanvases.ok, true, 'NDL manifest must be readable');
+      const minimalCanvases = listIiifCanvases(minimal);
+      assert.equal(minimalCanvases.ok, true, 'minimal manifest must be readable');
+
+      const targets = [
+        { label: 'ndl-third-canvas', manifest: ndl, canvasId: ndlCanvases.canvases[2].id },
+        { label: 'minimal-first-canvas', manifest: minimal, canvasId: minimalCanvases.canvases[0].id },
+      ];
+
+      // 写し直しの題材。NDL の 3 コマ目で最初の写しを作り、試験の中でだけ
+      // Manifest の写しを書き換えて「新しい Manifest」にする（資料のファイルは変えない）。
+      // 4 つの鍵で 4 通りを作る（どれも NDL の 3 コマ目で値が取れる鍵）:
+      //   title       … 人が直しておらず IIIF も同じ（変わらない）
+      //   dataAttr    … 人が直した（人が直した）
+      //   dataLicense … IIIF の側が変わった（IIIF の側が変わった）
+      //   license     … 人が直し、IIIF の側も変わった（両方）
+      // 取り直した Manifest で変えるのはライセンスの値だけにする。帰属を変えると attr と
+      // dataAttr が同時に動き、人が直した側の欄と区別できなくなるため。
+      const buildRecopyScenario = () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const proposed = proposeIiifBindings(ndl, canvasId);
+        const withDataAttr = setIiifBinding(proposed, 'dataAttr', 'manifest');
+        const bindings = setIiifBinding(withDataAttr, 'dataLicense', 'manifest');
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, { sanitize });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        // 人が手で直した値（dataAttr と license）
+        map.dataAttr = '手で直した帰属';
+        map.license = '手で直したライセンス';
+        // 新しい Manifest（写しを書き換える。資料のファイルは変えない）
+        const changed = structuredClone(ndl);
+        changed.license = 'https://creativecommons.org/licenses/by/4.0/';
+        changed.metadata[1].value = '新潟市圖（改訂）';
+        const reply = { ok: true, json: changed, requestedUrl: ndl['@id'], finalUrl: ndl['@id'] };
+        return { map, reply, lang, canvasId };
+      };
+
+      test('copy-matches-core', async () => {
+        let passed = 0;
+        for (const target of targets) {
+          const lang = 'ja';
+          const copied = copyIiifMetadata(target.manifest, target.canvasId, lang, { sanitize });
+          assert.equal(copied.ok, true, target.label + ': the wrapper must succeed');
+          const bindings = proposeIiifBindings(target.manifest, target.canvasId);
+          const expected = resolveIiifMetadata(
+            target.manifest,
+            { canvas: target.canvasId, bindings },
+            lang,
+            sanitize,
+          );
+          assert.equal(expected.ok, true, target.label + ': Core resolve must succeed');
+          assert.deepEqual(copied.bindings, bindings, target.label + ': bindings must match Core');
+          assert.deepEqual(copied.values, expected.values, target.label + ': values must match Core');
+          assert.deepEqual(
+            copied.copiedValues,
+            expected.copiedValues,
+            target.label + ': copiedValues must match Core',
+          );
+          assert.deepEqual(
+            copied.copiedMetadata,
+            expected.copiedMetadata,
+            target.label + ': copiedMetadata must match Core',
+          );
+          assert.ok(
+            typeof copied.copiedAt === 'string' && !Number.isNaN(Date.parse(copied.copiedAt)),
+            target.label + ': copiedAt must be an ISO 8601 string but was ' + String(copied.copiedAt),
+          );
+          assert.equal(
+            copied.copiedAt,
+            new Date(copied.copiedAt).toISOString(),
+            target.label + ': copiedAt must be the canonical ISO 8601 form',
+          );
+          passed += 1;
+        }
+        return '(' + passed + '/' + targets.length + ')';
+      });
+
+      test('bindable-keys-only', async () => {
+        for (const target of targets) {
+          const copied = copyIiifMetadata(target.manifest, target.canvasId, 'ja', { sanitize });
+          for (const key of Object.keys(copied.bindings ?? {})) {
+            assert.ok(
+              Object.prototype.hasOwnProperty.call(IIIF_BINDABLE_KEYS, key),
+              target.label + ': binding key ' + key + ' is outside the bindable keys',
+            );
+          }
+        }
+        // NDL の 3 コマ目は題名・帰属・ライセンスの 3 鍵が入る（Core の既定の 1 行の確認）
+        const ndlBindings = proposeIiifBindings(ndl, ndlCanvases.canvases[2].id);
+        assert.deepEqual(
+          Object.keys(ndlBindings).sort(),
+          ['attr', 'license', 'title'],
+          'NDL third canvas must bind title, attr and license',
+        );
+      });
+
+      // 写す鍵の選択と取り出し元が結び付けに入り、写した値が Core の解決器と
+      // 一致することの確認。是正を見分けるのは、(1) 鍵の一覧を Core の表から廃止した属性を
+      // 外した鍵と deepEqual すること、(2) 取り出し元の property を Core の表から取った値と
+      // deepEqual すること、(3) 写した値を Core の resolveIiifMetadata の直接呼び出しと
+      // deepEqual すること、(4) 地図の欄で写さない言語・鍵が残ること。
+      test('metadata-bindings', async () => {
+        assert.deepEqual(
+          iiifBindableKeys(),
+          Object.keys(IIIF_BINDABLE_KEYS).filter((key) => key !== DEPRECATED_EXACT_NAME_KEY),
+          'the bindable keys must be the keys of the Core table without the retired key',
+        );
+
+        for (const target of targets) {
+          const lang = 'ja';
+          const proposed = proposeIiifBindings(target.manifest, target.canvasId);
+          const proposedCopy = JSON.parse(JSON.stringify(proposed));
+
+          let bindings = setIiifBinding(proposed, 'description', 'manifest');
+          assert.deepEqual(
+            bindings.description,
+            { from: 'manifest', property: IIIF_BINDABLE_KEYS.description },
+            target.label + ': the property must come from the Core table',
+          );
+          bindings = setIiifBinding(bindings, 'description', null);
+          assert.equal(
+            Object.prototype.hasOwnProperty.call(bindings, 'description'),
+            false,
+            target.label + ': a key removed with null must not stay in the bindings',
+          );
+          bindings = setIiifBinding(bindings, 'title', 'canvas');
+          assert.deepEqual(
+            bindings.title,
+            { from: 'canvas', property: IIIF_BINDABLE_KEYS.title },
+            target.label + ': the chosen source must be kept in the bindings',
+          );
+          const beforeUnknown = JSON.parse(JSON.stringify(bindings));
+          bindings = setIiifBinding(bindings, 'licenseNote', 'manifest');
+          assert.deepEqual(
+            bindings,
+            beforeUnknown,
+            target.label + ': a key outside the Core table must not change the bindings',
+          );
+          assert.deepEqual(
+            proposed,
+            proposedCopy,
+            target.label + ': the input bindings must not be changed',
+          );
+
+          const copied = copyIiifMetadataWithBindings(
+            target.manifest,
+            { canvas: target.canvasId, bindings },
+            lang,
+            { sanitize },
+          );
+          const expected = resolveIiifMetadata(
+            target.manifest,
+            { canvas: target.canvasId, bindings },
+            lang,
+            sanitize,
+          );
+          assert.equal(copied.ok, true, target.label + ': the copy with the bindings must succeed');
+          assert.equal(expected.ok, true, target.label + ': Core resolve must succeed');
+          assert.deepEqual(copied.bindings, bindings, target.label + ': the bindings must be the ones given');
+          assert.deepEqual(copied.values, expected.values, target.label + ': values must match Core');
+          assert.deepEqual(
+            copied.copiedValues,
+            expected.copiedValues,
+            target.label + ': copiedValues must match Core',
+          );
+          assert.deepEqual(
+            copied.copiedMetadata,
+            expected.copiedMetadata,
+            target.label + ': copiedMetadata must match Core',
+          );
+          assert.ok(
+            typeof copied.copiedAt === 'string' && !Number.isNaN(Date.parse(copied.copiedAt)),
+            target.label + ': copiedAt must be an ISO 8601 string',
+          );
+          assert.equal(
+            Object.prototype.hasOwnProperty.call(copied.values, 'description'),
+            false,
+            target.label + ': a removed key must not be copied',
+          );
+        }
+
+        // 地図の metadata へ写すときは、写した言語だけを入れ、他の言語と写さない鍵は残す。
+        const base = {
+          title: { ja: '古い題名', en: 'Old title' },
+          description: '古い説明',
+          attr: { ja: '古い帰属', en: 'Old attribution' },
+          license: 'CC BY',
+        };
+        const applied = applyIiifValues(
+          base,
+          { title: { ja: '新しい題名' }, description: '新しい説明' },
+          'ja',
+        );
+        assert.deepEqual(
+          applied.title,
+          { ja: '新しい題名', en: 'Old title' },
+          'the copied language must replace only that language',
+        );
+        assert.equal(applied.description, '新しい説明', 'a plain string field must be replaced');
+        assert.deepEqual(applied.attr, base.attr, 'a key that was not copied must stay as it was');
+        assert.equal(applied.license, 'CC BY', 'a key that was not copied must stay as it was');
+        assert.deepEqual(
+          base.title,
+          { ja: '古い題名', en: 'Old title' },
+          'the target must not be changed',
+        );
+        assert.equal(base.description, '古い説明', 'the target must not be changed');
+
+        // 写した値が地図の言語を持たないときは、その値の最初の言語を使う。
+        const fallback = applyIiifValues(
+          { title: { ja: '古い題名' } },
+          { title: { en: 'New title' } },
+          'ja',
+        );
+        assert.deepEqual(
+          fallback.title,
+          { ja: '古い題名', en: 'New title' },
+          'the first language of the value must be used when the map language is missing',
+        );
+      });
+
+      // 写し直しの 4 通り。是正を見分けるのは、(1) 4 通りそれぞれの理由の語が
+      // 表のとおりであること、(2) その理由が Core の compareIiifCopy の
+      // humanEdited／iiifChanged と一致すること、(3) 行の今の値・写した時点の値・
+      // 新しい値が 3 つの出どころと一致すること、(4) 計画が地図を変えないこと。
+      test('recopy-table', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        const snapshot = structuredClone(map);
+        const plan = planIiifRecopy(reply, map, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        assert.deepEqual(map, snapshot, 'the plan must not change the map');
+
+        const compared = compareIiifCopy(map, map.iiif.copiedValues, plan.fresh.copiedValues, lang);
+        assert.equal(plan.rows.length, compared.length, 'the plan must have one row per compared item');
+        const coreByRow = new Map(compared.map((row) => [row.key + '/' + row.lang, row]));
+
+        const expectations = [
+          ['title/ja', 'unchanged'],
+          ['dataAttr/ja', 'human-edited'],
+          ['dataLicense/ja', 'iiif-changed'],
+          ['license/ja', 'both'],
+        ];
+        let passed = 0;
+        for (const [id, expectedReason] of expectations) {
+          const row = plan.rows.find((item) => item.key + '/' + item.lang === id);
+          assert.ok(row, id + ': the row must be in the plan');
+          assert.equal(row.reason, expectedReason, id + ': the reason must match the table');
+          const core = coreByRow.get(id);
+          assert.ok(core, id + ': Core must compare the row');
+          assert.equal(
+            core.humanEdited,
+            expectedReason === 'human-edited' || expectedReason === 'both',
+            id + ': humanEdited must match the reason',
+          );
+          assert.equal(
+            core.iiifChanged === true,
+            expectedReason === 'iiif-changed' || expectedReason === 'both',
+            id + ': iiifChanged must match the reason',
+          );
+          passed += 1;
+        }
+
+        // 行の 3 つの値は、地図・写した時点の控え・新しい取得から取る。
+        const attrRow = plan.rows.find((item) => item.key === 'attr');
+        assert.equal(attrRow.current, map.attr, 'the current value must come from the map');
+        assert.equal(attrRow.copied, map.iiif.copiedValues.attr.ja, 'the copied value must come from copiedValues');
+        assert.equal(attrRow.next, plan.fresh.copiedValues.attr.ja, 'the next value must come from the fresh copy');
+        const noteRow = plan.rows.find((item) => item.key === 'licenseNote');
+        assert.equal(
+          noteRow.next,
+          undefined,
+          'a value that disappeared from the IIIF side must have no next value',
+        );
+        return '(' + passed + '/' + expectations.length + ')';
+      });
+
+      // 選んだ行だけの上書き。是正を見分けるのは、(1) 選んだ iiif-changed の行だけ
+      // 地図の値と copiedValues が新しい値になること、(2) 選ばなかった人が直した行
+      // （human-edited・both）の地図の値と copiedValues が変える前のままであること、
+      // (3) copiedMetadata が新しい取得の値になり copiedAt が差し替えた時計になること、
+      // (4) 何も選ばなければ戻り値が入力と同じであること、(5) 入力の地図を変えないこと。
+      test('copied-values-rebuilt', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        const plan = planIiifRecopy(reply, map, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        // 基準は変える前の値で取る。
+        const before = structuredClone(map);
+
+        const selected = plan.rows
+          .filter((row) => row.reason === 'iiif-changed')
+          .map((row) => ({ key: row.key, lang: row.lang }));
+        assert.ok(
+          selected.some((row) => row.key === 'dataLicense'),
+          'the IIIF-changed row must be selectable',
+        );
+
+        const nowText = '2026-01-02T03:04:05.000Z';
+        const now = () => new Date(nowText);
+        const next = applyIiifRecopy(map, plan, selected, { sanitize, now });
+
+        // (a) 選んだ行の値と copiedValues が新しい値になる
+        assert.equal(
+          next.dataLicense,
+          plan.fresh.copiedValues.dataLicense[lang],
+          'the selected field must take the new value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.dataLicense,
+          plan.fresh.copiedValues.dataLicense,
+          'the selected key must take the new copied values',
+        );
+
+        // (b) 選ばなかった手で直した行の値と copiedValues は変える前のまま
+        assert.equal(
+          next.dataAttr,
+          before.dataAttr,
+          'a hand-edited row that was not selected must keep the hand value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.dataAttr,
+          before.iiif.copiedValues.dataAttr,
+          'a hand-edited row that was not selected must keep the copied values',
+        );
+        assert.equal(
+          next.license,
+          before.license,
+          'the both row that was not selected must keep the hand value',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.license,
+          before.iiif.copiedValues.license,
+          'the both row that was not selected must keep the copied values',
+        );
+
+        assert.deepEqual(
+          next.iiif.copiedValues.licenseNote,
+          before.iiif.copiedValues.licenseNote,
+          'a row with no new value must not be overwritten',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.title,
+          before.iiif.copiedValues.title,
+          'an unchanged row that was not selected must stay as it was',
+        );
+
+        // (c) copiedMetadata は新しい取得の値、copiedAt は差し替えた時計
+        assert.deepEqual(
+          next.iiif.copiedMetadata,
+          plan.fresh.copiedMetadata,
+          'copiedMetadata must be rebuilt from the fresh manifest',
+        );
+        assert.notDeepEqual(
+          next.iiif.copiedMetadata,
+          before.iiif.copiedMetadata,
+          'the fresh copiedMetadata must differ from the old one',
+        );
+        assert.equal(next.iiif.copiedAt, nowText, 'copiedAt must use the injected clock');
+
+        // ライセンスを選んだら、その注記も新しい値にそろえる（無ければ消す）。
+        const noteDeleted = applyIiifRecopy(map, plan, [{ key: 'license', lang }], { sanitize, now });
+        assert.equal(
+          noteDeleted.license,
+          plan.fresh.copiedValues.license[lang],
+          'the selected license must take the new value',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(noteDeleted, 'licenseNote'),
+          false,
+          'a license note that the new value does not have must be removed',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(noteDeleted.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a license note that the new value does not have must be removed from copiedValues',
+        );
+        const withNote = { ok: true, json: structuredClone(reply.json) };
+        withNote.json.license = 'https://example.org/terms';
+        const notePlan = planIiifRecopy(withNote, map, { sanitize });
+        assert.equal(notePlan.ok, true, 'the plan for the license with a note must succeed');
+        const noteAdded = applyIiifRecopy(map, notePlan, [{ key: 'license', lang }], { sanitize, now });
+        assert.equal(
+          noteAdded.licenseNote,
+          'https://example.org/terms',
+          'the license note of the new value must be copied with the license',
+        );
+        assert.deepEqual(
+          noteAdded.iiif.copiedValues.licenseNote,
+          { [lang]: 'https://example.org/terms' },
+          'the license note of the new value must be kept with the license',
+        );
+
+        // (4) 入力は変えない (5) 何も選ばなければ何も変えない
+        assert.deepEqual(map, before, 'the input map must not be changed');
+        assert.deepEqual(
+          applyIiifRecopy(map, plan, [], { sanitize, now }),
+          before,
+          'nothing selected must change nothing',
+        );
+      });
+
+      // 失敗したときに地図を書き換えないことの確認。是正を見分けるのは、
+      // (1) 3 通りの失敗で ok:false と期待する理由を返すこと、(2) 呼んだ後の地図の
+      // JSON が控えと同じであること（比べる前の値を基準に取る）、(3) delivery の無い
+      // 地図では同じ Manifest でも size-mismatch にならないこと、(4) 画面の案内の
+      // 文言が空でなく「取り込み直」「re-import」を含まないこと。
+      test('recopy-fail-keeps-data', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          title: { ja: '地図の題名', en: 'Map title' },
+          attr: { ja: '地図の帰属', en: 'Map attribution' },
+          license: { ja: '地図のライセンス', en: 'Map license' },
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+          delivery: { type: 'iiifImage', url: 'https://dl.ndl.go.jp/api/iiif/948741' },
+          width: 4074,
+          height: 2705,
+        };
+        // 基準は変える前の値で取る。
+        const before = JSON.stringify(map);
+
+        const resized = structuredClone(ndl);
+        resized.sequences[0].canvases[2].width = 4075;
+        const failures = [
+          ['fetch-failed', { ok: false, reason: 'fetch-failed' }],
+          ['not-json', { ok: false, reason: 'not-json' }],
+          ['size-mismatch', { ok: true, json: resized }],
+        ];
+        for (const [reason, reply] of failures) {
+          const plan = planIiifRecopy(reply, map, { sanitize });
+          assert.equal(plan.ok, false, reason + ': the plan must fail');
+          assert.equal(plan.reason, reason, reason + ': the reason must match the failure');
+          assert.equal(plan.rows, undefined, reason + ': a failed plan must not list rows');
+          assert.equal(
+            JSON.stringify(map),
+            before,
+            reason + ': the map must not change by a single byte',
+          );
+        }
+
+        // delivery の無い「書誌だけ」の地図は、画像の大きさを比べない。
+        const metadataOnly = { ...map };
+        delete metadataOnly.delivery;
+        const plan = planIiifRecopy({ ok: true, json: resized }, metadataOnly, { sanitize });
+        assert.equal(
+          plan.ok,
+          true,
+          'a map without delivery must not fail even when the canvas size changed',
+        );
+
+        // 画面の案内。11 の言語で空でなく、取り込み直しを勧める語を含まない。
+        const locales = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
+        let checked = 0;
+        for (const locale of locales) {
+          const dict = JSON.parse(
+            readFileSync(path.join(projectRoot, 'public/locales/' + locale + '/translation.json'), 'utf8'),
+          );
+          const text = dict?.iiif_metadata?.recopy_failed_help;
+          assert.ok(
+            typeof text === 'string' && text.trim() !== '',
+            locale + ': the failure help must not be empty',
+          );
+          assert.equal(
+            /取り込み直|re-import/i.test(text),
+            false,
+            locale + ': the failure help must not suggest importing the map again',
+          );
+          checked += 1;
+        }
+        return '(' + checked + '/' + locales.length + ')';
+      });
+
+      // IIIF から写す道でも、配信の地図はコマの大きさを確かめることの確認。
+      // 是正を見分けるのは、(1) 配信の地図に大きさの違う Manifest を渡すと
+      // { ok: false, reason: 'size-mismatch' } を返し、写した値を返さないこと、
+      // (2) 同じ Manifest でも delivery の無い地図（書誌だけ）なら ok:true で、
+      // 写した値が copyIiifMetadataWithBindings を同じ引数で直接呼んだ結果と一致すること、
+      // (3) 配信の地図でもコマの大きさが合えば ok:true であること、
+      // (4) 取り直しが失敗したらその理由をそのまま返すこと、
+      // (5) 写し直しの比較（planIiifRecopy）の大きさの判定は変わらないこと。
+      test('copy-checks-delivered-canvas-size', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        const metadata = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        const delivered = {
+          ...structuredClone(metadata),
+          delivery: { type: 'iiifImage', url: 'https://dl.ndl.go.jp/api/iiif/948741' },
+          width: 4074,
+          height: 2705,
+        };
+        const resized = structuredClone(ndl);
+        resized.sequences[0].canvases[2].width = 4075;
+        const before = JSON.stringify(delivered);
+
+        // (1) 配信の地図でコマの大きさが違えば、1 つも写さない
+        const mismatch = copyIiifForMap({ ok: true, json: resized }, delivered, { sanitize });
+        assert.equal(mismatch.ok, false, 'a delivered map with a resized canvas must not be copied');
+        assert.equal(mismatch.reason, 'size-mismatch', 'the reason must be size-mismatch');
+        assert.equal(mismatch.values, undefined, 'a failed copy must not return copied values');
+        assert.equal(
+          JSON.stringify(delivered),
+          before,
+          'the map must not change by a single byte',
+        );
+
+        // (2) 書誌だけの地図は、同じ Manifest でも写す。値は直接呼んだ写しと同じ。
+        const metadataOnly = structuredClone(metadata);
+        const copied = copyIiifForMap({ ok: true, json: resized }, metadataOnly, { sanitize });
+        assert.equal(copied.ok, true, 'a map without delivery must be copied');
+        const expected = copyIiifMetadataWithBindings(
+          resized,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(expected.ok, true, 'the direct copy must succeed');
+        assert.deepEqual(copied.values, expected.values, 'the values must match the direct copy');
+        assert.deepEqual(
+          copied.copiedValues,
+          expected.copiedValues,
+          'the copied values must match the direct copy',
+        );
+
+        // (3) 配信の地図でも、コマの大きさが合えば写す
+        const sameSize = copyIiifForMap({ ok: true, json: structuredClone(ndl) }, delivered, {
+          sanitize,
+        });
+        assert.equal(sameSize.ok, true, 'a delivered map with the same canvas size must be copied');
+        assert.deepEqual(sameSize.values, first.values, 'the values must be the copied values');
+
+        // (4) 取り直しの失敗は、その理由をそのまま返す
+        const fetchFailed = copyIiifForMap({ ok: false, reason: 'fetch-failed' }, delivered, {
+          sanitize,
+        });
+        assert.equal(fetchFailed.ok, false, 'a failed fetch must not be copied');
+        assert.equal(fetchFailed.reason, 'fetch-failed', 'the fetch reason must be kept');
+
+        // (5) 写し直しの比較では、これまでどおり大きさの違いを失敗にする
+        const plan = planIiifRecopy({ ok: true, json: resized }, delivered, { sanitize });
+        assert.equal(plan.ok, false, 'the recopy plan must still fail on a resized canvas');
+        assert.equal(plan.reason, 'size-mismatch', 'the recopy reason must still be size-mismatch');
+      });
+
+      // 注記の行だけを選んでも何も変わらないことの確認。是正を見分けるのは、
+      // 注記（Core の表に無い鍵）を単独で選んだとき戻り値が入力と deepEqual で
+      // あること。直す前は注記だけが新しい値に書き換わって落ちる。
+      test('license-note-follows-license', async () => {
+        const { map, reply, lang } = buildRecopyScenario();
+        // ライセンスの値に注記が付く Manifest にする（注記に新しい値がある状態）。
+        const withNote = { ok: true, json: structuredClone(reply.json) };
+        withNote.json.license = 'https://example.org/terms';
+        const plan = planIiifRecopy(withNote, map, { sanitize });
+        assert.equal(plan.ok, true, 'the plan for the license with a note must succeed');
+        const noteRow = plan.rows.find((row) => row.key === 'licenseNote');
+        assert.ok(noteRow, 'the note row must be compared');
+        assert.notEqual(noteRow.next, undefined, 'the note row must have a new value');
+        const before = structuredClone(map);
+        const applied = applyIiifRecopy(map, plan, [{ key: 'licenseNote', lang }], { sanitize });
+        assert.deepEqual(applied, before, 'choosing a note row alone must change nothing');
+        // ライセンスを選べば、注記も一緒に動く（今の道）。
+        const withLicense = applyIiifRecopy(map, plan, [{ key: 'license', lang }], { sanitize });
+        assert.equal(
+          withLicense.licenseNote,
+          'https://example.org/terms',
+          'the note must move together with the license',
+        );
+      });
+
+      // IIIF から写す道でも、ライセンスの注記をライセンスに付いて動かすことの確認。
+      // 是正を見分けるのは、(1) 前回の写しの控えに注記があり、新しいライセンスに
+      // 注記が無ければ、地図からも控えからも消えること、(2) 新しいライセンスにも
+      // 注記があれば新しい値になること、(3) 前回の控えに注記が無ければ、地図の
+      // 注記は人が書いたものとして残すこと、(4) copiedValues・copiedMetadata・
+      // copiedAt だけが写しの値になり、他の iiif の鍵は元のままであること、
+      // (5) 入力の地図を変えないこと。
+      test('copy-drops-stale-license-note', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = proposeIiifBindings(ndl, canvasId);
+        // NDL の Manifest のライセンスは表に無い URI なので、最初の写しに注記が付く。
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        assert.equal(
+          first.values.licenseNote,
+          ndl.license,
+          'the first copy must have the license note',
+        );
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        assert.equal(map.licenseNote, ndl.license, 'the map must have the note of the first copy');
+        assert.deepEqual(
+          map.iiif.copiedValues.licenseNote,
+          { [lang]: ndl.license },
+          'the copied values must have the note of the first copy',
+        );
+        const before = structuredClone(map);
+
+        // 新しい Manifest のライセンスは Creative Commons の URI（注記を出さない）。
+        const changed = structuredClone(ndl);
+        changed.license = 'https://creativecommons.org/licenses/by/4.0/';
+        const copied = copyIiifMetadataWithBindings(
+          changed,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(copied.ok, true, 'the copy of the changed manifest must succeed');
+        assert.equal(copied.values.licenseNote, undefined, 'the new license must not have a note');
+        const next = applyIiifCopy(map, copied, lang);
+
+        // (1) ライセンスは新しい値になり、古い注記は地図からも控えからも消える。
+        assert.equal(next.license, copied.values.license, 'the license must take the new value');
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(next, 'licenseNote'),
+          false,
+          'a stale license note must be removed from the map',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(next.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a stale license note must be removed from the copied values',
+        );
+        assert.deepEqual(
+          next.iiif.copiedValues.license,
+          copied.copiedValues.license,
+          'the license of the copied values must be the new one',
+        );
+
+        // (4) 写しの 3 つの鍵だけが新しくなり、結び付けなどは元のまま。
+        assert.deepEqual(
+          next.iiif.copiedMetadata,
+          copied.copiedMetadata,
+          'copiedMetadata must be the fresh one',
+        );
+        assert.equal(next.iiif.copiedAt, copied.copiedAt, 'copiedAt must be the fresh one');
+        assert.equal(next.iiif.manifest, before.iiif.manifest, 'the manifest must stay as it was');
+        assert.equal(next.iiif.canvas, before.iiif.canvas, 'the canvas must stay as it was');
+        assert.deepEqual(next.iiif.bindings, before.iiif.bindings, 'the bindings must stay as they were');
+        // (5) 入力の地図は変えない。
+        assert.deepEqual(map, before, 'the input map must not be changed');
+
+        // (2) 新しい Manifest のライセンスにも注記があれば、注記は新しい値になる。
+        const withNote = structuredClone(ndl);
+        withNote.license = 'https://example.org/terms';
+        const copiedNote = copyIiifMetadataWithBindings(
+          withNote,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(copiedNote.ok, true, 'the copy of the license with a note must succeed');
+        const withNewNote = applyIiifCopy(map, copiedNote, lang);
+        assert.equal(
+          withNewNote.licenseNote,
+          'https://example.org/terms',
+          'the note of the new license must be copied',
+        );
+        assert.deepEqual(
+          withNewNote.iiif.copiedValues.licenseNote,
+          { [lang]: 'https://example.org/terms' },
+          'the note of the new license must be kept with the license',
+        );
+
+        // (3) 前回の控えに注記が無ければ、地図の注記は人が書いたものとして残す。
+        const plain = structuredClone(ndl);
+        plain.license = 'https://creativecommons.org/licenses/by/4.0/';
+        const firstPlain = copyIiifMetadataWithBindings(
+          plain,
+          { canvas: canvasId, bindings },
+          lang,
+          { sanitize },
+        );
+        assert.equal(firstPlain.ok, true, 'the first copy of the plain license must succeed');
+        assert.equal(
+          firstPlain.values.licenseNote,
+          undefined,
+          'the plain license must not have a note',
+        );
+        const handNote = {
+          ...applyIiifValues({}, firstPlain.values, lang),
+          licenseNote: '手で書いた注記',
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: firstPlain.copiedValues,
+            copiedMetadata: firstPlain.copiedMetadata,
+            copiedAt: firstPlain.copiedAt,
+          },
+          lang,
+        };
+        const kept = applyIiifCopy(handNote, copied, lang);
+        assert.equal(
+          kept.licenseNote,
+          '手で書いた注記',
+          'a hand-written note must stay when the previous copy has no note',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(kept.iiif.copiedValues, 'licenseNote'),
+          false,
+          'a hand-written note must not enter the copied values',
+        );
+        assert.equal(kept.license, copied.values.license, 'the license must take the new value');
+        return '(4/4)';
+      });
+
+      // 1.0.0 で廃止した属性は、結び付けに残っていても写さない。直す前は、手書きの
+      // officialTitle を結び付けた地図で、その鍵の値がそのまま地図へ入り、保存時の正規化で
+      // 利用者の見ていない値が題名に置き換わっていた。是正を見分けるのは、(1) 写した値と
+      // 写した時点の控えにその鍵が無いこと、(2) 写し直しでも新しい値の控えと行にその鍵が
+      // 出ないこと（地図の結び付けにはその鍵が残っている）。
+      test('copy-skips-retired-exact-name', async () => {
+        const lang = 'ja';
+        const canvasId = ndlCanvases.canvases[2].id;
+        const bindings = setIiifBinding(
+          proposeIiifBindings(ndl, canvasId),
+          DEPRECATED_EXACT_NAME_KEY,
+          'manifest',
+        );
+        assert.deepEqual(
+          bindings[DEPRECATED_EXACT_NAME_KEY],
+          { from: 'manifest', property: 'label' },
+          'the retired key must be bound for the test to mean anything',
+        );
+
+        const first = copyIiifMetadataWithBindings(ndl, { canvas: canvasId, bindings }, lang, {
+          sanitize,
+        });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(first.values, DEPRECATED_EXACT_NAME_KEY),
+          false,
+          'the retired key must not be copied',
+        );
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(first.copiedValues, DEPRECATED_EXACT_NAME_KEY),
+          false,
+          'the retired key must not be in the copied values',
+        );
+
+        const map = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            manifest: ndl['@id'],
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        const plan = planIiifRecopy({ ok: true, json: structuredClone(ndl) }, map, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(plan.fresh.values, DEPRECATED_EXACT_NAME_KEY),
+          false,
+          'the fresh copy must not have the retired key',
+        );
+        assert.equal(
+          plan.rows.some((row) => row.key === DEPRECATED_EXACT_NAME_KEY),
+          false,
+          'the recopy table must not list the retired key',
+        );
+      });
+
+      // 結び付けの一覧（Editor の欄）は、Core の表から廃止した属性だけを外したもの。
+      test('bindable-keys-skip-retired-exact-name', async () => {
+        const keys = iiifBindableKeys();
+        assert.equal(
+          keys.includes(DEPRECATED_EXACT_NAME_KEY),
+          false,
+          'the retired key must not be listed',
+        );
+        assert.deepEqual(
+          keys,
+          Object.keys(IIIF_BINDABLE_KEYS).filter((key) => key !== DEPRECATED_EXACT_NAME_KEY),
+          'the listed keys must be the Core table without the retired key',
+        );
+      });
+
+      let failed = 0;
+      for (const item of tests) {
+        try {
+          const suffix = await item.fn();
+          console.log('ok: ' + item.name + (suffix ? ' ' + suffix : ''));
+        } catch (error) {
+          failed += 1;
+          console.error('fail: ' + item.name + ': ' + (error instanceof Error ? error.message : String(error)));
+        }
+      }
+      console.log('fail: ' + failed);
+      if (failed > 0) {
+        console.error('failed: ' + failed + ' of ' + tests.length);
+        process.exit(1);
+      }
+      console.log('passed: ' + tests.length);
+    `,
+  );
+
+  await build({
+    configFile: false,
+    logLevel: 'silent',
+    resolve: {
+      alias: [
+        { find: '@maplat/core/common', replacement: commonStubFile },
+        {
+          find: '@maplat/core/src',
+          replacement: path.join(projectRoot, 'node_modules/@maplat/core/src'),
+        },
+      ],
+    },
+    build: {
+      emptyOutDir: true,
+      outDir,
+      ssr: entryFile,
+      target: 'node22',
+      rollupOptions: {
+        output: {
+          entryFileNames: 'iiif-metadata-copy-smoke.mjs',
+          format: 'es',
+        },
+      },
+    },
+  });
+
+  const { stdout, stderr } = await execFileAsync(process.execPath, [bundledFile], {
+    cwd: projectRoot,
+    timeout: 120000,
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  process.stdout.write(stdout);
+  if (stderr) process.stderr.write(stderr);
+
+  // 写し・写し直しの失敗の文（画面の文言）が、11 の言語すべてにそろっていること。
+  // 取り込みの判定の文（「配信できません」）を流用していないことも、ここで見る。
+  const localeDir = path.join(projectRoot, 'public/locales');
+  const localeFiles = readdirSync(localeDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(localeDir, entry.name, 'translation.json'));
+  const copyFailureReasons = [
+    'fetch-failed',
+    'timeout',
+    'too-large',
+    'not-https',
+    'blocked-address',
+    'bad-url',
+    'not-json',
+    'not-manifest',
+    'unsupported-version',
+    'size-mismatch',
+    'unknown',
+  ];
+  for (const file of localeFiles) {
+    const messages = JSON.parse(readFileSync(file, 'utf8')).iiif_metadata?.copy_failed;
+    assert.ok(messages, '写しの失敗の文が無い: ' + file);
+    for (const reason of copyFailureReasons) {
+      assert.equal(typeof messages[reason], 'string', '理由の文が無い ' + reason + ': ' + file);
+      assert.ok(messages[reason].trim().length > 0, '理由の文が空 ' + reason + ': ' + file);
+    }
+    for (const [reason, message] of Object.entries(messages)) {
+      assert.ok(
+        !/配信|取り込み直|re-import/i.test(message),
+        '理由 ' + reason + ' の文が配信や取り込みの言い方になっている: ' + file,
+      );
+    }
+  }
+  console.log('ok: copy-failure-messages (' + localeFiles.length + ' files)');
+
+  // 写す・写し直すの失敗は、取り込みの判定の文ではなく写し専用の文を使う。
+  const mapEditSource = readFileSync(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
+  assert.ok(
+    mapEditSource.includes('iiif_metadata.copy_failed.'),
+    '写しの失敗に専用の文を使っていない',
+  );
+  console.log('ok: copy-failure-uses-own-messages');
+
+  // 地図の 1.0.0 で廃止した属性を外すのは写す側の 1 か所だけにする。
+  // 結び付けの一覧（iiifBindableKeys）も、Core へ渡す結び付けも、その 1 か所を通す。
+  // 画面（パネル）は一覧をそのまま使い、外す処理を二重に持たない。
+  const copySource = readFileSync(copyModulePath, 'utf8');
+  assert.ok(
+    copySource.includes('DEPRECATED_EXACT_NAME_KEY'),
+    '廃止した属性を写す側で外していない',
+  );
+  const panelSource = readFileSync(
+    path.join(projectRoot, 'src/components/mapedit/IiifBindingPanel.vue'),
+    'utf8',
+  );
+  assert.ok(
+    panelSource.includes('iiifBindableKeys()') &&
+      !panelSource.includes('DEPRECATED_EXACT_NAME_KEY'),
+    '画面が結び付けの一覧を自分で絞り込んでいる',
+  );
+  console.log('ok: retired-key-removed-in-copy-module');
+} catch (error) {
+  if (error && typeof error === 'object' && 'stdout' in error && error.stdout) {
+    process.stdout.write(String(error.stdout));
+  }
+  if (error && typeof error === 'object' && 'stderr' in error && error.stderr) {
+    process.stderr.write(String(error.stderr));
+  }
+  console.error(
+    'iiif metadata copy smoke: failed: ' +
+      (error instanceof Error ? error.message : String(error)),
+  );
+  process.exitCode = 1;
+} finally {
+  await rm(workDir, { recursive: true, force: true });
+}

@@ -98,17 +98,13 @@ try {
   assert.doesNotMatch(storeSourceContract, /async\s+(?:put|get|remove|list)\(/, 'sync close flush requires synchronous store methods');
   const ipcSource = await readFile(path.join(projectRoot, 'electron/ipc/assetDrafts.ts'), 'utf8');
   for (const channel of ['put', 'get', 'remove', 'list']) {
-    assert.match(ipcSource, new RegExp(`ipcMain\\.handle\\(['"]asset-drafts:${channel}['"]`));
+    assert.match(ipcSource, new RegExp(`ipc\\.handle\\(['"]asset-drafts:${channel}['"]`));
   }
-  assert.match(ipcSource, /ipcMain\.on\(['"]asset-drafts:flush-sync['"]/);
+  assert.match(ipcSource, /ipc\.on\(['"]asset-drafts:flush-sync['"]/);
   assert.match(ipcSource, /event\.returnValue\s*=/);
 
   const mainSource = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
   assert.match(mainSource, /registerAssetDraftHandlers\(\)/);
-  for (const channel of ['put', 'get', 'remove', 'list']) {
-    assert.match(mainSource, new RegExp(`removeHandler\\(['"]asset-drafts:${channel}['"]\\)`));
-  }
-  assert.match(mainSource, /removeAllListeners\(['"]asset-drafts:flush-sync['"]\)/);
   assert.match(mainSource, /executeJavaScript\(["']window\.dispatchEvent\(new Event\(["']maplat:flush-drafts/);
   assert.doesNotMatch(mainSource, /registerAppDraftHandlers|appdraft:/);
 

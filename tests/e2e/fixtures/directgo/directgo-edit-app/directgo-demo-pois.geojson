@@ -1,0 +1,42 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "link-same-tab",
+      "geometry": { "type": "Point", "coordinates": [139.7650, 35.6825] },
+      "properties": {
+        "name": "Link: same tab",
+        "desc": "Hidden while the link mode is selected (the data is kept).",
+        "directgo": "https://example.org/"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-new-tab",
+      "geometry": { "type": "Point", "coordinates": [139.7690, 35.6825] },
+      "properties": {
+        "name": "Link: new tab",
+        "directgo": { "href": "https://example.org/", "blank": true }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "link-in-app",
+      "geometry": { "type": "Point", "coordinates": [139.7650, 35.6800] },
+      "properties": {
+        "name": "Link: GSI map at Kyoto Station",
+        "directgo": "#!s:gsi/x:15112600.5/y:4161951.6/z:15"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "standard",
+      "geometry": { "type": "Point", "coordinates": [139.7690, 35.6800] },
+      "properties": {
+        "name": "Standard: info window",
+        "desc": "This POI has no link, so the info window opens."
+      }
+    }
+  ]
+}

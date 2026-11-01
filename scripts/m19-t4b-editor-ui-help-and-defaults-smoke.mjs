@@ -59,22 +59,33 @@ const locales = Object.fromEntries(
 //   ②（読み込み時の欠落キー補完 AppEdit.vue:718 以降）を兼ねているため、ここを動かすと
 //   既存アプリ・取り込みアプリの解釈が変わる（設計 §4.2.2。tests/e2e/m11-t3-editor-shell.spec.ts が依存）
 // ---------------------------------------------------------------------------
-/** defaultApp() の中の httpSettings: { ... } ブロックを取り出す */
-function extractDefaultAppHttpSettings(source) {
+/**
+ * defaultApp() の httpSettings の既定のブロックを取り出す。
+ * 既定と読み込みの規則は src/utils/appHttpSettings.ts の defaultAppHttpSettings() へ移した（画面の読み方を
+ * Vue の外で試せるようにするため）。defaultApp() がそれをそのまま使うことと、その返り値のブロックを見る
+ */
+function extractDefaultAppHttpSettings(source, utilSource) {
   const fnStart = source.indexOf("const defaultApp = (): AppDocument => ({");
   assert.notEqual(fnStart, -1, "AppEdit.vue must keep `const defaultApp = (): AppDocument => ({`");
-  const httpStart = source.indexOf("httpSettings: {", fnStart);
-  assert.notEqual(httpStart, -1, "defaultApp() must keep an httpSettings block");
-  const bodyStart = source.indexOf("{", httpStart + "httpSettings:".length);
+  const fnEnd = source.indexOf("\n});", fnStart);
+  assert.ok(
+    source.slice(fnStart, fnEnd).includes("httpSettings: defaultAppHttpSettings(),"),
+    "defaultApp() must take httpSettings from defaultAppHttpSettings()",
+  );
+  const utilStart = utilSource.indexOf("export function defaultAppHttpSettings(): AppHttpSettings {");
+  assert.notEqual(utilStart, -1, "src/utils/appHttpSettings.ts must keep defaultAppHttpSettings()");
+  const httpStart = utilSource.indexOf("return {", utilStart);
+  assert.notEqual(httpStart, -1, "defaultAppHttpSettings() must return an object literal");
+  const bodyStart = utilSource.indexOf("{", httpStart);
   let depth = 0;
-  for (let i = bodyStart; i < source.length; i++) {
-    if (source[i] === "{") depth++;
-    else if (source[i] === "}") {
+  for (let i = bodyStart; i < utilSource.length; i++) {
+    if (utilSource[i] === "{") depth++;
+    else if (utilSource[i] === "}") {
       depth--;
-      if (depth === 0) return source.slice(bodyStart + 1, i);
+      if (depth === 0) return utilSource.slice(bodyStart + 1, i);
     }
   }
-  throw new Error("defaultApp().httpSettings block is unbalanced");
+  throw new Error("defaultAppHttpSettings() block is unbalanced");
 }
 
 const DEFAULT_HTTP_SETTINGS = {
@@ -91,7 +102,7 @@ const DEFAULT_HTTP_SETTINGS = {
   googleApiKey: '""',
 };
 
-const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
+const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc("src/utils/appHttpSettings.ts"));
 {
   for (const [key, value] of Object.entries(DEFAULT_HTTP_SETTINGS)) {
     const m = defaultHttpBlock.match(new RegExp(`(^|\\n)\\s*${key}\\s*:\\s*([^,\\n]+)`));
@@ -148,10 +159,11 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
 //   変更前: MapEdit 17 / AppEdit 3 / BaseMapEdit 3（設計 §16 MC1）
 //   変更後: MapEdit 18 (+1 merc) / AppEdit 13 (+2 説明・他情報 +8 HTTP トグル) / BaseMapEdit 10 (+7)
 //   nov26-editor-export-wording: MapEdit 19（エクスポートする中身の「タイル」の説明 +1）
+//   アプリの「MapLibre GL JS の版」の説明 +1 ∴ AppEdit 15
 // ---------------------------------------------------------------------------
 {
   const cases = [
-    [APP_EDIT, appEditVue, 14, "S3/AC8"],
+    [APP_EDIT, appEditVue, 15, "S3/AC8"],
     [MAP_EDIT, mapEditVue, 19, "S4/AC9"],
     [BASE_MAP_EDIT, baseMapEditVue, 10, "S5/AC10"],
   ];
@@ -162,6 +174,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
   // src 全体 34 → 52（nov26-m7-t6: 設定画面の更新確認の説明で +1 ∴ 53）
   // nov26-editor-export-wording: エクスポートする中身の「タイル」の説明で +1 ∴ 54
   // nov26-editor-appexport-dialog: アプリの書き出しの小窓の「タイル」の説明で +1 ∴ 55
+  // アプリの「MapLibre GL JS の版」の説明で +1 ∴ 56
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -171,8 +184,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue);
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 55, `S3-S5: src 全体の <ContextHelp タグ数は 55 であること（52 + nov26-m7-t6 の 1 + nov26-editor-export-wording の 1 + nov26-editor-appexport-dialog の 1） (got ${total})`);
-  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 14 / MapEdit 19 / BaseMapEdit 10 / src 計 55: PASS");
+  assert.equal(total, 56, `S3-S5: src 全体の <ContextHelp タグ数は 56 であること（上の注記の 55 + アプリの MapLibre の版の説明の 1） (got ${total})`);
+  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 15 / MapEdit 19 / BaseMapEdit 10 / src 計 56: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない

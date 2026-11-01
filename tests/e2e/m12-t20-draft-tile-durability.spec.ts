@@ -19,6 +19,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
+/** main の一時領域。renderer からは読めないキーなので main から同じ規則で求める */
+async function readTmpFolder(app: ElectronApplication): Promise<string> {
+  const [temp, name] = await app.evaluate(({ app: electronApp }) => [electronApp.getPath('temp'), electronApp.getName()]);
+  return path.join(temp, name);
+}
+
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
 const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
@@ -164,7 +170,7 @@ test.describe('M12-T20 下書きタイルの永続 staging 化', () => {
 
     // --- セッション1: 新規地図に画像アップロード、未保存のまま hot exit ---
     let { app, page } = await launch(e2eRoot);
-    const tmpFolder: string = await page.evaluate(() => window.settings.get('tmpFolder'));
+    const tmpFolder = await readTmpFolder(app);
     await stubMessageBoxRecording(app);
     const imagePath = path.join(e2eRoot, 'upload.png');
     await makeImage(imagePath, 400, 300, 0xff0000ff);
@@ -222,7 +228,7 @@ test.describe('M12-T20 下書きタイルの永続 staging 化', () => {
 
     // --- セッション1: 実アップロードで正規の draft envelope 構造を得る（payload 妥当性の担保） ---
     let { app, page } = await launch(e2eRoot);
-    const tmpFolder: string = await page.evaluate(() => window.settings.get('tmpFolder'));
+    const tmpFolder = await readTmpFolder(app);
     await stubMessageBoxRecording(app);
     const imagePath = path.join(e2eRoot, 'upload.png');
     await makeImage(imagePath, 400, 300, 0x00ff00ff);

@@ -41,7 +41,9 @@ class MapDataService {
             height,
             image: null,
             previewDisabled,
-            previewDisabledReason: previewDisabled ? 'appedit.preview.strict_error' : undefined
+            previewDisabledReason: previewDisabled ? 'appedit.preview.strict_error' : undefined,
+            // 一覧の印に使う真偽 1 つだけ（配信先の URL などの中身は返さない）
+            iiifDelivery: Boolean(doc.delivery)
         };
 
         if (res.width && res.height) {

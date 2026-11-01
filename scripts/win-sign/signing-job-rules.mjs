@@ -1,7 +1,7 @@
 /**
  * nov26-m7-t1: 署名専用ジョブ（Azure Artifact Signing・OIDC の id-token を持つジョブ）の規則の正本。
  *
- * t1 の疎通 workflow（.github/workflows/artifact-signing-probe.yml の probe-sign）と、t2 で入る署名専用ジョブが
+ * t1 の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、t2 で入る署名専用ジョブが
  * **同じ規則で検査される**ように、規則をこの 1 か所に置く。各 smoke は自前で規則を書き直さず、ここを呼ぶ。
  *
  * 署名専用ジョブは OIDC の要求口（id-token: write）をジョブの間ずっと持つ。そのため:

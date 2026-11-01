@@ -10,6 +10,11 @@
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-break">{{ meta }}</small>
       <slot name="meta"></slot>
       <span
+        v-if="item.iiifDelivery"
+        class="badge bg-info text-dark ms-0 me-1"
+        data-testid="map-row-iiif-delivery"
+      >{{ t("iiif_import.verdict.deliverable") }}</span>
+      <span
         v-for="badge in visibleBadges" :key="badge.key"
         class="badge ms-0 me-1" :class="resourceBadgeClass(badge.tone)"
       >{{ badge.label }}</span>
@@ -22,6 +27,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useTranslation } from "i18next-vue";
 import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
 import { resourceBadgeClass, type ResourceListItemViewModel, type ResourceListKind } from "./resourceListTypes";
@@ -34,6 +40,7 @@ const props = defineProps<{
   draftLabel: string;
 }>();
 const emit = defineEmits<{ action: [key: string, item: ResourceListItemViewModel] }>();
+const { t } = useTranslation();
 
 const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);
 const actions = computed(() => buildResourceListActions(props.kind, props.item));

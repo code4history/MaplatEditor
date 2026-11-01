@@ -25,6 +25,15 @@ import gsiThumb from '../assets/img/gsi.png';
 import gsiOrthoThumb from '../assets/img/gsi_ortho.png';
 import { envelopeToBbox, resolveBaseMapSelectorText, bboxToEnvelope } from '../utils/appSourceModel';
 import MercTileSetModal, { type MercExistingEntry } from '../components/mapedit/MercTileSetModal.vue';
+import IiifBindingPanel from '../components/mapedit/IiifBindingPanel.vue';
+import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
+import {
+    applyIiifCopy,
+    applyIiifRecopy,
+    copyIiifForMap,
+    planIiifRecopy,
+    type IiifRecopyPlanSuccess
+} from '../utils/iiifMetadataCopy';
 import { isNonReferenceObjectEntry } from '../utils/poiReferenceUi';
 import { acceptDocumentPois, writeDocumentPois } from '../utils/appPoisFormat';
 import { usePoisFormatGuard } from '../composables/usePoisFormatGuard';
@@ -73,9 +82,12 @@ import ContextMenu from '../libs/ol-contextmenu/main';
 import { MaplatMap } from '@maplat/core/src/map_ex';
 // @ts-ignore
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
+// @ts-ignore
+import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
+import { isAllowedDeliveryUrl } from '../utils/ipClassify';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
@@ -1119,6 +1131,102 @@ const licenseNote = createLangComputed('licenseNote');
 const dataLicenseNote = createLangComputed('dataLicenseNote');
 const description = createLangComputed('description');
 
+// --- IIIF の書誌の写し（Manifest が結び付いている地図だけ） ---
+/**
+ * 写しの結果（新しい地図データ）を、今の地図データへ鍵ごとに反映する。
+ * 地図データそのものは差し替えない（文書の差し替えは setMapDocument だけが行う）。
+ * 変わった鍵だけを書き、新しい側で消えた鍵（ライセンスの注記など）は消す。
+ */
+const patchMapDataFrom = (next: Record<string, any>): void => {
+    const current = mapData.value as Record<string, any>;
+    for (const key of Object.keys(current)) {
+        if (!(key in next)) delete current[key];
+    }
+    for (const [key, value] of Object.entries(next)) {
+        if (current[key] !== value) current[key] = value;
+    }
+};
+
+const iiifCopyError = ref<string | null>(null);
+
+/** 結び付けの変更は地図のデータを変えるだけ（保存は利用者の「保存」で行う）。 */
+const onIiifBindingsChange = (bindings: IiifBindings) => {
+    mapData.value.iiif.bindings = bindings;
+};
+
+/** 写し・写し直しで理由として出せる語（これ以外は共通の文にする）。 */
+const IIIF_COPY_FAILURE_REASONS = [
+    'fetch-failed',
+    'timeout',
+    'too-large',
+    'not-https',
+    'blocked-address',
+    'bad-url',
+    'not-json',
+    'not-manifest',
+    'unsupported-version',
+    'size-mismatch'
+];
+
+/**
+ * 写し・写し直しの失敗の理由を i18n の鍵にする。
+ * 写しは配信ではないので、取り込みの判定の文（配信できません）は使わない。
+ */
+const iiifCopyFailureKey = (reason: string): string =>
+    'iiif_metadata.copy_failed.' + (IIIF_COPY_FAILURE_REASONS.includes(reason) ? reason : 'unknown');
+
+/**
+ * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
+ * 配信の地図はコマの大きさも確かめる（画像が差し替わると打った GCP が合わなくなるため）。
+ * 写しただけでは保存しない。取得や解決が失敗したら何も変えず、理由を 1 行だけ出す。
+ */
+const copyIiifFromManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    const lang = (mapData.value.lang || 'ja') as string;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const copied = copyIiifForMap(result, mapData.value);
+        if (!copied.ok) {
+            iiifCopyError.value = iiifCopyFailureKey(copied.reason);
+            return;
+        }
+        // 写した値と写した時点の控えを、同じ 1 つの新しい地図データに入れる。
+        patchMapDataFrom(applyIiifCopy(mapData.value, copied, lang));
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
+    }
+};
+
+// --- IIIF の書誌の写し直し ---
+const iiifRecopyPlan = ref<IiifRecopyPlanSuccess | null>(null);
+
+/**
+ * Manifest を取り直して、いまの値・写した時点の値・新しい値を比べる。
+ * 比べるだけで地図は変えない。比べられなかったら理由を 1 行だけ出し、一覧は残さない。
+ */
+const compareIiifWithManifest = async (): Promise<void> => {
+    iiifCopyError.value = null;
+    iiifRecopyPlan.value = null;
+    try {
+        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const plan = planIiifRecopy(result, mapData.value);
+        if (!plan.ok) {
+            iiifCopyError.value = iiifCopyFailureKey(plan.reason);
+            return;
+        }
+        iiifRecopyPlan.value = plan;
+    } catch (_error) {
+        iiifCopyError.value = 'iiif_metadata.copy_failed.unknown';
+    }
+};
+
+/** 利用者が選んだ行だけを上書きする（地図を変えるだけで、保存は利用者の「保存」で行う）。 */
+const applyIiifRecopied = (selected: Array<{ key: string; lang: string }>): void => {
+    if (!iiifRecopyPlan.value) return;
+    patchMapDataFrom(applyIiifRecopy(mapData.value, iiifRecopyPlan.value, selected));
+    iiifRecopyPlan.value = null;
+};
+
 // テンプレート変数名とlangAttrキー名のマッピング
 // テンプレート: title, label, author, createAt(=createdAt), era, owner(=contributor), mapper
 // v-model="mapData.createAt" → langAttr の createdAt に対応
@@ -1401,8 +1509,11 @@ const saveError = computed(() => {
 });
 
 // 旧実装 map.js L.169-171
+// IIIF から配信する地図は url_ を持たない ∴ 配信先（検査を通ったもの）でも表示できる。
+const hasAllowedDelivery = (md: any): boolean =>
+    !!md?.delivery && typeof md.delivery.url === 'string' && isAllowedDeliveryUrl(md.delivery.url);
 const gcpsEditReady = computed(() =>
-    !!(mapData.value.width && mapData.value.height && mapData.value.url_)
+    !!(mapData.value.width && mapData.value.height && (mapData.value.url_ || hasAllowedDelivery(mapData.value)))
 );
 
 // 旧実装 map.js L.165-168
@@ -2221,6 +2332,18 @@ const seedTinObjects = (tins: any[] | null): void => {
     });
 };
 
+// 開き直しで地図の源に渡す delivery を決める。URL の文字列の検査を通らないものは
+// 「配れない」として渡さない（renderer は取得しない）。
+const deliveryForSource = (mapData: any): any | undefined => {
+    const delivery = mapData?.delivery;
+    if (!delivery || typeof delivery.url !== 'string') return undefined;
+    if (!isAllowedDeliveryUrl(delivery.url)) {
+        console.warn('[MapEdit] delivery ignored: the url is not an allowed https address');
+        return undefined;
+    }
+    return delivery;
+};
+
 // onMounted は async で、await の途中に画面を離れる（unmount される）ことがある。そのまま続きを
 // 実行すると、離れた先の URL へ router.replace で draftUid を付け、onBeforeUnmount の後に
 // keydown・main-process のリスナーを登録して残してしまう。onBeforeUnmount で立てるこのフラグを
@@ -2234,6 +2357,11 @@ onMounted(async () => {
     const uid = route.query.uid as string | undefined;
     const isNew = !uid || uid === 'new';
     let requestCompiledTins: any[] | null = null;
+    // IIIF の取り込みで中身を入れた（未保存として扱い、預かりの警告を 1 回出す）
+    let iiifImportApplied = false;
+    const iiifImportWarnings: string[] = [];
+    // 書誌だけの道で、地図の画像の選択を開く（地図データの ZIP の選択ではない）
+    let openImagePickerAfterMount = false;
 
     if (isNew) {
         // 新規地図: defaultMap で初期化
@@ -2280,17 +2408,80 @@ onMounted(async () => {
             });
           }
         } else {
+          // IIIF の取り込みから来た新規の道: 預かり所から中身を 1 回だけ受け取る。
+          // 画像を切り出さず（タイルを作らず）、配信先・大きさ・結び付きを地図のデータへ入れる。
+          const draftId = typeof route.query.draft === 'string' ? route.query.draft : '';
+          // 配信の道（import=iiif）と、書誌だけの道（import=iiif-image）。地図データの ZIP の
+          // 取り込み（import=1）は別の道で、預かりを使わない。
+          const importMode = route.query.import === 'iiif'
+            ? 'delivery'
+            : route.query.import === 'iiif-image' ? 'metadata-only' : null;
+          let draftPayload: any = null;
+          if (importMode && draftId) {
+            draftPayload = await window.iiifImport.takeDraft(draftId, newMapUid);
+          }
+          // 期限切れなどで受け取れない: 画像の無い地図を開かず、理由を出して一覧へ戻る
+          if (importMode && !draftPayload) {
+            await (window as any).dialog.showMessageBox({
+              type: 'warning',
+              buttons: ['OK'],
+              message: t('iiif_import.error.stage_failed'),
+            });
+            if (isUnmounted) return;
+            await router.push({ name: 'MapList' });
+            return;
+          }
           const fresh: any = defaultMapData();
           fresh.lang = resolveEditorLanguage(i18next.language);
+          // 取り込みの中身を入れる前の、空の新規地図を保存済み判定の基準にする。
+          // 取り込んだだけでは何も保存していない ∴ 未保存として扱う。
           // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
           withoutHistory('W4', () => {
             setMapDocument(fresh);
             originalMapData.value = cloneDeep(mapData.value);
           });
+          if (importMode === 'delivery' && draftPayload) {
+            const delivery = deliveryForSource(draftPayload);
+            if (!delivery) {
+              await (window as any).dialog.showMessageBox({
+                type: 'warning',
+                buttons: ['OK'],
+                message: t('iiif_import.reason.blocked-address'),
+              });
+              if (isUnmounted) return;
+              await router.push({ name: 'MapList' });
+              return;
+            }
+            if (typeof draftPayload.width === 'number') mapData.value.width = draftPayload.width;
+            if (typeof draftPayload.height === 'number') mapData.value.height = draftPayload.height;
+            mapData.value.delivery = delivery;
+            if (draftPayload.iiif && typeof draftPayload.iiif === 'object') mapData.value.iiif = draftPayload.iiif;
+          } else if (importMode === 'metadata-only' && draftPayload?.iiif && typeof draftPayload.iiif === 'object') {
+            // 書誌だけの道: 画像はこのあと利用者が選ぶ ∴ ここでは結び付きと書誌だけを入れる
+            mapData.value.iiif = draftPayload.iiif;
+          }
+          // 取り込みのときに写した書誌を、地図の metadata の同じ鍵へ入れる
+          if (draftPayload?.metadata && typeof draftPayload.metadata === 'object') {
+            for (const [key, value] of Object.entries(draftPayload.metadata as Record<string, unknown>)) {
+              mapData.value[key] = value;
+            }
+          }
+          if (importMode && draftPayload) {
+            // 取り込んだ直後は未保存（保存ボタンを押せる）
+            iiifImportApplied = true;
+            // 預かりに載っている警告（サムネイルを作れなかった等）は、編集画面の側で 1 回だけ出す
+            if (Array.isArray(draftPayload.warnings) && draftPayload.warnings.length > 0) {
+              iiifImportWarnings.push(...draftPayload.warnings);
+            }
+          }
           // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
           // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
           if (route.query.import === '1') {
             void nextTick(() => { void importMap(); });
+          }
+          // 書誌だけの道: 画像のファイルの選択を自動で開く（地図データの ZIP の選択ではない）
+          if (importMode === 'metadata-only') {
+            openImagePickerAfterMount = true;
           }
         }
     } else {
@@ -2300,6 +2491,10 @@ onMounted(async () => {
             if (data) {
                 // M11-T10 (R6): compiled tins を種付け用に確保(compiled 持ちは初回再計算を省く)
                 requestCompiledTins = extractCompiledTins(data);
+                // 配れない配信先は地図の源に渡さない（配れない地図として扱う）
+                const delivery = deliveryForSource(data);
+                if (delivery) data.delivery = delivery;
+                else delete data.delivery;
                 // バックエンドが mapID(=slug)/uid/revision/status を設定してくれている
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
@@ -2316,6 +2511,16 @@ onMounted(async () => {
     }
 
     if (isUnmounted) return;
+    // IIIF の取り込みの預かりに載っていた警告を、ここで 1 回だけ出す。
+    // 取り込みのダイアログはすぐ閉じるので、そちらに出しても読まれない。
+    if (iiifImportWarnings.length > 0) {
+        await (window as any).dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK'],
+            message: t('iiif_import.thumbnail_unavailable'),
+        });
+        if (isUnmounted) return;
+    }
     // 編集言語の初期値は地図のデフォルト言語(未設定の旧データはja)
     currentLang.value = (mapData.value.lang || 'ja') as LangCode;
 
@@ -2351,6 +2556,9 @@ onMounted(async () => {
     // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
     // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
     if (copyFromUidSource.value) historyStack.value?.markDirty();
+    // IIIF の取り込みで中身を入れた新規の地図は、まだ何も保存していない ∴ 未保存として扱う
+    // (履歴の起点は取り込む前の空の新規地図。保存するまで保存ボタンを押せる)
+    if (iiifImportApplied) historyStack.value?.markDirty();
     // M11-T7: 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
     const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
@@ -2367,8 +2575,13 @@ onMounted(async () => {
     removeMainProcessListener = window.appEvents.onMainProcessMessage(onMainProcessMessage);
 
     initMaps();
-    if (mapData.value.url_) {
+    if (mapData.value.url_ || deliveryForSource(mapData.value)) {
         setTimeout(() => loadMapTiles(), 100);
+    }
+    // 書誌だけの道: 画像のファイルの選択を自動で開く（地図データの ZIP の選択ではない）。
+    // mapUpload は url_ と大きさだけを足すので、写した書誌と iiif の結び付きは残る。
+    if (openImagePickerAfterMount) {
+        void nextTick(() => { void mapUpload(); });
     }
 
     // GCP タブへの切り替えを監視: v-show でマップコンテナが非表示の間は
@@ -2960,8 +3173,13 @@ const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
 // タイル実体の同一性を決めるキー。mapID（スラッグ）と attr（帰属表示）は含めない。
 // 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
 // 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
+// IIIF から配信する地図のキー（url_ を混ぜない。IIIF でなければ null）
+const iiifTileIdentityKey = (md: any): string | null => {
+    const delivery = deliveryForSource(md);
+    return delivery ? ['iiif', delivery.url, md?.width, md?.height].join('|') : null;
+};
 const tileIdentityKey = (md: any): string =>
-    [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
+    iiifTileIdentityKey(md) ?? [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
 
 // 現在 illstSource が構築された時点のキー。exchangeTileSource() の成功時のみ更新する
 // （呼び出し元は :189 保存成功 / loadMapTiles 冒頭 / restoreHistoryState の3経路。設計 §4.1）
@@ -2971,12 +3189,11 @@ let illstSourceExchangeCount = 0;
 
 const exchangeTileSource = async (): Promise<any> => {
     if (!illstMap) return null;
-    const options = {
+    // IIIF から配信する地図はタイルの実体（url_）を持たない ∴ url を渡さず、
+    // 配信先と大きさを渡して Core の 1 つの関数にタイルの URL を作らせる。
+    const delivery = deliveryForSource(mapData.value);
+    const options: any = {
         mapID: mapID.value,
-        // oct26-m4-t2s2: v1.0.0 の未保存下書き（file://）・m4-t2 期（app://local）の url_ は renderer から読めず、
-        // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
-        // 同一性キー（tileIdentityKey）は生の url_ のまま
-        url: displayTileUrl(mapData.value.url_),
         width: mapData.value.width,
         height: mapData.value.height,
         attr: mapData.value.attr,
@@ -2988,6 +3205,14 @@ const exchangeTileSource = async (): Promise<any> => {
         // で決まる現行契約を維持（ADR-0007/0017/0018）
         thumbnail: await resolveSourceThumbnail(mapUid.value || mapID.value)
     };
+    if (delivery) {
+        options.delivery = delivery;
+    } else {
+        // 旧版の未保存下書き（file://）や旧形式（app://local）の url_ は renderer から読めず、
+        // 保存するまで左ペインが真っ白になった。表示のときだけ現行形へ写す（url_ は書き換えない。保存時の正規化は main）。
+        // 同一性キー（tileIdentityKey）は生の url_ のまま
+        options.url = displayTileUrl(mapData.value.url_);
+    }
     try {
         const source = await mapSourceFactory(options, {});
         illstSource = source;
@@ -4896,6 +5121,31 @@ const goBack = async () => {
                          <div class="col-12">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_description") }} <LangValueChips :model-value="mapData.description" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_description_desc')" :ariaLabel="t('mapedit.map_description_desc')" /></div>
                             <textarea class="form-control form-control-sm" rows="3" v-model="description" :placeholder="t('mapedit.map_description_pf')"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- IIIF の Manifest が結び付いている地図だけ、写す鍵と取り出し元を選べる -->
+                    <div v-if="mapData.iiif?.manifest" class="row g-2 mt-2">
+                        <div class="col-12">
+                            <IiifBindingPanel
+                                :iiif="mapData.iiif"
+                                :lang="mapData.lang || 'ja'"
+                                :recopy="iiifRecopyPlan"
+                                @update:bindings="onIiifBindingsChange"
+                                @copy="copyIiifFromManifest"
+                                @recopy="compareIiifWithManifest"
+                                @apply-recopied="applyIiifRecopied"
+                            />
+                            <div v-if="iiifCopyError" data-testid="iiif-recopy-error">
+                                <DiagnosticFeedback scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
+                                <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
+                                <p class="small text-muted mb-0 mt-1">{{ t("iiif_metadata.recopy_failed_help") }}</p>
+                            </div>
+                            <!-- 写した書誌の確認（読み取り専用）。全件を Manifest とこのコマに分けて出す -->
+                            <IiifMetadataTable
+                                :metadata="mapData.iiif?.copiedMetadata"
+                                :lang="mapData.lang || 'ja'"
+                            />
                         </div>
                     </div>
 

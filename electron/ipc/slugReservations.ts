@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipc } from './registry';
 import SqliteDataService from '../services/SqliteDataService';
 import { toRegistryKind } from '../services/slugReservationKind';
 
@@ -87,23 +87,23 @@ function handleError(e: unknown) {
 }
 
 export const registerSlugReservationHandlers = () => {
-  ipcMain.handle('slug-reservations:reserve', async (_e, p: unknown) => {
+  ipc.handle('slug-reservations:reserve', async (_e, p: unknown) => {
     try {
       return await SqliteDataService.reserveSlug(validateReservePayload(p));
     } catch (e) {
       return handleError(e);
     }
   });
-  ipcMain.handle('slug-reservations:move', async (_e, p: unknown) => {
+  ipc.handle('slug-reservations:move', async (_e, p: unknown) => {
     try {
       return await SqliteDataService.moveSlug(validateMovePayload(p));
     } catch (e) {
       return handleError(e);
     }
   });
-  ipcMain.handle('slug-reservations:release', async (_e, p: unknown) => {
+  ipc.handle('slug-reservations:release', async (_e, p: unknown) => {
     await SqliteDataService.releaseSlug(validateReleasePayload(p));
   });
-  ipcMain.handle('slug-reservations:check', async (_e, p: unknown) =>
+  ipc.handle('slug-reservations:check', async (_e, p: unknown) =>
     SqliteDataService.checkSlugReservation(validateCheckPayload(p)));
 };

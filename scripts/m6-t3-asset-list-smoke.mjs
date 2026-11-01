@@ -87,16 +87,11 @@ try {
     path.join(projectRoot, 'src/components/resource-list/ResourceMasterRow.vue'),
     'utf8'
   );
-  const electronMain = await readFile(path.join(projectRoot, 'electron/main.ts'), 'utf8');
-  assert.match(
-    electronMain,
-    /removeHandler\('imageassets:update-metadata'\)/,
-    'Electron再登録cleanupがimageassets:update-metadataを解除していない'
-  );
+  const assetImagesIpc = await readFile(path.join(projectRoot, 'electron/ipc/assets-images.ts'), 'utf8');
   assert.doesNotMatch(
-    electronMain,
-    /removeHandler\('imageassets:rename'\)/,
-    '廃止したimageassets:rename cleanupが残っている'
+    assetImagesIpc,
+    /imageassets:rename/,
+    '廃止したimageassets:renameの登録が残っている'
   );
 
   // 一覧 (list/search) + サムネイル (getFilePath) は Phase 6 Task 4 で AssetPicker と

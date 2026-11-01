@@ -1,8 +1,10 @@
 import { dialogDefaultPath, type RememberedDialogFolders } from '../utils/dialogFolders';
+import { resolveTmpFolder } from '../utils/tmpFolder';
 import Store from 'electron-store';
 import { app, dialog } from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
+import { SaveFolderGate } from './settingsKeys';
 
 interface AppSettings {
   lang: string;
@@ -92,6 +94,8 @@ import { EventEmitter } from 'events';
 
 class SettingsService extends EventEmitter {
   private store: Store<AppSettings>;
+  // ダイアログが返した値を、次の saveFolder の保存まで覚えておく
+  private saveFolderGate = new SaveFolderGate();
 
   constructor() {
     super();
@@ -153,9 +157,13 @@ class SettingsService extends EventEmitter {
   }
 
   public get(key: string): any {
-    // tmpFolder は OS の一時ディレクトリから動的に算出（旧実装: settings.getSetting('tmpFolder') 相当）
+    // tmpFolder は保存せず毎回解決する。getPath は app に束縛して渡す（this を失うと Electron が投げる）
     if (key === 'tmpFolder') {
-      return path.join(app.getPath('temp'), app.getName());
+      return resolveTmpFolder({
+        platform: process.platform,
+        getPath: (name) => app.getPath(name),
+        appName: app.getName(),
+      });
     }
     if (key === 'lang') {
       return this.ensureLang();
@@ -232,9 +240,16 @@ class SettingsService extends EventEmitter {
 
     if (!result.canceled && result.filePaths.length > 0) {
       // 選択されたパスを返すだけ。保存は Settings.vue の saveSettings() に委ねる
+      this.saveFolderGate.remember(result.filePaths[0]);
       return result.filePaths[0];
     }
+    this.saveFolderGate.remember(null);
     return null;
+  }
+
+  /** `value` がダイアログで選ばれたばかりの値なら、1 回だけ true を返す */
+  public consumePickedSaveFolder(value: unknown): boolean {
+    return this.saveFolderGate.consume(value);
   }
 
   // ベースマップ系API (ADR-0007): 引数はuid正準。

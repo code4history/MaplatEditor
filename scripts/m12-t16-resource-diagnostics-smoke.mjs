@@ -403,13 +403,13 @@ try {
       const appsHandler = __handlers.get('search:apps');
       const poiHandler = __handlers.get('search:poiSources');
       assert.ok(mapsHandler && appsHandler && poiHandler, 'search handlers must be registered');
-      const pagedMaps = await mapsHandler(null, { q: 'diag-', page: 1, pageSize: 20 });
+      const pagedMaps = await mapsHandler({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, { q: 'diag-', page: 1, pageSize: 20 });
       assert.ok(pagedMaps.docs.some((doc: any) => doc.resourceDiagnostics?.kind === 'map'), 'paged maps attach diagnostics');
-      const allMaps = await mapsHandler(null, { q: 'diag-', page: 1, pageSize: 0 });
+      const allMaps = await mapsHandler({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, { q: 'diag-', page: 1, pageSize: 0 });
       assert.ok(allMaps.docs.every((doc: any) => !('resourceDiagnostics' in doc)), 'pageSize<=0 maps do not attach diagnostics');
-      const pagedApps = await appsHandler(null, { q: 'base-', page: 1, pageSize: 20 });
+      const pagedApps = await appsHandler({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, { q: 'base-', page: 1, pageSize: 20 });
       assert.ok(pagedApps.docs.every((doc: any) => doc.resourceDiagnostics?.kind === 'app'), 'paged apps attach diagnostics');
-      const allPoi = await poiHandler(null, { q: 'diag-', page: 1, pageSize: 0 });
+      const allPoi = await poiHandler({ senderFrame: { url: 'app://bundle/index.html', parent: null } }, { q: 'diag-', page: 1, pageSize: 0 });
       assert.ok(allPoi.docs.every((doc: any) => !('resourceDiagnostics' in doc)), 'pageSize<=0 poi sources do not attach diagnostics');
       console.log('ok: Part 5 bounded/unbounded search diagnostics');
 

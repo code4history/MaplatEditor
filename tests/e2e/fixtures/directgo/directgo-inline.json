@@ -1,0 +1,25 @@
+[
+  {
+    "id": "p1",
+    "lng": 135.7681,
+    "lat": 35.0116,
+    "name": "P1 string directgo",
+    "desc": "P1 description",
+    "directgo": "https://example.org/a"
+  },
+  {
+    "id": "p2",
+    "lng": 135.7691,
+    "lat": 35.0126,
+    "name": "P2 object directgo",
+    "desc": "P2 description",
+    "directgo": { "href": "https://example.org/b", "blank": true }
+  },
+  {
+    "id": "p3",
+    "lng": 135.7701,
+    "lat": 35.0136,
+    "name": "P3 relative directgo only",
+    "directgo": "#!s:directgo-map/x:0/y:0/z:1"
+  }
+]

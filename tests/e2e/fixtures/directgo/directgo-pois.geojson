@@ -1,0 +1,34 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "p1",
+      "geometry": { "type": "Point", "coordinates": [135.7681, 35.0116] },
+      "properties": {
+        "name": "P1 string directgo",
+        "desc": "P1 description",
+        "directgo": "https://example.org/a"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "p2",
+      "geometry": { "type": "Point", "coordinates": [135.7691, 35.0126] },
+      "properties": {
+        "name": "P2 object directgo",
+        "desc": "P2 description",
+        "directgo": { "href": "https://example.org/b", "blank": true }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "p3",
+      "geometry": { "type": "Point", "coordinates": [135.7701, 35.0136] },
+      "properties": {
+        "name": "P3 relative directgo only",
+        "directgo": "#!s:directgo-map/x:0/y:0/z:1"
+      }
+    }
+  ]
+}

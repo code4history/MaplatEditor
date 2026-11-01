@@ -108,4 +108,33 @@ test.describe('m19-t4a 設定画面・アプリケーションメニュー・Abo
       await quitElectronApplication(app);
     }
   });
+
+  test('保存フォルダが拒否されたら画面に伝え、ほかの設定を保存しない', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-settings-folder-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+      await openHash(page, '#/settings', '#langSwitcher');
+      await app.evaluate(({ dialog }) => {
+        const g = globalThis as any;
+        g.__messages = [];
+        dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: ['//server/share'] })) as any;
+        dialog.showMessageBox = (async (...args: any[]) => {
+          g.__messages.push(args[args.length - 1].message);
+          return { response: 0, checkboxChecked: false };
+        }) as any;
+      });
+      const before = await page.evaluate(() => window.settings.get('updateCheckEnabled'));
+      await page.locator('#saveFolder').click();
+      await expect(page.locator('#saveFolder')).toHaveValue('//server/share');
+      await page.locator('button.btn-primary').first().click();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__messages.length)).toBe(1);
+      const messages = await app.evaluate(() => (globalThis as any).__messages);
+      expect(messages[0]).toContain('データフォルダを保存できませんでした');
+      expect(await page.evaluate(() => window.settings.get('saveFolder'))).not.toBe('//server/share');
+      expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(before);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
 });
