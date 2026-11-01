@@ -20,6 +20,9 @@
 // Windows: 全 PE 署名（2026-10-03・SAC 起動拒否への対処。詳細は scripts/win-sign/win-sign.cjs 冒頭）
 const winSign = require('./scripts/win-sign/win-sign.cjs');
 const winSignEnabled = winSign.getMode() !== 'off';
+// pack-win-1 と pack-win-2 でアンインストーラーを同じバイト列に作る（でないと署名済みに差し替えられない）。
+// app-builder-lib が NSIS の言語メッセージ 2 ファイルを並行に取り込む順を固定する。詳細は nsis-message-order.cjs 冒頭
+if (winSignEnabled) require('./scripts/win-sign/nsis-message-order.cjs').install();
 
 // 自動更新（nov26-m7-t5・#141）: Windows の更新ファイルの署名者を electron-updater が照らす publisherName。
 // 正本は scripts/win-sign/signer-identity.json の artifact-signing.publisherSubject（Get-AuthenticodeSignature の
