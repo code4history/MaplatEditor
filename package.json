@@ -325,7 +325,8 @@
     "smoke:json-duplicate-keys": "node scripts/json-duplicate-keys-smoke.mjs",
     "smoke:ipc-sender-guard": "node scripts/ipc-sender-guard-smoke.mjs",
     "smoke:read-tile-roots": "node scripts/read-tile-roots-smoke.mjs",
-    "smoke:app-export-hardening": "node scripts/app-export-hardening-smoke.mjs"
+    "smoke:app-export-hardening": "node scripts/app-export-hardening-smoke.mjs",
+    "smoke:runtime-deps-contract": "node scripts/runtime-deps-contract-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
