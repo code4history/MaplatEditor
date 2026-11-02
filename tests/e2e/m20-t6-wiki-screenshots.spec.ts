@@ -215,7 +215,8 @@ test.describe('m20-t6 Wiki 掲載用スクリーンショット（新規 7 枚�
 
       // ================= current-7: 設定画面（2タブ + JPEG 上限の「？」） =================
       await openHash(page, '#/settings', '#langSwitcher');
-      await expect(page.locator('.nav-tabs .nav-item')).toHaveCount(2);
+      // The optional MCP server tab is not part of this screenshot's subject; count the two settings tabs
+      await expect(page.locator('.nav-tabs .nav-item:not(:has([data-testid="settings-mcp-tab"]))')).toHaveCount(2);
       const jpegHelp = page.getByTestId('settings-jpeg-decode-help');
       await expect(jpegHelp).toBeVisible({ timeout: 15000 });
       // 「？」の中身（ContextHelp のポップアップ）が開いた状態を撮る。掲載文（Concepts.md）が
