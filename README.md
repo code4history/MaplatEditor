@@ -235,9 +235,12 @@ Documents otherwise.
 
 ### Settings and Application Menu
 
-- The Settings screen has two tabs: **Basic settings** and **Base map
-  settings** (a former third tab for original-map settings has been
-  removed)
+- The Settings screen has three tabs: **Basic settings**, **Base map
+  settings** and **MCP server** (a former tab for original-map settings has
+  been removed)
+- The **MCP server** tab turns on an optional, read-only local server for MCP
+  clients such as Claude Code (off by default). See
+  [Connecting MCP clients](docs/mcp.md)
 - Packaged (distributed) builds no longer show the **Development** menu in
   the application menu; it still appears when running from source or under
   E2E test automation

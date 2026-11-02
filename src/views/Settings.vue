@@ -22,6 +22,16 @@
             >{{ t("settings.base_map") }}</a
           >
         </li>
+        <li v-if="mcp.status?.featureEnabled" class="nav-item">
+          <a
+            class="nav-link"
+            :class="{ active: activeTab === 'mcp' }"
+            href="#"
+            data-testid="settings-mcp-tab"
+            @click.prevent="activeTab = 'mcp'"
+            >{{ t("settings.mcp_tab") }}</a
+          >
+        </li>
       </ul>
 
       <div class="tab-content">
@@ -286,22 +296,244 @@
             </div>
           </form>
         </div>
+
+        <!-- MCP server tab. The token is never shown: only its last 4 characters. -->
+        <div
+          v-if="mcp.status?.featureEnabled"
+          class="tab-pane fade"
+          :class="{ 'show active': activeTab === 'mcp' }"
+          id="mcp"
+          role="tabpanel"
+        >
+          <form class="form-horizontal" @submit.prevent>
+            <p class="form-text" data-testid="settings-mcp-external-notice">{{ mcpNotice }}</p>
+
+            <div class="row mb-3 align-items-center">
+              <div class="col-sm-9 offset-sm-3">
+                <div class="form-check form-switch">
+                  <input
+                    id="mcpEnabled"
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    data-testid="settings-mcp-enabled"
+                    :checked="mcp.status.enabled && mcp.status.listening"
+                    :disabled="mcp.busy"
+                    @change="onToggleMcp($event.target as HTMLInputElement)"
+                  />
+                  <label class="form-check-label" for="mcpEnabled">{{ t("settings.mcp_enabled") }}</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-sm-9 offset-sm-3" data-testid="settings-mcp-status">
+                <div>
+                  {{
+                    mcp.status.listening
+                      ? t("settings.mcp_status_listening", { address: mcpAddress })
+                      : t("settings.mcp_status_stopped")
+                  }}
+                </div>
+                <div class="form-text">
+                  {{
+                    mcp.status.lastRequestAt
+                      ? t("settings.mcp_last_request", { time: new Date(mcp.status.lastRequestAt).toLocaleString() })
+                      : t("settings.mcp_last_request_none")
+                  }}
+                </div>
+                <div
+                  v-if="mcp.status.lastError === 'port-in-use'"
+                  class="text-danger small mt-1"
+                  data-testid="settings-mcp-port-in-use"
+                >
+                  {{ t("settings.mcp_error_port_in_use") }}
+                </div>
+                <div
+                  v-else-if="mcp.status.lastError === 'listen-failed'"
+                  class="text-danger small mt-1"
+                  data-testid="settings-mcp-listen-failed"
+                >
+                  {{ t("settings.mcp_error_listen_failed") }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+              <label for="mcpPort" class="col-sm-3 col-form-label text-end">{{ t("settings.mcp_port") }}</label>
+              <div class="col-sm-9 d-flex gap-2 align-items-center">
+                <input
+                  id="mcpPort"
+                  v-model="mcp.portInput"
+                  type="number"
+                  min="1024"
+                  max="65535"
+                  step="1"
+                  class="form-control w-auto"
+                  data-testid="settings-mcp-port"
+                />
+                <button
+                  type="button"
+                  class="btn btn-light border"
+                  data-testid="settings-mcp-port-save"
+                  :disabled="mcp.busy || String(mcp.status.port) === String(mcp.portInput)"
+                  @click="saveMcpPort"
+                >
+                  {{ t("settings.mcp_port_save") }}
+                </button>
+              </div>
+              <div v-if="mcp.portInvalid" class="col-sm-9 offset-sm-3 text-danger small" data-testid="settings-mcp-port-invalid">
+                {{ t("settings.mcp_error_port_invalid") }}
+              </div>
+            </div>
+
+            <div class="row mb-3 align-items-center">
+              <label class="col-sm-3 col-form-label text-end">{{ t("settings.mcp_token") }}</label>
+              <div class="col-sm-9 d-flex gap-2 align-items-center">
+                <span class="font-monospace" data-testid="settings-mcp-token-tail">{{
+                  t("settings.mcp_token_tail", { tail: mcp.status.tokenTail })
+                }}</span>
+                <button
+                  type="button"
+                  class="btn btn-light border"
+                  data-testid="settings-mcp-regenerate"
+                  :disabled="mcp.busy"
+                  @click="regenerateMcpToken"
+                >
+                  {{ t("settings.mcp_regenerate") }}
+                </button>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-sm-9 offset-sm-3 d-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-light border"
+                  data-testid="settings-mcp-copy-claude-code"
+                  :disabled="mcp.busy"
+                  @click="copyMcpCommand('claude-code')"
+                >
+                  <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_claude_code") }}
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-light border"
+                  data-testid="settings-mcp-copy-mcp-remote"
+                  :disabled="mcp.busy"
+                  @click="copyMcpCommand('mcp-remote')"
+                >
+                  <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_mcp_remote") }}
+                </button>
+              </div>
+              <div v-if="mcp.copied" class="col-sm-9 offset-sm-3 form-text" data-testid="settings-mcp-copied">
+                {{ t("settings.mcp_copied") }}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-sm-9 offset-sm-3">
+                <p class="form-text mb-1">{{ t("settings.mcp_recommend_loopback") }}</p>
+                <p class="form-text mb-0">
+                  {{ t("settings.mcp_docs_link") }}:
+                  <span class="user-select-all font-monospace" data-testid="settings-mcp-docs-url">{{ MCP_DOCS_URL }}</span>
+                </p>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, ref, computed } from "vue";
+import { reactive, onMounted, onUnmounted, ref, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
+// The texts of the MCP confirmation dialogs live in the main process table; the notice on this tab is the
+// same sentence, so it is read from that table instead of being translated twice.
+import { mcpText } from "../../electron/mcp/messages";
+import type { McpStatus } from "../electron";
+
+// Links are shown as text: the editor window does not open external pages.
+const MCP_DOCS_URL = "https://github.com/code4history/MaplatEditor/blob/master/docs/mcp.md";
 
 // nov26-m6-t4（#26）: vue/multi-word-component-names。ファイル名・route は変えない
 defineOptions({ name: "SettingsView" });
 
 const { t, i18next } = useTranslation();
 const activeTab = ref("basic");
+
+// ---- MCP server tab ----
+const mcp = reactive<{
+  status: McpStatus | null;
+  portInput: string;
+  portInvalid: boolean;
+  busy: boolean;
+  copied: boolean;
+}>({ status: null, portInput: "", portInvalid: false, busy: false, copied: false });
+const mcpAddress = computed(() => `127.0.0.1:${mcp.status?.port ?? ""}`);
+const mcpNotice = computed(() => mcpText(i18next.language, "enable.detail"));
+let stopMcpStatus: (() => void) | null = null;
+let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+function applyMcpStatus(status: McpStatus): void {
+  const portChanged = mcp.status?.port !== status.port;
+  mcp.status = status;
+  if (portChanged) mcp.portInput = String(status.port);
+}
+
+async function runMcp(task: () => Promise<McpStatus>): Promise<void> {
+  mcp.busy = true;
+  try {
+    applyMcpStatus(await task());
+  } catch (e) {
+    console.error("MCP server operation failed:", e);
+    applyMcpStatus(await window.mcp.getStatus());
+  } finally {
+    mcp.busy = false;
+  }
+}
+
+const onToggleMcp = async (input: HTMLInputElement) => {
+  await runMcp(() => window.mcp.setEnabled(input.checked));
+  // Cancelling the confirmation leaves the status unchanged, so put the switch back by hand.
+  input.checked = Boolean(mcp.status?.enabled && mcp.status?.listening);
+};
+const regenerateMcpToken = () => runMcp(() => window.mcp.regenerateToken());
+const saveMcpPort = async () => {
+  const port = Number(mcp.portInput);
+  mcp.portInvalid = !(Number.isInteger(port) && port >= 1024 && port <= 65535);
+  if (mcp.portInvalid) return;
+  await runMcp(() => window.mcp.setPort(port));
+};
+const copyMcpCommand = async (client: "claude-code" | "mcp-remote") => {
+  mcp.busy = true;
+  try {
+    const { copied } = await window.mcp.copyConnectionCommand(client);
+    mcp.copied = copied;
+    if (copiedTimer) clearTimeout(copiedTimer);
+    if (copied) copiedTimer = setTimeout(() => (mcp.copied = false), 60_000);
+  } finally {
+    mcp.busy = false;
+  }
+};
+
+onMounted(async () => {
+  if (!window.mcp) return;
+  stopMcpStatus = window.mcp.onStatus(applyMcpStatus);
+  try {
+    applyMcpStatus(await window.mcp.getStatus());
+  } catch (e) {
+    console.error("Failed to load the MCP server status:", e);
+  }
+});
+onUnmounted(() => {
+  stopMcpStatus?.();
+  if (copiedTimer) clearTimeout(copiedTimer);
+});
 
 // m6-t6: ベースマップタブの4キー（エディタ用×2 + 既定公開用×2）。onMounted/saveSettings で
 // ループ処理するための一覧（R9 の既存パターンと同型）

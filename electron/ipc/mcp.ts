@@ -6,7 +6,7 @@ import { ipc } from './registry';
 import SettingsService from '../services/SettingsService';
 import { getMcpController, type McpClientKind, type McpController } from '../mcp/controller';
 import { mcpText } from '../mcp/messages';
-import { isValidPort } from '../mcp/limits';
+import { DEFAULT_LIMITS, isValidPort, type McpLimits } from '../mcp/limits';
 
 export interface McpIpcDeps {
   controller: McpController;
@@ -37,9 +37,20 @@ export function clearCopiedConnectionCommand(): void {
   }
 }
 
+/**
+ * End-to-end tests run the development build and cannot wait a minute for the clipboard to be cleared.
+ * Only an isolated test run of an unpackaged build may shorten that delay.
+ */
+function testLimits(): McpLimits | undefined {
+  const raw = process.env['MAPLAT_E2E_MCP_CLIPBOARD_CLEAR_MS'];
+  if (!raw || !process.env['MAPLAT_E2E_ROOT'] || app.isPackaged) return undefined;
+  const ms = Number(raw);
+  return Number.isInteger(ms) && ms > 0 ? { ...DEFAULT_LIMITS, clipboardClearMs: ms } : undefined;
+}
+
 function defaultDeps(): McpIpcDeps {
   return {
-    controller: getMcpController(() => app.getVersion()),
+    controller: getMcpController(() => app.getVersion(), testLimits()),
     showMessageBox: (parent, options) => (parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options)),
     clipboard,
     lang: () => SettingsService.get('lang') as string | undefined,

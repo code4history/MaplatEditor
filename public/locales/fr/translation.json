@@ -128,7 +128,8 @@
     "assets": "Gérer les ressources",
     "edit_poi": "Gérer les POI",
     "add_basemap": "Gérer les fonds de carte",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "Informations sur la source (facultatif)",
@@ -294,7 +295,26 @@
     "default_publish_mapbox_token": "Jeton d'accès Mapbox (par défaut)",
     "same_key_warning": "La clé de l'éditeur et la clé de publication par défaut pour {{provider}} sont identiques. Il est recommandé d'émettre une clé distincte.",
     "update_check": "Rechercher les mises à jour au démarrage",
-    "update_check_desc": "Vous serez averti lorsqu’une nouvelle version sera disponible. Le téléchargement n’a lieu que si vous choisissez « Mettre à jour ». Sous Linux, la page de version s’ouvre."
+    "update_check_desc": "Vous serez averti lorsqu’une nouvelle version sera disponible. Le téléchargement n’a lieu que si vous choisissez « Mettre à jour ». Sous Linux, la page de version s’ouvre.",
+    "mcp_tab": "Serveur MCP",
+    "mcp_enabled": "Activer le serveur MCP",
+    "mcp_status_stopped": "Arrêté",
+    "mcp_status_listening": "En écoute : {{address}}",
+    "mcp_last_request": "Dernière requête : {{time}}",
+    "mcp_last_request_none": "Aucune requête pour l’instant",
+    "mcp_port": "Port",
+    "mcp_port_save": "Enregistrer le port",
+    "mcp_token": "Jeton",
+    "mcp_token_tail": "…{{tail}} (4 derniers caractères)",
+    "mcp_regenerate": "Régénérer",
+    "mcp_copy_claude_code": "Copier la commande d’enregistrement pour Claude Code",
+    "mcp_copy_mcp_remote": "Copier le réglage pour Claude Desktop (mcp-remote)",
+    "mcp_copied": "Copié. Effacé du presse-papiers dans une minute.",
+    "mcp_docs_link": "Comment se connecter",
+    "mcp_recommend_loopback": "Enregistrez dans le client l’URL avec 127.0.0.1, pas localhost.",
+    "mcp_error_port_in_use": "Un autre programme utilise le même port. Le jeton lui a peut-être été envoyé. Veuillez régénérer le jeton.",
+    "mcp_error_listen_failed": "Impossible de commencer l’écoute.",
+    "mcp_error_port_invalid": "Saisissez un nombre entier de 1024 à 65535 pour le port."
   },
   "maplist": {
     "title": "Liste des cartes",

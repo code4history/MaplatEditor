@@ -128,7 +128,8 @@
     "assets": "에셋 관리",
     "edit_poi": "POI 관리",
     "add_basemap": "베이스맵 관리",
-    "settings": "설정"
+    "settings": "설정",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "출처 정보 (선택 사항)",
@@ -294,7 +295,26 @@
     "default_publish_mapbox_token": "Mapbox 액세스 토큰 (기본)",
     "same_key_warning": "{{provider}}의 에디터용 키와 기본 공개용 키가 동일합니다. 별도의 키를 발급하는 것을 권장합니다.",
     "update_check": "시작할 때 업데이트 확인",
-    "update_check_desc": "새 버전이 있으면 알려 드립니다. \"업데이트\"를 선택할 때만 다운로드합니다. Linux에서는 릴리스 페이지를 엽니다."
+    "update_check_desc": "새 버전이 있으면 알려 드립니다. \"업데이트\"를 선택할 때만 다운로드합니다. Linux에서는 릴리스 페이지를 엽니다.",
+    "mcp_tab": "MCP 서버",
+    "mcp_enabled": "MCP 서버 켜기",
+    "mcp_status_stopped": "정지됨",
+    "mcp_status_listening": "대기 중: {{address}}",
+    "mcp_last_request": "마지막 요청: {{time}}",
+    "mcp_last_request_none": "아직 요청이 없습니다",
+    "mcp_port": "포트",
+    "mcp_port_save": "포트 저장",
+    "mcp_token": "토큰",
+    "mcp_token_tail": "…{{tail}} (마지막 4자)",
+    "mcp_regenerate": "재발급",
+    "mcp_copy_claude_code": "Claude Code 등록 명령 복사",
+    "mcp_copy_mcp_remote": "Claude Desktop(mcp-remote) 설정 복사",
+    "mcp_copied": "복사했습니다. 1분 후 클립보드에서 지웁니다.",
+    "mcp_docs_link": "연결 방법",
+    "mcp_recommend_loopback": "클라이언트에는 localhost가 아니라 127.0.0.1 URL로 등록하세요.",
+    "mcp_error_port_in_use": "다른 프로그램이 같은 포트를 사용하고 있습니다. 토큰이 그쪽으로 전송되었을 수 있습니다. 토큰을 재발급하세요.",
+    "mcp_error_listen_failed": "대기를 시작할 수 없습니다.",
+    "mcp_error_port_invalid": "포트는 1024~65535 사이의 정수로 입력하세요."
   },
   "maplist": {
     "title": "지도 목록",
