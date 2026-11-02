@@ -10,11 +10,12 @@
 //   3. electron/・src/ のコードが pwa-asset-generator・puppeteer を import / require しない
 //
 // 使い方: node scripts/runtime-deps-contract-smoke.mjs
+/* global console */
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const projectRoot = path.resolve(import.meta.dirname, '..');
 const pkg = JSON.parse(readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
 
 const DEV_ONLY = ['pwa-asset-generator', 'puppeteer-core', 'puppeteer'];
