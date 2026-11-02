@@ -60,8 +60,20 @@ try {
     });
     output = `${stdout}\n${stderr}`;
   } catch (error) {
-    // Do not print the child's output here: if it failed, it may be exactly what this smoke guards against.
-    throw new Error(`mcp-log-redaction: the server run failed (exit ${error.code ?? 'unknown'})`);
+    // Show why the run failed, with every issued token replaced first: the raw output may contain exactly
+    // what this smoke guards against.
+    let issued = [];
+    try {
+      issued = (await readFile(tokenFile, 'utf8')).split('\n').filter(Boolean);
+    } catch {
+      issued = [];
+    }
+    let text = `${error.stdout ?? ''}\n${error.stderr ?? ''}`;
+    for (const t of issued) text = text.split(t).join('<token>');
+    text = text.replace(/Bearer [A-Za-z0-9_\-+/=.]{20,}/g, 'Bearer <redacted>').replace(/[A-Za-z0-9+/_-]{200,}={0,2}/g, '<long>');
+    const tail = text.split('\n').filter((l) => !l.startsWith('[mcp] ') && !l.startsWith('[ipc] ')).slice(-40).join('\n');
+    console.log(tail);
+    throw new Error(`mcp-log-redaction: the server run failed (exit ${error.code ?? 'unknown'})`, { cause: error });
   }
   const tokens = (await readFile(tokenFile, 'utf8')).split('\n').filter(Boolean);
   assert.ok(tokens.length >= 5, `the run issued tokens (${tokens.length})`);

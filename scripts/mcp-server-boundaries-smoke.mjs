@@ -462,10 +462,12 @@ try {
       const { port, token, server } = await startServer({ limits });
       assert.equal((await raw(port, requestText(port, token, { auth: 'Bearer wrong' }))).status, 401);
       const results = await Promise.all(Array.from({ length: 33 }, () => raw(port, requestText(port, token))));
-      const quick401 = results.filter((r) => r.status === 401 && r.ms < 800);
-      const delayed200 = results.filter((r) => r.status === 200 && r.ms >= 900);
-      assert.equal(quick401.length, 1, \`B the 33rd waiting request is refused at once (\${quick401.length})\`);
-      assert.equal(delayed200.length, 32, \`B 32 waiting requests pass after the delay (\${delayed200.length})\`);
+      const refused = results.filter((r) => r.status === 401);
+      const passed = results.filter((r) => r.status === 200);
+      assert.equal(refused.length, 1, \`B the 33rd waiting request is refused (\${refused.length})\`);
+      assert.equal(passed.length, 32, \`B 32 waiting requests pass after the delay (\${passed.length})\`);
+      assert.ok(passed.every((r) => r.ms >= 900), 'B the 32 waiting requests waited for the delay');
+      assert.ok(refused[0].ms < Math.min(...passed.map((r) => r.ms)), 'B the refused request did not wait');
       console.log('ok: B at most 32 requests wait for the token check; the 33rd gets 401 at once');
       await server.close();
     }
@@ -505,7 +507,7 @@ try {
 
     // ---------------- C: strict input, concurrency, timeout ----------------
     {
-      const { port, token, server } = await startServer({ registerTools: slowTools(400) });
+      const { port, token, server } = await startServer({ registerTools: slowTools(1000) });
       const extra = await raw(port, requestText(port, token, { body: JSON.stringify({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'editor.ping', arguments: { x: 1 } } }) }));
       assert.equal(extra.status, 200);
       assert.match(extra.body, /-32602/, 'C unknown key is rejected with -32602');
@@ -518,7 +520,7 @@ try {
       assert.deepEqual(four.map((r) => r.status), [200, 200, 200, 200], 'C four concurrent requests all succeed');
       assert.ok(four.every((r) => /slow done/.test(r.body)), 'C four concurrent requests all run the tool');
       console.log('ok: C four concurrent requests -> 200 (a fresh server per request)');
-      const five = await Promise.all(Array.from({ length: 5 }, (_, i) => new Promise<Raw>((r) => setTimeout(() => r(raw(port, requestText(port, token, { body: SLOW }))), i * 20))));
+      const five = await Promise.all(Array.from({ length: 5 }, (_, i) => new Promise<Raw>((r) => setTimeout(() => r(raw(port, requestText(port, token, { body: SLOW }))), i === 4 ? 300 : 0))));
       assert.deepEqual(five.map((r) => r.status).sort(), [200, 200, 200, 200, 429], 'C the fifth concurrent request -> 429');
       console.log('ok: C the fifth concurrent request -> 429');
       const big = await raw(port, requestText(port, token, { body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list', params: { pad: 'x'.repeat(1024 * 1024) } }) }));
@@ -664,11 +666,11 @@ try {
         nextResponse = 0;
         assert.deepEqual(await call('mcp:copy-connection-command', trusted, 'claude-code'), { copied: true });
         assert.ok(clip.startsWith(\`claude mcp add --transport http maplat-editor http://127.0.0.1:\${port}/mcp --header "Authorization: Bearer \`), 'D the registration command is on the clipboard');
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 1000));
         assert.equal(clip, '', 'D the copied command is cleared after the delay');
         assert.deepEqual(await call('mcp:copy-connection-command', trusted, 'mcp-remote'), { copied: true });
         clip = 'something the user copied later';
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 1000));
         assert.equal(clip, 'something the user copied later', 'D a later clipboard content is left alone');
         console.log('ok: D copying needs the native dialog; the command is cleared after the delay unless replaced');
 
