@@ -9,6 +9,7 @@
 // lines, so an empty or broken run cannot pass.
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdtemp, readFile, rm, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -35,7 +36,8 @@ export function findSecrets(text, tokens) {
 
 // Detector self-test: each of the three kinds must be found.
 {
-  const sampleToken = 'Qm9ndXNUb2tlbkZvclNlbGZUZXN0MDEyMzQ1Njc4OWFi';
+  // Made at run time so that no token-like literal lives in the source.
+  const sampleToken = randomBytes(32).toString('base64url');
   assert.ok(findSecrets(`[mcp] something ${sampleToken} leaked`, [sampleToken]).length > 0, 'detector finds a token');
   assert.ok(findSecrets('Authorization: Bearer xxxxxxxxxxxxxxxxxxxxxxxx', []).includes('bearer value'), 'detector finds a bearer value');
   assert.ok(findSecrets(`data ${'QUJD'.repeat(75)}`, []).includes('long base64'), 'detector finds 300 characters of base64');
