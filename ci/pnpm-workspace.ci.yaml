@@ -64,6 +64,30 @@ overrides:
   file-type: "^21.3.1"
   ip-address: "^10.3.1"
   minimatch: "^9.0.7"
+  # 2026-11-02: minimatch GHSA-g3hv-75wg-m249（medium・<11.0.1。9・10 系に修正版なし）と
+  # glob GHSA-3g3m-2fjr-6pw4（medium・>=9.0.0 <=14.0.1・14.0.2 で修正）。上の全体の minimatch は 9 系へ寄せるので、
+  # 親を指定して 11 系へ上げる。経路はすべて開発時（eslint・vue-tsc・electron-builder・pwa-asset-generator）。
+  # 各親が使う API（minimatch()・Minimatch#match・minimatch.match()）は 11 系にもあり、同じ結果を返す（実測）。
+  # @electron/asar と dir-compare は CJS で default を読むが、default は 9 系にも 11 系にも無く、振る舞いは変わらない。
+  # glob 7（@electron/asar と electron-winstaller > temp > rimraf が引く）は Minimatch#set の中身に頼り、
+  # minimatch 11 では何も一致しなくなる（実測）ので 9 系のまま残す。上流の electron-builder 26.18 も
+  # @electron/asar 3.4.1（glob 7）を固定しているため、それが上がるまでこの経路の警告は残る。
+  # glob 10・11 も minimatch 11 と組めないので、glob の下は親の版を 14 に限る
+  "js-beautify>glob": "^14.0.2"
+  "glob@14>minimatch": "^11.0.1"
+  "editorconfig>minimatch": "^11.0.1"
+  "eslint>minimatch": "^11.0.1"
+  "@eslint/config-array>minimatch": "^11.0.1"
+  "@typescript-eslint/typescript-estree>minimatch": "^11.0.1"
+  "@vue/language-core>minimatch": "^11.0.1"
+  "app-builder-lib>minimatch": "^11.0.1"
+  "@electron/asar>minimatch": "^11.0.1"
+  "@electron/universal>minimatch": "^11.0.1"
+  "dir-compare>minimatch": "^11.0.1"
+  "filelist>minimatch": "^11.0.1"
+  # 全体の brace-expansion: "^2.1.7" が minimatch 11 の brace-expansion まで 2 系へ寄せる。minimatch 11 は
+  # brace-expansion 5 の名前つきの expand を使い、2 系では TypeError になる（実測）ので、宣言どおり 5 系へ戻す
+  "minimatch@11>brace-expansion": "^5.0.12"
   nanoid: "^3.3.18"
   path-to-regexp: "~1.9.0"
   postcss: "^8.5.23"
