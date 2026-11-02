@@ -89,7 +89,9 @@ overrides:
   # brace-expansion 5 の名前つきの expand を使い、2 系では TypeError になる（実測）ので、宣言どおり 5 系へ戻す
   "minimatch@11>brace-expansion": "^5.0.12"
   nanoid: "^3.3.18"
-  path-to-regexp: "~1.9.0"
+  # page@1.11.6 は 1.x の API を前提にするので、親を page に限って 1.9 系に留める。全体に掛けると
+  # express 5（@modelcontextprotocol/sdk の推移依存）の router が要求する 8 系まで 1.9 系に押し込む
+  "page>path-to-regexp": "~1.9.0"
   postcss: "^8.5.23"
   # 2026-10-03: undici GHSA-rfgv-xxqx-mfg5・GHSA-w293-vg96-wgc3（High）ほかは 7.29.1 で修正。経路は pwa-asset-generator（実行時）と node-gyp（ビルド時）
   undici: "^7.29.1"

@@ -326,7 +326,9 @@
     "smoke:ipc-sender-guard": "node scripts/ipc-sender-guard-smoke.mjs",
     "smoke:read-tile-roots": "node scripts/read-tile-roots-smoke.mjs",
     "smoke:app-export-hardening": "node scripts/app-export-hardening-smoke.mjs",
-    "smoke:runtime-deps-contract": "node scripts/runtime-deps-contract-smoke.mjs"
+    "smoke:runtime-deps-contract": "node scripts/runtime-deps-contract-smoke.mjs",
+    "smoke:mcp-server-boundaries": "node scripts/mcp-server-boundaries-smoke.mjs",
+    "smoke:mcp-log-redaction": "node scripts/mcp-log-redaction-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
@@ -364,6 +366,7 @@
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
     "@eslint/js": "^10.0.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@playwright/test": "^1.62.1",
     "@types/bun": "^1.3.14",
     "@types/fs-extra": "^11.0.4",
@@ -386,7 +389,8 @@
     "vite": "^7.3.7",
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5",
-    "vue-tsc": "^2.0.26"
+    "vue-tsc": "^2.0.26",
+    "zod": "4.6.7"
   },
   "main": "dist-electron/main.js"
 }
