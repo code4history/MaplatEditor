@@ -9,6 +9,7 @@
 //   6. body size                                  -> 413
 // Then a fresh McpServer and transport are created for this request only and both are closed afterwards.
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { connect } from 'node:net';
 import { setTimeout as setTimer, clearTimeout as clearTimer } from 'node:timers';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
@@ -44,6 +45,30 @@ type Socket = IncomingMessage['socket'];
 
 /** Headers the transport needs. Nothing else from the request is passed on. */
 const FORWARDED_HEADERS = ['content-type', 'accept', 'mcp-protocol-version', 'mcp-session-id', 'last-event-id'];
+
+/**
+ * Ends the connection once the answer is written, so a rejected client cannot keep the server reading the
+ * rest of its body.
+ */
+function closeAfterAnswer(req: IncomingMessage, res: ServerResponse): void {
+  if (res.headersSent || res.destroyed) return;
+  res.setHeader('Connection', 'close');
+  res.once('finish', () => req.destroy());
+}
+
+/** Resolves true when something already accepts connections on 127.0.0.1:<port>. */
+function portAnswers(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = connect({ port, host: '127.0.0.1' });
+    const done = (answered: boolean) => {
+      socket.destroy();
+      resolve(answered);
+    };
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+    socket.setTimeout(1000, () => done(false));
+  });
+}
 
 function sendPlain(res: ServerResponse, status: number, text: string, extra: Record<string, string> = {}): void {
   if (res.headersSent || res.destroyed) return;
@@ -111,27 +136,32 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
     const target = req.url;
     if (!checkPath(target)) {
       logRejected('path');
+      closeAfterAnswer(req, res);
       sendPlain(res, 404, 'Not Found');
       return;
     }
     if (!checkHost(req.headers.host, deps.port, target)) {
       logRejected('host');
+      closeAfterAnswer(req, res);
       sendPlain(res, 403, 'Forbidden');
       return;
     }
     if (!checkOrigin(req.headers.origin)) {
       logRejected('origin');
+      closeAfterAnswer(req, res);
       sendPlain(res, 403, 'Forbidden');
       return;
     }
     if (req.method !== 'POST') {
       logRejected('method');
+      closeAfterAnswer(req, res);
       sendPlain(res, 405, 'Method Not Allowed', { Allow: 'POST' });
       return;
     }
 
     if (waitingForAuth >= limits.maxWaitingForAuth) {
       logRejected('auth-queue-full');
+      closeAfterAnswer(req, res);
       sendPlain(res, 401, 'Unauthorized', { 'WWW-Authenticate': 'Bearer' });
       return;
     }
@@ -145,6 +175,7 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
     if (!checkBearer(req.headers.authorization, deps.getToken())) {
       failureDelay.recordFailure(now());
       logRejected('auth');
+      closeAfterAnswer(req, res);
       sendPlain(res, 401, 'Unauthorized', { 'WWW-Authenticate': 'Bearer' });
       return;
     }
@@ -152,6 +183,7 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
 
     if (active >= limits.maxConcurrent) {
       logRejected('busy');
+      closeAfterAnswer(req, res);
       sendJsonRpcError(res, 429, null, -32000, `too many concurrent requests (max ${limits.maxConcurrent})`);
       return;
     }
@@ -171,6 +203,7 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
     } catch (e) {
       if (e instanceof BodyTooLarge) {
         logRejected('body-too-large');
+        closeAfterAnswer(req, res);
         sendJsonRpcError(res, 413, null, -32600, `request body too large (max ${limits.maxRequestBodyBytes} bytes)`);
       } else {
         res.destroy();
@@ -186,6 +219,13 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
       parsed = undefined;
     }
     const { name, id } = describeMessage(parsed);
+    if (Array.isArray(parsed)) {
+      // One request carries one message; a JSON array would pack many tool calls past the concurrency limit.
+      logRejected('batch');
+      closeAfterAnswer(req, res);
+      sendJsonRpcError(res, 400, null, -32600, 'batch requests are not supported');
+      return;
+    }
 
     const headers = new Headers();
     for (const key of FORWARDED_HEADERS) {
@@ -207,17 +247,27 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
     const timedOut = new Promise<'timeout'>((resolve) => {
       timer = setTimer(() => resolve('timeout'), limits.requestTimeoutMs);
     });
+    // A client that hangs up before the answer is written aborts its tool.
+    const clientGone = new Promise<'gone'>((resolve) => {
+      res.once('close', () => {
+        if (!res.writableFinished) resolve('gone');
+      });
+    });
+    let handling: Promise<Response> | undefined;
     try {
       await server.connect(transport);
-      const outcome = await Promise.race([
-        transport.handleRequest(request, parsed === undefined ? undefined : { parsedBody: parsed }),
-        timedOut,
-      ]);
-      if (outcome === 'timeout') {
+      handling = transport.handleRequest(request, parsed === undefined ? undefined : { parsedBody: parsed });
+      const outcome = await Promise.race([handling, timedOut, clientGone]);
+      if (outcome === 'timeout' || outcome === 'gone') {
         abort.abort();
-        logRejected('timeout');
-        const bytes = sendJsonRpcError(res, 200, id, -32001, `request timed out after ${limits.requestTimeoutMs} ms`);
-        logRequest(name, 'error:timeout', bytes, now() - started);
+        logRejected(outcome === 'timeout' ? 'timeout' : 'client-closed');
+        const bytes = outcome === 'timeout'
+          ? sendJsonRpcError(res, 200, id, -32001, `request timed out after ${limits.requestTimeoutMs} ms`)
+          : 0;
+        logRequest(name, outcome === 'timeout' ? 'error:timeout' : 'error:client-closed', bytes, now() - started);
+        // Keep this request's slot until the tool has really stopped, so aborted tools still count
+        // against the concurrency limit.
+        await handling.catch(() => undefined);
         return;
       }
       const responseBody = Buffer.from(await outcome.arrayBuffer());
@@ -248,6 +298,11 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
     });
   });
   http.headersTimeout = limits.headersTimeoutMs;
+  http.maxConnections = limits.maxConnections;
+  // Errors after listening (for example EMFILE on accept) must not reach the process as uncaught.
+  http.on('error', () => {
+    if (http.listening) logLifecycle('server-error', deps.port);
+  });
   http.requestTimeout = limits.httpRequestTimeoutMs;
   http.on('connection', (socket: Socket) => {
     sockets.add(socket);
@@ -257,7 +312,13 @@ export function createMcpHttpServer(deps: McpHttpServerDeps): McpHttpServer {
   return {
     failureDelay,
     address: () => http.address(),
-    listen() {
+    async listen() {
+      // On macOS a listener on :: or 0.0.0.0 does not stop a listen on 127.0.0.1, and clients would reach
+      // that other program. Refuse when anything already answers on 127.0.0.1:<port>.
+      if (await portAnswers(deps.port)) {
+        logLifecycle('port-in-use', deps.port);
+        return { ok: false, kind: 'port-in-use' } as ListenResult;
+      }
       return new Promise<ListenResult>((resolve) => {
         const onError = (error: NodeJS.ErrnoException) => {
           http.off('listening', onListening);

@@ -6,6 +6,8 @@ export interface McpLimits {
   requestTimeoutMs: number;
   /** Largest accepted request body. */
   maxRequestBodyBytes: number;
+  /** Open connections accepted at the same time. */
+  maxConnections: number;
   /** Node http server timeouts. */
   headersTimeoutMs: number;
   httpRequestTimeoutMs: number;
@@ -26,6 +28,7 @@ export const DEFAULT_LIMITS: Readonly<McpLimits> = Object.freeze({
   maxConcurrent: 4,
   requestTimeoutMs: 20_000,
   maxRequestBodyBytes: 1024 * 1024,
+  maxConnections: 64,
   headersTimeoutMs: 10_000,
   httpRequestTimeoutMs: 30_000,
   failureDelayStepMs: 100,

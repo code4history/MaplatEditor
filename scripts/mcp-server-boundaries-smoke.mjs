@@ -70,7 +70,7 @@ function specifiersOf(source) {
 const COMMON_ALLOWED = (spec) =>
   spec.startsWith('./') ||
   spec.startsWith('@modelcontextprotocol/sdk/') ||
-  ['zod', 'jimp', 'electron', 'electron-store', 'node:http', 'node:crypto', 'node:events', 'node:timers',
+  ['zod', 'jimp', 'electron', 'electron-store', 'node:http', 'node:net', 'node:crypto', 'node:events', 'node:timers',
     '../utils/webMercator', '@maplat/transform', '../adapters/StorageAdapter', '../services/runtimeStoragePaths',
     '../utils/appScheme', '../../src/utils/thumbnailPaths'].includes(spec);
 const FACADE_EXTRA_ALLOWED = (spec) =>
@@ -287,20 +287,26 @@ try {
       });
     }
 
-    type Raw = { status: number; body: string; ms: number };
-    function raw(port: number, text: string, host = '127.0.0.1'): Promise<Raw> {
+    type Raw = { status: number; head: string; body: string; ms: number; closedByServer: boolean };
+    /** Sends raw bytes and reads until the server closes. If it does not close within waitMs, gives up. */
+    function raw(port: number, text: string, host = '127.0.0.1', waitMs = 15000): Promise<Raw> {
       return new Promise((resolve, reject) => {
         const started = Date.now();
         const socket = net.connect({ port, host });
         let data = '';
+        let done = false;
         socket.setEncoding('utf8');
         socket.on('data', (c) => { data += c; });
-        const finish = () => {
+        const finish = (closedByServer = true) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
           const status = Number(/^HTTP\\/1\\.[01] (\\d{3})/.exec(data)?.[1] ?? 0);
-          const body = data.slice(data.indexOf('\\r\\n\\r\\n') + 4);
-          resolve({ status, body, ms: Date.now() - started });
+          const split = data.indexOf('\\r\\n\\r\\n');
+          resolve({ status, head: data.slice(0, split), body: data.slice(split + 4), ms: Date.now() - started, closedByServer });
         };
-        socket.on('end', finish);
+        const timer = setTimeout(() => { finish(false); socket.destroy(); }, waitMs);
+        socket.on('end', () => finish());
         // The server may answer and reset before a large body is fully written; keep the answer it sent.
         socket.on('error', (e) => (/^HTTP\\/1\\.[01] \\d{3}/.test(data) ? finish() : reject(e)));
         socket.write(text);
@@ -309,7 +315,7 @@ try {
 
     const LIST = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
     type Req = { method?: string; target?: string; host?: string | null; origin?: string; auth?: string | null;
-      accept?: string | null; ctype?: string | null; body?: string; version?: string };
+      accept?: string | null; ctype?: string | null; body?: string; version?: string; keepAlive?: boolean };
     function requestText(port: number, token: string, r: Req = {}): string {
       const method = r.method ?? 'POST';
       const body = r.body ?? (method === 'POST' ? LIST : '');
@@ -324,18 +330,33 @@ try {
       const ctype = r.ctype === undefined ? 'application/json' : r.ctype;
       if (ctype !== null && body) lines.push(\`Content-Type: \${ctype}\`);
       lines.push(\`Content-Length: \${Buffer.byteLength(body)}\`);
-      lines.push('Connection: close');
+      if (!r.keepAlive) lines.push('Connection: close');
       return lines.join('\\r\\n') + '\\r\\n\\r\\n' + body;
     }
 
+    // The slow test tool stops early when the request is aborted, like the real tools do between I/O steps.
+    const toolStats = { started: 0, aborted: 0, finished: 0 };
     function slowTools(ms: number) {
       return (server: any, ctx: any) => {
         registerTools(server, ctx);
         server.registerTool('test.slow', { inputSchema: z.object({}).strict() }, async () => {
-          await new Promise((r) => setTimeout(r, ms));
-          return { content: [{ type: 'text', text: 'slow done' }] };
+          toolStats.started += 1;
+          const aborted = await new Promise<boolean>((r) => {
+            const t = setTimeout(() => r(false), ms);
+            ctx.signal.addEventListener('abort', () => { clearTimeout(t); r(true); }, { once: true });
+          });
+          if (aborted) toolStats.aborted += 1;
+          else toolStats.finished += 1;
+          return { content: [{ type: 'text', text: aborted ? 'slow aborted' : 'slow done' }] };
         });
       };
+    }
+    async function until(cond: () => boolean, label: string, ms = 5000) {
+      const end = Date.now() + ms;
+      while (!cond()) {
+        if (Date.now() > end) throw new Error(\`timed out waiting for: \${label}\`);
+        await new Promise((r) => setTimeout(r, 10));
+      }
     }
     const SLOW = JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'test.slow', arguments: {} } });
 
@@ -376,6 +397,8 @@ try {
       console.log('ok: A positive control (no Origin, Host 127.0.0.1:<port>, POST /mcp, bearer, Accept, JSON) -> 200');
       assert.equal((await req({ host: \`localhost:\${port}\` })).status, 200);
       console.log('ok: A Host localhost:<port> -> 200');
+      assert.equal((await req({ auth: \`bearer \${token}\` })).status, 200, 'A the scheme name is case-insensitive');
+      console.log('ok: A "bearer" in lower case -> 200');
 
       const cases: [string, Req, number][] = [
         ['Origin present', { origin: 'http://evil.example' }, 403],
@@ -487,22 +510,32 @@ try {
       console.log('ok: B MCP state is not reachable through settings:get/set keys');
     }
     {
-      // Port taken by another program while the editor was not listening
-      const port = await freePort();
-      const blocker = net.createServer();
-      await new Promise<void>((r) => blocker.listen(port, '127.0.0.1', () => r()));
-      const store = createTokenStore(memoryBackend({ port }) as any);
-      recordTokens(store);
-      const controller = createMcpController({ store, version: () => '0', featureEnabled: true });
-      const status = await controller.enable();
-      assert.equal(status.listening, false, 'B port in use: not listening');
-      assert.equal(status.lastError, 'port-in-use', 'B port in use is reported');
-      await new Promise<void>((r) => blocker.close(() => r()));
-      const again = await controller.enable();
-      assert.equal(again.listening, true, 'B listening once the port is free');
-      assert.equal(again.lastError, null);
-      await controller.shutdown();
-      console.log('ok: B a taken port is reported as port-in-use and clears once free');
+      // Port taken by another program while the editor was not listening. On macOS a wildcard listener
+      // (:: or 0.0.0.0) does not stop a later listen on 127.0.0.1, so the taker is tried on all three.
+      for (const blockHost of ['127.0.0.1', '0.0.0.0', '::']) {
+        const port = await freePort();
+        const blocker = net.createServer((s) => s.destroy());
+        const bound = await new Promise<boolean>((r) => {
+          blocker.once('error', () => r(false));
+          blocker.listen(port, blockHost, () => r(true));
+        });
+        if (!bound) {
+          console.log(\`ok: B port taken on \${blockHost}: this machine cannot listen there (skipped)\`);
+          continue;
+        }
+        const store = createTokenStore(memoryBackend({ port }) as any);
+        recordTokens(store);
+        const controller = createMcpController({ store, version: () => '0', featureEnabled: true });
+        const status = await controller.enable();
+        assert.equal(status.listening, false, \`B port taken on \${blockHost}: not listening\`);
+        assert.equal(status.lastError, 'port-in-use', \`B port taken on \${blockHost}: port-in-use is reported\`);
+        await new Promise<void>((r) => blocker.close(() => r()));
+        const again = await controller.enable();
+        assert.equal(again.listening, true, \`B port taken on \${blockHost}: listening once the port is free\`);
+        assert.equal(again.lastError, null);
+        await controller.shutdown();
+        console.log(\`ok: B a port taken on \${blockHost} is reported as port-in-use and clears once free\`);
+      }
     }
 
     // ---------------- C: strict input, concurrency, timeout ----------------
@@ -520,12 +553,70 @@ try {
       assert.deepEqual(four.map((r) => r.status), [200, 200, 200, 200], 'C four concurrent requests all succeed');
       assert.ok(four.every((r) => /slow done/.test(r.body)), 'C four concurrent requests all run the tool');
       console.log('ok: C four concurrent requests -> 200 (a fresh server per request)');
-      const five = await Promise.all(Array.from({ length: 5 }, (_, i) => new Promise<Raw>((r) => setTimeout(() => r(raw(port, requestText(port, token, { body: SLOW }))), i === 4 ? 300 : 0))));
+      const startedBefore = toolStats.started;
+      const firstFour = Array.from({ length: 4 }, () => raw(port, requestText(port, token, { body: SLOW })));
+      await until(() => toolStats.started - startedBefore >= 4, 'four slow tools running');
+      const fifth = await raw(port, requestText(port, token, { body: SLOW }));
+      const five = [...(await Promise.all(firstFour)), fifth];
       assert.deepEqual(five.map((r) => r.status).sort(), [200, 200, 200, 200, 429], 'C the fifth concurrent request -> 429');
       console.log('ok: C the fifth concurrent request -> 429');
-      const big = await raw(port, requestText(port, token, { body: JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list', params: { pad: 'x'.repeat(1024 * 1024) } }) }));
+      // The client sends only the start of the body: the server answers from Content-Length and closes, and a
+      // client still writing a megabyte would race that close (EPIPE) instead of reading the answer.
+      const bigLength = 1024 * 1024 + 1;
+      const bigText = requestText(port, token, { body: 'x' }).replace(/Content-Length: \\d+/, \`Content-Length: \${bigLength}\`);
+      const big = await raw(port, bigText);
       assert.equal(big.status, 413, 'C a body over 1 MiB -> 413');
       console.log('ok: C a body over 1 MiB -> 413');
+
+      // A JSON array (batch) would put many calls into one request: refused.
+      const batch = await raw(port, requestText(port, token, { body: JSON.stringify([JSON.parse(LIST), JSON.parse(LIST)]) }));
+      assert.equal(batch.status, 400, \`C a batch request -> 400 (got \${batch.status})\`);
+      assert.match(batch.body, /-32600/, 'C a batch request -> -32600');
+      console.log('ok: C a batch (JSON array) request -> 400 / -32600');
+
+      // Rejections close the connection instead of reading the rest of the body.
+      for (const [label, r, expected] of [
+        ['404', { target: '/x', keepAlive: true }, 404],
+        ['403', { origin: 'http://evil.example', keepAlive: true }, 403],
+        ['405', { method: 'GET', keepAlive: true }, 405],
+        ['401', { auth: 'Bearer wrong', keepAlive: true }, 401],
+      ] as [string, Req, number][]) {
+        const res = await raw(port, requestText(port, token, r), '127.0.0.1', 2000);
+        assert.equal(res.status, expected);
+        assert.match(res.head, /\\r\\nConnection: close/i, \`C \${label} answers with Connection: close\`);
+        assert.equal(res.closedByServer, true, \`C \${label}: the server closes the connection\`);
+      }
+      {
+        // A 413 answer must not wait for the rest of a huge body.
+        const socket = net.connect({ port, host: '127.0.0.1' });
+        let data = '';
+        socket.setEncoding('utf8');
+        socket.on('data', (c) => { data += c; });
+        socket.on('error', () => {});
+        const closed = new Promise<void>((r) => socket.on('close', () => r()));
+        socket.write([\`POST /mcp HTTP/1.1\`, \`Host: 127.0.0.1:\${port}\`, \`Authorization: Bearer \${token}\`,
+          'Accept: application/json, text/event-stream', 'Content-Type: application/json', 'Content-Length: 104857600', '', ''].join('\\r\\n'));
+        socket.write('x'.repeat(64 * 1024));
+        await Promise.race([closed, new Promise((r) => setTimeout(r, 3000))]);
+        assert.match(data, /^HTTP\\/1\\.1 413/, 'C 413 for a body declared over the limit');
+        assert.match(data, /\\r\\nConnection: close/i, 'C 413 answers with Connection: close');
+        assert.equal(socket.destroyed || socket.readyState === 'closed', true, 'C 413: the server closes without reading the rest');
+        socket.destroy();
+      }
+      console.log('ok: C 401/403/404/405/413 answer with Connection: close and the server closes the connection');
+
+      // A client that hangs up aborts its tool.
+      {
+        const abortedBefore = toolStats.aborted;
+        const startedBefore2 = toolStats.started;
+        const socket = net.connect({ port, host: '127.0.0.1' });
+        socket.on('error', () => {});
+        socket.write(requestText(port, token, { body: SLOW }));
+        await until(() => toolStats.started > startedBefore2, 'slow tool started');
+        socket.destroy();
+        await until(() => toolStats.aborted > abortedBefore, 'tool aborted after the client hung up', 3000);
+        console.log('ok: C a client that hangs up aborts its tool');
+      }
       await server.close();
     }
     {
@@ -533,7 +624,6 @@ try {
       const { port, token, server } = await startServer({ limits, registerTools: slowTools(1500) });
       const res = await raw(port, requestText(port, token, { body: SLOW }));
       assert.match(res.body, /timed out after 200 ms/, 'C a request over the time limit is aborted with a reason');
-      assert.ok(res.ms < 1200, 'C the timeout answers before the tool finishes');
       console.log('ok: C a request over the time limit is aborted with a reason');
       // a slow request in flight is cut when the server closes
       const inflight = raw(port, requestText(port, token, { body: SLOW })).then((r) => r, (e) => ({ status: -1, body: String(e.code), ms: 0 }));

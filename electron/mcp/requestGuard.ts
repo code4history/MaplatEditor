@@ -48,10 +48,11 @@ function digest(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest();
 }
 
-/** `Authorization: Bearer <token>` compared in constant time (both sides hashed so length does not leak). */
+/** `Authorization: Bearer <token>` (any case of "Bearer") compared in constant time (both sides hashed so length does not leak). */
 export function checkBearer(authorizationHeader: string | string[] | undefined, expectedToken: string): boolean {
   if (typeof authorizationHeader !== 'string' || !expectedToken) return false;
-  const match = /^Bearer ([^\s]+)$/.exec(authorizationHeader);
+  // The scheme name is case-insensitive (RFC 9110); the token is compared exactly.
+  const match = /^Bearer ([^\s]+)$/i.exec(authorizationHeader);
   if (!match) return false;
   return timingSafeEqual(digest(match[1]), digest(expectedToken));
 }

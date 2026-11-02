@@ -17,7 +17,9 @@ export type RejectReason =
   | 'auth-queue-full'
   | 'busy'
   | 'body-too-large'
-  | 'timeout';
+  | 'timeout'
+  | 'client-closed'
+  | 'batch';
 
 export function logRequest(name: string, outcome: 'ok' | `error:${string}`, bytes: number, ms: number): void {
   console.log(`[mcp] ${safeName(name)} ${outcome} bytes=${Math.max(0, Math.round(bytes))} ms=${Math.max(0, Math.round(ms))}`);
@@ -27,6 +29,6 @@ export function logRejected(reason: RejectReason): void {
   console.log(`[mcp] rejected ${reason}`);
 }
 
-export function logLifecycle(event: 'listening' | 'stopped' | 'port-in-use' | 'listen-failed', port: number): void {
+export function logLifecycle(event: 'listening' | 'stopped' | 'port-in-use' | 'listen-failed' | 'server-error', port: number): void {
   console.log(`[mcp] ${event} port=${Math.round(port)}`);
 }
