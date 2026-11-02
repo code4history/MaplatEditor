@@ -183,6 +183,8 @@ app.on('before-quit', () => {
   forceQuit = true
   // M1-T6 (d-2): アプリ終了時にプレビューサーバを解放する
   void AppPreviewService.shutdown()
+  void mcpController?.shutdown()
+  clearCopiedConnectionCommand()
   // 取り込みの下書きの預かり所に残っているものを消す（期限を待たない）
   clearAllIiifDrafts()
 })
@@ -219,6 +221,12 @@ import { registerImageAssetHandlers } from './ipc/assets-images'
 import { registerSlugReservationHandlers } from './ipc/slugReservations'
 import { registerSearchHandlers } from './ipc/search'
 import { registerIiifImportHandlers } from './ipc/iiifimport'
+import { registerMcpHandlers, clearCopiedConnectionCommand } from './ipc/mcp'
+import type { McpController } from './mcp/controller'
+
+// The local MCP server keeps running while the window is hidden on macOS; it stops only when it is turned
+// off, when its port or token changes, and when the app quits.
+let mcpController: McpController | null = null
 import { clearAllIiifDrafts } from './services/iiifImportService'
 
 
@@ -314,12 +322,15 @@ app.whenReady().then(async () => {
   registerSlugReservationHandlers()
   registerSearchHandlers()
   registerIiifImportHandlers()
+  mcpController = registerMcpHandlers()
   // M12-T20 (§6.3): 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
   await gcOrphanDraftTiles()
   createWindow()
   setupMenu()
   // nov26-m7-t6: 起動の少し後に 1 回だけ更新を確かめる（設定がオフなら何もしない）
   UpdateController.startAutomaticCheck(() => win)
+  // Listens only if the user turned the MCP server on earlier (off by default)
+  void mcpController.startIfEnabled().catch((error) => console.log('[mcp] start failed', error instanceof Error ? error.name : 'unknown'))
 
   // 言語変更時にメニューを再構築する
   SettingsService.on('changeLang', () => {
