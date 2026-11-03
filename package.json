@@ -329,7 +329,8 @@
     "smoke:runtime-deps-contract": "node scripts/runtime-deps-contract-smoke.mjs",
     "smoke:mcp-server-boundaries": "node scripts/mcp-server-boundaries-smoke.mjs",
     "smoke:mcp-log-redaction": "node scripts/mcp-log-redaction-smoke.mjs",
-    "smoke:mcp-read-tools": "node scripts/mcp-read-tools-smoke.mjs"
+    "smoke:mcp-read-tools": "node scripts/mcp-read-tools-smoke.mjs",
+    "smoke:mcp-render-region": "node scripts/mcp-render-region-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

@@ -247,12 +247,13 @@ function mainExternal(src) {
   const hasBase = git('rev-parse', '--verify', '--quiet', 'origin/master').status === 0;
   if (hasBase) {
     const base = mainExternal(git('show', 'origin/master:vite.config.ts').stdout);
-    const want = new Set([...base, 'electron-updater']);
+    // jimp/fonts: kept external with jimp so the font files are found next to the module (maps.render_region)
+    const want = new Set([...base, 'electron-updater', 'jimp/fonts']);
     assert.deepEqual([...head].sort(), [...want].sort(), 'external(HEAD) が external(origin/master) ∪ {electron-updater} でない');
     pass(`t5/AC1 vite external = origin/master ∪ {electron-updater}（${[...head].join(', ')}）`);
   } else {
     // CI の浅い checkout には origin/master が無い。m6 t1 の後の master の期待値（MIN-8）で比べる
-    const want = new Set(['node:sqlite', 'jimp', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater']);
+    const want = new Set(['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater']);
     assert.deepEqual([...head].sort(), [...want].sort(), 'external が MIN-8 の期待値と違う');
     pass('t5/AC1 vite external（origin/master が無いので MIN-8 の期待値で比べた）');
   }
