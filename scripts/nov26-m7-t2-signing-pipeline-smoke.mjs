@@ -846,7 +846,9 @@ const wf = yaml.load(wfText);
     assert.notEqual(run('workflow_dispatch', mode, 'deadbeef', B), 0, `[5](h) ${mode}: 40 桁でない値は落ちる`);
     assert.notEqual(run('workflow_dispatch', mode, B, A), 0, `[5](h) ${mode}: checkout が SHA を指していなければ落ちる`);
   }
-  assert.equal(run('workflow_dispatch', 'verify', C), 0, '[5](h) verify では検査しない');
+  // verify も祖先を確かめる（細目は scripts/workflow-verify-ancestor-smoke.mjs）
+  assert.notEqual(run('workflow_dispatch', 'verify', C), 0, '[5](h) verify でも別 branch の C は落ちる');
+  assert.equal(run('workflow_dispatch', 'verify', B), 0, '[5](h) verify でも master の B は通る');
   assert.equal(run('push', '', '', B), 0, '[5](h) push では検査しない');
   console.log('  [5/6] 祖先の確認（fixture のリポジトリで実行）: PASS');
 }
