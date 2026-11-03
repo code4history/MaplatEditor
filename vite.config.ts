@@ -24,7 +24,8 @@ export default defineConfig({
               // m19-t5: @jsquash/webp は 'jimp' と同型で external にする。バンドルすると
               // wasm を import.meta.url 基準で解決できなくなるため、実 node_modules から解決させる。
               // nov26-m7-t5: electron-updater は実行時に動的 require（NsisUpdater・MacUpdater 等）をするので bundle しない
-              external: ['node:sqlite', 'jimp', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater'],
+              // jimp/fonts は jimp と同じ理由で external にする（フォントのファイルを import.meta.url 基準で探すため）
+              external: ['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater'],
             },
           },
         },

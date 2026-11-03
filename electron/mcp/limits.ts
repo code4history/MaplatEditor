@@ -26,6 +26,19 @@ export interface McpLimits {
   maxMapRefLength: number;
   /** maps.transform: most points in one call. */
   maxTransformPoints: number;
+  /** maps.render_region: largest output width and height, largest scale, most tiles read, densest grid, most marks, longest mark label. */
+  maxRegionOutputPx: number;
+  /** Largest image pixel coordinate a tool accepts (no map image is this large). */
+  maxImagePixelCoordinate: number;
+  maxRegionScale: number;
+  maxRegionTiles: number;
+  minGridStepOutputPx: number;
+  maxRegionMarks: number;
+  maxMarkLabelLength: number;
+  /** maps.render_region: largest encoded picture sent back. */
+  maxRegionImageBytes: number;
+  /** A tile file larger than this is not read (a tile of 256 x 256 pixels is far smaller). */
+  maxTileBytes: number;
 }
 
 export const DEFAULT_MCP_PORT = 41871;
@@ -48,6 +61,15 @@ export const DEFAULT_LIMITS: Readonly<McpLimits> = Object.freeze({
   maxQueryLength: 200,
   maxMapRefLength: 100,
   maxTransformPoints: 1000,
+  maxRegionOutputPx: 1024,
+  maxImagePixelCoordinate: 1_000_000,
+  maxRegionScale: 4,
+  maxRegionTiles: 64,
+  minGridStepOutputPx: 32,
+  maxRegionMarks: 50,
+  maxMarkLabelLength: 8,
+  maxRegionImageBytes: 4 * 1024 * 1024,
+  maxTileBytes: 1024 * 1024,
 });
 
 export function isValidPort(value: unknown): value is number {
