@@ -72,7 +72,8 @@ const COMMON_ALLOWED = (spec) =>
   spec.startsWith('@modelcontextprotocol/sdk/') ||
   ['zod', 'jimp', 'electron', 'electron-store', 'node:http', 'node:net', 'node:crypto', 'node:events', 'node:timers',
     '../utils/webMercator', '@maplat/transform', '../adapters/StorageAdapter', '../services/runtimeStoragePaths',
-    '../utils/appScheme', '../../src/utils/thumbnailPaths', '../utils/tilePyramid'].includes(spec);
+    '../utils/appScheme', '../../src/utils/thumbnailPaths', '../utils/tilePyramid',
+    '../../src/utils/langResource'].includes(spec);
 const FACADE_EXTRA_ALLOWED = (spec) =>
   spec.startsWith('../services/') || spec === '../adapters/ElectronStorageAdapter' || spec === 'node:path' || spec === 'fs-extra';
 

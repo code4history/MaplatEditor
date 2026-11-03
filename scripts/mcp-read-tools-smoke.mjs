@@ -39,6 +39,11 @@ if (!CAPTURE) {
   assert.doesNotMatch(list, /StorageAdapter\.listMaps\(/, 'maplist:request does not call the adapter directly');
   assert.match(list, /readFacade\.listMaps\(/, 'maplist:request reads through the facade');
   console.log('ok: maplist:request reads through the read-only facade');
+  const mapedit = await readFile(rel('electron/ipc/mapedit.ts'), 'utf8');
+  const edit = handlerBody(mapedit, 'mapedit:request');
+  assert.doesNotMatch(edit, /StorageAdapter\.readMapForEdit\(/, 'mapedit:request does not call the adapter directly');
+  assert.match(edit, /readFacade\.readMapForEdit\(/, 'mapedit:request reads through the facade');
+  console.log('ok: mapedit:request reads through the read-only facade');
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -253,7 +258,7 @@ try {
     try {
       const listed = await rpc('tools/list', {});
       const names = listed.result.tools.map((t: any) => t.name).sort();
-      for (const name of ['editor.ping', 'maps.list']) assert.ok(names.includes(name), \`tools/list has \${name}\`);
+      for (const name of ['editor.ping', 'maps.list', 'maps.get']) assert.ok(names.includes(name), \`tools/list has \${name}\`);
       for (const t of listed.result.tools) {
         assert.equal(t.inputSchema.type, 'object', \`\${t.name} input schema is an object\`);
         assert.equal(t.inputSchema.additionalProperties, false, \`\${t.name} input schema is strict\`);
@@ -302,6 +307,54 @@ try {
         await rejected('maps.list', { query: 'a', path: '/etc' }, 'maps.list unknown key');
         assert.equal((await ok('maps.list', { pageSize: 100, query: 'x'.repeat(200) })).maps.length, 0, 'maps.list accepts the limits themselves');
         console.log('ok: maps.list matches maplist:request (all, pages, queries), gives six fields, rejects out-of-range input');
+      }
+
+      // ---------------- maps.get ----------------
+      const near = (actual: number[], expected: number[], eps: number, label: string) => {
+        assert.equal(actual.length, expected.length, label);
+        actual.forEach((v, i) => assert.ok(Math.abs(v - expected[i]) <= eps, \`\${label}: \${v} vs \${expected[i]}\`));
+      };
+      {
+        const a = await ok('maps.get', { map: A.uid });
+        assert.deepEqual(Object.keys(a).sort(), ['edges', 'gcps', 'hasCompiled', 'height', 'maxZoom', 'slug', 'title', 'uid', 'width'], 'maps.get gives the nine fields only');
+        assert.equal(a.uid, A.uid);
+        assert.equal(a.slug, A.slug);
+        assert.equal(a.title, '読み取り試験 甲', 'maps.get title in the map language');
+        assert.equal(a.width, 1000);
+        assert.equal(a.height, 800);
+        assert.equal(a.maxZoom, 2);
+        assert.equal(a.hasCompiled, true);
+        assert.deepEqual(a.edges, []);
+        assert.equal(a.gcps.length, gcpsLonLat.length, 'maps.get gives every GCP');
+        a.gcps.forEach((g: any, i: number) => {
+          assert.deepEqual(g[0], gcpsLonLat[i][0], \`GCP \${i} image point\`);
+          near(g[1], gcpsLonLat[i][1], 1e-9, \`GCP \${i} longitude and latitude\`);
+        });
+        const ipcA = await ipcCall('mapedit:request', A.uid);
+        assert.equal(a.uid, ipcA.uid, 'maps.get uid matches mapedit:request');
+        assert.equal(a.slug, ipcA.mapID, 'maps.get slug matches mapedit:request');
+        assert.equal(a.width, ipcA.width);
+        assert.equal(a.height, ipcA.height);
+        assert.deepEqual(a.gcps.map((g: any) => g[0]), ipcA.gcps.map((g: any) => g[0]), 'maps.get image points match mapedit:request');
+        a.gcps.forEach((g: any, i: number) => near(toMerc(g[1]), ipcA.gcps[i][1], 1e-6, \`maps.get GCP \${i} is mapedit:request's point in longitude and latitude\`));
+        assert.deepEqual(await ok('maps.get', { map: A.slug }), a, 'maps.get by slug equals by uid');
+
+        const b = await ok('maps.get', { map: B.uid });
+        assert.equal(b.title, 'Read test B');
+        assert.equal(b.hasCompiled, false, 'a map without a compiled transformation says so');
+        assert.equal(b.maxZoom, 1);
+        const c = await ok('maps.get', { map: C.slug });
+        assert.deepEqual(c.gcps, [], 'a map without GCPs has none');
+        assert.equal(c.maxZoom, 5);
+
+        await failed('maps.get', { map: 'no-such-map' }, /^map not found$/, 'maps.get of an unknown slug');
+        await failed('maps.get', { map: '44444444-4444-4444-8444-444444444444' }, /^map not found$/, 'maps.get of an unknown uid');
+        await rejected('maps.get', { map: '' }, 'maps.get of an empty reference');
+        await rejected('maps.get', { map: 'x'.repeat(101) }, 'maps.get of a 101 character reference');
+        await rejected('maps.get', {}, 'maps.get without map');
+        await rejected('maps.get', { map: A.uid, compiled: true }, 'maps.get unknown key');
+        await rejected('maps.get', { map: 5 }, 'maps.get of a number');
+        console.log('ok: maps.get matches mapedit:request (uid, slug, size, GCPs in longitude and latitude), hides the rest, rejects bad input');
       }
 
       // ---------------- no writes ----------------

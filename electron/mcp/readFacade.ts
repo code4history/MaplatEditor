@@ -17,8 +17,10 @@ export async function listMaps(request: MapListRequest, options?: MapListOptions
   return result;
 }
 
-export async function readMapForEdit(..._args: unknown[]): Promise<never> {
-  return notImplemented('readMapForEdit');
+/** One map as the renderer's edit screen reads it (uid or slug). Throws when there is no such map. */
+export async function readMapForEdit(uidOrMapID: string): Promise<any> {
+  const result = await StorageAdapter.readMapForEdit(uidOrMapID);
+  return result;
 }
 
 export async function readThumbnail512(..._args: unknown[]): Promise<never> {

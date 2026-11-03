@@ -32,3 +32,11 @@ export function wgs84BboxToMercator([west, south, east, north]: Bbox): Bbox {
 export function mercatorBboxToWgs84([minX, minY, maxX, maxY]: Bbox): Bbox {
   return [xToLongitude(minX), yToLatitude(minY), xToLongitude(maxX), yToLatitude(maxY)];
 }
+
+export function wgs84ToMercator([longitude, latitude]: [number, number]): [number, number] {
+  return [longitudeToX(longitude), latitudeToY(latitude)];
+}
+
+export function mercatorToWgs84([x, y]: [number, number]): [number, number] {
+  return [xToLongitude(x), yToLatitude(y)];
+}

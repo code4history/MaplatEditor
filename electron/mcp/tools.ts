@@ -6,6 +6,9 @@ import { z } from 'zod';
 import type * as ReadFacade from './readFacade';
 import type { McpLimits } from './limits';
 import { tileMaxZoom } from '../utils/tilePyramid';
+import { mercatorToWgs84 } from '../utils/webMercator';
+import { localizeTitle } from '../../src/utils/langResource';
+import { compiledOf } from './compiled';
 
 export interface ToolContext {
   facade: typeof ReadFacade;
@@ -30,6 +33,38 @@ function jsonResult<T extends Record<string, unknown>>(value: T) {
 /** Stops a tool between steps once the request has run past its time limit. */
 function checkAborted(signal: AbortSignal): void {
   if (signal.aborted) throw new Error('aborted');
+}
+
+function errorResult(message: string) {
+  return { content: [{ type: 'text' as const, text: message }], isError: true };
+}
+
+/** The facade throws "... not found" for a map reference that resolves to nothing. */
+function isNotFound(error: unknown): boolean {
+  return error instanceof Error && /\bnot found\b/.test(error.message);
+}
+
+type Point = [number, number];
+
+function isPoint(value: unknown): value is Point {
+  return Array.isArray(value) && value.length >= 2 && Number.isFinite(value[0]) && Number.isFinite(value[1]);
+}
+
+/** GCPs are stored as [[x, y] on the image, [x, y] in Web Mercator]; tools give the second as longitude and latitude. */
+function gcpsInLonLat(gcps: unknown): [Point, Point][] {
+  if (!Array.isArray(gcps)) return [];
+  return gcps
+    .filter((g): g is [Point, Point] => Array.isArray(g) && isPoint(g[0]) && isPoint(g[1]))
+    .map(([image, merc]) => [[image[0], image[1]], mercatorToWgs84([merc[0], merc[1]])]);
+}
+
+/** Edges are kept as the editor stores them (pairs of GCP indexes with optional bend points). */
+function plainEdges(edges: unknown): unknown[] {
+  return Array.isArray(edges) ? JSON.parse(JSON.stringify(edges)) : [];
+}
+
+function mapRefSchema(limits: Readonly<McpLimits>) {
+  return z.string().min(1).max(limits.maxMapRefLength).describe('The map uid or slug (from maps.list).');
 }
 
 function positiveSize(value: unknown): number | null {
@@ -94,6 +129,43 @@ export const registerTools: RegisterTools = (server, context) => {
         total: typeof total === 'number' ? total : maps.length,
         page: result.pageUpdate ?? requestedPage,
         next: result.next,
+      });
+    },
+  );
+
+  server.registerTool(
+    'maps.get',
+    {
+      title: 'Get a map',
+      description:
+        'Reads one map by uid or slug: title, image width and height in pixels, maxZoom, the ground control ' +
+        'points as [[x, y] on the image (pixels, origin at the top left), [longitude, latitude]], the edges, and ' +
+        'hasCompiled, whether maps.transform can convert points for it.',
+      inputSchema: z.object({ map: mapRefSchema(limits) }).strict(),
+      annotations: READ_ONLY,
+    },
+    async ({ map }) => {
+      checkAborted(signal);
+      let read: any;
+      try {
+        read = await facade.readMapForEdit(map);
+      } catch (error) {
+        if (isNotFound(error)) return errorResult('map not found');
+        throw error;
+      }
+      checkAborted(signal);
+      const width = positiveSize(read.width);
+      const height = positiveSize(read.height);
+      return jsonResult({
+        uid: String(read.uid),
+        slug: String(read.mapID),
+        title: localizeTitle(read.title, typeof read.lang === 'string' ? read.lang : 'ja') || String(read.mapID),
+        width,
+        height,
+        maxZoom: maxZoomOf(width, height),
+        gcps: gcpsInLonLat(read.gcps),
+        edges: plainEdges(read.edges),
+        hasCompiled: compiledOf(read) !== null,
       });
     },
   );
