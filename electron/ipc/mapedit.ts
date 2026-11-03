@@ -15,6 +15,7 @@ import MapDataService from '../services/MapDataService';
 import SqliteDataService from '../services/SqliteDataService';
 import SettingsService from '../services/SettingsService';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
+import * as readFacade from '../mcp/readFacade';
 import MapPurposeService from '../services/MapPurposeService';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
 import type { MapExportOptions } from '../../src/utils/exportOptions';
@@ -68,9 +69,10 @@ async function createTinFromGcpsAsync(
 
 export const registerMapEditHandlers = () => {
     // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間はslugでも解決される
+    // 読み取りは MCP のツールと同じ窓口を通す（読む経路を 1 つにする）
     ipc.handle('mapedit:request', async (_event, uidOrMapID: string) => {
         try {
-            return await StorageAdapter.readMapForEdit(uidOrMapID);
+            return await readFacade.readMapForEdit(uidOrMapID);
         } catch (e) {
             console.error('Failed to handle mapedit:request', e);
             throw e;

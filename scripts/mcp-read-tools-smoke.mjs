@@ -1,0 +1,569 @@
+// Smoke: the read tools of the local MCP server.
+//
+// Builds a save folder in a temporary directory (a SQLite database with three maps, one of them with a compiled
+// transformation, and a list thumbnail), starts the real MCP server on 127.0.0.1 with the real read-only facade,
+// and calls the tools over HTTP. The renderer's IPC handlers for the same data are called with a trusted fake
+// event, and:
+//   - every tool result is checked against the IPC result for the same request (one read path for both),
+//   - the IPC results are compared with a copy recorded from the handlers before they were moved onto the
+//     facade, so moving them did not change what the renderer gets,
+//   - input limits and unknown keys are rejected,
+//   - no file in the save folder and no row in the database changes while the tools and handlers run.
+//
+// The token is never printed. MCP_SMOKE_TOKEN_FILE and MCP_SMOKE_SECRET_FILE (set by the log-redaction smoke)
+// receive the issued tokens and the fixture's coordinate values, so that smoke can check this output for them.
+import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { build } from 'vite';
+
+const execFileAsync = promisify(execFile);
+const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const rel = (p) => path.join(projectRoot, p);
+const CAPTURE = process.env.MCP_READ_TOOLS_CAPTURE === '1';
+
+// ---------------------------------------------------------------------------------------------
+// Static: the IPC handlers read through the facade, not through the adapter
+// ---------------------------------------------------------------------------------------------
+function handlerBody(source, channel) {
+  const start = source.indexOf(`ipc.handle('${channel}'`);
+  assert.ok(start >= 0, `${channel} is registered`);
+  const next = source.indexOf('ipc.handle(', start + 1);
+  return source.slice(start, next < 0 ? undefined : next);
+}
+if (!CAPTURE) {
+  const maps = await readFile(rel('electron/ipc/maps.ts'), 'utf8');
+  const list = handlerBody(maps, 'maplist:request');
+  assert.doesNotMatch(list, /StorageAdapter\.listMaps\(/, 'maplist:request does not call the adapter directly');
+  assert.match(list, /readFacade\.listMaps\(/, 'maplist:request reads through the facade');
+  console.log('ok: maplist:request reads through the read-only facade');
+  const mapedit = await readFile(rel('electron/ipc/mapedit.ts'), 'utf8');
+  const edit = handlerBody(mapedit, 'mapedit:request');
+  assert.doesNotMatch(edit, /StorageAdapter\.readMapForEdit\(/, 'mapedit:request does not call the adapter directly');
+  assert.match(edit, /readFacade\.readMapForEdit\(/, 'mapedit:request reads through the facade');
+  console.log('ok: mapedit:request reads through the read-only facade');
+}
+
+// ---------------------------------------------------------------------------------------------
+// The IPC results recorded before the handlers were moved onto the facade (master c68b6d71), with the
+// temporary directory written as <root>, are in scripts/fixtures/mcp-read-tools-ipc.json. Print fresh ones
+// with MCP_READ_TOOLS_CAPTURE=1 only when the renderer's contract changes on purpose.
+// ---------------------------------------------------------------------------------------------
+const RECORDED = JSON.parse(await readFile(rel('scripts/fixtures/mcp-read-tools-ipc.json'), 'utf8'));
+
+const scratchRoot = rel('.tmp-smoke');
+await mkdir(scratchRoot, { recursive: true });
+const workDir = await mkdtemp(path.join(scratchRoot, 'mcp-read-tools-'));
+
+try {
+  const electronStubFile = path.join(workDir, 'electron-stub.ts');
+  const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
+  const entryFile = path.join(workDir, 'mcp-read-tools-entry.ts');
+  const outDir = path.join(workDir, 'dist');
+  const bundledFile = path.join(outDir, 'mcp-read-tools-entry.mjs');
+  const dataDir = path.join(workDir, 'data');
+  await mkdir(dataDir, { recursive: true });
+
+  await writeFile(electronStubFile, `
+    export const __handlers = new Map<string, any>();
+    export const app = {
+      isPackaged: true,
+      getPath(name: string) { return ${JSON.stringify(path.join(workDir, 'paths'))} + '/' + name; },
+      getName() { return 'MaplatEditor'; },
+      getVersion() { return '0.0.0-smoke'; },
+      whenReady() { return Promise.resolve(); },
+      exit() {},
+    };
+    export const ipcMain = {
+      handle(channel: string, fn: any) { __handlers.set(channel, fn); },
+      removeHandler(channel: string) { __handlers.delete(channel); },
+      on() {},
+      removeAllListeners() {},
+    };
+    export const dialog = {
+      showOpenDialog() { return Promise.resolve({ canceled: true, filePaths: [] }); },
+      showSaveDialog() { return Promise.resolve({ canceled: true }); },
+      showMessageBox() { return Promise.resolve({ response: 0 }); },
+    };
+    export const clipboard = { writeText() {}, readText() { return ''; }, clear() {} };
+    export class BrowserWindow {
+      static getAllWindows() { return []; }
+      static fromWebContents() { return null; }
+    }
+    export const session = { defaultSession: { clearStorageData() { return Promise.resolve(); } } };
+    export const shell = { trashItem() { return Promise.resolve(); }, openPath() { return Promise.resolve(''); } };
+  `);
+  await writeFile(electronStoreStubFile, `
+    export default class Store<T extends Record<string, any>> {
+      store: T;
+      constructor(options: { defaults?: T } = {}) { this.store = { ...(options.defaults || {}) } as T; }
+      get(key: string) { return this.store[key]; }
+      set(key: string, value: any) { this.store[key as keyof T] = value; }
+      has(key: string) { return Object.prototype.hasOwnProperty.call(this.store, key); }
+      delete(key: string) { delete this.store[key as keyof T]; }
+    }
+  `);
+
+  await writeFile(entryFile, `
+    import assert from 'node:assert/strict';
+    import { readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+    import { join } from 'node:path';
+    import { __handlers } from 'electron';
+
+    const CAPTURE = ${JSON.stringify(CAPTURE)};
+    const RECORDED: { maplist: Record<string, unknown>; mapedit: Record<string, unknown> } = ${JSON.stringify(RECORDED)};
+    const dataDir = ${JSON.stringify(dataDir)};
+    const workDir = ${JSON.stringify(workDir)};
+
+    const { default: SettingsService } = await import(${JSON.stringify(rel('electron/services/SettingsService.ts'))});
+    SettingsService.set('saveFolder', dataDir);
+    const { default: SqliteDataService } = await import(${JSON.stringify(rel('electron/services/SqliteDataService.ts'))});
+    const { registerMapHandlers } = await import(${JSON.stringify(rel('electron/ipc/maps.ts'))});
+    const { registerMapEditHandlers } = await import(${JSON.stringify(rel('electron/ipc/mapedit.ts'))});
+    const { default: Tin } = await import('@maplat/tin');
+    const { Transform } = await import('@maplat/transform');
+
+    // ---------------- fixture ----------------
+    const HALF = 20037508.342789244;
+    const toMerc = ([lon, lat]: number[]) => [lon * HALF / 180, Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180) * HALF / 180];
+    const A = { uid: '11111111-1111-4111-8111-111111111111', slug: 'mcp-read-a', width: 1000, height: 800 };
+    const B = { uid: '22222222-2222-4222-8222-222222222222', slug: 'mcp-read-b', width: 300, height: 200 };
+    const C = { uid: '33333333-3333-4333-8333-333333333333', slug: 'mcp-read-c', width: 5000, height: 3000 };
+    const D = { uid: '55555555-5555-4555-8555-555555555555', slug: 'mcp-read-d', width: 1000, height: 800 };
+    const gcpsLonLat: [number[], number[]][] = [
+      [[0, 0], [139.70, 35.70]], [[1000, 0], [139.80, 35.70]], [[1000, 800], [139.80, 35.62]],
+      [[0, 800], [139.70, 35.62]], [[500, 400], [139.752, 35.661]],
+    ];
+    const gcpsA = gcpsLonLat.map(([img, ll]) => [img, toMerc(ll)]);
+    const tin = new Tin({ useV2Algorithm: true });
+    tin.setWh([A.width, A.height]);
+    tin.setStrictMode('auto');
+    tin.setVertexMode('plain');
+    tin.setPoints(gcpsA);
+    tin.setEdges([]);
+    await tin.updateTinAsync();
+    const compiledA = tin.getCompiled();
+    const base = { officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {}, attr: {}, dataAttr: {},
+      description: {}, license: 'PD', dataLicense: 'CC0', reference: '', url: '', lang: 'ja', imageExtension: 'jpg',
+      edges: [], sub_maps: [], homePosition: [139.75, 35.66], mercZoom: 14, strictMode: 'auto', vertexMode: 'plain' };
+    await SqliteDataService.createMap(A.slug, { ...base, title: { ja: '読み取り試験 甲', en: 'Read test A' },
+      width: A.width, height: A.height, gcps: gcpsA, compiled: compiledA }, A.uid);
+    await SqliteDataService.createMap(B.slug, { ...base, title: 'Read test B', lang: 'en',
+      width: B.width, height: B.height, gcps: gcpsA.slice(0, 2) }, B.uid);
+    await SqliteDataService.createMap(C.slug, { ...base, title: { ja: '読み取り試験 丙' }, width: C.width, height: C.height, gcps: [] }, C.uid);
+    // Created after the IPC copy was recorded, so it is not part of the recorded list.
+    async function addFoldedMap() {
+      await SqliteDataService.createMap(D.slug, { ...base, title: 'Read test D', lang: 'en', width: D.width, height: D.height,
+        gcps: gcpsA, compiled: { ...compiledA, strict_status: 'strict_error' } }, D.uid);
+    }
+    mkdirSync(join(dataDir, 'tmbs'), { recursive: true });
+    writeFileSync(join(dataDir, 'tmbs', A.uid + '.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    if (process.env.MCP_SMOKE_SECRET_FILE) {
+      const values = gcpsA.flatMap(([, m]) => m.map((v: number) => String(v)));
+      writeFileSync(process.env.MCP_SMOKE_SECRET_FILE, values.join('\\n') + '\\n', { mode: 0o600 });
+    }
+
+    // ---------------- IPC ----------------
+    registerMapHandlers();
+    registerMapEditHandlers();
+    const trusted = { senderFrame: { url: 'app://bundle/index.html', parent: null } };
+    const ipcCall = (channel: string, ...args: any[]) => __handlers.get(channel)(trusted, ...args);
+    const normalize = (value: unknown) => JSON.parse(JSON.stringify(value).split(workDir).join('<root>'));
+    const LIST_CALLS: Record<string, unknown[]> = {
+      'maplist:request()': [undefined, undefined, undefined],
+      'maplist:request(,1,2)': ['', 1, 2],
+      'maplist:request(,2,2)': ['', 2, 2],
+    };
+    const EDIT_REFS = [A.uid, A.slug, B.uid, C.uid];
+    async function runIpcReads() {
+      const maplist: Record<string, unknown> = {};
+      for (const [key, args] of Object.entries(LIST_CALLS)) maplist[key] = normalize(await ipcCall('maplist:request', ...args));
+      const mapedit: Record<string, unknown> = {};
+      for (const ref of EDIT_REFS) mapedit[ref] = normalize(await ipcCall('mapedit:request', ref));
+      return { maplist, mapedit };
+    }
+    const ipcResults = await runIpcReads();
+    if (CAPTURE) {
+      console.log('CAPTURED ' + JSON.stringify(ipcResults.maplist));
+      for (const ref of EDIT_REFS) console.log('CAPTURED-EDIT ' + JSON.stringify([ref, ipcResults.mapedit[ref]]));
+      process.exit(0);
+    }
+    for (const [key, value] of Object.entries(ipcResults.maplist)) {
+      assert.deepEqual(value, RECORDED.maplist[key], \`IPC result unchanged: \${key}\`);
+    }
+    for (const [ref, value] of Object.entries(ipcResults.mapedit)) {
+      assert.deepEqual(value, RECORDED.mapedit[ref], \`IPC result unchanged: mapedit:request(\${ref})\`);
+    }
+    console.log(\`ok: \${Object.keys(LIST_CALLS).length} maplist:request and \${EDIT_REFS.length} mapedit:request results match the copy recorded before the handlers moved onto the facade\`);
+
+    // ---------------- no writes: snapshot ----------------
+    function snapshot() {
+      const files: Record<string, number> = {};
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const p = join(dir, entry.name);
+          if (entry.isDirectory()) walk(p);
+          else files[p.slice(dataDir.length)] = statSync(p).mtimeMs;
+        }
+      };
+      walk(dataDir);
+      return files;
+    }
+    const db = await SqliteDataService.getDb();
+    const changes = () => Number((db.prepare('SELECT total_changes() AS n').get() as any).n);
+    let filesBefore = snapshot();
+    let changesBefore = changes();
+    // A fixture added later moves the baseline; the tools and handlers themselves never do.
+    const rebaseline = () => { filesBefore = snapshot(); changesBefore = changes(); };
+
+    // ---------------- MCP server ----------------
+    const net = await import('node:net');
+    const { createMcpHttpServer } = await import(${JSON.stringify(rel('electron/mcp/server.ts'))});
+    const facade = await import(${JSON.stringify(rel('electron/mcp/readFacade.ts'))});
+    const port: number = await new Promise((resolve, reject) => {
+      const s = net.createServer();
+      s.once('error', reject);
+      s.listen(0, '127.0.0.1', () => { const p = (s.address() as any).port; s.close(() => resolve(p)); });
+    });
+    const token = (await import('node:crypto')).randomBytes(32).toString('base64url');
+    if (process.env.MCP_SMOKE_TOKEN_FILE) writeFileSync(process.env.MCP_SMOKE_TOKEN_FILE, token + '\\n', { mode: 0o600 });
+    const server = createMcpHttpServer({ port, getToken: () => token, facade, version: '0.0.0-smoke' });
+    assert.deepEqual(await server.listen(), { ok: true }, 'server listens');
+
+    let rpcId = 0;
+    async function rpc(method: string, params: unknown, targetPort = port) {
+      const res = await fetch(\`http://127.0.0.1:\${targetPort}/mcp\`, {
+        method: 'POST',
+        headers: { Authorization: \`Bearer \${token}\`, Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }),
+      });
+      assert.equal(res.status, 200, \`\${method} answers 200\`);
+      return (await res.json()) as any;
+    }
+    async function tool(name: string, args: unknown, targetPort = port) {
+      const reply = await rpc('tools/call', { name, arguments: args }, targetPort);
+      assert.ok(reply.result, \`\${name} has a result\`);
+      return reply.result;
+    }
+    async function ok(name: string, args: unknown) {
+      const result = await tool(name, args);
+      assert.notEqual(result.isError, true, \`\${name} \${JSON.stringify(args).slice(0, 80)} succeeds (\${result.content?.[0]?.text?.slice(0, 120)})\`);
+      assert.deepEqual(JSON.parse(result.content[0].text), result.structuredContent, \`\${name} text and structured content agree\`);
+      return result.structuredContent;
+    }
+    async function rejected(name: string, args: unknown, label: string) {
+      const result = await tool(name, args);
+      assert.equal(result.isError, true, \`\${label}: rejected\`);
+      assert.match(result.content[0].text, /-32602/, \`\${label}: rejected as invalid params\`);
+    }
+    async function failed(name: string, args: unknown, text: RegExp, label: string) {
+      const result = await tool(name, args);
+      assert.equal(result.isError, true, \`\${label}: ends as an error\`);
+      assert.match(result.content[0].text, text, \`\${label}: says why\`);
+    }
+
+    try {
+      const listed = await rpc('tools/list', {});
+      const names = listed.result.tools.map((t: any) => t.name).sort();
+      for (const name of ['editor.ping', 'maps.list', 'maps.get', 'maps.transform']) assert.ok(names.includes(name), \`tools/list has \${name}\`);
+      for (const t of listed.result.tools) {
+        assert.equal(t.inputSchema.type, 'object', \`\${t.name} input schema is an object\`);
+        assert.equal(t.inputSchema.additionalProperties, false, \`\${t.name} input schema is strict\`);
+        assert.equal(t.annotations?.readOnlyHint, true, \`\${t.name} is marked read-only\`);
+      }
+      console.log('ok: tools/list: ' + names.join(', ') + ' (strict object schemas, read-only)');
+
+      // ---------------- paging: a page far past the end is answered at once ----------------
+      {
+        const { paginate } = await import(${JSON.stringify(rel('electron/services/SearchDataService.ts'))});
+        assert.equal(typeof paginate, 'function', 'paginate is exported for this check');
+        // The rule before it was computed: step back one page at a time while the page is empty.
+        const stepBack = (docs: unknown[], page: number, pageSize: number) => {
+          let p = page; let update: number | undefined;
+          while (p > 1 && docs.slice((p - 1) * pageSize, p * pageSize).length === 0) { p--; update = p; }
+          const start = (p - 1) * pageSize;
+          const r: any = { docs: docs.slice(start, start + pageSize), prev: p > 1, next: docs.length > start + pageSize, total: docs.length };
+          if (update !== undefined) r.pageUpdate = update;
+          return r;
+        };
+        for (const len of [0, 1, 5, 20, 21]) {
+          const docs = Array.from({ length: len }, (_, i) => i);
+          for (const pageSize of [1, 3, 20]) for (const page of [1, 2, 3, 7, 30]) {
+            assert.deepEqual(paginate(docs, page, pageSize), stepBack(docs, page, pageSize), \`paginate(\${len} docs, page \${page}, size \${pageSize}) keeps the old answer\`);
+          }
+        }
+        const started = Date.now();
+        const far = paginate([1, 2, 3], Number.MAX_SAFE_INTEGER, 2);
+        assert.ok(Date.now() - started < 50, 'paginate answers a huge page at once');
+        assert.deepEqual(far, { docs: [3], prev: true, next: false, total: 3, pageUpdate: 2 }, 'a huge page answers the last page');
+        console.log('ok: paginate gives the same answers as stepping back and answers a huge page at once');
+      }
+
+      // ---------------- maps.list ----------------
+      {
+        const fromIpc = (r: any) => r.docs.map((d: any) => ({ uid: d.uid, slug: d.mapID, title: d.title }));
+        const pick = (r: any) => r.maps.map((m: any) => ({ uid: m.uid, slug: m.slug, title: m.title }));
+        const all = await ok('maps.list', {});
+        const ipcAll = await ipcCall('maplist:request', undefined, undefined, undefined);
+        assert.deepEqual(pick(all), fromIpc(ipcAll), 'maps.list matches maplist:request');
+        assert.equal(all.total, 3, 'maps.list total');
+        assert.equal(all.page, 1, 'maps.list page');
+        assert.equal(all.next, false, 'maps.list next');
+        const byUid = Object.fromEntries(all.maps.map((m: any) => [m.uid, m]));
+        assert.deepEqual(byUid[A.uid], { uid: A.uid, slug: A.slug, title: '読み取り試験 甲', width: 1000, height: 800, maxZoom: 2 }, 'maps.list entry A');
+        assert.deepEqual(byUid[B.uid], { uid: B.uid, slug: B.slug, title: 'Read test B', width: 300, height: 200, maxZoom: 1 }, 'maps.list entry B');
+        assert.deepEqual(byUid[C.uid], { uid: C.uid, slug: C.slug, title: '読み取り試験 丙', width: 5000, height: 3000, maxZoom: 5 }, 'maps.list entry C');
+        assert.deepEqual(Object.keys(byUid[A.uid]).sort(), ['height', 'maxZoom', 'slug', 'title', 'uid', 'width'], 'maps.list gives six fields only');
+
+        const p1 = await ok('maps.list', { page: 1, pageSize: 2 });
+        const p2 = await ok('maps.list', { page: 2, pageSize: 2 });
+        assert.deepEqual(pick(p1), fromIpc(await ipcCall('maplist:request', '', 1, 2)), 'maps.list page 1 matches IPC');
+        assert.deepEqual(pick(p2), fromIpc(await ipcCall('maplist:request', '', 2, 2)), 'maps.list page 2 matches IPC');
+        assert.equal(p1.maps.length, 2);
+        assert.equal(p1.next, true, 'page 1 of 2 has a next page');
+        assert.equal(p2.maps.length, 1);
+        assert.equal(p2.next, false, 'page 2 of 2 has no next page');
+        const past = await ok('maps.list', { page: 9, pageSize: 2 });
+        assert.equal(past.page, 2, 'a page past the end answers the last page and says which');
+
+        for (const query of [A.slug, 'Read', '読み取り', 'nothing-matches-this']) {
+          const r = await ok('maps.list', { query });
+          assert.deepEqual(pick(r), fromIpc(await ipcCall('maplist:request', query, undefined, undefined)), \`maps.list query "\${query}" matches IPC\`);
+        }
+        assert.ok((await ok('maps.list', { query: A.slug })).maps.some((m: any) => m.uid === A.uid), 'maps.list query finds the map by slug');
+
+        await rejected('maps.list', { pageSize: 101 }, 'maps.list pageSize 101');
+        await rejected('maps.list', { pageSize: 0 }, 'maps.list pageSize 0');
+        await rejected('maps.list', { page: 0 }, 'maps.list page 0');
+        await rejected('maps.list', { page: 1.5 }, 'maps.list page 1.5');
+        await rejected('maps.list', { page: Number.MAX_SAFE_INTEGER }, 'maps.list page Number.MAX_SAFE_INTEGER');
+        await rejected('maps.list', { page: 10001 }, 'maps.list page 10001');
+        assert.equal((await ok('maps.list', { page: 10000 })).page, 1, 'maps.list accepts page 10000 (and answers the last page)');
+        await rejected('maps.list', { query: 'x'.repeat(201) }, 'maps.list query of 201 characters');
+        await rejected('maps.list', { query: 'a', path: '/etc' }, 'maps.list unknown key');
+        assert.equal((await ok('maps.list', { pageSize: 100, query: 'x'.repeat(200) })).maps.length, 0, 'maps.list accepts the limits themselves');
+        console.log('ok: maps.list matches maplist:request (all, pages, queries), gives six fields, rejects out-of-range input');
+      }
+
+      // ---------------- maps.get ----------------
+      const near = (actual: number[], expected: number[], eps: number, label: string) => {
+        assert.equal(actual.length, expected.length, label);
+        actual.forEach((v, i) => assert.ok(Math.abs(v - expected[i]) <= eps, \`\${label}: \${v} vs \${expected[i]}\`));
+      };
+      {
+        const a = await ok('maps.get', { map: A.uid });
+        assert.deepEqual(Object.keys(a).sort(), ['edges', 'gcps', 'hasCompiled', 'height', 'maxZoom', 'slug', 'title', 'uid', 'width'], 'maps.get gives the nine fields only');
+        assert.equal(a.uid, A.uid);
+        assert.equal(a.slug, A.slug);
+        assert.equal(a.title, '読み取り試験 甲', 'maps.get title in the map language');
+        assert.equal(a.width, 1000);
+        assert.equal(a.height, 800);
+        assert.equal(a.maxZoom, 2);
+        assert.equal(a.hasCompiled, true);
+        assert.deepEqual(a.edges, []);
+        assert.equal(a.gcps.length, gcpsLonLat.length, 'maps.get gives every GCP');
+        a.gcps.forEach((g: any, i: number) => {
+          assert.deepEqual(g[0], gcpsLonLat[i][0], \`GCP \${i} image point\`);
+          near(g[1], gcpsLonLat[i][1], 1e-9, \`GCP \${i} longitude and latitude\`);
+        });
+        const ipcA = await ipcCall('mapedit:request', A.uid);
+        assert.equal(a.uid, ipcA.uid, 'maps.get uid matches mapedit:request');
+        assert.equal(a.slug, ipcA.mapID, 'maps.get slug matches mapedit:request');
+        assert.equal(a.width, ipcA.width);
+        assert.equal(a.height, ipcA.height);
+        assert.deepEqual(a.gcps.map((g: any) => g[0]), ipcA.gcps.map((g: any) => g[0]), 'maps.get image points match mapedit:request');
+        a.gcps.forEach((g: any, i: number) => near(toMerc(g[1]), ipcA.gcps[i][1], 1e-6, \`maps.get GCP \${i} is mapedit:request's point in longitude and latitude\`));
+        assert.deepEqual(await ok('maps.get', { map: A.slug }), a, 'maps.get by slug equals by uid');
+
+        const b = await ok('maps.get', { map: B.uid });
+        assert.equal(b.title, 'Read test B');
+        assert.equal(b.hasCompiled, false, 'a map without a compiled transformation says so');
+        assert.equal(b.maxZoom, 1);
+        const c = await ok('maps.get', { map: C.slug });
+        assert.deepEqual(c.gcps, [], 'a map without GCPs has none');
+        assert.equal(c.maxZoom, 5);
+
+        await failed('maps.get', { map: 'no-such-map' }, /^map not found$/, 'maps.get of an unknown slug');
+        await failed('maps.get', { map: '44444444-4444-4444-8444-444444444444' }, /^map not found$/, 'maps.get of an unknown uid');
+        await rejected('maps.get', { map: '' }, 'maps.get of an empty reference');
+        await rejected('maps.get', { map: 'x'.repeat(101) }, 'maps.get of a 101 character reference');
+        await rejected('maps.get', {}, 'maps.get without map');
+        await rejected('maps.get', { map: A.uid, compiled: true }, 'maps.get unknown key');
+        await rejected('maps.get', { map: 5 }, 'maps.get of a number');
+        console.log('ok: maps.get matches mapedit:request (uid, slug, size, GCPs in longitude and latitude), hides the rest, rejects bad input');
+      }
+
+      // ---------------- maps.transform ----------------
+      {
+        const toLonLat = ([x, y]: number[]) => [x / HALF * 180, 180 / Math.PI * (2 * Math.atan(Math.exp(y / HALF * Math.PI)) - Math.PI / 2)];
+        // The expected values come from the compiled data the edit screen reads, run through @maplat/transform.
+        const t = new Transform();
+        t.setCompiled((await ipcCall('mapedit:request', A.uid)).compiledTins[0]);
+        t.addIndexedTin();
+        assert.deepEqual(snapshot(), filesBefore, 'no file changed before the folded fixture is added');
+        assert.equal(changes(), changesBefore, 'no database row changed before the folded fixture is added');
+        await addFoldedMap();
+        rebaseline();
+        const onImage = ([x, y]: number[]) => x >= 0 && y >= 0 && x <= A.width && y <= A.height;
+        const expectForward = (p: number[]) => (onImage(p) ? toLonLat(t.transform(p, false, false) as number[]) : null);
+        const expectBackward = (p: number[]) => { const r = t.transform(toMerc(p), true, false) as number[]; return onImage(r) ? r : null; };
+
+        const images = [...gcpsLonLat.map(([img]) => img), [250, 200], [750, 600], [123.4, 567.8], [999, 1]];
+        const fwd = await ok('maps.transform', { map: A.uid, direction: 'forward', points: images });
+        assert.deepEqual(Object.keys(fwd), ['points'], 'maps.transform gives points only');
+        assert.deepEqual(fwd.points, images.map(expectForward), 'forward equals @maplat/transform on the compiled data');
+        gcpsLonLat.forEach(([, ll], i) => near(fwd.points[i], ll, 1e-7, \`forward of GCP \${i} lands on its longitude and latitude\`));
+
+        const back = await ok('maps.transform', { map: A.slug, direction: 'backward', points: fwd.points });
+        assert.deepEqual(back.points, fwd.points.map(expectBackward), 'backward equals @maplat/transform on the compiled data');
+        back.points.forEach((p: number[], i: number) => near(p, images[i], 0.5, \`image -> geo -> image of point \${i} within 0.5 px\`));
+
+        const outside = await ok('maps.transform', { map: A.uid, direction: 'forward', points: [[-1, 10], [10, 801], [1001, 10], [-5000, -5000], [500, 400]] });
+        assert.deepEqual(outside.points.slice(0, 4), [null, null, null, null], 'points off the image are null');
+        assert.ok(Array.isArray(outside.points[4]), 'the point on the image is still converted');
+        // The transformation reaches beyond the image (to its outer vertices): there it is not used.
+        const beyond = toLonLat(t.transform([-30, -20], false, false) as number[]);
+        const offImage = await ok('maps.transform', { map: A.uid, direction: 'backward', points: [beyond, [139.70, 35.70]] });
+        assert.equal(offImage.points[0], null, 'a longitude and latitude that lands off the image is null');
+        near(offImage.points[1], [0, 0], 0.5, 'the image corner still converts');
+        const offWorld = await ok('maps.transform', { map: A.uid, direction: 'backward', points: [[200, 35.6], [139.75, 89.9], [139.75, 35.66]] });
+        assert.deepEqual(offWorld.points.slice(0, 2), [null, null], 'a longitude or latitude outside Web Mercator is null');
+        near(offWorld.points[2], expectBackward([139.75, 35.66]) as number[], 1e-9, 'the valid point is still converted');
+
+        const many = Array.from({ length: 1000 }, (_, i) => [i % 1000, (i * 7) % 800]);
+        assert.equal((await ok('maps.transform', { map: A.uid, direction: 'forward', points: many })).points.length, 1000, 'maps.transform accepts 1000 points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [...many, [1, 1]] }, 'maps.transform of 1001 points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [] }, 'maps.transform of no points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1]] }, 'maps.transform of a point with one number');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2, 3]] }, 'maps.transform of a point with three numbers');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [['1', '2']] }, 'maps.transform of strings');
+        await rejected('maps.transform', { map: A.uid, direction: 'sideways', points: [[1, 2]] }, 'maps.transform of an unknown direction');
+        await rejected('maps.transform', { map: A.uid, points: [[1, 2]] }, 'maps.transform without a direction');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2]], ignoreBounds: true }, 'maps.transform unknown key');
+        await failed('maps.transform', { map: B.uid, direction: 'forward', points: [[1, 2]] }, /^map has no compiled transformation$/, 'maps.transform of a map without compiled data');
+        assert.ok(Array.isArray((await ok('maps.transform', { map: D.uid, direction: 'forward', points: [[500, 400]] })).points[0]), 'a folded transformation still converts forward');
+        await failed('maps.transform', { map: D.uid, direction: 'backward', points: [[139.75, 35.66]] }, /^backward conversion is not available/, 'maps.transform backward on a folded transformation');
+        await failed('maps.transform', { map: 'no-such-map', direction: 'forward', points: [[1, 2]] }, /^map not found$/, 'maps.transform of an unknown map');
+        console.log('ok: maps.transform equals @maplat/transform both ways, round trips within 0.5 px, gives null outside, rejects bad input');
+
+        // The conversion gives way every 100 points, so an abort from elsewhere (the request time limit) stops it.
+        {
+          const original = Transform.prototype.transform;
+          const controller = new AbortController();
+          let calls = 0;
+          Transform.prototype.transform = function (this: any, ...args: any[]) {
+            calls += 1;
+            if (calls === 1) setImmediate(() => controller.abort());
+            return (original as any).apply(this, args);
+          } as any;
+          try {
+            await assert.rejects(facade.transformPoints(A.uid, many as [number, number][], 'forward', controller.signal), /^Error: aborted$/,
+              'an abort that comes while the points are converted stops the conversion');
+          } finally {
+            Transform.prototype.transform = original;
+          }
+          assert.ok(calls < 1000, \`the conversion stopped early (\${calls} of 1000 points)\`);
+          console.log(\`ok: maps.transform gives way between points and stops on an abort (\${calls} of 1000 points converted)\`);
+        }
+      }
+
+      // ---------------- an unexpected failure is not described to the client ----------------
+      {
+        const brokenPort: number = await new Promise((resolve, reject) => {
+          const s = net.createServer();
+          s.once('error', reject);
+          s.listen(0, '127.0.0.1', () => { const p = (s.address() as any).port; s.close(() => resolve(p)); });
+        });
+        const detail = 'unexpected detail ' + dataDir;
+        const broken = { ...facade,
+          listMaps: async () => { throw new Error(detail); },
+          readMapForEdit: async () => { throw new Error(detail); },
+          transformPoints: async () => { throw new Error(detail); } };
+        const brokenServer = createMcpHttpServer({ port: brokenPort, getToken: () => token, facade: broken as any, version: '0.0.0-smoke' });
+        assert.deepEqual(await brokenServer.listen(), { ok: true });
+        const logged: string[] = [];
+        const log = console.log;
+        console.log = (...args: unknown[]) => { logged.push(args.map(String).join(' ')); };
+        try {
+          for (const [name, args] of [['maps.list', {}], ['maps.get', { map: A.uid }], ['maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2]] }]] as const) {
+            const result = await tool(name, args, brokenPort);
+            assert.equal(result.isError, true, \`\${name}: an unexpected failure ends as an error\`);
+            assert.equal(result.content[0].text, 'internal error', \`\${name}: the client only sees "internal error"\`);
+            assert.ok(!JSON.stringify(result).includes('unexpected detail'), \`\${name}: the detail is not sent\`);
+          }
+        } finally {
+          console.log = log;
+          await brokenServer.close();
+        }
+        assert.ok(logged.filter((l) => l.includes('unexpected detail')).length >= 3, 'the detail is written to the main process console');
+        console.log('ok: an unexpected failure answers "internal error" and the detail stays in the main process console');
+      }
+
+      // ---------------- the list title is chosen like maps.get ----------------
+      {
+        const E = { uid: '66666666-6666-4666-8666-666666666666', slug: 'mcp-read-e' };
+        assert.deepEqual(snapshot(), filesBefore, 'no file changed before the title fixture is added');
+        assert.equal(changes(), changesBefore, 'no database row changed before the title fixture is added');
+        await SqliteDataService.createMap(E.slug, { ...base, title: { en: 'Map E', ja: '地図 戊' }, lang: 'fr', width: 600, height: 400, gcps: [] }, E.uid);
+        rebaseline();
+        const listed = (await ok('maps.list', { query: E.slug })).maps.find((m: any) => m.uid === E.uid);
+        const got = await ok('maps.get', { map: E.uid });
+        const row = (await ipcCall('maplist:request', E.slug, undefined, undefined)).docs.find((d: any) => d.uid === E.uid);
+        assert.equal(got.title, '地図 戊', 'maps.get falls back to Japanese for a language the title does not have');
+        assert.equal(listed.title, got.title, 'maps.list chooses the title like maps.get');
+        assert.equal(row.title, 'Map E', 'the renderer list keeps its own choice (first value)');
+        console.log('ok: maps.list chooses the title like maps.get; the renderer list is unchanged');
+      }
+
+      // ---------------- no writes ----------------
+      await runIpcReads();
+      assert.deepEqual(snapshot(), filesBefore, 'no file in the save folder changed');
+      assert.equal(changes(), changesBefore, 'no database row changed');
+      console.log('ok: no file and no database row changed while the tools and handlers ran');
+    } finally {
+      await server.close();
+    }
+    console.log('ok: mcp-read-tools finished');
+  `);
+
+  await build({
+    configFile: false,
+    logLevel: 'silent',
+    resolve: {
+      alias: [
+        { find: /^electron$/, replacement: electronStubFile },
+        { find: /^electron-store$/, replacement: electronStoreStubFile },
+      ],
+    },
+    build: {
+      emptyOutDir: true,
+      outDir,
+      ssr: entryFile,
+      target: 'node22',
+      rollupOptions: {
+        external: ['jimp', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater'],
+        output: { entryFileNames: 'mcp-read-tools-entry.mjs', format: 'es' },
+      },
+    },
+  });
+
+  try {
+    const { stdout, stderr } = await execFileAsync(process.execPath, [bundledFile], {
+      cwd: projectRoot,
+      timeout: 240000,
+      maxBuffer: 1024 * 1024 * 16,
+      env: { ...process.env, MAPLAT_E2E_ROOT: path.join(workDir, 'root') },
+    });
+    process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
+  } catch (error) {
+    if (error.stdout) process.stdout.write(error.stdout);
+    if (error.stderr) process.stderr.write(error.stderr);
+    throw new Error('mcp-read-tools: the runtime part failed');
+  }
+} finally {
+  await rm(workDir, { recursive: true, force: true });
+}
+console.log('ok: mcp-read-tools smoke passed');

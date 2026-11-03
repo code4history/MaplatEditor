@@ -8,8 +8,16 @@ Claude Code or Claude Desktop can read from the editor. It is **off by default**
 ## What it can do
 
 - The server only **reads**. It never changes your maps, POIs or apps.
-- In this version it offers `editor.ping` (checks the connection). Tools that read maps, GCPs and tiles are added in
-  later versions.
+- It offers these tools:
+
+| Tool | Input | What it gives |
+|---|---|---|
+| `editor.ping` | none | `ok` and the editor version (checks the connection) |
+| `maps.list` | `query` (text, up to 200 characters), `page` (1 or more), `pageSize` (1 to 100, default 20), all optional | The saved maps a page at a time: `uid`, `slug`, `title`, image `width` and `height` in pixels, `maxZoom` (the largest zoom level of the map's 256 px tiles), plus `total`, `page` and `next` |
+| `maps.get` | `map` (uid or slug) | One map: `title`, `width`, `height`, `maxZoom`, the GCPs as `[[x, y] on the image, [longitude, latitude]]`, the `edges`, and `hasCompiled` (whether `maps.transform` works for it) |
+| `maps.transform` | `map`, `direction` (`forward` or `backward`), `points` (1 to 1000 pairs of numbers) | The points converted with the map's transformation, as the map viewer does: `forward` from image pixels (origin at the top left) to `[longitude, latitude]`, `backward` the other way. A point off the image is `null` |
+
+- Tools that read thumbnails, tiles and search by area are added in later versions.
 
 ## Turning it on
 

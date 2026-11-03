@@ -23,6 +23,7 @@ import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
 // 唯一の実装へ委譲する（タスク設計 v1.0 §4.1 / §4.2）。
 import { THUMB_512_TMP_BASENAME } from '../../src/utils/thumbnailPaths';
 import { writeImageByExt } from '../utils/thumbnail512Codec';
+import { tileLevelSize, tileMaxZoom } from '../utils/tilePyramid';
 
 /**
  * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
@@ -449,13 +450,13 @@ export async function imageCutter(
         sourceBuffer = Buffer.alloc(0);
         const width: number = imageJimp.width;   // 旧: imageJimp.bitmap.width
         const height: number = imageJimp.height; // 旧: imageJimp.bitmap.height
-        const maxZoom = Math.ceil(Math.log(Math.max(width, height) / 256) / Math.log(2));
+        // ズームの数と各段の幅高は、タイルを読む側（MCP の読み取りほか）と同じ関数で決める
+        const maxZoom = tileMaxZoom(width, height);
 
         // タスクリスト構築（旧実装と同じアルゴリズム）
         const tasks: [string, number, number, number, number, number, number][] = [];
         for (let z = maxZoom; z >= 0; z--) {
-            const pw = Math.round(width / Math.pow(2, maxZoom - z));
-            const ph = Math.round(height / Math.pow(2, maxZoom - z));
+            const { pw, ph } = tileLevelSize(width, height, maxZoom, z);
             for (let tx = 0; tx * 256 < pw; tx++) {
                 const tw = (tx + 1) * 256 > pw ? pw - tx * 256 : 256;
                 const sx = tx * 256 * Math.pow(2, maxZoom - z);
