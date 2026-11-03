@@ -34,7 +34,9 @@ test.describe('m19-t4a 設定画面・アプリケーションメニュー・Abo
       await forceJapanese(page);
       await openHash(page, '#/settings', '#langSwitcher');
 
-      const tabs = page.locator('.nav-tabs .nav-item');
+      // The MCP server tab is a separate, optional tab (hidden when that feature is turned off); the
+      // check here is about the two settings tabs and the removed original-map tab.
+      const tabs = page.locator('.nav-tabs .nav-item:not(:has([data-testid="settings-mcp-tab"]))');
       await expect(tabs).toHaveCount(2);
       expect(await page.locator('.nav-tabs').innerText()).not.toContain('オリジナル地図設定');
       expect(await page.locator('body').innerText()).not.toContain('オリジナル地図設定');

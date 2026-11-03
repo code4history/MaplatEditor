@@ -128,7 +128,8 @@
     "assets": "จัดการทรัพยากร",
     "edit_poi": "จัดการ POI",
     "add_basemap": "จัดการแผนที่พื้นฐาน",
-    "settings": "การตั้งค่า"
+    "settings": "การตั้งค่า",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "ข้อมูลแหล่งที่มา (ไม่บังคับ)",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "โทเค็นการเข้าถึง Mapbox (ค่าเริ่มต้น)",
     "same_key_warning": "คีย์ตัวแก้ไขและคีย์เผยแพร่เริ่มต้นของ {{provider}} เหมือนกัน แนะนำให้ออกคีย์แยกกัน",
     "update_check": "ตรวจสอบอัปเดตเมื่อเริ่มต้น",
-    "update_check_desc": "ระบบจะแจ้งเมื่อมีเวอร์ชันใหม่ ดาวน์โหลดเฉพาะเมื่อคุณเลือก \"อัปเดต\" บน Linux จะเปิดหน้ารีลีส"
+    "update_check_desc": "ระบบจะแจ้งเมื่อมีเวอร์ชันใหม่ ดาวน์โหลดเฉพาะเมื่อคุณเลือก \"อัปเดต\" บน Linux จะเปิดหน้ารีลีส",
+    "mcp_tab": "เซิร์ฟเวอร์ MCP",
+    "mcp_enabled": "เปิดเซิร์ฟเวอร์ MCP",
+    "mcp_status_stopped": "หยุดอยู่",
+    "mcp_status_listening": "กำลังรอรับ: {{address}}",
+    "mcp_last_request": "คำขอล่าสุด: {{time}}",
+    "mcp_last_request_none": "ยังไม่มีคำขอ",
+    "mcp_port": "พอร์ต",
+    "mcp_port_save": "บันทึกพอร์ต",
+    "mcp_token": "โทเค็น",
+    "mcp_token_tail": "…{{tail}} (4 ตัวอักษรสุดท้าย)",
+    "mcp_regenerate": "ออกใหม่",
+    "mcp_copy_claude_code": "คัดลอกคำสั่งลงทะเบียนสำหรับ Claude Code",
+    "mcp_copy_mcp_remote": "คัดลอกการตั้งค่าสำหรับ Claude Desktop (mcp-remote)",
+    "mcp_copied": "คัดลอกแล้ว จะลบออกจากคลิปบอร์ดหลังจากหนึ่งนาที",
+    "mcp_docs_link": "วิธีเชื่อมต่อ",
+    "mcp_recommend_loopback": "ลงทะเบียน URL ที่ใช้ 127.0.0.1 ในไคลเอนต์ ไม่ใช่ localhost",
+    "mcp_error_port_in_use": "มีโปรแกรมอื่นใช้พอร์ตเดียวกันอยู่ โทเค็นอาจถูกส่งไปยังโปรแกรมนั้น โปรดออกโทเค็นใหม่",
+    "mcp_error_listen_failed": "ไม่สามารถเริ่มรอรับได้",
+    "mcp_error_port_invalid": "ป้อนพอร์ตเป็นจำนวนเต็มตั้งแต่ 1024 ถึง 65535",
+    "mcp_copy_failed": "ไม่สามารถคัดลอกได้"
   },
   "maplist": {
     "title": "รายการแผนที่",

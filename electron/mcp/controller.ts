@@ -9,6 +9,8 @@ import * as readFacade from './readFacade';
 export type McpLastError = null | 'port-in-use' | 'listen-failed';
 
 export interface McpStatus {
+  /** False when the whole feature is hidden (MCP_FEATURE_ENABLED). */
+  featureEnabled: boolean;
   enabled: boolean;
   listening: boolean;
   port: number;
@@ -57,6 +59,7 @@ export function createMcpController(deps: McpControllerDeps): McpController {
   let queue: Promise<unknown> = Promise.resolve();
 
   const status = (): McpStatus => ({
+    featureEnabled,
     enabled: deps.store.isEnabled(),
     listening,
     port: deps.store.getPort(),
@@ -166,7 +169,18 @@ export function createMcpController(deps: McpControllerDeps): McpController {
       const url = `http://127.0.0.1:${deps.store.getPort()}/mcp`;
       const header = `Authorization: Bearer ${deps.store.ensureToken()}`;
       if (client === 'claude-code') return `claude mcp add --transport http maplat-editor ${url} --header "${header}"`;
-      return `npx mcp-remote ${url} --header "${header}"`;
+      // Claude Desktop goes through mcp-remote. The header is passed through an environment variable because
+      // some clients do not escape spaces inside args (mcp-remote documents the "Name:${VAR}" form for this).
+      const config = {
+        mcpServers: {
+          'maplat-editor': {
+            command: 'npx',
+            args: ['mcp-remote', url, '--transport', 'http-only', '--header', 'Authorization:${AUTH_HEADER}'],
+            env: { AUTH_HEADER: `Bearer ${deps.store.ensureToken()}` },
+          },
+        },
+      };
+      return JSON.stringify(config, null, 2);
     },
     shutdown: () => serial(stop),
   };
@@ -175,7 +189,7 @@ export function createMcpController(deps: McpControllerDeps): McpController {
 let defaultController: McpController | null = null;
 
 /** The controller used by the app. Created on first use. */
-export function getMcpController(version: () => string): McpController {
-  if (!defaultController) defaultController = createMcpController({ store: getDefaultTokenStore(), version });
+export function getMcpController(version: () => string, limits?: Readonly<McpLimits>): McpController {
+  if (!defaultController) defaultController = createMcpController({ store: getDefaultTokenStore(), version, limits });
   return defaultController;
 }

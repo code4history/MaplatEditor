@@ -52,6 +52,28 @@ export interface AppEditAPI {
     export(document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: Partial<import('./utils/exportOptions').AppExportOptions>): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 
+/** Status of the local MCP server. The token itself is never part of it. */
+export interface McpStatus {
+  featureEnabled: boolean;
+  enabled: boolean;
+  listening: boolean;
+  port: number;
+  lastRequestAt: string | null;
+  tokenTail: string;
+  lastError: null | 'port-in-use' | 'listen-failed';
+}
+
+interface McpAPI {
+  getStatus(): Promise<McpStatus>;
+  /** Turning it on asks for confirmation in a native dialog; cancelling leaves it off. */
+  setEnabled(enabled: boolean): Promise<McpStatus>;
+  setPort(port: number): Promise<McpStatus>;
+  regenerateToken(): Promise<McpStatus>;
+  /** Puts the registration command on the clipboard after a native confirmation. */
+  copyConnectionCommand(client: 'claude-code' | 'mcp-remote'): Promise<{ copied: boolean }>;
+  onStatus(listener: (status: McpStatus) => void): () => void;
+}
+
 export interface AppEventsAPI {
     onMainProcessMessage(listener: (message: string) => void): () => void;
     onTaskProgress(listener: (progress: any) => void): () => void;
@@ -442,6 +464,7 @@ declare global {
     applist: AppListAPI;
     appedit: AppEditAPI;
     appEvents: AppEventsAPI;
+    mcp: McpAPI;
     poiSources: PoiSourcesAPI;
     baseMaps: BaseMapsAPI;
     appAssets: AppAssetsAPI;

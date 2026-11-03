@@ -128,7 +128,8 @@
     "assets": "Assets verwalten",
     "edit_poi": "POIs verwalten",
     "add_basemap": "Basiskarten verwalten",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "Quelleninformationen (optional)",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Mapbox-Zugriffstoken (Standard)",
     "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen.",
     "update_check": "Beim Start nach Updates suchen",
-    "update_check_desc": "Sie werden benachrichtigt, wenn eine neue Version verfügbar ist. Heruntergeladen wird nur, wenn Sie „Aktualisieren“ wählen. Unter Linux wird die Release-Seite geöffnet."
+    "update_check_desc": "Sie werden benachrichtigt, wenn eine neue Version verfügbar ist. Heruntergeladen wird nur, wenn Sie „Aktualisieren“ wählen. Unter Linux wird die Release-Seite geöffnet.",
+    "mcp_tab": "MCP-Server",
+    "mcp_enabled": "MCP-Server einschalten",
+    "mcp_status_stopped": "Angehalten",
+    "mcp_status_listening": "Lauscht: {{address}}",
+    "mcp_last_request": "Letzte Anfrage: {{time}}",
+    "mcp_last_request_none": "Noch keine Anfragen",
+    "mcp_port": "Port",
+    "mcp_port_save": "Port speichern",
+    "mcp_token": "Token",
+    "mcp_token_tail": "…{{tail}} (letzte 4 Zeichen)",
+    "mcp_regenerate": "Neu erzeugen",
+    "mcp_copy_claude_code": "Registrierungsbefehl für Claude Code kopieren",
+    "mcp_copy_mcp_remote": "Einstellung für Claude Desktop (mcp-remote) kopieren",
+    "mcp_copied": "Kopiert. Wird nach einer Minute aus der Zwischenablage entfernt.",
+    "mcp_docs_link": "Verbindungsanleitung",
+    "mcp_recommend_loopback": "Registrieren Sie im Client die URL mit 127.0.0.1, nicht localhost.",
+    "mcp_error_port_in_use": "Ein anderes Programm verwendet denselben Port. Das Token wurde möglicherweise dorthin gesendet. Bitte erzeugen Sie das Token neu.",
+    "mcp_error_listen_failed": "Lauschen konnte nicht gestartet werden.",
+    "mcp_error_port_invalid": "Geben Sie für den Port eine ganze Zahl von 1024 bis 65535 ein.",
+    "mcp_copy_failed": "Kopieren war nicht möglich."
   },
   "maplist": {
     "title": "Kartenliste",

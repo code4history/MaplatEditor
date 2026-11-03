@@ -69,13 +69,20 @@
             </a>
           </li>
         </ul>
+        <!-- Shown only while the local MCP server is listening -->
+        <span
+          v-if="mcpListening"
+          class="navbar-text small px-3 text-nowrap mcp-listening"
+          data-testid="header-mcp-listening"
+          >{{ t("navbar.mcp_listening", { address: mcpAddress }) }}</span
+        >
       </div>
     </div>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 
@@ -86,6 +93,24 @@ const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
 const currentRoute = computed(() => route.name);
+
+const mcpListening = ref(false);
+const mcpAddress = ref("");
+let stopMcpStatus: (() => void) | null = null;
+const applyMcpStatus = (status: { featureEnabled: boolean; listening: boolean; port: number }) => {
+  mcpListening.value = status.featureEnabled && status.listening;
+  mcpAddress.value = `127.0.0.1:${status.port}`;
+};
+onMounted(async () => {
+  if (!window.mcp) return;
+  stopMcpStatus = window.mcp.onStatus(applyMcpStatus);
+  try {
+    applyMcpStatus(await window.mcp.getStatus());
+  } catch {
+    mcpListening.value = false;
+  }
+});
+onUnmounted(() => stopMcpStatus?.());
 
 const isMapSection = computed(() => {
     return currentRoute.value === 'MapList' || currentRoute.value === 'MapEdit';
@@ -202,5 +227,9 @@ const navigate = (targetName: string) => {
     border: none;
     margin-top: 0;
     z-index: auto;
+}
+.mcp-listening {
+    color: var(--editor-ui-header-fg) !important;
+    font-family: var(--bs-font-monospace);
 }
 </style>

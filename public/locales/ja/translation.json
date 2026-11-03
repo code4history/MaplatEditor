@@ -128,7 +128,8 @@
     "assets": "アセット管理",
     "edit_poi": "POI管理",
     "add_basemap": "ベースマップ管理",
-    "settings": "設定"
+    "settings": "設定",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "出典の情報（任意）",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Mapbox アクセストークン（既定）",
     "same_key_warning": "{{provider}} のエディタ用キーと既定公開用キーが同一です。別のキーを発行することを推奨します。",
     "update_check": "起動時に更新を確認する",
-    "update_check_desc": "新しい版があるとお知らせします。更新は「更新する」を選んだときだけ行います。Linux では Release のページを開きます。"
+    "update_check_desc": "新しい版があるとお知らせします。更新は「更新する」を選んだときだけ行います。Linux では Release のページを開きます。",
+    "mcp_tab": "MCP サーバー",
+    "mcp_enabled": "MCP サーバーを有効にする",
+    "mcp_status_stopped": "停止中",
+    "mcp_status_listening": "待ち受け中: {{address}}",
+    "mcp_last_request": "最後の要求: {{time}}",
+    "mcp_last_request_none": "まだ要求はありません",
+    "mcp_port": "ポート",
+    "mcp_port_save": "ポートを保存",
+    "mcp_token": "トークン",
+    "mcp_token_tail": "…{{tail}}（末尾 4 文字）",
+    "mcp_regenerate": "再発行",
+    "mcp_copy_claude_code": "Claude Code の登録コマンドをコピー",
+    "mcp_copy_mcp_remote": "Claude Desktop（mcp-remote）の設定をコピー",
+    "mcp_copied": "コピーしました。1 分後にクリップボードから消します。",
+    "mcp_docs_link": "接続の手順",
+    "mcp_recommend_loopback": "クライアントには localhost ではなく 127.0.0.1 の URL で登録してください。",
+    "mcp_error_port_in_use": "別のプログラムが同じポートを使っています。トークンが送られた可能性があります。再発行してください。",
+    "mcp_error_listen_failed": "待ち受けを始められませんでした。",
+    "mcp_error_port_invalid": "ポートは 1024〜65535 の整数で指定してください。",
+    "mcp_copy_failed": "コピーできませんでした。"
   },
   "maplist": {
     "title": "地図一覧",

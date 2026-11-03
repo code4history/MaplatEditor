@@ -128,7 +128,8 @@
     "assets": "Kelola Aset",
     "edit_poi": "Kelola POI",
     "add_basemap": "Kelola Peta Dasar",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "Informasi sumber (opsional)",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Token Akses Mapbox (default)",
     "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah.",
     "update_check": "Periksa pembaruan saat mulai",
-    "update_check_desc": "Anda akan diberi tahu jika ada versi baru. Unduhan hanya dilakukan jika Anda memilih \"Perbarui\". Di Linux, halaman rilis akan dibuka."
+    "update_check_desc": "Anda akan diberi tahu jika ada versi baru. Unduhan hanya dilakukan jika Anda memilih \"Perbarui\". Di Linux, halaman rilis akan dibuka.",
+    "mcp_tab": "Server MCP",
+    "mcp_enabled": "Aktifkan server MCP",
+    "mcp_status_stopped": "Berhenti",
+    "mcp_status_listening": "Mendengarkan: {{address}}",
+    "mcp_last_request": "Permintaan terakhir: {{time}}",
+    "mcp_last_request_none": "Belum ada permintaan",
+    "mcp_port": "Port",
+    "mcp_port_save": "Simpan port",
+    "mcp_token": "Token",
+    "mcp_token_tail": "…{{tail}} (4 karakter terakhir)",
+    "mcp_regenerate": "Buat ulang",
+    "mcp_copy_claude_code": "Salin perintah pendaftaran Claude Code",
+    "mcp_copy_mcp_remote": "Salin pengaturan Claude Desktop (mcp-remote)",
+    "mcp_copied": "Tersalin. Akan dihapus dari papan klip setelah satu menit.",
+    "mcp_docs_link": "Cara menghubungkan",
+    "mcp_recommend_loopback": "Daftarkan URL dengan 127.0.0.1 di klien, bukan localhost.",
+    "mcp_error_port_in_use": "Program lain memakai port yang sama. Token mungkin telah dikirim ke program itu. Buat ulang token.",
+    "mcp_error_listen_failed": "Tidak dapat mulai mendengarkan.",
+    "mcp_error_port_invalid": "Masukkan bilangan bulat 1024 sampai 65535 untuk port.",
+    "mcp_copy_failed": "Tidak dapat menyalin."
   },
   "maplist": {
     "title": "Daftar Peta",

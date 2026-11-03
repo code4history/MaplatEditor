@@ -169,6 +169,23 @@ contextBridge.exposeInMainWorld('appEvents', {
   },
 })
 
+// The local MCP server. The token never comes here: status has only its last four characters, and the
+// registration command goes from the main process to the clipboard after a native confirmation.
+contextBridge.exposeInMainWorld('mcp', {
+  getStatus: () => ipcRenderer.invoke('mcp:get-status'),
+  setEnabled: (enabled: boolean) => ipcRenderer.invoke('mcp:set-enabled', enabled),
+  setPort: (port: number) => ipcRenderer.invoke('mcp:set-port', port),
+  regenerateToken: () => ipcRenderer.invoke('mcp:regenerate-token'),
+  copyConnectionCommand: (client: 'claude-code' | 'mcp-remote') => ipcRenderer.invoke('mcp:copy-connection-command', client),
+  onStatus(listener: (status: any) => void): () => void {
+    const wrapper = (_event: any, status: any) => listener(status);
+    ipcRenderer.on('mcp:status', wrapper);
+    return () => {
+      ipcRenderer.removeListener('mcp:status', wrapper);
+    };
+  },
+})
+
 contextBridge.exposeInMainWorld('baseMaps', {
   list: () => ipcRenderer.invoke('basemaps:list'),
   // uid正準の保存 (ADR-0007): payload = { uid?, slug, tms }(uidなし=新規作成)。

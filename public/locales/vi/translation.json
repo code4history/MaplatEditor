@@ -128,7 +128,8 @@
     "assets": "Quản lý tài nguyên",
     "edit_poi": "Quản lý POI",
     "add_basemap": "Quản lý bản đồ nền",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "Thông tin nguồn (tùy chọn)",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Mã truy cập Mapbox (mặc định)",
     "same_key_warning": "Khóa trình chỉnh sửa và khóa xuất bản mặc định của {{provider}} giống nhau. Nên cấp một khóa riêng biệt.",
     "update_check": "Kiểm tra cập nhật khi khởi động",
-    "update_check_desc": "Bạn sẽ được thông báo khi có phiên bản mới. Chỉ tải xuống khi bạn chọn \"Cập nhật\". Trên Linux, trang phát hành sẽ được mở."
+    "update_check_desc": "Bạn sẽ được thông báo khi có phiên bản mới. Chỉ tải xuống khi bạn chọn \"Cập nhật\". Trên Linux, trang phát hành sẽ được mở.",
+    "mcp_tab": "Máy chủ MCP",
+    "mcp_enabled": "Bật máy chủ MCP",
+    "mcp_status_stopped": "Đã dừng",
+    "mcp_status_listening": "Đang lắng nghe: {{address}}",
+    "mcp_last_request": "Yêu cầu gần nhất: {{time}}",
+    "mcp_last_request_none": "Chưa có yêu cầu nào",
+    "mcp_port": "Cổng",
+    "mcp_port_save": "Lưu cổng",
+    "mcp_token": "Mã token",
+    "mcp_token_tail": "…{{tail}} (4 ký tự cuối)",
+    "mcp_regenerate": "Cấp lại",
+    "mcp_copy_claude_code": "Sao chép lệnh đăng ký cho Claude Code",
+    "mcp_copy_mcp_remote": "Sao chép thiết lập cho Claude Desktop (mcp-remote)",
+    "mcp_copied": "Đã sao chép. Sẽ bị xóa khỏi bộ nhớ tạm sau một phút.",
+    "mcp_docs_link": "Cách kết nối",
+    "mcp_recommend_loopback": "Hãy đăng ký URL dùng 127.0.0.1 trong ứng dụng, không dùng localhost.",
+    "mcp_error_port_in_use": "Một chương trình khác đang dùng cùng cổng. Mã token có thể đã bị gửi tới chương trình đó. Hãy cấp lại mã token.",
+    "mcp_error_listen_failed": "Không thể bắt đầu lắng nghe.",
+    "mcp_error_port_invalid": "Hãy nhập cổng là số nguyên từ 1024 đến 65535.",
+    "mcp_copy_failed": "Không thể sao chép."
   },
   "maplist": {
     "title": "Danh sách bản đồ",

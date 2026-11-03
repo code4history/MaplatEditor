@@ -128,7 +128,8 @@
     "assets": "Gestionar recursos",
     "edit_poi": "Gestionar POI",
     "add_basemap": "Gestionar mapas base",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "Información de la fuente (opcional)",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Token de acceso de Mapbox (predeterminado)",
     "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta.",
     "update_check": "Buscar actualizaciones al iniciar",
-    "update_check_desc": "Se le avisará cuando haya una nueva versión. Solo se descarga si elige «Actualizar». En Linux se abre la página de la versión."
+    "update_check_desc": "Se le avisará cuando haya una nueva versión. Solo se descarga si elige «Actualizar». En Linux se abre la página de la versión.",
+    "mcp_tab": "Servidor MCP",
+    "mcp_enabled": "Activar el servidor MCP",
+    "mcp_status_stopped": "Detenido",
+    "mcp_status_listening": "Escuchando: {{address}}",
+    "mcp_last_request": "Última solicitud: {{time}}",
+    "mcp_last_request_none": "Aún no hay solicitudes",
+    "mcp_port": "Puerto",
+    "mcp_port_save": "Guardar puerto",
+    "mcp_token": "Token",
+    "mcp_token_tail": "…{{tail}} (últimos 4 caracteres)",
+    "mcp_regenerate": "Regenerar",
+    "mcp_copy_claude_code": "Copiar el comando de registro de Claude Code",
+    "mcp_copy_mcp_remote": "Copiar la configuración de Claude Desktop (mcp-remote)",
+    "mcp_copied": "Copiado. Se borrará del portapapeles en un minuto.",
+    "mcp_docs_link": "Cómo conectar",
+    "mcp_recommend_loopback": "Registre en el cliente la URL con 127.0.0.1, no localhost.",
+    "mcp_error_port_in_use": "Otro programa usa el mismo puerto. Es posible que el token se haya enviado a él. Regenere el token.",
+    "mcp_error_listen_failed": "No se pudo empezar a escuchar.",
+    "mcp_error_port_invalid": "Introduzca un número entero entre 1024 y 65535 para el puerto.",
+    "mcp_copy_failed": "No se pudo copiar."
   },
   "maplist": {
     "title": "Lista de mapas",

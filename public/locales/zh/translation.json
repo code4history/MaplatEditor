@@ -128,7 +128,8 @@
     "assets": "素材管理",
     "edit_poi": "POI管理",
     "add_basemap": "底图管理",
-    "settings": "设置"
+    "settings": "设置",
+    "mcp_listening": "MCP {{address}}"
   },
   "basemap": {
     "source_metadata": "来源信息（可选）",
@@ -294,7 +295,27 @@
     "default_publish_mapbox_token": "Mapbox 访问令牌（默认）",
     "same_key_warning": "{{provider}} 的编辑器密钥与默认发布密钥相同。建议签发另一个密钥。",
     "update_check": "启动时检查更新",
-    "update_check_desc": "有新版本时会通知您。仅在您选择“更新”时才会下载。在 Linux 上会打开发行版页面。"
+    "update_check_desc": "有新版本时会通知您。仅在您选择“更新”时才会下载。在 Linux 上会打开发行版页面。",
+    "mcp_tab": "MCP 服务器",
+    "mcp_enabled": "启用 MCP 服务器",
+    "mcp_status_stopped": "已停止",
+    "mcp_status_listening": "正在监听：{{address}}",
+    "mcp_last_request": "最后一次请求：{{time}}",
+    "mcp_last_request_none": "尚无请求",
+    "mcp_port": "端口",
+    "mcp_port_save": "保存端口",
+    "mcp_token": "令牌",
+    "mcp_token_tail": "…{{tail}}（末尾 4 个字符）",
+    "mcp_regenerate": "重新生成",
+    "mcp_copy_claude_code": "复制 Claude Code 的注册命令",
+    "mcp_copy_mcp_remote": "复制 Claude Desktop（mcp-remote）的设置",
+    "mcp_copied": "已复制。一分钟后将从剪贴板中清除。",
+    "mcp_docs_link": "连接方法",
+    "mcp_recommend_loopback": "请在客户端中使用 127.0.0.1 的 URL 注册，而不是 localhost。",
+    "mcp_error_port_in_use": "另一个程序正在使用同一端口。令牌可能已被发送给它。请重新生成令牌。",
+    "mcp_error_listen_failed": "无法开始监听。",
+    "mcp_error_port_invalid": "请将端口指定为 1024 到 65535 之间的整数。",
+    "mcp_copy_failed": "无法复制。"
   },
   "maplist": {
     "title": "地图列表",
