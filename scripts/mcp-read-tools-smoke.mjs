@@ -233,8 +233,8 @@ try {
     assert.deepEqual(await server.listen(), { ok: true }, 'server listens');
 
     let rpcId = 0;
-    async function rpc(method: string, params: unknown) {
-      const res = await fetch(\`http://127.0.0.1:\${port}/mcp\`, {
+    async function rpc(method: string, params: unknown, targetPort = port) {
+      const res = await fetch(\`http://127.0.0.1:\${targetPort}/mcp\`, {
         method: 'POST',
         headers: { Authorization: \`Bearer \${token}\`, Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcId, method, params }),
@@ -242,8 +242,8 @@ try {
       assert.equal(res.status, 200, \`\${method} answers 200\`);
       return (await res.json()) as any;
     }
-    async function tool(name: string, args: unknown) {
-      const reply = await rpc('tools/call', { name, arguments: args });
+    async function tool(name: string, args: unknown, targetPort = port) {
+      const reply = await rpc('tools/call', { name, arguments: args }, targetPort);
       assert.ok(reply.result, \`\${name} has a result\`);
       return reply.result;
     }
@@ -447,6 +447,74 @@ try {
         await failed('maps.transform', { map: D.uid, direction: 'backward', points: [[139.75, 35.66]] }, /^backward conversion is not available/, 'maps.transform backward on a folded transformation');
         await failed('maps.transform', { map: 'no-such-map', direction: 'forward', points: [[1, 2]] }, /^map not found$/, 'maps.transform of an unknown map');
         console.log('ok: maps.transform equals @maplat/transform both ways, round trips within 0.5 px, gives null outside, rejects bad input');
+
+        // The conversion gives way every 100 points, so an abort from elsewhere (the request time limit) stops it.
+        {
+          const original = Transform.prototype.transform;
+          const controller = new AbortController();
+          let calls = 0;
+          Transform.prototype.transform = function (this: any, ...args: any[]) {
+            calls += 1;
+            if (calls === 1) setImmediate(() => controller.abort());
+            return (original as any).apply(this, args);
+          } as any;
+          try {
+            await assert.rejects(facade.transformPoints(A.uid, many as [number, number][], 'forward', controller.signal), /^Error: aborted$/,
+              'an abort that comes while the points are converted stops the conversion');
+          } finally {
+            Transform.prototype.transform = original;
+          }
+          assert.ok(calls < 1000, \`the conversion stopped early (\${calls} of 1000 points)\`);
+          console.log(\`ok: maps.transform gives way between points and stops on an abort (\${calls} of 1000 points converted)\`);
+        }
+      }
+
+      // ---------------- an unexpected failure is not described to the client ----------------
+      {
+        const brokenPort: number = await new Promise((resolve, reject) => {
+          const s = net.createServer();
+          s.once('error', reject);
+          s.listen(0, '127.0.0.1', () => { const p = (s.address() as any).port; s.close(() => resolve(p)); });
+        });
+        const detail = 'unexpected detail ' + dataDir;
+        const broken = { ...facade,
+          listMaps: async () => { throw new Error(detail); },
+          readMapForEdit: async () => { throw new Error(detail); },
+          transformPoints: async () => { throw new Error(detail); } };
+        const brokenServer = createMcpHttpServer({ port: brokenPort, getToken: () => token, facade: broken as any, version: '0.0.0-smoke' });
+        assert.deepEqual(await brokenServer.listen(), { ok: true });
+        const logged: string[] = [];
+        const log = console.log;
+        console.log = (...args: unknown[]) => { logged.push(args.map(String).join(' ')); };
+        try {
+          for (const [name, args] of [['maps.list', {}], ['maps.get', { map: A.uid }], ['maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2]] }]] as const) {
+            const result = await tool(name, args, brokenPort);
+            assert.equal(result.isError, true, \`\${name}: an unexpected failure ends as an error\`);
+            assert.equal(result.content[0].text, 'internal error', \`\${name}: the client only sees "internal error"\`);
+            assert.ok(!JSON.stringify(result).includes('unexpected detail'), \`\${name}: the detail is not sent\`);
+          }
+        } finally {
+          console.log = log;
+          await brokenServer.close();
+        }
+        assert.ok(logged.filter((l) => l.includes('unexpected detail')).length >= 3, 'the detail is written to the main process console');
+        console.log('ok: an unexpected failure answers "internal error" and the detail stays in the main process console');
+      }
+
+      // ---------------- the list title is chosen like maps.get ----------------
+      {
+        const E = { uid: '66666666-6666-4666-8666-666666666666', slug: 'mcp-read-e' };
+        assert.deepEqual(snapshot(), filesBefore, 'no file changed before the title fixture is added');
+        assert.equal(changes(), changesBefore, 'no database row changed before the title fixture is added');
+        await SqliteDataService.createMap(E.slug, { ...base, title: { en: 'Map E', ja: '地図 戊' }, lang: 'fr', width: 600, height: 400, gcps: [] }, E.uid);
+        rebaseline();
+        const listed = (await ok('maps.list', { query: E.slug })).maps.find((m: any) => m.uid === E.uid);
+        const got = await ok('maps.get', { map: E.uid });
+        const row = (await ipcCall('maplist:request', E.slug, undefined, undefined)).docs.find((d: any) => d.uid === E.uid);
+        assert.equal(got.title, '地図 戊', 'maps.get falls back to Japanese for a language the title does not have');
+        assert.equal(listed.title, got.title, 'maps.list chooses the title like maps.get');
+        assert.equal(row.title, 'Map E', 'the renderer list keeps its own choice (first value)');
+        console.log('ok: maps.list chooses the title like maps.get; the renderer list is unchanged');
       }
 
       // ---------------- no writes ----------------

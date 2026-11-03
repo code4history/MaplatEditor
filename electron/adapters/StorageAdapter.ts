@@ -6,8 +6,8 @@ export interface MapListRequest {
 
 // 一覧の行に足す情報の指定。renderer の一覧は使わない
 export interface MapListOptions {
-  /** 各行に原寸の幅高（sourceWidth/sourceHeight）を足す */
-  sourceSize?: boolean;
+  /** 各行に元の値を足す: 原寸の幅高（sourceWidth/sourceHeight）と、言語ごとの題名と地図の言語（sourceTitle/sourceLang） */
+  sourceFields?: boolean;
 }
 
 export interface MapListResult {

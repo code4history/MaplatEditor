@@ -14,7 +14,7 @@ function notImplemented(name: string): never {
   throw new Error(`${name}: not implemented`);
 }
 
-/** The map list, as the renderer's list screen gets it. options.sourceSize adds the full image size to each row. */
+/** The map list, as the renderer's list screen gets it. options.sourceFields adds the stored values (full image size, title in every language, map language) to each row. */
 export async function listMaps(request: MapListRequest, options?: MapListOptions): Promise<MapListResult> {
   const result = await StorageAdapter.listMaps(request, options);
   return result;
@@ -67,6 +67,10 @@ export async function transformPoints(
   const onImage = (x: number, y: number) => x >= 0 && y >= 0 && x <= width && y <= height;
   const out: (Point | null)[] = [];
   for (let i = 0; i < points.length; i++) {
+    if (i > 0 && i % POINTS_PER_STEP === 0) {
+      // Give way to the event loop so the request time limit (a timer) can fire, then look at the signal
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
     if (i % POINTS_PER_STEP === 0 && signal?.aborted) throw new Error('aborted');
     const [a, b] = points[i];
     if (backward ? Math.abs(a) > 180 || Math.abs(b) > WEB_MERCATOR_MAX_LAT : !onImage(a, b)) {

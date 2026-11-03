@@ -20,8 +20,9 @@ class MapDataService {
     };
   }
 
-  // options.sourceSize が true のときだけ、各行に原寸の幅高（sourceWidth/sourceHeight）を足す。
-  // 一覧の画面は縮小後の幅高だけを使うので、既定では足さない（renderer への戻り値は変えない）
+  // options.sourceFields が true のときだけ、各行に元の値（原寸の幅高 sourceWidth/sourceHeight、
+  // 言語ごとの題名 sourceTitle と地図の言語 sourceLang）を足す。一覧の画面は縮小後の幅高と
+  // 1 つに選んだ題名だけを使うので、既定では足さない（renderer への戻り値は変えない）
   async requestMaps(query: string = '', page: number = 1, pageSize: number = 20, options: MapListOptions = {}): Promise<MapListResult> {
     const rawResult = await SearchDataService.listMaps(query, page, pageSize);
     const docs = await Promise.all(rawResult.docs.map(async (doc: any) => {
@@ -48,9 +49,11 @@ class MapDataService {
             // 一覧の印に使う真偽 1 つだけ（配信先の URL などの中身は返さない）
             iiifDelivery: Boolean(doc.delivery)
         };
-        if (options.sourceSize) {
+        if (options.sourceFields) {
             res.sourceWidth = width ?? null;
             res.sourceHeight = height ?? null;
+            res.sourceTitle = doc.title ?? null;
+            res.sourceLang = doc.lang ?? null;
         }
 
         if (res.width && res.height) {

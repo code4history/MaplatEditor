@@ -30,6 +30,24 @@ function jsonResult<T extends Record<string, unknown>>(value: T) {
   };
 }
 
+type ToolResult = ReturnType<typeof jsonResult> | ReturnType<typeof errorResult>;
+
+/**
+ * Runs a tool body. A failure the tool does not expect is answered with "internal error" only; the detail
+ * goes to the main process console (console.log, which is not forwarded to the renderer).
+ */
+function guarded<A>(name: string, body: (args: A) => Promise<ToolResult>): (args: A) => Promise<ToolResult> {
+  return async (args: A) => {
+    try {
+      return await body(args);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'aborted') return errorResult('request aborted');
+      console.log(`[mcp] ${name} internal error:`, error);
+      return errorResult('internal error');
+    }
+  };
+}
+
 /** Stops a tool between steps once the request has run past its time limit. */
 function checkAborted(signal: AbortSignal): void {
   if (signal.aborted) throw new Error('aborted');
@@ -106,10 +124,10 @@ export const registerTools: RegisterTools = (server, context) => {
         .strict(),
       annotations: READ_ONLY,
     },
-    async ({ query, page, pageSize }) => {
+    guarded('maps.list', async ({ query, page, pageSize }) => {
       checkAborted(signal);
       const requestedPage = page ?? 1;
-      const result = await facade.listMaps({ query: query ?? '', page: requestedPage, pageSize: pageSize ?? 20 }, { sourceSize: true });
+      const result = await facade.listMaps({ query: query ?? '', page: requestedPage, pageSize: pageSize ?? 20 }, { sourceFields: true });
       checkAborted(signal);
       const maps = result.docs.map((doc) => {
         const width = positiveSize(doc.sourceWidth);
@@ -117,7 +135,7 @@ export const registerTools: RegisterTools = (server, context) => {
         return {
           uid: String(doc.uid),
           slug: String(doc.mapID),
-          title: typeof doc.title === 'string' ? doc.title : String(doc.mapID),
+          title: localizeTitle(doc.sourceTitle, typeof doc.sourceLang === 'string' ? doc.sourceLang : 'ja') || String(doc.mapID),
           width,
           height,
           maxZoom: maxZoomOf(width, height),
@@ -130,7 +148,7 @@ export const registerTools: RegisterTools = (server, context) => {
         page: result.pageUpdate ?? requestedPage,
         next: result.next,
       });
-    },
+    }),
   );
 
   server.registerTool(
@@ -144,7 +162,7 @@ export const registerTools: RegisterTools = (server, context) => {
       inputSchema: z.object({ map: mapRefSchema(limits) }).strict(),
       annotations: READ_ONLY,
     },
-    async ({ map }) => {
+    guarded('maps.get', async ({ map }) => {
       checkAborted(signal);
       let read: any;
       try {
@@ -167,7 +185,7 @@ export const registerTools: RegisterTools = (server, context) => {
         edges: plainEdges(read.edges),
         hasCompiled: compiledOf(read) !== null,
       });
-    },
+    }),
   );
 
   server.registerTool(
@@ -178,7 +196,8 @@ export const registerTools: RegisterTools = (server, context) => {
         'Converts points with the map\'s compiled transformation, as the map viewer does. forward: [x, y] on the ' +
         'image (pixels, origin at the top left) to [longitude, latitude]; backward: [longitude, latitude] to ' +
         '[x, y]. Up to ' + limits.maxTransformPoints + ' points. A point off the image (on either side) is null. ' +
-        'Needs a map with hasCompiled true (maps.get).',
+        'Needs a map with hasCompiled true (maps.get). Only the main layer of the map is used: sub maps (extra ' +
+        'layers some maps have for parts of the image) are not, so points in those parts follow the main layer.',
       inputSchema: z
         .object({
           map: mapRefSchema(limits),
@@ -188,7 +207,7 @@ export const registerTools: RegisterTools = (server, context) => {
         .strict(),
       annotations: READ_ONLY,
     },
-    async ({ map, direction, points }) => {
+    guarded('maps.transform', async ({ map, direction, points }) => {
       checkAborted(signal);
       let converted: Awaited<ReturnType<typeof facade.transformPoints>>;
       try {
@@ -202,6 +221,6 @@ export const registerTools: RegisterTools = (server, context) => {
       }
       if (converted === null) return errorResult('map has no compiled transformation');
       return jsonResult({ points: converted });
-    },
+    }),
   );
 };

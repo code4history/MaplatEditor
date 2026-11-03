@@ -4,7 +4,7 @@
 // The token is read from the editor's own store file in the isolated test root (the renderer never receives
 // it) and is never printed.
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -129,5 +129,6 @@ test('an MCP client lists, reads and converts points of a saved map', async () =
     await expect(fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST' })).rejects.toThrow();
   } finally {
     await quitElectronApplication(app);
+    await rm(e2eRoot, { recursive: true, force: true });
   }
 });
