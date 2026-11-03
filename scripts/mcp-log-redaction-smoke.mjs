@@ -1,12 +1,14 @@
 // Smoke: the local MCP server never writes secrets to its output.
 //
 // Runs the boundaries smoke (one full pass over the server, the controller and the IPC handlers) and the read
-// tools smoke (every read tool against a fixture save folder), and checks everything they printed, stdout and
+// tools smoke (every read tool against a fixture save folder) and the render region smoke (pictures of a fixture
+// map), and checks everything they printed, stdout and
 // stderr together, for:
 //   (i)   any token issued during the run, or any 8+ character tail of one
 //   (ii)  "Bearer " followed by 20 or more token characters
 //   (iii) a run of 200 or more base64 characters
-//   (iv)  any coordinate value of the fixture's ground control points (read tools run)
+//   (iv)  any coordinate value of the fixture's ground control points (read tools run), or any piece of an
+//         encoded picture (render region run)
 // The detector is tested first on lines that must be caught, and each run must have produced a minimum number
 // of lines, so an empty or broken run cannot pass.
 import assert from 'node:assert/strict';
@@ -106,3 +108,4 @@ async function checkRun({ script, minLines, minServerLines, minTokens, withValue
 
 await checkRun({ script: 'scripts/mcp-server-boundaries-smoke.mjs', minLines: 100, minServerLines: 50, minTokens: 5, withValues: false });
 await checkRun({ script: 'scripts/mcp-read-tools-smoke.mjs', minLines: 40, minServerLines: 30, minTokens: 1, withValues: true });
+await checkRun({ script: 'scripts/mcp-render-region-smoke.mjs', minLines: 10, minServerLines: 30, minTokens: 1, withValues: true });
