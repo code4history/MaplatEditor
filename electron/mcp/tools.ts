@@ -169,4 +169,39 @@ export const registerTools: RegisterTools = (server, context) => {
       });
     },
   );
+
+  server.registerTool(
+    'maps.transform',
+    {
+      title: 'Convert points',
+      description:
+        'Converts points with the map\'s compiled transformation, as the map viewer does. forward: [x, y] on the ' +
+        'image (pixels, origin at the top left) to [longitude, latitude]; backward: [longitude, latitude] to ' +
+        '[x, y]. Up to ' + limits.maxTransformPoints + ' points. A point off the image (on either side) is null. ' +
+        'Needs a map with hasCompiled true (maps.get).',
+      inputSchema: z
+        .object({
+          map: mapRefSchema(limits),
+          direction: z.enum(['forward', 'backward']),
+          points: z.array(z.tuple([z.number(), z.number()])).min(1).max(limits.maxTransformPoints),
+        })
+        .strict(),
+      annotations: READ_ONLY,
+    },
+    async ({ map, direction, points }) => {
+      checkAborted(signal);
+      let converted: Awaited<ReturnType<typeof facade.transformPoints>>;
+      try {
+        converted = await facade.transformPoints(map, points as [number, number][], direction, signal);
+      } catch (error) {
+        if (isNotFound(error)) return errorResult('map not found');
+        if (error instanceof Error && error.message === 'backward not available') {
+          return errorResult('backward conversion is not available for this map (its transformation folds over)');
+        }
+        throw error;
+      }
+      if (converted === null) return errorResult('map has no compiled transformation');
+      return jsonResult({ points: converted });
+    },
+  );
 };

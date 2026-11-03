@@ -123,6 +123,7 @@ try {
     const { registerMapHandlers } = await import(${JSON.stringify(rel('electron/ipc/maps.ts'))});
     const { registerMapEditHandlers } = await import(${JSON.stringify(rel('electron/ipc/mapedit.ts'))});
     const { default: Tin } = await import('@maplat/tin');
+    const { Transform } = await import('@maplat/transform');
 
     // ---------------- fixture ----------------
     const HALF = 20037508.342789244;
@@ -130,6 +131,7 @@ try {
     const A = { uid: '11111111-1111-4111-8111-111111111111', slug: 'mcp-read-a', width: 1000, height: 800 };
     const B = { uid: '22222222-2222-4222-8222-222222222222', slug: 'mcp-read-b', width: 300, height: 200 };
     const C = { uid: '33333333-3333-4333-8333-333333333333', slug: 'mcp-read-c', width: 5000, height: 3000 };
+    const D = { uid: '55555555-5555-4555-8555-555555555555', slug: 'mcp-read-d', width: 1000, height: 800 };
     const gcpsLonLat: [number[], number[]][] = [
       [[0, 0], [139.70, 35.70]], [[1000, 0], [139.80, 35.70]], [[1000, 800], [139.80, 35.62]],
       [[0, 800], [139.70, 35.62]], [[500, 400], [139.752, 35.661]],
@@ -151,6 +153,11 @@ try {
     await SqliteDataService.createMap(B.slug, { ...base, title: 'Read test B', lang: 'en',
       width: B.width, height: B.height, gcps: gcpsA.slice(0, 2) }, B.uid);
     await SqliteDataService.createMap(C.slug, { ...base, title: { ja: '読み取り試験 丙' }, width: C.width, height: C.height, gcps: [] }, C.uid);
+    // Created after the IPC copy was recorded, so it is not part of the recorded list.
+    async function addFoldedMap() {
+      await SqliteDataService.createMap(D.slug, { ...base, title: 'Read test D', lang: 'en', width: D.width, height: D.height,
+        gcps: gcpsA, compiled: { ...compiledA, strict_status: 'strict_error' } }, D.uid);
+    }
     mkdirSync(join(dataDir, 'tmbs'), { recursive: true });
     writeFileSync(join(dataDir, 'tmbs', A.uid + '.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
     if (process.env.MCP_SMOKE_SECRET_FILE) {
@@ -206,8 +213,10 @@ try {
     }
     const db = await SqliteDataService.getDb();
     const changes = () => Number((db.prepare('SELECT total_changes() AS n').get() as any).n);
-    const filesBefore = snapshot();
-    const changesBefore = changes();
+    let filesBefore = snapshot();
+    let changesBefore = changes();
+    // A fixture added later moves the baseline; the tools and handlers themselves never do.
+    const rebaseline = () => { filesBefore = snapshot(); changesBefore = changes(); };
 
     // ---------------- MCP server ----------------
     const net = await import('node:net');
@@ -258,7 +267,7 @@ try {
     try {
       const listed = await rpc('tools/list', {});
       const names = listed.result.tools.map((t: any) => t.name).sort();
-      for (const name of ['editor.ping', 'maps.list', 'maps.get']) assert.ok(names.includes(name), \`tools/list has \${name}\`);
+      for (const name of ['editor.ping', 'maps.list', 'maps.get', 'maps.transform']) assert.ok(names.includes(name), \`tools/list has \${name}\`);
       for (const t of listed.result.tools) {
         assert.equal(t.inputSchema.type, 'object', \`\${t.name} input schema is an object\`);
         assert.equal(t.inputSchema.additionalProperties, false, \`\${t.name} input schema is strict\`);
@@ -355,6 +364,60 @@ try {
         await rejected('maps.get', { map: A.uid, compiled: true }, 'maps.get unknown key');
         await rejected('maps.get', { map: 5 }, 'maps.get of a number');
         console.log('ok: maps.get matches mapedit:request (uid, slug, size, GCPs in longitude and latitude), hides the rest, rejects bad input');
+      }
+
+      // ---------------- maps.transform ----------------
+      {
+        const toLonLat = ([x, y]: number[]) => [x / HALF * 180, 180 / Math.PI * (2 * Math.atan(Math.exp(y / HALF * Math.PI)) - Math.PI / 2)];
+        // The expected values come from the compiled data the edit screen reads, run through @maplat/transform.
+        const t = new Transform();
+        t.setCompiled((await ipcCall('mapedit:request', A.uid)).compiledTins[0]);
+        t.addIndexedTin();
+        assert.deepEqual(snapshot(), filesBefore, 'no file changed before the folded fixture is added');
+        assert.equal(changes(), changesBefore, 'no database row changed before the folded fixture is added');
+        await addFoldedMap();
+        rebaseline();
+        const onImage = ([x, y]: number[]) => x >= 0 && y >= 0 && x <= A.width && y <= A.height;
+        const expectForward = (p: number[]) => (onImage(p) ? toLonLat(t.transform(p, false, false) as number[]) : null);
+        const expectBackward = (p: number[]) => { const r = t.transform(toMerc(p), true, false) as number[]; return onImage(r) ? r : null; };
+
+        const images = [...gcpsLonLat.map(([img]) => img), [250, 200], [750, 600], [123.4, 567.8], [999, 1]];
+        const fwd = await ok('maps.transform', { map: A.uid, direction: 'forward', points: images });
+        assert.deepEqual(Object.keys(fwd), ['points'], 'maps.transform gives points only');
+        assert.deepEqual(fwd.points, images.map(expectForward), 'forward equals @maplat/transform on the compiled data');
+        gcpsLonLat.forEach(([, ll], i) => near(fwd.points[i], ll, 1e-7, \`forward of GCP \${i} lands on its longitude and latitude\`));
+
+        const back = await ok('maps.transform', { map: A.slug, direction: 'backward', points: fwd.points });
+        assert.deepEqual(back.points, fwd.points.map(expectBackward), 'backward equals @maplat/transform on the compiled data');
+        back.points.forEach((p: number[], i: number) => near(p, images[i], 0.5, \`image -> geo -> image of point \${i} within 0.5 px\`));
+
+        const outside = await ok('maps.transform', { map: A.uid, direction: 'forward', points: [[-1, 10], [10, 801], [1001, 10], [-5000, -5000], [500, 400]] });
+        assert.deepEqual(outside.points.slice(0, 4), [null, null, null, null], 'points off the image are null');
+        assert.ok(Array.isArray(outside.points[4]), 'the point on the image is still converted');
+        // The transformation reaches beyond the image (to its outer vertices): there it is not used.
+        const beyond = toLonLat(t.transform([-30, -20], false, false) as number[]);
+        const offImage = await ok('maps.transform', { map: A.uid, direction: 'backward', points: [beyond, [139.70, 35.70]] });
+        assert.equal(offImage.points[0], null, 'a longitude and latitude that lands off the image is null');
+        near(offImage.points[1], [0, 0], 0.5, 'the image corner still converts');
+        const offWorld = await ok('maps.transform', { map: A.uid, direction: 'backward', points: [[200, 35.6], [139.75, 89.9], [139.75, 35.66]] });
+        assert.deepEqual(offWorld.points.slice(0, 2), [null, null], 'a longitude or latitude outside Web Mercator is null');
+        near(offWorld.points[2], expectBackward([139.75, 35.66]) as number[], 1e-9, 'the valid point is still converted');
+
+        const many = Array.from({ length: 1000 }, (_, i) => [i % 1000, (i * 7) % 800]);
+        assert.equal((await ok('maps.transform', { map: A.uid, direction: 'forward', points: many })).points.length, 1000, 'maps.transform accepts 1000 points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [...many, [1, 1]] }, 'maps.transform of 1001 points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [] }, 'maps.transform of no points');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1]] }, 'maps.transform of a point with one number');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2, 3]] }, 'maps.transform of a point with three numbers');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [['1', '2']] }, 'maps.transform of strings');
+        await rejected('maps.transform', { map: A.uid, direction: 'sideways', points: [[1, 2]] }, 'maps.transform of an unknown direction');
+        await rejected('maps.transform', { map: A.uid, points: [[1, 2]] }, 'maps.transform without a direction');
+        await rejected('maps.transform', { map: A.uid, direction: 'forward', points: [[1, 2]], ignoreBounds: true }, 'maps.transform unknown key');
+        await failed('maps.transform', { map: B.uid, direction: 'forward', points: [[1, 2]] }, /^map has no compiled transformation$/, 'maps.transform of a map without compiled data');
+        assert.ok(Array.isArray((await ok('maps.transform', { map: D.uid, direction: 'forward', points: [[500, 400]] })).points[0]), 'a folded transformation still converts forward');
+        await failed('maps.transform', { map: D.uid, direction: 'backward', points: [[139.75, 35.66]] }, /^backward conversion is not available/, 'maps.transform backward on a folded transformation');
+        await failed('maps.transform', { map: 'no-such-map', direction: 'forward', points: [[1, 2]] }, /^map not found$/, 'maps.transform of an unknown map');
+        console.log('ok: maps.transform equals @maplat/transform both ways, round trips within 0.5 px, gives null outside, rejects bad input');
       }
 
       // ---------------- no writes ----------------
