@@ -531,6 +531,8 @@ try {
         const tiny = await startServer({ ...DEFAULT_LIMITS, maxTileBytes: 100 });
         try {
           await failed({ map: R.uid, x0: 0, y0: 0, x1: 300, y1: 300 }, /^tiles not readable$/, 'tiles over the byte limit', tiny.port);
+          const capped = await facade.readTilesForRegion(R.uid, 3, { x0: 0, y0: 0, x1: 1, y1: 1 }, undefined, { maxTileBytes: 100 });
+          assert.deepEqual(capped?.tiles, [[null, null], [null, null]], 'the facade gives no tile over the byte limit');
         } finally {
           await tiny.server.close();
         }
@@ -555,6 +557,8 @@ try {
           assert.equal(j.info.missingTiles, 1, 'the declared-huge jpeg tile is counted as not read');
           assert.equal(px(j.picture, 280, 100)[3], 0, 'the part of the declared-huge jpeg tile is transparent');
           assert.equal(px(j.picture, 100, 100)[3], 255, 'the good jpeg tile is drawn');
+          assert.equal(await facade.readTile(J.uid, 1, 1, 0), null, 'readTile does not give the declared-huge jpeg tile');
+          assert.equal((await facade.readTile(J.uid, 1, 0, 0))?.mimeType, 'image/jpeg', 'readTile gives the good jpeg tile');
           console.log(\`ok: tiles that declare a size over 256 px, or whose bytes are not of their extension, are not decoded (\${ms} ms)\`);
         }
         // E: tiles named .jpeg are read.
