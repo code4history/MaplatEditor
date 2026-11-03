@@ -37,9 +37,11 @@ const rel = (p) => path.join(projectRoot, p);
   assert.match(external, /'jimp\/fonts'/, 'the main bundle keeps jimp/fonts external');
   const source = await readFile(rel('electron/mcp/renderRegion.ts'), 'utf8');
   const specs = [...source.matchAll(/\bfrom\s*['"]([^'"]+)['"]/g)].map((m) => m[1]).sort();
-  assert.deepEqual([...new Set(specs)], ['../utils/tilePyramid', './limits', './readFacade', 'jimp', 'jimp/fonts'],
+  assert.deepEqual([...new Set(specs)], ['../utils/tilePyramid', './limits', './readFacade', 'jimp'],
     'renderRegion.ts imports Jimp, the tile pyramid formulas, the limits and the facade types only');
-  console.log('ok: jimp/fonts is external to the main bundle; renderRegion.ts imports only what it needs');
+  // The fonts are loaded when a label is drawn, so a font module that cannot be resolved never stops the editor.
+  assert.match(source, /\bimport\(\s*'jimp\/fonts'\s*\)/, 'renderRegion.ts loads jimp/fonts with a dynamic import');
+  console.log('ok: jimp/fonts is external to the main bundle and loaded on use; renderRegion.ts imports only what it needs');
 }
 
 const scratchRoot = rel('.tmp-smoke');
@@ -92,9 +94,10 @@ try {
 
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
-    import { readdirSync, statSync, writeFileSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
+    import { readdirSync, readFileSync, statSync, writeFileSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
     import { join } from 'node:path';
-    import { Jimp } from 'jimp';
+    import { Jimp, ResizeStrategy } from 'jimp';
+    import { deflateSync, crc32 } from 'node:zlib';
 
     const dataDir = ${JSON.stringify(dataDir)};
     const workDir = ${JSON.stringify(workDir)};
@@ -122,7 +125,7 @@ try {
       return img;
     }
     // The tiles are cut with the same formulas the upload uses (tilePyramid.ts).
-    async function cutTiles(uid: string, src: any, ext: 'png' | 'jpg') {
+    async function cutTiles(uid: string, src: any, ext: 'png' | 'jpg' | 'jpeg') {
       const { width, height } = src;
       const maxZoom = tileMaxZoom(width, height);
       for (let z = maxZoom; z >= 0; z--) {
@@ -147,12 +150,15 @@ try {
     const J = { uid: '99999999-9999-4999-8999-999999999999', slug: 'mcp-render-j', width: 300, height: 200 };
     const N = { uid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', slug: 'mcp-render-n', width: 400, height: 300 };
     const L = { uid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', slug: 'mcp-render-l', width: 600, height: 500 };
+    const B = { uid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', slug: 'mcp-render-b', width: 600, height: 500 };
+    const E = { uid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', slug: 'mcp-render-e', width: 300, height: 200 };
+    const W = { uid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', slug: 'mcp-render-w', width: 10300, height: 300 };
     const base = { officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {}, attr: {}, dataAttr: {},
       description: {}, license: 'PD', dataLicense: 'CC0', reference: '', url: '', lang: 'en', imageExtension: 'png',
       edges: [], sub_maps: [], homePosition: [139.75, 35.66], mercZoom: 14, strictMode: 'auto', vertexMode: 'plain', gcps: [] };
-    for (const m of [R, S, J, N, L]) {
+    for (const m of [R, S, J, N, L, B, E, W]) {
       await SqliteDataService.createMap(m.slug, { ...base, title: 'Render ' + m.slug, width: m.width, height: m.height,
-        imageExtension: m === J ? 'jpg' : 'png' }, m.uid);
+        imageExtension: m === J ? 'jpg' : m === E ? 'jpeg' : 'png' }, m.uid);
     }
     const srcR = sourceImage(R.width, R.height);
     const srcS = sourceImage(S.width, S.height);
@@ -169,6 +175,55 @@ try {
     const { renameSync } = await import('node:fs');
     renameSync(join(dataDir, 'tiles', L.uid, '2'), outsideLevel);
     symlinkSync(outsideLevel, join(dataDir, 'tiles', L.uid, '2'), 'dir');
+
+    // B: tiles that must not be decoded. z2/0/0 is a small PNG that declares 12000 x 12000 pixels (decoding it
+    // takes seconds and hundreds of MiB); z2/1/1 is a GIF named .png. Both are left out, quickly.
+    const srcB = sourceImage(B.width, B.height);
+    await cutTiles(B.uid, srcB, 'png');
+    const chunk = (type: string, data: Buffer) => {
+      const head = Buffer.alloc(8);
+      head.writeUInt32BE(data.length, 0);
+      head.write(type, 4, 'latin1');
+      const crc = Buffer.alloc(4);
+      crc.writeUInt32BE(crc32(Buffer.concat([Buffer.from(type, 'latin1'), data])) >>> 0, 0);
+      return Buffer.concat([head, data, crc]);
+    };
+    const BOMB_SIDE = 12000;
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(BOMB_SIDE, 0); ihdr.writeUInt32BE(BOMB_SIDE, 4);
+    ihdr[8] = 1; ihdr[9] = 0; // 1 bit grey
+    const rows = Buffer.alloc((1 + BOMB_SIDE / 8) * BOMB_SIDE);
+    const bomb = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr),
+      chunk('IDAT', deflateSync(rows, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+    assert.ok(bomb.length < 40 * 1024, \`the declared-huge PNG is small (\${bomb.length} bytes)\`);
+    writeFileSync(join(dataDir, 'tiles', B.uid, '2', '0', '0.png'), bomb);
+    const gif = await new Jimp({ width: 256, height: 244, color: 0x00ff00ff }).getBuffer('image/gif');
+    writeFileSync(join(dataDir, 'tiles', B.uid, '2', '1', '1.png'), gif);
+    // J: the second tile of its largest level declares 12000 x 12000 in its frame header.
+    {
+      const file = join(dataDir, 'tiles', J.uid, '1', '1', '0.jpg');
+      const bytes = Buffer.from(readFileSync(file));
+      let patched = false;
+      for (let i = 2; i + 9 < bytes.length; i++) {
+        if (bytes[i] === 0xff && bytes[i + 1] >= 0xc0 && bytes[i + 1] <= 0xc3) {
+          bytes.writeUInt16BE(BOMB_SIDE, i + 5); bytes.writeUInt16BE(BOMB_SIDE, i + 7); patched = true; break;
+        }
+      }
+      assert.ok(patched, 'the jpeg tile has a frame header to change');
+      writeFileSync(file, bytes);
+    }
+    // E: tiles named .jpeg.
+    const srcE = sourceImage(E.width, E.height);
+    await cutTiles(E.uid, srcE, 'jpeg');
+    // W: 10300 px wide, so its grid labels have five digits. Only the tiles the test reads are written.
+    {
+      const maxZoom = tileMaxZoom(W.width, W.height);
+      for (const [z, tx, ty] of [[0, 0, 0], [maxZoom, 39, 0], [maxZoom, 40, 0], [maxZoom, 39, 1], [maxZoom, 40, 1]]) {
+        const dir = join(dataDir, 'tiles', W.uid, String(z), String(tx));
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, ty + '.png'), await new Jimp({ width: 256, height: z === 0 ? 8 : 256, color: 0x406080ff }).getBuffer('image/png'));
+      }
+    }
 
     // ---------------- no writes: snapshot ----------------
     function snapshot() {
@@ -262,7 +317,17 @@ try {
       return m;
     }
     const expected = (src: any, x0: number, y0: number, x1: number, y1: number, scale: number) =>
-      src.clone().crop({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }).resize({ w: (x1 - x0) * scale, h: (y1 - y0) * scale });
+      src.clone().crop({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 }).resize({ w: (x1 - x0) * scale, h: (y1 - y0) * scale, mode: ResizeStrategy.NEAREST_NEIGHBOR });
+    /** Each image pixel is exactly a scale x scale square of the output: output (u, v) is image (x0 + floor(u / scale), y0 + floor(v / scale)). */
+    function squaresOf(picture: any, src: any, x0: number, y0: number, scale: number) {
+      let wrong = 0; let first = '';
+      for (let v = 0; v < picture.bitmap.height; v++) for (let u = 0; u < picture.bitmap.width; u++) {
+        const got = px(picture, u, v).join();
+        const want = px(src, x0 + Math.floor(u / scale), y0 + Math.floor(v / scale)).join();
+        if (got !== want) { wrong++; if (!first) first = \`(\${u}, \${v}) \${got} vs \${want}\`; }
+      }
+      return { wrong, first };
+    }
 
     try {
       const listed = await rpc(main.port, 'tools/list', {});
@@ -280,9 +345,9 @@ try {
         for (const [x0, y0, x1, y1, scale] of cases) {
           const r = await render({ map: R.uid, x0, y0, x1, y1, scale });
           assert.equal(r.mimeType, 'image/png', 'png by default');
-          assert.deepEqual(r.info, { origin: [x0, y0], scale, width: (x1 - x0) * scale, height: (y1 - y0) * scale, zoom: 3 }, \`info for \${[x0, y0, x1, y1, scale]}\`);
-          const diff = maxDiff(r.picture, expected(srcR, x0, y0, x1, y1, scale));
-          assert.ok(diff <= 8, \`region \${[x0, y0, x1, y1]} x\${scale} equals the source cut and scaled (largest difference \${diff})\`);
+          assert.deepEqual(r.info, { origin: [x0, y0], scale, width: (x1 - x0) * scale, height: (y1 - y0) * scale, zoom: 3, missingTiles: 0 }, \`info for \${[x0, y0, x1, y1, scale]}\`);
+          const { wrong, first } = squaresOf(r.picture, srcR, x0, y0, scale);
+          assert.equal(wrong, 0, \`region \${[x0, y0, x1, y1]} x\${scale}: every image pixel is a \${scale} x \${scale} square of the output (first difference \${first})\`);
         }
         const bySlug = await render({ map: R.slug, x0: 150, y0: 120, x1: 450, y1: 380 });
         assert.equal(bySlug.info.scale, 2, 'scale is 2 by default');
@@ -343,6 +408,24 @@ try {
         assert.ok(left.dark > 3 && left.light > 20, \`a label at the left of the line y=200 (\${JSON.stringify(left)})\`);
         const okDense = await render({ map: R.uid, x0, y0, x1, y1, scale, grid_step: 16 });
         assert.equal(okDense.info.grid_step, 16, 'grid_step x scale = 32 output pixels is accepted');
+        // Five-digit labels 32 px apart would overlap: a label that would start before the end of the previous
+        // one is left out, so the line of every labelled grid line stays clear of the label before.
+        {
+          const wx0 = 10000; const wscale = 4; const wstep = 8;
+          const wide = await render({ map: W.uid, x0: wx0, y0: 0, x1: 10256, y1: 100, scale: wscale, grid_step: wstep });
+          const white = (x: number, y: number) => px(wide.picture, x, y).slice(0, 3).every((v: number) => v === 255);
+          // Label boxes are white runs in the top row: overlapping boxes would join into runs longer than one label.
+          const runs: number[] = [];
+          let run = 0;
+          for (let x = 0; x < wide.picture.bitmap.width; x++) {
+            if (white(x, 1)) run++;
+            else if (run > 0) { runs.push(run); run = 0; }
+          }
+          if (run > 0) runs.push(run);
+          const longest = Math.max(...runs);
+          assert.ok(longest < 2 * wstep * wscale, \`no label is drawn over the label before it (longest box run \${longest} px)\`);
+          assert.ok(runs.length >= 8, \`some lines are still labelled (\${runs.length} labels)\`);
+        }
         console.log('ok: the grid lines are on multiples of grid_step, other pixels are unchanged, lines are labelled');
       }
 
@@ -428,15 +511,14 @@ try {
         assert.equal(px(s.picture, 100, 50)[3], 0, 'the part of the missing tile is transparent');
         assert.equal(px(s.picture, 20, 50)[3], 255, 'the part of a present tile is opaque');
         assert.equal(px(s.picture, 100, 200)[3], 255, 'the tile below the missing one is opaque');
+        assert.equal(s.info.missingTiles, 1, 'info counts the tile that was not read');
         assert.equal(maxDiff(s.picture.clone().crop({ x: 0, y: 160, w: 400, h: 140 }), expected(srcS, 200, 260, 600, 400, 1)), 0, 'the rest equals the source');
         const sj = await render({ map: S.uid, x0: 200, y0: 100, x1: 600, y1: 400, scale: 1, format: 'jpeg' });
         const [r0, g0, b0] = px(sj.picture, 100, 50);
         assert.ok(r0 > 240 && g0 > 240 && b0 > 240, 'in a jpeg the missing tile is white');
         // L: level 2 is a link out of the save folder, so none of its tiles are read.
-        const l = await render({ map: L.uid, x0: 0, y0: 0, x1: 600, y1: 500, scale: 1 });
-        let opaque = 0;
-        for (let i = 3; i < l.picture.bitmap.data.length; i += 4) if (l.picture.bitmap.data[i] !== 0) opaque++;
-        assert.equal(opaque, 0, 'tiles behind a link out of the save folder are not read');
+        // When no tile at all could be read, the answer is an error, not an empty picture.
+        await failed({ map: L.uid, x0: 0, y0: 0, x1: 600, y1: 500, scale: 1 }, /^tiles not readable$/, 'tiles behind a link out of the save folder are not read');
         assert.equal(await facade.readTile(L.uid, 2, 0, 0), null, 'readTile does not read through a link out of the save folder');
         const inside = await facade.readTile(L.uid, 1, 0, 0);
         assert.equal(inside?.mimeType, 'image/png', 'readTile reads a tile inside the save folder');
@@ -445,7 +527,44 @@ try {
           assert.equal(await facade.readTile(R.uid, z, x, y), null, \`readTile out of range \${[z, x, y]}\`);
         }
         assert.equal((await facade.readTile(R.slug, 1, 1, 1))?.mimeType, 'image/png', 'readTile reads the last tile of a level, by slug');
-        console.log('ok: a missing tile is transparent (white in jpeg); tiles behind a link out of the save folder are not read');
+        // A tile file over the byte limit is not read.
+        const tiny = await startServer({ ...DEFAULT_LIMITS, maxTileBytes: 100 });
+        try {
+          await failed({ map: R.uid, x0: 0, y0: 0, x1: 300, y1: 300 }, /^tiles not readable$/, 'tiles over the byte limit', tiny.port);
+        } finally {
+          await tiny.server.close();
+        }
+        console.log('ok: a missing tile is transparent (white in jpeg) and counted; no readable tile is an error; tiles behind a link or over the byte limit are not read');
+
+        // B: a PNG that declares 12000 x 12000 and a GIF named .png are not decoded.
+        {
+          const started = Date.now();
+          const b = await render({ map: B.uid, x0: 0, y0: 0, x1: 512, y1: 500, scale: 1 });
+          const ms = Date.now() - started;
+          assert.ok(ms < 1000, \`the region with a declared-huge tile is answered within a second (\${ms} ms)\`);
+          assert.equal(b.info.missingTiles, 2, 'the declared-huge PNG and the GIF are counted as not read');
+          assert.equal(px(b.picture, 100, 100)[3], 0, 'the part of the declared-huge PNG is transparent');
+          assert.equal(px(b.picture, 300, 300)[3], 0, 'the part of the GIF named .png is transparent');
+          assert.equal(px(b.picture, 300, 100)[3], 255, 'a good tile next to them is drawn');
+          assert.equal(await facade.readTile(B.uid, 2, 0, 0), null, 'readTile does not give the declared-huge PNG');
+          assert.equal(await facade.readTile(B.uid, 2, 1, 1), null, 'readTile does not give a GIF named .png');
+          // J: a jpeg tile whose frame header declares 12000 x 12000.
+          const started2 = Date.now();
+          const j = await render({ map: J.uid, x0: 0, y0: 0, x1: 300, y1: 200, scale: 1 });
+          assert.ok(Date.now() - started2 < 1000, 'the region with a declared-huge jpeg tile is answered within a second');
+          assert.equal(j.info.missingTiles, 1, 'the declared-huge jpeg tile is counted as not read');
+          assert.equal(px(j.picture, 280, 100)[3], 0, 'the part of the declared-huge jpeg tile is transparent');
+          assert.equal(px(j.picture, 100, 100)[3], 255, 'the good jpeg tile is drawn');
+          console.log(\`ok: tiles that declare a size over 256 px, or whose bytes are not of their extension, are not decoded (\${ms} ms)\`);
+        }
+        // E: tiles named .jpeg are read.
+        {
+          const e = await render({ map: E.uid, x0: 0, y0: 0, x1: 300, y1: 200, scale: 1 });
+          assert.equal(e.info.missingTiles, 0, 'every .jpeg tile is read');
+          assert.ok(maxDiff(e.picture, expected(srcE, 0, 0, 300, 200, 1)) < 128, 'the .jpeg tiles show the source');
+          assert.equal((await facade.readTile(E.slug, 1, 0, 0))?.mimeType, 'image/jpeg', 'readTile reads a .jpeg tile');
+          console.log('ok: tiles named .jpeg are read');
+        }
       }
 
       // ---------------- (7) time limit and abort ----------------
@@ -468,19 +587,19 @@ try {
         }
         // The facade looks at the signal between tiles: an abort during the first tile stops the rest (20 tiles).
         const { default: fsExtra } = await import('fs-extra');
-        const originalStat = fsExtra.stat;
+        const originalOpen = fsExtra.open;
         const controller = new AbortController();
         let tilesRead = 0;
-        (fsExtra as any).stat = (...args: any[]) => {
+        (fsExtra as any).open = (...args: any[]) => {
           tilesRead += 1;
           controller.abort();
-          return (originalStat as any).apply(fsExtra, args);
+          return (originalOpen as any).apply(fsExtra, args);
         };
         try {
           await assert.rejects(facade.readTilesForRegion(R.uid, 3, { x0: 0, y0: 0, x1: 4, y1: 3 }, controller.signal), /^Error: aborted$/,
             'an abort while tiles are read stops the reading');
         } finally {
-          (fsExtra as any).stat = originalStat;
+          (fsExtra as any).open = originalOpen;
         }
         assert.equal(tilesRead, 1, \`the reading stopped after the tile it was on (\${tilesRead} of 20 tiles read)\`);
         // The drawing gives way and looks at the signal after the tiles are read.
