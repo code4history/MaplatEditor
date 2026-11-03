@@ -466,11 +466,23 @@ try {
         } finally {
           await timed.server.close();
         }
-        // The facade looks at the signal between tiles.
+        // The facade looks at the signal between tiles: an abort during the first tile stops the rest (20 tiles).
+        const { default: fsExtra } = await import('fs-extra');
+        const originalStat = fsExtra.stat;
         const controller = new AbortController();
-        setImmediate(() => controller.abort());
-        await assert.rejects(facade.readTilesForRegion(R.uid, 3, { x0: 0, y0: 0, x1: 4, y1: 3 }, controller.signal), /^Error: aborted$/,
-          'an abort while tiles are read stops the reading');
+        let tilesRead = 0;
+        (fsExtra as any).stat = (...args: any[]) => {
+          tilesRead += 1;
+          controller.abort();
+          return (originalStat as any).apply(fsExtra, args);
+        };
+        try {
+          await assert.rejects(facade.readTilesForRegion(R.uid, 3, { x0: 0, y0: 0, x1: 4, y1: 3 }, controller.signal), /^Error: aborted$/,
+            'an abort while tiles are read stops the reading');
+        } finally {
+          (fsExtra as any).stat = originalStat;
+        }
+        assert.equal(tilesRead, 1, \`the reading stopped after the tile it was on (\${tilesRead} of 20 tiles read)\`);
         // The drawing gives way and looks at the signal after the tiles are read.
         const late = new AbortController();
         const abortAfterRead = { ...facade, readTilesForRegion: async (...args: any[]) => {
