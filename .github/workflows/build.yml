@@ -7,7 +7,9 @@ on:
   # 署名ポリシー（m6-t12 §2.4 / 人間決定 D6・2026-08-08）。2軸で指定する:
   #
   #   mode=verify（既定・動作確認用）: Mac 署名のみ / Win 署名なし / draft Release なし
-  #     Apple は年額で署名ごとの課金がなく eSigner も呼ばないため **課金ゼロ**。∴ 全バージョン・全ブランチ可
+  #     Apple は年額で署名ごとの課金がなく eSigner も呼ばないため **課金ゼロ**。全バージョン可。
+  #     ただし Mac は署名するので、ビルドする commit は origin/master の祖先に限る（prepare が拒む）。
+  #     expected_editor_sha を省いたときは dispatch した ref の HEAD で確かめる ∴ 作業ブランチは不可
   #   mode=full（完全）:               Mac 署名+公証 / Win 全 PE 署名 / draft Release 作成
   #     **rc 以降**に限定（prerelease は rc 始まりのみ。正式版は master 限定。判定は scripts/m6-t12/check-release-guard.mjs）。
   #     Windows は配布物の全 PE を署名する（2026-10-03・SAC 起動拒否への対処）。署名者は win_signer で選ぶ:
@@ -38,7 +40,7 @@ on:
         type: choice
         default: verify
         options:
-          - verify   # 動作確認用: Mac 署名のみ / Win 署名なし / Release 作らない（課金ゼロ・全バージョン可）
+          - verify   # 動作確認用: Mac 署名のみ / Win 署名なし / Release 作らない（課金ゼロ・全バージョン可・master の祖先だけ）
           - sign-check # 署名確認:  Mac 署名のみ / Win Artifact Signing で全 PE 署名 / Release 作らない（定額・宣言した master の SHA だけ）
           - full     # 完全:       Mac 署名+公証 / Win 全 PE 署名（win_signer）/ draft Release（rc 以降限定）
       platforms:
@@ -97,6 +99,8 @@ jobs:
 
       # nov26-m7-t2（#140 L-1）: 署名するのは master の祖先の SHA だけ。checkout の直後の最初の step で、
       # リポジトリのファイルを呼ばずに確かめる（この step は dispatch された ref＝master の workflow のもの）
+      # mode=verify も同じく確かめる（Mac の署名は verify でも行うため）。verify は expected_editor_sha を
+      # 省けるが、省いたときは dispatch した ref の HEAD を確かめる ∴ 作業ブランチの dispatch は prepare で落ちる
       - name: Verify expected_editor_sha is an ancestor of master
         shell: bash
         env:
@@ -106,11 +110,13 @@ jobs:
         run: |
           set -euo pipefail
           case "${EVENT}:${MODE}" in
-            workflow_dispatch:full|workflow_dispatch:sign-check)
+            workflow_dispatch:full|workflow_dispatch:sign-check|workflow_dispatch:verify)
+              if [ "$MODE" = verify ] && [ -z "$SHA" ]; then SHA="$(git rev-parse HEAD)"; fi
               [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::expected_editor_sha が 40 桁 hex でない"; exit 1; }
               [ "$(git rev-parse HEAD)" = "$SHA" ] || { echo "::error::checkout が expected_editor_sha を指していない"; exit 1; }
               git merge-base --is-ancestor "$SHA" refs/remotes/origin/master || { echo "::error::$SHA は origin/master の祖先ではない"; exit 1; } ;;
-            *) echo "祖先の確認は mode=full・sign-check のときだけ（${EVENT}:${MODE}）" ;;
+            workflow_dispatch:*) echo "::error::mode が不正（${MODE}）"; exit 1 ;;
+            *) echo "祖先の確認は workflow_dispatch のときだけ（${EVENT}:${MODE}）" ;;
           esac
 
       # nov26-m7-t2: Windows の署名の経路をインラインで決める（リポジトリのコードは使わない）

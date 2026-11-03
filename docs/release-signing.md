@@ -177,7 +177,7 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 
 | mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
 |---|---|---|---|---|---|
-| **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可） |
+| **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可）。ただし **master の祖先の commit だけ**（`expected_editor_sha` を省いたときは dispatch した ref の先端で確かめる） |
 | **`sign-check`**（署名の確認・nov26-m7-t2） | 署名のみ（公証なし） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
 | **`full`**（完全） | 署名 + 公証 | 全 PE 署名（`win_signer`） | 作る | `artifact-signing`: **定額** / `esigner`: **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
 
@@ -191,6 +191,8 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 | `esigner`（退路・J-7） | SSL.com eSigner（署名ごとに課金）。build-win の中で署名し、署名済みキャッシュを使い回す | `full` だけ（`sign-check` では prepare が拒む） |
 
 `mode=full`・`sign-check` は、`expected_editor_sha` が **origin/master の祖先**でなければ prepare の最初の step で止まる（#140 L-1）。
+`mode=verify` も同じく止まる（Mac の署名を行うため）。`expected_editor_sha` を省いた verify は dispatch した ref の先端を確かめるので、
+master に入っていない作業ブランチの署名つきビルドは CI では作れない。merge の前の確かめは手元の `electron-builder --dir`（署名なし）で行う。
 
 `mode=full` が使えるバージョン:
 
