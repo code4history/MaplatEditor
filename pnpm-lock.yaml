@@ -37,16 +37,6 @@ overrides:
   get-uri>basic-ftp: ^6.2.1
   zod: ^4.6.7
   rollup: 4.62.4
-  '@babel/runtime': 7.29.7
-  '@thednp/position-observer': 1.1.3
-  '@types/lodash': 4.17.25
-  dompurify: 3.4.17
-  strtok3: 10.3.5
-  serialize-error>type-fest: 0.13.1
-  type-fest: 5.8.0
-  uint8array-extras: 1.5.0
-  viewerjs: 1.11.8
-  vscode-uri: 3.1.0
 
 importers:
 

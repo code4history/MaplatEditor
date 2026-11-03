@@ -107,21 +107,10 @@ overrides:
   # （z.object/number/tuple/union/literal/nativeEnum/instanceof・.min/.max/.optional/.parse）は 4 系の classic にも
   # 同じ形で存在する（全 16 パッケージの dist で全数確認・2026-10-30）。jimp が zod 4 対応版を出したらこの行を外す。
   zod: "^4.6.7"
-  # 2026-10-18（nov26-m9-t3）: vite 7.3.7 は Rollup 4.64 で dist の分割が変わる（dist 806→825）。
-  # rollup を base の解決版に留め、アプリの出力を保つ。12 月の見直しは t8／m13 が持つ。
+  # rollup は 4.62.4 に留める。vite 7.3.7 の下で新しい rollup を使うと dist のチャンクの分け方が変わる
+  # （2026-11-04 に 4.67.4 で実測: dist のファイル 797→819）。アプリの出力を保つため、ここだけは完全一致で留める。
+  # 次の見直し: 2027-01-15
   rollup: "4.62.4"
-  # 2026-10-18（nov26-m9-t3 v3-R8）: pnpm update --no-save（depth Infinity）で動いた推移依存を base の解決版に留める。
-  # 直接依存ではないため pnpm update <name>@<base> では戻らない（実測）。extract-zip は pwa 8.1.7 の閉包変化なので留めない。
-  "@babel/runtime": "7.29.7"
-  "@thednp/position-observer": "1.1.3"
-  "@types/lodash": "4.17.25"
-  dompurify: "3.4.17"
-  strtok3: "10.3.5"
-  "serialize-error>type-fest": "0.13.1"
-  type-fest: "5.8.0"
-  uint8array-extras: "1.5.0"
-  viewerjs: "1.11.8"
-  vscode-uri: "3.1.0"
 
 # 自組織パッケージは publisher が我々自身のため、pnpm 11 既定の 24h 隔離
 # （minimumReleaseAge=1440・サプライチェーン保護）の対象外とする。第三者依存への
