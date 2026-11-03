@@ -15,6 +15,7 @@ import { resolveLocalReal } from '../utils/appScheme';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import { TILE_SIZE, tileLevelSize, tileMaxZoom } from '../utils/tilePyramid';
 import { compiledOf } from './compiled';
+import { declaredTileSize } from './imageHeader';
 import { DEFAULT_LIMITS } from './limits';
 
 function notImplemented(name: string): never {
@@ -54,7 +55,7 @@ export interface TileRange {
 interface TileSource {
   saveFolder: string;
   tileRoot: string;
-  ext: 'png' | 'jpg';
+  ext: 'png' | 'jpg' | 'jpeg';
   width: number;
   height: number;
   maxZoom: number;
@@ -75,7 +76,7 @@ async function tileSourceOf(uidOrMapID: string): Promise<TileSource | null> {
   const url = await deriveRuntimeTileUrl(null, path.join(tileRoot, '0', '0'));
   const ext = /\.(png|jpg|jpeg)$/.exec(url ?? '')?.[1];
   if (!ext) return null;
-  return { saveFolder, tileRoot, ext: ext === 'png' ? 'png' : 'jpg', width, height, maxZoom: tileMaxZoom(width, height) };
+  return { saveFolder, tileRoot, ext: ext as TileSource['ext'], width, height, maxZoom: tileMaxZoom(width, height) };
 }
 
 /** The number of tiles across and down at zoom level z, or null when z is not a level of the pyramid. */
@@ -87,7 +88,10 @@ function levelTiles(source: TileSource, z: number): { nx: number; ny: number } |
 
 /**
  * Reads one tile file. The path is checked to stay inside the save folder (a link that leads out of it is not
- * followed). Null when the tile is missing, outside the save folder or larger than maxBytes.
+ * followed), the file is opened once and its size is taken from the open file (so it cannot be swapped between
+ * the check and the read), and at most maxBytes are kept. The bytes are given only when they are of the kind of
+ * the extension and declare at most one tile of pixels, so nothing larger is ever decoded. Null otherwise, and
+ * when the tile is missing.
  */
 async function readTileFile(source: TileSource, z: number, x: number, y: number, maxBytes: number): Promise<TileImage | null> {
   const file = path.join(source.tileRoot, String(z), String(x), `${y}.${source.ext}`);
@@ -96,18 +100,40 @@ async function readTileFile(source: TileSource, z: number, x: number, y: number,
     if (resolved.reason !== 'missing') console.log(`[mcp] tile not read: ${resolved.reason}`);
     return null;
   }
+  let fd: number | null = null;
   try {
-    const stat = await fs.stat(resolved.realPath);
+    fd = await fs.open(resolved.realPath, 'r');
+    const stat = await fs.fstat(fd);
     if (!stat.isFile() || stat.size > maxBytes) {
       console.log('[mcp] tile not read: not a file or too large');
       return null;
     }
-    const bytes = await fs.readFile(resolved.realPath);
-    const tile: TileImage = { bytes, mimeType: source.ext === 'png' ? 'image/png' : 'image/jpeg' };
+    // Read up to one byte past the size taken (and never past maxBytes + 1): more than that means the file
+    // grew after its size was taken, and it is not used.
+    const buffer = Buffer.alloc(Math.min(stat.size, maxBytes) + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const { bytesRead } = await fs.read(fd, buffer, length, buffer.length - length, length);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    if (length > stat.size || length > maxBytes) {
+      console.log('[mcp] tile not read: changed while it was read, or too large');
+      return null;
+    }
+    const bytes = buffer.subarray(0, length);
+    const size = declaredTileSize(bytes, source.ext);
+    if (!size || size.width < 1 || size.height < 1 || size.width > TILE_SIZE || size.height > TILE_SIZE) {
+      console.log('[mcp] tile not read: not an image of its kind or larger than a tile');
+      return null;
+    }
+    const tile: TileImage = { bytes: Buffer.from(bytes), mimeType: source.ext === 'png' ? 'image/png' : 'image/jpeg' };
     return tile;
   } catch {
     console.log('[mcp] tile not read: read failed');
     return null;
+  } finally {
+    if (fd !== null) await fs.close(fd).catch(() => undefined);
   }
 }
 

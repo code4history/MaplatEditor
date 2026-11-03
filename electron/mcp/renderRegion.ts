@@ -5,8 +5,7 @@
 // a tile is I/O and the facade looks at the abort signal before each one; decoding, compositing, scaling and
 // drawing are CPU work that cannot be interrupted, so between those steps the event loop is given a turn and
 // the signal is looked at again.
-import { Jimp, loadFont, measureText } from 'jimp';
-import { SANS_10_BLACK } from 'jimp/fonts';
+import { Jimp, ResizeStrategy, loadFont, measureText } from 'jimp';
 import type * as ReadFacade from './readFacade';
 import type { McpLimits } from './limits';
 import { TILE_SIZE, tileMaxZoom } from '../utils/tilePyramid';
@@ -21,6 +20,8 @@ export const GRID_RGBA: Rgba = [230, 0, 120, 170];
 export const MARK_RGBA: Rgba = [255, 0, 0, 255];
 const LABEL_BOX_RGBA: Rgba = [255, 255, 255, 255];
 const MARK_ARM = 3;
+/** Labels start 2 px after their grid line, so this gap keeps a labelled line clear of the label before it. */
+const LABEL_GAP = 2;
 
 export interface RegionMark {
   x: number;
@@ -48,6 +49,8 @@ export interface RegionInfo {
   width: number;
   height: number;
   zoom: number;
+  /** Tiles of the region that were not drawn (missing, unreadable, or not a tile of their kind and size). */
+  missingTiles: number;
   grid_step?: number;
   [key: string]: unknown;
 }
@@ -78,13 +81,18 @@ async function giveWay(signal: AbortSignal): Promise<void> {
 
 let fontLoad: Promise<Font | null> | null = null;
 
-/** The label font, loaded once. Without it the grid and marks are drawn without text. */
+/**
+ * The label font, loaded once, when a label is first drawn. The font module is imported here rather than at the
+ * top, so a font that cannot be found only leaves the labels out: the grid and marks are still drawn.
+ */
 function labelFont(): Promise<Font | null> {
-  fontLoad ??= loadFont(SANS_10_BLACK).catch((error: unknown) => {
-    console.log('[mcp] maps.render_region: labels are left out, the font did not load:', error);
-    fontLoad = null;
-    return null;
-  });
+  fontLoad ??= import('jimp/fonts')
+    .then(({ SANS_10_BLACK }) => loadFont(SANS_10_BLACK))
+    .catch((error: unknown) => {
+      console.log('[mcp] maps.render_region: labels are left out, the font did not load:', error instanceof Error ? error.message : String(error));
+      fontLoad = null;
+      return null;
+    });
   return fontLoad;
 }
 
@@ -107,13 +115,30 @@ function fillRect(picture: Picture, x: number, y: number, w: number, h: number, 
   for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) blendPixel(picture, xx, yy, colour);
 }
 
-/** Text on a small light box, so it can be read on any part of the map. */
-function drawLabel(picture: Picture, font: Font | null, x: number, y: number, text: string): void {
-  if (!font || text === '') return;
+/** Text on a small light box, so it can be read on any part of the map. Returns the x just past the box. */
+function drawLabel(picture: Picture, font: Font | null, x: number, y: number, text: string): number {
+  if (!font || text === '') return x;
   const w = measureText(font, text) + 4;
   const h = font.common.lineHeight;
   fillRect(picture, x, y, w, h, LABEL_BOX_RGBA);
   picture.print({ font, x: x + 2, y, text });
+  return x + w;
+}
+
+/** Labels along one edge: a label that would start before the end of the previous one (and a 2 px gap) is left out. */
+function drawEdgeLabels(picture: Picture, font: Font | null, starts: number[], texts: string[], along: 'x' | 'y'): void {
+  if (!font) return;
+  let end = -Infinity;
+  for (let i = 0; i < starts.length; i++) {
+    if (along === 'x') {
+      if (starts[i] < end + LABEL_GAP) continue;
+      end = drawLabel(picture, font, starts[i], 0, texts[i]);
+    } else {
+      if (starts[i] < end + LABEL_GAP) continue;
+      drawLabel(picture, font, 0, starts[i], texts[i]);
+      end = starts[i] + font.common.lineHeight;
+    }
+  }
 }
 
 /** Image coordinates that are multiples of step, from `from` (included) to `to` (left out). */
@@ -182,6 +207,8 @@ export async function renderRegion(
   });
   if (!read) return null;
   checkAborted(signal);
+  let missingTiles = tileCount - read.tiles.reduce((n, row) => n + row.filter(Boolean).length, 0);
+  if (missingTiles === tileCount) throw new RegionRejected('tiles not readable', false);
 
   // Tiles side by side on a canvas that starts at the first tile; missing tiles stay background.
   const background = format === 'jpeg' ? 0xffffffff : 0x00000000;
@@ -199,20 +226,26 @@ export async function renderRegion(
         image = (await Jimp.fromBuffer(tile.bytes)) as unknown as Picture;
       } catch {
         console.log('[mcp] maps.render_region: a tile could not be decoded');
+        missingTiles += 1;
         continue;
       }
       if (image.width <= TILE_SIZE && image.height <= TILE_SIZE) {
         canvas.composite(image, (read.range.x0 - range.x0 + col) * TILE_SIZE, (read.range.y0 - range.y0 + row) * TILE_SIZE);
+      } else {
+        missingTiles += 1;
       }
       await giveWay(signal);
     }
   }
 
+  if (missingTiles === tileCount) throw new RegionRejected('tiles not readable', false);
+
   const cropX = lx0 - range.x0 * TILE_SIZE;
   const cropY = ly0 - range.y0 * TILE_SIZE;
   canvas.crop({ x: cropX, y: cropY, w: lx1 - lx0, h: ly1 - ly0 });
   await giveWay(signal);
-  canvas.resize({ w: outW, h: outH });
+  // Nearest neighbour: each image pixel becomes exactly a scale x scale square, so positions can be read off.
+  canvas.resize({ w: outW, h: outH, mode: ResizeStrategy.NEAREST_NEIGHBOR });
   await giveWay(signal);
   const picture = canvas as unknown as Picture;
 
@@ -229,8 +262,8 @@ export async function renderRegion(
       const oy = Math.round((gy - y0) * scale);
       for (let x = 0; x < outW; x++) if (!xs.some((gx) => Math.round((gx - x0) * scale) === x)) blendPixel(picture, x, oy, GRID_RGBA);
     }
-    for (const gx of xs) drawLabel(picture, font, Math.round((gx - x0) * scale) + 2, 0, String(gx));
-    for (const gy of ys) drawLabel(picture, font, 0, Math.round((gy - y0) * scale) + 2, String(gy));
+    drawEdgeLabels(picture, font, xs.map((gx) => Math.round((gx - x0) * scale) + 2), xs.map(String), 'x');
+    drawEdgeLabels(picture, font, ys.map((gy) => Math.round((gy - y0) * scale) + 2), ys.map(String), 'y');
     await giveWay(signal);
   }
   for (const mark of marks) {
@@ -256,7 +289,7 @@ export async function renderRegion(
       false,
     );
   }
-  const info: RegionInfo = { origin: [x0, y0], scale, width: outW, height: outH, zoom };
+  const info: RegionInfo = { origin: [x0, y0], scale, width: outW, height: outH, zoom, missingTiles };
   if (gridStep !== undefined) info.grid_step = gridStep;
   return { bytes, mimeType, info };
 }

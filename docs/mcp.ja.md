@@ -16,7 +16,7 @@ Maplat Editor は、小さな **MCP サーバー**（Model Context Protocol）�
 | `maps.list` | `query`（文字列・200 文字まで）・`page`（1 以上）・`pageSize`（1〜100・既定 20）。どれも省略できる | 保存した地図を 1 ページずつ: `uid`・`slug`・`title`・画像の `width` と `height`（ピクセル）・`maxZoom`（256 px のタイルの最大のズーム）と、`total`・`page`・`next` |
 | `maps.get` | `map`（uid か slug） | 地図 1 枚: `title`・`width`・`height`・`maxZoom`・GCP（`[[画像上の x, y], [経度, 緯度]]` の形）・`edges`・`hasCompiled`（`maps.transform` が使えるか） |
 | `maps.transform` | `map`・`direction`（`forward` か `backward`）・`points`（数 2 つの組を 1〜1000 個） | 地図の変換で点を変換した結果（地図の表示と同じ計算）。`forward` は画像のピクセル（左上が原点）から `[経度, 緯度]` へ、`backward` はその逆。画像の外の点は `null` |
-| `maps.render_region` | `map`・矩形 `x0`・`y0`・`x1`・`y1`（画像のピクセル。`x0 < x1`・`y0 < y1`・画像の中）。省略できるもの: `scale`（1〜4・既定 2）・`grid_step`（画像のピクセル）・`marks`（`{ x, y, label }` を 50 個まで。label は ASCII で 8 文字まで）・`format`（`png` か `jpeg`・既定 `png`） | 地図の画像のその部分を、保存したタイルから描いた画像（最大 1024 × 1024 ピクセル）。`grid_step` を付けるとその倍数の位置に座標つきの線（`grid_step` × `scale` は 32 以上）、`marks` で赤い十字。`structuredContent` に `origin`・`scale`・`width`・`height`・使ったタイルの `zoom`。出力のピクセル (u, v) は画像のピクセル (x0 + u / scale, y0 + v / scale) |
+| `maps.render_region` | `map`・矩形 `x0`・`y0`・`x1`・`y1`（画像のピクセル。`x0 < x1`・`y0 < y1`・画像の中）。省略できるもの: `scale`（1〜4・既定 2）・`grid_step`（画像のピクセル）・`marks`（`{ x, y, label }` を 50 個まで。label は ASCII で 8 文字まで）・`format`（`png` か `jpeg`・既定 `png`） | 地図の画像のその部分を、保存したタイルから描いた画像（最大 1024 × 1024 ピクセル）。`grid_step` を付けるとその倍数の位置に座標つきの線（`grid_step` × `scale` は 32 以上）、`marks` で赤い十字。`structuredContent` に `origin`・`scale`・`width`・`height`・使ったタイルの `zoom`・`missingTiles`（描けなかったタイルの数）。画像の 1 ピクセルは `scale` × `scale` の正方形になり、出力のピクセル (u, v) は画像のピクセル (x0 + floor(u / scale), y0 + floor(v / scale)) |
 
 - サムネイルとタイル 1 枚を読むツールと、範囲で探すツールは、次の版から足します。
 

@@ -252,8 +252,9 @@ export const registerTools: RegisterTools = (server, context) => {
         limits.minGridStepOutputPx + '). marks draws a red cross with an optional short label (printable ASCII, up ' +
         'to ' + limits.maxMarkLabelLength + ' characters) at image points; marks outside the rectangle are left out. ' +
         'png (default) leaves missing tiles transparent, jpeg leaves them white. structuredContent gives origin ' +
-        '[x0, y0], scale, the output width and height, and the tile zoom level used, so output pixel (u, v) is ' +
-        'image pixel (x0 + u / scale, y0 + v / scale).',
+        '[x0, y0], scale, the output width and height, the tile zoom level used, and missingTiles, the number of ' +
+        'tiles that could not be drawn. Each image pixel is a scale x scale square, so output pixel (u, v) is image ' +
+        'pixel (x0 + floor(u / scale), y0 + floor(v / scale)). When no tile can be read the answer is an error.',
       inputSchema: z
         .object({
           map: mapRefSchema(limits),
