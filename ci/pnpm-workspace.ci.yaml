@@ -94,7 +94,8 @@ overrides:
   "page>path-to-regexp": "~1.9.0"
   postcss: "^8.5.23"
   # 2026-10-03: undici GHSA-rfgv-xxqx-mfg5・GHSA-w293-vg96-wgc3（High）ほかは 7.29.1 で修正。経路は pwa-asset-generator（実行時）と node-gyp（ビルド時）
-  undici: "^7.29.1"
+  # 2026-11-04: GHSA-xjj6-f33q-929c（High）は 7 系では 7.30.1 で修正。lock は既に 7.30.1 なので、宣言の下限をそれに揃える
+  undici: "^7.30.1"
   # extract-zip（high×2・修正版なし）→ Electron 公式の置換 fork。経路は pwa-asset-generator → @puppeteer/browsers（oct26-m5-t12）。electron 側は 40.10.3 以降が置換 fork を直接使う（nov26-m6-t2）
   "@puppeteer/browsers>extract-zip": "npm:@electron-internal/extract-zip@^1.0.5"
   # 2026-10-17（nov26 m13・E-9）: basic-ftp <=6.2.0 の high は 6.2.1 で修正。経路は pwa-asset-generator >
