@@ -4,6 +4,12 @@ export interface MapListRequest {
   pageSize?: number;
 }
 
+// 一覧の行に足す情報の指定。renderer の一覧は使わない
+export interface MapListOptions {
+  /** 各行に原寸の幅高（sourceWidth/sourceHeight）を足す */
+  sourceSize?: boolean;
+}
+
 export interface MapListResult {
   docs: any[];
   prev: boolean;
@@ -45,7 +51,7 @@ export type MapSaveResult =
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface StorageAdapter {
-  listMaps(request: MapListRequest): Promise<MapListResult>;
+  listMaps(request: MapListRequest, options?: MapListOptions): Promise<MapListResult>;
   deleteMap(uidOrMapID: string): Promise<void>;
   readMapForEdit(uidOrMapID: string): Promise<any>;
   readMapForPreview(uidOrMapID: string): Promise<any>;
@@ -54,7 +60,7 @@ export interface StorageAdapter {
 }
 
 export interface StorageAdapterDependencies {
-  listMaps(query: string, page: number, pageSize: number): Promise<MapListResult>;
+  listMaps(query: string, page: number, pageSize: number, options?: MapListOptions): Promise<MapListResult>;
   deleteMap(uidOrMapID: string): Promise<void>;
   readMapForEdit(uidOrMapID: string): Promise<any>;
   readMapForPreview?(uidOrMapID: string): Promise<any>;
@@ -65,9 +71,11 @@ export interface StorageAdapterDependencies {
 export class ServiceBackedStorageAdapter implements StorageAdapter {
   constructor(private readonly dependencies: StorageAdapterDependencies) {}
 
-  async listMaps(request: MapListRequest): Promise<MapListResult> {
+  async listMaps(request: MapListRequest, options?: MapListOptions): Promise<MapListResult> {
     const { query, page, pageSize } = normalizeMapListRequest(request);
-    return await this.dependencies.listMaps(query, page, pageSize);
+    return options
+      ? await this.dependencies.listMaps(query, page, pageSize, options)
+      : await this.dependencies.listMaps(query, page, pageSize);
   }
 
   async deleteMap(uidOrMapID: string): Promise<void> {

@@ -4,13 +4,17 @@
 // too, so there is one implementation per read path.
 //
 // The functions are filled in together with the tools that use them; until then they throw.
+import StorageAdapter from '../adapters/ElectronStorageAdapter';
+import type { MapListOptions, MapListRequest, MapListResult } from '../adapters/StorageAdapter';
 
 function notImplemented(name: string): never {
   throw new Error(`${name}: not implemented`);
 }
 
-export async function listMaps(..._args: unknown[]): Promise<never> {
-  return notImplemented('listMaps');
+/** The map list, as the renderer's list screen gets it. options.sourceSize adds the full image size to each row. */
+export async function listMaps(request: MapListRequest, options?: MapListOptions): Promise<MapListResult> {
+  const result = await StorageAdapter.listMaps(request, options);
+  return result;
 }
 
 export async function readMapForEdit(..._args: unknown[]): Promise<never> {

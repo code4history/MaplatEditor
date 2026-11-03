@@ -6,7 +6,7 @@ import {
 } from './StorageAdapter';
 
 export default new ServiceBackedStorageAdapter({
-  listMaps: (query, page, pageSize) => MapDataService.requestMaps(query, page, pageSize),
+  listMaps: (query, page, pageSize, options) => MapDataService.requestMaps(query, page, pageSize, options),
   deleteMap: (uidOrMapID) => MapDataService.deleteMap(uidOrMapID),
   readMapForEdit: (uidOrMapID) => MapEditService.request(uidOrMapID),
   readMapForPreview: (uidOrMapID) => MapEditService.requestPreviewSource(uidOrMapID),

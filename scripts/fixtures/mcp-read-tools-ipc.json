@@ -1,0 +1,775 @@
+{
+ "source": "IPC handler results on master c68b6d71, before they read through the MCP facade. The temporary directory is written as <root>.",
+ "maplist": {
+  "maplist:request()": {
+   "docs": [
+    {
+     "mapID": "mcp-read-a",
+     "uid": "11111111-1111-4111-8111-111111111111",
+     "title": "読み取り試験 甲",
+     "width": 190,
+     "height": 152,
+     "image": "app://bundle/__local<root>/data/tmbs/11111111-1111-4111-8111-111111111111.jpg",
+     "previewDisabled": false,
+     "iiifDelivery": false
+    },
+    {
+     "mapID": "mcp-read-b",
+     "uid": "22222222-2222-4222-8222-222222222222",
+     "title": "Read test B",
+     "width": 190,
+     "height": 127,
+     "image": null,
+     "previewDisabled": false,
+     "iiifDelivery": false
+    },
+    {
+     "mapID": "mcp-read-c",
+     "uid": "33333333-3333-4333-8333-333333333333",
+     "title": "読み取り試験 丙",
+     "width": 190,
+     "height": 114,
+     "image": null,
+     "previewDisabled": false,
+     "iiifDelivery": false
+    }
+   ],
+   "prev": false,
+   "next": false,
+   "total": 3
+  },
+  "maplist:request(,1,2)": {
+   "docs": [
+    {
+     "mapID": "mcp-read-a",
+     "uid": "11111111-1111-4111-8111-111111111111",
+     "title": "読み取り試験 甲",
+     "width": 190,
+     "height": 152,
+     "image": "app://bundle/__local<root>/data/tmbs/11111111-1111-4111-8111-111111111111.jpg",
+     "previewDisabled": false,
+     "iiifDelivery": false
+    },
+    {
+     "mapID": "mcp-read-b",
+     "uid": "22222222-2222-4222-8222-222222222222",
+     "title": "Read test B",
+     "width": 190,
+     "height": 127,
+     "image": null,
+     "previewDisabled": false,
+     "iiifDelivery": false
+    }
+   ],
+   "prev": false,
+   "next": true,
+   "total": 3
+  },
+  "maplist:request(,2,2)": {
+   "docs": [
+    {
+     "mapID": "mcp-read-c",
+     "uid": "33333333-3333-4333-8333-333333333333",
+     "title": "読み取り試験 丙",
+     "width": 190,
+     "height": 114,
+     "image": null,
+     "previewDisabled": false,
+     "iiifDelivery": false
+    }
+   ],
+   "prev": true,
+   "next": false,
+   "total": 3
+  }
+ },
+ "mapedit": {
+  "11111111-1111-4111-8111-111111111111": {
+   "title": {
+    "ja": "読み取り試験 甲",
+    "en": "Read test A"
+   },
+   "label": {
+    "ja": "読み取り試験 甲",
+    "en": "Read test A"
+   },
+   "attr": {},
+   "dataAttr": {},
+   "author": {},
+   "createdAt": {},
+   "era": {},
+   "license": "PD",
+   "dataLicense": "CC0",
+   "contributor": {},
+   "mapper": {},
+   "reference": "",
+   "description": {},
+   "url": "",
+   "lang": "ja",
+   "imageExtension": "jpg",
+   "homePosition": [
+    139.75,
+    35.66
+   ],
+   "mercZoom": 14,
+   "strictMode": "auto",
+   "vertexMode": "plain",
+   "yaxisMode": "invert",
+   "width": 1000,
+   "height": 800,
+   "gcps": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      15551332.863820316,
+      4259419.9655479165
+     ]
+    ],
+    [
+     [
+      1000,
+      0
+     ],
+     [
+      15562464.812899647,
+      4259419.9655479165
+     ]
+    ],
+    [
+     [
+      1000,
+      800
+     ],
+     [
+      15562464.812899647,
+      4248459.150194492
+     ]
+    ],
+    [
+     [
+      0,
+      800
+     ],
+     [
+      15551332.863820316,
+      4248459.150194492
+     ]
+    ],
+    [
+     [
+      500,
+      400
+     ],
+     [
+      15557121.47734157,
+      4254075.196275748
+     ]
+    ]
+   ],
+   "edges": [],
+   "sub_maps": [],
+   "mapID": "mcp-read-a",
+   "uid": "11111111-1111-4111-8111-111111111111",
+   "revision": 1,
+   "status": "Update",
+   "onlyOne": true,
+   "compiledTins": [
+    {
+     "version": 2.00704,
+     "points": [
+      [
+       [
+        0,
+        0
+       ],
+       [
+        15551332.863820316,
+        4259419.9655479165
+       ]
+      ],
+      [
+       [
+        1000,
+        0
+       ],
+       [
+        15562464.812899647,
+        4259419.9655479165
+       ]
+      ],
+      [
+       [
+        1000,
+        800
+       ],
+       [
+        15562464.812899647,
+        4248459.150194492
+       ]
+      ],
+      [
+       [
+        0,
+        800
+       ],
+       [
+        15551332.863820316,
+        4248459.150194492
+       ]
+      ],
+      [
+       [
+        500,
+        400
+       ],
+       [
+        15557121.47734157,
+        4254075.196275748
+       ]
+      ]
+     ],
+     "weight_buffer": {},
+     "centroid_point": [
+      [
+       500,
+       400
+      ],
+      [
+       15557121.47734157,
+       4254075.196275748
+      ]
+     ],
+     "vertices_params": [
+      [
+       -2.2455372690184494,
+       -0.8960553845713439,
+       0.8960553845713439,
+       2.2455372690184494
+      ],
+      [
+       -0.8960735745705226,
+       -2.2455554590178384,
+       2.245519079019238,
+       0.8960371945720177
+      ]
+     ],
+     "vertices_points": [
+      [
+       [
+        -50,
+        -40
+       ],
+       [
+        15550193.696795002,
+        4259617.2140492415
+       ]
+      ],
+      [
+       [
+        -50,
+        840
+       ],
+       [
+        15550101.400405878,
+        4248458.925304027
+       ]
+      ],
+      [
+       [
+        1050,
+        840
+       ],
+       [
+        15564141.758592546,
+        4248459.180698133
+       ]
+      ],
+      [
+       [
+        1050,
+        -40
+       ],
+       [
+        15564049.056264956,
+        4259617.46607822
+       ]
+      ]
+     ],
+     "strict_status": "strict",
+     "tins_points": [
+      [
+       [
+        4,
+        0,
+        3
+       ],
+       [
+        0,
+        "b0",
+        3
+       ],
+       [
+        3,
+        "b0",
+        "b1"
+       ],
+       [
+        4,
+        1,
+        0
+       ],
+       [
+        0,
+        1,
+        "b0"
+       ],
+       [
+        3,
+        2,
+        4
+       ],
+       [
+        4,
+        2,
+        1
+       ],
+       [
+        "b1",
+        2,
+        3
+       ],
+       [
+        2,
+        "b1",
+        "b2"
+       ],
+       [
+        2,
+        "b2",
+        1
+       ],
+       [
+        1,
+        "b2",
+        "b3"
+       ],
+       [
+        1,
+        "b3",
+        "b0"
+       ]
+      ]
+     ],
+     "yaxisMode": "invert",
+     "vertexMode": "plain",
+     "strictMode": "auto",
+     "wh": [
+      1000,
+      800
+     ],
+     "edges": [],
+     "edgeNodes": []
+    }
+   ]
+  },
+  "mcp-read-a": {
+   "title": {
+    "ja": "読み取り試験 甲",
+    "en": "Read test A"
+   },
+   "label": {
+    "ja": "読み取り試験 甲",
+    "en": "Read test A"
+   },
+   "attr": {},
+   "dataAttr": {},
+   "author": {},
+   "createdAt": {},
+   "era": {},
+   "license": "PD",
+   "dataLicense": "CC0",
+   "contributor": {},
+   "mapper": {},
+   "reference": "",
+   "description": {},
+   "url": "",
+   "lang": "ja",
+   "imageExtension": "jpg",
+   "homePosition": [
+    139.75,
+    35.66
+   ],
+   "mercZoom": 14,
+   "strictMode": "auto",
+   "vertexMode": "plain",
+   "yaxisMode": "invert",
+   "width": 1000,
+   "height": 800,
+   "gcps": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      15551332.863820316,
+      4259419.9655479165
+     ]
+    ],
+    [
+     [
+      1000,
+      0
+     ],
+     [
+      15562464.812899647,
+      4259419.9655479165
+     ]
+    ],
+    [
+     [
+      1000,
+      800
+     ],
+     [
+      15562464.812899647,
+      4248459.150194492
+     ]
+    ],
+    [
+     [
+      0,
+      800
+     ],
+     [
+      15551332.863820316,
+      4248459.150194492
+     ]
+    ],
+    [
+     [
+      500,
+      400
+     ],
+     [
+      15557121.47734157,
+      4254075.196275748
+     ]
+    ]
+   ],
+   "edges": [],
+   "sub_maps": [],
+   "mapID": "mcp-read-a",
+   "uid": "11111111-1111-4111-8111-111111111111",
+   "revision": 1,
+   "status": "Update",
+   "onlyOne": true,
+   "compiledTins": [
+    {
+     "version": 2.00704,
+     "points": [
+      [
+       [
+        0,
+        0
+       ],
+       [
+        15551332.863820316,
+        4259419.9655479165
+       ]
+      ],
+      [
+       [
+        1000,
+        0
+       ],
+       [
+        15562464.812899647,
+        4259419.9655479165
+       ]
+      ],
+      [
+       [
+        1000,
+        800
+       ],
+       [
+        15562464.812899647,
+        4248459.150194492
+       ]
+      ],
+      [
+       [
+        0,
+        800
+       ],
+       [
+        15551332.863820316,
+        4248459.150194492
+       ]
+      ],
+      [
+       [
+        500,
+        400
+       ],
+       [
+        15557121.47734157,
+        4254075.196275748
+       ]
+      ]
+     ],
+     "weight_buffer": {},
+     "centroid_point": [
+      [
+       500,
+       400
+      ],
+      [
+       15557121.47734157,
+       4254075.196275748
+      ]
+     ],
+     "vertices_params": [
+      [
+       -2.2455372690184494,
+       -0.8960553845713439,
+       0.8960553845713439,
+       2.2455372690184494
+      ],
+      [
+       -0.8960735745705226,
+       -2.2455554590178384,
+       2.245519079019238,
+       0.8960371945720177
+      ]
+     ],
+     "vertices_points": [
+      [
+       [
+        -50,
+        -40
+       ],
+       [
+        15550193.696795002,
+        4259617.2140492415
+       ]
+      ],
+      [
+       [
+        -50,
+        840
+       ],
+       [
+        15550101.400405878,
+        4248458.925304027
+       ]
+      ],
+      [
+       [
+        1050,
+        840
+       ],
+       [
+        15564141.758592546,
+        4248459.180698133
+       ]
+      ],
+      [
+       [
+        1050,
+        -40
+       ],
+       [
+        15564049.056264956,
+        4259617.46607822
+       ]
+      ]
+     ],
+     "strict_status": "strict",
+     "tins_points": [
+      [
+       [
+        4,
+        0,
+        3
+       ],
+       [
+        0,
+        "b0",
+        3
+       ],
+       [
+        3,
+        "b0",
+        "b1"
+       ],
+       [
+        4,
+        1,
+        0
+       ],
+       [
+        0,
+        1,
+        "b0"
+       ],
+       [
+        3,
+        2,
+        4
+       ],
+       [
+        4,
+        2,
+        1
+       ],
+       [
+        "b1",
+        2,
+        3
+       ],
+       [
+        2,
+        "b1",
+        "b2"
+       ],
+       [
+        2,
+        "b2",
+        1
+       ],
+       [
+        1,
+        "b2",
+        "b3"
+       ],
+       [
+        1,
+        "b3",
+        "b0"
+       ]
+      ]
+     ],
+     "yaxisMode": "invert",
+     "vertexMode": "plain",
+     "strictMode": "auto",
+     "wh": [
+      1000,
+      800
+     ],
+     "edges": [],
+     "edgeNodes": []
+    }
+   ]
+  },
+  "22222222-2222-4222-8222-222222222222": {
+   "title": {
+    "en": "Read test B"
+   },
+   "label": {
+    "en": "Read test B"
+   },
+   "attr": {},
+   "dataAttr": {},
+   "author": {},
+   "createdAt": {},
+   "era": {},
+   "license": "PD",
+   "dataLicense": "CC0",
+   "contributor": {},
+   "mapper": {},
+   "reference": "",
+   "description": {},
+   "url": "",
+   "lang": "en",
+   "imageExtension": "jpg",
+   "homePosition": [
+    139.75,
+    35.66
+   ],
+   "mercZoom": 14,
+   "strictMode": "auto",
+   "vertexMode": "plain",
+   "width": 300,
+   "height": 200,
+   "gcps": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      15551332.863820316,
+      4259419.9655479165
+     ]
+    ],
+    [
+     [
+      1000,
+      0
+     ],
+     [
+      15562464.812899647,
+      4259419.9655479165
+     ]
+    ]
+   ],
+   "edges": [],
+   "sub_maps": [],
+   "mapID": "mcp-read-b",
+   "uid": "22222222-2222-4222-8222-222222222222",
+   "revision": 1,
+   "status": "Update",
+   "onlyOne": true,
+   "compiledTins": [
+    "tooLessGcps"
+   ]
+  },
+  "33333333-3333-4333-8333-333333333333": {
+   "title": {
+    "ja": "読み取り試験 丙"
+   },
+   "label": {
+    "ja": "読み取り試験 丙"
+   },
+   "attr": {},
+   "dataAttr": {},
+   "author": {},
+   "createdAt": {},
+   "era": {},
+   "license": "PD",
+   "dataLicense": "CC0",
+   "contributor": {},
+   "mapper": {},
+   "reference": "",
+   "description": {},
+   "url": "",
+   "lang": "ja",
+   "imageExtension": "jpg",
+   "homePosition": [
+    139.75,
+    35.66
+   ],
+   "mercZoom": 14,
+   "strictMode": "auto",
+   "vertexMode": "plain",
+   "width": 5000,
+   "height": 3000,
+   "gcps": [],
+   "edges": [],
+   "sub_maps": [],
+   "mapID": "mcp-read-c",
+   "uid": "33333333-3333-4333-8333-333333333333",
+   "revision": 1,
+   "status": "Update",
+   "onlyOne": true,
+   "compiledTins": [
+    "tooLessGcps"
+   ]
+  }
+ }
+}
