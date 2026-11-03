@@ -100,7 +100,7 @@ export const registerTools: RegisterTools = (server, context) => {
       inputSchema: z
         .object({
           query: z.string().max(limits.maxQueryLength).optional(),
-          page: z.number().int().min(1).optional(),
+          page: z.number().int().min(1).max(limits.maxListPage).optional(),
           pageSize: z.number().int().min(1).max(limits.maxListPageSize).optional(),
         })
         .strict(),

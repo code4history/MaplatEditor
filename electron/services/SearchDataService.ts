@@ -21,16 +21,19 @@ export type { AppListResult, MapListResult } from './SqliteDataService';
 
 
 
-function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult {
+export function paginate(rawDocs: any[], page: number, pageSize: number): MapListResult {
   // pageSize<=0 は全件取得(ページネーションなし)
   if (pageSize <= 0) {
     return { docs: rawDocs, prev: false, next: false, total: rawDocs.length };
   }
+  // 範囲を越えたページは最後のページ（0 件なら 1）に丸め、丸めた番号を pageUpdate で知らせる。
+  // 1 ページずつ戻すと、巨大な page で同期の処理が main プロセスを止めるので、計算で求める
+  const lastPage = Math.max(1, Math.ceil(rawDocs.length / pageSize));
   let currentPage = page;
   let pageUpdate: number | undefined;
-  while (currentPage > 1 && rawDocs.slice((currentPage - 1) * pageSize, currentPage * pageSize).length === 0) {
-    currentPage--;
-    pageUpdate = currentPage;
+  if (currentPage > lastPage) {
+    currentPage = lastPage;
+    pageUpdate = lastPage;
   }
   const start = (currentPage - 1) * pageSize;
   const pageDocs = rawDocs.slice(start, start + pageSize);

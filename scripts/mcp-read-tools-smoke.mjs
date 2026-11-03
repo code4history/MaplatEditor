@@ -275,6 +275,32 @@ try {
       }
       console.log('ok: tools/list: ' + names.join(', ') + ' (strict object schemas, read-only)');
 
+      // ---------------- paging: a page far past the end is answered at once ----------------
+      {
+        const { paginate } = await import(${JSON.stringify(rel('electron/services/SearchDataService.ts'))});
+        assert.equal(typeof paginate, 'function', 'paginate is exported for this check');
+        // The rule before it was computed: step back one page at a time while the page is empty.
+        const stepBack = (docs: unknown[], page: number, pageSize: number) => {
+          let p = page; let update: number | undefined;
+          while (p > 1 && docs.slice((p - 1) * pageSize, p * pageSize).length === 0) { p--; update = p; }
+          const start = (p - 1) * pageSize;
+          const r: any = { docs: docs.slice(start, start + pageSize), prev: p > 1, next: docs.length > start + pageSize, total: docs.length };
+          if (update !== undefined) r.pageUpdate = update;
+          return r;
+        };
+        for (const len of [0, 1, 5, 20, 21]) {
+          const docs = Array.from({ length: len }, (_, i) => i);
+          for (const pageSize of [1, 3, 20]) for (const page of [1, 2, 3, 7, 30]) {
+            assert.deepEqual(paginate(docs, page, pageSize), stepBack(docs, page, pageSize), \`paginate(\${len} docs, page \${page}, size \${pageSize}) keeps the old answer\`);
+          }
+        }
+        const started = Date.now();
+        const far = paginate([1, 2, 3], Number.MAX_SAFE_INTEGER, 2);
+        assert.ok(Date.now() - started < 50, 'paginate answers a huge page at once');
+        assert.deepEqual(far, { docs: [3], prev: true, next: false, total: 3, pageUpdate: 2 }, 'a huge page answers the last page');
+        console.log('ok: paginate gives the same answers as stepping back and answers a huge page at once');
+      }
+
       // ---------------- maps.list ----------------
       {
         const fromIpc = (r: any) => r.docs.map((d: any) => ({ uid: d.uid, slug: d.mapID, title: d.title }));
@@ -312,6 +338,9 @@ try {
         await rejected('maps.list', { pageSize: 0 }, 'maps.list pageSize 0');
         await rejected('maps.list', { page: 0 }, 'maps.list page 0');
         await rejected('maps.list', { page: 1.5 }, 'maps.list page 1.5');
+        await rejected('maps.list', { page: Number.MAX_SAFE_INTEGER }, 'maps.list page Number.MAX_SAFE_INTEGER');
+        await rejected('maps.list', { page: 10001 }, 'maps.list page 10001');
+        assert.equal((await ok('maps.list', { page: 10000 })).page, 1, 'maps.list accepts page 10000 (and answers the last page)');
         await rejected('maps.list', { query: 'x'.repeat(201) }, 'maps.list query of 201 characters');
         await rejected('maps.list', { query: 'a', path: '/etc' }, 'maps.list unknown key');
         assert.equal((await ok('maps.list', { pageSize: 100, query: 'x'.repeat(200) })).maps.length, 0, 'maps.list accepts the limits themselves');

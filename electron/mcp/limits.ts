@@ -18,7 +18,8 @@ export interface McpLimits {
   maxWaitingForAuth: number;
   /** The copied connection command is cleared from the clipboard after this long. */
   clipboardClearMs: number;
-  /** maps.list: largest page size and longest search text. */
+  /** maps.list: largest page number, largest page size and longest search text. */
+  maxListPage: number;
   maxListPageSize: number;
   maxQueryLength: number;
   /** Longest map reference (uid or slug) a tool accepts. */
@@ -42,6 +43,7 @@ export const DEFAULT_LIMITS: Readonly<McpLimits> = Object.freeze({
   failureDelayCap: 20,
   maxWaitingForAuth: 32,
   clipboardClearMs: 60_000,
+  maxListPage: 10_000,
   maxListPageSize: 100,
   maxQueryLength: 200,
   maxMapRefLength: 100,
