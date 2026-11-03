@@ -81,6 +81,9 @@ The header is passed through `env` because some clients do not escape spaces ins
 - **The token is stored in plain text in your client's settings** (Claude Code's configuration, or
   `claude_desktop_config.json`). Anyone who can read your files can read it. If other people use your computer
   account, regenerate the token when you stop using MCP.
+- **Running the Claude Code command in a terminal leaves the token in your shell history** (for example
+  `~/.zsh_history` or PowerShell's history). If that worries you, delete that line from the history or press
+  **Regenerate** afterwards and register again.
 - **Programs running under your own account can read the token** from the editor's settings file. The server cannot
   protect against them.
 - **While the editor is not listening** (turned off or not running), another program on the same computer can open

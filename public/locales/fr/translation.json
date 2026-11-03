@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "Enregistrez dans le client l’URL avec 127.0.0.1, pas localhost.",
     "mcp_error_port_in_use": "Un autre programme utilise le même port. Le jeton lui a peut-être été envoyé. Veuillez régénérer le jeton.",
     "mcp_error_listen_failed": "Impossible de commencer l’écoute.",
-    "mcp_error_port_invalid": "Saisissez un nombre entier de 1024 à 65535 pour le port."
+    "mcp_error_port_invalid": "Saisissez un nombre entier de 1024 à 65535 pour le port.",
+    "mcp_copy_failed": "Impossible de copier."
   },
   "maplist": {
     "title": "Liste des cartes",

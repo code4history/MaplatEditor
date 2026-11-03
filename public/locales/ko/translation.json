@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "클라이언트에는 localhost가 아니라 127.0.0.1 URL로 등록하세요.",
     "mcp_error_port_in_use": "다른 프로그램이 같은 포트를 사용하고 있습니다. 토큰이 그쪽으로 전송되었을 수 있습니다. 토큰을 재발급하세요.",
     "mcp_error_listen_failed": "대기를 시작할 수 없습니다.",
-    "mcp_error_port_invalid": "포트는 1024~65535 사이의 정수로 입력하세요."
+    "mcp_error_port_invalid": "포트는 1024~65535 사이의 정수로 입력하세요.",
+    "mcp_copy_failed": "복사할 수 없습니다."
   },
   "maplist": {
     "title": "지도 목록",

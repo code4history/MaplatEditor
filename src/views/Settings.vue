@@ -317,7 +317,7 @@
                     type="checkbox"
                     role="switch"
                     data-testid="settings-mcp-enabled"
-                    :checked="mcp.status.enabled && mcp.status.listening"
+                    :checked="mcp.status.enabled"
                     :disabled="mcp.busy"
                     @change="onToggleMcp($event.target as HTMLInputElement)"
                   />
@@ -429,6 +429,9 @@
               <div v-if="mcp.copied" class="col-sm-9 offset-sm-3 form-text" data-testid="settings-mcp-copied">
                 {{ t("settings.mcp_copied") }}
               </div>
+              <div v-if="mcp.copyFailed" class="col-sm-9 offset-sm-3 text-danger small" data-testid="settings-mcp-copy-failed">
+                {{ t("settings.mcp_copy_failed") }}
+              </div>
             </div>
 
             <div class="row mb-3">
@@ -473,7 +476,8 @@ const mcp = reactive<{
   portInvalid: boolean;
   busy: boolean;
   copied: boolean;
-}>({ status: null, portInput: "", portInvalid: false, busy: false, copied: false });
+  copyFailed: boolean;
+}>({ status: null, portInput: "", portInvalid: false, busy: false, copied: false, copyFailed: false });
 const mcpAddress = computed(() => `127.0.0.1:${mcp.status?.port ?? ""}`);
 const mcpNotice = computed(() => mcpText(i18next.language, "enable.detail"));
 let stopMcpStatus: (() => void) | null = null;
@@ -499,8 +503,9 @@ async function runMcp(task: () => Promise<McpStatus>): Promise<void> {
 
 const onToggleMcp = async (input: HTMLInputElement) => {
   await runMcp(() => window.mcp.setEnabled(input.checked));
-  // Cancelling the confirmation leaves the status unchanged, so put the switch back by hand.
-  input.checked = Boolean(mcp.status?.enabled && mcp.status?.listening);
+  // The switch shows the saved choice; a taken port or a failed listen is told by the error text, so the
+  // user can still turn it off. Cancelling the confirmation leaves the status unchanged: put the switch back.
+  input.checked = Boolean(mcp.status?.enabled);
 };
 const regenerateMcpToken = () => runMcp(() => window.mcp.regenerateToken());
 const saveMcpPort = async () => {
@@ -511,11 +516,16 @@ const saveMcpPort = async () => {
 };
 const copyMcpCommand = async (client: "claude-code" | "mcp-remote") => {
   mcp.busy = true;
+  mcp.copyFailed = false;
   try {
     const { copied } = await window.mcp.copyConnectionCommand(client);
     mcp.copied = copied;
     if (copiedTimer) clearTimeout(copiedTimer);
     if (copied) copiedTimer = setTimeout(() => (mcp.copied = false), 60_000);
+  } catch (e) {
+    console.error("Copying the MCP registration command failed:", e);
+    mcp.copied = false;
+    mcp.copyFailed = true;
   } finally {
     mcp.busy = false;
   }

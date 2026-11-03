@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "Hãy đăng ký URL dùng 127.0.0.1 trong ứng dụng, không dùng localhost.",
     "mcp_error_port_in_use": "Một chương trình khác đang dùng cùng cổng. Mã token có thể đã bị gửi tới chương trình đó. Hãy cấp lại mã token.",
     "mcp_error_listen_failed": "Không thể bắt đầu lắng nghe.",
-    "mcp_error_port_invalid": "Hãy nhập cổng là số nguyên từ 1024 đến 65535."
+    "mcp_error_port_invalid": "Hãy nhập cổng là số nguyên từ 1024 đến 65535.",
+    "mcp_copy_failed": "Không thể sao chép."
   },
   "maplist": {
     "title": "Danh sách bản đồ",

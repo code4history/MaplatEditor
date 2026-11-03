@@ -186,10 +186,21 @@ test('the MCP tab turns the server on and off, copies safely and survives a rest
     await answerWith(app, 0);
     await page.getByTestId('settings-mcp-enabled').click();
     await expect(page.getByTestId('settings-mcp-port-in-use')).toBeVisible();
-    expect((await page.evaluate(() => window.mcp.getStatus())).listening).toBe(false);
+    const blocked = await page.evaluate(() => window.mcp.getStatus());
+    expect(blocked.listening).toBe(false);
+    expect(blocked.enabled).toBe(true);
+    // The switch shows the saved choice (on), so it can be turned off from here
+    await expect(page.getByTestId('settings-mcp-enabled')).toBeChecked();
+    await expect(page.getByTestId('header-mcp-listening')).toHaveCount(0);
+    await page.getByTestId('settings-mcp-enabled').click();
+    await expect(page.getByTestId('settings-mcp-enabled')).not.toBeChecked();
+    await expect.poll(() => page.evaluate(() => window.mcp.getStatus().then((st) => st.enabled))).toBe(false);
+    await expect(page.getByTestId('settings-mcp-port-in-use')).toHaveCount(0);
+    // Once the port is free, turning it on again listens
     await new Promise<void>((resolve) => blocker.close(() => resolve()));
     await page.getByTestId('settings-mcp-enabled').click();
     await expect(page.getByTestId('header-mcp-listening')).toBeVisible();
+    await expect(page.getByTestId('settings-mcp-enabled')).toBeChecked();
     await expect(page.getByTestId('settings-mcp-port-in-use')).toHaveCount(0);
 
     // macOS: closing the window only hides the app, and the server keeps listening

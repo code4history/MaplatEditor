@@ -296,7 +296,8 @@
     "mcp_recommend_loopback": "Register the 127.0.0.1 URL in your client, not localhost.",
     "mcp_error_port_in_use": "Another program is using the same port. The token may have been sent to it. Please regenerate the token.",
     "mcp_error_listen_failed": "Could not start listening.",
-    "mcp_error_port_invalid": "Enter a whole number from 1024 to 65535 for the port."
+    "mcp_error_port_invalid": "Enter a whole number from 1024 to 65535 for the port.",
+    "mcp_copy_failed": "Could not copy."
   },
   "maplist": {
     "title": "Map list",

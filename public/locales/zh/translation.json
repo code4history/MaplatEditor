@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "请在客户端中使用 127.0.0.1 的 URL 注册，而不是 localhost。",
     "mcp_error_port_in_use": "另一个程序正在使用同一端口。令牌可能已被发送给它。请重新生成令牌。",
     "mcp_error_listen_failed": "无法开始监听。",
-    "mcp_error_port_invalid": "请将端口指定为 1024 到 65535 之间的整数。"
+    "mcp_error_port_invalid": "请将端口指定为 1024 到 65535 之间的整数。",
+    "mcp_copy_failed": "无法复制。"
   },
   "maplist": {
     "title": "地图列表",

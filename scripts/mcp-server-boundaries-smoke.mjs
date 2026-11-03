@@ -704,9 +704,15 @@ try {
         const status = await call('mcp:get-status', trusted);
         assert.equal(status.tokenTail, token.slice(-4), 'D trusted sender gets the status');
         nextResponse = 1;
-        assert.deepEqual(await call('mcp:copy-connection-command', trusted, 'claude-code'), { copied: false });
-        assert.equal(dialogCalls.length, 1, 'D trusted sender reaches the copy dialog');
+        if (flag) {
+          assert.deepEqual(await call('mcp:copy-connection-command', trusted, 'claude-code'), { copied: false });
+          assert.equal(dialogCalls.length, 1, 'D trusted sender reaches the copy dialog');
+        } else {
+          await assert.rejects(async () => call('mcp:copy-connection-command', trusted, 'claude-code'), /feature disabled/);
+          assert.equal(dialogCalls.length, 0, 'D [flag false] no copy dialog');
+        }
         assert.equal(clip, '', 'D cancelled copy leaves the clipboard alone');
+        const expectedDialogs = dialogCalls.length;
         console.log(\`ok: D [flag \${flag}] positive control: a trusted frame runs the handlers\`);
 
         // untrusted senders never run the handler body
@@ -714,7 +720,7 @@ try {
           for (const ch of ['mcp:get-status', 'mcp:copy-connection-command', 'mcp:set-enabled']) {
             await assert.rejects(async () => call(ch, ev, ch === 'mcp:set-enabled' ? true : 'claude-code'), /IPC call from an untrusted frame/);
           }
-          assert.equal(dialogCalls.length, 1, \`D \${label}: no dialog was shown\`);
+          assert.equal(dialogCalls.length, expectedDialogs, \`D \${label}: no dialog was shown\`);
         }
         console.log(\`ok: D [flag \${flag}] untrusted frames are rejected before the handler runs\`);
 
@@ -733,7 +739,15 @@ try {
         if (!flag) {
           await assert.rejects(async () => call('mcp:set-enabled', trusted, true), /feature disabled/);
           assert.equal(controller.status().listening, false);
-          console.log('ok: D [flag false] mcp:set-enabled -> feature disabled');
+          // Nothing else may act either: no copy (so no token on the clipboard), no port change, no new token
+          const tailBefore = controller.status().tokenTail;
+          await assert.rejects(async () => call('mcp:copy-connection-command', trusted, 'mcp-remote'), /feature disabled/);
+          await assert.rejects(async () => call('mcp:set-port', trusted, 45000), /feature disabled/);
+          await assert.rejects(async () => call('mcp:regenerate-token', trusted), /feature disabled/);
+          assert.equal(clip, '', 'D [flag false] nothing reached the clipboard');
+          assert.equal(controller.status().tokenTail, tailBefore, 'D [flag false] the token was not regenerated');
+          assert.notEqual(controller.status().port, 45000, 'D [flag false] the port was not changed');
+          console.log('ok: D [flag false] set-enabled, copy, set-port and regenerate -> feature disabled');
           continue;
         }
 

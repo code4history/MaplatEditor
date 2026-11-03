@@ -23,6 +23,10 @@ function invalidArgument(): never {
   throw new Error('invalid argument');
 }
 
+function assertFeatureEnabled(controller: McpController): void {
+  if (!controller.featureEnabled) throw new Error('feature disabled');
+}
+
 let pendingClipboard: { text: string; timer: ReturnType<typeof setTimeout> } | null = null;
 let activeClipboard: McpIpcDeps['clipboard'] | null = null;
 
@@ -45,7 +49,10 @@ function testLimits(): McpLimits | undefined {
   const raw = process.env['MAPLAT_E2E_MCP_CLIPBOARD_CLEAR_MS'];
   if (!raw || !process.env['MAPLAT_E2E_ROOT'] || app.isPackaged) return undefined;
   const ms = Number(raw);
-  return Number.isInteger(ms) && ms > 0 ? { ...DEFAULT_LIMITS, clipboardClearMs: ms } : undefined;
+  // Never longer than the normal delay: the variable can only shorten it.
+  return Number.isInteger(ms) && ms > 0
+    ? { ...DEFAULT_LIMITS, clipboardClearMs: Math.min(ms, DEFAULT_LIMITS.clipboardClearMs) }
+    : undefined;
 }
 
 function defaultDeps(): McpIpcDeps {
@@ -74,7 +81,7 @@ export function registerMcpHandlers(overrides: Partial<McpIpcDeps> = {}): McpCon
 
   ipc.handle('mcp:set-enabled', async (event, enabled: unknown) => {
     if (typeof enabled !== 'boolean') invalidArgument();
-    if (!controller.featureEnabled) throw new Error('feature disabled');
+    assertFeatureEnabled(controller);
     if (!enabled) return controller.disable();
     if (controller.status().enabled && controller.status().listening) return controller.status();
     const lang = deps.lang();
@@ -95,13 +102,18 @@ export function registerMcpHandlers(overrides: Partial<McpIpcDeps> = {}): McpCon
 
   ipc.handle('mcp:set-port', (_event, port: unknown) => {
     if (!isValidPort(port)) invalidArgument();
+    assertFeatureEnabled(controller);
     return controller.setPort(port);
   });
 
-  ipc.handle('mcp:regenerate-token', () => controller.regenerateToken());
+  ipc.handle('mcp:regenerate-token', () => {
+    assertFeatureEnabled(controller);
+    return controller.regenerateToken();
+  });
 
   ipc.handle('mcp:copy-connection-command', async (event, client: unknown) => {
     if (typeof client !== 'string' || !CLIENTS.includes(client as McpClientKind)) invalidArgument();
+    assertFeatureEnabled(controller);
     const lang = deps.lang();
     const { response } = await deps.showMessageBox(deps.windowFor(event), {
       type: 'question',

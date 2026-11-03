@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "クライアントには localhost ではなく 127.0.0.1 の URL で登録してください。",
     "mcp_error_port_in_use": "別のプログラムが同じポートを使っています。トークンが送られた可能性があります。再発行してください。",
     "mcp_error_listen_failed": "待ち受けを始められませんでした。",
-    "mcp_error_port_invalid": "ポートは 1024〜65535 の整数で指定してください。"
+    "mcp_error_port_invalid": "ポートは 1024〜65535 の整数で指定してください。",
+    "mcp_copy_failed": "コピーできませんでした。"
   },
   "maplist": {
     "title": "地図一覧",

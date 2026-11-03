@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "請在用戶端使用 127.0.0.1 的 URL 註冊，而不是 localhost。",
     "mcp_error_port_in_use": "另一個程式正在使用同一個連接埠。權杖可能已被傳送給它。請重新產生權杖。",
     "mcp_error_listen_failed": "無法開始監聽。",
-    "mcp_error_port_invalid": "請以 1024 到 65535 之間的整數指定連接埠。"
+    "mcp_error_port_invalid": "請以 1024 到 65535 之間的整數指定連接埠。",
+    "mcp_copy_failed": "無法複製。"
   },
   "maplist": {
     "title": "地圖清單",

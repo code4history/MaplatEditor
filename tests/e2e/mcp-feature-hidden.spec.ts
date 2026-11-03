@@ -30,6 +30,25 @@ test('the hidden MCP server has no tab, no indicator and cannot be turned on', a
       }
     });
     expect(result).toContain('feature disabled');
+    // Nothing else acts either: copying (which would put a token on the clipboard), the port and the token
+    const others = await page.evaluate(async () => {
+      const attempt = async (run: () => Promise<unknown>) => {
+        try {
+          await run();
+          return 'resolved';
+        } catch (e) {
+          return e instanceof Error ? e.message : String(e);
+        }
+      };
+      return {
+        copy: await attempt(() => window.mcp.copyConnectionCommand('claude-code')),
+        port: await attempt(() => window.mcp.setPort(45000)),
+        regenerate: await attempt(() => window.mcp.regenerateToken()),
+      };
+    });
+    expect(others.copy).toContain('feature disabled');
+    expect(others.port).toContain('feature disabled');
+    expect(others.regenerate).toContain('feature disabled');
     const status = await page.evaluate(() => window.mcp.getStatus());
     expect(status.featureEnabled).toBe(false);
     expect(status.listening).toBe(false);

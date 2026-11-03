@@ -314,7 +314,8 @@
     "mcp_recommend_loopback": "Registrieren Sie im Client die URL mit 127.0.0.1, nicht localhost.",
     "mcp_error_port_in_use": "Ein anderes Programm verwendet denselben Port. Das Token wurde möglicherweise dorthin gesendet. Bitte erzeugen Sie das Token neu.",
     "mcp_error_listen_failed": "Lauschen konnte nicht gestartet werden.",
-    "mcp_error_port_invalid": "Geben Sie für den Port eine ganze Zahl von 1024 bis 65535 ein."
+    "mcp_error_port_invalid": "Geben Sie für den Port eine ganze Zahl von 1024 bis 65535 ein.",
+    "mcp_copy_failed": "Kopieren war nicht möglich."
   },
   "maplist": {
     "title": "Kartenliste",
