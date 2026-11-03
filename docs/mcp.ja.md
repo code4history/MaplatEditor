@@ -8,7 +8,16 @@ Maplat Editor は、小さな **MCP サーバー**（Model Context Protocol）�
 ## できること
 
 - サーバーは**読み取りだけ**を行います。地図・POI・アプリを書き換えることはありません。
-- この版で使えるのは `editor.ping`（接続の確かめ）だけです。地図・GCP・タイルを読むツールは、次の版から足します。
+- 使えるツールは次のとおりです。
+
+| ツール | 入力 | 返すもの |
+|---|---|---|
+| `editor.ping` | なし | `ok` と Editor の版（接続の確かめ） |
+| `maps.list` | `query`（文字列・200 文字まで）・`page`（1 以上）・`pageSize`（1〜100・既定 20）。どれも省略できる | 保存した地図を 1 ページずつ: `uid`・`slug`・`title`・画像の `width` と `height`（ピクセル）・`maxZoom`（256 px のタイルの最大のズーム）と、`total`・`page`・`next` |
+| `maps.get` | `map`（uid か slug） | 地図 1 枚: `title`・`width`・`height`・`maxZoom`・GCP（`[[画像上の x, y], [経度, 緯度]]` の形）・`edges`・`hasCompiled`（`maps.transform` が使えるか） |
+| `maps.transform` | `map`・`direction`（`forward` か `backward`）・`points`（数 2 つの組を 1〜1000 個） | 地図の変換で点を変換した結果（地図の表示と同じ計算）。`forward` は画像のピクセル（左上が原点）から `[経度, 緯度]` へ、`backward` はその逆。画像の外の点は `null` |
+
+- サムネイル・タイルを読むツールと、範囲で探すツールは、次の版から足します。
 
 ## 有効にする
 
