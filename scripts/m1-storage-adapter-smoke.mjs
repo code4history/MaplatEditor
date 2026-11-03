@@ -20,7 +20,13 @@ try {
   const mapEditIpcSource = await readFile(path.join(projectRoot, 'electron/ipc/mapedit.ts'), 'utf8');
   assert.match(mapEditIpcSource, /ElectronStorageAdapter/);
   assert.doesNotMatch(mapEditIpcSource, /from '\.\.\/services\/MapEditService'/);
-  assert.match(mapEditIpcSource, /StorageAdapter\.readMapForEdit/);
+  // mapedit:request reads through the read-only facade shared with the MCP tools, and the facade reads
+  // through the adapter: the IPC still never reaches the services directly.
+  assert.match(mapEditIpcSource, /readFacade\.readMapForEdit/);
+  const readFacadeSource = await readFile(path.join(projectRoot, 'electron/mcp/readFacade.ts'), 'utf8');
+  assert.match(readFacadeSource, /from '\.\.\/adapters\/ElectronStorageAdapter'/);
+  assert.match(readFacadeSource, /StorageAdapter\.readMapForEdit/);
+  assert.match(readFacadeSource, /StorageAdapter\.listMaps/);
   assert.match(mapEditIpcSource, /StorageAdapter\.saveMapForEdit/);
 
   const mapListIpcSource = await readFile(path.join(projectRoot, 'electron/ipc/maps.ts'), 'utf8');
