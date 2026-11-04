@@ -137,8 +137,8 @@ importers:
         version: 4.6.4(vue@3.5.44(typescript@6.0.3))
     devDependencies:
       '@electron/notarize':
-        specifier: ^2.5.0
-        version: 2.5.0(supports-color@7.2.0)
+        specifier: ^3.1.2
+        version: 3.1.2(supports-color@7.2.0)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0(jiti@2.7.0)(supports-color@7.2.0))
@@ -170,8 +170,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       dotenv:
-        specifier: ^17.4.0
-        version: 17.4.2
+        specifier: ^18.0.8
+        version: 18.0.8
       electrobun:
         specifier: ^1.18.1
         version: 1.18.1(supports-color@7.2.0)
@@ -208,9 +208,6 @@ importers:
       vite-plugin-electron:
         specifier: ^0.28.6
         version: 0.28.8(vite-plugin-electron-renderer@0.14.7)
-      vite-plugin-electron-renderer:
-        specifier: ^0.14.5
-        version: 0.14.7
       vue-tsc:
         specifier: ^2.0.26
         version: 2.2.12(typescript@6.0.3)
@@ -292,6 +289,10 @@ packages:
   '@electron/notarize@2.5.0':
     resolution: {integrity: sha512-jNT8nwH1f9X5GEITXaQ8IF/KdskvIkOFfB2CvwumsveVidzpSc+mvhhTMdAGSYF3O+Nq49lJ7y+ssODRXu06+A==}
     engines: {node: '>= 10.0.0'}
+
+  '@electron/notarize@3.1.2':
+    resolution: {integrity: sha512-S/EH6W/GTe3XiD4oYHW+6xuUWZWjc9F5gayMrNdmRLv7qG9KRYmYE26+RDgC1hYUZVY3qLpa1VftxuL+sL5VQg==}
+    engines: {node: '>= 22.12.0'}
 
   '@electron/osx-sign@1.3.3':
     resolution: {integrity: sha512-KZ8mhXvWv2rIEgMbWZ4y33bDHyUKMXnx4M0sTyPNK/vcB81ImdeY9Ggdqy0SWbMDgmbqyQ+phgejh6V3R2QuSg==}
@@ -2133,9 +2134,10 @@ packages:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
-  dotenv@17.4.2:
-    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+  dotenv@18.0.8:
+    resolution: {integrity: sha512-2KDeoFoK/zRtcnbunCDlLG5VWVMcyqeQc6iK65o231nfNAcuGrKoqUQfJFUtBI+QlShk5HKIHxwebBtUl3rEfA==}
     engines: {node: '>=12'}
+    hasBin: true
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -4223,6 +4225,13 @@ snapshots:
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
       fs-extra: 9.1.0
+      promise-retry: 2.0.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@electron/notarize@3.1.2(supports-color@7.2.0)':
+    dependencies:
+      debug: 4.4.3(supports-color@7.2.0)
       promise-retry: 2.0.1
     transitivePeerDependencies:
       - supports-color
@@ -6974,7 +6983,7 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  dotenv@17.4.2: {}
+  dotenv@18.0.8: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -8896,7 +8905,8 @@ snapshots:
 
   viewerjs@1.11.8: {}
 
-  vite-plugin-electron-renderer@0.14.7: {}
+  vite-plugin-electron-renderer@0.14.7:
+    optional: true
 
   vite-plugin-electron@0.28.8(vite-plugin-electron-renderer@0.14.7):
     optionalDependencies:
