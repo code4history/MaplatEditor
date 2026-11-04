@@ -367,7 +367,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@electron/notarize": "^2.5.0",
+    "@electron/notarize": "^3.1.2",
     "@eslint/js": "^10.0.1",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@playwright/test": "^1.62.1",
@@ -378,7 +378,7 @@
     "@typescript-eslint/parser": "^8.66.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "app-builder-bin": "4.0.0",
-    "dotenv": "^17.4.0",
+    "dotenv": "^18.0.8",
     "electrobun": "^1.18.1",
     "electron": "^43.8.6",
     "electron-builder": "^26.17.0",
@@ -391,7 +391,6 @@
     "typescript": "^6.0.3",
     "vite": "^7.3.7",
     "vite-plugin-electron": "^0.28.6",
-    "vite-plugin-electron-renderer": "^0.14.5",
     "vue-tsc": "^2.0.26",
     "zod": "4.6.7"
   },
