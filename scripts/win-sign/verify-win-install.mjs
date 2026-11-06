@@ -140,17 +140,24 @@ export function judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signe
   return { publisherName, publisherSubject, subject: subject ?? null, failures };
 }
 
+/** electron-updater の署名確認の待ち時間（windowsExecutableCodeSignatureVerifier.js 47 行の 20 * 1000） */
+export const UPDATER_SIGNATURE_TIMEOUT_MS = 20_000;
+/** この検査の待ち時間。runner の初回の PowerShell は遅いことがあるので、updater より長く待ち、かかった時間を記録する */
+const SUBJECT_TIMEOUT_MS = 180_000;
+
 /** electron-updater 6.8.10（windowsExecutableCodeSignatureVerifier.js 14・47 行）と同じコマンドで Subject を取る */
 function updaterStyleSubject(file) {
   const literal = file.replace(/'/g, "''");
+  const started = Date.now();
   const r = spawnSync('set "PSModulePath=" & chcp 65001 >NUL & powershell.exe',
     ['-NoProfile', '-NonInteractive', '-InputFormat', 'None', '-Command', `"Get-AuthenticodeSignature -LiteralPath '${literal}' | ConvertTo-Json -Compress"`],
-    { shell: true, timeout: 20_000, encoding: 'utf8', windowsHide: true });
+    { shell: true, timeout: SUBJECT_TIMEOUT_MS, encoding: 'utf8', windowsHide: true });
+  const elapsedMs = Date.now() - started;
   if (r.error || r.status !== 0 || r.stderr) {
-    throw new Error(`Get-AuthenticodeSignature が失敗した（status ${r.status}・${r.error?.message ?? ''}・${(r.stderr ?? '').trim()}）`);
+    throw new Error(`Get-AuthenticodeSignature が失敗した（status ${r.status}・${r.error?.message ?? ''}・${(r.stderr ?? '').trim()}・${elapsedMs} ms）`);
   }
   const data = JSON.parse(r.stdout);
-  return { status: data.Status, subject: data.SignerCertificate?.Subject ?? null };
+  return { status: data.Status, subject: data.SignerCertificate?.Subject ?? null, elapsedMs };
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -187,14 +194,18 @@ async function main(argv) {
     const appUpdateYml = existsSync(ymlPath) ? readFileSync(ymlPath, 'utf8') : null;
     let subject = null;
     let subjectError = null;
+    let subjectElapsedMs = null;
     try {
-      ({ subject } = updaterStyleSubject(installer));
+      ({ subject, elapsedMs: subjectElapsedMs } = updaterStyleSubject(installer));
+      if (subjectElapsedMs > UPDATER_SIGNATURE_TIMEOUT_MS) {
+        console.log(`::warning::Setup.exe の署名の読み取りに ${subjectElapsedMs} ms かかった（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms を超える）`);
+      }
     } catch (e) {
       subjectError = e.message;
     }
     const identity = JSON.parse(readFileSync(new URL('./signer-identity.json', import.meta.url), 'utf8'));
     const judged = judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signer: opt.signer });
-    result.steps.appUpdatePublisher = { ...judged, subjectError };
+    result.steps.appUpdatePublisher = { ...judged, subjectError, subjectElapsedMs };
     for (const f of judged.failures) failures.push(`app-update.yml: ${f}`);
     if (subjectError) failures.push(`app-update.yml: ${subjectError}`);
     if (process.env.GITHUB_STEP_SUMMARY) {
