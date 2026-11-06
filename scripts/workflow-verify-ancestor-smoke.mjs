@@ -9,7 +9,9 @@
  *         dispatch した ref の HEAD で確かめるときも）・40 桁でない値と checkout の食い違いは落ちる
  *       - full・sign-check: 従来どおり（SHA は必須）
  *       - push: 検査しない
- *   [3] 自己検査: verify を分岐から外した shell では [2] が違反を出す（規則の空振りの検出）
+ *       - mode と SHA の形の外れ（未知の mode・大文字の mode・タグ名・ブランチ名・短い SHA）: すべて落ちる
+ *   [3] 自己検査: verify を分岐から外した shell では [2] が違反を出す（規則の空振りの検出）。
+ *       未知の mode を拒む行を外した shell（直す前の分岐: *) で exit 0）でも [2] が違反を出す
  *
  * 実行: node scripts/workflow-verify-ancestor-smoke.mjs（rtk を付けない）
  */
@@ -96,6 +98,14 @@ export function checkBehavior(runText, fx) {
     ['sign-check: master の B は通る', 'workflow_dispatch', 'sign-check', B, B, true],
     ['sign-check: SHA の省略は落ちる', 'workflow_dispatch', 'sign-check', '', B, false],
     ['push: 別ブランチでも検査しない', 'push', '', '', C, true],
+    // mode と SHA の形の外れ（どれも prepare で落ちる）
+    ['未知の mode は落ちる', 'workflow_dispatch', 'bogus', B, B, false],
+    ['大文字の mode（Verify）は落ちる', 'workflow_dispatch', 'Verify', B, B, false],
+    ['verify: SHA にタグ名を渡すと落ちる', 'workflow_dispatch', 'verify', 'v1.2.0', B, false],
+    ['verify: SHA にブランチ名を渡すと落ちる', 'workflow_dispatch', 'verify', 'master', B, false],
+    ['verify: 短い SHA は落ちる', 'workflow_dispatch', 'verify', B.slice(0, 7), B, false],
+    ['full: SHA にタグ名を渡すと落ちる', 'workflow_dispatch', 'full', 'v1.2.0', B, false],
+    ['full: 短い SHA は落ちる', 'workflow_dispatch', 'full', B.slice(0, 12), B, false],
   ];
   const v = [];
   for (const [what, event, mode, sha, at, ok] of cases) {
@@ -127,6 +137,14 @@ try {
     ancestorStep(w2).step.run = mutated;
     assert.ok(checkStatic(w2).length > 0, '自己検査: verify を分岐から外しても [1] が違反を出さない');
     console.log('  [3/3] 自己検査（verify を外した変異を [1]・[2] が落とす）: PASS');
+    // 直す前の分岐: 未知の mode を拒む行（workflow_dispatch:*）が無く、*) の分岐で exit 0 になっていた
+    const unknownLine = runText.split('\n').find((l) => /workflow_dispatch:\*\)/.test(l));
+    assert.ok(unknownLine, '自己検査の前提: 未知の mode を拒む行（workflow_dispatch:*）が無い');
+    const beforeFix = runText.replace(`${unknownLine}\n`, '');
+    assert.notEqual(beforeFix, runText);
+    const v = checkBehavior(beforeFix, fx);
+    assert.ok(v.some((x) => /未知の mode|大文字の mode/.test(x)), `自己検査: 直す前の分岐（*) で exit 0）を [2] が落とさない: ${v.join(' / ')}`);
+    console.log(`    直す前の分岐（workflow_dispatch:* の行を外し、*) で exit 0）→ [2] の違反 ${v.length} 件: ${v.join(' / ')}`);
   }
 } finally {
   rmSync(fx.repo, { recursive: true, force: true });

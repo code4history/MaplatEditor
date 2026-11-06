@@ -100,7 +100,9 @@ jobs:
       # nov26-m7-t2（#140 L-1）: 署名するのは master の祖先の SHA だけ。checkout の直後の最初の step で、
       # リポジトリのファイルを呼ばずに確かめる（この step は dispatch された ref＝master の workflow のもの）
       # mode=verify も同じく確かめる（Mac の署名は verify でも行うため）。verify は expected_editor_sha を
-      # 省けるが、省いたときは dispatch した ref の HEAD を確かめる ∴ 作業ブランチの dispatch は prepare で落ちる
+      # 省けるが、省いたときは dispatch した ref の HEAD を確かめる ∴ 作業ブランチの dispatch は prepare で落ちる。
+      # この step が見るのは SHA が祖先かどうかだけ。ref が master 以外のときの境目は environment `release` の
+      # ブランチの制限（master 以外の ref からの dispatch を environment が拒む）
       - name: Verify expected_editor_sha is an ancestor of master
         shell: bash
         env:
@@ -652,7 +654,7 @@ jobs:
     env:
       IN_ARTIFACT: win-sign-in-payload
       OUT_ARTIFACT: win-signed-payload
-      MAX_FILES: '48'
+      MAX_FILES: '26'
     steps:
       - name: Download the files to sign
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -849,6 +851,16 @@ jobs:
         with:
           name: win-signed-payload
           path: release/win-sign/signed-payload
+
+      # 署名の記録（秘密ではない JSON）だけを長めの保持で積み直す。verify-win-install の突き合わせは保持 1 日の win-signed-* を
+      # 読まず、この写しから署名した集合を読む（承認が夜をまたいでも download が落ちない）。download の直後・依存のコードより前に置く
+      - name: Keep the payload signing record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: win-signing-records-payload
+          path: release/win-sign/signed-payload/signing-record.json
+          retention-days: ${{ inputs.mode == 'sign-check' && 3 || 30 }}
+          if-no-files-found: error
 
       - name: Restore the unpacked apps
         shell: bash
@@ -1133,6 +1145,15 @@ jobs:
           name: win-signed-uninstaller
           path: release/win-sign/signed-uninstaller
 
+      # 署名の記録の積み直し（pack-win-1 の payload と同じ。verify-win-install の突き合わせが読む）
+      - name: Keep the uninstaller signing record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: win-signing-records-uninstaller
+          path: release/win-sign/signed-uninstaller/signing-record.json
+          retention-days: ${{ inputs.mode == 'sign-check' && 3 || 30 }}
+          if-no-files-found: error
+
       - name: Apply the signed uninstallers
         run: node scripts/win-sign/apply-signed.mjs --phase uninstaller --manifest release/win-sign/manifest-uninstaller.json --signed release/win-sign/signed-uninstaller --signer artifact-signing --release-dir release/${{ env.VERSION }} --signed-dir release/win-sign/signed
 
@@ -1385,6 +1406,15 @@ jobs:
           name: win-signed-installer
           path: release/win-sign/signed-installer
 
+      # 署名の記録の積み直し（pack-win-1 の payload と同じ。verify-win-install の突き合わせが読む）
+      - name: Keep the installer signing record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: win-signing-records-installer
+          path: release/win-sign/signed-installer/signing-record.json
+          retention-days: ${{ inputs.mode == 'sign-check' && 3 || 30 }}
+          if-no-files-found: error
+
       - name: Apply the signed installers
         run: node scripts/win-sign/apply-signed.mjs --phase installer --manifest release/win-sign/manifest-installer.json --signed release/win-sign/signed-installer --signer artifact-signing --release-dir release/${{ env.VERSION }}
 
@@ -1439,12 +1469,24 @@ jobs:
           retention-days: 1
           if-no-files-found: ignore
 
-  # x64 の Setup.exe を runner に入れ、入った全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す（§9.3 の機械の行）。
-  # 署名済みのインストーラーを実行するのは id-token を持たないこのジョブだけ。依存は入れない（Node 組み込みと pwsh だけ）
+  # 自分のアーキテクチャの Setup.exe を runner に入れ、入った全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す
+  # （§9.3 の機械の行）。x64 と arm64 の 2 脚（matrix。片方が落ちてももう片方の結果を残す）。
+  # 署名済みのインストーラーを実行するのは id-token を持たないこのジョブだけ。依存は入れない（Node 組み込みと pwsh・ランナーの 7-Zip だけ）。
+  # x64 の脚はさらに、署名した PE の集合（署名の記録の積み直し win-signing-records-*）と Setup.exe 2 本の中身を突き合わせる
+  # （判定 A: 署名したのに配布物に無い PE が無い・判定 B: 配布物の Microsoft 以外の署名の PE がすべて署名した集合にある）
   verify-win-install:
     needs: [prepare, finalize-win]
     if: needs.prepare.outputs.win_sign_path == 'artifact-signing'
-    runs-on: windows-2025
+    name: verify-win-install (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
@@ -1464,8 +1506,35 @@ jobs:
           name: win-artifacts
           path: win-artifacts
 
-      - name: Install, launch and uninstall (x64)
-        run: node scripts/win-sign/verify-win-install.mjs --installer win-artifacts/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe --signer artifact-signing
+      - name: Install, launch and uninstall (${{ matrix.arch }})
+        run: node scripts/win-sign/verify-win-install.mjs --installer win-artifacts/MaplatEditor-Windows-${{ env.VERSION }}-${{ matrix.arch }}-Setup.exe --signer artifact-signing
+
+      # 突き合わせ（x64 の脚だけ。両方の Setup.exe を 1 つの脚で展開して集合を揃え、判定を 1 か所にまとめる）。
+      # 読むのは保持 1 日の win-signed-* ではなく、pack-win-1・pack-win-2・finalize-win が積み直した記録の写し
+      - name: Download the payload signing record
+        if: matrix.arch == 'x64'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: win-signing-records-payload
+          path: win-signing-records/payload
+
+      - name: Download the uninstaller signing record
+        if: matrix.arch == 'x64'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: win-signing-records-uninstaller
+          path: win-signing-records/uninstaller
+
+      - name: Download the installer signing record
+        if: matrix.arch == 'x64'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: win-signing-records-installer
+          path: win-signing-records/installer
+
+      - name: Match the signed set against the installers
+        if: matrix.arch == 'x64'
+        run: node scripts/win-sign/verify-win-sign-set.mjs --records payload=win-signing-records/payload/signing-record.json uninstaller=win-signing-records/uninstaller/signing-record.json installer=win-signing-records/installer/signing-record.json --installers win-artifacts/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe win-artifacts/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe --signer artifact-signing --summary win-sign-set/sign-set-match.json
 
   # ─────────────────────────────────────────────
   # Linux ビルド（x64 + arm64 AppImage・署名なし＝現行方針。mode に依存しない）

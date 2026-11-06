@@ -192,7 +192,9 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 
 `mode=full`・`sign-check` は、`expected_editor_sha` が **origin/master の祖先**でなければ prepare の最初の step で止まる（#140 L-1）。
 `mode=verify` も同じく止まる（Mac の署名を行うため）。`expected_editor_sha` を省いた verify は dispatch した ref の先端を確かめるので、
-master に入っていない作業ブランチの署名つきビルドは CI では作れない。merge の前の確かめは手元の `electron-builder --dir`（署名なし）で行う。
+**dispatch では**、master に入っていない作業ブランチの署名つきビルドは CI では作れない（加えて environment `release` のブランチの制限が
+master 以外の ref からの dispatch を拒む）。push（master・glm52・foss4g-hiroshima）のビルドは祖先を確かめない（push は Mac の
+Developer ID 署名だけで、Windows は署名しない）。merge の前の確かめは手元の `electron-builder --dir`（署名なし）で行う。
 
 `mode=full` が使えるバージョン:
 
@@ -403,13 +405,13 @@ OIDC の要求口（`id-token: write`）はジョブの間ずっと開いてい�
 |---|---|---|---|
 | 0 | `prepare` | なし | 祖先の確認・`win_sign_path` の算出・ガード |
 | 1 | `build-win` | なし | `WIN_SIGN_MODE=collect` で作り、検査（コーデック・網羅）を通し、payload（unpacked の PE・NSIS プラグイン・`elevate.exe`）を `<SHA-256>.pe` で並べる |
-| 2 | `sign-win-payload` | **あり** | 署名専用（上限 48 本） |
-| 3 | `pack-win-1` | なし | 署名済みを照合して書き戻し、`prepare-nsis-toolset.mjs` → `--prepackaged` で作り直し、アンインストーラーを並べる |
+| 2 | `sign-win-payload` | **あり** | 署名専用（上限 26 本。実測 22 本＋余裕 4。下の「件数の上限の実測」） |
+| 3 | `pack-win-1` | なし | 署名済みを照合して書き戻し、`prepare-nsis-toolset.mjs` → `--prepackaged` で作り直し、アンインストーラーを並べる。payload の署名の記録を `win-signing-records-payload` に積み直す |
 | 4 | `sign-win-uninstaller` | **あり** | 署名専用（上限 2 本） |
-| 5 | `pack-win-2` | なし | 署名済みのアンインストーラーに差し替えて作り直し、インストーラーを並べる |
+| 5 | `pack-win-2` | なし | 署名済みのアンインストーラーに差し替えて作り直し、インストーラーを並べる。記録を `win-signing-records-uninstaller` に積み直す |
 | 6 | `sign-win-installer` | **あり** | 署名専用（上限 2 本） |
-| 7 | `finalize-win` | なし | 署名済みの Setup.exe・`latest.yml`・blockmap、網羅検査（`--authenticode --signer artifact-signing`）、`win-artifacts` |
-| 8 | `verify-win-install` | なし | x64 の Setup.exe を入れて全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す |
+| 7 | `finalize-win` | なし | 署名済みの Setup.exe・`latest.yml`・blockmap、網羅検査（`--authenticode --signer artifact-signing`）、`win-artifacts`。記録を `win-signing-records-installer` に積み直す |
+| 8 | `verify-win-install (x64)`・`(arm64)` | なし | 自分のアーキテクチャの Setup.exe を入れて全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す（2 脚の matrix・`fail-fast: false`）。x64 の脚はさらに署名した集合と配布物の突き合わせを行う（下の節） |
 
 - 署名専用ジョブ 3 つは step の列が完全に同じ（違いは `IN_ARTIFACT`・`OUT_ARTIFACT`・`MAX_FILES` だけ）。checkout・pnpm・
   setup-node を持たず、リポジトリのコードを実行しない。入力は「直下の `<SHA-256>.pe` だけ・件数の上限・中身の SHA-256 が名前と一致・
@@ -420,8 +422,41 @@ OIDC の要求口（`id-token: write`）はジョブの間ずっと開いてい�
 - 署名済みを戻すときは「署名と TimeDateStamp を除いた中身が署名前と一致」「Authenticode が Valid」「署名者が
   `scripts/win-sign/signer-identity.json` の `artifact-signing`」を確かめる。Artifact Signing の経路は署名済みキャッシュを使わない
 - 承認の回数: 1 回の実行で最大 4 回（開始時の build-mac＋build-win・署名専用 3 つ）
-- 受け渡しの artifact の保持は 1 日。`win-artifacts`（Setup.exe・blockmap・`latest.yml`）は `sign-check` で 3 日・`full` で 30 日
-- 署名回数（1 回の実行）: 上限は 52 本（48＋2＋2）。実績は H-B2（t2/AC6）の 3 つの `signing-record.json` の件数の和で記入する（**未測定**）
+- 受け渡しの artifact の保持は 1 日。`win-artifacts`（Setup.exe・blockmap・`latest.yml`）と署名の記録の積み直し
+  `win-signing-records-{payload,uninstaller,installer}`（中身は `signing-record.json` 1 つ）は `sign-check` で 3 日・`full` で 30 日
+- 署名回数（1 回の実行）: 上限は 30 本（26＋2＋2）。実績は 26 本（22＋2＋2。下の「件数の上限の実測」の run）
+
+### 署名した集合と配布物の突き合わせ（`verify-win-install (x64)`）
+
+署名専用ジョブが署名した PE がすべて配布物（Setup.exe 2 本）の中にあること、配布物の中の PE で Microsoft 以外が署名したものが
+すべて署名専用ジョブの記録にあることを、依存を入れないジョブで機械的に確かめる（`scripts/win-sign/verify-win-sign-set.mjs`。
+Node の組み込みとランナーの画像の 7-Zip だけを使う）。
+
+- **S**（署名した集合）= 3 つの `win-signing-records-*` の `signing-record.json` の `out`（署名後の SHA-256）の和集合。全件 `status: Valid`・
+  `in`・`out` が 64 桁の hex・uninstaller と installer の記録はちょうど 2 件
+- **D**（配布物の集合）= Setup.exe そのものの SHA-256 と、Setup.exe を 7-Zip で展開し、中の `*.7z`（アプリの書庫）をさらに展開して得た
+  全 PE（拡張子でなく中身で判定）の SHA-256
+- **判定 A**: `S \ D` が空。1 件でもあれば赤（署名したのに配布物に無い ＝ 配布物の外で使える署名済みの PE が作られた）
+- **判定 B**: D の PE のうち、Authenticode の署名者が Microsoft でないものはすべて S にある（逆向きの網羅）
+- **「署名した集合と配布物の差が 0」はこの A・B の両方が緑であること**。Microsoft 署名の PE（`d3dcompiler_47.dll`・`dxil.dll`。
+  アーキテクチャごとに 2 本）は S に入らないので、素の `D \ S` は 0 にならない
+- 出力（`|S|`・`|D|`・`|S∩D|`・`S \ D` の一覧・判定 B の外れの一覧・7-Zip の版）は JSON で標準出力と job summary に出る。赤なら exit 1
+- 記録の読み元は保持 1 日の `win-signed-*` ではなく、pack-win-1・pack-win-2・finalize-win（どれも id-token を持たない）が download の直後に
+  積み直した `win-signing-records-*`。承認が夜をまたいで 24 時間を超えても x64 の脚の download が落ちない（release は
+  `verify-win-install` の success を要るので、ここが落ちると draft Release が作られない）
+- 手元で確かめるとき（Mac・`pwsh` なし）は `--sevenzip /opt/homebrew/bin/7zz --no-authenticode` で判定 A だけを行う。
+  `--no-authenticode` は CI の step では使わない（smoke `win-sign-set-match` が断言する）
+
+### 件数の上限の実測
+
+- `sign-win-payload` の `MAX_FILES` は **実測 N ＋ 余裕 4**。N は master の `sign-check` の `sign-win-payload` のログ `入力: N 本`。
+  余裕 4 は、アーキテクチャごとにネイティブの `.node` が 1〜2 本増える依存の追加で RC が止まらないための幅
+- 2026-11-06 の実測: https://github.com/code4history/MaplatEditor/actions/runs/42221372217（`4e2e9e90`・Electron 43.8.6・1.2.0）で
+  **N = 22**（`入力: 22 本`・`署名 22 本: すべて Valid`。1.2.0 の full と同じ）∴ `MAX_FILES = 26`
+- 上限は「1 回の承認で署名される本数」の天井であって、本当の歯止めは上の判定 A（集合の差）
+- **Electron の大きい版上げ（45 以降）の後は PE の集合が変わる**（ANGLE の DLL が消えるなど）ので、その直後の `sign-check` で N を測り直し、
+  `MAX_FILES` と smoke の `SIGN_JOBS` を N ＋ 4 に直す。N が 30 を超えたら、増えた PE を `signing-record.json` の `in` と build-win の記録で
+  特定してから決める（理由が分からないまま緩めない）
 
 ### `sign-check` の使い方
 
