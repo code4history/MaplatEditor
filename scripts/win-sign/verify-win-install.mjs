@@ -154,7 +154,9 @@ function updaterStyleSubject(file) {
     { shell: true, timeout: SUBJECT_TIMEOUT_MS, encoding: 'utf8', windowsHide: true });
   const elapsedMs = Date.now() - started;
   if (r.error || r.status !== 0 || r.stderr) {
-    throw new Error(`Get-AuthenticodeSignature が失敗した（status ${r.status}・${r.error?.message ?? ''}・${(r.stderr ?? '').trim()}・${elapsedMs} ms）`);
+    const err = new Error(`Get-AuthenticodeSignature が失敗した（status ${r.status}・${r.error?.message ?? ''}・${(r.stderr ?? '').trim()}・${elapsedMs} ms）`);
+    err.elapsedMs = elapsedMs;
+    throw err;
   }
   const data = JSON.parse(r.stdout);
   return { status: data.Status, subject: data.SignerCertificate?.Subject ?? null, elapsedMs };
@@ -195,17 +197,25 @@ async function main(argv) {
     let subject = null;
     let subjectError = null;
     let subjectElapsedMs = null;
+    // 2 回目は初回の起動の遅さと読み取りそのものの遅さを分けるための測り直し（判定には使わない）
+    let subjectElapsedMsSecond = null;
     try {
       ({ subject, elapsedMs: subjectElapsedMs } = updaterStyleSubject(installer));
-      if (subjectElapsedMs > UPDATER_SIGNATURE_TIMEOUT_MS) {
-        console.log(`::warning::Setup.exe の署名の読み取りに ${subjectElapsedMs} ms かかった（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms を超える）`);
-      }
     } catch (e) {
       subjectError = e.message;
+      subjectElapsedMs = e.elapsedMs ?? null;
+    }
+    if (subjectElapsedMs != null && subjectElapsedMs > UPDATER_SIGNATURE_TIMEOUT_MS) {
+      try {
+        ({ elapsedMs: subjectElapsedMsSecond } = updaterStyleSubject(installer));
+      } catch (e) {
+        subjectElapsedMsSecond = e.elapsedMs ?? null;
+      }
+      console.log(`::warning::Setup.exe の署名の読み取りに ${subjectElapsedMs} ms かかった（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms を超える・2 回目 ${subjectElapsedMsSecond ?? '-'} ms）`);
     }
     const identity = JSON.parse(readFileSync(new URL('./signer-identity.json', import.meta.url), 'utf8'));
     const judged = judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signer: opt.signer });
-    result.steps.appUpdatePublisher = { ...judged, subjectError, subjectElapsedMs };
+    result.steps.appUpdatePublisher = { ...judged, subjectError, subjectElapsedMs, subjectElapsedMsSecond };
     for (const f of judged.failures) failures.push(`app-update.yml: ${f}`);
     if (subjectError) failures.push(`app-update.yml: ${subjectError}`);
     if (process.env.GITHUB_STEP_SUMMARY) {
@@ -216,6 +226,7 @@ async function main(argv) {
         `| app-update.yml の publisherName[0] | ${cell(judged.publisherName?.[0])} |`,
         `| Setup.exe の SignerCertificate.Subject | ${cell(subject)} |`,
         `| signer-identity.json の ${opt.signer}.publisherSubject | ${cell(judged.publisherSubject)} |`,
+        `| Setup.exe の署名の読み取りにかかった時間 | ${cell(subjectElapsedMs == null ? null : `${subjectElapsedMs} ms（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms）${subjectElapsedMsSecond == null ? '' : `・2 回目 ${subjectElapsedMsSecond} ms`}`)} |`,
         `| 判定 | ${judged.failures.length === 0 && !subjectError ? '一致' : '不一致'} |`, '', '',
       ].join('\n'));
     }
