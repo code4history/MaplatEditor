@@ -633,7 +633,7 @@ const OLD = new Date('2020-01-02T03:04:05Z');
 // [4] build.yml の静的検査 — AC1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
 // ───────────────────────────────────────────────
 const { checkSigningJob, checkPnpmPin, ENDPOINT } = await import('./win-sign/signing-job-rules.mjs');
-const SIGN_JOBS = { 'sign-win-payload': '48', 'sign-win-uninstaller': '2', 'sign-win-installer': '2' };
+const SIGN_JOBS = { 'sign-win-payload': '26', 'sign-win-uninstaller': '2', 'sign-win-installer': '2' };
 const PACK_JOBS = ['pack-win-1', 'pack-win-2'];
 const RUN_NAME = "${{ github.event_name == 'workflow_dispatch' && format('dispatch mode={0} signer={1} sha={2} ver={3}', inputs.mode, inputs.win_signer, inputs.expected_editor_sha, inputs.expected_version) || format('push {0}', github.sha) }}";
 const RELEASE_IF = "${{ !cancelled() && needs.prepare.result == 'success' && needs.build-mac.result == 'success' && needs.build-win.result == 'success' && needs.build-linux.result == 'success' && ((needs.finalize-win.result == 'success' && needs.verify-win-install.result == 'success') || (needs.prepare.outputs.win_sign_path == 'esigner' && needs.finalize-win.result == 'skipped' && needs.verify-win-install.result == 'skipped')) && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && inputs.platforms == 'all' }}";
