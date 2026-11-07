@@ -115,6 +115,16 @@ const config = {
     // --prepackaged（build.yml の pack のジョブ）では呼ばれないので、そこでは scripts/win-sign/prepare-nsis-toolset.mjs が用意する
     beforePack: winSignEnabled ? winSign.beforePack : undefined,
 
+    // 包装したアプリを Node として動かす・環境変数や --inspect で乗っ取る・asar の外から読み込ませる道を閉じる。
+    // mac・win の両方に効く最上位の設定
+    electronFuses: {
+        runAsNode: false,
+        enableNodeOptionsEnvironmentVariable: false,
+        enableNodeCliInspectArguments: false,
+        enableEmbeddedAsarIntegrityValidation: true,
+        onlyLoadAppFromAsar: true,
+    },
+
     dmg: {
         sign: isMacSigning,
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
