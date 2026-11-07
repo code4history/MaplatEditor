@@ -9,6 +9,7 @@
  * blockmap を再生成し、latest.yml の sha512 / size / blockMapSize を書き戻す。
  *
  * 使い方: node scripts/m6-t12/resign-update-metadata.mjs <release/<version> ディレクトリ>
+ * DMG: 上記の引数に --ext .dmg --yml latest-mac.yml を追加する。
  * 冪等: 何度実行しても同じ結果に収束する（署名済みバイナリからの再計算のみ）。
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -17,11 +18,23 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { parseArgs } from 'node:util';
 
 const require = createRequire(import.meta.url);
 const { appBuilderPath } = require('app-builder-bin');
 
-const dir = process.argv[2];
+// Windows の既定値は維持し、DMG の staple 後も同じ再生成経路を使う。
+const { values, positionals } = parseArgs({
+  options: { ext: { type: 'string', default: '.exe' }, yml: { type: 'string', default: 'latest.yml' } },
+  allowPositionals: true,
+});
+const dir = positionals[0];
+const ext = values.ext;
+const ymlName = values.yml;
+if (positionals.length > 1 || !/^\.[a-z0-9]+$/.test(ext) || !/^[A-Za-z0-9_-]+\.yml$/.test(ymlName)) {
+  console.error('引数が不正です。--ext <拡張子> --yml <更新情報のファイル名> を指定してください。');
+  process.exit(2);
+}
 if (!dir || !existsSync(dir)) {
   console.error(`使い方: node scripts/m6-t12/resign-update-metadata.mjs <dir>（dir が存在しません: ${dir}）`);
   process.exit(2);
@@ -29,9 +42,9 @@ if (!dir || !existsSync(dir)) {
 
 const sha512b64 = (file) => createHash('sha512').update(readFileSync(file)).digest('base64');
 
-const exes = readdirSync(dir).filter((f) => f.endsWith('.exe'));
+const exes = readdirSync(dir).filter((f) => f.endsWith(ext));
 if (exes.length === 0) {
-  console.error(`::error::${dir} に .exe がありません（署名対象の生成に失敗している疑い）`);
+  console.error(`::error::${dir} に ${ext} がありません（署名対象の生成に失敗している疑い）`);
   process.exit(1);
 }
 
@@ -46,7 +59,7 @@ for (const exe of exes) {
 }
 
 // 2. latest.yml の sha512 / size / blockMapSize を署名済みバイナリから再計算
-const latestPath = path.join(dir, 'latest.yml');
+const latestPath = path.join(dir, ymlName);
 if (!existsSync(latestPath)) {
   console.error(`::error::${latestPath} がありません`);
   process.exit(1);
@@ -55,7 +68,7 @@ const latest = yaml.load(readFileSync(latestPath, 'utf8'));
 for (const entry of latest.files ?? []) {
   const file = path.join(dir, entry.url);
   if (!existsSync(file)) {
-    console.error(`::error::latest.yml の files に実在しないファイル: ${entry.url}`);
+    console.error(`::error::${ymlName} の files に実在しないファイル: ${entry.url}`);
     process.exit(1);
   }
   entry.sha512 = sha512b64(file);
@@ -63,11 +76,11 @@ for (const entry of latest.files ?? []) {
   if ('blockMapSize' in entry && blockMapSizes.has(entry.url)) {
     entry.blockMapSize = blockMapSizes.get(entry.url);
   }
-  console.log(`latest.yml 更新: ${entry.url} sha512/size${'blockMapSize' in entry ? '/blockMapSize' : ''}`);
+  console.log(`${ymlName} 更新: ${entry.url} sha512/size${'blockMapSize' in entry ? '/blockMapSize' : ''}`);
 }
 // 旧 electron-updater 互換のトップレベル path/sha512
 if (latest.path) {
   latest.sha512 = sha512b64(path.join(dir, latest.path));
 }
 writeFileSync(latestPath, yaml.dump(latest, { lineWidth: -1 }));
-console.log(`latest.yml を書き戻しました（files ${latest.files?.length ?? 0} 件）`);
+console.log(`${ymlName} を書き戻しました（files ${latest.files?.length ?? 0} 件）`);

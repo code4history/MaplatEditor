@@ -218,6 +218,23 @@ Developer ID 署名だけで、Windows は署名しない）。merge の前の�
    - Mac: `codesign -dv --verbose=2 MaplatEditor.app` / 公証まで見るなら `spctl -a -vv MaplatEditor.app`（`accepted` / `Notarized Developer ID`）
    - Windows: Setup.exe を右クリック → プロパティ → **デジタル署名**タブ
 
+DMG は x64・arm64 の両方で次を確かめる。署名ありなら `codesign` が成功し、表示の先頭の
+`Authority=` は `Developer ID Application:` になる。`full` では staple と Gatekeeper の判定も必要になる。
+
+```bash
+codesign --verify --strict --verbose=2 "<配布物>.dmg"
+codesign -dv --verbose=2 "<配布物>.dmg"
+xcrun stapler validate "<配布物>.dmg"
+spctl -a -t open --context context:primary-signature -v "<配布物>.dmg"
+```
+
+`stapler validate` は `The validate action worked!`、`spctl` は `accepted` と
+`source=Notarized Developer ID` が成功条件。CI の「Verify the DMGs」はこれらの終了コードも確認する。
+`full` では、staple 後に DMG の blockmap と `latest-mac.yml` の sha512・size を再生成してから照合し、
+自動更新用 zip 2 本を展開した `MaplatEditor.app` にも `stapler validate` を実行する。
+手元で同じ一式を照合するには `node scripts/notarize/verify-dmg.mjs <配布物のディレクトリ> --expect notarized`、
+署名だけなら `--expect signed` を使う。公証スクリプトの実行環境は Node.js 22.12 以上が必要。
+
 ### よくある使い分け
 
 | やりたいこと | mode | platforms |
@@ -246,22 +263,43 @@ Developer ID 署名だけで、Windows は署名しない）。merge の前の�
 Apple の公証は通常15分以内に終わるが、キューに滞留して何時間も `In Progress` のまま返らないことがある
 （初回の Developer ID 提出で 7 時間超を実測）。**署名・アップロードが成功していれば、こちらの設定の問題ではない。**
 
-**状態の確認**（費用ゼロ。ビルドログの `submissions/<ID>` から ID を拾う）:
+失敗時は orchestrator が `gh run view <run-id> -R code4history/MaplatEditor --log-failed` で確認する。
+`@electron/notarize` 3.x が返すエラーは省略せず記録され、`Invalid` の診断は
+`Diagnostics from notarytool log:` の節から読める。コード・entitlements・署名順序の問題は修正し、
+Apple Developer の規約への同意や証明書の期限・失効への対処が必要な場合は人間に戻す。
 
-```bash
-xcrun notarytool info <submission-id> --apple-id "<Apple ID>" --team-id "<Team ID>" --password "<アプリ用パスワード>"
-```
+**待てないとき**は `mode=verify` で署名済み・未公証の DMG を作り、動作確認を進められる。
+`full` の `build-mac` は最大 120 分で終了する。公証は x64・arm64 の `.app` と DMG の計 4 回で、
+実行時間が 80 分を超えた場合は上限を見直す。
 
-| status | 意味 | 対処 |
-|---|---|---|
-| `Accepted` | 完了済み | 再実行すれば通る。既存の .app には `xcrun stapler staple` だけでもよい |
-| `In Progress` | Apple のキューに滞留 | 待つ。24時間を超えたら Apple Developer サポートへ問い合わせる |
-| `Invalid` | アプリ側に問題 | `xcrun notarytool log <submission-id> …` で原因を特定して修正 |
+### DMG の公証・検査が失敗した場合の焼き直し
 
-**待てないとき**: `mode=verify` で実行する。署名済み・未公証の DMG が得られる
-（各ビルドジョブには timeout-minutes を設定済みなので、公証待ちで6時間消費することはない）。
-公証が復旧したら **`mode=full` + `platforms=mac`** で Mac だけ焼き直せば、Windows の署名代を
-再度払わずに公証済み DMG を揃えられる。
+1. `.app` の公証が通り、「Notarize and staple the DMGs」または「Verify the DMGs」が失敗した場合、
+   orchestrator が同じ run の失敗したジョブを再実行する。
+
+   ```bash
+   gh run rerun <run-id> -R code4history/MaplatEditor --failed
+   ```
+
+   `build-mac` とその後続の `release` が走り直す。Windows の署名専用ジョブは走り直さない。
+   人間の environment 承認は `platforms=all` で build-mac と release の **2 回**、
+   `platforms=mac` で build-mac の **1 回**になる。
+
+2. Apple の受付が滞っていて再実行しても終わらない場合、復旧を待つ。
+   同じ run の Windows・Linux 成果物が残る間（full の win-artifacts は **30 日**保持）は 1 の再実行で
+   既存成果物を使って draft Release を作る。成果物が消えていたら新しい `mode=full platforms=all` を実行する。
+   すでに draft Release があり Mac の分だけを替える場合は `mode=full platforms=mac` で焼き直す。
+   この run は Release を作らないため、orchestrator が DMG・zip・blockmap・latest-mac.yml の一式を
+   draft の同名 asset と差し替える。
+
+   ```bash
+   gh release upload v<版> <DMG・zip・blockmap・latest-mac.yml> -R code4history/MaplatEditor --clobber
+   ```
+
+   公開前の draft への差し替えであり、公開の承認は人間が行う。Mac だけの焼き直しでは build-mac の承認が 1 回必要。
+
+DMG の公証 step が失敗すると「Upload macOS artifacts」は走らず、build-mac が失敗した run では
+release も走らない。未 staple の DMG を手元で処理して差し替える手順は使わず、上記の再実行を使う。
 
 ## Part G: 証明書の有効期限と SmartScreen の評判（2026-08-10 実測）
 

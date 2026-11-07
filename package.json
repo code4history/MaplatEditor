@@ -332,7 +332,8 @@
     "smoke:mcp-read-tools": "node scripts/mcp-read-tools-smoke.mjs",
     "smoke:mcp-render-region": "node scripts/mcp-render-region-smoke.mjs",
     "smoke:workflow-verify-ancestor": "node scripts/workflow-verify-ancestor-smoke.mjs",
-    "smoke:win-sign-set-match": "node scripts/win-sign-set-match-smoke.mjs"
+    "smoke:win-sign-set-match": "node scripts/win-sign-set-match-smoke.mjs",
+    "smoke:dmg-signing": "node scripts/dmg-signing-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
@@ -394,6 +395,9 @@
     "vite-plugin-electron": "^0.28.6",
     "vue-tsc": "^2.0.26",
     "zod": "4.6.7"
+  },
+  "engines": {
+    "node": ">=22.12"
   },
   "main": "dist-electron/main.js"
 }

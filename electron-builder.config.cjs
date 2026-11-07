@@ -116,6 +116,7 @@ const config = {
     beforePack: winSignEnabled ? winSign.beforePack : undefined,
 
     dmg: {
+        sign: isMacSigning,
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
     },
 
