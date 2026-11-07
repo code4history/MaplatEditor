@@ -293,6 +293,22 @@ jobs:
       - name: Build macOS
         run: pnpm run dist:mac
 
+      # .app の公証・包装が終わってから DMG を提出し、staple 後のバイト列で更新情報を直す。
+      - name: Notarize and staple the DMGs
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        run: node scripts/notarize/notarize.cjs --dmg release/${{ env.VERSION }}
+
+      - name: Refresh latest-mac.yml for the stapled DMGs
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml
+
+      # dispatch は証明書の欠落も赤にする。push は証明書がある場合だけ検査する。
+      - name: Verify the DMGs
+        if: env.MAC_SIGN == 'true' || (github.event_name == 'workflow_dispatch' && inputs.mode != '')
+        env:
+          EXPECT: ${{ inputs.mode == 'full' && 'notarized' || 'signed' }}
+        run: node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect "$EXPECT"
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
