@@ -714,6 +714,82 @@ try {
     console.log('  case n (取り込み結果の表示を Undo・保存の後に残さない): PASS');
   }
 
+  // ---------- 文言: エクスポートの統合と用語 (インポート・エクスポート・アセット) ----------
+  {
+    const LANGS = ['ja', 'en', 'de', 'fr', 'es', 'ko', 'zh', 'zh-TW', 'vi', 'th', 'id'];
+    const REMOVED = [
+      'export_button', 'export_title', 'export_description', 'export_confirm', 'export_success', 'export_failed',
+      'asset_json', 'label_icon', 'label_selected_icon', 'label_image_asset', 'label_image_unrepresentable', 'label_icon_asset',
+    ];
+    const ADDED = ['export_format_label', 'format_geojson', 'format_geojson_desc', 'export_option_images', 'export_option_images_help'];
+    const KEPT = ['label_html', 'label_url', 'label_directgo', 'label_other', 'omitted_csv', 'format_csv', 'format_json'];
+    const at = (obj, dotted) => dotted.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+    for (const lang of LANGS) {
+      const json = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      for (const key of REMOVED) assert.ok(!(key in json.poiio), `${lang}: poiio.${key} が残っている`);
+      for (const key of [...ADDED, ...KEPT]) {
+        assert.equal(typeof json.poiio[key], 'string', `${lang}: poiio.${key} がない`);
+        assert.ok(json.poiio[key].trim().length > 0, `${lang}: poiio.${key} が空`);
+      }
+    }
+    const EXPECTED = {
+      "ja": {
+        "poiio.export_format_label": "形式",
+        "poiio.format_geojson": "GeoJSON",
+        "poiio.format_geojson_desc": "すべての項目をそのまま出します。一覧の「ファイルインポート」で読み戻せます。",
+        "poiio.export_option_images": "画像を含める（zip）",
+        "poiio.export_option_images_help": "GeoJSON のときだけ選べます。アセットの画像とアイコンを GeoJSON と一緒に zip にまとめます（画像が無いときは GeoJSON だけを出します）。GeoJSON で含めないときは、画像の参照だけが残ります。",
+        "poiio.format_csv_desc": "Excel などの表計算ソフトで開けます。ID・名前・説明・住所・画像の URL・緯度経度の列だけを出します。UTF-8（BOM つき）で、座標は小数点以下 7 桁です。",
+        "poiio.format_json_desc": "POI の配列です。HTML や独自の項目、アセットの参照もそのまま入ります。",
+        "poiio.omitted_csv": "CSV に入らない項目があります: {{items}}。すべての項目を残すには GeoJSON でエクスポートしてください。この CSV をソースへ上書きでインポートしても、これらの項目は消えません。",
+        "poiio.import_button": "このソースへインポート…",
+        "poiio.import_title": "このソースへ POI をインポート",
+        "poiio.import_mode_label": "インポートの方法",
+        "poiio.import_geojson_hint": "GeoJSON や zip は、一覧の「ファイルインポート」で新しいソースとしてインポートできます。",
+        "poiio.import_confirm": "インポート",
+        "poiio.import_nothing": "インポートできる行がありません。",
+        "poiio.import_fatal": "このファイルはインポートできません。",
+        "poiio.import_blocked": "インポートの途中で状態が変わったため、インポートを取りやめました。もう一度やり直してください。",
+        "poiio.import_error.generic": "インポートに失敗しました。",
+        "poiio.import_error.kmz_unsupported": "KMZ はインポートできません。KML として保存し直してください。",
+        "poiio.issues.ignored_columns": "インポートしない列があります",
+        "poiio.issues.pixel_coordinates_ignored": "画面上の座標（x・y）はインポートしません",
+        "poiio.issues.image_dropped": "http(s) か相対 URL 以外の画像はインポートしません",
+        "poiio.issues.kml_no_placemarks": "インポートできる Placemark がありません",
+        "poiio.issues.kml_non_point_skipped": "Point 以外の形はインポートしません",
+        "poiio.issues.kml_description_image_dropped": "description の画像はインポートしません",
+        "poisource.errors.invalid": "検証エラーのためインポートできません",
+        "poisource.errors.non_point": "Point以外のジオメトリはインポートできません",
+        "poisource.errors.zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものはインポートできません）",
+        "poisource.errors.zip_corrupt": "ZIP が壊れているためインポートできません",
+        "poiedit.directgo_preview_note": "プレビューではリンクは開きません。エクスポートしたアプリで確かめてください。"
+      },
+      "en": {
+        "poiio.export_format_label": "Format",
+        "poiio.format_geojson": "GeoJSON",
+        "poiio.format_geojson_desc": "Keeps every field. It can be imported again with \"Import File\" in the list.",
+        "poiio.export_option_images": "Include images (zip)",
+        "poiio.export_option_images_help": "Available for GeoJSON only. Asset images and icons are bundled with the GeoJSON in a zip (without any images, only the GeoJSON is written). For GeoJSON without images, only the image references remain.",
+        "poiio.format_csv_desc": "Opens in Excel and other spreadsheet apps. Only the ID, name, description, address, image URL, latitude and longitude columns are written. UTF-8 with BOM, coordinates to 7 decimal places.",
+        "poiio.format_json_desc": "An array of POIs. HTML, custom fields and asset references are kept as they are.",
+        "poiio.omitted_csv": "Some fields do not fit in the CSV: {{items}}. Export as GeoJSON to keep every field. Importing this CSV into the source with overwrite does not remove these fields.",
+        "poiio.import_button": "Import into this source…",
+        "poiio.import_title": "Import POIs into this source"
+      }
+    };
+    for (const [lang, table] of Object.entries(EXPECTED)) {
+      const json = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      for (const [key, value] of Object.entries(table)) assert.equal(at(json, key), value, `${lang}: ${key}`);
+    }
+    // ja: POI 画面の文言に「資産」「書き出」「取り込」が無い。ja 全体にも「資産」が無い
+    const ja = JSON.parse(await read('public/locales/ja/translation.json'));
+    const poiText = JSON.stringify([ja.poiio, ja.poisource.errors, ja.poiedit.directgo_preview_note]);
+    for (const word of ['資産', '書き出', '取り込']) assert.ok(!poiText.includes(word), `ja: POI 画面の文言に「${word}」が残る`);
+    assert.ok(!JSON.stringify(ja).includes('資産'), 'ja: 「資産」が残る');
+    assert.equal(ja.poisource.import_file, 'ファイルインポート', '一覧の入口は変えない');
+    console.log('  case p (エクスポートの統合の文言・11 言語): PASS');
+  }
+
   // ---------- 文言 (AC10) ----------
   {
     const WORDS = {
