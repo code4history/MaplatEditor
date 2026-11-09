@@ -437,7 +437,8 @@ try {
   {
     const svc = await read('electron/services/PoiSourceService.ts');
     const importAt = svc.indexOf('async importFile(');
-    const importBody = svc.slice(importAt, svc.indexOf('\n  /**', importAt));
+    // importFile と、その .csv の分岐が呼ぶ importCsvFile (次のメソッドの前まで)
+    const importBody = svc.slice(importAt, svc.indexOf('async createPoiSourceFromManagedDocument(', importAt));
     assert.ok(importBody.includes('.csv'), 'importFile に .csv の分岐がない');
     assert.ok(importBody.includes('parsePoiImportFile('), 'importFile が parsePoiImportFile を呼んでいない');
     assert.ok(importBody.includes('planPoiMerge('), 'importFile が planPoiMerge を呼んでいない');
