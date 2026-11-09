@@ -188,6 +188,40 @@ try {
     assert.deepEqual(d('<script>alert(1)<p>t</p>').rows[0].desc, { ja: 'alert(1)t' });
     assert.deepEqual(d('<SCRIPT type="x">a</SCRIPT >b').rows[0].desc, { ja: 'b' });
     assert.deepEqual(d('1 < 2 > 0').rows[0].desc, { ja: '1 < 2 > 0' }, 'タグの無い説明は直さない');
+    // 出力を不活性にする: 平坦化の後に HTML として働くタグの形 ('<' の直後が英字・'/'・'!'・'?') を残さない。
+    // 残った '<' は全角の '＜' にする (HTML として描かれても、文字として描かれても同じ見え方で、&lt; のように
+    // 文字として描く側で "&lt;" が見えたままになることもない)
+    const TAG_SHAPE = /<[A-Za-z/!?]/;
+    const inert = [
+      ['<<b>script>alert(1)', '＜script>alert(1)'],
+      ['<p>&lt;script&gt;alert(1)</p>', '＜script>alert(1)'],
+      ['&lt;script&gt;', '&lt;script&gt;'],
+      ['<<a>img src=x onerror=1>', '＜img src=x onerror=1>'],
+      ['<b>x</b><</b>script>', 'x＜script>'],
+      ['<p>&#60;img src=x&#62;</p>', '＜img src=x>'],
+      ['<p>&#x3c;/script&#x3e;</p>', '＜/script>'],
+      ['a <b', 'a ＜b'],
+      ['a <! b', 'a ＜! b'],
+    ];
+    for (const [input, expected] of inert) {
+      const out = d(input).rows[0].desc.ja;
+      assert.equal(out, expected, input);
+      assert.ok(!TAG_SHAPE.test(out), `タグの形が残る: ${input} -> ${out}`);
+    }
+    // 正当な説明の見え方は変えない
+    assert.deepEqual(d('1 < 2 > 0').rows[0].desc, { ja: '1 < 2 > 0' });
+    assert.deepEqual(d('<p>3 <= 4 && 5 >= 4</p>').rows[0].desc, { ja: '3 <= 4 && 5 >= 4' });
+    assert.deepEqual(d('<p>a<b</p>').rows[0].desc, { ja: 'a＜b' }, '直後が英字の "<" だけ全角にする');
+    // 乱数: どんな説明でも、出力にタグの形が残らない
+    let seed = 20261109;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const parts = ['<', '>', '/', '!', '?', 'a', 'b', 'script', 'img ', 'p', '&lt;', '&gt;', '&#60;', '&#x3c;', '&amp;', '=', '"', ' ', '<b>', '</b>', '<br>', '<!--', '-->'];
+    for (let n = 0; n < 3000; n++) {
+      let input = '';
+      for (let k = 1 + Math.floor(rnd() * 12); k > 0; k--) input += parts[Math.floor(rnd() * parts.length)];
+      const desc = d(input).rows[0]?.desc?.ja ?? '';
+      assert.ok(!TAG_SHAPE.test(desc), `タグの形が残る: ${JSON.stringify(input)} -> ${JSON.stringify(desc)}`);
+    }
     const flat = d('<b>x</b>');
     assert.deepEqual(codes(flat), ['kml-description-html-flattened']);
     assert.deepEqual(codes(d('<img src="a.png"><b>x</b>')).sort(), ['kml-description-html-flattened', 'kml-description-image-dropped']);
