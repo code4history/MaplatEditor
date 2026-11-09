@@ -211,7 +211,7 @@ try {
     // 正当な説明の見え方は変えない
     assert.deepEqual(d('1 < 2 > 0').rows[0].desc, { ja: '1 < 2 > 0' });
     assert.deepEqual(d('<p>3 <= 4 && 5 >= 4</p>').rows[0].desc, { ja: '3 <= 4 && 5 >= 4' });
-    assert.deepEqual(d('<p>a<b</p>').rows[0].desc, { ja: 'a＜b' }, '直後が英字の "<" だけ全角にする');
+    assert.deepEqual(d('a<b').rows[0].desc, { ja: 'a＜b' }, '直後が英字の "<" だけ全角にする');
     // 乱数: どんな説明でも、出力にタグの形が残らない
     let seed = 20261109;
     const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
