@@ -42,7 +42,7 @@ export interface PoiImportIssue {
 }
 
 export interface PoiImportParseResult {
-  format: 'csv';
+  format: 'csv' | 'kml';
   encoding: PoiCsvEncoding | null;
   /** 認識した正規の列名 */
   columns: string[];
@@ -110,6 +110,17 @@ export function resolveColumnSpec(raw: string, defaultLang: string): ResolvedCol
 // 列の同一性 (重複の検出に使う)
 export function columnKey(spec: ColumnSpec): string {
   return spec.kind === 'text' ? `${spec.field}:${spec.lang}` : spec.kind;
+}
+
+// 列の定義の組み立て (CSV 以外の入力が、別名表を使わずに既知の列を指すためのもの)
+export const ID_COLUMN: ColumnSpec = { kind: 'id', name: 'id' };
+export const LAT_COLUMN: ColumnSpec = { kind: 'lat', name: 'lat' };
+export const LNG_COLUMN: ColumnSpec = { kind: 'lng', name: 'lng' };
+export function textColumn(field: TextField, lang: string): ColumnSpec {
+  return { kind: 'text', field, lang, explicitLang: false, name: field };
+}
+export function isCoordinateColumn(spec: ColumnSpec): boolean {
+  return spec.kind === 'lat' || spec.kind === 'lng';
 }
 
 function fatalResult(
