@@ -7,6 +7,7 @@ import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService'
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
 import { exportPoiTable, pickAndParsePoiMerge } from '../services/PoiTableIoService';
+import { normalizePoiExportOptions } from '../../src/utils/exportOptions';
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -27,11 +28,16 @@ export function registerPoisourceHandlers() {
   ipc.handle('poisource:findReferences', (_, uid) => poiSourceService.findReferences(uid));
   ipc.handle('poisource:delete', (_, uid) => poiSourceService.delete(uid));
   // rendererから任意pathを受け取らず、保存先はnative dialogの返値だけを使う。
-  ipc.handle('poisource:exportFile', async (event, uid: string) => {
+  // options は画像を含めるか（GeoJSON・zip の書き出し。省くと含める）。CSV・JSON は exportTable が受け持つ
+  ipc.handle('poisource:exportFile', async (event, uid: string, options?: unknown) => {
     try {
+      const { includeImages } = normalizePoiExportOptions({
+        format: 'geojson',
+        includeImages: (options as { includeImages?: unknown } | null | undefined)?.includeImages,
+      });
       const fc = await poiSourceService.exportForm(uid);
       if (!fc) return { result: 'Error', message: 'POI source not found' } as const;
-      const inspection = await inspectPoiExport(fc);
+      const inspection = await inspectPoiExport(fc, { includeImages });
       const extension = inspection.kind === 'zip' ? 'zip' : 'geojson';
       const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
       const options = {

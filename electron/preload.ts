@@ -227,7 +227,8 @@ contextBridge.exposeInMainWorld('poiSources', {
   cloneToLocal: (uid: string, input: any) => ipcRenderer.invoke('poisource:cloneToLocal', uid, input),
   findReferences: (uid: string) => ipcRenderer.invoke('poisource:findReferences', uid),
   delete: (uid: string) => ipcRenderer.invoke('poisource:delete', uid),
-  exportFile: (uid: string) => ipcRenderer.invoke('poisource:exportFile', uid),
+  // GeoJSON・zip の書き出し。options.includeImages を省くと画像を含める
+  exportFile: (uid: string, options?: { includeImages?: boolean }) => ipcRenderer.invoke('poisource:exportFile', uid, options),
   // CSV・JSON の書き出し。保存先は main の保存ダイアログで決まる (パスを渡さない)
   exportTable: (uid: string, format: 'csv' | 'json') => ipcRenderer.invoke('poisource:exportTable', uid, format),
   // 開いているソースへの取り込み。選択と解析を main で 1 回で行い、パスは渡さない・返さない
