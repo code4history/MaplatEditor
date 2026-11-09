@@ -30,6 +30,16 @@ const mode = process.env.MODE ?? 'verify';
 const ref = process.env.GITHUB_REF ?? '';
 const version = process.env.VERSION ?? '';
 const winSigner = (process.env.WIN_SIGNER ?? '').trim() || 'artifact-signing';
+const notarize = (process.env.NOTARIZE ?? '').trim();
+
+if (notarize !== '' && notarize !== 'true' && notarize !== 'false') {
+  console.error(`::error::notarize の値が不正です: ${JSON.stringify(notarize)}（true / false）`);
+  process.exit(1);
+}
+if ((mode === '' || mode === 'verify') && notarize === 'true') {
+  console.error(`::error::mode=${mode || '(push)'} では notarize=true を指定できません（公証を行うには mode=sign-check または mode=full を使ってください）`);
+  process.exit(1);
+}
 
 if (mode === '' || mode === 'verify') {
   console.log(`ガード: mode=${mode || '(push)'} は課金を伴わないため制約なし（version=${version} / ${ref}）`);
@@ -72,7 +82,8 @@ if (expectedVersion !== version) {
 }
 
 if (mode === 'sign-check') {
-  console.log(`ガード: mode=sign-check / ${version} / ${expectedEditorSha} ∴ 許可（定額・配布物なし。rc の制限なし）`);
+  const notarizeLabel = notarize === 'true' ? '（macOS 公証あり）' : '';
+  console.log(`ガード: mode=sign-check${notarizeLabel} / ${version} / ${expectedEditorSha} ∴ 許可（定額・配布物なし。rc の制限なし）`);
   process.exit(0);
 }
 

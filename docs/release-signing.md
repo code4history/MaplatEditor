@@ -178,8 +178,10 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 | mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
 |---|---|---|---|---|---|
 | **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可）。ただし **master の祖先の commit だけ**（`expected_editor_sha` を省いたときは dispatch した ref の先端で確かめる） |
-| **`sign-check`**（署名の確認・nov26-m7-t2） | 署名のみ（公証なし） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
+| **`sign-check`**（署名の確認・nov26-m7-t2） | 署名のみ（既定 `notarize=false`）／ **署名 + 公証**（`notarize=true`） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
 | **`full`**（完全） | 署名 + 公証 | 全 PE 署名（`win_signer`） | 作る | `artifact-signing`: **定額** / `esigner`: **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
+
+**`notarize`**: `false`（既定）/ `true`（`mode=sign-check` のとき macOS の公証・staple・`latest-mac.yml` 再生成・`--expect notarized` 検証まで実行する。`mode=full` はこの入力に関わらず常に公証し、`mode=verify` で `true` を渡すと `prepare` の `Guard build mode` が拒否する）
 
 **`platforms`**: `all`（既定）/ `mac` / `win` / `linux`
 
@@ -211,6 +213,7 @@ Developer ID 署名だけで、Windows は署名しない）。merge の前の�
    - `win_signer=artifact-signing` では、続いて署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・`sign-win-installer`）が
      **1 つずつ承認待ちになる**（1 回の実行で承認は最大 4 回）。承認の前に run の表示名（`dispatch mode=… signer=… sha=… ver=…`）が
      自分の起動と一致することを確かめる（outer の承認スクリプトは表示名を照合してから承認する）
+   - `run-name`（`dispatch mode={0} signer={1} sha={2} ver={3}`）には `notarize` を含めない（承認スクリプトの完全一致照合を維持するため）。したがって、**同じ SHA で `notarize=false` と `notarize=true` の `mode=sign-check` を同時に未完了で走らせないこと**（一致する未完了の run が 2 本以上あると承認スクリプトは安全のため停止する）
 4. 完了後の確認:
    - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / .zip / .zip.blockmap / latest-mac.yml。zip は自動更新〔Squirrel.Mac〕用・Part J）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
    - `mode=full` かつ `platforms=all` のときだけ **Releases に draft** ができる → 内容を確認して人間が Publish する（自動公開はしない）
@@ -246,7 +249,8 @@ spctl -a -t open --context context:primary-signature -v "<配布物>.dmg"
 | Win の署名だけやり直す | `full` | `win` |
 | Win のビルドが通るかだけ見る | `verify` | `win` |
 | Linux だけ | どちらでも | `linux` |
-| Windows の Artifact Signing の経路だけを本番の前に確かめる（SAC の確認用の Setup.exe を作る） | `sign-check` | `all` |
+| Windows の Artifact Signing の経路だけを本番の前に確かめる（SAC の確認用の Setup.exe を作る） | `sign-check`（`notarize=false`） | `all` |
+| RC 前に Mac の公証・staple まで確かめる（または Windows の Artifact Signing と同じ run で確かめる） | `sign-check`（`notarize=true`） | `mac`（または `all`） |
 
 **`platforms` を絞れることの意味**: eSigner は署名ごとに課金されるため、Mac の都合で全体を焼き直すと Windows の署名代が無駄になる。Apple の公証待ちが発生したときは `mac` + `full` で Mac だけ作り直し、Windows は前回の Artifacts を流用すればよい。
 

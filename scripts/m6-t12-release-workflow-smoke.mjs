@@ -50,6 +50,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
         EXPECTED_EDITOR_SHA: opts.sha ?? '',
         EXPECTED_VERSION: opts.version ?? '',
         WIN_SIGNER: opts.signer ?? '',
+        NOTARIZE: opts.notarize ?? '',
       },
       encoding: 'utf8',
     });
@@ -95,6 +96,19 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   ng(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'bogus' }), 'm7-t2 full + 不正な win_signer → 拒否', /win_signer/);
   ng(run('nonsense', 'refs/heads/master', '1.2.0'), 'm7-t2 未知の mode → 拒否', /mode/);
   ok(run('', 'refs/heads/master', '1.2.0'), 'm7-t2 push（mode が空）→ 制約なし');
+  // --- notarize 入力の検証 ---
+  ok(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'true' }),
+    'sign-check + notarize=true → 許可');
+  ok(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'false' }),
+    'sign-check + notarize=false → 許可');
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'false' }),
+    'full + notarize=false → 許可（full は入力を無視して常に公証する）');
+  ng(run('verify', 'refs/heads/master', '1.2.0', { notarize: 'true' }),
+    'verify + notarize=true → 拒否', /notarize=true/);
+  ng(run('', 'refs/heads/master', '1.2.0', { notarize: 'true' }),
+    'push（mode 空）+ notarize=true → 拒否', /notarize=true/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'yes' }),
+    'sign-check + 不正な notarize 値 → 拒否', /notarize/);
 
   console.log('  [1/7] AC3 リリースガード 22ケース（2軸モデル + #104 exact SHA 宣言 + m7-t2 sign-check・win_signer）: PASS');
 }
@@ -180,9 +194,12 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const inputs = wf.on.workflow_dispatch.inputs;
   assert.deepEqual(
     Object.keys(inputs).sort(),
-    ['expected_editor_sha', 'expected_version', 'mode', 'platforms', 'win_signer'],
+    ['expected_editor_sha', 'expected_version', 'mode', 'notarize', 'platforms', 'win_signer'],
     'AC10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + nov26-m7-t2 の win_signer'
   );
+  assert.equal(inputs.notarize.type, 'boolean', 'notarize は boolean 入力');
+  assert.equal(inputs.notarize.required, false, 'notarize は任意');
+  assert.equal(inputs.notarize.default, false, 'notarize の既定は false（公証なし）');
   assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'AC10: mode の選択肢（nov26-m7-t2 で sign-check）');
   assert.deepEqual(inputs.win_signer.options, ['artifact-signing', 'esigner'], 'm7-t2: win_signer の選択肢');
   assert.equal(inputs.win_signer.default, 'artifact-signing', 'm7-t2: win_signer の既定は artifact-signing（定額）');
@@ -255,8 +272,9 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
   assert.ok(resign && FULL_COND.test(resign.if ?? ''), 'AC4: metadata 再計算は mode=full 限定');
   const macSteps = wf.jobs['build-mac'].steps;
+  const NOTARIZE_COND = /^github\.event_name == 'workflow_dispatch' && \(inputs\.mode == 'full' \|\| \(inputs\.mode == 'sign-check' && inputs\.notarize\)\)$/;
   const notarize = macSteps.find((s) => (s.name ?? '').includes('notarization'));
-  assert.ok(notarize && FULL_COND.test(notarize.if ?? ''), 'AC4: 公証 env は mode=full 限定');
+  assert.ok(notarize && NOTARIZE_COND.test(notarize.if ?? ''), 'AC4: 公証 env は mode=full または mode=sign-check && inputs.notarize 限定');
   assert.ok(FULL_COND.test(wf.jobs.release.if ?? '') && (wf.jobs.release.if ?? '').includes("inputs.platforms == 'all'"),
     'AC4: draft Release は mode=full かつ platforms=all 限定');
 
@@ -291,6 +309,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const guardEnv = guardStep.env ?? {};
   assert.equal(guardEnv.EXPECTED_EDITOR_SHA, '${{ inputs.expected_editor_sha }}', '#104: guard へ EXPECTED_EDITOR_SHA を渡す');
   assert.equal(guardEnv.EXPECTED_VERSION, '${{ inputs.expected_version }}', '#104: guard へ EXPECTED_VERSION を渡す');
+  assert.equal(guardEnv.NOTARIZE, '${{ inputs.notarize }}', 'guard へ NOTARIZE を渡す');
 
   // #104: prepare が git rev-parse HEAD から build-meta.json を生成し build-meta artifact として upload
   // nov26-m7-t2: 祖先の確認の step も git rev-parse HEAD を持つので、build-meta.json を書く step を選ぶ
