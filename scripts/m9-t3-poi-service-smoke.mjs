@@ -339,6 +339,33 @@ try {
         'round-trip ZIP must contain the image entry');
       console.log('ok: m18-t5 Major-3 round-trip ZIP GeoJSON properties.icon resolved + image bundled');
 
+      // エクスポートの統合 (a): 画像を含めないときは常に GeoJSON で、アセットの参照は値のまま残す
+      {
+        const beforeFc = JSON.parse(JSON.stringify(exportedPackageFc));
+        const withoutImages = await inspectPoiExport(exportedPackageFc, { includeImages: false });
+        assert.equal(withoutImages.kind, 'geojson', 'includeImages:false は常に geojson');
+        assert.equal(withoutImages.files.length, 0, 'includeImages:false は同梱しない');
+        assert.deepEqual(withoutImages.fc, beforeFc, 'includeImages:false は参照を解決しない（UUID は値のまま）');
+        assert.equal(withoutImages.fc.features[0].properties.image.src, importedImageUid, '画像のアセット UUID が残る');
+        assert.equal(withoutImages.fc.properties.icon, importedLayerIcon, '層のアイコンのアセット UUID が残る');
+        assert.deepEqual(exportedPackageFc, beforeFc, '入力の FC を書き換えない');
+        console.log('ok: (poi-export-unify a) includeImages:false keeps asset refs and writes plain GeoJSON');
+      }
+
+      // エクスポートの統合 (b): 明示の includeImages:true は既定と同じ zip
+      {
+        const withImages = await inspectPoiExport(exportedPackageFc, { includeImages: true });
+        assert.equal(withImages.kind, 'zip');
+        const explicitZipPath = nodePath.join(workDir, 'portable-explicit.zip');
+        await writePoiExport(withImages, explicitZipPath);
+        assert.deepEqual(
+          new AdmZip(explicitZipPath).getEntries().map((entry: any) => entry.entryName).sort(),
+          ['imgs/portable-photo.png', 'pois/portable-import.geojson'],
+        );
+        console.log('ok: (poi-export-unify b) includeImages:true equals the default zip');
+      }
+
+
       const invalidPackageFile = nodePath.join(workDir, 'portable-invalid.zip');
       const invalidPackageZip = new AdmZip();
       invalidPackageZip.addFile('imgs/cleanup-photo.png', packageImage);
