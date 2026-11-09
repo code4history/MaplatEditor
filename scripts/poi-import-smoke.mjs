@@ -661,7 +661,8 @@ try {
     assert.equal(pkg.dependencies['@xmldom/xmldom'], '0.8.15', '@xmldom/xmldom は 0.8.15 の完全一致');
     assert.equal(pkg.devDependencies?.['@xmldom/xmldom'], undefined);
     const lock = await read('pnpm-lock.yaml');
-    assert.match(lock, /importers:\n {2}\.:\n[\s\S]*?\n {6}'@xmldom\/xmldom':\n {8}specifier: 0\.8\.15\n {8}version: 0\.8\.15\n/, 'lock の importers に xmldom がない');
+    const importers = lock.slice(lock.indexOf('\nimporters:'), lock.indexOf('\npackages:'));
+    assert.match(importers, /\n {6}'@xmldom\/xmldom':\n {8}specifier: 0\.8\.15\n {8}version: 0\.8\.15\n/, 'lock の importers に xmldom がない');
     console.log('  case m (AC18・AC7(e): 唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
   }
 
