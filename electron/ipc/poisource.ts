@@ -40,15 +40,15 @@ export function registerPoisourceHandlers() {
       const inspection = await inspectPoiExport(fc, { includeImages });
       const extension = inspection.kind === 'zip' ? 'zip' : 'geojson';
       const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
-      const options = {
+      const dialogOptions = {
         filters: inspection.kind === 'zip'
           ? [{ name: 'POI package', extensions: ['zip'] }]
           : [{ name: 'GeoJSON', extensions: ['geojson', 'json'] }],
         defaultPath: dialogDefaultPath('export', `${inspection.slug}.${extension}`),
       };
       const ret = win
-        ? await dialog.showSaveDialog(win, options)
-        : await dialog.showSaveDialog(options);
+        ? await dialog.showSaveDialog(win, dialogOptions)
+        : await dialog.showSaveDialog(dialogOptions);
       if (ret.canceled || !ret.filePath) return { result: 'Canceled' } as const;
       rememberDialogPath('export', ret.filePath, 'file');
       await runGuarded('poisource:exportFile', () => writePoiExport(inspection, ret.filePath));
