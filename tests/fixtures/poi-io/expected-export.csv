@@ -1,0 +1,6 @@
+﻿id,name,name:en,desc,address,image,lat,lng
+r-1,一,One,説明,,https://example.com/1.jpg,35.1234568,139.1234568
+r-2,二,,,,https://example.com/2.jpg,35.2,139.2
+r-3,三,,,,https://example.com/3.jpg,35.3,139.3
+r-4,=1+1,,-5 度,,,35.4,139.4
+r-5,五,," 前後に空白 ",東京都,,35.5,139.5

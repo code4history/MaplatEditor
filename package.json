@@ -334,7 +334,10 @@
     "smoke:workflow-verify-ancestor": "node scripts/workflow-verify-ancestor-smoke.mjs",
     "smoke:win-sign-set-match": "node scripts/win-sign-set-match-smoke.mjs",
     "smoke:dmg-signing": "node scripts/dmg-signing-smoke.mjs",
-    "smoke:electron-fuses": "node scripts/electron-fuses-smoke.mjs"
+    "smoke:electron-fuses": "node scripts/electron-fuses-smoke.mjs",
+    "smoke:poi-table": "node scripts/poi-table-smoke.mjs",
+    "smoke:poi-import": "node scripts/poi-import-smoke.mjs",
+    "test:e2e:poi-io": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/poi-io.spec.ts"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

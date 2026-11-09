@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "lang": "ja",
+  "features": [
+    { "type": "Feature", "id": "r-1", "geometry": { "type": "Point", "coordinates": [139.123456789, 35.123456789] },
+      "properties": { "name": { "ja": "一", "en": "One" }, "desc": "説明", "image": "https://example.com/1.jpg" } },
+    { "type": "Feature", "id": "r-2", "geometry": { "type": "Point", "coordinates": [139.2, 35.2] },
+      "properties": { "name": "二", "image": ["550e8400-e29b-41d4-a716-446655440000", "https://example.com/2.jpg"] } },
+    { "type": "Feature", "id": "r-3", "geometry": { "type": "Point", "coordinates": [139.3, 35.3] },
+      "properties": { "name": "三", "image": { "src": "https://example.com/3.jpg", "alt": "三の写真" } } },
+    { "type": "Feature", "id": "r-4", "geometry": { "type": "Point", "coordinates": [139.4, 35.4] },
+      "properties": { "name": "=1+1", "desc": "-5 度", "html": "<p>x</p>", "memo": "m", "_maplatContentMode": "html" } },
+    { "type": "Feature", "id": "r-5", "geometry": { "type": "Point", "coordinates": [139.5, 35.5] },
+      "properties": { "name": "五", "desc": " 前後に空白 ", "address": "東京都" } }
+  ]
+}
