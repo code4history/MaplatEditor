@@ -181,7 +181,7 @@ try {
     assert.deepEqual(d('<br/>a<BR />b').rows[0].desc, { ja: '\na\nb'.trim() });
     assert.deepEqual(d('<script>alert(1)</script><style>p{}</style>本文').rows[0].desc, { ja: '本文' });
     // 説明に入る名前つき文字参照と数値参照は戻す (&nbsp; が見えたまま残らない)
-    assert.deepEqual(d('<p>A&nbsp;B &copy; &amp; &lt;x&gt; &quot;q&quot; &#65;&#x42; &yen;</p>').rows[0].desc, { ja: 'A B © & <x> "q" AB ¥' });
+    assert.deepEqual(d('<p>A&nbsp;B &copy; &amp; &lt;x&gt; &quot;q&quot; &#65;&#x42; &yen;</p>').rows[0].desc, { ja: 'A B © & ＜x> "q" AB ¥' }, '&lt;x&gt; が戻って "<x>" になる形は全角の "＜" にする');
     // 平坦化の端の形: 単独の "<"・コメント・宣言・閉じない <script>
     assert.deepEqual(d('a < b <b>x</b>').rows[0].desc, { ja: 'a < b x' });
     assert.deepEqual(d('<!DOCTYPE html><!-- c --><p>x</p>').rows[0].desc, { ja: 'x' });
