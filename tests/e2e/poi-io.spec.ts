@@ -22,6 +22,16 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   return { app, page };
 }
 
+// 画面の言語を ja に固定する。i18next は起動時に一度だけ settings の lang を読むので、
+// 設定を書いた後に再読み込みして初期化し直す (settings.set だけでは起動中の画面の言語は変わらない)。
+// これが無いと、OS の言語が en の環境で ja の語の検査が空振りしたり、ja の文言との比較が落ちたりする
+async function useJapaneseUi(page: Page): Promise<void> {
+  await page.evaluate(() => window.settings.set('lang', 'ja'));
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  await expect.poll(() => page.evaluate(() => document.documentElement.innerText.length)).toBeGreaterThan(0);
+}
+
 async function stubDialogs(app: ElectronApplication, savePath: string): Promise<void> {
   await app.evaluate(({ dialog }, out) => {
     (globalThis as any).__poiIoMessages = [];
@@ -94,8 +104,7 @@ test.describe('POI のエクスポート', () => {
     const out = path.join(e2eRoot, 'out.csv');
     const { app, page } = await launch(e2eRoot);
     try {
-      // 画面の言語を ja に固定する (OS の言語で en になると、ja の語の検査が空振りする)
-      await page.evaluate(() => window.settings.set('lang', 'ja'));
+      await useJapaneseUi(page);
       const fc = JSON.parse(await readFile(path.join(fixtureDir, 'roundtrip-source.json'), 'utf8'));
       const uid = await seedRoundtripSource(page, fc);
       await stubDialogs(app, out);
@@ -169,7 +178,7 @@ test.describe('POI のエクスポート', () => {
     const out = path.join(e2eRoot, 'out.geojson');
     const { app, page } = await launch(e2eRoot);
     try {
-      await page.evaluate(() => window.settings.set('lang', 'ja'));
+      await useJapaneseUi(page);
       const uid = await seedRoundtripSource(page, ICON_SOURCE);
       await stubDialogs(app, out);
       await openSource(page, uid);
