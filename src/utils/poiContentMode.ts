@@ -95,7 +95,7 @@ export function estimateContentMode(props: Record<string, unknown>): PoiContentM
 const ASSET_REF_RE = /maplat-asset:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
 
 // 値そのものが UUID 形状（=アセット UID 直接参照）かの判定（StorageAdapter.UUID_PATTERN と同形）
-const UID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // html 文字列（単一言語の string）から maplat-asset:<UID> の UID 集合を抽出。
 // HTML 以外の文脈（URL 等）では使わない（RE は大文字小文字非区別のグローバル）。

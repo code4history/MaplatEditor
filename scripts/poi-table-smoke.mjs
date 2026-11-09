@@ -47,7 +47,7 @@ try {
 
   // 保存済みソースの書き出し形 (PoiSourceService.exportForm と同じ経路) を作る
   const exportFormOf = (json, slug = 'src') => {
-    const fc = normalizePoiSourceCollection(json, json.lang ?? 'ja');
+    const fc = normalizePoiSourceCollection({ type: 'FeatureCollection', ...json }, json.lang ?? 'ja');
     return toExportForm(fc, slug, { ja: 'テスト' }, { roundCoordinates: true, defaultLang: fc.lang });
   };
   const source = JSON.parse(await readFile(path.join(fixtureDir, 'roundtrip-source.json'), 'utf8'));
