@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "匯出為 CSV / JSON…",
+    "export_title": "匯出為 CSV / JSON",
+    "export_description": "將已儲存的 POI 匯出為表格檔案。",
+    "format_csv": "CSV",
+    "format_csv_desc": "可用 Excel 等試算表軟體開啟。帶 BOM 的 UTF-8，座標保留 7 位小數。",
+    "format_json": "JSON",
+    "format_json_desc": "POI 的陣列。HTML、自訂項目與圖片參照會原樣保留。",
+    "export_confirm": "匯出",
+    "export_success": "已匯出。",
+    "export_failed": "匯出失敗。",
+    "omitted_csv": "CSV 中不包含以下項目：{{items}}。若要無損匯出，請使用 GeoJSON。以覆寫方式匯入時不會刪除這些項目。",
+    "asset_json": "資源圖片的參照已原樣包含：{{items}}。在其他環境中沒有意義。",
+    "label_html": "HTML 內文",
+    "label_url": "連結目標 (url)",
+    "label_directgo": "直接跳轉 (directgo)",
+    "label_icon": "圖示",
+    "label_selected_icon": "選取時的圖示",
+    "label_other": "其他項目",
+    "label_image_asset": "資源圖片",
+    "label_image_unrepresentable": "無法表示的圖片",
+    "label_icon_asset": "資源圖示"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "新增圖片資產",

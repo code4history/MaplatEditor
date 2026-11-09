@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "导出为 CSV / JSON…",
+    "export_title": "导出为 CSV / JSON",
+    "export_description": "将已保存的 POI 导出为表格文件。",
+    "format_csv": "CSV",
+    "format_csv_desc": "可用 Excel 等电子表格软件打开。带 BOM 的 UTF-8，坐标保留 7 位小数。",
+    "format_json": "JSON",
+    "format_json_desc": "POI 的数组。HTML、自定义项目和图片引用会原样保留。",
+    "export_confirm": "导出",
+    "export_success": "已导出。",
+    "export_failed": "导出失败。",
+    "omitted_csv": "CSV 中不包含以下项目：{{items}}。如需无损导出，请使用 GeoJSON。以覆盖方式导入时不会删除这些项目。",
+    "asset_json": "资源图片的引用已原样包含：{{items}}。在其他环境中没有意义。",
+    "label_html": "HTML 正文",
+    "label_url": "链接目标 (url)",
+    "label_directgo": "直接跳转 (directgo)",
+    "label_icon": "图标",
+    "label_selected_icon": "选中时的图标",
+    "label_other": "其他项目",
+    "label_image_asset": "资源图片",
+    "label_image_unrepresentable": "无法表示的图片",
+    "label_icon_asset": "资源图标"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "新建图像资源",

@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "プレビューではリンクは開きません。書き出したアプリで確かめてください。",
     "directgo_hidden_content": "リンクの形では情報窓は出ないため、次の内容は表示されません（データは残ります）: {{fields}}"
   },
+  "poiio": {
+    "export_button": "CSV・JSON で書き出し…",
+    "export_title": "CSV・JSON で書き出す",
+    "export_description": "保存済みの POI を表形式のファイルに書き出します。",
+    "format_csv": "CSV",
+    "format_csv_desc": "Excel などの表計算ソフトで開けます。UTF-8（BOM つき）で、座標は小数点以下 7 桁です。",
+    "format_json": "JSON",
+    "format_json_desc": "POI の配列です。HTML や独自の項目、画像の参照もそのまま入ります。",
+    "export_confirm": "書き出す",
+    "export_success": "書き出しました。",
+    "export_failed": "書き出しに失敗しました。",
+    "omitted_csv": "CSV に含まれない項目があります: {{items}}。欠落なしで書き出すには GeoJSON を使ってください。取り込み（上書き）でこれらの項目が消えることはありません。",
+    "asset_json": "画像の参照（資産）がそのまま入っています: {{items}}。別の環境では意味を持ちません。",
+    "label_html": "HTML 本文",
+    "label_url": "リンク先 (url)",
+    "label_directgo": "直接遷移 (directgo)",
+    "label_icon": "アイコン",
+    "label_selected_icon": "選択時のアイコン",
+    "label_other": "その他の項目",
+    "label_image_asset": "資産の画像",
+    "label_image_unrepresentable": "表せない画像",
+    "label_icon_asset": "資産のアイコン"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "新規アセット",

@@ -6,6 +6,7 @@ import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
+import { exportPoiTable } from '../services/PoiTableIoService';
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -54,6 +55,30 @@ export function registerPoisourceHandlers() {
       } as const;
     }
   });
+
+  // CSV・JSON の書き出し。rendererから任意pathを受け取らず、保存先は保存ダイアログの返値だけを使う。
+  ipc.handle('poisource:exportTable', (event, uid, format) =>
+    runGuarded('poisource:exportTable', () =>
+      exportPoiTable({
+        uid,
+        format,
+        loadFc: (ref) => poiSourceService.exportForm(ref),
+        pickSavePath: async ({ fileName, extension }) => {
+          const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+          const options = {
+            filters: extension === 'csv'
+              ? [{ name: 'CSV', extensions: ['csv'] }]
+              : [{ name: 'JSON', extensions: ['json'] }],
+            defaultPath: dialogDefaultPath('export', fileName),
+          };
+          const ret = win
+            ? await dialog.showSaveDialog(win, options)
+            : await dialog.showSaveDialog(options);
+          if (ret.canceled || !ret.filePath) return null;
+          rememberDialogPath('export', ret.filePath, 'file');
+          return ret.filePath;
+        },
+      })));
 
   // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON を選ばせ path とファイル名を返す。
   // 実取り込みは renderer が slug/title を収集後に poisource:importFile を呼ぶ二段構え。

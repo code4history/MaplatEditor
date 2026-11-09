@@ -228,6 +228,8 @@ contextBridge.exposeInMainWorld('poiSources', {
   findReferences: (uid: string) => ipcRenderer.invoke('poisource:findReferences', uid),
   delete: (uid: string) => ipcRenderer.invoke('poisource:delete', uid),
   exportFile: (uid: string) => ipcRenderer.invoke('poisource:exportFile', uid),
+  // CSV・JSON の書き出し。保存先は main の保存ダイアログで決まる (パスを渡さない)
+  exportTable: (uid: string, format: 'csv' | 'json') => ipcRenderer.invoke('poisource:exportTable', uid, format),
   // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
   pickImportFile: () => ipcRenderer.invoke('poisource:pickImportFile'),
 })

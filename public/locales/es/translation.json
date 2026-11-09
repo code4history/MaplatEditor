@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "Exportar como CSV / JSON…",
+    "export_title": "Exportar como CSV / JSON",
+    "export_description": "Exporta los POI guardados a un archivo de tabla.",
+    "format_csv": "CSV",
+    "format_csv_desc": "Se abre en Excel y otras hojas de cálculo. UTF-8 con BOM, coordenadas con 7 decimales.",
+    "format_json": "JSON",
+    "format_json_desc": "Una matriz de POI. El HTML, los campos propios y las referencias de imágenes se conservan tal cual.",
+    "export_confirm": "Exportar",
+    "export_success": "Exportado.",
+    "export_failed": "Error al exportar.",
+    "omitted_csv": "Algunos campos no se incluyen en el CSV: {{items}}. Use GeoJSON para una exportación sin pérdidas. Importar sobrescribiendo no eliminará estos campos.",
+    "asset_json": "Las referencias de imágenes de recursos se incluyen tal cual: {{items}}. No tienen significado en otro entorno.",
+    "label_html": "Cuerpo HTML",
+    "label_url": "Destino del enlace (url)",
+    "label_directgo": "Salto directo (directgo)",
+    "label_icon": "Icono",
+    "label_selected_icon": "Icono seleccionado",
+    "label_other": "Otros campos",
+    "label_image_asset": "Imágenes de recursos",
+    "label_image_unrepresentable": "Imágenes no representables",
+    "label_icon_asset": "Iconos de recursos"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "Nuevo recurso de imagen",

@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "ส่งออกเป็น CSV / JSON…",
+    "export_title": "ส่งออกเป็น CSV / JSON",
+    "export_description": "ส่งออก POI ที่บันทึกไว้เป็นไฟล์แบบตาราง",
+    "format_csv": "CSV",
+    "format_csv_desc": "เปิดได้ด้วย Excel และโปรแกรมสเปรดชีตอื่น ๆ เป็น UTF-8 แบบมี BOM พิกัดทศนิยม 7 ตำแหน่ง",
+    "format_json": "JSON",
+    "format_json_desc": "อาร์เรย์ของ POI โดย HTML ฟิลด์เฉพาะ และการอ้างอิงรูปภาพจะคงไว้ตามเดิม",
+    "export_confirm": "ส่งออก",
+    "export_success": "ส่งออกแล้ว",
+    "export_failed": "ส่งออกไม่สำเร็จ",
+    "omitted_csv": "มีบางฟิลด์ที่ไม่รวมอยู่ใน CSV: {{items}} หากต้องการส่งออกแบบไม่สูญหาย ให้ใช้ GeoJSON การนำเข้าแบบเขียนทับจะไม่ลบฟิลด์เหล่านี้",
+    "asset_json": "การอ้างอิงรูปภาพของแอสเซ็ตรวมอยู่ตามเดิม: {{items}} ซึ่งไม่มีความหมายในสภาพแวดล้อมอื่น",
+    "label_html": "เนื้อหา HTML",
+    "label_url": "ปลายทางลิงก์ (url)",
+    "label_directgo": "ข้ามตรง (directgo)",
+    "label_icon": "ไอคอน",
+    "label_selected_icon": "ไอคอนเมื่อเลือก",
+    "label_other": "ฟิลด์อื่น ๆ",
+    "label_image_asset": "รูปภาพแอสเซ็ต",
+    "label_image_unrepresentable": "รูปภาพที่แสดงไม่ได้",
+    "label_icon_asset": "ไอคอนแอสเซ็ต"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "แอสเซ็ตรูปภาพใหม่",
