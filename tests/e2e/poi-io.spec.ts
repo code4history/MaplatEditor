@@ -1,6 +1,7 @@
-// POI の CSV・JSON 書き出し E2E (実 Electron)。
+// POI のエクスポート (GeoJSON・zip・CSV・JSON) と取り込みの E2E (実 Electron)。
 // ネイティブの保存ダイアログ・メッセージボックスは差し替え、書き出されたファイルを期待値と比べる。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import AdmZip from 'adm-zip';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import os from 'node:os';
@@ -24,7 +25,12 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 async function stubDialogs(app: ElectronApplication, savePath: string): Promise<void> {
   await app.evaluate(({ dialog }, out) => {
     (globalThis as any).__poiIoMessages = [];
-    dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
+    (globalThis as any).__poiIoSaveCalls = [];
+    dialog.showSaveDialog = (async (...args: any[]) => {
+      const options = (args.length > 1 ? args[1] : args[0]) ?? {};
+      (globalThis as any).__poiIoSaveCalls.push({ filters: options.filters });
+      return { canceled: false, filePath: out };
+    }) as typeof dialog.showSaveDialog;
     dialog.showMessageBox = (async (...args: any[]) => {
       const options = (args.length > 1 ? args[1] : args[0]) ?? {};
       (globalThis as any).__poiIoMessages.push({ message: options.message, detail: options.detail });
@@ -47,25 +53,49 @@ async function seedRoundtripSource(page: Page, fc: unknown): Promise<string> {
 async function openSource(page: Page, uid: string): Promise<void> {
   await page.evaluate((hash) => { location.hash = hash; }, `#/poisources/${uid}`);
   await page.waitForSelector('.editor-action-header', { timeout: 15000 });
-  await expect(page.locator('[data-editor-action="poi-export-table"]')).toBeEnabled({ timeout: 15000 });
+  await expect(page.locator('[data-editor-action="export"]')).toBeEnabled({ timeout: 15000 });
 }
 
-async function runExport(app: ElectronApplication, page: Page, format: 'csv' | 'json') {
-  await page.locator('[data-editor-action="poi-export-table"]').click();
-  await expect(page.getByTestId('poi-export-table-dialog')).toBeVisible();
+type PoiExportFormat = 'geojson' | 'csv' | 'json';
+
+// ヘッダの「エクスポート」→ 選択ダイアログで形式 (と画像) を選ぶ → 確定。完了の通知まで待つ
+async function runExport(
+  app: ElectronApplication,
+  page: Page,
+  format: PoiExportFormat,
+  images?: { includeImages: boolean },
+) {
+  await page.locator('[data-editor-action="export"]').click();
+  await expect(page.getByTestId('poi-export-options')).toBeVisible();
   await page.getByTestId(`poi-export-format-${format}`).check();
-  await page.getByTestId('poi-export-table-confirm').click();
-  await expect(page.getByTestId('poi-export-table-dialog')).toBeHidden();
+  if (images) await page.getByTestId('poi-export-option-images').setChecked(images.includeImages);
+  await page.getByTestId('poi-export-options-confirm').click();
+  await expect(page.getByTestId('poi-export-options')).toBeHidden();
   await expect.poll(() => app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBeGreaterThan(0);
   return app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string; detail?: string }[]);
 }
 
-test.describe('POI の CSV・JSON 書き出し', () => {
+async function saveCalls(app: ElectronApplication): Promise<{ filters: { name: string; extensions: string[] }[] }[]> {
+  return app.evaluate(() => (globalThis as any).__poiIoSaveCalls);
+}
+
+// アイコンセットの参照 (どの環境でも実体がある) を持つ POI 1 件
+const ICON_SOURCE = {
+  type: 'FeatureCollection',
+  features: [{
+    type: 'Feature', id: 'icon-1', geometry: { type: 'Point', coordinates: [139.7, 35.7] },
+    properties: { name: 'アイコンの POI', icon: 'builtin:defaultpin-blue' },
+  }],
+};
+
+test.describe('POI のエクスポート', () => {
   test('CSV: 期待値とバイト単位で一致し、省かれた項目が報告される', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-io-csv-'));
     const out = path.join(e2eRoot, 'out.csv');
     const { app, page } = await launch(e2eRoot);
     try {
+      // 画面の言語を ja に固定する (OS の言語で en になると、ja の語の検査が空振りする)
+      await page.evaluate(() => window.settings.set('lang', 'ja'));
       const fc = JSON.parse(await readFile(path.join(fixtureDir, 'roundtrip-source.json'), 'utf8'));
       const uid = await seedRoundtripSource(page, fc);
       await stubDialogs(app, out);
@@ -73,15 +103,18 @@ test.describe('POI の CSV・JSON 書き出し', () => {
       const messages = await runExport(app, page, 'csv');
       const expected = await readFile(path.join(fixtureDir, 'expected-export.csv'));
       expect(Buffer.compare(await readFile(out), expected)).toBe(0);
-      // 省かれた項目 (html・その他の項目・資産の画像) の報告
-      expect(messages.at(-1)?.detail ?? '').toContain('HTML');
-      expect(messages.at(-1)?.detail ?? '').toContain('GeoJSON');
+      // 省かれた項目 (html・その他の項目) の報告。画像の項目は選ぶ時点で分かるので挙げない
+      const detail = messages.at(-1)?.detail ?? '';
+      expect(detail).toContain('HTML');
+      expect(detail).toContain('GeoJSON');
+      for (const word of ['資産', 'アセット', 'アイコン', 'Asset', 'Icon']) expect(detail).not.toContain(word);
+      expect((await saveCalls(app)).map((call) => call.filters[0].extensions)).toEqual([['csv']]);
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('JSON: POI の配列で、HTML・独自の項目・資産の参照が保たれる', async () => {
+  test('JSON: POI の配列で、HTML・独自の項目・アセットの参照が保たれる', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-io-json-'));
     const out = path.join(e2eRoot, 'out.json');
     const { app, page } = await launch(e2eRoot);
@@ -90,9 +123,106 @@ test.describe('POI の CSV・JSON 書き出し', () => {
       const uid = await seedRoundtripSource(page, fc);
       await stubDialogs(app, out);
       await openSource(page, uid);
-      await runExport(app, page, 'json');
+      const messages = await runExport(app, page, 'json');
       const expected = JSON.parse(await readFile(path.join(fixtureDir, 'expected-export.json'), 'utf8'));
       expect(JSON.parse(await readFile(out, 'utf8'))).toEqual(expected);
+      // JSON の完了の通知に注意は付かない
+      expect(messages.at(-1)?.detail ?? '').toBe('');
+      expect((await saveCalls(app)).map((call) => call.filters[0].extensions)).toEqual([['json']]);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('GeoJSON: 既定 (画像を含める) は zip に画像のアイコンを同梱し、含めないと参照が残る GeoJSON', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-io-geojson-'));
+    const outZip = path.join(e2eRoot, 'out.zip');
+    const outGeo = path.join(e2eRoot, 'out.geojson');
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const uid = await seedRoundtripSource(page, ICON_SOURCE);
+      await openSource(page, uid);
+
+      // (a) 既定のまま確定 → zip
+      await stubDialogs(app, outZip);
+      await runExport(app, page, 'geojson');
+      expect((await saveCalls(app)).map((call) => call.filters[0].extensions)).toEqual([['zip']]);
+      const entries = new AdmZip(outZip).getEntries().map((entry) => entry.entryName).sort();
+      expect(entries).toHaveLength(2);
+      expect(entries).toContain('imgs/icons/builtin/defaultpin-blue.svg');
+      expect(entries.filter((name) => /^pois\/[^/]+\.geojson$/.test(name))).toHaveLength(1);
+
+      // (b) 画像を含めない → GeoJSON。アイコンセットの参照は値のまま
+      await stubDialogs(app, outGeo);
+      await runExport(app, page, 'geojson', { includeImages: false });
+      expect((await saveCalls(app)).map((call) => call.filters[0].extensions)).toEqual([['geojson', 'json']]);
+      const geo = JSON.parse(await readFile(outGeo, 'utf8'));
+      expect(geo.type).toBe('FeatureCollection');
+      expect(geo.features[0].properties.icon).toBe('builtin:defaultpin-blue');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('選択ダイアログ: 画像は GeoJSON だけ・選択を覚えない・キャンセルで保存しない・未保存の確認が先', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-io-options-'));
+    const out = path.join(e2eRoot, 'out.geojson');
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await page.evaluate(() => window.settings.set('lang', 'ja'));
+      const uid = await seedRoundtripSource(page, ICON_SOURCE);
+      await stubDialogs(app, out);
+      await openSource(page, uid);
+      const dialog = page.getByTestId('poi-export-options');
+      const images = page.getByTestId('poi-export-option-images');
+
+      // (a) CSV・JSON では画像を選べずオフ。GeoJSON に戻すと有効でオン
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(dialog).toBeVisible();
+      await expect(page.getByTestId('poi-export-format-geojson')).toBeChecked();
+      await expect(images).toBeEnabled();
+      await expect(images).toBeChecked();
+      for (const format of ['csv', 'json'] as const) {
+        await page.getByTestId(`poi-export-format-${format}`).check();
+        await expect(images).toBeDisabled();
+        await expect(images).not.toBeChecked();
+      }
+      await page.getByTestId('poi-export-format-geojson').check();
+      await expect(images).toBeEnabled();
+      await expect(images).toBeChecked();
+
+      // (b) オフにして取り消し、開き直すと既定 (GeoJSON・オン) に戻る
+      await images.uncheck();
+      await page.getByTestId('poi-export-format-csv').check();
+      // (c) キャンセルでは保存ダイアログを呼ばない
+      await page.getByTestId('poi-export-options-cancel').click();
+      await expect(dialog).toBeHidden();
+      await expect(page.locator('[data-editor-action="export"]')).toBeEnabled();
+      expect(await saveCalls(app)).toHaveLength(0);
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(dialog).toBeVisible();
+      await expect(page.getByTestId('poi-export-format-geojson')).toBeChecked();
+      await expect(images).toBeChecked();
+      await page.getByTestId('poi-export-options-cancel').click();
+      await expect(dialog).toBeHidden();
+      await expect(page.locator('[data-editor-action="export"]')).toBeEnabled();
+      expect(await saveCalls(app)).toHaveLength(0);
+      expect(await app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBe(0);
+
+      // (d) 未保存の変更があると、選択ダイアログより先に「保存してエクスポート」の確認が出る
+      await page.getByTestId('poi-title').locator('input').fill('未保存の題');
+      await page.locator('[data-editor-action="export"]').click();
+      await expect(dialog).toBeVisible({ timeout: 15000 });
+      // 選択ダイアログが見えた時点で、確認 (と、それを受けた保存の通知) は出終わり、保存ダイアログはまだ
+      const before = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
+      expect(before[0]?.message).toBe('未保存の変更があります。出力方法を選んでください。');
+      expect(await saveCalls(app)).toHaveLength(0);
+      await page.getByTestId('poi-export-options-confirm').click();
+      await expect(dialog).toBeHidden();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBe(before.length + 1);
+      expect(await saveCalls(app)).toHaveLength(1);
+      const after = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
+      expect(after.at(-1)?.message).toBe('エクスポートしました。');
     } finally {
       await quitElectronApplication(app);
     }
@@ -256,8 +386,10 @@ test.describe('POI の CSV 取り込み', () => {
       await page.waitForSelector('.editor-action-header', { timeout: 15000 });
       await expect(page.locator('[data-editor-action="clone"]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-editor-action="poi-merge-import"]')).toBeDisabled();
-      // 書き出しは読み取り専用でも有効
-      await expect(page.locator('[data-editor-action="poi-export-table"]')).toBeEnabled();
+      // エクスポートは読み取り専用でもヘッダに出て有効。表の書き出しのボタンは無い
+      await expect(page.locator('[data-editor-action="export"]')).toBeVisible();
+      await expect(page.locator('[data-editor-action="export"]')).toBeEnabled();
+      await expect(page.locator('[data-editor-action="poi-export-table"]')).toHaveCount(0);
       // 翻訳モード (既定言語以外の編集) でも構造の編集は禁止
       const { uid } = await seedMergeSource(page);
       await openForImport(page, uid);

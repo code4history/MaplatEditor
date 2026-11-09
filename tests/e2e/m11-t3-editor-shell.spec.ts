@@ -228,6 +228,9 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
 
     await page.locator('[data-editor-action="export"]').click();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
+    // 形式と画像の選択ダイアログ。既定 (GeoJSON・画像を含める) のまま確定する。fixture は画像を持たないので .geojson
+    await expect(page.getByTestId('poi-export-options')).toBeVisible();
+    await page.getByTestId('poi-export-options-confirm').click();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
     const exported = JSON.parse(await readFile(exportPath, 'utf8'));
     expect(exported.type).toBe('FeatureCollection');
