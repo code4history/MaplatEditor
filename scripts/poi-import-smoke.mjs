@@ -4,7 +4,7 @@
 // - 新しいソースを作る取り込み (importFile) が解析と合流を共有して動く
 // - 結線の静的検査 (ipc.handle・runGuarded・チャネル名・入口の置き場所・無効条件・確定時の再確認)
 // - 文言: poiio の節に、データを指す名詞の「設定」相当の語が無い (11 言語の語で検査)
-import { mkdir, mkdtemp, rm, readFile, writeFile, truncate } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, readFile, readdir, writeFile, truncate } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -415,6 +415,16 @@ try {
     // 拡張子
     const mk = async (name, content = 'x') => { const p = path.join(dir, name); await writeFile(p, content); return p; };
     assert.equal((await run({ lang: 'ja' }, await mk('a.kmz'))).code, 'kmz-unsupported');
+    assert.equal((await run({ lang: 'ja' }, await mk('a.kmz', '<kml/>'))).code, 'kmz-unsupported', '.kmz は .kml の判定より先に断る');
+    const kml = await run({ lang: 'ja' }, path.join(fixtureDir, 'demo.kml'));
+    assert.equal(kml.result, 'Parsed');
+    assert.equal(kml.fileName, 'demo.kml');
+    assert.equal(kml.parse.format, 'kml');
+    assert.equal(kml.parse.rows.length, 2);
+    assert.ok(!JSON.stringify(kml).includes(fixtureDir), 'KML の戻り値にもパスを含めない');
+    const badKml = await run({ lang: 'ja' }, await mk('bad.kml', '<kml><Placemark>'));
+    assert.equal(badKml.result, 'Parsed');
+    assert.equal(badKml.parse.fatal, true);
     assert.equal((await run({ lang: 'ja' }, await mk('a.txt'))).code, 'unsupported-extension');
     assert.equal((await run({ lang: 'ja' }, await mk('noext'))).code, 'unsupported-extension');
     assert.equal((await run({ lang: 'ja' }, await mk('UPPER.CSV', 'id,name,lat,lng\r\n'))).result, 'Parsed');
@@ -439,15 +449,18 @@ try {
     const importAt = svc.indexOf('async importFile(');
     // importFile と、その .csv の分岐が呼ぶ importCsvFile (次のメソッドの前まで)
     const importBody = svc.slice(importAt, svc.indexOf('async createPoiSourceFromManagedDocument(', importAt));
-    assert.ok(importBody.includes('.csv'), 'importFile に .csv の分岐がない');
-    assert.ok(importBody.includes('parsePoiImportFile('), 'importFile が parsePoiImportFile を呼んでいない');
+    assert.ok(importBody.includes('.csv') && importBody.includes('.kml'), 'importFile に .csv・.kml の分岐がない');
+    assert.ok(importBody.includes('importTableFile('), 'importFile が importTableFile を呼んでいない');
+    assert.ok(importBody.includes('parsePoiImportBytes('), 'importTableFile が parsePoiImportBytes を呼んでいない');
+    assert.doesNotMatch(importBody, /\bparsePoiImportFile\(|\bparsePoiKml\(/, '解析は parsePoiImportBytes だけを呼ぶ');
     assert.ok(importBody.includes('planPoiMerge('), 'importFile が planPoiMerge を呼んでいない');
     assert.doesNotMatch(importBody, /split\(\s*['"],['"]/, 'importFile に独自の CSV 解析 (split(",")) がある');
     const detectAt = svc.indexOf('async detectImportLanguage(');
     const detectBody = svc.slice(detectAt, svc.indexOf('// 明示再取得', detectAt));
     assert.ok(detectBody.indexOf('.csv') >= 0 && detectBody.indexOf('.csv') < detectBody.indexOf('JSON.parse'), 'detectImportLanguage が .csv で JSON.parse の前に返していない');
+    assert.ok(detectBody.indexOf('.kml') >= 0 && detectBody.indexOf('.kml') < detectBody.indexOf('JSON.parse'), 'detectImportLanguage が .kml で JSON.parse の前に返していない');
     const pickAt = ipcSrc.indexOf("'poisource:pickImportFile'");
-    assert.match(ipcSrc.slice(pickAt, pickAt + 700), /extensions:\s*\[[^\]]*'csv'[^\]]*\]/, 'pickImportFile の拡張子に csv がない');
+    assert.match(ipcSrc.slice(pickAt, pickAt + 700), /extensions:\s*\['geojson', 'json', 'zip', 'csv', 'kml'\]/, 'pickImportFile の拡張子が geojson・json・zip・csv・kml の完全一致でない');
 
     // 実行 (c): 実物の PoiSourceService を SQLite に向けて動かす (同種の smoke の方式)
     const stubDir = path.join(workDir, 'svc');
@@ -522,12 +535,33 @@ try {
         assert.deepEqual(detail.fc.features[0].geometry.coordinates, [139.7745, 35.684]);
         assert.match(detail.fc.features[0].properties._maplatUid, /^[0-9a-f-]{36}$/);
       }
+      // KML (AC15 の KML 版): デモ D は経緯度が逆の Point があり Invalid。有効な KML は Success。壊れた KML は Invalid
+      assert.equal(await service.detectImportLanguage(fx('demo.kml'), 'en'), 'en');
+      assert.equal(await service.detectImportLanguage(fx('demo.kml')), 'ja');
+      const kmlBad = await service.importFile({ slug: 'kml-demo', title: { ja: 'k' }, filePath: fx('demo.kml'), lang: 'ja' });
+      assert.equal(kmlBad.result, 'Invalid', JSON.stringify(kmlBad).slice(0, 300));
+      assert.ok(keys(kmlBad.issues).includes('coord-range:error'));
+      assert.equal(await service.get('kml-demo'), null, 'Invalid では行を残さない');
+      const kmlOk = await service.importFile({ slug: 'kml-ok', title: { ja: 'k' }, filePath: ${JSON.stringify(path.join(workDir, 'valid.kml'))}, lang: 'ja' });
+      assert.equal(kmlOk.result, 'Success', JSON.stringify(kmlOk).slice(0, 300));
+      const kmlDetail = await service.get(kmlOk.uid);
+      assert.equal(kmlDetail.featureCount, 2);
+      assert.deepEqual(kmlDetail.fc.features[0].properties.name, { ja: '浅草寺', en: 'Sensoji' });
+      assert.deepEqual(kmlDetail.fc.features[0].geometry.coordinates, [139.7967, 35.7148]);
+      assert.equal(kmlDetail.fc.features[0].id, 'kml-1');
+      const kmlBroken = await service.importFile({ slug: 'kml-broken', title: { ja: 'k' }, filePath: ${JSON.stringify(path.join(workDir, 'broken.kml'))}, lang: 'ja' });
+      assert.equal(kmlBroken.result, 'Invalid');
+      assert.ok(keys(kmlBroken.issues).includes('kml-not-xml:error'));
       // 既存の GeoJSON の取り込みは変わらない
       const missingExt = await service.importFile({ slug: 'x', title: { ja: 'x' }, filePath: '/tmp/a.txt' });
       assert.equal(missingExt.result, 'Error');
       console.log('poi-import service child: PASS');
     `);
     await writeFile(path.join(workDir, 'fatal.csv'), 'name,desc\r\nx,y\r\n');
+    // 有効な KML (デモ D から経緯度が逆の Placemark を除いたもの) と壊れた KML
+    const demoKml = await readFile(path.join(fixtureDir, 'demo.kml'), 'utf8');
+    await writeFile(path.join(workDir, 'valid.kml'), demoKml.replace(/ <Placemark><name>経緯度が逆<\/name>.*<\/Placemark>\n/, ''));
+    await writeFile(path.join(workDir, 'broken.kml'), '<kml><Placemark><name>x</kml>');
     await build({
       configFile: false,
       logLevel: 'silent',
@@ -546,6 +580,96 @@ try {
     process.stdout.write(stdout);
     if (stderr) process.stderr.write(stderr);
     console.log('  case k (AC15: 新しいソースを作る取り込み): PASS');
+  }
+
+  // ---------- AC18: PR-3 の結線 ----------
+  {
+    const listFiles = async (dir) => {
+      const out = [];
+      for (const entry of await readdir(path.join(projectRoot, dir), { withFileTypes: true, recursive: true })) {
+        if (entry.isFile() && /\.(ts|vue|mjs)$/.test(entry.name)) out.push(path.join(entry.parentPath ?? entry.path, entry.name));
+      }
+      return out;
+    };
+    const electronFiles = await listFiles('electron');
+    const srcFiles = await listFiles('src');
+    const tableSvc = await read('electron/services/PoiTableIoService.ts');
+    const kmlSrc = await read('src/utils/poiKml.ts');
+    const rowsSrc = await read('src/utils/poiImportRows.ts');
+    const body = (source, startRe) => {
+      const at = source.search(startRe);
+      assert.ok(at >= 0, `${startRe} がない`);
+      const rest = source.slice(at + 10);
+      const next = rest.search(/\n(?:export )?(?:async )?function |\nexport (?:const|type|interface) /);
+      return source.slice(at, next < 0 ? undefined : at + 10 + next);
+    };
+
+    // (a) electron/ の下で解析を直接呼ぶのは parsePoiImportBytes の中だけ。両方の呼び出し側がそれを呼ぶ
+    const direct = [];
+    for (const file of electronFiles) {
+      const text = await readFile(file, 'utf8');
+      for (const line of text.split('\n')) {
+        if (/^\s*(import|\/\/|\*)/.test(line)) continue;
+        if (/\b(parsePoiImportFile|parsePoiKml)\(/.test(line)) direct.push(path.relative(projectRoot, file));
+      }
+    }
+    assert.deepEqual([...new Set(direct)], ['electron/services/PoiTableIoService.ts'], '解析を直接呼ぶのは PoiTableIoService だけ');
+    const bytesBody = body(tableSvc, /export async function parsePoiImportBytes\(/);
+    assert.ok(/parsePoiImportFile\(/.test(bytesBody) && /parsePoiKml\(/.test(bytesBody), 'parsePoiImportBytes が拡張子で .csv・.kml を振り分けていない');
+    assert.equal((tableSvc.match(/\bparsePoiImportFile\(/g) ?? []).length, 1, 'parsePoiImportFile の呼び出しは 1 か所');
+    assert.equal((tableSvc.match(/\bparsePoiKml\(/g) ?? []).length, 1, 'parsePoiKml の呼び出しは 1 か所');
+    assert.ok(body(tableSvc, /export async function pickAndParsePoiMerge\(/).includes('parsePoiImportBytes('), 'pickAndParsePoiMerge が parsePoiImportBytes を呼んでいない');
+    const svcSrc = await read('electron/services/PoiSourceService.ts');
+    assert.ok(svcSrc.includes('parsePoiImportBytes('), 'PoiSourceService の取り込みが parsePoiImportBytes を呼んでいない');
+    assert.ok(!/\bimportCsvFile\b/.test(svcSrc), 'importCsvFile は importTableFile に改名済み');
+
+    // (b) xmldom を import するのは main の PoiTableIoService.ts だけ。静的な import ではなく動的 import
+    const xmldomUsers = [];
+    for (const file of [...electronFiles, ...srcFiles]) {
+      if ((await readFile(file, 'utf8')).includes('@xmldom/xmldom')) xmldomUsers.push(path.relative(projectRoot, file));
+    }
+    assert.deepEqual(xmldomUsers, ['electron/services/PoiTableIoService.ts'], 'xmldom を参照するのは PoiTableIoService だけ (src/ には無い)');
+    assert.doesNotMatch(tableSvc, /^import[^\n]*@xmldom\/xmldom/m, 'xmldom は静的に import しない (既存の smoke の読み込みに影響させない)');
+    assert.match(tableSvc, /await import\(['"]@xmldom\/xmldom['"]\)/, 'xmldom は動的 import');
+
+    // (c) scanKmlShape は DOM を作る前に呼ばれる
+    const kmlBody = body(kmlSrc, /export function parsePoiKml\(/);
+    const scanAt = kmlBody.indexOf('scanKmlShape(');
+    const docAt = kmlBody.indexOf('createDocument(');
+    assert.ok(scanAt >= 0 && docAt >= 0 && scanAt < docAt, 'parsePoiKml が createDocument の前に scanKmlShape を見ていない');
+    assert.match(kmlBody.slice(scanAt, docAt), /return/, '事前走査が失敗したら DOM を作らずに返す');
+
+    // (d) 見出しの解決と行への写しは poiImportRows.ts の共有実装。poiKml.ts に独自の処理を持たない
+    assert.match(kmlSrc, /import\s*\{[^}]*\bresolveColumnSpec\b[^}]*\}\s*from\s*['"]\.\/poiImportRows['"]/, 'poiKml.ts が resolveColumnSpec を import していない');
+    assert.match(kmlSrc, /import\s*\{[^}]*\bmapCellsToImportRow\b[^}]*\}\s*from\s*['"]\.\/poiImportRows['"]/, 'poiKml.ts が mapCellsToImportRow を import していない');
+    assert.ok(body(kmlSrc, /export function parsePoiKml\(/).includes('mapCellsToImportRow('), 'KML の行が mapCellsToImportRow を通っていない');
+    assert.ok(body(kmlSrc, /export function parsePoiKml\(/).includes('resolveColumnSpec('), 'ExtendedData の名前が resolveColumnSpec を通っていない');
+    for (const word of ['normalizeHeader', 'PLAIN_ALIASES', 'FIELD_ALIASES', 'LANG_BY_LOWER', 'NFKC', 'readCoordinate', 'isDangerousUrlString', 'UID_RE', "'lat'", "'lng'"]) {
+      assert.ok(!kmlSrc.includes(word), `poiKml.ts に独自の処理 (${word}) がある`);
+    }
+    for (const word of ['export function resolveColumnSpec', 'export function normalizeHeader', 'export function mapCellsToImportRow']) {
+      assert.ok(rowsSrc.includes(word), `poiImportRows.ts に ${word} がない`);
+    }
+    // 切り出しの変異: 見出しの別名表は poiImportRows.ts の 1 か所だけ
+    assert.equal((rowsSrc.match(/const PLAIN_ALIASES\b/g) ?? []).length, 1);
+
+    // (e) 選択の拡張子と filters
+    const mergeHandler = extractHandler(ipcSrc, 'poisource:pickAndParseMerge');
+    assert.match(mergeHandler, /extensions:\s*\['csv', 'kml'\]/, 'pickAndParseMerge の filters が csv・kml でない');
+    const pkg = JSON.parse(await read('package.json'));
+    // (AC7(e)) xmldom は dependencies に 0.8.15 の完全一致
+    assert.equal(pkg.dependencies['@xmldom/xmldom'], '0.8.15', '@xmldom/xmldom は 0.8.15 の完全一致');
+    assert.equal(pkg.devDependencies?.['@xmldom/xmldom'], undefined);
+    const lock = await read('pnpm-lock.yaml');
+    assert.match(lock, /importers:\n {2}\.:\n[\s\S]*?\n {6}'@xmldom\/xmldom':\n {8}specifier: 0\.8\.15\n {8}version: 0\.8\.15\n/, 'lock の importers に xmldom がない');
+    console.log('  case m (AC18・AC7(e): 唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
+  }
+
+  // ---------- PR-2 の実装レビュー m-1: 取り込み後の「N 件追加」の表示を、Undo・保存の後に残さない ----------
+  {
+    assert.match(editSrc, /watch\(\s*\(\)\s*=>\s*editState\.value\?\.features[\s\S]{0,240}mergeResultMessage\.value\s*=\s*""/, 'features が変わったら結果の表示を消す watch がない');
+    assert.match(editSrc, /watch\(\s*saving[\s\S]{0,160}mergeResultMessage\.value\s*=\s*""/, '保存の開始で結果の表示を消す watch がない');
+    console.log('  case n (取り込み結果の表示を Undo・保存の後に残さない): PASS');
   }
 
   // ---------- 文言 (AC10) ----------

@@ -119,8 +119,8 @@ assert.ok(
   saveDialogAt < writeExportAt,
   'POI must choose the output path before generating the file',
 );
-// 一覧の取り込みは CSV も受ける（拡張子の並びは完全一致のまま、末尾に csv が加わった）
-assert.match(poiIpc, /extensions:\s*\[['"]geojson['"],\s*['"]json['"],\s*['"]zip['"],\s*['"]csv['"]\]/);
+// 一覧の取り込みは CSV・KML も受ける（拡張子の並びは完全一致のまま、末尾に csv・kml が加わった）
+assert.match(poiIpc, /extensions:\s*\[['"]geojson['"],\s*['"]json['"],\s*['"]zip['"],\s*['"]csv['"],\s*['"]kml['"]\]/);
 assert.match(poiSourceService, /ext === ['"]\.zip['"][\s\S]*importPoiZip/);
 assert.match(poiSourceService, /preparedImport\.cleanup\(\)/);
 

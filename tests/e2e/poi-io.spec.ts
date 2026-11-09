@@ -166,6 +166,8 @@ test.describe('POI の CSV 取り込み', () => {
       await page.locator('body').click({ position: { x: 5, y: 5 } });
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
       await expect(page.locator('.poi-feature-row')).toHaveCount(3);
+      // 取り込み結果の表示は Undo の後に残らない
+      await expect(page.getByTestId('poi-merge-result')).toBeHidden();
     } finally {
       await quitElectronApplication(app);
     }
@@ -266,6 +268,34 @@ test.describe('POI の CSV 取り込み', () => {
     } finally {
       await quitElectronApplication(app);
       await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  test('KML: 2 件取り込め、除く行と警告の表が出る。取り込むと 5 件。保存すると結果の表示が消える', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-io-kml-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const { uid } = await seedMergeSource(page);
+      await openForImport(page, uid);
+      await pickCsv(app, page, path.join(fixtureDir, 'demo.kml'));
+      await expect(page.getByTestId('poi-merge-encoding')).toHaveAttribute('data-encoding', 'utf-8');
+      // 取り込む 2 件・除く 3 件（線・面・経緯度が逆の点）
+      expect(await summaryOf(page)).toMatchObject({ added: '2', skipped: '3' });
+      const seen = await page.getByTestId('poi-merge-issue-row').evaluateAll((nodes) => nodes.map((n) => `${n.getAttribute('data-line')}:${n.getAttribute('data-code')}:${n.getAttribute('data-level')}`));
+      for (const key of ['12:coord-range:error', '10:kml-non-point-skipped:warning', '11:kml-non-point-skipped:warning']) expect(seen).toContain(key);
+      expect(seen.some((k) => k.includes('kml-description-html-flattened'))).toBe(true);
+      await expect(page.getByTestId('poi-merge-preview')).toContainText('浅草寺');
+      await page.getByTestId('poi-merge-confirm').click();
+      await expect(page.locator('.poi-feature-row')).toHaveCount(5);
+      await expect(page.getByTestId('poi-merge-result')).toBeVisible();
+      const detail = await saveAndRead(page, uid);
+      const added = new Map<string, any>(detail.fc.features.map((f: any) => [f.id, f]));
+      expect(added.get('kml-1').properties.name).toEqual({ ja: '浅草寺', en: 'Sensoji' });
+      expect(added.get('kml-1').properties.desc).toEqual({ ja: '本堂\n雷門から徒歩' });
+      // 保存の後に結果の表示は残らない
+      await expect(page.getByTestId('poi-merge-result')).toBeHidden();
+    } finally {
+      await quitElectronApplication(app);
     }
   });
 
