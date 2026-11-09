@@ -268,7 +268,14 @@ assert.match(poiEdit, /data-editor-action="export"[\s\S]*@click="exportSource"/)
 assert.match(poiEdit, /<EditorBusyOverlay[\s\S]*:visible="saving \|\| exporting \|\| cloning \|\| importing"/);
 assert.match(poiEdit, /<PoiAttributeForm[\s\S]*:active-lang="currentLang"/);
 assert.match(poiEdit, /<LangResourceInput[\s\S]*:active-lang="currentLang"/);
-assert.match(poiEdit, /window\.poiSources\.exportFile\(uid\)/);
+assert.match(poiEdit, /window\.poiSources\.exportFile\(uid, \{ includeImages[^}]*\}\)/);
+{
+  const savedAt = poiEdit.indexOf('async function exportSavedSource');
+  assert.ok(savedAt >= 0, 'exportSavedSource がない');
+  const savedBody = poiEdit.slice(savedAt, poiEdit.indexOf('\n}\n', savedAt));
+  assert.match(savedBody, /window\.poiSources\.exportFile\(uid, /);
+  assert.match(savedBody, /window\.poiSources\.exportTable\(uid, /);
+}
 assert.match(poiEdit, /key === ['"]s['"][\s\S]*saveSource\(\)/);
 assert.match(poiEdit, /const saveState = computed/);
 assert.doesNotMatch(poiEdit, /class="poi-saving-overlay/);

@@ -129,33 +129,74 @@ try {
     console.log('  case c (取り込みの IPC の結線・パスを受け取らない・返さない): PASS');
   }
 
-  // ---------- AC16(a)(c)(d): 入口の置き場所と無効条件 ----------
+  // ---------- 入口の置き場所と無効条件 (エクスポートはヘッダの 1 つ・インポートは文書フィールドの行) ----------
   {
-    const exportTag = openTag(editSrc, 'data-editor-action="poi-export-table"');
+    const headerSrc = await read('src/components/editor-ui/EditorActionHeader.vue');
+    // (a) 表の書き出しのボタンと、その専用ダイアログは無い
+    assert.ok(!editSrc.includes('poi-export-table'), 'poi-export-table のボタンが残っている');
+    assert.ok(!editSrc.includes('PoiTableExportDialog'), 'PoiTableExportDialog が残っている');
     const importTag = openTag(editSrc, 'data-editor-action="poi-merge-import"');
-    assert.ok(exportTag, '書き出しのボタンがない');
     assert.ok(importTag, '取り込みのボタンがない');
-    // (a) 同じ行 (同じ div) にあり、取り込みが左。ヘッダの #actions には足されていない
-    const rowStart = editSrc.lastIndexOf('<div', exportTag.start);
-    const rowEnd = editSrc.indexOf('</div>', exportTag.end);
-    assert.ok(importTag.start > rowStart && importTag.end < rowEnd, '2 つのボタンが同じ行にない');
-    assert.ok(importTag.start < exportTag.start, '取り込みが書き出しの左にない');
     const actionsAt = editSrc.indexOf('<template #actions');
     const actionsEnd = editSrc.indexOf('</template>', actionsAt);
     assert.ok(actionsAt >= 0 && actionsEnd > actionsAt);
     const actions = editSrc.slice(actionsAt, actionsEnd);
-    assert.ok(!actions.includes('poi-merge-import') && !actions.includes('poi-export-table'), 'ヘッダの #actions に足してはいけない');
-    // (c) 書き出しの無効条件に saving
+    // (b) 取り込みは文書フィールドの行にあり、ヘッダの #actions には無い
+    assert.ok(!actions.includes('poi-merge-import'), 'ヘッダの #actions に取り込みを足してはいけない');
+    assert.ok(importTag.start > actionsEnd, '取り込みはヘッダより後 (文書フィールドの行) に置く');
+    // エクスポートは #actions の中にちょうど 1 つ。remote でも出す (v-if="!readOnly" が無い)。複製は v-if="readOnly"
+    assert.equal(editSrc.split('data-editor-action="export"').length - 1, 1, 'エクスポートのボタンはちょうど 1 つ');
+    const exportTag = openTag(actions, 'data-editor-action="export"');
+    assert.ok(exportTag, 'ヘッダの #actions にエクスポートがない');
+    assert.ok(!/v-if="!readOnly"/.test(exportTag.text), 'エクスポートに v-if="!readOnly" が付いている');
+    const cloneTag = openTag(actions, 'data-editor-action="clone"');
+    assert.ok(cloneTag, 'ヘッダの #actions に複製がない');
+    assert.match(cloneTag.text, /v-if="readOnly"/, '複製は v-if="readOnly"');
+    assert.ok(exportTag.start < cloneTag.start, 'ヘッダは export → clone の順');
+    // (c) エクスポートの無効条件はスロット引数 disabled を含み、スロットは saving || actionsDisabled
     const exportDisabled = disabledExpr(exportTag.text);
-    assert.match(exportDisabled, /\bsaving\b/, '書き出しの :disabled に saving がない');
+    assert.match(exportDisabled, /^disabled\b/, 'エクスポートの :disabled がスロット引数 disabled を含まない');
+    const slotExpr = (headerSrc.match(/<slot name="actions" :disabled="([^"]*)"/) ?? [])[1] ?? '';
+    assert.match(slotExpr, /\bsaving\b/, 'ヘッダのスロットの disabled に saving がない');
+    assert.match(slotExpr, /\bactionsDisabled\b/, 'ヘッダのスロットの disabled に actionsDisabled がない');
+    assert.match(editSrc, /:actions-disabled="exporting \|\| cloning"/, 'actionsDisabled は exporting || cloning');
     // (d) 取り込みの無効条件
     const importDisabled = disabledExpr(importTag.text);
     for (const word of ['readOnly', 'translationMode', 'saving', 'importing', 'exporting', 'cloning']) {
       assert.match(importDisabled, new RegExp(`\\b${word}\\b`), `取り込みの :disabled に ${word} がない`);
     }
-    // 変異: saving を外した式では落ちる
-    assert.doesNotMatch(exportDisabled.replace(/saving\s*\|\|\s*/, ''), /\bsaving\b/);
+    // 変異: スロットの式から saving を外すと落ちる
+    assert.doesNotMatch(slotExpr.replace(/saving\s*\|\|\s*/, ''), /\bsaving\b/);
+    // exportSource は readOnly で止めない (remote でも CSV・JSON・GeoJSON を出せる)
+    const sourceAt = editSrc.indexOf('async function exportSource');
+    assert.ok(sourceAt >= 0, 'exportSource がない');
+    const sourceHead = editSrc.slice(sourceAt, editSrc.indexOf('\n', editSrc.indexOf('{', sourceAt) + 1) + 200);
+    assert.doesNotMatch(sourceHead.split('exporting.value = true')[0], /readOnly/, 'exportSource が readOnly で止めている');
     console.log('  case d (入口の置き場所と無効条件): PASS');
+  }
+
+  // ---------- エクスポートの選択ダイアログ (形式と画像) ----------
+  {
+    for (const id of [
+      'poi-export-options', 'poi-export-options-confirm', 'poi-export-options-cancel',
+      'poi-export-format-geojson', 'poi-export-format-csv', 'poi-export-format-json', 'poi-export-option-images',
+    ]) {
+      assert.ok(editSrc.includes(`data-testid="${id}"`), `data-testid="${id}" がない`);
+    }
+    const dialogAt = editSrc.indexOf('data-testid="poi-export-options"');
+    const dialogEnd = editSrc.indexOf('data-testid="poi-export-options-confirm"');
+    const dialog = editSrc.slice(dialogAt, editSrc.indexOf('</button>', dialogEnd));
+    assert.match(dialog, /t\("mapedit\.export_options_title"\)/, '題は mapedit.export_options_title');
+    assert.match(dialog, /data-testid="poi-export-options-confirm"[\s\S]*t\("editor_ui\.export_button"\)/, '確定のラベルは editor_ui.export_button');
+    // 画像のチェックボックスは形式で無効になる
+    assert.match(dialog, /:disabled="!poiExportCanIncludeImages\(poiExportOptions\.format\)"/);
+    // 選択ダイアログは EditorBusyOverlay と兄弟の位置 (ルートの直下) に置く
+    assert.ok(dialogAt > editSrc.indexOf('<PoiMergeImportDialog'), '選択ダイアログの置き場所');
+    assert.ok(dialogAt < editSrc.indexOf('<EditorBusyOverlay'), '選択ダイアログの置き場所');
+    // 振り分け: GeoJSON は exportFile、CSV・JSON は exportTable。開くたびに既定へ戻す
+    assert.match(editSrc, /poiExportOptions\.value = \{ \.\.\.DEFAULT_POI_EXPORT_OPTIONS \}/);
+    assert.match(editSrc, /normalizePoiExportOptions\(/);
+    console.log('  case o (エクスポートの選択ダイアログ): PASS');
   }
 
   // ---------- 確定時の再確認 (r5 Minor-3) ----------
