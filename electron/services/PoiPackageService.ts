@@ -110,11 +110,20 @@ export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackag
   });
 }
 
-export async function inspectPoiExport(fc: FeatureCollection): Promise<PoiExportInspection> {
+// includeImages: false は画像のファイルを入れない。参照（アセットの UUID・アイコンセット・html の
+// maplat-asset:<UID>）は値のまま残す（データを黙って消さない。同じ環境へ読み戻せば表示が戻る）
+export async function inspectPoiExport(
+  fc: FeatureCollection,
+  options: { includeImages: boolean } = { includeImages: true },
+): Promise<PoiExportInspection> {
+  const slug = safeSlug((fc as FeatureCollection & { id?: string | number }).id);
+  if (!options.includeImages) {
+    return { kind: 'geojson', slug, fc, files: [], warnings: [] };
+  }
   const resolved = await resolvePoiFeatureCollection(fc);
   return {
     kind: resolved.files.length > 0 ? 'zip' : 'geojson',
-    slug: safeSlug((fc as FeatureCollection & { id?: string | number }).id),
+    slug,
     fc: resolved.fc as FeatureCollection,
     files: resolved.files,
     warnings: resolved.warnings,
