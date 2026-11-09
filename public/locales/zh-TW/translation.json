@@ -1137,9 +1137,10 @@
     "import_blocked": "匯入過程中狀態改變，已取消匯入。請重試。",
     "import_error": {
       "file_too_large": "檔案過大（上限 20 MiB）。",
-      "unsupported_extension": "請選擇 CSV 檔案。",
+      "unsupported_extension": "請選擇 CSV 或 KML 檔案。",
       "read_failed": "無法讀取檔案。",
-      "generic": "匯入失敗。"
+      "generic": "匯入失敗。",
+      "kmz_unsupported": "無法匯入 KMZ。請另存為 KML。"
     },
     "issues": {
       "missing_columns": "標題列需要 id 欄，或緯度與經度欄",
@@ -1162,7 +1163,19 @@
       "image_dropped": "不匯入 http(s) 或相對 URL 以外的圖片",
       "quote_prefix_stripped": "有儲存格去掉了開頭的 '（數量）",
       "coordinate_partial": "只填了緯度或經度其中之一（座標不變）",
-      "coord_swapped": "緯度與經度是否填反了？"
+      "coord_swapped": "緯度與經度是否填反了？",
+      "kml_not_xml": "不是有效的 XML（例如標籤未閉合、多餘的「<」、沒有值的屬性、多個根元素）。若 description 中含有 HTML，請用 CDATA 包起來",
+      "kml_too_large": "元素、節點或屬性過多（元素最多 40 萬個、屬性最多 50 萬個）。請減少屬性欄或拆分檔案",
+      "kml_too_deep": "巢狀過深（最多 64 層）",
+      "kml_doctype_forbidden": "不能使用 DOCTYPE 與 ENTITY",
+      "kml_no_placemarks": "沒有可匯入的 Placemark",
+      "kml_bad_coordinates": "coordinates 必須是一組「經度,緯度」",
+      "kml_non_point_skipped": "不匯入 Point 以外的形狀",
+      "kml_description_html_flattened": "已將 description 中的 HTML 轉為文字（數量）",
+      "kml_description_image_dropped": "不匯入 description 中的圖片",
+      "kml_id_ignored": "Placemark 的 id 不能作為 ID 使用，已忽略",
+      "kml_extended_data_conflict": "ExtendedData 的欄與 Placemark 的元素重複，使用元素的值",
+      "kml_undefined_entity": "值中殘留未定義的字元參照（&名稱;）（數量）"
     }
   },
   "assetlist": {

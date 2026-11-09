@@ -1137,9 +1137,10 @@
     "import_blocked": "가져오는 도중 상태가 바뀌어 가져오기를 취소했습니다. 다시 시도해 주세요.",
     "import_error": {
       "file_too_large": "파일이 너무 큽니다(최대 20 MiB).",
-      "unsupported_extension": "CSV 파일을 선택해 주세요.",
+      "unsupported_extension": "CSV 또는 KML 파일을 선택해 주세요.",
       "read_failed": "파일을 읽을 수 없습니다.",
-      "generic": "가져오기에 실패했습니다."
+      "generic": "가져오기에 실패했습니다.",
+      "kmz_unsupported": "KMZ는 가져올 수 없습니다. KML로 다시 저장해 주세요."
     },
     "issues": {
       "missing_columns": "머리글에 id 열 또는 위도·경도 열이 필요합니다",
@@ -1162,7 +1163,19 @@
       "image_dropped": "http(s) 또는 상대 URL이 아닌 이미지는 가져오지 않습니다",
       "quote_prefix_stripped": "앞의 '를 제거한 셀이 있습니다(건수)",
       "coordinate_partial": "위도와 경도 중 하나만 있습니다(좌표는 바뀌지 않음)",
-      "coord_swapped": "위도와 경도가 뒤바뀐 것은 아닌가요?"
+      "coord_swapped": "위도와 경도가 뒤바뀐 것은 아닌가요?",
+      "kml_not_xml": "XML 형식이 올바르지 않습니다(예: 닫히지 않은 태그, 잘못된 \"<\", 값이 없는 속성, 루트가 여러 개). description에 HTML을 쓰는 경우 CDATA로 감싸 주세요",
+      "kml_too_large": "요소·노드·속성의 수가 너무 많습니다(요소 40만 개, 속성 50만 개까지). 속성 열을 줄이거나 파일을 나누어 주세요",
+      "kml_too_deep": "중첩이 너무 깊습니다(64단계까지)",
+      "kml_doctype_forbidden": "DOCTYPE과 ENTITY는 사용할 수 없습니다",
+      "kml_no_placemarks": "가져올 Placemark가 없습니다",
+      "kml_bad_coordinates": "coordinates는 \"경도,위도\" 한 쌍으로 써 주세요",
+      "kml_non_point_skipped": "Point 이외의 도형은 가져오지 않습니다",
+      "kml_description_html_flattened": "description의 HTML을 문자열로 바꾸었습니다(건수)",
+      "kml_description_image_dropped": "description의 이미지는 가져오지 않습니다",
+      "kml_id_ignored": "Placemark의 id를 ID로 쓸 수 없어 무시했습니다",
+      "kml_extended_data_conflict": "ExtendedData 열이 Placemark 요소와 겹쳐 요소의 값을 사용합니다",
+      "kml_undefined_entity": "정의되지 않은 문자 참조(&이름;)가 값에 남아 있습니다(건수)"
     }
   },
   "assetlist": {

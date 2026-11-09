@@ -1137,9 +1137,10 @@
     "import_blocked": "L’état a changé pendant l’import, qui a donc été annulé. Veuillez réessayer.",
     "import_error": {
       "file_too_large": "Le fichier est trop volumineux (20 Mio maximum).",
-      "unsupported_extension": "Veuillez choisir un fichier CSV.",
+      "unsupported_extension": "Veuillez choisir un fichier CSV ou KML.",
       "read_failed": "Le fichier n’a pas pu être lu.",
-      "generic": "Échec de l’import."
+      "generic": "Échec de l’import.",
+      "kmz_unsupported": "Le KMZ ne peut pas être importé. Enregistrez-le de nouveau en KML."
     },
     "issues": {
       "missing_columns": "L’en-tête doit contenir une colonne id ou les colonnes de latitude et de longitude",
@@ -1162,7 +1163,19 @@
       "image_dropped": "Les images autres que des URL http(s) ou relatives ne sont pas importées",
       "quote_prefix_stripped": "Des cellules commençant par ' ont été nettoyées (nombre)",
       "coordinate_partial": "Seule la latitude ou la longitude est renseignée (coordonnées inchangées)",
-      "coord_swapped": "La latitude et la longitude sont-elles inversées ?"
+      "coord_swapped": "La latitude et la longitude sont-elles inversées ?",
+      "kml_not_xml": "XML invalide (par exemple balise non fermée, « < » isolé, attribut sans valeur ou plusieurs éléments racine). Si la description contient du HTML, placez-le dans une section CDATA",
+      "kml_too_large": "Trop d’éléments, de nœuds ou d’attributs (jusqu’à 400 000 éléments et 500 000 attributs). Réduisez les colonnes d’attributs ou scindez le fichier",
+      "kml_too_deep": "Imbrication trop profonde (64 niveaux maximum)",
+      "kml_doctype_forbidden": "DOCTYPE et ENTITY ne sont pas autorisés",
+      "kml_no_placemarks": "Aucun Placemark à importer",
+      "kml_bad_coordinates": "coordinates doit être une seule paire « longitude,latitude »",
+      "kml_non_point_skipped": "Les formes autres que Point ne sont pas importées",
+      "kml_description_html_flattened": "Le HTML de la description a été converti en texte (nombre)",
+      "kml_description_image_dropped": "Les images de la description ne sont pas importées",
+      "kml_id_ignored": "L’id du Placemark ne peut pas servir d’ID et a été ignoré",
+      "kml_extended_data_conflict": "Une colonne ExtendedData recoupe un élément du Placemark ; la valeur de l’élément est utilisée",
+      "kml_undefined_entity": "Des références de caractères non définies (&nom;) subsistent dans des valeurs (nombre)"
     }
   },
   "assetlist": {

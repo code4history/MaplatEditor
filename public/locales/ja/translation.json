@@ -1137,9 +1137,10 @@
     "import_blocked": "取り込みの途中で状態が変わったため、取り込みを取りやめました。もう一度やり直してください。",
     "import_error": {
       "file_too_large": "ファイルが大きすぎます（20 MiB まで）。",
-      "unsupported_extension": "CSV ファイルを選んでください。",
+      "unsupported_extension": "CSV か KML のファイルを選んでください。",
       "read_failed": "ファイルを読めませんでした。",
-      "generic": "取り込みに失敗しました。"
+      "generic": "取り込みに失敗しました。",
+      "kmz_unsupported": "KMZ は取り込めません。KML として保存し直してください。"
     },
     "issues": {
       "missing_columns": "見出しに id か緯度・経度の列が必要です",
@@ -1162,7 +1163,19 @@
       "image_dropped": "http(s) か相対 URL 以外の画像は取り込みません",
       "quote_prefix_stripped": "先頭の「'」を外したセルがあります（件数）",
       "coordinate_partial": "緯度か経度の片方だけです（座標は変更しません）",
-      "coord_swapped": "緯度と経度が逆ではありませんか"
+      "coord_swapped": "緯度と経度が逆ではありませんか",
+      "kml_not_xml": "XML として正しくありません（例: 閉じていないタグ・「<」の誤用・値の無い属性・ルートが複数）。description に HTML を書く場合は CDATA で囲んでください",
+      "kml_too_large": "要素・節点・属性の数が多すぎます（要素 40 万・属性 50 万まで）。属性の列を減らすか、ファイルを分けてください",
+      "kml_too_deep": "入れ子が深すぎます（64 段まで）",
+      "kml_doctype_forbidden": "DOCTYPE・ENTITY は使えません",
+      "kml_no_placemarks": "取り込める Placemark がありません",
+      "kml_bad_coordinates": "coordinates は「経度,緯度」の 1 組で書いてください",
+      "kml_non_point_skipped": "Point 以外の形は取り込みません",
+      "kml_description_html_flattened": "description の HTML を文字列に直しました（件数）",
+      "kml_description_image_dropped": "description の画像は取り込みません",
+      "kml_id_ignored": "Placemark の id を ID として使えないため無視しました",
+      "kml_extended_data_conflict": "ExtendedData の列が Placemark の要素と重なるため、要素の値を使います",
+      "kml_undefined_entity": "未定義の文字参照（&名前;）が値に残っています（件数）"
     }
   },
   "assetlist": {

@@ -954,6 +954,18 @@ const mergeDialog = ref<{ visible: boolean; fileName: string; parse: PoiImportPa
 });
 const mergeImportBusy = ref(false);
 const mergeResultMessage = ref("");
+// 取り込み結果の表示 (「N 件追加…」) は、その取り込みの直後だけ意味を持つ。Undo・Redo・ほかの編集で
+// features が差し替わったとき、保存を始めたときに消す
+let mergeImportedFeatures: unknown = null;
+watch(
+  () => editState.value?.features,
+  (features) => {
+    if (features !== mergeImportedFeatures) mergeResultMessage.value = "";
+  },
+);
+watch(saving, (isSaving) => {
+  if (isSaving) mergeResultMessage.value = "";
+});
 
 async function openMergeImport(): Promise<void> {
   if (readOnly.value || translationMode.value || saving.value || importing.value || exporting.value || cloning.value || mergeImportBusy.value) return;
@@ -968,7 +980,8 @@ async function openMergeImport(): Promise<void> {
     if (result.result === "Error") {
       const key =
         result.code === "file-too-large" ? "poiio.import_error.file_too_large"
-        : result.code === "unsupported-extension" || result.code === "kmz-unsupported" ? "poiio.import_error.unsupported_extension"
+        : result.code === "kmz-unsupported" ? "poiio.import_error.kmz_unsupported"
+        : result.code === "unsupported-extension" ? "poiio.import_error.unsupported_extension"
         : result.code === "read-failed" ? "poiio.import_error.read_failed"
         : "poiio.import_error.generic";
       await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: t(key) });
@@ -1000,6 +1013,7 @@ async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
   session.commit((draft) => {
     draft.features = plan.features;
   });
+  mergeImportedFeatures = editState.value?.features ?? null;
   mergeResultMessage.value = t("poiio.import_done", { added: plan.summary.added, updated: plan.summary.updated });
   await nextTick();
   mapPane.value?.fitInitialView();

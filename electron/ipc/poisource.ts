@@ -90,7 +90,7 @@ export function registerPoisourceHandlers() {
           const options = {
             defaultPath: dialogDefaultPath('import'),
             properties: ['openFile' as const],
-            filters: [{ name: 'CSV', extensions: ['csv'] }],
+            filters: [{ name: 'CSV / KML', extensions: ['csv', 'kml'] }],
           };
           const ret = win
             ? await dialog.showOpenDialog(win, options)
@@ -108,7 +108,7 @@ export function registerPoisourceHandlers() {
     const options = {
       defaultPath: dialogDefaultPath('import'),
       properties: ['openFile' as const],
-      filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip', 'csv'] }],
+      filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip', 'csv', 'kml'] }],
     };
     const ret = win
       ? await dialog.showOpenDialog(win, options)

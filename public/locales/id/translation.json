@@ -1137,9 +1137,10 @@
     "import_blocked": "Keadaan berubah saat mengimpor sehingga impor dibatalkan. Silakan coba lagi.",
     "import_error": {
       "file_too_large": "Berkas terlalu besar (maksimum 20 MiB).",
-      "unsupported_extension": "Pilih berkas CSV.",
+      "unsupported_extension": "Pilih berkas CSV atau KML.",
       "read_failed": "Berkas tidak dapat dibaca.",
-      "generic": "Impor gagal."
+      "generic": "Impor gagal.",
+      "kmz_unsupported": "KMZ tidak dapat diimpor. Simpan ulang sebagai KML."
     },
     "issues": {
       "missing_columns": "Baris judul memerlukan kolom id atau kolom lintang dan bujur",
@@ -1162,7 +1163,19 @@
       "image_dropped": "Gambar selain URL http(s) atau URL relatif tidak diimpor",
       "quote_prefix_stripped": "Ada sel yang tanda ' di awalnya dilepas (jumlah)",
       "coordinate_partial": "Hanya salah satu dari lintang atau bujur yang diisi (koordinat tidak berubah)",
-      "coord_swapped": "Apakah lintang dan bujur tertukar?"
+      "coord_swapped": "Apakah lintang dan bujur tertukar?",
+      "kml_not_xml": "Bukan XML yang valid (misalnya tag belum ditutup, \"<\" nyasar, atribut tanpa nilai, atau beberapa elemen akar). Jika description berisi HTML, bungkus dengan CDATA",
+      "kml_too_large": "Terlalu banyak elemen, simpul, atau atribut (maksimum 400.000 elemen dan 500.000 atribut). Kurangi kolom atribut atau pisahkan berkasnya",
+      "kml_too_deep": "Penumpukan terlalu dalam (maksimum 64 tingkat)",
+      "kml_doctype_forbidden": "DOCTYPE dan ENTITY tidak diizinkan",
+      "kml_no_placemarks": "Tidak ada Placemark yang dapat diimpor",
+      "kml_bad_coordinates": "coordinates harus berupa satu pasang \"bujur,lintang\"",
+      "kml_non_point_skipped": "Bentuk selain Point tidak diimpor",
+      "kml_description_html_flattened": "HTML pada description telah diubah menjadi teks (jumlah)",
+      "kml_description_image_dropped": "Gambar pada description tidak diimpor",
+      "kml_id_ignored": "id Placemark tidak dapat dipakai sebagai ID sehingga diabaikan",
+      "kml_extended_data_conflict": "Kolom ExtendedData tumpang tindih dengan elemen Placemark, sehingga nilai elemen yang dipakai",
+      "kml_undefined_entity": "Masih ada rujukan karakter yang tidak terdefinisi (&nama;) pada nilai (jumlah)"
     }
   },
   "assetlist": {

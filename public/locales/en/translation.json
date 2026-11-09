@@ -1137,9 +1137,10 @@
     "import_blocked": "The state changed while importing, so the import was cancelled. Please try again.",
     "import_error": {
       "file_too_large": "The file is too large (up to 20 MiB).",
-      "unsupported_extension": "Please choose a CSV file.",
+      "unsupported_extension": "Please choose a CSV or KML file.",
       "read_failed": "The file could not be read.",
-      "generic": "Import failed."
+      "generic": "Import failed.",
+      "kmz_unsupported": "KMZ cannot be imported. Save it again as KML."
     },
     "issues": {
       "missing_columns": "The header needs an id column or latitude and longitude columns",
@@ -1162,7 +1163,19 @@
       "image_dropped": "Images other than http(s) or relative URLs are not imported",
       "quote_prefix_stripped": "Cells with a leading ' were unquoted (count)",
       "coordinate_partial": "Only one of latitude and longitude is set (coordinates are unchanged)",
-      "coord_swapped": "Are latitude and longitude swapped?"
+      "coord_swapped": "Are latitude and longitude swapped?",
+      "kml_not_xml": "This is not valid XML (for example an unclosed tag, a stray \"<\", an attribute without a value, or several root elements). If the description holds HTML, wrap it in CDATA",
+      "kml_too_large": "Too many elements, nodes or attributes (up to 400,000 elements and 500,000 attributes). Reduce the attribute columns or split the file",
+      "kml_too_deep": "Nesting is too deep (up to 64 levels)",
+      "kml_doctype_forbidden": "DOCTYPE and ENTITY are not allowed",
+      "kml_no_placemarks": "There is no Placemark to import",
+      "kml_bad_coordinates": "coordinates must be one \"longitude,latitude\" pair",
+      "kml_non_point_skipped": "Shapes other than Point are not imported",
+      "kml_description_html_flattened": "The description HTML was converted to text (count)",
+      "kml_description_image_dropped": "Images in the description are not imported",
+      "kml_id_ignored": "The Placemark id cannot be used as an ID and was ignored",
+      "kml_extended_data_conflict": "An ExtendedData column overlaps a Placemark element, so the element value is used",
+      "kml_undefined_entity": "Undefined character references (&name;) remain in values (count)"
     }
   },
   "assetlist": {
