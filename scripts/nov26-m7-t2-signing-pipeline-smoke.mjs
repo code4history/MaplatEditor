@@ -21,6 +21,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { evalGhIfBool } from './ci/eval-gh-if.mjs';
 import yaml from 'js-yaml';
 import { runInNewContext } from 'node:vm';
 
@@ -729,15 +730,67 @@ function checkBuildWorkflow(wf) {
     else if (jobs[name].if !== AS_COND) v.push(`(f) ${name} の if が Artifact Signing の経路でない`);
   }
 
-  // (g) sign-check で release・キャッシュの公開・公証・eSigner の step が走らない（式が mode == 'full' を含む）
+  // (g) sign-check（notarize=true 含む）で release・キャッシュの公開・eSigner の step が走らない。
+  //     build-mac の公証 3 ステップは mode=full または (mode=sign-check && notarize=true) のときだけ走る。
   const FULL = "inputs.mode == 'full'";
   const gate = [['release', jobs.release?.if], ['publish-win-sign-cache', jobs['publish-win-sign-cache']?.if]];
-  for (const st of jobs['build-mac']?.steps ?? []) if (/notarization/.test(st.name ?? '')) gate.push(['公証の env', st.if]);
   for (const st of jobs['build-win']?.steps ?? []) {
     if (/esigner|CodeSignTool|cache-outbox|resign-update-metadata|--authenticode|signed build/i.test(`${st.name ?? ''} ${runOf(st)} ${JSON.stringify(st.env ?? {})}`)
       && !String(st.if ?? '').includes(AS_COND) && st.name !== 'Build Windows') gate.push([`build-win「${st.name}」`, st.if]);
   }
-  for (const [what, cond] of gate) if (!String(cond ?? '').includes(FULL)) v.push(`(g) ${what} の if: が mode=full に限られていない`);
+  const signCheckNotarizeCtx = {
+    github: { event_name: 'workflow_dispatch' },
+    inputs: { mode: 'sign-check', notarize: true, platforms: 'all', win_signer: 'artifact-signing' },
+    needs: {
+      prepare: { result: 'success', outputs: { win_sign_path: 'esigner' } },
+      'build-mac': { result: 'success' },
+      'build-win': { result: 'success', outputs: { win_sign_cache_new: '3' } },
+      'build-linux': { result: 'success' },
+      'finalize-win': { result: 'success' },
+      'verify-win-install': { result: 'success' },
+    },
+  };
+  for (const [what, cond] of gate) {
+    const s = String(cond ?? '');
+    if (!s.includes(FULL)) v.push(`(g) ${what} の if: が mode=full に限られていない`);
+    const expr = s.replace(/^\$\{\{\s*([\s\S]*?)\s*\}\}$/, '$1').replace(/^(?:!cancelled\(\)|always\(\))\s*&&\s*/, '');
+    if (!expr.includes('steps.')) {
+      try {
+        if (evalGhIfBool(expr, signCheckNotarizeCtx) !== false) {
+          v.push(`(g) ${what} の if: が mode=sign-check (notarize=true) で偽にならない`);
+        }
+      } catch (e) {
+        v.push(`(g) ${what} の if: が評価できない: ${e.message}`);
+      }
+    }
+  }
+  const macNotarizeSteps = [
+    'Set macOS notarization environment',
+    'Notarize and staple the DMGs',
+    'Refresh latest-mac.yml for the stapled DMGs',
+  ];
+  const macNotarizeCases = [
+    [{ github: { event_name: 'push' }, inputs: {} }, false, 'push'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'verify', notarize: false } }, false, 'dispatch・verify・notarize=false'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'verify', notarize: true } }, false, 'dispatch・verify・notarize=true'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'sign-check', notarize: false } }, false, 'dispatch・sign-check・notarize=false'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'sign-check', notarize: true } }, true, 'dispatch・sign-check・notarize=true'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'full', notarize: false } }, true, 'dispatch・full・notarize=false'],
+  ];
+  for (const stepName of macNotarizeSteps) {
+    const st = (jobs['build-mac']?.steps ?? []).find((s) => s.name === stepName);
+    if (!st || typeof st.if !== 'string') { v.push(`(g) build-mac に「${stepName}」の if: が無い`); continue; }
+    for (const [ctx, want, label] of macNotarizeCases) {
+      try {
+        if (evalGhIfBool(st.if, ctx) !== want) {
+          v.push(`(g) build-mac「${stepName}」の if: が ${label} で ${want} でない`);
+        }
+      } catch (e) {
+        v.push(`(g) build-mac「${stepName}」の if: が評価できない: ${e.message}`);
+        break;
+      }
+    }
+  }
 
   // (j) 受け渡しの artifact は 1 日・win-artifacts は sign-check で 3 日・中身は 3 種類・release は verify-win-install を要る
   for (const [name, job] of Object.entries(jobs)) {
@@ -928,6 +981,17 @@ const wf = yaml.load(wfText);
     ['公証の env の if: から mode == full を外す', (w) => {
       const i = at(w, 'build-mac', (st) => /notarization/.test(st.name ?? ''));
       steps(w, 'build-mac')[i].if = "github.event_name == 'workflow_dispatch'";
+    }],
+    ['公証の env の if: を sign-check で常時真にする（notarize 条件を外す）', (w) => {
+      const i = at(w, 'build-mac', (st) => /notarization/.test(st.name ?? ''));
+      steps(w, 'build-mac')[i].if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.mode == 'sign-check')";
+    }],
+    ['公証の env の if: から sign-check の限定を外し verify でも notarize=true で真にする', (w) => {
+      const i = at(w, 'build-mac', (st) => /notarization/.test(st.name ?? ''));
+      steps(w, 'build-mac')[i].if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.notarize)";
+    }],
+    ['publish-win-sign-cache の if: に || inputs.notarize を混ぜる', (w) => {
+      w.jobs['publish-win-sign-cache'].if = `${w.jobs['publish-win-sign-cache'].if} || inputs.notarize`;
     }],
     ['always() のジョブを prepare の成功なしで足す', (w) => { w.jobs.late = { needs: ['prepare'], if: 'always()', steps: [] }; }],
   ];

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import yaml from 'js-yaml';
+import { evalGhIf, evalGhIfBool } from './ci/eval-gh-if.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const temp = mkdtempSync(path.join(tmpdir(), 'dmg-signing-smoke-'));
@@ -36,7 +37,7 @@ function makeMac(dir) {
   writeFileSync(path.join(dir, 'latest-mac.yml'), yaml.dump(latest, { lineWidth: -1 }));
   return latest;
 }
-const fullIf = "github.event_name == 'workflow_dispatch' && inputs.mode == 'full'";
+const notarizeIf = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))";
 const verifyIf = "env.MAC_SIGN == 'true' || (github.event_name == 'workflow_dispatch' && inputs.mode != '')";
 const names = ['Build macOS', 'Notarize and staple the DMGs', 'Refresh latest-mac.yml for the stapled DMGs', 'Verify the DMGs', 'Upload macOS artifacts'];
 function checkWorkflow(doc) {
@@ -48,15 +49,31 @@ function checkWorkflow(doc) {
   });
   indices.slice(1).forEach((index, i) => assert.ok(index > indices[i], 'step の順序'));
   const [notarize, refresh, verify] = indices.slice(1, 4).map((i) => steps[i]);
-  assert.equal(steps.find((step) => /notarization/.test(step.name)).if, fullIf);
-  for (const step of [notarize, refresh]) assert.equal(step.if, fullIf);
+  assert.equal(steps.find((step) => /notarization/.test(step.name)).if, notarizeIf);
+  for (const step of [notarize, refresh]) assert.equal(step.if, notarizeIf);
   for (const step of [notarize, refresh, verify]) assert.doesNotMatch(step.name, /notarization/);
   assert.equal(notarize.run, 'node scripts/notarize/notarize.cjs --dmg release/${{ env.VERSION }}');
   assert.equal(refresh.run, 'node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml');
   assert.equal(verify.if, verifyIf);
-  assert.equal(verify.env.EXPECT, "${{ inputs.mode == 'full' && 'notarized' || 'signed' }}");
+  assert.equal(verify.env.EXPECT, "${{ (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize)) && 'notarized' || 'signed' }}");
   assert.equal(verify.run, 'node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect "$EXPECT"');
   assert.equal(job['timeout-minutes'], 120);
+  const cases = [
+    [{ github: { event_name: 'push' }, inputs: {} }, false, 'signed'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'verify', notarize: false } }, false, 'signed'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'verify', notarize: true } }, false, 'signed'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'sign-check', notarize: false } }, false, 'signed'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'sign-check', notarize: true } }, true, 'notarized'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'full', notarize: false } }, true, 'notarized'],
+    [{ github: { event_name: 'workflow_dispatch' }, inputs: { mode: 'full', notarize: true } }, true, 'notarized'],
+  ];
+  const envStep = steps.find((step) => /notarization/.test(step.name));
+  for (const [ctx, wantNotarize, wantExpect] of cases) {
+    for (const step of [envStep, notarize, refresh]) {
+      assert.equal(evalGhIfBool(step.if, ctx), wantNotarize, `${step.name}: ${JSON.stringify(ctx)}`);
+    }
+    assert.equal(evalGhIf(verify.env.EXPECT, ctx), wantExpect, `EXPECT: ${JSON.stringify(ctx)}`);
+  }
 }
 
 // 拡張前の既定実行から採取した出力。git の参照や実装の写しに依存しない。
@@ -89,6 +106,8 @@ try {
       (steps) => { steps.find((step) => step.name === names[3]).run = 'node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect signed'; },
       (steps) => { steps.find((step) => step.name === names[3]).env.EXPECT = 'signed'; },
       (steps) => { steps.find((step) => step.name === names[2]).run = 'node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}'; },
+      (steps) => { steps.find((step) => /notarization/.test(step.name)).if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.mode == 'sign-check')"; },
+      (steps) => { steps.find((step) => /notarization/.test(step.name)).if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.notarize)"; },
     ];
     for (const mutate of mutations) {
       const copy = structuredClone(workflow);
@@ -157,6 +176,9 @@ try {
     const prefix = `const assert=require('node:assert/strict'); const path=require('node:path'); const fs=require('node:fs'); const hooks=require(${JSON.stringify(script)}); const env={APPLE_ID:'fixture@example.invalid',APPLE_APP_SPECIFIC_PASSWORD:'fixture-password',APPLE_TEAM_ID:'FIXTURE'};`;
     const valid = child(['-e', prefix + `(async()=>{const calls=[];const deps={env,notarize:async(options)=>{assert.ok(path.isAbsolute(options.appPath));assert.ok(fs.existsSync(options.appPath));assert.deepEqual(Object.keys(options).sort(),['appPath','appleId','appleIdPassword','teamId']);calls.push(options);}};assert.equal(await hooks.runCli(['--dmg','notarize-valid'],deps),0);assert.equal(calls.length,2);const context={electronPlatformName:'darwin',appOutDir:'app-out',packager:{appInfo:{productFilename:'MaplatEditor',id:'jp.maplat.editor'}}};fs.mkdirSync('app-out/MaplatEditor.app',{recursive:true});await hooks.default(context,deps);assert.equal(calls.length,3);await hooks.default(context,{env:{},notarize:async()=>{throw Error('呼ばれない');}});await hooks.default({...context,electronPlatformName:'win32'},deps);assert.equal(calls.length,3);})().catch(e=>{console.error(e);process.exitCode=1;});`]);
     assert.equal(valid.status, 0, valid.stderr);
+    assert.match(valid.stdout, /公証: 完了しました（MaplatEditor-Mac-9\.0\.0-arm64\.dmg: \d+\.\ds）。/);
+    assert.match(valid.stdout, /公証: 完了しました（MaplatEditor-Mac-9\.0\.0-x64\.dmg: \d+\.\ds）。/);
+    assert.match(valid.stdout, /公証: 完了しました（app-out\/MaplatEditor\.app: \d+\.\ds）。/);
     for (const count of [0, 1, 3]) {
       const dir = path.join(temp, `notarize-count-${count}`);
       mkdirSync(dir);

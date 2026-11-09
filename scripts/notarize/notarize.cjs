@@ -5,7 +5,8 @@ const path = require('node:path');
 const { readdirSync } = require('node:fs');
 const { notarize } = require('@electron/notarize');
 
-async function notarizePath(appPath, { env = process.env, notarize: submit = notarize } = {}) {
+async function notarizePath(appPath, { env = process.env, notarize: submit = notarize, label = path.basename(appPath) } = {}) {
+    const startedAt = Date.now();
     await submit({
         // DMG の相対パスはライブラリ内の一時ディレクトリから解決されるため絶対パスにする。
         appPath: path.resolve(appPath),
@@ -13,7 +14,8 @@ async function notarizePath(appPath, { env = process.env, notarize: submit = not
         appleIdPassword: env.APPLE_APP_SPECIFIC_PASSWORD,
         teamId: env.APPLE_TEAM_ID,
     });
-    console.log('公証: 完了しました。');
+    const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1);
+    console.log(`公証: 完了しました（${label}: ${elapsedSec}s）。`);
 }
 
 exports.default = async function notarizing(context, dependencies = {}) {
@@ -30,8 +32,9 @@ exports.default = async function notarizing(context, dependencies = {}) {
     }
     const appName = context.packager.appInfo.productFilename;
     const appBundleId = context.packager.appInfo.id;
-    console.log(`公証: ${appName} (${appBundleId}) の公証を開始します...`);
-    await notarizePath(path.join(appOutDir, `${appName}.app`), dependencies);
+    const label = `${path.basename(appOutDir)}/${appName}.app`;
+    console.log(`公証: ${label} (${appBundleId}) の公証を開始します...`);
+    await notarizePath(path.join(appOutDir, `${appName}.app`), { ...dependencies, label });
 };
 
 exports.runCli = async function runCli(args, dependencies = {}) {
@@ -47,8 +50,9 @@ exports.runCli = async function runCli(args, dependencies = {}) {
             .map((entry) => path.join(dir, entry.name)).sort();
         if (dmgs.length !== 2) throw new Error(`DMG は 2 本必要です（検出: ${dmgs.length} 本）。`);
         for (const dmg of dmgs) {
-            console.log(`公証: ${path.basename(dmg)} の公証を開始します...`);
-            await notarizePath(dmg, dependencies);
+            const label = path.basename(dmg);
+            console.log(`公証: ${label} の公証を開始します...`);
+            await notarizePath(dmg, { ...dependencies, label });
         }
         return 0;
     } catch (error) {

@@ -19,7 +19,8 @@ on:
   #       esigner（J-7 の退路）… SSL.com eSigner（署名ごとに課金）。build-win の中で electron-builder のフックが署名し、
   #         DLL 等は署名済みキャッシュ（Release `win-signed-cache`）から使い回す
   #
-  #   mode=sign-check（nov26-m7-t2）: Mac 署名のみ（公証なし）/ Win は Artifact Signing で全 PE 署名 / draft Release なし。
+  #   mode=sign-check（nov26-m7-t2）: Mac は Developer ID 署名（notarize=true のときは公証+staple も実行、既定は false で公証なし）/
+  #     Win は Artifact Signing で全 PE 署名 / draft Release なし。
   #     署名の経路を本番の前に確かめる用途。定額で配布物も作らないので rc の制限は課さないが、expected_editor_sha・
   #     expected_version は必須で、master の祖先でない SHA は prepare が拒む。win_signer=esigner は拒む。
   #     win-artifacts の保持は 3 日
@@ -41,8 +42,13 @@ on:
         default: verify
         options:
           - verify   # 動作確認用: Mac 署名のみ / Win 署名なし / Release 作らない（課金ゼロ・全バージョン可・master の祖先だけ）
-          - sign-check # 署名確認:  Mac 署名のみ / Win Artifact Signing で全 PE 署名 / Release 作らない（定額・宣言した master の SHA だけ）
+          - sign-check # 署名確認:  Mac 署名（notarize=true で公証も実行）/ Win Artifact Signing で全 PE 署名 / Release 作らない（定額・宣言した master の SHA だけ）
           - full     # 完全:       Mac 署名+公証 / Win 全 PE 署名（win_signer）/ draft Release（rc 以降限定）
+      notarize:
+        description: 'macOS の公証と staple も行う（mode=sign-check のとき有効。mode=full は常に公証、mode=verify では true 指定不可）'
+        type: boolean
+        required: false
+        default: false
       platforms:
         description: 'ビルド対象'
         type: choice
@@ -155,6 +161,7 @@ jobs:
           EXPECTED_EDITOR_SHA: ${{ inputs.expected_editor_sha }}
           EXPECTED_VERSION: ${{ inputs.expected_version }}
           WIN_SIGNER: ${{ inputs.win_signer }}
+          NOTARIZE: ${{ inputs.notarize }}
         run: node scripts/m6-t12/check-release-guard.mjs
 
       # oct26-m12-t5a（HR-26/4）: 新ビューア出力の鮮度ガード。check-release-guard.mjs の直後に
@@ -270,14 +277,14 @@ jobs:
           rm certificate.p12
           echo "MAC_SIGN=true" >> $GITHUB_ENV
 
-      # 公証環境変数のセット（mode=full のみ）
+      # 公証環境変数のセット（mode=full または mode=sign-check && notarize=true）
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
-      # mode=verify では APPLE_ID を渡さない。notarize.cjs は APPLE_ID 不在でスキップする
-      # 既存経路を持つため（scripts/notarize/notarize.cjs:14）、署名済み・未公証の DMG が
+      # mode=verify（および notarize=false の mode=sign-check）では APPLE_ID を渡さない。notarize.cjs は APPLE_ID 不在でスキップする
+      # 既存経路を持つため（scripts/notarize/notarize.cjs:26）、署名済み・未公証の DMG が
       # そのまま得られる。Apple の公証キューが滞留したとき（m6-t12 AC7 で 7 時間超の
       # In Progress を実測）に、動作確認だけ先へ進めるための経路でもある
       - name: Set macOS notarization environment
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        if: github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))
         shell: bash
         env:
           _APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -295,18 +302,18 @@ jobs:
 
       # .app の公証・包装が終わってから DMG を提出し、staple 後のバイト列で更新情報を直す。
       - name: Notarize and staple the DMGs
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        if: github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))
         run: node scripts/notarize/notarize.cjs --dmg release/${{ env.VERSION }}
 
       - name: Refresh latest-mac.yml for the stapled DMGs
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
+        if: github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))
         run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml
 
       # dispatch は証明書の欠落も赤にする。push は証明書がある場合だけ検査する。
       - name: Verify the DMGs
         if: env.MAC_SIGN == 'true' || (github.event_name == 'workflow_dispatch' && inputs.mode != '')
         env:
-          EXPECT: ${{ inputs.mode == 'full' && 'notarized' || 'signed' }}
+          EXPECT: ${{ (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize)) && 'notarized' || 'signed' }}
         run: node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect "$EXPECT"
 
       - name: Upload macOS artifacts
