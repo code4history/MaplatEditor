@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "Exporter en CSV / JSON…",
+    "export_title": "Exporter en CSV / JSON",
+    "export_description": "Exporter les POI enregistrés dans un fichier tabulaire.",
+    "format_csv": "CSV",
+    "format_csv_desc": "S’ouvre dans Excel et les autres tableurs. UTF-8 avec BOM, coordonnées à 7 décimales.",
+    "format_json": "JSON",
+    "format_json_desc": "Un tableau de POI. Le HTML, les champs personnalisés et les références d’images sont conservés tels quels.",
+    "export_confirm": "Exporter",
+    "export_success": "Export terminé.",
+    "export_failed": "Échec de l’export.",
+    "omitted_csv": "Certains champs ne figurent pas dans le CSV : {{items}}. Utilisez GeoJSON pour un export sans perte. L’import avec écrasement ne supprimera pas ces champs.",
+    "asset_json": "Les références d’images d’actifs sont incluses telles quelles : {{items}}. Elles n’ont aucun sens dans un autre environnement.",
+    "label_html": "Corps HTML",
+    "label_url": "Cible du lien (url)",
+    "label_directgo": "Saut direct (directgo)",
+    "label_icon": "Icône",
+    "label_selected_icon": "Icône sélectionnée",
+    "label_other": "Autres champs",
+    "label_image_asset": "Images d’actifs",
+    "label_image_unrepresentable": "Images non représentables",
+    "label_icon_asset": "Icônes d’actifs"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "Nouvelle ressource image",

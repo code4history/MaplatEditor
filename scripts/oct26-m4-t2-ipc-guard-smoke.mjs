@@ -14,7 +14,7 @@ const readSrc = (rel) => readFile(path.join(projectRoot, rel), "utf8");
 // §4.1(b) 全数調査表（#21〜#27）。MIN-3 是正済みの wrap 対象定義に一致させる。
 const TARGETS = [
   ["electron/ipc/mapedit.ts", ["mapedit:updateTin", "mapedit:download", "mapedit:download-saved", "mapedit:uploadCsv"]],
-  ["electron/ipc/poisource.ts", ["poisource:exportFile", "poisource:importFile", "poisource:refreshRemote", "poisource:cloneToLocal"]],
+  ["electron/ipc/poisource.ts", ["poisource:exportFile", "poisource:exportTable", "poisource:importFile", "poisource:refreshRemote", "poisource:cloneToLocal"]],
   ["electron/ipc/dataupload.ts", ["dataupload:showDataSelectDialog"]],
   ["electron/ipc/mapupload.ts", ["mapupload:showMapSelectDialog"]],
   ["electron/ipc/wmts.ts", ["wmtsGen:generate"]],

@@ -114,6 +114,19 @@
             </select>
           </div>
         </div>
+        <!-- CSV・JSON の書き出し。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
+             並びは変えず、文書フィールドの行に置く -->
+        <div class="d-flex justify-content-end mt-1">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-editor-action="poi-export-table"
+            :disabled="exporting || cloning || (!saveHandle.uid.value && liveErrors.length > 0)"
+            @click="openTableExport"
+          >
+            {{ t("poiio.export_button") }}
+          </button>
+        </div>
         <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
         <div class="mt-1 mb-1">
           <span class="fw-bold small text-muted">{{ t("poiedit.layer_metadata") }}</span>
@@ -222,6 +235,8 @@
       </div>
     </template>
 
+    <PoiTableExportDialog :visible="tableExportDialogVisible" @submit="onTableExportSubmit" />
+
     <EditorBusyOverlay
       :visible="saving || exporting || cloning || importing"
       :label="saving ? t('poiedit.saving') : importing ? t('editor_ui.busy_importing') : exporting ? t('editor_ui.busy_exporting') : t('poiedit.clone_to_local')"
@@ -252,6 +267,7 @@ import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
 import { type SlugFieldState } from "../composables/useSlugAvailability";
 import { findLocalCloneSlug } from "../composables/useResourceDuplicate";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
+import PoiTableExportDialog from "../components/PoiTableExportDialog.vue";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
@@ -277,7 +293,7 @@ import {
   resolveEditorLanguage,
   type LangCode,
 } from "../utils/editorLanguages";
-import type { PoiSourceSaveResult, PoiValidationIssue } from "../electron";
+import type { PoiExportOmitted, PoiSourceSaveResult, PoiValidationIssue } from "../electron";
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -898,6 +914,75 @@ async function exportSource(): Promise<void> {
       choose: choosePoiExport,
       save: saveSource,
       exportSaved: exportSavedSource,
+    });
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// --- CSV・JSON の書き出し (保存済みの版が対象。未保存の変更があれば GeoJSON の書き出しと同じ確認を挟む) ---
+const tableExportDialogVisible = ref(false);
+
+function openTableExport(): void {
+  if (saving.value || exporting.value) return;
+  tableExportDialogVisible.value = true;
+}
+
+async function exportSavedTable(format: "csv" | "json"): Promise<boolean> {
+  const uid = saveHandle.uid.value;
+  if (!uid) return false;
+  const result = await window.poiSources.exportTable(uid, format);
+  if (result.result === "Canceled") return false;
+  if (result.result === "Error") {
+    await (window as any).dialog.showMessageBox({
+      type: "error",
+      buttons: ["OK"],
+      message: t("poiio.export_failed"),
+      detail: result.message || "",
+    });
+    return false;
+  }
+  await (window as any).dialog.showMessageBox({
+    type: "info",
+    buttons: ["OK"],
+    message: t("poiio.export_success"),
+    detail: tableExportNotice(format, result.omitted),
+  });
+  return true;
+}
+
+// 表に含まれない項目の報告 (1 件でもあれば)。CSV は欠落、JSON は資産の参照の持ち出しを知らせる
+function tableExportNotice(format: "csv" | "json", omitted: PoiExportOmitted): string {
+  const labels: [keyof PoiExportOmitted, string][] = [
+    ["html", "poiio.label_html"],
+    ["url", "poiio.label_url"],
+    ["directgo", "poiio.label_directgo"],
+    ["icon", "poiio.label_icon"],
+    ["selectedIcon", "poiio.label_selected_icon"],
+    ["otherProperties", "poiio.label_other"],
+    ["imageAssetRefs", "poiio.label_image_asset"],
+    ["imageUnrepresentable", "poiio.label_image_unrepresentable"],
+    ["iconAssetRefs", "poiio.label_icon_asset"],
+  ];
+  const jsonKeys = new Set<keyof PoiExportOmitted>(["imageAssetRefs", "iconAssetRefs"]);
+  const items = labels
+    .filter(([key]) => omitted[key] > 0 && (format === "csv" || jsonKeys.has(key)))
+    .map(([key, labelKey]) => `${t(labelKey)} (${omitted[key]})`);
+  if (items.length === 0) return "";
+  return t(format === "csv" ? "poiio.omitted_csv" : "poiio.asset_json", { items: items.join(", ") });
+}
+
+async function onTableExportSubmit(format: "csv" | "json" | null): Promise<void> {
+  tableExportDialogVisible.value = false;
+  if (!format || saving.value || exporting.value) return;
+  exporting.value = true;
+  try {
+    await runEditorExportDecision({
+      dirty: draftDirty.value,
+      hasSaved: !!saveHandle.uid.value,
+      choose: choosePoiExport,
+      save: saveSource,
+      exportSaved: () => exportSavedTable(format),
     });
   } finally {
     exporting.value = false;

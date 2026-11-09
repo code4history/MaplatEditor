@@ -189,6 +189,17 @@ export type PoiSourceExportResult =
     | { result: 'Canceled' }
     | { result: 'Error'; message?: string };
 
+// CSV・JSON の書き出しで、その表に含まれない項目を持つ POI の件数
+export interface PoiExportOmitted {
+    html: number; url: number; directgo: number; icon: number; selectedIcon: number;
+    otherProperties: number; imageAssetRefs: number; imageUnrepresentable: number; iconAssetRefs: number;
+}
+
+export type PoiExportTableResult =
+    | { result: 'Success'; filePath: string; omitted: PoiExportOmitted }
+    | { result: 'Canceled' }
+    | { result: 'Error'; message?: string };
+
 export interface PoiSourceReference {
     kind: 'map' | 'app';
     uid: string;
@@ -210,6 +221,8 @@ export interface PoiSourcesAPI {
     findReferences(uid: string): Promise<PoiSourceReference[]>;
     delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
     exportFile(uid: string): Promise<PoiSourceExportResult>;
+    // CSV・JSON の書き出し。保存先は main の保存ダイアログで決まる
+    exportTable(uid: string, format: 'csv' | 'json'): Promise<PoiExportTableResult>;
     // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
     pickImportFile(): Promise<{ filePath: string; fileName: string } | null>;
 }

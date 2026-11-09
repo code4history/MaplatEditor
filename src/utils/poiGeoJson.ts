@@ -595,7 +595,7 @@ export function ensureFeatureUids(
 }
 
 // 1 座標成分を指定桁で丸める。
-function roundCoord(n: number): number {
+export function roundCoord(n: number): number {
   if (typeof n !== "number" || !Number.isFinite(n)) return n;
   const factor = 10 ** COORD_DECIMALS;
   return Math.round(n * factor) / factor;

@@ -32,7 +32,7 @@ for (const line of live) {
  } else assert.match(near, /dialogDefaultPath\(['"]saveFolder['"]\)/);
 }
 assert.equal(raw.length - live.length, 1);
-assert.equal(sites.size, 11);
+assert.equal(sites.size, 12); // 保存ダイアログを 1 つ追加したため (CSV・JSON の書き出し)
 console.log(`生ヒット ${raw.length}・コメント除外 ${raw.length-live.length}・採用 ${live.length}・場所 ${sites.size}`);
 
 const fixtureParent = path.join(root, '.tmp-smoke');

@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "Xuất ra CSV / JSON…",
+    "export_title": "Xuất ra CSV / JSON",
+    "export_description": "Xuất các POI đã lưu ra tệp dạng bảng.",
+    "format_csv": "CSV",
+    "format_csv_desc": "Mở được bằng Excel và các phần mềm bảng tính khác. UTF-8 có BOM, tọa độ 7 chữ số thập phân.",
+    "format_json": "JSON",
+    "format_json_desc": "Một mảng các POI. HTML, các trường riêng và tham chiếu hình ảnh được giữ nguyên.",
+    "export_confirm": "Xuất",
+    "export_success": "Đã xuất.",
+    "export_failed": "Xuất thất bại.",
+    "omitted_csv": "Một số trường không có trong CSV: {{items}}. Hãy dùng GeoJSON để xuất không mất dữ liệu. Nhập theo kiểu ghi đè sẽ không xóa các trường này.",
+    "asset_json": "Tham chiếu hình ảnh tài nguyên được giữ nguyên: {{items}}. Chúng không có ý nghĩa ở môi trường khác.",
+    "label_html": "Nội dung HTML",
+    "label_url": "Đích liên kết (url)",
+    "label_directgo": "Chuyển thẳng (directgo)",
+    "label_icon": "Biểu tượng",
+    "label_selected_icon": "Biểu tượng khi chọn",
+    "label_other": "Các trường khác",
+    "label_image_asset": "Hình ảnh tài nguyên",
+    "label_image_unrepresentable": "Hình ảnh không thể biểu diễn",
+    "label_icon_asset": "Biểu tượng tài nguyên"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "Tài nguyên mới",

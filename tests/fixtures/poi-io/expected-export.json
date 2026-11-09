@@ -1,0 +1,36 @@
+[
+  {
+    "id": "r-1",
+    "lnglat": [139.1234568, 35.1234568],
+    "name": { "ja": "一", "en": "One" },
+    "desc": "説明",
+    "image": "https://example.com/1.jpg"
+  },
+  {
+    "id": "r-2",
+    "lnglat": [139.2, 35.2],
+    "name": "二",
+    "image": ["550e8400-e29b-41d4-a716-446655440000", "https://example.com/2.jpg"]
+  },
+  {
+    "id": "r-3",
+    "lnglat": [139.3, 35.3],
+    "name": "三",
+    "image": { "src": "https://example.com/3.jpg", "alt": "三の写真" }
+  },
+  {
+    "id": "r-4",
+    "lnglat": [139.4, 35.4],
+    "name": "=1+1",
+    "desc": "-5 度",
+    "html": "<p>x</p>",
+    "memo": "m"
+  },
+  {
+    "id": "r-5",
+    "lnglat": [139.5, 35.5],
+    "name": "五",
+    "desc": " 前後に空白 ",
+    "address": "東京都"
+  }
+]

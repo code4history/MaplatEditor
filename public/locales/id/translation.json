@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "Ekspor sebagai CSV / JSON…",
+    "export_title": "Ekspor sebagai CSV / JSON",
+    "export_description": "Ekspor POI yang tersimpan ke berkas tabel.",
+    "format_csv": "CSV",
+    "format_csv_desc": "Dapat dibuka di Excel dan aplikasi spreadsheet lain. UTF-8 dengan BOM, koordinat 7 angka desimal.",
+    "format_json": "JSON",
+    "format_json_desc": "Larik POI. HTML, kolom khusus, dan referensi gambar dipertahankan apa adanya.",
+    "export_confirm": "Ekspor",
+    "export_success": "Berhasil diekspor.",
+    "export_failed": "Ekspor gagal.",
+    "omitted_csv": "Beberapa kolom tidak disertakan dalam CSV: {{items}}. Gunakan GeoJSON untuk ekspor tanpa kehilangan data. Impor dengan menimpa tidak akan menghapus kolom ini.",
+    "asset_json": "Referensi gambar aset disertakan apa adanya: {{items}}. Referensi ini tidak bermakna di lingkungan lain.",
+    "label_html": "Isi HTML",
+    "label_url": "Tujuan tautan (url)",
+    "label_directgo": "Lompat langsung (directgo)",
+    "label_icon": "Ikon",
+    "label_selected_icon": "Ikon terpilih",
+    "label_other": "Kolom lain",
+    "label_image_asset": "Gambar aset",
+    "label_image_unrepresentable": "Gambar yang tidak dapat ditulis",
+    "label_icon_asset": "Ikon aset"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "Aset gambar baru",

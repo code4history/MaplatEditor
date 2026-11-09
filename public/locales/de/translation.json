@@ -1093,6 +1093,29 @@
     "directgo_preview_note": "Links do not open in the preview. Check them in the exported app.",
     "directgo_hidden_content": "The link mode shows no info window, so the following content is not displayed (the data is kept): {{fields}}"
   },
+  "poiio": {
+    "export_button": "Als CSV / JSON exportieren…",
+    "export_title": "Als CSV / JSON exportieren",
+    "export_description": "Die gespeicherten POIs in eine Tabellendatei exportieren.",
+    "format_csv": "CSV",
+    "format_csv_desc": "Lässt sich in Excel und anderen Tabellenprogrammen öffnen. UTF-8 mit BOM, Koordinaten mit 7 Nachkommastellen.",
+    "format_json": "JSON",
+    "format_json_desc": "Ein Array von POIs. HTML, eigene Felder und Bildverweise bleiben unverändert erhalten.",
+    "export_confirm": "Exportieren",
+    "export_success": "Exportiert.",
+    "export_failed": "Export fehlgeschlagen.",
+    "omitted_csv": "Einige Felder sind nicht in der CSV enthalten: {{items}}. Für einen verlustfreien Export verwenden Sie GeoJSON. Beim Import mit Überschreiben werden diese Felder nicht entfernt.",
+    "asset_json": "Verweise auf Asset-Bilder sind unverändert enthalten: {{items}}. In einer anderen Umgebung haben sie keine Bedeutung.",
+    "label_html": "HTML-Inhalt",
+    "label_url": "Linkziel (url)",
+    "label_directgo": "Direktsprung (directgo)",
+    "label_icon": "Symbol",
+    "label_selected_icon": "Symbol bei Auswahl",
+    "label_other": "Weitere Felder",
+    "label_image_asset": "Asset-Bilder",
+    "label_image_unrepresentable": "Nicht darstellbare Bilder",
+    "label_icon_asset": "Asset-Symbole"
+  },
   "assetlist": {
     "master_detail": {
       "new_draft": "Neues Bild-Asset",
