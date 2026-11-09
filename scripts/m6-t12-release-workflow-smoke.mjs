@@ -195,7 +195,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.deepEqual(
     Object.keys(inputs).sort(),
     ['expected_editor_sha', 'expected_version', 'mode', 'notarize', 'platforms', 'win_signer'],
-    'AC10: 入力は mode / notarize / platforms + #104 の expected_editor_sha / expected_version + nov26-m7-t2 の win_signer'
+    'AC10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + nov26-m7-t2 の win_signer'
   );
   assert.equal(inputs.notarize.type, 'boolean', 'notarize は boolean 入力');
   assert.equal(inputs.notarize.required, false, 'notarize は任意');
