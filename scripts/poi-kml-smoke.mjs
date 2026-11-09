@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
-import { REJECT, PASS, NORMAL, qgisKml, GOOGLE_EARTH_KML } from './lib/poiKmlInputs.mjs';
+import { REJECT, PASS, NORMAL, PLACEMARK_ATTACKS, qgisKml, GOOGLE_EARTH_KML } from './lib/poiKmlInputs.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
@@ -182,6 +182,12 @@ try {
     assert.deepEqual(d('<script>alert(1)</script><style>p{}</style>本文').rows[0].desc, { ja: '本文' });
     // 説明に入る名前つき文字参照と数値参照は戻す (&nbsp; が見えたまま残らない)
     assert.deepEqual(d('<p>A&nbsp;B &copy; &amp; &lt;x&gt; &quot;q&quot; &#65;&#x42; &yen;</p>').rows[0].desc, { ja: 'A B © & <x> "q" AB ¥' });
+    // 平坦化の端の形: 単独の "<"・コメント・宣言・閉じない <script>
+    assert.deepEqual(d('a < b <b>x</b>').rows[0].desc, { ja: 'a < b x' });
+    assert.deepEqual(d('<!DOCTYPE html><!-- c --><p>x</p>').rows[0].desc, { ja: 'x' });
+    assert.deepEqual(d('<script>alert(1)<p>t</p>').rows[0].desc, { ja: 'alert(1)t' });
+    assert.deepEqual(d('<SCRIPT type="x">a</SCRIPT >b').rows[0].desc, { ja: 'b' });
+    assert.deepEqual(d('1 < 2 > 0').rows[0].desc, { ja: '1 < 2 > 0' }, 'タグの無い説明は直さない');
     const flat = d('<b>x</b>');
     assert.deepEqual(codes(flat), ['kml-description-html-flattened']);
     assert.deepEqual(codes(d('<img src="a.png"><b>x</b>')).sort(), ['kml-description-html-flattened', 'kml-description-image-dropped']);
@@ -346,9 +352,9 @@ try {
   // ---------- 悪意ある入力・通るべき入力 (時間と RSS を実測) ----------
   {
     const childPath = path.join(projectRoot, 'scripts/lib/poiKmlChild.mjs');
-    const run = (kind, index) => {
-      const p = spawnSync(process.execPath, [childPath, bundlePath, kind, String(index), xmldomIndex], { encoding: 'utf8', timeout: 120000, maxBuffer: 1024 * 1024 });
-      assert.equal(p.status, 0, `${kind}[${index}] の子プロセスが失敗: ${p.stderr?.slice(0, 300)}`);
+    const run = (kind, index, timeoutMs = 120000) => {
+      const p = spawnSync(process.execPath, [childPath, bundlePath, kind, String(index), xmldomIndex], { encoding: 'utf8', timeout: timeoutMs, maxBuffer: 1024 * 1024 });
+      assert.equal(p.status, 0, `${kind}[${index}] の子プロセスが失敗または ${timeoutMs / 1000} 秒で打ち切り: ${p.stderr?.slice(0, 300)}`);
       return JSON.parse(p.stdout.trim().split('\n').pop());
     };
     const lines = [];
@@ -376,9 +382,16 @@ try {
       assert.ok(r.ms <= 5000, `${name}: ${r.ms} ms (5 秒以内)`);
       assert.ok(r.deltaMb < 1024, `${name}: RSS +${r.deltaMb} MB`);
     });
+    // description・ExtendedData の中身を攻める入力: 拒否されても通っても、処理全体が 2 秒以内 (二乗の処理が残っていれば 20 秒で打ち切って落とす)
+    PLACEMARK_ATTACKS.forEach(([name], i) => {
+      const r = run('attack', i, 20000);
+      lines.push(`attack  ${String(r.ms).padStart(5)} ms  +${String(r.deltaMb).padStart(4)} MB  ${r.code ?? '-'}  ${name}`);
+      assert.ok(r.ms <= 2000, `${name}: ${r.ms} ms (2 秒以内)`);
+      assert.ok(r.deltaMb < 1024, `${name}: RSS +${r.deltaMb} MB (1 GB 未満)`);
+    });
     await writeFile(path.join(workDir, 'measurements.txt'), lines.join('\n') + '\n');
     if (process.env.POI_KML_MEASUREMENTS) await writeFile(process.env.POI_KML_MEASUREMENTS, lines.join('\n') + '\n');
-    console.log(`  case 11 (悪意ある入力 ${REJECT.length} 種・通る入力 ${PASS.length} 種・正常 ${NORMAL.length} 種の時間と RSS): PASS`);
+    console.log(`  case 11 (悪意ある入力 ${REJECT.length} 種・通る入力 ${PASS.length} 種・description などを攻める入力 ${PLACEMARK_ATTACKS.length} 種・正常 ${NORMAL.length} 種の時間と RSS): PASS`);
   }
 
   console.log('poi-kml smoke: PASS');

@@ -1,12 +1,12 @@
 // poi-kml-smoke.mjs の子プロセス: 1 つの入力を作って parsePoiKml に通し、時間と RSS の増加を JSON で出す。
 // 親の RSS を汚さないため、大きな入力は必ずここで走らせる。
-// 使い方: node poiKmlChild.mjs <bundle.mjs> <reject|pass|normal> <番号> <xmldom の index.js>
+// 使い方: node poiKmlChild.mjs <bundle.mjs> <reject|pass|normal|attack> <番号> <xmldom の index.js>
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { REJECT, PASS, NORMAL } from './poiKmlInputs.mjs';
+import { REJECT, PASS, NORMAL, PLACEMARK_ATTACKS } from './poiKmlInputs.mjs';
 
 const [bundle, kind, indexArg, xmldomPath] = process.argv.slice(2);
-const table = { reject: REJECT, pass: PASS, normal: NORMAL }[kind];
+const table = { reject: REJECT, pass: PASS, normal: NORMAL, attack: PLACEMARK_ATTACKS }[kind];
 const entry = table[Number(indexArg)];
 const { parsePoiKml } = await import(pathToFileURL(bundle).href);
 const { DOMParser } = createRequire(import.meta.url)(xmldomPath);

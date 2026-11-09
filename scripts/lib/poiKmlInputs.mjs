@@ -103,3 +103,42 @@ export const NORMAL = [
   ['My Maps 風 20,000 件（整形なし・340,002 要素）', () => myMapsKml(20000, false), 20000],
   ['My Maps 風 20,000 件（タブ字下げ・BOM つき）', () => myMapsKml(20000, true), 20000],
 ];
+
+// description や ExtendedData の中身を攻める入力 (事前走査は CDATA の中身を読まないので、解析の側が線形でなければならない)。
+// それぞれ 20 MiB まで。拒否されても通っても、取り込みの処理全体が 2 秒以内に終わること
+const placemarkWith = (inner) => '<kml><Document><Placemark><name>n</name>' + inner + '<Point><coordinates>1,2</coordinates></Point></Placemark></Document></kml>';
+const description = (payload) => placemarkWith('<description><![CDATA[' + payload + ']]></description>');
+export const PLACEMARK_ATTACKS = [
+  ['description: <b> の後に "<" を 40 KB (実測 2.9 秒の再現)', () => description('<b>' + '<'.repeat(40 * 1024))],
+  ['description: <b> の後に "<" を 10 万個 (実測 14.9 秒の再現)', () => description('<b>' + '<'.repeat(100000))],
+  ['description: "<" の羅列 20 MiB', () => description('<b>' + fill('<', 20 * MB))],
+  ['description: 閉じないタグ "<a" の羅列 20 MiB', () => description('<b>' + fill('<a', 20 * MB))],
+  ['description: 閉じない "<a b=" の羅列 20 MiB', () => description('<b>' + fill('<a b=', 20 * MB))],
+  ['description: 閉じない <script> の羅列 20 MiB', () => description(fill('<script>', 20 * MB))],
+  ['description: 閉じない <style> の羅列 20 MiB', () => description(fill('<style>x', 20 * MB))],
+  ['description: "<!--" の羅列 20 MiB', () => description('<b>' + fill('<!--', 20 * MB))],
+  ['description: "<!" の羅列 20 MiB', () => description('<b>' + fill('<!', 20 * MB))],
+  ['description: タグの羅列 <br> 20 MiB', () => description(fill('<br>', 20 * MB))],
+  ['description: タグの羅列 <img > 20 MiB', () => description(fill('<img >', 20 * MB))],
+  // 1 セルの上限 (1 MiB) の直下: 平坦化の処理そのものに入る大きさ
+  ['description: "<" の羅列 約 1 MiB', () => description('<b>' + fill('<', 1000000))],
+  ['description: "<a" の羅列 約 1 MiB', () => description('<b>' + fill('<a', 1000000))],
+  ['description: 閉じない <script> の羅列 約 1 MiB', () => description(fill('<script>', 1000000))],
+  ['description: 閉じない <style> の羅列 約 1 MiB', () => description(fill('<style>x', 1000000))],
+  ['description: "<!--" の羅列 約 1 MiB', () => description('<b>' + fill('<!--', 1000000))],
+  ['description: <br> の羅列 約 1 MiB', () => description(fill('<br>', 1000000))],
+  ['description: "&" の羅列 約 1 MiB', () => description('<b>' + fill('&', 1000000))],
+  ['description: "&amp;" の羅列 約 1 MiB', () => description('<b>' + fill('&amp;', 1000000))],
+  ['description: "</p" と "<p>" の交互 約 1 MiB', () => description(fill('</p<p>', 1000000))],
+  ['description: 実体参照 "&" の羅列 20 MiB', () => description('<b>' + fill('&', 20 * MB))],
+  ['description: 実体参照 "&a" の羅列 20 MiB', () => description('<b>' + fill('&a', 20 * MB))],
+  ['description: 実体参照 "&#" の羅列 20 MiB', () => description('<b>' + fill('&#', 20 * MB))],
+  ['description: 実体参照 "&amp;" の羅列 20 MiB', () => description('<b>' + fill('&amp;', 20 * MB))],
+  ['description: 実体参照 "&#99999999999;" の羅列 20 MiB', () => description('<b>' + fill('&#99999999999;', 20 * MB))],
+  ['description: 実体参照 "&nbsp;" の羅列 20 MiB', () => description('<b>' + fill('&nbsp;', 20 * MB))],
+  ['name: 実体参照 "&a" の羅列 (1 MiB 未満)', () => placemarkWith('<ExtendedData><Data name="name"><value>' + fill('&a', 0.9 * MB) + '</value></Data></ExtendedData>')],
+  ['ExtendedData: 未知の子 <x/> × 200,000 (実測 3.5 秒の再現)', () => placemarkWith('<ExtendedData>' + '<x/>'.repeat(200000) + '</ExtendedData>')],
+  ['ExtendedData: 未知の子 <x/> × 390,000 (要素数の上限直下)', () => placemarkWith('<ExtendedData>' + '<x/>'.repeat(390000) + '</ExtendedData>')],
+  ['ExtendedData: 深さ 60 の入れ子 × 6,000 個', () => placemarkWith('<ExtendedData>' + ('<x>'.repeat(30) + '</x>'.repeat(30)).repeat(6000) + '</ExtendedData>')],
+  ['Placemark: 子 <x/> × 390,000', () => '<kml><Placemark><name>n</name>' + '<x/>'.repeat(390000) + '<Point><coordinates>1,2</coordinates></Point></Placemark></kml>'],
+];
