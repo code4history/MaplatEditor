@@ -171,7 +171,7 @@ try {
     assert.ok(body.includes('planPoiMerge'), '確定時に現在の features で合流を計算し直していない');
     assert.ok(body.includes('session.commit'), '確定が session.commit 1 回でない');
     const dialogSrc = await read('src/components/PoiMergeImportDialog.vue');
-    assert.match(dialogSrc, /ref<'append' \| 'overwrite'>\('append'\)/, '初期選択が追記でない');
+    assert.match(dialogSrc, /ref<PoiMergeMode>\('append'\)/, '初期選択が追記でない');
     console.log('  case e (確定時の再確認・初期選択は追記): PASS');
   }
 
@@ -305,7 +305,7 @@ try {
     ok('−35.6', '139.7', [139.7, -35.6]); // U+2212
     ok('90', '180', [180, 90]);
     ok('-90.0', '-180.0', [-180, -90]);
-    for (const [lat, lng] of [['1e2', '2'], ['35,6', '139'], ['35°', '139'], ['35度', '139'], ['abc', '1'], ['1', '1.'], ['.5', '1'], ['1 2', '3']]) {
+    for (const [lat, lng] of [['1e2', '2'], ['"35,6"', '139'], ['35°', '139'], ['35度', '139'], ['abc', '1'], ['1', '1.'], ['.5', '1'], ['1 2', '3']]) {
       const r = coord(lat, lng);
       assert.deepEqual(r.issues.map((i) => i.code), ['coord-format'], `${lat},${lng}`);
       assert.deepEqual(r.rows, [], '値の形の誤りの行は除く');
