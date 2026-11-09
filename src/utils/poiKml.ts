@@ -9,6 +9,7 @@ import {
   ID_COLUMN,
   LAT_COLUMN,
   LNG_COLUMN,
+  POI_IMPORT_MAX_CELL_CHARS,
   POI_IMPORT_MAX_ROWS,
   columnKey,
   isCoordinateColumn,
@@ -241,11 +242,11 @@ function collectPlacemarks(root: KmlNode): KmlNode[] {
 // ExtendedData の (名前, 値) の組。<Data name><value> と <SimpleData name> (SchemaData の中を含む)
 function extendedPairs(placemark: KmlNode): { name: string; value: string }[] {
   const pairs: { name: string; value: string }[] = [];
-  const stack: KmlNode[] = [];
-  for (const child of elementChildren(placemark)) if (nameOf(child) === 'ExtendedData') stack.push(child);
-  while (stack.length > 0) {
-    const node = stack.shift() as KmlNode;
-    for (const child of elementChildren(node)) {
+  // 幅優先。先頭から取り出すために配列を詰め直さず、添字で進める (線形)
+  const queue: KmlNode[] = [];
+  for (const child of elementChildren(placemark)) if (nameOf(child) === 'ExtendedData') queue.push(child);
+  for (let at = 0; at < queue.length; at++) {
+    for (const child of elementChildren(queue[at])) {
       const kind = nameOf(child);
       const name = child.getAttribute?.('name') ?? '';
       if (kind === 'Data' && name !== '') {
@@ -254,7 +255,7 @@ function extendedPairs(placemark: KmlNode): { name: string; value: string }[] {
       } else if (kind === 'SimpleData' && name !== '') {
         pairs.push({ name, value: (child.textContent ?? '').trim() });
       } else {
-        stack.push(child);
+        queue.push(child);
       }
     }
   }
@@ -269,8 +270,6 @@ const NAMED_ENTITIES: Record<string, string> = {
   trade: '™', hellip: '…', ndash: '–', mdash: '—', laquo: '«', raquo: '»', times: '×', yen: '¥', euro: '€',
   middot: '·', bull: '•', deg: '°', plusmn: '±',
 };
-const HTML_TAG = /<\/?[A-Za-z][^>]*>/;
-
 function decodeEntities(text: string): string {
   return text.replace(/&(?:#(\d+)|#[xX]([0-9a-fA-F]+)|([A-Za-z]+));/g, (whole, dec, hex, name) => {
     if (name) return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, name) ? NAMED_ENTITIES[name] : whole;
@@ -279,14 +278,62 @@ function decodeEntities(text: string): string {
   });
 }
 
-// <br>・</p>・</div> を改行にし、残りのタグを除き、文字参照を戻す。<script>・<style> は中身ごと除く
-function flattenHtml(html: string): { text: string; hadImage: boolean } {
-  const hadImage = /<img[\s/>]/i.test(html);
-  const text = html
-    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
-    .replace(/<br\s*\/?>|<\/p\s*>|<\/div\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, '');
-  return { text: decodeEntities(text).trim(), hadImage };
+const isAsciiLetter = (c: number): boolean => (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+const isTagNameChar = (c: number): boolean => isAsciiLetter(c) || (c >= 48 && c <= 57);
+
+// description の HTML を文字列に直す。<br>・</p>・</div> は改行、残りのタグは除き、文字参照を戻す。
+// <script>・<style> は中身ごと除く。タグは「'<' の直後が英字、または '/' と英字」のものだけ (単独の '<' は文字)。
+// 入力の長さに対して線形に終わる 1 回の走査 (正規表現の繰り返しの探索は、閉じない '<' の羅列で二乗になる)。
+// tags が 0 ならタグの無い説明で、呼び出し側は直さずにそのまま使う。
+function flattenHtml(html: string): { text: string; hadImage: boolean; tags: number } {
+  const n = html.length;
+  const lastGt = html.lastIndexOf('>');
+  const lower = html.toLowerCase();
+  const noCloser = new Set<string>(); // 閉じタグが後ろに無いと分かった script・style (以降は探さない)
+  const out: string[] = [];
+  let hadImage = false;
+  let tags = 0;
+  let i = 0;
+  while (i < n) {
+    const lt = html.indexOf('<', i);
+    if (lt < 0) { out.push(html.slice(i)); break; }
+    out.push(html.slice(i, lt));
+    // 後ろに '>' が無ければ、これ以降にタグは無い
+    if (lt > lastGt) { out.push(html.slice(lt)); break; }
+    let j = lt + 1;
+    const closing = html.charCodeAt(j) === 47;
+    if (closing) j += 1;
+    const first = html.charCodeAt(j);
+    if (first === 33 || first === 63) {
+      // <!-- … -->・<!DOCTYPE …>・<? … ?> は最初の '>' まで除く (タグの数には数えない)
+      i = html.indexOf('>', j) + 1;
+      continue;
+    }
+    if (!isAsciiLetter(first)) { out.push('<'); i = lt + 1; continue; }
+    const nameStart = j;
+    while (j < n && isTagNameChar(html.charCodeAt(j))) j++;
+    const name = lower.slice(nameStart, j);
+    const gt = html.indexOf('>', j);
+    tags += 1;
+    i = gt + 1;
+    if (!closing && (name === 'script' || name === 'style')) {
+      if (!noCloser.has(name)) {
+        const closer = lower.indexOf('</' + name, i);
+        if (closer < 0) noCloser.add(name);
+        else {
+          const closerGt = html.indexOf('>', closer);
+          i = (closerGt < 0 ? n : closerGt) + 1;
+        }
+      }
+    } else if (!closing && name === 'br') {
+      out.push('\n');
+    } else if (closing && (name === 'p' || name === 'div')) {
+      out.push('\n');
+    } else if (!closing && name === 'img') {
+      hadImage = true;
+    }
+  }
+  return { text: decodeEntities(out.join('')).trim(), hadImage, tags };
 }
 
 // 経度,緯度[,高度] を 1 組だけ読む。形が違えば null (高度は捨てる)
@@ -389,11 +436,14 @@ export function parsePoiKml(args: {
     const descriptionRaw = childElement(placemark, 'description')?.textContent ?? '';
     if (descriptionRaw.trim() !== '') {
       let value = descriptionRaw.trim();
-      if (HTML_TAG.test(value)) {
+      // 1 セルの上限を超える説明は直さずそのまま渡す (cell-too-large で行を除く)。直す入力の長さを抑える
+      if (value.length <= POI_IMPORT_MAX_CELL_CHARS) {
         const flat = flattenHtml(value);
-        value = flat.text;
-        flattenedCount += 1;
-        if (flat.hadImage) warn('kml-description-image-dropped');
+        if (flat.tags > 0) {
+          value = flat.text;
+          flattenedCount += 1;
+          if (flat.hadImage) warn('kml-description-image-dropped');
+        }
       }
       if (value !== '') add({ spec: textColumn('desc', defaultLang), value });
     }
