@@ -165,6 +165,26 @@ try {
     assert.throws(() => parseExportManifest(JSON.stringify({ format: 'maplat-map-export', version: 1, contents: { tiles: 1 } })), CorruptExportManifestError);
     console.log('ok 前提: 正規化と目録の単体');
 
+    // POI のエクスポートの形式と画像（エクスポートの統合）
+    {
+      const {
+        DEFAULT_POI_EXPORT_OPTIONS, normalizePoiExportOptions, poiExportCanIncludeImages,
+      } = await import(${p('src/utils/exportOptions.ts')});
+      assert.deepEqual({ ...DEFAULT_POI_EXPORT_OPTIONS }, { format: 'geojson', includeImages: true }, 'POI の既定は GeoJSON・画像を含める');
+      assert.ok(Object.isFrozen(DEFAULT_POI_EXPORT_OPTIONS), 'POI の既定は書き換えられない');
+      assert.deepEqual(normalizePoiExportOptions(undefined), { format: 'geojson', includeImages: true }, 'POI: 省略は既定');
+      assert.deepEqual(normalizePoiExportOptions({ format: 'csv' }), { format: 'csv', includeImages: false }, 'POI: CSV は画像を含めない');
+      assert.deepEqual(normalizePoiExportOptions({ format: 'csv', includeImages: true }), { format: 'csv', includeImages: false }, 'POI: CSV で含めるは畳む');
+      assert.deepEqual(normalizePoiExportOptions({ format: 'json', includeImages: true }), { format: 'json', includeImages: false }, 'POI: JSON で含めるは畳む');
+      assert.deepEqual(normalizePoiExportOptions({ format: 'geojson', includeImages: false }), { format: 'geojson', includeImages: false }, 'POI: GeoJSON・含めない');
+      assert.deepEqual(normalizePoiExportOptions({ format: 'geojson', includeImages: 'yes' }), { format: 'geojson', includeImages: true }, 'POI: boolean でない値は既定');
+      assert.throws(() => normalizePoiExportOptions({ format: 'xml' }), InvalidExportOptionsError, 'POI: 未知の形式は不正');
+      assert.equal(poiExportCanIncludeImages('geojson'), true);
+      assert.equal(poiExportCanIncludeImages('csv'), false);
+      assert.equal(poiExportCanIncludeImages('json'), false);
+      console.log('ok 前提: POI のエクスポートの形式と画像の正規化');
+    }
+
     // 区分の割り当て（§3.1）
     const categoryOf = (name: string): 'json' | 'tiles' | 'originals' | 'manifest' => {
       if (name === EXPORT_MANIFEST_NAME) return 'manifest';
