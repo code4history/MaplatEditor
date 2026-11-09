@@ -146,7 +146,7 @@ try {
             const after = field.get(result.features[0]);
             const label = `${field.key} 列=${hasColumn} セル非空=${cellNonEmpty} 既存=${existingHas}`;
             if (hasColumn && cellNonEmpty) {
-              const expected = field.key === 'latlng' ? '36.5,140.5' : field.cell;
+              const expected = field.key === 'latlng' ? '140.5,36.5' : field.cell; // 座標は 経度,緯度 の順
               assert.equal(after, expected, label + ' は上書き');
               assert.equal(result.summary.updated, 1, label);
             } else {

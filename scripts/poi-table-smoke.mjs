@@ -242,8 +242,8 @@ try {
     assert.deepEqual(bomUtf8, { ok: true, text: 'id,name\r\nあ,日本橋', encoding: 'utf-8-bom' });
     const utf8 = decodePoiCsvBytes(enc('id,name\r\nあ,日本橋'));
     assert.deepEqual(utf8, { ok: true, text: 'id,name\r\nあ,日本橋', encoding: 'utf-8' });
-    // Shift_JIS (Windows-31J): 日本橋 = 93FA 967B 8B91
-    const sjis = decodePoiCsvBytes(cat(enc('j-1,'), Uint8Array.of(0x93, 0xfa, 0x96, 0x7b, 0x8b, 0x91)));
+    // Shift_JIS (Windows-31J): 日本橋 = 93FA 967B 8BB4
+    const sjis = decodePoiCsvBytes(cat(enc('j-1,'), Uint8Array.of(0x93, 0xfa, 0x96, 0x7b, 0x8b, 0xb4)));
     assert.deepEqual(sjis, { ok: true, text: 'j-1,日本橋', encoding: 'shift_jis' });
     // 実ファイル (fixture) の 3 形式は同じ名前になる
     for (const [file, encoding] of [['names-utf8bom.csv', 'utf-8-bom'], ['names-utf8.csv', 'utf-8'], ['names-sjis.csv', 'shift_jis']]) {

@@ -106,14 +106,16 @@ try {
     assert.match(preloadSrc, /pickAndParseMerge:\s*\(input: \{ lang: string \}\)\s*=>\s*ipcRenderer\.invoke\('poisource:pickAndParseMerge', input\)/);
     assert.match(typesSrc, /pickAndParseMerge\(input: \{ lang: string \}\): Promise<PoiPickAndParseMergeResult>/);
     // 引数と戻り値の型に path が無い
-    const typeBlock = (name) => {
-      const at = typesSrc.indexOf(`export ${name}`);
+    const rowsSrc = await read('src/utils/poiImportRows.ts');
+    const typeBlock = (source, name) => {
+      const at = source.indexOf(`export ${name}`);
       assert.ok(at >= 0, `${name} の型がない`);
-      const end = typesSrc.indexOf('\nexport ', at + 1);
-      return typesSrc.slice(at, end < 0 ? undefined : end);
+      const end = source.indexOf('\nexport ', at + 1);
+      return source.slice(at, end < 0 ? undefined : end);
     };
-    for (const name of ['interface PoiImportParseResult', 'type PoiPickAndParseMergeResult', 'interface PoiImportRow', 'interface PoiImportIssue']) {
-      assert.doesNotMatch(typeBlock(name), /\b(path|filePath)\b/i, `${name} にパスがある`);
+    assert.doesNotMatch(typeBlock(typesSrc, 'type PoiPickAndParseMergeResult'), /\b(path|filePath)\b/i, 'PoiPickAndParseMergeResult にパスがある');
+    for (const name of ['interface PoiImportParseResult', 'interface PoiImportRow', 'interface PoiImportIssue']) {
+      assert.doesNotMatch(typeBlock(rowsSrc, name), /\b(path|filePath)\b/i, `${name} にパスがある`);
     }
     const handler = extractHandler(ipcSrc, 'poisource:pickAndParseMerge');
     assert.ok(handler, 'pickAndParseMerge のハンドラを取り出せない');
@@ -207,6 +209,7 @@ try {
     assert.equal(r.totalRecords, 7);
     assert.deepEqual(r.issues.map(keyOf).sort(), [
       '3:coord-range:error',
+      '4:coordinate-partial:warning', // a-3 は lng だけに値がある (設計 §4.9 の警告。AC4 の表からは漏れていた)
       '5:file-duplicate-id:error',
       '6:display-id-charset:error',
       '7:image-dropped:warning',
@@ -339,7 +342,7 @@ try {
     const empty = parse('id,name,desc,image,lat,lng\r\na,,,,,\r\n');
     assert.deepEqual(Object.keys(empty.rows[0]).sort(), ['coordinates', 'id', 'label', 'line', 'row'].sort());
     // image: | 区切り・前後の空白を除く・空の要素は捨てる・http(s)/相対以外は捨てて警告
-    const img = parse('id,name,image,lat,lng\r\na,n," https://x/1.jpg | ./rel.png ||/abs.png ",1,2\r\nb,n,javascript:alert(1)|data:text/html;base64,AA,1,2\r\nc,n,550e8400-e29b-41d4-a716-446655440000,1,2\r\n');
+    const img = parse('id,name,image,lat,lng\r\na,n," https://x/1.jpg | ./rel.png ||/abs.png ",1,2\r\nb,n,javascript:alert(1)|data:text/plain,1,2\r\nc,n,550e8400-e29b-41d4-a716-446655440000,1,2\r\n');
     assert.deepEqual(img.rows[0].image, ['https://x/1.jpg', './rel.png', '/abs.png']);
     assert.equal(img.rows[1].image, undefined);
     assert.equal(img.rows[2].image, undefined);
