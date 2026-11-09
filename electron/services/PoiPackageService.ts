@@ -19,7 +19,7 @@ import {
 import { resolveImportSlug } from './importSlugResolver';
 import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
-import { resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
+import { resolveAssetRefsForExport, resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
 import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
 import { assertZipImportSize } from '../utils/zipImportGuard';
 
@@ -120,13 +120,20 @@ export async function inspectPoiExport(
   if (!options.includeImages) {
     return { kind: 'geojson', slug, fc, files: [], warnings: [] };
   }
+  // アプリ・地図の書き出しと同じ 2 段: アイコンと image の参照 → html 本文の maplat-asset:<UID>
   const resolved = await resolvePoiFeatureCollection(fc);
+  const files = new Map(resolved.files.map((file) => [file.dest, file]));
+  const assetResolved = await resolveAssetRefsForExport(resolved.fc, files);
+  const warnings = [...resolved.warnings];
+  for (const warning of assetResolved.warnings) {
+    if (!warnings.includes(warning)) warnings.push(warning);
+  }
   return {
-    kind: resolved.files.length > 0 ? 'zip' : 'geojson',
+    kind: files.size > 0 ? 'zip' : 'geojson',
     slug,
-    fc: resolved.fc as FeatureCollection,
-    files: resolved.files,
-    warnings: resolved.warnings,
+    fc: assetResolved.entry as FeatureCollection,
+    files: [...files.values()],
+    warnings,
   };
 }
 
