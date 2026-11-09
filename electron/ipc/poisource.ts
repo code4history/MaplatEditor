@@ -6,7 +6,7 @@ import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
-import { exportPoiTable } from '../services/PoiTableIoService';
+import { exportPoiTable, pickAndParsePoiMerge } from '../services/PoiTableIoService';
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -80,6 +80,27 @@ export function registerPoisourceHandlers() {
         },
       })));
 
+  // 開いているソースへの取り込み（追記・上書き）。ファイルの選択と解析を 1 回で行い、パスは受け取らず返さない。
+  ipc.handle('poisource:pickAndParseMerge', (event, input) =>
+    runGuarded('poisource:pickAndParseMerge', () =>
+      pickAndParsePoiMerge({
+        input,
+        pickOpenPath: async () => {
+          const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+          const options = {
+            defaultPath: dialogDefaultPath('import'),
+            properties: ['openFile' as const],
+            filters: [{ name: 'CSV', extensions: ['csv'] }],
+          };
+          const ret = win
+            ? await dialog.showOpenDialog(win, options)
+            : await dialog.showOpenDialog(options);
+          if (ret.canceled || ret.filePaths.length === 0) return null;
+          rememberDialogPath('import', ret.filePaths[0], 'file');
+          return ret.filePaths[0];
+        },
+      })));
+
   // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON を選ばせ path とファイル名を返す。
   // 実取り込みは renderer が slug/title を収集後に poisource:importFile を呼ぶ二段構え。
   ipc.handle('poisource:pickImportFile', async (event) => {
@@ -87,7 +108,7 @@ export function registerPoisourceHandlers() {
     const options = {
       defaultPath: dialogDefaultPath('import'),
       properties: ['openFile' as const],
-      filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip'] }],
+      filters: [{ name: 'POI data', extensions: ['geojson', 'json', 'zip', 'csv'] }],
     };
     const ret = win
       ? await dialog.showOpenDialog(win, options)

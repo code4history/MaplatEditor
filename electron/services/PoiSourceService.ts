@@ -10,7 +10,7 @@
 // (計画書 outer リポジトリ docs/superpowers/plans/2026-07-09-poi-editor-phase2-poi-backend.md
 //  設計コントラクト参照)。
 // fetch payload には POI-121 の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { FeatureCollection } from 'geojson';
 
@@ -33,6 +33,8 @@ import {
   type PoiValidationIssue,
 } from '../../src/utils/poiGeoJson';
 import { resolveImportSlug } from './importSlugResolver';
+import { POI_IMPORT_MAX_BYTES, parsePoiImportFile } from '../../src/utils/poiImportRows';
+import { planPoiMerge } from '../../src/utils/poiMerge';
 import type { PoiZipImport, CompensationResidue } from './PoiPackageService';
 import SettingsService from './SettingsService';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
@@ -463,6 +465,7 @@ export class PoiSourceService {
         return { result: 'Error', code: 'invalid-request', message: e?.message ?? String(e) };
       }
     }
+    if (ext === '.csv') return await this.importCsvFile(input);
     if (ext !== '.geojson' && ext !== '.json') {
       return { result: 'Error', code: 'invalid-request', message: `Unsupported file extension: ${ext || '(none)'}` };
     }
@@ -486,6 +489,33 @@ export class PoiSourceService {
     const resolvedSlug = await resolveImportSlug(input.slug, { excludeUid: input.uid });
     if (resolvedSlug === null) return { result: 'Exist' };
     return await this.createSource(resolvedSlug, input.title, 'local', prepared.fc, prepared.issues, undefined, input.uid);
+  }
+
+  // CSV から新しいソースを作る。解析と合流は「開いているソースへの取り込み」と同じ実装を共有し
+  // (parsePoiImportFile + planPoiMerge(existing=[], 'append'))、独自の解析を持たない。
+  // 既存の GeoJSON と同じく error が 1 件でもあれば全体を拒否する (Invalid)。
+  private async importCsvFile(
+    input: { slug: string; title: LangResource; filePath: string; lang?: string; uid?: string },
+  ): Promise<PoiSourceSaveResult> {
+    let bytes: Uint8Array;
+    try {
+      if ((await stat(input.filePath)).size > POI_IMPORT_MAX_BYTES) {
+        return { result: 'Error', code: 'invalid-request', message: 'File is too large' };
+      }
+      bytes = new Uint8Array(await readFile(input.filePath));
+    } catch (e: any) {
+      return { result: 'Error', code: 'not-found', message: `Failed to read file: ${e?.message ?? e}` };
+    }
+    const lang = resolvePoiSourceLanguage(input.lang, SettingsService.get('lang'));
+    const parsed = parsePoiImportFile({ format: 'csv', bytes, defaultLang: lang });
+    const plan = parsed.fatal ? null : planPoiMerge({ existing: [], rows: parsed.rows, mode: 'append', defaultLang: lang });
+    const issues = [...parsed.issues, ...(plan?.issues ?? [])];
+    if (!plan || issues.some((i) => i.level === 'error')) return { result: 'Invalid', issues };
+    const prepared = this.prepare({ type: 'FeatureCollection', lang, features: plan.features }, lang);
+    if (prepared.hasError) return { result: 'Invalid', issues: [...issues, ...prepared.issues] };
+    const resolvedSlug = await resolveImportSlug(input.slug, { excludeUid: input.uid });
+    if (resolvedSlug === null) return { result: 'Exist' };
+    return await this.createSource(resolvedSlug, input.title, 'local', prepared.fc, [...issues, ...prepared.issues], undefined, input.uid);
   }
 
   /**
@@ -567,6 +597,8 @@ export class PoiSourceService {
         logCompensationResidue('detectImportLanguage/finally', await imported.cleanup());
       }
     }
+    // CSV には言語の宣言が無い。JSON として読まず、既定の言語を返す
+    if (ext === '.csv') return resolvePoiSourceLanguage(undefined, fallbackLang || SettingsService.get('lang'));
     const parsed = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
     return resolvePoiSourceLanguage(parsed?.lang, fallbackLang || SettingsService.get('lang'));
   }

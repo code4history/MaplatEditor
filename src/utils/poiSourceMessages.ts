@@ -23,6 +23,27 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
   // directgo（リンクの形）の値が不正（href が無い・拒否される URL・blank が真偽値でない）
   "content-mode-link-format": "poisource.errors.content_mode_link_format",
+  // CSV の取り込み（解析と合流が出す code）
+  "missing-columns": "poiio.issues.missing_columns",
+  "incomplete-coordinate-columns": "poiio.issues.incomplete_coordinate_columns",
+  "duplicate-column": "poiio.issues.duplicate_column",
+  "encoding-unsupported": "poiio.issues.encoding_unsupported",
+  "not-text": "poiio.issues.not_text",
+  "csv-unterminated-quote": "poiio.issues.csv_unterminated_quote",
+  "file-too-large": "poiio.issues.file_too_large",
+  "too-many-rows": "poiio.issues.too_many_rows",
+  "column-count": "poiio.issues.column_count",
+  "coord-format": "poiio.issues.coord_format",
+  "file-duplicate-id": "poiio.issues.file_duplicate_id",
+  "cell-too-large": "poiio.issues.cell_too_large",
+  "coord-missing": "poiio.issues.coord_missing",
+  "id-exhausted": "poiio.issues.id_exhausted",
+  "id-renamed": "poiio.issues.id_renamed",
+  "ignored-columns": "poiio.issues.ignored_columns",
+  "pixel-coordinates-ignored": "poiio.issues.pixel_coordinates_ignored",
+  "image-dropped": "poiio.issues.image_dropped",
+  "quote-prefix-stripped": "poiio.issues.quote_prefix_stripped",
+  "coordinate-partial": "poiio.issues.coordinate_partial",
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。

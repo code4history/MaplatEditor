@@ -114,14 +114,26 @@
             </select>
           </div>
         </div>
-        <!-- CSV・JSON の書き出し。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
-             並びは変えず、文書フィールドの行に置く -->
-        <div class="d-flex justify-content-end mt-1">
+        <!-- POI の入出力。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
+             並びは変えず、文書フィールドの行に [取り込み…] [CSV・JSON で書き出し…] を並べる -->
+        <div v-if="mergeResultMessage" class="alert alert-success py-1 px-2 small mt-1 mb-0" role="status" data-testid="poi-merge-result">
+          {{ mergeResultMessage }}
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-1">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-editor-action="poi-merge-import"
+            :disabled="readOnly || translationMode || saving || importing || exporting || cloning || mergeImportBusy"
+            @click="openMergeImport"
+          >
+            {{ t("poiio.import_button") }}
+          </button>
           <button
             type="button"
             class="btn btn-sm btn-outline-primary"
             data-editor-action="poi-export-table"
-            :disabled="exporting || cloning || (!saveHandle.uid.value && liveErrors.length > 0)"
+            :disabled="saving || exporting || cloning || (!saveHandle.uid.value && liveErrors.length > 0)"
             @click="openTableExport"
           >
             {{ t("poiio.export_button") }}
@@ -236,6 +248,14 @@
     </template>
 
     <PoiTableExportDialog :visible="tableExportDialogVisible" @submit="onTableExportSubmit" />
+    <PoiMergeImportDialog
+      :visible="mergeDialog.visible"
+      :file-name="mergeDialog.fileName"
+      :parse="mergeDialog.parse"
+      :existing="editState?.features ?? []"
+      :default-lang="editState?.lang ?? 'ja'"
+      @submit="onMergeImportSubmit"
+    />
 
     <EditorBusyOverlay
       :visible="saving || exporting || cloning || importing"
@@ -268,6 +288,9 @@ import { type SlugFieldState } from "../composables/useSlugAvailability";
 import { findLocalCloneSlug } from "../composables/useResourceDuplicate";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
 import PoiTableExportDialog from "../components/PoiTableExportDialog.vue";
+import PoiMergeImportDialog from "../components/PoiMergeImportDialog.vue";
+import { planPoiMerge, type PoiMergeMode } from "../utils/poiMerge";
+import type { PoiImportParseResult } from "../utils/poiImportRows";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
 import type { EditorSaveState } from "../components/editor-ui/editorUiTypes";
@@ -918,6 +941,68 @@ async function exportSource(): Promise<void> {
   } finally {
     exporting.value = false;
   }
+}
+
+// --- 開いているソースへの取り込み (追記・上書き) ---
+// ダイアログを開いている間に状態が変わりうる (保存の開始・ソースの切り替え・remote の更新)。
+// 確定の時点で saving・readOnly・translationMode・読み込みの世代を確かめ直し、現在の features で合流を計算し直す。
+const mergeDialog = ref<{ visible: boolean; fileName: string; parse: PoiImportParseResult | null; generation: number }>({
+  visible: false,
+  fileName: "",
+  parse: null,
+  generation: 0,
+});
+const mergeImportBusy = ref(false);
+const mergeResultMessage = ref("");
+
+async function openMergeImport(): Promise<void> {
+  if (readOnly.value || translationMode.value || saving.value || importing.value || exporting.value || cloning.value || mergeImportBusy.value) return;
+  const state = editState.value;
+  if (!state) return;
+  mergeImportBusy.value = true;
+  mergeResultMessage.value = "";
+  const generation = loadGeneration;
+  try {
+    const result = await window.poiSources.pickAndParseMerge({ lang: state.lang });
+    if (result.result === "Canceled" || generation !== loadGeneration) return;
+    if (result.result === "Error") {
+      const key =
+        result.code === "file-too-large" ? "poiio.import_error.file_too_large"
+        : result.code === "unsupported-extension" || result.code === "kmz-unsupported" ? "poiio.import_error.unsupported_extension"
+        : result.code === "read-failed" ? "poiio.import_error.read_failed"
+        : "poiio.import_error.generic";
+      await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: t(key) });
+      return;
+    }
+    mergeDialog.value = { visible: true, fileName: result.fileName, parse: result.parse, generation };
+  } catch (cause) {
+    console.error("[PoiEdit] pickAndParseMerge failed", cause);
+    await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: t("poiio.import_error.generic") });
+  } finally {
+    mergeImportBusy.value = false;
+  }
+}
+
+async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
+  const ctx = mergeDialog.value;
+  mergeDialog.value = { visible: false, fileName: "", parse: null, generation: ctx.generation };
+  if (!mode || !ctx.parse) return;
+  const state = editState.value;
+  if (saving.value || readOnly.value || translationMode.value || ctx.generation !== loadGeneration || !state) {
+    await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("poiio.import_blocked") });
+    return;
+  }
+  const plan = planPoiMerge({ existing: state.features, rows: ctx.parse.rows, mode, defaultLang: state.lang });
+  if (plan.summary.added + plan.summary.updated === 0) {
+    mergeResultMessage.value = t("poiio.import_no_change");
+    return;
+  }
+  session.commit((draft) => {
+    draft.features = plan.features;
+  });
+  mergeResultMessage.value = t("poiio.import_done", { added: plan.summary.added, updated: plan.summary.updated });
+  await nextTick();
+  mapPane.value?.fitInitialView();
 }
 
 // --- CSV・JSON の書き出し (保存済みの版が対象。未保存の変更があれば GeoJSON の書き出しと同じ確認を挟む) ---
