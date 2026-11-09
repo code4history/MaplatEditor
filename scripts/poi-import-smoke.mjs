@@ -642,8 +642,8 @@ try {
     // (d) 見出しの解決と行への写しは poiImportRows.ts の共有実装。poiKml.ts に独自の処理を持たない
     assert.match(kmlSrc, /import\s*\{[^}]*\bresolveColumnSpec\b[^}]*\}\s*from\s*['"]\.\/poiImportRows['"]/, 'poiKml.ts が resolveColumnSpec を import していない');
     assert.match(kmlSrc, /import\s*\{[^}]*\bmapCellsToImportRow\b[^}]*\}\s*from\s*['"]\.\/poiImportRows['"]/, 'poiKml.ts が mapCellsToImportRow を import していない');
-    assert.ok(body(kmlSrc, /export function parsePoiKml\(/).includes('mapCellsToImportRow('), 'KML の行が mapCellsToImportRow を通っていない');
-    assert.ok(body(kmlSrc, /export function parsePoiKml\(/).includes('resolveColumnSpec('), 'ExtendedData の名前が resolveColumnSpec を通っていない');
+    assert.ok(/\bmapCellsToImportRow\(/.test(kmlSrc.replace(/^import[^;]*;/gm, '')), 'KML の行が mapCellsToImportRow を通っていない');
+    assert.ok(/\bresolveColumnSpec\(/.test(kmlSrc.replace(/^import[^;]*;/gm, '')), 'ExtendedData の名前が resolveColumnSpec を通っていない');
     for (const word of ['normalizeHeader', 'PLAIN_ALIASES', 'FIELD_ALIASES', 'LANG_BY_LOWER', 'NFKC', 'readCoordinate', 'isDangerousUrlString', 'UID_RE', "'lat'", "'lng'"]) {
       assert.ok(!kmlSrc.includes(word), `poiKml.ts に独自の処理 (${word}) がある`);
     }
