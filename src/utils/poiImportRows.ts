@@ -77,7 +77,7 @@ const LANG_BY_LOWER = new Map<string, string>(LANG_CODES.map((code) => [code.toL
 
 // 見出しの比較: 前後の空白を除く → NFKC → 小文字
 function normalizeHeader(raw: string): string {
-  return raw.replace(/^﻿/, '').trim().normalize('NFKC').toLowerCase();
+  return raw.replace(/^\ufeff/, '').trim().normalize('NFKC').toLowerCase();
 }
 
 function fatalResult(
@@ -134,7 +134,7 @@ function parsePoiImportCsv(bytes: Uint8Array, defaultLang: string): PoiImportPar
       const field = colon > 0 ? FIELD_ALIASES.get(norm.slice(0, colon).trim()) : undefined;
       const lang = colon > 0 ? LANG_BY_LOWER.get(norm.slice(colon + 1).trim()) : undefined;
       if (field && lang) spec = { kind: 'text', field, lang, explicitLang: true, name: `${field}:${lang}` };
-      else if (norm !== '') ignored.push(raw.replace(/^﻿/, '').trim());
+      else if (norm !== '') ignored.push(raw.replace(/^\ufeff/, '').trim());
     }
     if (spec) {
       const key = spec.kind === 'text' ? `${spec.field}:${spec.lang}` : spec.kind;

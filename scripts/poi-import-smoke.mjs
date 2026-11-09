@@ -449,7 +449,7 @@ try {
     const pickAt = ipcSrc.indexOf("'poisource:pickImportFile'");
     assert.match(ipcSrc.slice(pickAt, pickAt + 700), /extensions:\s*\[[^\]]*'csv'[^\]]*\]/, 'pickImportFile の拡張子に csv がない');
 
-    // 実行 (c): 実物の PoiSourceService を SQLite に向けて動かす (m11-t10b の方式)
+    // 実行 (c): 実物の PoiSourceService を SQLite に向けて動かす (同種の smoke の方式)
     const stubDir = path.join(workDir, 'svc');
     await mkdir(path.join(stubDir, 'data'), { recursive: true });
     const electronStub = path.join(stubDir, 'electron-stub.ts');
