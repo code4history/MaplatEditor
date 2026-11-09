@@ -62,15 +62,6 @@
           >
             {{ t("poiedit.clone_to_local") }}
           </button>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-primary"
-            data-editor-action="poi-export-table"
-            :disabled="disabled || (!saveHandle.uid.value && liveErrors.length > 0)"
-            @click="openTableExport"
-          >
-            {{ t("poiio.export_button") }}
-          </button>
         </template>
       </EditorActionHeader>
 
@@ -122,6 +113,19 @@
               </option>
             </select>
           </div>
+        </div>
+        <!-- CSV・JSON の書き出し。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
+             並びは変えず、文書フィールドの行に置く -->
+        <div class="d-flex justify-content-end mt-1">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary"
+            data-editor-action="poi-export-table"
+            :disabled="exporting || cloning || (!saveHandle.uid.value && liveErrors.length > 0)"
+            @click="openTableExport"
+          >
+            {{ t("poiio.export_button") }}
+          </button>
         </div>
         <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
         <div class="mt-1 mb-1">
