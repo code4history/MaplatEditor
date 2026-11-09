@@ -336,6 +336,16 @@ function flattenHtml(html: string): { text: string; hadImage: boolean; tags: num
   return { text: decodeEntities(out.join('')).trim(), hadImage, tags };
 }
 
+// 説明の出力を不活性にする。平坦化の後に、HTML として働くタグの形 ('<' の直後が英字・'/'・'!'・'?') が
+// 残りうる (例: "<<b>script>" は "<script>" に、"&lt;script&gt;" は "<script>" に戻る)。表示する側 (Maplat) が
+// desc をどう描くかはこのリポジトリの外なので、残った '<' を全角の '＜' にしておく。
+// '&lt;' にしない理由: 文字として描く側では "&lt;" がそのまま見えてしまう。'＜' は HTML として描かれても、
+// 文字として描かれても同じ '＜' に見える。"1 < 2 > 0" のように直後が空白・数字・記号の '<' は変えない。
+// 単純な文字の置き換えで、入力の長さに対して線形。
+function neutralizeTagShapes(text: string): string {
+  return text.replace(/<(?=[A-Za-z/!?])/g, '＜');
+}
+
 // 経度,緯度[,高度] を 1 組だけ読む。形が違えば null (高度は捨てる)
 function splitPointCoordinates(text: string): { lng: string; lat: string } | null {
   const t = text.trim();
@@ -444,6 +454,7 @@ export function parsePoiKml(args: {
           flattenedCount += 1;
           if (flat.hadImage) warn('kml-description-image-dropped');
         }
+        value = neutralizeTagShapes(value);
       }
       if (value !== '') add({ spec: textColumn('desc', defaultLang), value });
     }
