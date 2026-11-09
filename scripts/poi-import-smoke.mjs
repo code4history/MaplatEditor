@@ -129,33 +129,74 @@ try {
     console.log('  case c (取り込みの IPC の結線・パスを受け取らない・返さない): PASS');
   }
 
-  // ---------- AC16(a)(c)(d): 入口の置き場所と無効条件 ----------
+  // ---------- 入口の置き場所と無効条件 (エクスポートはヘッダの 1 つ・インポートは文書フィールドの行) ----------
   {
-    const exportTag = openTag(editSrc, 'data-editor-action="poi-export-table"');
+    const headerSrc = await read('src/components/editor-ui/EditorActionHeader.vue');
+    // (a) 表の書き出しのボタンと、その専用ダイアログは無い
+    assert.ok(!editSrc.includes('poi-export-table'), 'poi-export-table のボタンが残っている');
+    assert.ok(!editSrc.includes('PoiTableExportDialog'), 'PoiTableExportDialog が残っている');
     const importTag = openTag(editSrc, 'data-editor-action="poi-merge-import"');
-    assert.ok(exportTag, '書き出しのボタンがない');
     assert.ok(importTag, '取り込みのボタンがない');
-    // (a) 同じ行 (同じ div) にあり、取り込みが左。ヘッダの #actions には足されていない
-    const rowStart = editSrc.lastIndexOf('<div', exportTag.start);
-    const rowEnd = editSrc.indexOf('</div>', exportTag.end);
-    assert.ok(importTag.start > rowStart && importTag.end < rowEnd, '2 つのボタンが同じ行にない');
-    assert.ok(importTag.start < exportTag.start, '取り込みが書き出しの左にない');
     const actionsAt = editSrc.indexOf('<template #actions');
     const actionsEnd = editSrc.indexOf('</template>', actionsAt);
     assert.ok(actionsAt >= 0 && actionsEnd > actionsAt);
     const actions = editSrc.slice(actionsAt, actionsEnd);
-    assert.ok(!actions.includes('poi-merge-import') && !actions.includes('poi-export-table'), 'ヘッダの #actions に足してはいけない');
-    // (c) 書き出しの無効条件に saving
+    // (b) 取り込みは文書フィールドの行にあり、ヘッダの #actions には無い
+    assert.ok(!actions.includes('poi-merge-import'), 'ヘッダの #actions に取り込みを足してはいけない');
+    assert.ok(importTag.start > actionsEnd, '取り込みはヘッダより後 (文書フィールドの行) に置く');
+    // エクスポートは #actions の中にちょうど 1 つ。remote でも出す (v-if="!readOnly" が無い)。複製は v-if="readOnly"
+    assert.equal(editSrc.split('data-editor-action="export"').length - 1, 1, 'エクスポートのボタンはちょうど 1 つ');
+    const exportTag = openTag(actions, 'data-editor-action="export"');
+    assert.ok(exportTag, 'ヘッダの #actions にエクスポートがない');
+    assert.ok(!/v-if="!readOnly"/.test(exportTag.text), 'エクスポートに v-if="!readOnly" が付いている');
+    const cloneTag = openTag(actions, 'data-editor-action="clone"');
+    assert.ok(cloneTag, 'ヘッダの #actions に複製がない');
+    assert.match(cloneTag.text, /v-if="readOnly"/, '複製は v-if="readOnly"');
+    assert.ok(exportTag.start < cloneTag.start, 'ヘッダは export → clone の順');
+    // (c) エクスポートの無効条件はスロット引数 disabled を含み、スロットは saving || actionsDisabled
     const exportDisabled = disabledExpr(exportTag.text);
-    assert.match(exportDisabled, /\bsaving\b/, '書き出しの :disabled に saving がない');
+    assert.match(exportDisabled, /^disabled\b/, 'エクスポートの :disabled がスロット引数 disabled を含まない');
+    const slotExpr = (headerSrc.match(/<slot name="actions" :disabled="([^"]*)"/) ?? [])[1] ?? '';
+    assert.match(slotExpr, /\bsaving\b/, 'ヘッダのスロットの disabled に saving がない');
+    assert.match(slotExpr, /\bactionsDisabled\b/, 'ヘッダのスロットの disabled に actionsDisabled がない');
+    assert.match(editSrc, /:actions-disabled="exporting \|\| cloning"/, 'actionsDisabled は exporting || cloning');
     // (d) 取り込みの無効条件
     const importDisabled = disabledExpr(importTag.text);
     for (const word of ['readOnly', 'translationMode', 'saving', 'importing', 'exporting', 'cloning']) {
       assert.match(importDisabled, new RegExp(`\\b${word}\\b`), `取り込みの :disabled に ${word} がない`);
     }
-    // 変異: saving を外した式では落ちる
-    assert.doesNotMatch(exportDisabled.replace(/saving\s*\|\|\s*/, ''), /\bsaving\b/);
+    // 変異: スロットの式から saving を外すと落ちる
+    assert.doesNotMatch(slotExpr.replace(/saving\s*\|\|\s*/, ''), /\bsaving\b/);
+    // exportSource は readOnly で止めない (remote でも CSV・JSON・GeoJSON を出せる)
+    const sourceAt = editSrc.indexOf('async function exportSource');
+    assert.ok(sourceAt >= 0, 'exportSource がない');
+    const sourceHead = editSrc.slice(sourceAt, editSrc.indexOf('\n', editSrc.indexOf('{', sourceAt) + 1) + 200);
+    assert.doesNotMatch(sourceHead.split('exporting.value = true')[0], /readOnly/, 'exportSource が readOnly で止めている');
     console.log('  case d (入口の置き場所と無効条件): PASS');
+  }
+
+  // ---------- エクスポートの選択ダイアログ (形式と画像) ----------
+  {
+    for (const id of [
+      'poi-export-options', 'poi-export-options-confirm', 'poi-export-options-cancel',
+      'poi-export-format-geojson', 'poi-export-format-csv', 'poi-export-format-json', 'poi-export-option-images',
+    ]) {
+      assert.ok(editSrc.includes(`data-testid="${id}"`), `data-testid="${id}" がない`);
+    }
+    const dialogAt = editSrc.indexOf('data-testid="poi-export-options"');
+    const dialogEnd = editSrc.indexOf('data-testid="poi-export-options-confirm"');
+    const dialog = editSrc.slice(dialogAt, editSrc.indexOf('</button>', dialogEnd));
+    assert.match(dialog, /t\("mapedit\.export_options_title"\)/, '題は mapedit.export_options_title');
+    assert.match(dialog, /data-testid="poi-export-options-confirm"[\s\S]*t\("editor_ui\.export_button"\)/, '確定のラベルは editor_ui.export_button');
+    // 画像のチェックボックスは形式で無効になる
+    assert.match(dialog, /:disabled="!poiExportCanIncludeImages\(poiExportOptions\.format\)"/);
+    // 選択ダイアログは EditorBusyOverlay と兄弟の位置 (ルートの直下) に置く
+    assert.ok(dialogAt > editSrc.indexOf('<PoiMergeImportDialog'), '選択ダイアログの置き場所');
+    assert.ok(dialogAt < editSrc.indexOf('<EditorBusyOverlay'), '選択ダイアログの置き場所');
+    // 振り分け: GeoJSON は exportFile、CSV・JSON は exportTable。開くたびに既定へ戻す
+    assert.match(editSrc, /poiExportOptions\.value = \{ \.\.\.DEFAULT_POI_EXPORT_OPTIONS \}/);
+    assert.match(editSrc, /normalizePoiExportOptions\(/);
+    console.log('  case o (エクスポートの選択ダイアログ): PASS');
   }
 
   // ---------- 確定時の再確認 (r5 Minor-3) ----------
@@ -671,6 +712,82 @@ try {
     assert.match(editSrc, /watch\(\s*\(\)\s*=>\s*editState\.value\?\.features[\s\S]{0,240}mergeResultMessage\.value\s*=\s*""/, 'features が変わったら結果の表示を消す watch がない');
     assert.match(editSrc, /watch\(\s*saving[\s\S]{0,160}mergeResultMessage\.value\s*=\s*""/, '保存の開始で結果の表示を消す watch がない');
     console.log('  case n (取り込み結果の表示を Undo・保存の後に残さない): PASS');
+  }
+
+  // ---------- 文言: エクスポートの統合と用語 (インポート・エクスポート・アセット) ----------
+  {
+    const LANGS = ['ja', 'en', 'de', 'fr', 'es', 'ko', 'zh', 'zh-TW', 'vi', 'th', 'id'];
+    const REMOVED = [
+      'export_button', 'export_title', 'export_description', 'export_confirm', 'export_success', 'export_failed',
+      'asset_json', 'label_icon', 'label_selected_icon', 'label_image_asset', 'label_image_unrepresentable', 'label_icon_asset',
+    ];
+    const ADDED = ['export_format_label', 'format_geojson', 'format_geojson_desc', 'export_option_images', 'export_option_images_help'];
+    const KEPT = ['label_html', 'label_url', 'label_directgo', 'label_other', 'omitted_csv', 'format_csv', 'format_json'];
+    const at = (obj, dotted) => dotted.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+    for (const lang of LANGS) {
+      const json = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      for (const key of REMOVED) assert.ok(!(key in json.poiio), `${lang}: poiio.${key} が残っている`);
+      for (const key of [...ADDED, ...KEPT]) {
+        assert.equal(typeof json.poiio[key], 'string', `${lang}: poiio.${key} がない`);
+        assert.ok(json.poiio[key].trim().length > 0, `${lang}: poiio.${key} が空`);
+      }
+    }
+    const EXPECTED = {
+      "ja": {
+        "poiio.export_format_label": "形式",
+        "poiio.format_geojson": "GeoJSON",
+        "poiio.format_geojson_desc": "すべての項目をそのまま出します。一覧の「ファイルインポート」で読み戻せます。",
+        "poiio.export_option_images": "画像を含める（zip）",
+        "poiio.export_option_images_help": "GeoJSON のときだけ選べます。アセットの画像とアイコンを GeoJSON と一緒に zip にまとめます（画像が無いときは GeoJSON だけを出します）。GeoJSON で含めないときは、画像の参照だけが残ります。",
+        "poiio.format_csv_desc": "Excel などの表計算ソフトで開けます。ID・名前・説明・住所・画像の URL・緯度経度の列だけを出します。UTF-8（BOM つき）で、座標は小数点以下 7 桁です。",
+        "poiio.format_json_desc": "POI の配列です。HTML や独自の項目、アセットの参照もそのまま入ります。",
+        "poiio.omitted_csv": "CSV に入らない項目があります: {{items}}。すべての項目を残すには GeoJSON でエクスポートしてください。この CSV をソースへ上書きでインポートしても、これらの項目は消えません。",
+        "poiio.import_button": "このソースへインポート…",
+        "poiio.import_title": "このソースへ POI をインポート",
+        "poiio.import_mode_label": "インポートの方法",
+        "poiio.import_geojson_hint": "GeoJSON や zip は、一覧の「ファイルインポート」で新しいソースとしてインポートできます。",
+        "poiio.import_confirm": "インポート",
+        "poiio.import_nothing": "インポートできる行がありません。",
+        "poiio.import_fatal": "このファイルはインポートできません。",
+        "poiio.import_blocked": "インポートの途中で状態が変わったため、インポートを取りやめました。もう一度やり直してください。",
+        "poiio.import_error.generic": "インポートに失敗しました。",
+        "poiio.import_error.kmz_unsupported": "KMZ はインポートできません。KML として保存し直してください。",
+        "poiio.issues.ignored_columns": "インポートしない列があります",
+        "poiio.issues.pixel_coordinates_ignored": "画面上の座標（x・y）はインポートしません",
+        "poiio.issues.image_dropped": "http(s) か相対 URL 以外の画像はインポートしません",
+        "poiio.issues.kml_no_placemarks": "インポートできる Placemark がありません",
+        "poiio.issues.kml_non_point_skipped": "Point 以外の形はインポートしません",
+        "poiio.issues.kml_description_image_dropped": "description の画像はインポートしません",
+        "poisource.errors.invalid": "検証エラーのためインポートできません",
+        "poisource.errors.non_point": "Point以外のジオメトリはインポートできません",
+        "poisource.errors.zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものはインポートできません）",
+        "poisource.errors.zip_corrupt": "ZIP が壊れているためインポートできません",
+        "poiedit.directgo_preview_note": "プレビューではリンクは開きません。エクスポートしたアプリで確かめてください。"
+      },
+      "en": {
+        "poiio.export_format_label": "Format",
+        "poiio.format_geojson": "GeoJSON",
+        "poiio.format_geojson_desc": "Keeps every field. It can be imported again with \"Import File\" in the list.",
+        "poiio.export_option_images": "Include images (zip)",
+        "poiio.export_option_images_help": "Available for GeoJSON only. Asset images and icons are bundled with the GeoJSON in a zip (without any images, only the GeoJSON is written). For GeoJSON without images, only the image references remain.",
+        "poiio.format_csv_desc": "Opens in Excel and other spreadsheet apps. Only the ID, name, description, address, image URL, latitude and longitude columns are written. UTF-8 with BOM, coordinates to 7 decimal places.",
+        "poiio.format_json_desc": "An array of POIs. HTML, custom fields and asset references are kept as they are.",
+        "poiio.omitted_csv": "Some fields do not fit in the CSV: {{items}}. Export as GeoJSON to keep every field. Importing this CSV into the source with overwrite does not remove these fields.",
+        "poiio.import_button": "Import into this source…",
+        "poiio.import_title": "Import POIs into this source"
+      }
+    };
+    for (const [lang, table] of Object.entries(EXPECTED)) {
+      const json = JSON.parse(await read(`public/locales/${lang}/translation.json`));
+      for (const [key, value] of Object.entries(table)) assert.equal(at(json, key), value, `${lang}: ${key}`);
+    }
+    // ja: POI 画面の文言に「資産」「書き出」「取り込」が無い。ja 全体にも「資産」が無い
+    const ja = JSON.parse(await read('public/locales/ja/translation.json'));
+    const poiText = JSON.stringify([ja.poiio, ja.poisource.errors, ja.poiedit.directgo_preview_note]);
+    for (const word of ['資産', '書き出', '取り込']) assert.ok(!poiText.includes(word), `ja: POI 画面の文言に「${word}」が残る`);
+    assert.ok(!JSON.stringify(ja).includes('資産'), 'ja: 「資産」が残る');
+    assert.equal(ja.poisource.import_file, 'ファイルインポート', '一覧の入口は変えない');
+    console.log('  case p (エクスポートの統合の文言・11 言語): PASS');
   }
 
   // ---------- 文言 (AC10) ----------

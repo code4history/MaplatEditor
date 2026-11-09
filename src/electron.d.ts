@@ -237,7 +237,8 @@ export interface PoiSourcesAPI {
     cloneToLocal(uid: string, input: { slug: string; title?: any }): Promise<PoiSourceSaveResult>;
     findReferences(uid: string): Promise<PoiSourceReference[]>;
     delete(uid: string): Promise<{ ok: true; references: PoiSourceReference[] }>;
-    exportFile(uid: string): Promise<PoiSourceExportResult>;
+    // GeoJSON・zip の書き出し。options.includeImages を省くと画像を含める
+    exportFile(uid: string, options?: { includeImages?: boolean }): Promise<PoiSourceExportResult>;
     // CSV・JSON の書き出し。保存先は main の保存ダイアログで決まる
     exportTable(uid: string, format: 'csv' | 'json'): Promise<PoiExportTableResult>;
     // 開いているソースへの取り込み。選択と解析を main で 1 回で行い、パスは渡さない・返さない

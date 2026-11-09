@@ -19,7 +19,7 @@ import {
 import { resolveImportSlug } from './importSlugResolver';
 import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
-import { resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
+import { resolveAssetRefsForExport, resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
 import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
 import { assertZipImportSize } from '../utils/zipImportGuard';
 
@@ -110,14 +110,30 @@ export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackag
   });
 }
 
-export async function inspectPoiExport(fc: FeatureCollection): Promise<PoiExportInspection> {
+// includeImages: false は画像のファイルを入れない。参照（アセットの UUID・アイコンセット・html の
+// maplat-asset:<UID>）は値のまま残す（データを黙って消さない。同じ環境へ読み戻せば表示が戻る）
+export async function inspectPoiExport(
+  fc: FeatureCollection,
+  options: { includeImages: boolean } = { includeImages: true },
+): Promise<PoiExportInspection> {
+  const slug = safeSlug((fc as FeatureCollection & { id?: string | number }).id);
+  if (!options.includeImages) {
+    return { kind: 'geojson', slug, fc, files: [], warnings: [] };
+  }
+  // アプリ・地図の書き出しと同じ 2 段: アイコンと image の参照 → html 本文の maplat-asset:<UID>
   const resolved = await resolvePoiFeatureCollection(fc);
+  const files = new Map(resolved.files.map((file) => [file.dest, file]));
+  const assetResolved = await resolveAssetRefsForExport(resolved.fc, files);
+  const warnings = [...resolved.warnings];
+  for (const warning of assetResolved.warnings) {
+    if (!warnings.includes(warning)) warnings.push(warning);
+  }
   return {
-    kind: resolved.files.length > 0 ? 'zip' : 'geojson',
-    slug: safeSlug((fc as FeatureCollection & { id?: string | number }).id),
-    fc: resolved.fc as FeatureCollection,
-    files: resolved.files,
-    warnings: resolved.warnings,
+    kind: files.size > 0 ? 'zip' : 'geojson',
+    slug,
+    fc: assetResolved.entry as FeatureCollection,
+    files: [...files.values()],
+    warnings,
   };
 }
 

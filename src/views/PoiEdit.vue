@@ -43,7 +43,6 @@
       >
         <template #actions="{ disabled }">
           <button
-            v-if="!readOnly"
             type="button"
             class="btn btn-sm btn-outline-primary"
             data-editor-action="export"
@@ -53,7 +52,7 @@
             {{ t("editor_ui.export_button") }}
           </button>
           <button
-            v-else
+            v-if="readOnly"
             type="button"
             class="btn btn-sm btn-primary"
             data-editor-action="clone"
@@ -114,8 +113,9 @@
             </select>
           </div>
         </div>
-        <!-- POI の入出力。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
-             並びは変えず、文書フィールドの行に [取り込み…] [CSV・JSON で書き出し…] を並べる -->
+        <!-- POI のインポート。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
+             並びは変えず、取り込みはヘッダに上げずに、この行に [このソースへインポート…] を置く。
+             エクスポートはヘッダの 1 つ (形式と画像は選択ダイアログで選ぶ) -->
         <div v-if="mergeResultMessage" class="alert alert-success py-1 px-2 small mt-1 mb-0" role="status" data-testid="poi-merge-result">
           {{ mergeResultMessage }}
         </div>
@@ -128,15 +128,6 @@
             @click="openMergeImport"
           >
             {{ t("poiio.import_button") }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-primary"
-            data-editor-action="poi-export-table"
-            :disabled="saving || exporting || cloning || (!saveHandle.uid.value && liveErrors.length > 0)"
-            @click="openTableExport"
-          >
-            {{ t("poiio.export_button") }}
           </button>
         </div>
         <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
@@ -247,7 +238,6 @@
       </div>
     </template>
 
-    <PoiTableExportDialog :visible="tableExportDialogVisible" @submit="onTableExportSubmit" />
     <PoiMergeImportDialog
       :visible="mergeDialog.visible"
       :file-name="mergeDialog.fileName"
@@ -256,6 +246,100 @@
       :default-lang="editState?.lang ?? 'ja'"
       @submit="onMergeImportSubmit"
     />
+
+    <!-- エクスポートの形式と画像の選択 (地図・アプリの選択ダイアログと同じ作り)。
+         ビジー表示 (z-index 1040) より前面の .modal (1055) に出すため、EditorBusyOverlay と兄弟の位置に置く -->
+    <div
+      v-if="poiExportOptionsVisible"
+      class="modal show d-block"
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      data-testid="poi-export-options"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5">{{ t("mapedit.export_options_title") }}</h2>
+          </div>
+          <div class="modal-body">
+            <fieldset>
+              <legend class="fs-6 fw-bold">{{ t("poiio.export_format_label") }}</legend>
+              <div class="form-check mb-2">
+                <input
+                  id="poiExportFormat-geojson"
+                  v-model="poiExportOptions.format"
+                  class="form-check-input"
+                  type="radio"
+                  value="geojson"
+                  data-testid="poi-export-format-geojson"
+                />
+                <label class="form-check-label" for="poiExportFormat-geojson">
+                  <strong>{{ t("poiio.format_geojson") }}</strong>
+                  <div class="small text-muted">{{ t("poiio.format_geojson_desc") }}</div>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input
+                  id="poiExportFormat-csv"
+                  v-model="poiExportOptions.format"
+                  class="form-check-input"
+                  type="radio"
+                  value="csv"
+                  data-testid="poi-export-format-csv"
+                />
+                <label class="form-check-label" for="poiExportFormat-csv">
+                  <strong>{{ t("poiio.format_csv") }}</strong>
+                  <div class="small text-muted">{{ t("poiio.format_csv_desc") }}</div>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input
+                  id="poiExportFormat-json"
+                  v-model="poiExportOptions.format"
+                  class="form-check-input"
+                  type="radio"
+                  value="json"
+                  data-testid="poi-export-format-json"
+                />
+                <label class="form-check-label" for="poiExportFormat-json">
+                  <strong>{{ t("poiio.format_json") }}</strong>
+                  <div class="small text-muted">{{ t("poiio.format_json_desc") }}</div>
+                </label>
+              </div>
+            </fieldset>
+            <div class="form-check mt-2">
+              <input
+                id="poiExportOptionImages"
+                type="checkbox"
+                class="form-check-input"
+                data-testid="poi-export-option-images"
+                :disabled="!poiExportCanIncludeImages(poiExportOptions.format)"
+                :checked="poiExportCanIncludeImages(poiExportOptions.format) && poiExportOptions.includeImages"
+                @change="poiExportOptions.includeImages = ($event.target as HTMLInputElement).checked"
+              />
+              <label class="form-check-label" for="poiExportOptionImages">{{ t("poiio.export_option_images") }}</label>
+              <div class="form-text" data-testid="poi-export-option-images-help">{{ t("poiio.export_option_images_help") }}</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              data-testid="poi-export-options-cancel"
+              @click="closePoiExportOptions(null)"
+            >{{ t("common.cancel") }}</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-testid="poi-export-options-confirm"
+              @click="closePoiExportOptions(poiExportOptions)"
+            >{{ t("editor_ui.export_button") }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="poiExportOptionsVisible" class="modal-backdrop show"></div>
 
     <EditorBusyOverlay
       :visible="saving || exporting || cloning || importing"
@@ -287,9 +371,14 @@ import type { DiagnosticItem } from "../components/editor-ui/editorUiTypes";
 import { type SlugFieldState } from "../composables/useSlugAvailability";
 import { findLocalCloneSlug } from "../composables/useResourceDuplicate";
 import DraftConflictDialog from "../components/editor-ui/DraftConflictDialog.vue";
-import PoiTableExportDialog from "../components/PoiTableExportDialog.vue";
 import PoiMergeImportDialog from "../components/PoiMergeImportDialog.vue";
 import { planPoiMerge, type PoiMergeMode } from "../utils/poiMerge";
+import {
+  DEFAULT_POI_EXPORT_OPTIONS,
+  normalizePoiExportOptions,
+  poiExportCanIncludeImages,
+  type PoiExportOptions,
+} from "../utils/exportOptions";
 import type { PoiImportParseResult } from "../utils/poiImportRows";
 import EditorActionHeader from "../components/editor-ui/EditorActionHeader.vue";
 import EditorBusyOverlay from "../components/editor-ui/EditorBusyOverlay.vue";
@@ -905,30 +994,82 @@ async function choosePoiExport(hasSaved: boolean) {
   return "cancel" as const;
 }
 
+// --- エクスポートの形式と画像の選択 ---
+// 地図・アプリと同じ順序: 未保存のときの選択 (runEditorExportDecision) → この選択ダイアログ → 保存ダイアログ。
+// 開くたびに既定 (GeoJSON・画像を含める) へ戻し、選んだ内容を覚えない (地図・アプリと同じ扱い)。
+// CSV・JSON のとき画像のチェックボックスは無効でオフに見せるが、内部の includeImages は保ち、
+// GeoJSON に戻すと元の選択が見える。送る値は normalizePoiExportOptions が畳む
+const poiExportOptionsVisible = ref(false);
+const poiExportOptions = ref<PoiExportOptions>({ ...DEFAULT_POI_EXPORT_OPTIONS });
+let poiExportOptionsResolve: ((value: PoiExportOptions | null) => void) | null = null;
+
+function askPoiExportOptions(): Promise<PoiExportOptions | null> {
+  poiExportOptions.value = { ...DEFAULT_POI_EXPORT_OPTIONS };
+  poiExportOptionsVisible.value = true;
+  return new Promise((resolve) => {
+    poiExportOptionsResolve = resolve;
+  });
+}
+
+function closePoiExportOptions(value: PoiExportOptions | null): void {
+  poiExportOptionsVisible.value = false;
+  const resolve = poiExportOptionsResolve;
+  poiExportOptionsResolve = null;
+  resolve?.(value ? normalizePoiExportOptions(value) : null);
+}
+
+// CSV に入らない項目の報告 (1 件でもあれば)。画像の項目は選ぶ時点で分かるので挙げない
+function csvOmittedNotice(omitted: PoiExportOmitted): string {
+  const labels: [keyof PoiExportOmitted, string][] = [
+    ["html", "poiio.label_html"],
+    ["url", "poiio.label_url"],
+    ["directgo", "poiio.label_directgo"],
+    ["otherProperties", "poiio.label_other"],
+  ];
+  const items = labels
+    .filter(([key]) => omitted[key] > 0)
+    .map(([key, labelKey]) => `${t(labelKey)} (${omitted[key]})`);
+  if (items.length === 0) return "";
+  return t("poiio.omitted_csv", { items: items.join(", ") });
+}
+
 async function exportSavedSource(): Promise<boolean> {
   const uid = saveHandle.uid.value;
   if (!uid) return false;
-  const result = await window.poiSources.exportFile(uid);
-  if (result.result === "Canceled") return false;
-  if (result.result === "Error") {
-    await (window as any).dialog.showMessageBox({
-      type: "error",
-      buttons: ["OK"],
-      message: t("editor_ui.export_failed"),
-      detail: result.message || "",
-    });
-    return false;
+  const options = await askPoiExportOptions();
+  if (!options) return false; // 選択の画面で取り消した
+  let detail = "";
+  if (options.format === "geojson") {
+    const result = await window.poiSources.exportFile(uid, { includeImages: options.includeImages });
+    if (result.result === "Canceled") return false;
+    if (result.result === "Error") return reportPoiExportFailure(result.message);
+  } else {
+    const result = await window.poiSources.exportTable(uid, options.format);
+    if (result.result === "Canceled") return false;
+    if (result.result === "Error") return reportPoiExportFailure(result.message);
+    if (options.format === "csv") detail = csvOmittedNotice(result.omitted);
   }
   await (window as any).dialog.showMessageBox({
     type: "info",
     buttons: ["OK"],
     message: t("editor_ui.export_success"),
+    ...(detail ? { detail } : {}),
   });
   return true;
 }
 
+async function reportPoiExportFailure(message: string | undefined): Promise<false> {
+  await (window as any).dialog.showMessageBox({
+    type: "error",
+    buttons: ["OK"],
+    message: t("editor_ui.export_failed"),
+    detail: message || "",
+  });
+  return false;
+}
+
 async function exportSource(): Promise<void> {
-  if (readOnly.value || saving.value || exporting.value) return;
+  if (saving.value || exporting.value) return;
   exporting.value = true;
   try {
     await runEditorExportDecision({
@@ -1017,75 +1158,6 @@ async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
   mergeResultMessage.value = t("poiio.import_done", { added: plan.summary.added, updated: plan.summary.updated });
   await nextTick();
   mapPane.value?.fitInitialView();
-}
-
-// --- CSV・JSON の書き出し (保存済みの版が対象。未保存の変更があれば GeoJSON の書き出しと同じ確認を挟む) ---
-const tableExportDialogVisible = ref(false);
-
-function openTableExport(): void {
-  if (saving.value || exporting.value) return;
-  tableExportDialogVisible.value = true;
-}
-
-async function exportSavedTable(format: "csv" | "json"): Promise<boolean> {
-  const uid = saveHandle.uid.value;
-  if (!uid) return false;
-  const result = await window.poiSources.exportTable(uid, format);
-  if (result.result === "Canceled") return false;
-  if (result.result === "Error") {
-    await (window as any).dialog.showMessageBox({
-      type: "error",
-      buttons: ["OK"],
-      message: t("poiio.export_failed"),
-      detail: result.message || "",
-    });
-    return false;
-  }
-  await (window as any).dialog.showMessageBox({
-    type: "info",
-    buttons: ["OK"],
-    message: t("poiio.export_success"),
-    detail: tableExportNotice(format, result.omitted),
-  });
-  return true;
-}
-
-// 表に含まれない項目の報告 (1 件でもあれば)。CSV は欠落、JSON は資産の参照の持ち出しを知らせる
-function tableExportNotice(format: "csv" | "json", omitted: PoiExportOmitted): string {
-  const labels: [keyof PoiExportOmitted, string][] = [
-    ["html", "poiio.label_html"],
-    ["url", "poiio.label_url"],
-    ["directgo", "poiio.label_directgo"],
-    ["icon", "poiio.label_icon"],
-    ["selectedIcon", "poiio.label_selected_icon"],
-    ["otherProperties", "poiio.label_other"],
-    ["imageAssetRefs", "poiio.label_image_asset"],
-    ["imageUnrepresentable", "poiio.label_image_unrepresentable"],
-    ["iconAssetRefs", "poiio.label_icon_asset"],
-  ];
-  const jsonKeys = new Set<keyof PoiExportOmitted>(["imageAssetRefs", "iconAssetRefs"]);
-  const items = labels
-    .filter(([key]) => omitted[key] > 0 && (format === "csv" || jsonKeys.has(key)))
-    .map(([key, labelKey]) => `${t(labelKey)} (${omitted[key]})`);
-  if (items.length === 0) return "";
-  return t(format === "csv" ? "poiio.omitted_csv" : "poiio.asset_json", { items: items.join(", ") });
-}
-
-async function onTableExportSubmit(format: "csv" | "json" | null): Promise<void> {
-  tableExportDialogVisible.value = false;
-  if (!format || saving.value || exporting.value) return;
-  exporting.value = true;
-  try {
-    await runEditorExportDecision({
-      dirty: draftDirty.value,
-      hasSaved: !!saveHandle.uid.value,
-      choose: choosePoiExport,
-      save: saveSource,
-      exportSaved: () => exportSavedTable(format),
-    });
-  } finally {
-    exporting.value = false;
-  }
 }
 
 // --- ReadOnly (remote) → ローカル複製 (Phase 3 cloneToLocal) して新 uid へ遷移 ---

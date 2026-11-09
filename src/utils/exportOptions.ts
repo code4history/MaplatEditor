@@ -63,6 +63,48 @@ export function normalizeAppExportOptions(raw?: unknown): AppExportOptions {
   return { includeTiles: boolOr(source.includeTiles, DEFAULT_APP_EXPORT_OPTIONS.includeTiles) };
 }
 
+// ---------------------------------------------------------------------------
+// POI のエクスポート（形式と画像）
+// ---------------------------------------------------------------------------
+
+/** POI のエクスポートの形式と画像。画像を同梱できるのは GeoJSON だけ（zip の取り込み口が pois/*.geojson を要求する） */
+export interface PoiExportOptions {
+  format: 'geojson' | 'csv' | 'json';
+  includeImages: boolean;
+}
+
+const POI_EXPORT_FORMATS: readonly PoiExportOptions['format'][] = ['geojson', 'csv', 'json'];
+
+/** POI のエクスポートの既定。GeoJSON・画像を含める（選択の画面を足す前のヘッダの「エクスポート」と同じ出力） */
+export const DEFAULT_POI_EXPORT_OPTIONS: Readonly<PoiExportOptions> = Object.freeze({
+  format: 'geojson',
+  includeImages: true,
+});
+
+/** その形式で画像を含められるか（画面のチェックボックスの有効・無効） */
+export function poiExportCanIncludeImages(format: PoiExportOptions['format']): boolean {
+  return format === 'geojson';
+}
+
+/**
+ * 欠けた format は既定（geojson）、boolean でない includeImages は既定（true）で埋める。
+ * format が 3 つのどれでもない値なら InvalidExportOptionsError。
+ * 画像を含められない形式では includeImages を false に畳む。
+ */
+export function normalizePoiExportOptions(raw?: unknown): PoiExportOptions {
+  const source = (raw && typeof raw === 'object') ? raw as Record<string, unknown> : {};
+  const format = source.format === undefined ? DEFAULT_POI_EXPORT_OPTIONS.format : source.format;
+  if (typeof format !== 'string' || !(POI_EXPORT_FORMATS as readonly string[]).includes(format)) {
+    throw new InvalidExportOptionsError(`Unknown POI export format: ${String(format)}`);
+  }
+  const typedFormat = format as PoiExportOptions['format'];
+  const includeImages = boolOr(source.includeImages, DEFAULT_POI_EXPORT_OPTIONS.includeImages);
+  return {
+    format: typedFormat,
+    includeImages: poiExportCanIncludeImages(typedFormat) ? includeImages : false,
+  };
+}
+
 /** 選択が 1 つ以上あるか（画面の「書き出す」を押せるかの判定） */
 export function hasAnyMapExportContent(options: MapExportOptions): boolean {
   return options.tiles || options.json || options.originals;

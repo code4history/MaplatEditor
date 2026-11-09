@@ -339,6 +339,67 @@ try {
         'round-trip ZIP must contain the image entry');
       console.log('ok: m18-t5 Major-3 round-trip ZIP GeoJSON properties.icon resolved + image bundled');
 
+      // エクスポートの統合 (a): 画像を含めないときは常に GeoJSON で、アセットの参照は値のまま残す
+      {
+        const beforeFc = JSON.parse(JSON.stringify(exportedPackageFc));
+        const withoutImages = await inspectPoiExport(exportedPackageFc, { includeImages: false });
+        assert.equal(withoutImages.kind, 'geojson', 'includeImages:false は常に geojson');
+        assert.equal(withoutImages.files.length, 0, 'includeImages:false は同梱しない');
+        assert.deepEqual(withoutImages.fc, beforeFc, 'includeImages:false は参照を解決しない（UUID は値のまま）');
+        assert.equal(withoutImages.fc.features[0].properties.image.src, importedImageUid, '画像のアセット UUID が残る');
+        assert.equal(withoutImages.fc.properties.icon, importedLayerIcon, '層のアイコンのアセット UUID が残る');
+        assert.deepEqual(exportedPackageFc, beforeFc, '入力の FC を書き換えない');
+        console.log('ok: (poi-export-unify a) includeImages:false keeps asset refs and writes plain GeoJSON');
+      }
+
+      // エクスポートの統合 (b): 明示の includeImages:true は既定と同じ zip
+      {
+        const withImages = await inspectPoiExport(exportedPackageFc, { includeImages: true });
+        assert.equal(withImages.kind, 'zip');
+        const explicitZipPath = nodePath.join(workDir, 'portable-explicit.zip');
+        await writePoiExport(withImages, explicitZipPath);
+        assert.deepEqual(
+          new AdmZip(explicitZipPath).getEntries().map((entry: any) => entry.entryName).sort(),
+          ['imgs/portable-photo.png', 'pois/portable-import.geojson'],
+        );
+        console.log('ok: (poi-export-unify b) includeImages:true equals the default zip');
+      }
+
+      // エクスポートの統合 (c): html 本文の maplat-asset:<UID> も zip に同梱し、取り込みで maplat-asset: に戻る
+      {
+        const htmlOnlyFc = {
+          type: 'FeatureCollection', id: 'html-only', features: [{
+            type: 'Feature', id: 'html-only-1',
+            geometry: { type: 'Point', coordinates: [135.1, 35.1] },
+            properties: { name: 'HtmlOnly', html: '<p><img src="maplat-asset:' + importedImageUid + '"></p>' },
+          }],
+        };
+        const htmlInspection = await inspectPoiExport(htmlOnlyFc);
+        assert.equal(htmlInspection.kind, 'zip', 'html にだけアセットを持つ POI も zip になる');
+        const htmlZipPath = nodePath.join(workDir, 'html-only.zip');
+        await writePoiExport(htmlInspection, htmlZipPath);
+        const htmlZip = new AdmZip(htmlZipPath);
+        assert.deepEqual(
+          htmlZip.getEntries().map((entry: any) => entry.entryName).sort(),
+          ['imgs/portable-photo.png', 'pois/html-only.geojson'],
+          'html のアセット画像が imgs/ に同梱される',
+        );
+        const htmlGeo = JSON.parse(htmlZip.getEntry('pois/html-only.geojson').getData().toString('utf8'));
+        assert.equal(htmlGeo.features[0].properties.html, '<p><img src="imgs/portable-photo.png"></p>',
+          'zip の GeoJSON の html が imgs/ を指す');
+        const htmlImported = await poiSourceService.importFile({
+          slug: 'html-only-import', title: 'HTML only import', filePath: htmlZipPath,
+        });
+        assert.equal(htmlImported.result, 'Success', 'html の画像入り zip は取り込める: ' + JSON.stringify(htmlImported));
+        const htmlImportedDoc = await poiSourceService.get(htmlImported.uid);
+        const htmlBack = htmlImportedDoc.fc.features[0].properties.html;
+        const htmlBackText = typeof htmlBack === 'string' ? htmlBack : JSON.stringify(htmlBack);
+        const backMatch = /maplat-asset:([0-9a-f-]{36})/i.exec(htmlBackText);
+        assert.ok(backMatch, 'html が maplat-asset:<UUID> の形に戻る: ' + htmlBackText);
+        assert.ok(await SqliteDataService.findAsset(backMatch[1]), '戻った UUID のアセットが見つかる');
+        console.log('ok: (poi-export-unify c) html asset images are bundled and restored on import');
+      }
+
       const invalidPackageFile = nodePath.join(workDir, 'portable-invalid.zip');
       const invalidPackageZip = new AdmZip();
       invalidPackageZip.addFile('imgs/cleanup-photo.png', packageImage);
