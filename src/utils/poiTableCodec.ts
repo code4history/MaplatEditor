@@ -47,6 +47,24 @@ export type PoiCsvDecodeResult =
   | { ok: true; text: string; encoding: PoiCsvEncoding }
   | { ok: false; code: 'encoding-unsupported' | 'not-text' };
 
+// UTF-8 だけを読む文字コードの判定 (KML 用)。BOM の有無を問わない。UTF-16 は対象外、NUL を含めばバイナリ。
+// Shift_JIS には落とさない (XML の宣言と食い違う読み方をしない)。
+export function decodePoiUtf8Bytes(
+  bytes: Uint8Array,
+): { ok: true; text: string; encoding: 'utf-8' | 'utf-8-bom' } | { ok: false; code: 'encoding-unsupported' | 'not-text' } {
+  if (bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))) {
+    return { ok: false, code: 'encoding-unsupported' };
+  }
+  if (bytes.includes(0)) return { ok: false, code: 'not-text' };
+  const hasBom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  try {
+    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(hasBom ? bytes.subarray(3) : bytes);
+    return { ok: true, text, encoding: hasBom ? 'utf-8-bom' : 'utf-8' };
+  } catch {
+    return { ok: false, code: 'encoding-unsupported' };
+  }
+}
+
 // 文字コードの判定。UTF-8 (BOM の有無を問わない) を先に試し、読めなければ Shift_JIS (Windows-31J。
 // Excel の CSV の既定)。UTF-16 は 12 月の対象外。NUL を含めばバイナリ。
 // Shift_JIS のバイト列が偶然 UTF-8 として読めることは日本語の文章では実質起きない。

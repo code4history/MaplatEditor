@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+ <Folder><name>寺社</name>
+  <Placemark id="kml-1"><name>浅草寺</name>
+    <description><![CDATA[<b>本堂</b><br>雷門から徒歩]]></description>
+    <ExtendedData><Data name="name:en"><value>Sensoji</value></Data></ExtendedData>
+    <Point><coordinates>139.7967,35.7148,0</coordinates></Point></Placemark>
+  <Placemark><name>増上寺</name><Point><coordinates>139.7490,35.6574</coordinates></Point></Placemark>
+ </Folder>
+ <Placemark><name>隅田川の散歩道</name><LineString><coordinates>139.80,35.71 139.81,35.72</coordinates></LineString></Placemark>
+ <Placemark><name>寛永寺の敷地</name><Polygon><outerBoundaryIs><LinearRing><coordinates>139.77,35.72 139.78,35.72 139.78,35.71 139.77,35.72</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+ <Placemark><name>経緯度が逆</name><Point><coordinates>35.7,139.8</coordinates></Point></Placemark>
+</Document></kml>

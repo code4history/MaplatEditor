@@ -44,6 +44,19 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "image-dropped": "poiio.issues.image_dropped",
   "quote-prefix-stripped": "poiio.issues.quote_prefix_stripped",
   "coordinate-partial": "poiio.issues.coordinate_partial",
+  // KML の取り込み
+  "kml-not-xml": "poiio.issues.kml_not_xml",
+  "kml-too-large": "poiio.issues.kml_too_large",
+  "kml-too-deep": "poiio.issues.kml_too_deep",
+  "kml-doctype-forbidden": "poiio.issues.kml_doctype_forbidden",
+  "kml-no-placemarks": "poiio.issues.kml_no_placemarks",
+  "kml-bad-coordinates": "poiio.issues.kml_bad_coordinates",
+  "kml-non-point-skipped": "poiio.issues.kml_non_point_skipped",
+  "kml-description-html-flattened": "poiio.issues.kml_description_html_flattened",
+  "kml-description-image-dropped": "poiio.issues.kml_description_image_dropped",
+  "kml-id-ignored": "poiio.issues.kml_id_ignored",
+  "kml-extended-data-conflict": "poiio.issues.kml_extended_data_conflict",
+  "kml-undefined-entity": "poiio.issues.kml_undefined_entity",
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。

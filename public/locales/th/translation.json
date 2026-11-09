@@ -1137,9 +1137,10 @@
     "import_blocked": "สถานะเปลี่ยนระหว่างนำเข้า จึงยกเลิกการนำเข้า โปรดลองอีกครั้ง",
     "import_error": {
       "file_too_large": "ไฟล์ใหญ่เกินไป (สูงสุด 20 MiB)",
-      "unsupported_extension": "โปรดเลือกไฟล์ CSV",
+      "unsupported_extension": "โปรดเลือกไฟล์ CSV หรือ KML",
       "read_failed": "อ่านไฟล์ไม่ได้",
-      "generic": "นำเข้าไม่สำเร็จ"
+      "generic": "นำเข้าไม่สำเร็จ",
+      "kmz_unsupported": "ไม่สามารถนำเข้า KMZ ได้ โปรดบันทึกใหม่เป็น KML"
     },
     "issues": {
       "missing_columns": "แถวหัวต้องมีคอลัมน์ id หรือคอลัมน์ละติจูดและลองจิจูด",
@@ -1162,7 +1163,19 @@
       "image_dropped": "ไม่นำเข้ารูปภาพที่ไม่ใช่ URL แบบ http(s) หรือ URL สัมพัทธ์",
       "quote_prefix_stripped": "มีเซลล์ที่ตัด ' ข้างหน้าออก (จำนวน)",
       "coordinate_partial": "มีเพียงละติจูดหรือลองจิจูดอย่างใดอย่างหนึ่ง (พิกัดไม่เปลี่ยน)",
-      "coord_swapped": "ละติจูดกับลองจิจูดสลับกันหรือไม่"
+      "coord_swapped": "ละติจูดกับลองจิจูดสลับกันหรือไม่",
+      "kml_not_xml": "ไม่ใช่ XML ที่ถูกต้อง (เช่น แท็กไม่ปิด \"<\" เกิน แอตทริบิวต์ไม่มีค่า หรือมีองค์ประกอบรากหลายตัว) หาก description มี HTML ให้ครอบด้วย CDATA",
+      "kml_too_large": "องค์ประกอบ โหนด หรือแอตทริบิวต์มากเกินไป (องค์ประกอบสูงสุด 400,000 และแอตทริบิวต์สูงสุด 500,000) ลดคอลัมน์แอตทริบิวต์หรือแบ่งไฟล์",
+      "kml_too_deep": "ซ้อนกันลึกเกินไป (สูงสุด 64 ระดับ)",
+      "kml_doctype_forbidden": "ไม่อนุญาตให้ใช้ DOCTYPE และ ENTITY",
+      "kml_no_placemarks": "ไม่มี Placemark ที่นำเข้าได้",
+      "kml_bad_coordinates": "coordinates ต้องเป็นหนึ่งคู่ \"ลองจิจูด,ละติจูด\"",
+      "kml_non_point_skipped": "ไม่นำเข้ารูปร่างอื่นนอกจาก Point",
+      "kml_description_html_flattened": "แปลง HTML ใน description เป็นข้อความแล้ว (จำนวน)",
+      "kml_description_image_dropped": "ไม่นำเข้ารูปภาพใน description",
+      "kml_id_ignored": "ใช้ id ของ Placemark เป็น ID ไม่ได้ จึงข้ามไป",
+      "kml_extended_data_conflict": "คอลัมน์ ExtendedData ซ้ำกับองค์ประกอบของ Placemark จึงใช้ค่าขององค์ประกอบ",
+      "kml_undefined_entity": "ยังมีการอ้างอิงอักขระที่ไม่ได้กำหนด (&ชื่อ;) เหลืออยู่ในค่า (จำนวน)"
     }
   },
   "assetlist": {

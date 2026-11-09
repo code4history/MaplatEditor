@@ -6,6 +6,7 @@ import type { FeatureCollection } from 'geojson';
 import { buildPoiCsv, buildPoiJson, type PoiExportOmitted } from '../../src/utils/poiCsvExport';
 import { LANG_CODES } from '../../src/utils/editorLanguages';
 import { POI_IMPORT_MAX_BYTES, parsePoiImportFile, type PoiImportParseResult } from '../../src/utils/poiImportRows';
+import { parsePoiKml, type KmlDocument } from '../../src/utils/poiKml';
 
 export type PoiExportFormat = 'csv' | 'json';
 
@@ -54,6 +55,34 @@ export async function exportPoiTable(args: {
 // 取り込み (選択と解析を 1 回の呼び出しにする。パスは受け取らず、返さない)
 // ---------------------------------------------------------------------------
 
+// 取り込みの解析の唯一の入口。拡張子 (.csv・.kml) で振り分ける。ファイルを読む部分は呼び出し側に残る
+// (返すコードが呼び出し側ごとに違う)。xmldom は KML のときだけ動的に読み込む (CSV や既存の処理の
+// 読み込みに影響させない)。createDocument は試験が差し替えるための引数。
+export async function parsePoiImportBytes(args: {
+  ext: string;
+  bytes: Uint8Array;
+  defaultLang: string;
+  createDocument?: (text: string) => KmlDocument;
+}): Promise<PoiImportParseResult> {
+  if (args.ext === '.csv') return parsePoiImportFile({ format: 'csv', bytes: args.bytes, defaultLang: args.defaultLang });
+  if (args.ext === '.kml') {
+    const createDocument = args.createDocument ?? (await loadXmlDocumentFactory());
+    return parsePoiKml({ bytes: args.bytes, defaultLang: args.defaultLang, createDocument });
+  }
+  throw new Error(`unsupported extension: ${args.ext}`);
+}
+
+async function loadXmlDocumentFactory(): Promise<(text: string) => KmlDocument> {
+  const imported = (await import('@xmldom/xmldom')) as unknown as {
+    DOMParser?: typeof import('@xmldom/xmldom').DOMParser;
+    default?: { DOMParser: typeof import('@xmldom/xmldom').DOMParser };
+  };
+  const DOMParser = imported.DOMParser ?? imported.default?.DOMParser;
+  if (!DOMParser) throw new Error('xmldom DOMParser is unavailable');
+  const quiet = { warning() {}, error() {}, fatalError() {} };
+  return (text) => new DOMParser({ locator: {}, errorHandler: quiet }).parseFromString(text, 'text/xml') as unknown as KmlDocument;
+}
+
 export type PoiPickAndParseMergeResult =
   | { result: 'Canceled' }
   | { result: 'Parsed'; fileName: string; parse: PoiImportParseResult }
@@ -78,7 +107,7 @@ export async function pickAndParsePoiMerge(args: {
     if (!picked) return { result: 'Canceled' };
     const ext = path.extname(picked).toLowerCase();
     if (ext === '.kmz') return { result: 'Error', code: 'kmz-unsupported', message: 'KMZ is not supported' };
-    if (ext !== '.csv') return { result: 'Error', code: 'unsupported-extension', message: 'unsupported file type' };
+    if (ext !== '.csv' && ext !== '.kml') return { result: 'Error', code: 'unsupported-extension', message: 'unsupported file type' };
     let bytes: Uint8Array;
     try {
       if ((await stat(picked)).size > POI_IMPORT_MAX_BYTES) {
@@ -89,7 +118,7 @@ export async function pickAndParsePoiMerge(args: {
       return { result: 'Error', code: 'read-failed', message: 'failed to read the file' };
     }
     if (bytes.length > POI_IMPORT_MAX_BYTES) return { result: 'Error', code: 'file-too-large', message: 'file too large' };
-    const parse = parsePoiImportFile({ format: 'csv', bytes, defaultLang: lang });
+    const parse = await parsePoiImportBytes({ ext, bytes, defaultLang: lang });
     return { result: 'Parsed', fileName: path.basename(picked), parse };
   } catch (error) {
     console.error('[PoiTableIoService] pickAndParsePoiMerge failed:', error);

@@ -1137,9 +1137,10 @@
     "import_blocked": "El estado cambió durante la importación, así que se canceló. Inténtelo de nuevo.",
     "import_error": {
       "file_too_large": "El archivo es demasiado grande (máximo 20 MiB).",
-      "unsupported_extension": "Elija un archivo CSV.",
+      "unsupported_extension": "Elija un archivo CSV o KML.",
       "read_failed": "No se pudo leer el archivo.",
-      "generic": "Error al importar."
+      "generic": "Error al importar.",
+      "kmz_unsupported": "No se puede importar KMZ. Guárdelo de nuevo como KML."
     },
     "issues": {
       "missing_columns": "El encabezado necesita una columna id o columnas de latitud y longitud",
@@ -1162,7 +1163,19 @@
       "image_dropped": "No se importan imágenes que no sean URL http(s) o relativas",
       "quote_prefix_stripped": "Se limpiaron celdas con ' inicial (cantidad)",
       "coordinate_partial": "Solo hay latitud o longitud (las coordenadas no cambian)",
-      "coord_swapped": "¿Están invertidas la latitud y la longitud?"
+      "coord_swapped": "¿Están invertidas la latitud y la longitud?",
+      "kml_not_xml": "No es XML válido (por ejemplo una etiqueta sin cerrar, un «<» suelto, un atributo sin valor o varios elementos raíz). Si la description contiene HTML, enciérrelo en CDATA",
+      "kml_too_large": "Demasiados elementos, nodos o atributos (hasta 400.000 elementos y 500.000 atributos). Reduzca las columnas de atributos o divida el archivo",
+      "kml_too_deep": "El anidamiento es demasiado profundo (hasta 64 niveles)",
+      "kml_doctype_forbidden": "DOCTYPE y ENTITY no están permitidos",
+      "kml_no_placemarks": "No hay ningún Placemark que importar",
+      "kml_bad_coordinates": "coordinates debe ser un solo par «longitud,latitud»",
+      "kml_non_point_skipped": "No se importan formas distintas de Point",
+      "kml_description_html_flattened": "El HTML de la description se convirtió en texto (cantidad)",
+      "kml_description_image_dropped": "No se importan las imágenes de la description",
+      "kml_id_ignored": "El id del Placemark no sirve como ID y se ignoró",
+      "kml_extended_data_conflict": "Una columna de ExtendedData coincide con un elemento del Placemark; se usa el valor del elemento",
+      "kml_undefined_entity": "Quedan referencias de caracteres no definidas (&nombre;) en los valores (cantidad)"
     }
   },
   "assetlist": {

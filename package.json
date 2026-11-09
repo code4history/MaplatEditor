@@ -338,6 +338,7 @@
     "smoke:poi-table": "node scripts/poi-table-smoke.mjs",
     "smoke:poi-import": "node scripts/poi-import-smoke.mjs",
     "smoke:poi-merge": "node scripts/poi-merge-smoke.mjs",
+    "smoke:poi-kml": "node scripts/poi-kml-smoke.mjs",
     "test:e2e:poi-io": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/poi-io.spec.ts"
   },
   "dependencies": {
@@ -350,6 +351,7 @@
     "@seald-io/nedb": "^4.1.2",
     "@types/geojson": "^7946.0.16",
     "@types/lodash-es": "^4.17.12",
+    "@xmldom/xmldom": "0.8.15",
     "adm-zip": "^0.6.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",

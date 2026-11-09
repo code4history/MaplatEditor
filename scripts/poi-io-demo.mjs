@@ -1,11 +1,12 @@
 // POI の一括入出力のデモ: 入力と出力の対比表 (HTML) を作る。
 // 人間が「要望どおりか」を目で見るためのもの。期待値と合わなければ exit 1。
 // 期待値は smoke (poi-merge-smoke・poi-import-smoke) と同じ fixtures を読む。
-//   A: 追記と上書きの対比    B: 誤りの行の報告    C: 文字コード    E: 書き出しと往復
+//   A: 追記と上書きの対比    B: 誤りの行の報告    C: 文字コード    D: KML    E: 書き出しと往復
 // 使い方: node scripts/poi-io-demo.mjs --out <出力ディレクトリ>
 import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
 
@@ -35,6 +36,7 @@ try {
       `export * from ${JSON.stringify(path.join(projectRoot, 'src/utils/poiImportRows.ts'))};`,
       `export * from ${JSON.stringify(path.join(projectRoot, 'src/utils/poiCsvExport.ts'))};`,
       `export * from ${JSON.stringify(path.join(projectRoot, 'src/utils/poiTableCodec.ts'))};`,
+      `export * from ${JSON.stringify(path.join(projectRoot, 'src/utils/poiKml.ts'))};`,
       `export { normalizePoiSourceCollection, toExportForm } from ${JSON.stringify(path.join(projectRoot, 'src/utils/poiGeoJson.ts'))};`,
     ].join('\n'),
   );
@@ -118,6 +120,28 @@ try {
       <table><thead><tr><th>ファイル</th><th>判定</th><th>name</th></tr></thead><tbody>${rows.join('')}</tbody></table>
       <p>対比: Shift_JIS のファイルを UTF-8 として読むと置換文字になります → <code>${esc(mojibake)}</code></p>
       <p>UTF-16 の CSV は「未対応」と案内されます（${esc(utf16.issues[0].code)}）。</p></section>`);
+  }
+
+  // --- D: KML ---
+  {
+    const { DOMParser } = createRequire(import.meta.url)(createRequire(path.join(projectRoot, 'package.json')).resolve('@xmldom/xmldom'));
+    const noop = { warning() {}, error() {}, fatalError() {} };
+    const createDocument = (text) => new DOMParser({ locator: {}, errorHandler: noop }).parseFromString(text, 'text/xml');
+    const kmlText = await readText('demo.kml');
+    const parse = m.parsePoiKml({ bytes: await readBytes('demo.kml'), defaultLang, createDocument });
+    const plan = m.planPoiMerge({ existing: [], rows: parse.rows, mode: 'append', defaultLang });
+    expect('D 件数', () => { assert.equal(parse.rows.length, 2); assert.equal(plan.features.length, 2); assert.equal(parse.totalRecords, 5); });
+    expect('D 浅草寺', () => {
+      assert.deepEqual(plain(strip(plan.features[0]).properties.name), { ja: '浅草寺', en: 'Sensoji' });
+      assert.deepEqual(plain(plan.features[0].properties.desc), { ja: '本堂\n雷門から徒歩' });
+      assert.deepEqual(plain(plan.features[0].geometry.coordinates), [139.7967, 35.7148]);
+    });
+    expect('D 警告', () => assert.deepEqual(parse.issues.map((i) => `${i.line ?? '-'}:${i.code}:${i.level}`).sort(),
+      ['-:kml-description-html-flattened:warning', '10:kml-non-point-skipped:warning', '11:kml-non-point-skipped:warning', '12:coord-range:error']));
+    cases.push(`<section data-demo-case="D"><h2>デモ D: KML</h2>
+      <p>Point の Placemark だけを取り込みます。線・面は除かれ、経度と緯度が逆の点は誤りの行として案内されます。説明の HTML は文字列に直します。</p>
+      <pre>${esc(kmlText)}</pre>
+      <h3>取り込み（追記）→ ${plan.features.length} 件</h3>${table(featureRows(plan.features.map(strip)))}${issueTable(parse.issues)}</section>`);
   }
 
   // --- E: 書き出しと往復 ---

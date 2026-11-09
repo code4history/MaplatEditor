@@ -1137,9 +1137,10 @@
     "import_blocked": "Trạng thái đã thay đổi trong lúc nhập nên việc nhập bị hủy. Vui lòng thử lại.",
     "import_error": {
       "file_too_large": "Tệp quá lớn (tối đa 20 MiB).",
-      "unsupported_extension": "Vui lòng chọn tệp CSV.",
+      "unsupported_extension": "Vui lòng chọn tệp CSV hoặc KML.",
       "read_failed": "Không đọc được tệp.",
-      "generic": "Nhập không thành công."
+      "generic": "Nhập không thành công.",
+      "kmz_unsupported": "Không thể nhập KMZ. Hãy lưu lại dưới dạng KML."
     },
     "issues": {
       "missing_columns": "Dòng tiêu đề cần cột id hoặc cột vĩ độ và kinh độ",
@@ -1162,7 +1163,19 @@
       "image_dropped": "Không nhập hình ảnh không phải URL http(s) hoặc URL tương đối",
       "quote_prefix_stripped": "Có ô đã bỏ dấu ' ở đầu (số lượng)",
       "coordinate_partial": "Chỉ có vĩ độ hoặc kinh độ (tọa độ không đổi)",
-      "coord_swapped": "Vĩ độ và kinh độ có bị đảo ngược không?"
+      "coord_swapped": "Vĩ độ và kinh độ có bị đảo ngược không?",
+      "kml_not_xml": "Không phải XML hợp lệ (ví dụ thẻ chưa đóng, ký tự \"<\" thừa, thuộc tính không có giá trị, hoặc nhiều phần tử gốc). Nếu description chứa HTML, hãy đặt trong CDATA",
+      "kml_too_large": "Quá nhiều phần tử, nút hoặc thuộc tính (tối đa 400.000 phần tử và 500.000 thuộc tính). Hãy giảm bớt các cột thuộc tính hoặc chia nhỏ tệp",
+      "kml_too_deep": "Lồng nhau quá sâu (tối đa 64 cấp)",
+      "kml_doctype_forbidden": "Không được dùng DOCTYPE và ENTITY",
+      "kml_no_placemarks": "Không có Placemark nào để nhập",
+      "kml_bad_coordinates": "coordinates phải là đúng một cặp \"kinh độ,vĩ độ\"",
+      "kml_non_point_skipped": "Không nhập các hình dạng khác Point",
+      "kml_description_html_flattened": "Đã chuyển HTML trong description thành văn bản (số lượng)",
+      "kml_description_image_dropped": "Không nhập hình ảnh trong description",
+      "kml_id_ignored": "Không dùng được id của Placemark làm ID nên đã bỏ qua",
+      "kml_extended_data_conflict": "Cột ExtendedData trùng với phần tử của Placemark, dùng giá trị của phần tử",
+      "kml_undefined_entity": "Còn tham chiếu ký tự chưa định nghĩa (&tên;) trong giá trị (số lượng)"
     }
   },
   "assetlist": {

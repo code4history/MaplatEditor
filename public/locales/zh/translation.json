@@ -1137,9 +1137,10 @@
     "import_blocked": "导入过程中状态发生了变化，已取消导入。请重试。",
     "import_error": {
       "file_too_large": "文件过大（最大 20 MiB）。",
-      "unsupported_extension": "请选择 CSV 文件。",
+      "unsupported_extension": "请选择 CSV 或 KML 文件。",
       "read_failed": "无法读取文件。",
-      "generic": "导入失败。"
+      "generic": "导入失败。",
+      "kmz_unsupported": "无法导入 KMZ。请另存为 KML。"
     },
     "issues": {
       "missing_columns": "表头需要 id 列，或纬度和经度列",
@@ -1162,7 +1163,19 @@
       "image_dropped": "不导入 http(s) 或相对 URL 以外的图片",
       "quote_prefix_stripped": "有单元格去掉了开头的 '（数量）",
       "coordinate_partial": "只填了纬度或经度其中之一（坐标不变）",
-      "coord_swapped": "纬度和经度是否填反了？"
+      "coord_swapped": "纬度和经度是否填反了？",
+      "kml_not_xml": "不是有效的 XML（例如标签未闭合、多余的“<”、没有值的属性、多个根元素）。如果 description 中含有 HTML，请用 CDATA 包起来",
+      "kml_too_large": "元素、节点或属性过多（元素最多 40 万个、属性最多 50 万个）。请减少属性列或拆分文件",
+      "kml_too_deep": "嵌套过深（最多 64 层）",
+      "kml_doctype_forbidden": "不能使用 DOCTYPE 和 ENTITY",
+      "kml_no_placemarks": "没有可导入的 Placemark",
+      "kml_bad_coordinates": "coordinates 必须是一组“经度,纬度”",
+      "kml_non_point_skipped": "不导入 Point 以外的形状",
+      "kml_description_html_flattened": "已将 description 中的 HTML 转为文本（数量）",
+      "kml_description_image_dropped": "不导入 description 中的图片",
+      "kml_id_ignored": "Placemark 的 id 不能作为 ID 使用，已忽略",
+      "kml_extended_data_conflict": "ExtendedData 的列与 Placemark 的元素重复，使用元素的值",
+      "kml_undefined_entity": "值中残留未定义的字符引用（&名称;）（数量）"
     }
   },
   "assetlist": {
