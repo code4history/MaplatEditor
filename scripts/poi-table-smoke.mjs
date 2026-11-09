@@ -43,6 +43,7 @@ try {
     quotePoiCsvFormula, unquotePoiCsvFormula, serializeCsv, encodeCsvDocument, CSV_BOM,
     buildPoiCsv, buildPoiJson, formatPoiExport, exportPoiTable, isPoiExportFormat,
     normalizePoiSourceCollection, toExportForm,
+    decodePoiCsvBytes, parseCsvRecords,
   } = mod;
 
   // 保存済みソースの書き出し形 (PoiSourceService.exportForm と同じ経路) を作る
@@ -230,6 +231,109 @@ try {
     assert.equal(ioErr.result, 'Error');
     assert.equal(typeof formatPoiExport, 'function');
     console.log('  case 7 (書き出しの本体): PASS');
+  }
+
+  // --- 8: 文字コードの判定 (復号) ---
+  {
+    const enc = (s) => new TextEncoder().encode(s);
+    const bom = Uint8Array.of(0xef, 0xbb, 0xbf);
+    const cat = (...parts) => Uint8Array.from(parts.flatMap((p) => [...p]));
+    const bomUtf8 = decodePoiCsvBytes(cat(bom, enc('id,name\r\nあ,日本橋')));
+    assert.deepEqual(bomUtf8, { ok: true, text: 'id,name\r\nあ,日本橋', encoding: 'utf-8-bom' });
+    const utf8 = decodePoiCsvBytes(enc('id,name\r\nあ,日本橋'));
+    assert.deepEqual(utf8, { ok: true, text: 'id,name\r\nあ,日本橋', encoding: 'utf-8' });
+    // Shift_JIS (Windows-31J): 日本橋 = 93FA 967B 8BB4
+    const sjis = decodePoiCsvBytes(cat(enc('j-1,'), Uint8Array.of(0x93, 0xfa, 0x96, 0x7b, 0x8b, 0xb4)));
+    assert.deepEqual(sjis, { ok: true, text: 'j-1,日本橋', encoding: 'shift_jis' });
+    // 実ファイル (fixture) の 3 形式は同じ名前になる
+    for (const [file, encoding] of [['names-utf8bom.csv', 'utf-8-bom'], ['names-utf8.csv', 'utf-8'], ['names-sjis.csv', 'shift_jis']]) {
+      const got = decodePoiCsvBytes(new Uint8Array(await readFile(path.join(fixtureDir, file))));
+      assert.equal(got.ok, true, file);
+      assert.equal(got.encoding, encoding, file);
+      assert.ok(got.text.includes('j-1,日本橋,35.6840,139.7745'), file);
+      assert.ok(!got.text.startsWith('\ufeff'), file + ' の BOM を除く');
+    }
+    // UTF-16 は 12 月の対象外。NUL を含むが not-text ではなく encoding-unsupported
+    assert.deepEqual(decodePoiCsvBytes(Uint8Array.of(0xff, 0xfe, 0x69, 0x00, 0x64, 0x00)), { ok: false, code: 'encoding-unsupported' });
+    assert.deepEqual(decodePoiCsvBytes(Uint8Array.of(0xfe, 0xff, 0x00, 0x69, 0x00, 0x64)), { ok: false, code: 'encoding-unsupported' });
+    // NUL を含めばバイナリ
+    assert.deepEqual(decodePoiCsvBytes(enc('a,b\u0000c')), { ok: false, code: 'not-text' });
+    assert.deepEqual(decodePoiCsvBytes(Uint8Array.of(0x50, 0x4b, 0x03, 0x04, 0x00, 0x00)), { ok: false, code: 'not-text' });
+    // UTF-8 としても Shift_JIS としても読めない
+    assert.deepEqual(decodePoiCsvBytes(Uint8Array.of(0xfd, 0xfe, 0xff, 0x41)), { ok: false, code: 'encoding-unsupported' });
+    // 対比: Shift_JIS を UTF-8 として読むと置換文字になる (判定が UTF-8 を先に試す理由)
+    assert.ok(new TextDecoder('utf-8').decode(Uint8Array.of(0x93, 0xfa, 0x96, 0x7b)).includes('\ufffd'));
+    // 空のファイルは空の UTF-8
+    assert.deepEqual(decodePoiCsvBytes(new Uint8Array(0)), { ok: true, text: '', encoding: 'utf-8' });
+    console.log('  case 8 (文字コードの判定): PASS');
+  }
+
+  // --- 9: RFC 4180 の読み取り ---
+  {
+    const cells = (r) => r.records.map((x) => x.cells);
+    const lines = (r) => r.records.map((x) => x.line);
+    const ok = (text) => { const r = parseCsvRecords(text); assert.equal(r.ok, true, text); return r; };
+    assert.deepEqual(cells(ok('a,b\r\n1,2\r\n')), [['a', 'b'], ['1', '2']]);
+    assert.deepEqual(cells(ok('a,b\n1,2')), [['a', 'b'], ['1', '2']]);
+    assert.deepEqual(cells(ok('a,b\r1,2\r')), [['a', 'b'], ['1', '2']]);
+    assert.deepEqual(cells(ok('a\r\nb\nc\rd')), [['a'], ['b'], ['c'], ['d']]);
+    // 引用・"" ・セル内改行・区切り
+    assert.deepEqual(cells(ok('"a,b","c""d","e\nf","g\r\nh",i\r\n')), [['a,b', 'c"d', 'e\nf', 'g\r\nh', 'i']]);
+    assert.deepEqual(cells(ok('"",x,""\r\n')), [['', 'x', '']]);
+    // 空行は飛ばす。行番号は物理行 (1 始まり・レコードの開始行)
+    const r1 = ok('h1,h2\r\n\r\n1,2\r\n"x\ny",z\r\n3,4\r\n');
+    assert.deepEqual(cells(r1), [['h1', 'h2'], ['1', '2'], ['x\ny', 'z'], ['3', '4']]);
+    assert.deepEqual(lines(r1), [1, 3, 4, 6]);
+    // 短い行・長い行はそのまま返す (検査は解析の側)
+    assert.deepEqual(cells(ok('a,b,c\r\n1\r\n1,2,3,4\r\n')), [['a', 'b', 'c'], ['1'], ['1', '2', '3', '4']]);
+    // 末尾の空セルを保つ
+    assert.deepEqual(cells(ok('a,b,\r\n,,\r\n')), [['a', 'b', ''], ['', '', '']]);
+    // 引用符の中ではない位置の " は文字として残す
+    assert.deepEqual(cells(ok('a"b,c\r\n')), [['a"b', 'c']]);
+    // 閉じていない引用符
+    const bad = parseCsvRecords('a,b\r\n1,"2\r\n3,4\r\n');
+    assert.equal(bad.ok, false);
+    assert.equal(bad.code, 'csv-unterminated-quote');
+    assert.equal(bad.line, 2);
+    // 空の文字列
+    assert.deepEqual(ok('').records, []);
+    assert.deepEqual(ok('\r\n\r\n').records, []);
+    console.log('  case 9 (RFC 4180 の読み取り): PASS');
+  }
+
+  // --- 10: parse(encode(x)) の往復 ---
+  {
+    const rows = [
+      ['id', 'name', 'desc'],
+      ['a', 'x,y', 'q"uote'],
+      ['b', 'line1\nline2', ' 前後 '],
+      ['c', 'cr\rhere', 'crlf\r\nhere'],
+      ['', 'e', ''],
+      ['\u{1F600}', '日本語', '\t'],
+    ];
+    const back = parseCsvRecords(serializeCsv(rows));
+    assert.equal(back.ok, true);
+    assert.deepEqual(back.records.map((x) => x.cells), rows);
+    // 乱数 300 本 (空行になる 1 セルだけの空の行を避ける)
+    const alphabet = ['a', 'あ', ',', '"', '\n', '\r', ' ', '\t', "'", '=', '0'];
+    let seed = 777;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    for (let i = 0; i < 300; i++) {
+      const width = 2 + Math.floor(rnd() * 3);
+      const table = Array.from({ length: 1 + Math.floor(rnd() * 4) }, () => Array.from({ length: width }, () => {
+        let t = '';
+        for (let j = Math.floor(rnd() * 6); j > 0; j--) t += alphabet[Math.floor(rnd() * alphabet.length)];
+        return t;
+      }));
+      const got = parseCsvRecords(serializeCsv(table));
+      assert.equal(got.ok, true);
+      assert.deepEqual(got.records.map((x) => x.cells), table, JSON.stringify(table));
+    }
+    // 書き出し (BOM つき) -> 復号 -> 読み取り
+    const decoded = decodePoiCsvBytes(encodeCsvDocument(rows));
+    assert.equal(decoded.encoding, 'utf-8-bom');
+    assert.deepEqual(parseCsvRecords(decoded.text).records.map((x) => x.cells), rows);
+    console.log('  case 10 (parse(encode(x)) の往復): PASS');
   }
 
   console.log('poi-table smoke: PASS');

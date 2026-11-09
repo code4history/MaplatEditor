@@ -337,6 +337,7 @@
     "smoke:electron-fuses": "node scripts/electron-fuses-smoke.mjs",
     "smoke:poi-table": "node scripts/poi-table-smoke.mjs",
     "smoke:poi-import": "node scripts/poi-import-smoke.mjs",
+    "smoke:poi-merge": "node scripts/poi-merge-smoke.mjs",
     "test:e2e:poi-io": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/poi-io.spec.ts"
   },
   "dependencies": {

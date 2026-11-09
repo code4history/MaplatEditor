@@ -36,3 +36,111 @@ export function encodeCsvDocument(rows: readonly (readonly string[])[]): Uint8Ar
   out.set(body, CSV_BOM.length);
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// 読み取り (取り込み)
+// ---------------------------------------------------------------------------
+
+export type PoiCsvEncoding = 'utf-8' | 'utf-8-bom' | 'shift_jis';
+
+export type PoiCsvDecodeResult =
+  | { ok: true; text: string; encoding: PoiCsvEncoding }
+  | { ok: false; code: 'encoding-unsupported' | 'not-text' };
+
+// 文字コードの判定。UTF-8 (BOM の有無を問わない) を先に試し、読めなければ Shift_JIS (Windows-31J。
+// Excel の CSV の既定)。UTF-16 は 12 月の対象外。NUL を含めばバイナリ。
+// Shift_JIS のバイト列が偶然 UTF-8 として読めることは日本語の文章では実質起きない。
+export function decodePoiCsvBytes(bytes: Uint8Array): PoiCsvDecodeResult {
+  if (bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))) {
+    return { ok: false, code: 'encoding-unsupported' };
+  }
+  if (bytes.includes(0)) return { ok: false, code: 'not-text' };
+  const hasBom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const body = hasBom ? bytes.subarray(3) : bytes;
+  try {
+    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(body);
+    return { ok: true, text, encoding: hasBom ? 'utf-8-bom' : 'utf-8' };
+  } catch {
+    if (hasBom) return { ok: false, code: 'encoding-unsupported' };
+  }
+  try {
+    const text = new TextDecoder('shift_jis', { fatal: true }).decode(bytes);
+    return { ok: true, text, encoding: 'shift_jis' };
+  } catch {
+    return { ok: false, code: 'encoding-unsupported' };
+  }
+}
+
+export interface PoiCsvRecord {
+  cells: string[];
+  /** レコードの開始行 (物理行・1 始まり。見出しの行 = 1) */
+  line: number;
+}
+
+export type PoiCsvReadResult =
+  | { ok: true; records: PoiCsvRecord[] }
+  | { ok: false; code: 'csv-unterminated-quote'; line: number };
+
+// RFC 4180 の読み取り。区切り `,`・改行は CRLF／LF／CR。引用符の中の改行はセルの一部。
+// 空行は飛ばす。セルの数の検査はしない (短い行・長い行はそのまま返す)。
+export function parseCsvRecords(text: string): PoiCsvReadResult {
+  const records: PoiCsvRecord[] = [];
+  let cells: string[] = [];
+  let cell = '';
+  let quoted = false;
+  let fieldStart = true;
+  let inQuotes = false;
+  let line = 1;
+  let recordLine = 1;
+  let quoteLine = 1;
+  const n = text.length;
+
+  const endRecord = (): void => {
+    if (cells.length === 0 && cell === '' && !quoted) return; // 空行
+    cells.push(cell);
+    records.push({ cells, line: recordLine });
+    cells = [];
+  };
+
+  for (let i = 0; i < n; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i += 1; } else { inQuotes = false; }
+      } else if (c === '\r') {
+        cell += text[i + 1] === '\n' ? '\r\n' : '\r';
+        if (text[i + 1] === '\n') i += 1;
+        line += 1;
+      } else {
+        if (c === '\n') line += 1;
+        cell += c;
+      }
+      continue;
+    }
+    if (c === '"' && fieldStart) {
+      inQuotes = true;
+      quoted = true;
+      fieldStart = false;
+      quoteLine = line;
+    } else if (c === ',') {
+      cells.push(cell);
+      cell = '';
+      quoted = false;
+      fieldStart = true;
+    } else if (c === '\r' || c === '\n') {
+      if (c === '\r' && text[i + 1] === '\n') i += 1;
+      endRecord();
+      cell = '';
+      quoted = false;
+      fieldStart = true;
+      line += 1;
+      recordLine = line;
+    } else {
+      cell += c;
+      fieldStart = false;
+    }
+  }
+  if (inQuotes) return { ok: false, code: 'csv-unterminated-quote', line: quoteLine };
+  if (cell !== '' || cells.length > 0 || quoted) endRecord();
+  return { ok: true, records };
+}

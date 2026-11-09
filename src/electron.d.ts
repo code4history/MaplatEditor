@@ -1,3 +1,5 @@
+import type { PoiImportParseResult } from './utils/poiImportRows';
+
 export interface SettingsAPI {
   get(key: string): Promise<any>;
   set(key: string, value: any): Promise<void>;
@@ -158,6 +160,12 @@ export interface PoiValidationIssue {
     code: string;
     featureId?: string;
     message?: string;
+    // CSV の取り込みの行ごとの報告 (任意)。row = データ行の通し番号・line = 物理行
+    row?: number;
+    line?: number | null;
+    column?: string;
+    value?: string;
+    swapped?: boolean;
 }
 
 // Error 結果の機械可読コード: 'network' = fetch 到達不能/timeout (POI-118 degraded 表示対象)、
@@ -195,6 +203,15 @@ export interface PoiExportOmitted {
     otherProperties: number; imageAssetRefs: number; imageUnrepresentable: number; iconAssetRefs: number;
 }
 
+export type PoiPickAndParseMergeResult =
+    | { result: 'Canceled' }
+    | { result: 'Parsed'; fileName: string; parse: PoiImportParseResult }
+    | {
+        result: 'Error';
+        code: 'file-too-large' | 'unsupported-extension' | 'kmz-unsupported' | 'read-failed' | 'invalid-request' | 'internal';
+        message?: string;
+    };
+
 export type PoiExportTableResult =
     | { result: 'Success'; filePath: string; omitted: PoiExportOmitted }
     | { result: 'Canceled' }
@@ -223,6 +240,8 @@ export interface PoiSourcesAPI {
     exportFile(uid: string): Promise<PoiSourceExportResult>;
     // CSV・JSON の書き出し。保存先は main の保存ダイアログで決まる
     exportTable(uid: string, format: 'csv' | 'json'): Promise<PoiExportTableResult>;
+    // 開いているソースへの取り込み。選択と解析を main で 1 回で行い、パスは渡さない・返さない
+    pickAndParseMerge(input: { lang: string }): Promise<PoiPickAndParseMergeResult>;
     // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
     pickImportFile(): Promise<{ filePath: string; fileName: string } | null>;
 }

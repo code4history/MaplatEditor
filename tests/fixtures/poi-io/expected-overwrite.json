@@ -1,0 +1,101 @@
+[
+  {
+    "type": "Feature",
+    "id": "shrine-1",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        139.7454,
+        35.6586
+      ]
+    },
+    "properties": {
+      "name": {
+        "ja": "山王神社"
+      },
+      "desc": {
+        "ja": "古い説明"
+      }
+    }
+  },
+  {
+    "type": "Feature",
+    "id": "shrine-2",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        139.7501,
+        35.6701
+      ]
+    },
+    "properties": {
+      "name": {
+        "ja": "稲荷神社(改)",
+        "en": "Inari Shrine"
+      },
+      "desc": {
+        "ja": "新しい説明2"
+      },
+      "address": {
+        "ja": "東京都"
+      }
+    }
+  },
+  {
+    "type": "Feature",
+    "id": "temple-1",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        139.76,
+        35.68
+      ]
+    },
+    "properties": {
+      "name": {
+        "ja": "東光寺"
+      },
+      "desc": {
+        "ja": "寺の新しい説明"
+      },
+      "image": "https://example.com/t1.jpg"
+    }
+  },
+  {
+    "type": "Feature",
+    "id": "shrine-9",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        139.77,
+        35.69
+      ]
+    },
+    "properties": {
+      "name": {
+        "ja": "八幡神社",
+        "en": "Hachiman Shrine"
+      },
+      "desc": {
+        "ja": "新規の説明"
+      }
+    }
+  },
+  {
+    "type": "Feature",
+    "id": "p1",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        139.78,
+        35.7
+      ]
+    },
+    "properties": {
+      "name": {
+        "ja": "白山神社",
+        "en": "Hakusan Shrine"
+      }
+    }
+  }
+]
