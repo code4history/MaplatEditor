@@ -1,0 +1,56 @@
+{
+  "type": "FeatureCollection",
+  "lang": "ja",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "shrine-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7454,
+          35.6586
+        ]
+      },
+      "properties": {
+        "_maplatUid": "uid-shrine-1",
+        "name": "山王神社",
+        "desc": "古い説明"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "shrine-2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.75,
+          35.67
+        ]
+      },
+      "properties": {
+        "_maplatUid": "uid-shrine-2",
+        "name": "稲荷神社",
+        "desc": "古い説明2",
+        "address": "東京都"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "temple-1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.76,
+          35.68
+        ]
+      },
+      "properties": {
+        "_maplatUid": "uid-temple-1",
+        "name": "東光寺",
+        "desc": "寺の説明",
+        "image": "https://example.com/t1.jpg"
+      }
+    }
+  ]
+}
