@@ -143,7 +143,7 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
       const importButton = page.locator('[data-resource-import]');
       await expect(importButton).toBeVisible({ timeout: 30000 });
       await importButton.click();
-      await expect(page.getByText('正常に地図データが登録できました。')).toBeVisible({ timeout: 120000 });
+      await expect(page.getByText('地図データを正常にインポートできました。')).toBeVisible({ timeout: 120000 });
       await expect(page.getByTestId('map-title')).toHaveValue('M6T8 地図', { timeout: 30000 });
 
       const importedSlug = `${seeded.mapSlug}-2`;

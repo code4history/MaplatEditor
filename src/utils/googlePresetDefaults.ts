@@ -19,7 +19,7 @@ export const GOOGLE_DEFAULT_MAX_ZOOM = 22;
 export const GOOGLE_DEFAULT_LICENSE_NOTE_BY_LANG: Record<LangCode, string> = {
   en: "Google Maps Platform terms apply. Attribution must remain visible.",
   ja: "Google Maps Platform の利用規約が適用されます。帰属表記は表示したままにしてください。",
-  de: "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben.",
+  de: "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Quellenangabe muss sichtbar bleiben.",
   fr: "Les conditions de Google Maps Platform s'appliquent. L'attribution doit rester visible.",
   es: "Se aplican los términos de Google Maps Platform. La atribución debe permanecer visible.",
   ko: "Google Maps Platform 이용약관이 적용됩니다. 저작자 표시는 계속 보여야 합니다.",
@@ -55,10 +55,19 @@ export type GooglePresetDefaults = {
   maxZoom: number;
 };
 
+/**
+ * 以前の版の既定 Note。保存済みの文書に残っているので、Google 既定として認識し続ける（再上書き抑止）。
+ * de は UI 用語集（docs/i18n/editor-glossary.json の attribution）で「Attribution」を「Quellenangabe」に揃えた。
+ */
+export const GOOGLE_LEGACY_DEFAULT_NOTE_TEXTS: readonly string[] = [
+  "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben.",
+];
+
 export function allGoogleDefaultNoteTexts(): string[] {
   return [
     ...Object.values(GOOGLE_DEFAULT_LICENSE_NOTE_BY_LANG),
     ...Object.values(GOOGLE_DEFAULT_DATA_LICENSE_NOTE_BY_LANG),
+    ...GOOGLE_LEGACY_DEFAULT_NOTE_TEXTS,
   ];
 }
 

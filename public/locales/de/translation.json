@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -194,7 +194,7 @@
       "save": "Speichern",
       "license_label": "Lizenz des Kartenbilds",
       "license_note_label": "Hinweis zur Lizenz des Kartenbilds",
-      "data_attr_label": "Datenattribution",
+      "data_attr_label": "Quellenangabe der Daten",
       "data_license_label": "Datenlizenz",
       "data_license_note_label": "Datenlizenzhinweis",
       "style_label": "Style URL",
@@ -254,7 +254,7 @@
       "preset_terrain": "Gelände",
       "preset_already_registered": "{{name}} ist bereits registriert.",
       "presets_already_registered": "Bereits registriert: {{names}}",
-      "default_license_note": "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben.",
+      "default_license_note": "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Quellenangabe muss sichtbar bleiben.",
       "default_data_license_note": "Kartendaten und Bildmaterial © Google. Siehe Nutzungsbedingungen der Google Maps Platform."
     },
     "style_gl_check_v5_ok": "Funktioniert mit MapLibre GL JS 5 und 6",
@@ -433,7 +433,7 @@
     "map_gcp_license": "Datenlizenz",
     "map_copyright": "Quellenangabe des Kartenbilds",
     "map_copyright_pf": "Geben Sie die Quellenangabe für das Kartenbild ein",
-    "map_gcp_copyright": "Datenattribution",
+    "map_gcp_copyright": "Quellenangabe der Daten",
     "map_gcp_copyright_pf": "Geben Sie die Quellenangabe für die Daten ein",
     "map_source": "Quelle",
     "map_source_pf": "Bitte geben Sie die Quelle ein",
@@ -583,8 +583,8 @@
     "error_exist": "Diese Karten-ID existiert bereits. Der Vorgang wird abgebrochen.",
     "error_no_tile": "Die Daten enthalten keine Kachelbilder. Der Vorgang wird abgebrochen.",
     "error_no_tmb": "Die Daten enthalten keine Miniaturansicht. Der Vorgang wird abgebrochen.",
-    "error_upload": "Beim Registrieren der Kartendaten ist ein Fehler aufgetreten.",
-    "success_upload": "Die Kartendaten wurden erfolgreich registriert.",
+    "error_upload": "Beim Importieren der Kartendaten ist ein Fehler aufgetreten.",
+    "success_upload": "Die Kartendaten wurden erfolgreich importiert.",
     "error_too_large": "Die ZIP-Datei der Kartendaten ist zu groß (Dateien über 2 GiB können nicht importiert werden).",
     "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden.",
     "error_no_json": "Import nicht möglich, da die Einstellungsdatei der Karte (JSON) fehlt"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "Liefert die exportierte App als PWA aus (eine Form, die sich zum Startbildschirm hinzufügen und wie eine eigenständige App nutzen lässt). Ist die Option aktiv, wird ein Web App Manifest ausgegeben und darunter erscheint der Bereich „Manifest-Einstellungen“. Solange sie inaktiv ist, lässt sich auch „Cache“ nicht einstellen.",
     "overlay_ui": "Overlay-UI",
-    "overlay_ui_note": "Eine Oberfläche, die die historische Karte halbtransparent über die Hintergrundkarte legt. Im Viewer erscheint ein Bedienelement zur Überlagerung. Enthält die App keine Basiskarte als Hintergrund, bleibt die Option wirkungslos.",
+    "overlay_ui_note": "Eine Oberfläche, die die historische Karte halbtransparent über die Basiskarte legt. Im Viewer erscheint ein Bedienelement zur Überlagerung. Enthält die App keine Basiskarte als Hintergrund, bleibt die Option wirkungslos.",
     "hide_marker_ui": "Marker ausblenden (UI)",
     "hide_marker_ui_note": "Eine Schaltfläche, die Marker ein- und ausblendet. Sie wird als Bedienelement im Viewer ergänzt. Sie löscht die Marker nicht, sondern lässt sie nur vorübergehend ausblenden.",
     "marker_list_ui": "Markerliste (UI)",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "Einige Symbolverweise konnten nicht aufgelöst werden und wurden unverändert ausgegeben.",
     "warn_icon_too_small": "Das Quellbild des PWA-Symbols ist kleiner als 512px, daher können die generierten Symbole unscharf wirken.",
     "warn_merc_name_collision": "Mehrere Mercator-Kachelsätze hatten denselben Namen; nur der erste wurde exportiert.",
-    "warn_provider_google_key_missing": "Die Google-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
-    "warn_provider_mapbox_key_missing": "Die Mapbox-Hintergrundkarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
+    "warn_provider_google_key_missing": "Die Google-Basiskarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
+    "warn_provider_mapbox_key_missing": "Die Mapbox-Basiskarte ist nicht enthalten, da kein API-Schlüssel festgelegt ist. Registrieren Sie einen Editor-Schlüssel unter Einstellungen > Basiskarte oder legen Sie den Schlüssel der App fest.",
     "export_key_prompt_title": "Veröffentlichungs-API-Schlüssel eingeben",
-    "export_key_prompt_description": "Der Veröffentlichungsschlüssel für den ausgewählten Anbieter ist nicht festgelegt. Er wird nur für diesen Export verwendet und nicht gespeichert. Bleibt das Feld leer, wird die entsprechende Hintergrundkarte nicht einbezogen.",
+    "export_key_prompt_description": "Der Veröffentlichungsschlüssel für den ausgewählten Anbieter ist nicht festgelegt. Er wird nur für diesen Export verwendet und nicht gespeichert. Bleibt das Feld leer, wird die entsprechende Basiskarte nicht einbezogen.",
     "export_key_prompt_label_google": "Google API-Schlüssel",
     "export_key_prompt_label_mapbox": "Mapbox-Zugriffstoken",
     "export_key_prompt_continue": "Mit diesen Werten exportieren",
@@ -1060,9 +1060,9 @@
     "icon_clear": "Leeren",
     "icon_unresolved_set": "Unbekanntes Icon-Set",
     "icon_asset_missing": "Das referenzierte Bild-Asset wurde nicht gefunden",
-    "layer_metadata": "Layer-Metadaten",
-    "layer_icon": "Layer-Symbol",
-    "layer_selected_icon": "Layer-Symbol (ausgewählt)",
+    "layer_metadata": "Ebenen-Metadaten",
+    "layer_icon": "Ebenensymbol",
+    "layer_selected_icon": "Ebenensymbol (ausgewählt)",
     "picker": {
       "title_icon": "Icon auswählen",
       "title_image": "Bild auswählen",

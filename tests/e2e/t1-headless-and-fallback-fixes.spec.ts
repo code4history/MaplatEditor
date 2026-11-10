@@ -168,7 +168,7 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
       const importButton = page.locator('[data-resource-import]');
       await expect(importButton).toBeVisible({ timeout: 30_000 });
       await importButton.click();
-      await expect(page.getByText('正常に地図データが登録できました。')).toBeVisible({ timeout: 120_000 });
+      await expect(page.getByText('地図データを正常にインポートできました。')).toBeVisible({ timeout: 120_000 });
       await expect(page.getByTestId('map-title')).toHaveValue('T4B 地図', { timeout: 30_000 });
 
       // インポート直後の Source 初期化（loadMapTiles / setupBaseMaps）が

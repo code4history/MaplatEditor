@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -161,7 +161,7 @@
     "id": "ID",
     "map_title": "标题",
     "url": "瓦片URL",
-    "attribution": "版权信息",
+    "attribution": "署名",
     "min_zoom": "最小缩放级别",
     "max_zoom": "最大缩放级别",
     "icon": "图标",
@@ -378,7 +378,7 @@
     "title": "地图编辑",
     "metadata": "元数据",
     "gcp": "GCP编辑",
-    "data_io": "数据输入输出",
+    "data_io": "数据导入导出",
     "base_map": "底图",
     "illustrated_map": "绘图地图",
     "map_license": "许可证",
@@ -563,7 +563,7 @@
     "context_select_ground_truth": "选择 Ground Truth",
     "export_options_title": "导出内容",
     "export_option_tiles": "瓦片（含缩略图）",
-    "export_option_tiles_help": "图砖是把地图图像分成小正方形以便显示地图的部分，打开地图时使用。也包含缩略图（列表中显示的小图）。",
+    "export_option_tiles_help": "瓦片是把地图图像分成小正方形以便显示地图的部分，打开地图时使用。也包含缩略图（列表中显示的小图）。",
     "export_option_json": "地图设置文件（JSON・POI）",
     "export_option_originals": "原始图像",
     "export_option_originals_note": "按原样放入原始图像文件。文件会变大，并可能包含照片的附加信息",
@@ -583,8 +583,8 @@
     "error_exist": "该地图ID已存在。停止处理。",
     "error_no_tile": "数据中不包含瓦片图像。停止处理。",
     "error_no_tmb": "数据中不包含缩略图。停止处理。",
-    "error_upload": "注册地图数据时发生错误。",
-    "success_upload": "地图数据已成功注册。",
+    "error_upload": "导入地图数据时发生错误。",
+    "success_upload": "地图数据已成功导入。",
     "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
     "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。",
     "error_no_json": "未包含地图设置文件（JSON），无法导入"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "将导出的应用以 PWA（可添加到主屏幕、像独立应用一样使用的形态）方式发布的设置。开启后会输出 Web App Manifest，下方会出现「应用清单设置」栏。关闭时也无法设置「缓存」。",
     "overlay_ui": "叠加层UI",
-    "overlay_ui_note": "将古地图以半透明方式叠加显示在背景地图之上的 UI。查看器中会出现叠加操作控件。若应用中没有可作为背景的底图，即使开启也不会生效。",
+    "overlay_ui_note": "将古地图以半透明方式叠加显示在底图之上的 UI。查看器中会出现叠加操作控件。若应用中没有可作为背景的底图，即使开启也不会生效。",
     "hide_marker_ui": "隐藏标记UI",
     "hide_marker_ui_note": "切换标记显示与隐藏的按钮。它会作为查看器的操作控件添加。它并非删除标记本身的设置，只是让使用者可以临时隐藏标记。",
     "marker_list_ui": "标记列表UI",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "部分图标引用无法解析，已按原值输出。",
     "warn_icon_too_small": "PWA图标源图片小于512px，生成的图标可能会模糊。",
     "warn_merc_name_collision": "存在多个同名的墨卡托瓦片集，仅导出了第一个。",
-    "warn_provider_google_key_missing": "由于未设置 API 密钥，Google 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
-    "warn_provider_mapbox_key_missing": "由于未设置 API 密钥，Mapbox 背景地图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
+    "warn_provider_google_key_missing": "由于未设置 API 密钥，Google 底图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
+    "warn_provider_mapbox_key_missing": "由于未设置 API 密钥，Mapbox 底图未包含在内。请在“设置 > 底图”中注册编辑器密钥，或设置应用密钥。",
     "export_key_prompt_title": "输入发布用 API 密钥",
-    "export_key_prompt_description": "所选提供方的发布密钥尚未设置。该密钥仅用于本次导出，不会被保存。留空则不会包含相应的背景地图。",
+    "export_key_prompt_description": "所选提供方的发布密钥尚未设置。该密钥仅用于本次导出，不会被保存。留空则不会包含相应的底图。",
     "export_key_prompt_label_google": "Google API 密钥",
     "export_key_prompt_label_mapbox": "Mapbox 访问令牌",
     "export_key_prompt_continue": "使用此内容导出",
@@ -1175,7 +1175,7 @@
   },
   "assetlist": {
     "master_detail": {
-      "new_draft": "新建图像资源",
+      "new_draft": "新建素材",
       "default_language": "默认语言",
       "select_image": "选择图像",
       "no_source": "未选择图像",
@@ -1189,8 +1189,8 @@
       "file_size": "文件大小",
       "untitled": "未命名",
       "overwrite_confirm": "要用当前编辑内容覆盖最新保存版本吗？",
-      "not_found": "找不到所选图像资源。",
-      "select_prompt": "请从左侧列表选择图像资源，或新建一个。"
+      "not_found": "找不到所选素材。",
+      "select_prompt": "请从左侧列表选择素材，或新建一个。"
     },
     "add_image": "添加图片",
     "search_placeholder": "搜索素材…",
@@ -1325,7 +1325,7 @@
     "badge_map_ref_error": "参照地图错误",
     "badge_missing_base_map": "底图缺失",
     "badge_missing_poi": "POI 参照缺失",
-    "badge_missing_asset": "资源缺失",
+    "badge_missing_asset": "素材缺失",
     "badge_pois_format": "POI 格式不受支持",
     "recent_searches_label": "最近的搜索条件",
     "recent_search_apply": "搜索“{{q}}”",

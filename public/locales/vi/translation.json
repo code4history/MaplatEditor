@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -240,8 +240,8 @@
       "label_google": "Google",
       "label_mapbox": "Mapbox",
       "label_maplibre": "MapLibre",
-      "label_tms": "URL ô bản đồ",
-      "label_merc": "Ô bản đồ Mercator",
+      "label_tms": "URL tile",
+      "label_merc": "Tile Mercator",
       "select_prompt": "Chọn loại bản đồ nền.",
       "merc_disabled_reason": "Được tạo từ chỉnh sửa bản đồ",
       "key_required_reason": "Chưa thiết lập khóa trình chỉnh sửa cho {{provider}}. Hãy đăng ký tại Cài đặt > Bản đồ nền."
@@ -532,7 +532,7 @@
     "thumbnail_replace_52": "Thay thế 52px…",
     "thumbnail_requires_save": "Hãy lưu bản đồ trước để có thể thay thế ảnh thu nhỏ.",
     "import_inline_poi_alert": "POI định nghĩa trong bản đồ không hỗ trợ chỉnh sửa. Để chỉnh sửa POI, hãy chuyển đổi POI sang GeoJSON.",
-    "draft_tiles_lost": "Không tìm thấy dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại. Các chỉnh sửa khác của bạn (điểm khống chế, siêu dữ liệu, v.v.) vẫn được giữ nguyên.",
+    "draft_tiles_lost": "Không tìm thấy dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại. Các chỉnh sửa khác của bạn (điểm tương ứng, siêu dữ liệu, v.v.) vẫn được giữ nguyên.",
     "draft_already_saved": "Lần lưu trước đã hoàn tất. Bản nháp này có thể trùng lặp với nội dung đã lưu. Hãy hủy bản nháp và mở lại bản đồ đã lưu, hoặc tải lên hình ảnh lại nếu bạn muốn thay đổi.",
     "staging": {
       "missing_tiles": "Không thể lưu bản đồ vì thiếu dữ liệu tạm thời của hình ảnh bản đồ. Vui lòng tải lên hình ảnh lại trước khi lưu."
@@ -562,8 +562,8 @@
     "context_select_reference_point": "Chọn điểm tham chiếu",
     "context_select_ground_truth": "Chọn ground truth",
     "export_options_title": "Nội dung xuất",
-    "export_option_tiles": "Ô bản đồ (bao gồm ảnh thu nhỏ)",
-    "export_option_tiles_help": "Ô bản đồ là hình ảnh bản đồ được chia thành các ô vuông nhỏ để hiển thị bản đồ. Chúng được dùng khi mở bản đồ. Bao gồm cả ảnh thu nhỏ (ảnh nhỏ hiển thị trong danh sách).",
+    "export_option_tiles": "Tile (bao gồm ảnh thu nhỏ)",
+    "export_option_tiles_help": "Tile là hình ảnh bản đồ được chia thành các ô vuông nhỏ để hiển thị bản đồ. Chúng được dùng khi mở bản đồ. Bao gồm cả ảnh thu nhỏ (ảnh nhỏ hiển thị trong danh sách).",
     "export_option_json": "Tệp cài đặt bản đồ (JSON và POI)",
     "export_option_originals": "Ảnh gốc",
     "export_option_originals_note": "Đưa nguyên tệp ảnh gốc vào. Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
@@ -583,8 +583,8 @@
     "error_exist": "ID bản đồ này đã tồn tại. Dừng xử lý.",
     "error_no_tile": "Dữ liệu không chứa ảnh tile. Dừng xử lý.",
     "error_no_tmb": "Dữ liệu không chứa ảnh thu nhỏ. Dừng xử lý.",
-    "error_upload": "Đã xảy ra lỗi khi đăng ký dữ liệu bản đồ.",
-    "success_upload": "Đã đăng ký dữ liệu bản đồ thành công.",
+    "error_upload": "Đã xảy ra lỗi khi nhập dữ liệu bản đồ.",
+    "success_upload": "Đã nhập dữ liệu bản đồ thành công.",
     "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
     "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập.",
     "error_no_json": "Không thể nhập vì không có tệp cài đặt bản đồ (JSON)"
@@ -713,7 +713,7 @@
     "border_ui": "UI hiển thị đường viền",
     "border_ui_note": "Nút chuyển đổi phần đường viền thể hiện phạm vi của bản đồ cổ. Nút được thêm vào như một điều khiển của trình xem. Thứ được vẽ ra là đường bao của bản đồ và không liên quan tới việc chỉnh sửa phạm vi sử dụng.",
     "cache_ui": "Bộ nhớ đệm",
-    "cache_ui_note": "Thiết lập lưu các ô bản đồ đã tải một lần vào thiết bị để có thể hiển thị ở lần sau và khi ngoại tuyến. Khi xuất, một Service Worker sẽ được đóng gói kèm. Thiết lập này cần có PWA nên không thể cấu hình khi «PWA» đang tắt.",
+    "cache_ui_note": "Thiết lập lưu các tile đã tải một lần vào thiết bị để có thể hiển thị ở lần sau và khi ngoại tuyến. Khi xuất, một Service Worker sẽ được đóng gói kèm. Thiết lập này cần có PWA nên không thể cấu hình khi «PWA» đang tắt.",
     "state_url": "URL trạng thái",
     "state_url_note": "Thiết lập phản ánh bản đồ, vị trí và mức thu phóng đang hiển thị vào URL. Mở lại cùng một URL sẽ khôi phục đúng khung nhìn đó, và chức năng chia sẻ cũng dựa trên thiết lập này. Khi tắt, URL sẽ không thay đổi.",
     "share_ui": "Chức năng chia sẻ",
@@ -823,8 +823,8 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Tìm bản đồ…",
     "warn_mixed_pois": "Dữ liệu POI trộn lẫn định dạng GeoJSON và định dạng khác. Có thể hiển thị không đúng trong trình xem. Hãy chuyển đổi POI định dạng cũ sang GeoJSON.",
-    "provider_source_note": "URL ô bản đồ được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
-    "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi xuất bản và xem trước.",
+    "provider_source_note": "URL tile được tạo tự động từ khóa API và loại, nên không cần nhập thủ công.",
+    "error_missing_base_map_master": "Không tìm thấy bản đồ nền cho nguồn này. Nguồn sẽ bị loại khỏi việc xuất và xem trước.",
     "warn_missing_base_map_master": "Đã loại các nguồn không tìm thấy bản đồ nền.",
     "maplibre_version": "Phiên bản MapLibre GL JS",
     "maplibre_version_5": "5 (5.6.2, mặc định)",
@@ -856,9 +856,9 @@
   },
   "merc": {
     "tab_title": "Bộ tile Mercator",
-    "tab_description": "Tạo bộ tile Mercator từ điểm khống chế (GCP) của bản đồ này và đăng ký làm bản đồ nền.",
+    "tab_description": "Tạo bộ tile Mercator từ điểm tương ứng (GCP) của bản đồ này và đăng ký làm bản đồ nền.",
     "generate": "Tạo tile Mercator",
-    "generate_not_ready": "Không thể thực hiện vì điểm khống chế (GCP) chưa hoàn tất, hoặc tile đã được cập nhật mới nhất.",
+    "generate_not_ready": "Không thể thực hiện vì điểm tương ứng (GCP) chưa hoàn tất, hoặc tile đã được cập nhật mới nhất.",
     "generating_tile": "Đang tạo tile Mercator.",
     "success_generation": "Tạo tile Mercator thành công.",
     "error_generation": "Đã xảy ra lỗi khi tạo tile Mercator.",

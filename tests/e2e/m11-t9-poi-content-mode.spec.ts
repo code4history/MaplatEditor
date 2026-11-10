@@ -72,7 +72,7 @@ test.describe('M11-T9 POI Content Mode', () => {
 
       // AC3: html mode fields
       await expect(page.locator('label:has-text("HTML")')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('label:has-text("参照素材")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('label:has-text("参照アセット")')).toBeVisible({ timeout: 5000 });
       await expect(page.locator('label:has-text("説明")').first()).toHaveCount(0);
       await expect(page.locator('label:has-text("住所")').first()).toHaveCount(0);
 
@@ -158,7 +158,7 @@ test.describe('M11-T9 POI Content Mode', () => {
 
       // html mode で参照素材行に UID が表示されている（実UI状態の無条件アサーション）
       await expect(page.getByTestId('poi-content-mode-tab-html')).toHaveClass(/active/, { timeout: 5000 });
-      const refInput = page.locator('label:has-text("参照素材") + div input[type="text"]').first();
+      const refInput = page.locator('label:has-text("参照アセット") + div input[type="text"]').first();
       await expect(refInput).toHaveValue(assetUid, { timeout: 5000 });
 
       // 「画像を挿入」ボタン（実UI）で HTML textarea に挿入される

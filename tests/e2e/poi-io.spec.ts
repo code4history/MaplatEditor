@@ -224,7 +224,7 @@ test.describe('POI のエクスポート', () => {
       await expect(dialog).toBeVisible({ timeout: 15000 });
       // 選択ダイアログが見えた時点で、確認 (と、それを受けた保存の通知) は出終わり、保存ダイアログはまだ
       const before = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
-      expect(before[0]?.message).toBe('未保存の変更があります。出力方法を選んでください。');
+      expect(before[0]?.message).toBe('未保存の変更があります。エクスポートの方法を選んでください。');
       expect(await saveCalls(app)).toHaveLength(0);
       await page.getByTestId('poi-export-options-confirm').click();
       await expect(dialog).toBeHidden();

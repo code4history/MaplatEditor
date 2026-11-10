@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -532,7 +532,7 @@
     "thumbnail_replace_52": "Ganti 52px…",
     "thumbnail_requires_save": "Simpan peta terlebih dahulu agar thumbnail-nya dapat diganti.",
     "import_inline_poi_alert": "Definisi POI di dalam peta tidak dapat diedit. Untuk mengedit POI tersebut, konversikan ke GeoJSON.",
-    "draft_tiles_lost": "Data sementara untuk gambar peta tidak dapat ditemukan. Silakan unggah gambar lagi. Suntingan Anda yang lain (titik kontrol, metadata, dll.) tetap tersimpan.",
+    "draft_tiles_lost": "Data sementara untuk gambar peta tidak dapat ditemukan. Silakan unggah gambar lagi. Suntingan Anda yang lain (titik korespondensi, metadata, dll.) tetap tersimpan.",
     "draft_already_saved": "Penyimpanan sebelumnya sudah selesai. Draf ini mungkin menduplikasi konten yang tersimpan. Buang draf dan buka kembali peta yang tersimpan, atau unggah gambar lagi jika ingin mengubahnya.",
     "staging": {
       "missing_tiles": "Peta tidak dapat disimpan karena data sementara untuk gambar peta hilang. Silakan unggah gambar lagi sebelum menyimpan."
@@ -564,7 +564,7 @@
     "export_options_title": "Isi yang diekspor",
     "export_option_tiles": "Tile (termasuk gambar mini)",
     "export_option_tiles_help": "Tile adalah gambar peta yang dibagi menjadi kotak-kotak kecil agar peta dapat ditampilkan. Tile dipakai saat peta dibuka. Termasuk gambar mini (gambar kecil yang tampil di daftar).",
-    "export_option_json": "Berkas pengaturan peta (JSON dan POI)",
+    "export_option_json": "File pengaturan peta (JSON dan POI)",
     "export_option_originals": "Gambar asli",
     "export_option_originals_note": "Menyertakan berkas gambar asli apa adanya. Berkas menjadi lebih besar dan dapat berisi metadata foto.",
     "export_option_none_selected": "Pilih setidaknya satu item"
@@ -583,8 +583,8 @@
     "error_exist": "ID Peta ini sudah ada. Proses dihentikan.",
     "error_no_tile": "Data tidak berisi gambar tile. Proses dihentikan.",
     "error_no_tmb": "Data tidak berisi thumbnail. Proses dihentikan.",
-    "error_upload": "Terjadi kesalahan saat mendaftarkan data peta.",
-    "success_upload": "Data peta berhasil didaftarkan.",
+    "error_upload": "Terjadi kesalahan saat mengimpor data peta.",
+    "success_upload": "Data peta berhasil diimpor.",
     "error_too_large": "ZIP data peta terlalu besar (file lebih dari 2 GiB tidak dapat diimpor).",
     "error_corrupt": "ZIP data peta rusak sehingga tidak dapat diimpor.",
     "error_no_json": "Tidak dapat diimpor karena file pengaturan peta (JSON) tidak disertakan"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "Menyajikan aplikasi hasil ekspor sebagai PWA (bentuk yang dapat ditambahkan ke layar beranda dan dipakai seperti aplikasi mandiri). Saat aktif, Web App Manifest dihasilkan dan bagian «Pengaturan manifest» muncul di bawah. Selama nonaktif, «Cache» juga tidak dapat diatur.",
     "overlay_ui": "UI overlay",
-    "overlay_ui_note": "Antarmuka yang menampilkan peta lama secara semitransparan di atas peta latar. Kendali overlay muncul di penampil. Jika aplikasi tidak memuat peta dasar sebagai latar, mengaktifkannya tidak berpengaruh.",
+    "overlay_ui_note": "Antarmuka yang menampilkan peta lama secara semitransparan di atas peta dasar. Kendali overlay muncul di penampil. Jika aplikasi tidak memuat peta dasar sebagai latar, mengaktifkannya tidak berpengaruh.",
     "hide_marker_ui": "UI sembunyikan penanda",
     "hide_marker_ui_note": "Tombol untuk menampilkan atau menyembunyikan penanda. Tombol ini ditambahkan sebagai kendali penampil. Tombol ini tidak menghapus penanda, hanya membiarkan pengguna menyembunyikannya sementara.",
     "marker_list_ui": "UI daftar penanda",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "Beberapa referensi ikon tidak dapat diselesaikan dan dibiarkan tidak berubah pada keluaran.",
     "warn_icon_too_small": "Gambar sumber ikon PWA lebih kecil dari 512px, sehingga ikon yang dihasilkan mungkin tampak buram.",
     "warn_merc_name_collision": "Beberapa set tile Mercator memiliki nama yang sama; hanya yang pertama yang diekspor.",
-    "warn_provider_google_key_missing": "Peta latar Google tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
-    "warn_provider_mapbox_key_missing": "Peta latar Mapbox tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
+    "warn_provider_google_key_missing": "Peta dasar Google tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
+    "warn_provider_mapbox_key_missing": "Peta dasar Mapbox tidak disertakan karena kunci API belum diatur. Daftarkan kunci editor di Pengaturan > Peta Dasar, atau atur kunci aplikasi.",
     "export_key_prompt_title": "Masukkan Kunci API Publikasi",
-    "export_key_prompt_description": "Kunci publikasi untuk penyedia yang dipilih belum diatur. Kunci ini hanya akan digunakan untuk ekspor ini dan tidak akan disimpan. Jika dibiarkan kosong, peta latar yang sesuai tidak akan disertakan.",
+    "export_key_prompt_description": "Kunci publikasi untuk penyedia yang dipilih belum diatur. Kunci ini hanya akan digunakan untuk ekspor ini dan tidak akan disimpan. Jika dibiarkan kosong, peta dasar yang sesuai tidak akan disertakan.",
     "export_key_prompt_label_google": "Kunci API Google",
     "export_key_prompt_label_mapbox": "Token Akses Mapbox",
     "export_key_prompt_continue": "Ekspor dengan nilai ini",
@@ -822,7 +822,7 @@
     },
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Cari peta…",
-    "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di viewer. Konversikan POI format lama ke GeoJSON.",
+    "warn_mixed_pois": "Data POI mencampur format GeoJSON dan format lain. Mungkin tidak ditampilkan dengan benar di penampil. Konversikan POI format lama ke GeoJSON.",
     "provider_source_note": "URL tile dibuat otomatis dari kunci API dan jenis, sehingga tidak perlu diisi manual.",
     "error_missing_base_map_master": "Peta dasar untuk sumber ini tidak ditemukan. Sumber ini akan dikecualikan dari ekspor dan pratinjau.",
     "warn_missing_base_map_master": "Sumber yang peta dasarnya tidak ditemukan telah dikecualikan.",
@@ -856,9 +856,9 @@
   },
   "merc": {
     "tab_title": "Set Tile Mercator",
-    "tab_description": "Buat set tile Mercator dari titik kontrol (GCP) peta ini dan daftarkan sebagai peta dasar.",
+    "tab_description": "Buat set tile Mercator dari titik korespondensi (GCP) peta ini dan daftarkan sebagai peta dasar.",
     "generate": "Buat Tile Mercator",
-    "generate_not_ready": "Tidak dapat dijalankan karena titik kontrol (GCP) belum lengkap, atau tile sudah mutakhir.",
+    "generate_not_ready": "Tidak dapat dijalankan karena titik korespondensi (GCP) belum lengkap, atau tile sudah mutakhir.",
     "generating_tile": "Sedang membuat tile Mercator.",
     "success_generation": "Pembuatan tile Mercator berhasil.",
     "error_generation": "Terjadi kesalahan saat membuat tile Mercator.",
@@ -900,12 +900,12 @@
     "external_url_note": "Entri POI yang merujuk ke URL eksternal. Isinya tidak dapat diedit atau dikonversi, tetapi Anda dapat menggunakan \"Tambahkan penimpaan\" untuk menimpa atribut tampilan (judul, ikon, sembunyikan). Anda juga dapat mengubah urutan dan menghapusnya.",
     "layer_ref_note": "Merujuk ke berkas eksternal dan hanya menimpa atribut tampilan untuk peta/app ini. Isi berkas yang dirujuk tidak diubah.",
     "add_override": "Tambahkan penimpaan",
-    "mixed_layer_warning": "Data POI berformat GeoJSON dan format lainnya tercampur. Viewer tidak dapat menampilkan larik ini dengan benar. Konversikan ke GeoJSON dan rapikan.",
+    "mixed_layer_warning": "Data POI berformat GeoJSON dan format lainnya tercampur. Penampil tidak dapat menampilkan larik ini dengan benar. Konversikan ke GeoJSON dan rapikan.",
     "convert_blocked_note": "Lapisan ini berisi GeoJSON, referensi URL eksternal, atau elemen yang tidak dapat dikonversi, sehingga tidak dapat dikonversi sekaligus. Hapus elemen tersebut untuk merapikannya, maka konversi akan tersedia.",
-    "layer_key_missing_warning": "Elemen ini tidak memiliki pengenal lapisan (id), sehingga viewer akan gagal menampilkan keseluruhan data POI ini. Rapikan dengan mengonversinya ke GeoJSON (jika dapat dikonversi) atau menghapusnya.",
-    "icon_override": "Ikon pengganti",
-    "selected_icon_override": "Ikon pengganti saat dipilih",
-    "override_title": "Judul pengganti",
+    "layer_key_missing_warning": "Elemen ini tidak memiliki pengenal lapisan (id), sehingga penampil akan gagal menampilkan keseluruhan data POI ini. Rapikan dengan mengonversinya ke GeoJSON (jika dapat dikonversi) atau menghapusnya.",
+    "icon_override": "Ikon timpaan",
+    "selected_icon_override": "Ikon timpaan saat dipilih",
+    "override_title": "Judul timpaan",
     "missing_source": "Sumber POI yang dirujuk tidak ditemukan (mungkin telah dihapus). Gunakan × untuk melepas rujukan.",
     "search_placeholder": "Cari POI…",
     "external_item_count": "{{count}} item",
@@ -1060,9 +1060,9 @@
     "icon_clear": "Hapus",
     "icon_unresolved_set": "Set ikon tidak dikenal",
     "icon_asset_missing": "Aset gambar yang dirujuk tidak ditemukan",
-    "layer_metadata": "Metadata Layer",
-    "layer_icon": "Ikon Layer",
-    "layer_selected_icon": "Ikon Layer (dipilih)",
+    "layer_metadata": "Metadata Lapisan",
+    "layer_icon": "Ikon Lapisan",
+    "layer_selected_icon": "Ikon Lapisan (dipilih)",
     "picker": {
       "title_icon": "Pilih ikon",
       "title_image": "Pilih gambar",

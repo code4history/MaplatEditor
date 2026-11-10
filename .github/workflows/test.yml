@@ -9,7 +9,10 @@ name: Tests
 #   - continue-on-error を持つのは smoke の実行 step だけ（判定 step は持たない）
 # 既知の失敗・実行しない smoke は ci/test-exclusions.json に理由と Issue つきで載せる。運用は ci/README.md。
 #
-# 安全面: GITHUB_TOKEN は read のみ・checkout はトークンを残さない・action はすべて 40 桁 SHA 固定・secrets を使わない。
+# 安全面: GITHUB_TOKEN は read のみ（例外: smoke job の pull-requests: write。用語集の正本を変えた PR へ要約を
+#         1 件コメントするためだけに使い、トークンはその step にだけ渡す。その step は base の commit の script を走らせる）・
+#         checkout はトークンを残さない・
+#         action はすべて 40 桁 SHA 固定・secrets を使わない。
 
 on:
   pull_request:
@@ -30,10 +33,16 @@ jobs:
     # macos-latest の繰り上げで OS が黙って変わるのを避ける（build.yml は変えない）
     runs-on: macos-26
     timeout-minutes: 45
+    permissions:
+      contents: read
+      # 用語集の正本を変えた PR に変更の要約をコメントする（Post editor glossary summary の step だけがトークンを使う）
+      pull-requests: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+          # 用語集の検査の関門（scripts/editor-glossary-check.mjs）が PR の base と差分を取る
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
@@ -61,7 +70,25 @@ jobs:
       - name: Run smokes
         id: run
         continue-on-error: true
+        env:
+          # 用語集の関門 1・2 の比較元（PR は base、push は直前の commit）
+          EDITOR_GLOSSARY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: node scripts/ci/run-smokes.mjs --report smoke-report.json
+
+      # 用語集の正本を変えた PR だけ、変更の要約を PR に 1 件コメントする（合否は決めない）
+      - name: Post editor glossary summary
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # PR 側で書き換えた要約の script にトークンを渡さないよう、base の commit の script を走らせる
+        run: |
+          base_script="$RUNNER_TEMP/post-editor-glossary-summary.mjs"
+          if git show "${{ github.event.pull_request.base.sha }}:scripts/ci/post-editor-glossary-summary.mjs" > "$base_script" 2>/dev/null; then
+            node "$base_script" --report editor-glossary-report.json
+          else
+            echo "base に要約の script が無い（用語集の初版 PR）ので、コメントは出さない"
+          fi
 
       - name: Judge smokes
         if: always()

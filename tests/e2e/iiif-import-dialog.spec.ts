@@ -489,7 +489,7 @@ test.describe('IIIF import dialog', () => {
       );
 
       // サムネイルを作れなかったことが、画面かネイティブのダイアログに 1 回だけ出る
-      const warning = 'この画像サービスではサムネイルを作れませんでした。取り込みは続けます。';
+      const warning = 'この画像サービスではサムネイルを作れませんでした。インポートは続けます。';
       await expect.poll(() => warningOccurrences(app, page, warning), { timeout: 60_000 }).toBe(1);
     } finally {
       await quitElectronApplication(app);

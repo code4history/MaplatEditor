@@ -593,7 +593,7 @@ test.describe('M19-T1: 地図の名称属性統一と既存データ移行', () 
         const importButton = page.locator('[data-resource-import]');
         await expect(importButton).toBeVisible({ timeout: 30000 });
         await importButton.click();
-        await expect(page.getByText('正常に地図データが登録できました。')).toBeVisible({ timeout: 180000 });
+        await expect(page.getByText('地図データを正常にインポートできました。')).toBeVisible({ timeout: 180000 });
         await dismissStartupModals(page);
       };
 

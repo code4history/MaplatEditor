@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -135,7 +135,7 @@
   },
   "basemap": {
     "source_metadata": "출처 정보 (선택 사항)",
-    "source_description_pf": "배경 지도의 설명을 입력하세요.",
+    "source_description_pf": "베이스맵의 설명을 입력하세요.",
     "thumbnail_manage": "썸네일 관리",
     "thumbnail_replace_512": "512px 교체…",
     "thumbnail_replace_52": "52px 교체…",
@@ -345,13 +345,13 @@
     "delete": "삭제"
   },
   "dataio": {
-    "import_map_data": "지도 데이터 입력",
-    "import_title": "데이터셋 입력",
-    "export_title": "데이터셋 출력",
-    "import_csv": "CSV 입력",
+    "import_map_data": "지도 데이터 가져오기",
+    "import_title": "데이터셋 가져오기",
+    "export_title": "데이터셋 내보내기",
+    "import_csv": "CSV 가져오기",
     "csv_file": "CSV 파일",
-    "import_csv_status": "입력 설정 오류 상태",
-    "import_csv_submit": "CSV 파일 입력",
+    "import_csv_status": "가져오기 설정 오류 상태",
+    "import_csv_submit": "CSV 파일 가져오기",
     "csv_error_column_dup": "컬럼이 중복되어 있습니다",
     "csv_error_column_null": "컬럼 값이 올바르지 않습니다",
     "csv_error_ignore_header": "무시할 헤더 행 수가 올바르지 않습니다",
@@ -372,13 +372,13 @@
     "other_coord": "직접 입력",
     "error_occurs": "오류가 발생했습니다",
     "csv_format_error": "CSV 파일 형식이 올바르지 않습니다",
-    "csv_override_confirm": "GCP가 이미 등록되어 있습니다. CSV를 불러오면 GCP가 초기화되는데, 계속하시겠습니까?"
+    "csv_override_confirm": "GCP가 이미 등록되어 있습니다. CSV를 가져오면 GCP가 초기화되는데, 계속하시겠습니까?"
   },
   "mapedit": {
     "title": "지도 편집",
     "metadata": "메타데이터",
     "gcp": "GCP 편집",
-    "data_io": "데이터 입출력",
+    "data_io": "데이터 가져오기/내보내기",
     "base_map": "베이스맵",
     "illustrated_map": "그림지도",
     "map_license": "라이선스",
@@ -498,9 +498,9 @@
     "error_image_upload": "지도 이미지 등록 중 오류가 발생했습니다.",
     "success_image_upload": "지도 이미지가 정상적으로 등록되었습니다.",
     "image_uploading": "지도 이미지를 등록하는 중입니다.",
-    "export_map_data": "지도 데이터 출력",
-    "message_export": "출력용 지도 데이터를 준비하고 있습니다.",
-    "export_success": "출력에 성공했습니다.",
+    "export_map_data": "지도 데이터 내보내기",
+    "message_export": "내보낼 지도 데이터를 준비하고 있습니다.",
+    "export_success": "내보내기에 성공했습니다.",
     "imexport_canceled": "취소되었습니다.",
     "export_error": "처리 중 오류가 발생했습니다.",
     "confirm_save": "변경 사항을 저장합니다.\n계속하시겠습니까?",
@@ -583,8 +583,8 @@
     "error_exist": "이미 존재하는 지도 ID입니다. 처리를 중단합니다.",
     "error_no_tile": "데이터에 타일 이미지가 포함되어 있지 않습니다. 처리를 중단합니다.",
     "error_no_tmb": "데이터에 썸네일이 포함되어 있지 않습니다. 처리를 중단합니다.",
-    "error_upload": "지도 데이터 등록 중 오류가 발생했습니다.",
-    "success_upload": "지도 데이터가 정상적으로 등록되었습니다.",
+    "error_upload": "지도 데이터를 가져오는 중 오류가 발생했습니다.",
+    "success_upload": "지도 데이터 가져오기에 성공했습니다.",
     "error_too_large": "지도 데이터 ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다).",
     "error_corrupt": "지도 데이터 ZIP이 손상되어 가져올 수 없습니다.",
     "error_no_json": "지도 설정 파일(JSON)이 포함되어 있지 않아 가져올 수 없습니다"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "내보낸 앱을 PWA(홈 화면에 추가해 단독 앱처럼 사용할 수 있는 형태)로 배포하는 설정입니다. 켜면 Web App Manifest를 출력하고 아래에 「매니페스트 설정」란이 나타납니다. 꺼져 있을 때는 「캐시」도 설정할 수 없습니다.",
     "overlay_ui": "오버레이 UI",
-    "overlay_ui_note": "고지도를 배경 지도 위에 반투명하게 겹쳐 표시하는 UI입니다. 뷰어에 겹쳐 보기 조작자가 표시됩니다. 배경이 될 베이스맵이 앱에 포함되어 있지 않으면 켜도 동작하지 않습니다.",
+    "overlay_ui_note": "고지도를 베이스맵 위에 반투명하게 겹쳐 표시하는 UI입니다. 뷰어에 겹쳐 보기 조작자가 표시됩니다. 배경이 될 베이스맵이 앱에 포함되어 있지 않으면 켜도 동작하지 않습니다.",
     "hide_marker_ui": "마커 숨김 UI",
     "hide_marker_ui_note": "마커의 표시와 숨김을 전환하는 버튼입니다. 뷰어의 조작자로 추가됩니다. 마커 자체를 지우는 설정이 아니라 사용자가 일시적으로 숨길 수 있게 할 뿐입니다.",
     "marker_list_ui": "마커 목록 UI",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "해석할 수 없는 아이콘 참조가 있어 원래 값 그대로 출력했습니다.",
     "warn_icon_too_small": "PWA 아이콘 원본 이미지가 512px보다 작아 생성된 아이콘이 흐릿하게 보일 수 있습니다.",
     "warn_merc_name_collision": "동일한 이름의 메르카토르 타일 세트가 여러 개 있어 첫 번째 항목만 내보냈습니다.",
-    "warn_provider_google_key_missing": "API 키가 설정되지 않아 Google 배경 지도가 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
-    "warn_provider_mapbox_key_missing": "API 키가 설정되지 않아 Mapbox 배경 지도가 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
+    "warn_provider_google_key_missing": "API 키가 설정되지 않아 Google 베이스맵이 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
+    "warn_provider_mapbox_key_missing": "API 키가 설정되지 않아 Mapbox 베이스맵이 포함되지 않습니다. 설정 > 베이스맵에서 에디터용 키를 등록하거나 앱의 키를 설정하세요.",
     "export_key_prompt_title": "공개용 API 키 입력",
-    "export_key_prompt_description": "선택한 제공자의 공개용 키가 설정되지 않았습니다. 이번 내보내기에만 사용되며 저장되지 않습니다. 비워두면 해당 배경 지도가 포함되지 않습니다.",
+    "export_key_prompt_description": "선택한 제공자의 공개용 키가 설정되지 않았습니다. 이번 내보내기에만 사용되며 저장되지 않습니다. 비워두면 해당 베이스맵이 포함되지 않습니다.",
     "export_key_prompt_label_google": "Google API 키",
     "export_key_prompt_label_mapbox": "Mapbox 액세스 토큰",
     "export_key_prompt_continue": "이 내용으로 내보내기",
@@ -829,15 +829,15 @@
     "maplibre_version": "MapLibre GL JS 버전",
     "maplibre_version_5": "5 (5.6.2, 기본값)",
     "maplibre_version_6": "6 (6.16.0)",
-    "maplibre_version_note": "미리보기와 내보낸 앱에서 MapLibre 배경 지도를 표시할 때 사용하는 MapLibre GL JS 버전입니다. 버전 6은 새로운 스타일 기능을 지원하지만 import map과 WebGL 2를 지원하는 브라우저가 필요합니다.",
+    "maplibre_version_note": "미리보기와 내보낸 앱에서 MapLibre 베이스맵을 표시할 때 사용하는 MapLibre GL JS 버전입니다. 버전 6은 새로운 스타일 기능을 지원하지만 import map과 WebGL 2를 지원하는 브라우저가 필요합니다.",
     "maplibre_version_switch_6": "버전 6으로 전환",
     "maplibre_version_6_confirm_message": "이 앱에서 MapLibre GL JS 버전 6을 사용하시겠습니까?",
     "maplibre_version_6_confirm_detail": "1. 새로운 스타일 기능(예: line-layer-opacity)을 사용할 수 있습니다.\n2. 내보낸 앱을 여는 브라우저는 import map과 WebGL 2를 지원해야 합니다. 오래된 브라우저(예: Safari 16.3 이하)에서는 지도가 표시되지 않습니다.\n3. 내보낸 앱을 Content-Security-Policy와 함께 배포하는 경우 script-src https://cdn.jsdelivr.net 과 worker-src blob: 을 허용해야 합니다.",
     "maplibre_version_6_confirm_ok": "버전 6으로 전환",
     "maplibre_version_6_confirm_cancel": "취소",
-    "maplibre_version_warning": "배경 지도 \"{{name}}\"은(는) MapLibre GL JS 6이 필요한 기능({{reasons}})을 사용하므로 버전 5에서는 표시되지 않습니다.",
-    "maplibre_version_warning_unknown": "배경 지도 \"{{name}}\"이(가) MapLibre GL JS 5에서 동작하는지 확인할 수 없습니다({{reasons}}).",
-    "maplibre_export_warning_message": "이 앱의 일부 MapLibre 배경 지도는 MapLibre GL JS 6이 필요하므로 버전 5에서는 표시되지 않습니다.",
+    "maplibre_version_warning": "베이스맵 \"{{name}}\"은(는) MapLibre GL JS 6이 필요한 기능({{reasons}})을 사용하므로 버전 5에서는 표시되지 않습니다.",
+    "maplibre_version_warning_unknown": "베이스맵 \"{{name}}\"이(가) MapLibre GL JS 5에서 동작하는지 확인할 수 없습니다({{reasons}}).",
+    "maplibre_export_warning_message": "이 앱의 일부 MapLibre 베이스맵은 MapLibre GL JS 6이 필요하므로 버전 5에서는 표시되지 않습니다.",
     "maplibre_export_warning_detail": "{{reasons}}\n\n표시하려면 앱 관리 화면의 \"MapLibre GL JS 버전\"을 6으로 바꾸고 앱을 저장한 뒤 다시 내보내세요.",
     "maplibre_export_warning_continue": "그대로 내보내기",
     "maplibre_export_warning_cancel": "취소"
