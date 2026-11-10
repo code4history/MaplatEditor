@@ -55,6 +55,11 @@ function makeRepo(prefix, { withGlossary = true } = {}) {
   cpSync(checker, path.join(dir, 'scripts', 'editor-glossary-check.mjs'));
   cpSync(path.join(root, 'scripts', 'editor-locale-parity.mjs'), path.join(dir, 'scripts', 'editor-locale-parity.mjs'));
   if (withGlossary) cpSync(path.join(root, 'docs', 'i18n'), path.join(dir, 'docs', 'i18n'), { recursive: true });
+  writeJson(path.join(dir, 'package.json'), { name: 'fixture', private: true, scripts: { 'smoke:editor-glossary': 'node scripts/editor-glossary-check.mjs', 'smoke:other': 'node -e 0' } });
+  mkdirSync(path.join(dir, 'ci'), { recursive: true });
+  writeJson(path.join(dir, 'ci', 'test-exclusions.json'), { schema: 1, policy: 'fixture', smoke: [], e2e: [] });
+  mkdirSync(path.join(dir, '.github', 'workflows'), { recursive: true });
+  writeFileSync(path.join(dir, '.github', 'workflows', 'test.yml'), 'name: Tests\n');
   git(dir, 'init', '-q', '-b', 'master');
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', 'base');
@@ -184,6 +189,8 @@ try {
   {
     const res = evaluate({ en: 'Replace the values', ja: '値を上書き' });
     check('共有形: ja「上書き」があり en に overwrite も override も無いと赤', res.findings.some((f) => f.kind === 'shared'), JSON.stringify(res.findings.slice(0, 3)));
+    const res3 = evaluate({ en: 'Open the source folder', ja: '出所のフォルダを開く' });
+    check('共有形: en「source」があり ja に「ソース」も「典拠」も無いと赤（振り分けない）', res3.findings.some((f) => f.kind === 'shared') && !has(res3, 'source') && !has(res3, 'citation'), JSON.stringify(res3.findings.slice(0, 3)));
     const res2 = evaluate({ en: 'Source', ja: '典拠' });
     check('共有形: ja「典拠」のキーは source でなく citation に結び付く', has(res2, 'citation') && !has(res2, 'source'));
   }
@@ -381,6 +388,65 @@ try {
     const changed = git(dir, 'diff', '--name-only', base, 'HEAD');
     const r = run(dir, ['--base', base]);
     check('関門: 生成物と locale を一緒に変える PR は通る', r.status === 0 && changed.includes('editor-glossary.bindings.json'), summarize(r));
+  }
+
+  // ───────────── 新しいキーに例外が要るとき（2 段の PR） ─────────────
+  {
+    const dir = makeRepo('two-step');
+    const base1 = git(dir, 'rev-parse', 'HEAD');
+    const KEY = 'poiio.fixture_new_map_key';
+    const vals = { de: 'Karte öffnen', en: 'Open map', es: 'Abrir mapa', fr: 'Ouvrir la carte', id: 'Buka peta', ja: '地図を開く', ko: 'Open map', th: 'เปิดแผนที่', vi: 'Mở bản đồ', zh: '打开地图', 'zh-TW': '開啟地圖' };
+    // 1 段目: 正本だけの PR で、まだ無いキーへの例外を足す → 警告で緑
+    editExceptions(dir, (e) => e.exceptions.push({ type: 'untranslated', concept: 'map', locale: 'ko', key: KEY, value: 'Open map', reason: 'fixture: 未翻訳' }));
+    run(dir, ['--write']);
+    const c1 = commitAll(dir, 'glossary first');
+    const r1 = run(dir, ['--base', base1]);
+    check('2 段: 正本だけの PR で、まだ無いキーへの例外を足すと緑（警告）', r1.status === 0 && (r1.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === KEY) && /例外を足した/.test(r1.report?.glossaryChangeSummary ?? ''), summarize(r1));
+    // 2 段目: locale の PR でキーを足す → 例外が使われて緑・警告なし
+    for (const l of LANGS) setValue(dir, l, KEY, vals[l]);
+    run(dir, ['--write']);
+    commitAll(dir, 'locale second');
+    const r2 = run(dir, ['--base', c1]);
+    check('2 段: locale の PR でキーを足すと緑（例外が使われ、警告なし）', r2.status === 0 && (r2.report?.warnings ?? []).length === 0 && (r2.report?.counts?.suppressedByType?.untranslated ?? 0) > 0, summarize(r2));
+    // 例外なしでキーだけ足すと赤（ko の必須形の不足）
+    const dir2 = makeRepo('two-step-missing');
+    for (const l of LANGS) setValue(dir2, l, KEY, vals[l]);
+    run(dir2, ['--write']);
+    const r3 = run(dir2);
+    check('2 段: 例外を先に足さずにキーを足すと赤', r3.status === 1 && findings(r3, (v) => v.key === KEY && v.lang === 'ko' && v.kind === 'required').length === 1, summarize(r3));
+  }
+
+  // ───────────── 関門で守る対象（検査を外せるファイル） ─────────────
+  for (const [label, mutate] of [
+    ['package.json の smoke:editor-glossary', (dir) => { const f = path.join(dir, 'package.json'); const p = readJson(f); delete p.scripts['smoke:editor-glossary']; writeJson(f, p); }],
+    ['ci/test-exclusions.json', (dir) => { const f = path.join(dir, 'ci', 'test-exclusions.json'); const p = readJson(f); p.smoke.push({ name: 'editor-glossary', kind: 'excluded', reason: 'x', issue: '#0' }); writeJson(f, p); }],
+    ['検査を動かす workflow', (dir) => writeFileSync(path.join(dir, '.github', 'workflows', 'test.yml'), 'name: Tests\non: workflow_dispatch\n')],
+  ]) {
+    const dir = makeRepo('gate-runner');
+    const base = git(dir, 'rev-parse', 'HEAD');
+    mutate(dir);
+    setValue(dir, 'de', 'common.save', 'Speichern!');
+    commitAll(dir, 'runner and locale');
+    const r = run(dir, ['--base', base]);
+    check(`関門: ${label} と locale を同じ PR で変えると赤`, r.status === 1 && findings(r, (v) => v.kind === 'gate').length === 1, summarize(r));
+    const dir2 = makeRepo('gate-runner-only');
+    const base2 = git(dir2, 'rev-parse', 'HEAD');
+    mutate(dir2);
+    commitAll(dir2, 'runner only');
+    const r2 = run(dir2, ['--base', base2]);
+    check(`関門: ${label} だけを変えた PR は緑で、要約が出る`, r2.status === 0 && /検査を動かす側/.test(r2.report?.glossaryChangeSummary ?? ''), summarize(r2));
+  }
+  {
+    const dir = makeRepo('gate-pkg-other');
+    const base = git(dir, 'rev-parse', 'HEAD');
+    const f = path.join(dir, 'package.json');
+    const p = readJson(f);
+    p.scripts['smoke:new-feature'] = 'node -e 0';
+    writeJson(f, p);
+    setValue(dir, 'de', 'common.save', 'Speichern!');
+    commitAll(dir, 'other script and locale');
+    const r = run(dir, ['--base', base]);
+    check('関門: package.json の検査と関係ない script と locale を一緒に変える PR は通る', r.status === 0 && !r.report?.glossaryChangeSummary, summarize(r));
   }
 
   // ───────────── 代表語・構造 ─────────────
