@@ -164,7 +164,7 @@ test.describe('M5-T8 取り込み上限の自動化と機械限界の事前ブ�
       const text = await modalText(page);
       // 汎用文言ではなく、機械限界の具体文言が出ていること
       expect(text).not.toContain('地図画像登録でエラーが発生しました');
-      expect(text).toContain('画像を縮小してから取り込んでください');
+      expect(text).toContain('画像を縮小してからインポートしてください');
       expect(text).toContain(String(Math.round((side * side) / 1e6)));   // MP（投入寸法から決まる）
 
       // 必要量と利用可能量が**両方**描画され、必要量のほうが大きいこと。
@@ -203,7 +203,7 @@ test.describe('M5-T8 取り込み上限の自動化と機械限界の事前ブ�
       const harness = await readHarness(app);
       expect(harness.messages).toHaveLength(1);
       expect(harness.messages[0]).toContain('120');
-      expect(harness.messages[0]).toContain('取り込みに長い時間がかかります');
+      expect(harness.messages[0]).toContain('インポートに長い時間がかかります');
       expect(harness.openDialogCalls).toBe(1);
     } finally {
       await quitElectronApplication(app);
@@ -231,7 +231,7 @@ test.describe('M5-T8 取り込み上限の自動化と機械限界の事前ブ�
       expect(harness.messages).toHaveLength(1);          // 確認は1回だけ
       expect(harness.openDialogCalls).toBe(1);           // ★ 再表示していない
       // 確認要求が UI へ再度返ってきていない（往復が1周で終わっている）
-      expect(await modalText(page)).not.toContain('取り込みに長い時間がかかります');
+      expect(await modalText(page)).not.toContain('インポートに長い時間がかかります');
       await okButton.click();
     } finally {
       await quitElectronApplication(app);

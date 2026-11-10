@@ -129,7 +129,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
 
       // 取込完了は進捗モーダルの成功表示で判定する
       // （URL の import=1 は取込後もクエリに残るため終了判定に使えない）
-      await expect(page.getByText('正常に地図データが登録できました。'))
+      await expect(page.getByText('地図データを正常にインポートできました。'))
         .toBeVisible({ timeout: 120000 });
       // 取り込んだ地図が編集画面に載る
       await expect(page.getByTestId('map-title')).toHaveValue('T4B 地図', { timeout: 30000 });

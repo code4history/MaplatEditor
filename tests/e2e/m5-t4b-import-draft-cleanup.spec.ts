@@ -106,7 +106,7 @@ test('取込で作られた地図とは別に、身寄りのない下書きが�
 
     // 実 UI の取込導線
     await page.locator('[data-resource-import]').click();
-    await expect(page.getByText('正常に地図データが登録できました。')).toBeVisible({ timeout: 120000 });
+    await expect(page.getByText('地図データを正常にインポートできました。')).toBeVisible({ timeout: 120000 });
 
 
     // 取り込んだ地図は存在する

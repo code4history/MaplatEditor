@@ -85,7 +85,7 @@ test.describe('M5-T5: 実 UI からの同名 slug 取込（AC8）', () => {
 
       // 取込完了は進捗モーダルの成功表示で判定する
       // （URL の import=1 は取込後もクエリに残るため終了判定に使えない）
-      await expect(page.getByText('正常に地図データが登録できました。'))
+      await expect(page.getByText('地図データを正常にインポートできました。'))
         .toBeVisible({ timeout: 120000 });
       // 失敗表示が出ていないこと（旧挙動の再発検査。人間が 2026-08-03 に踏んだ文言）
       await expect(page.getByText('存在する地図IDです。処理を停止します。')).toBeHidden();
@@ -140,7 +140,7 @@ test.describe('M5-T5: 実 UI からの同名 slug 取込（AC8）', () => {
 
       for (const n of [2, 3]) {
         await importViaMapList(app, page, zipPath);
-        await expect(page.getByText('正常に地図データが登録できました。'))
+        await expect(page.getByText('地図データを正常にインポートできました。'))
           .toBeVisible({ timeout: 120000 });
         const slug = `${seeded.mapSlug}-${n}`;
         const doc = await page.evaluate((s) => window.mapedit.request(s), slug);

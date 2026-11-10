@@ -1,0 +1,4371 @@
+{
+  "asset": {
+    "assetlist.delete_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.errors.not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.new_draft": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.select_prompt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.no_assets_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "navbar.assets": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.add_reference_asset": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.icon_asset_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.missing_asset_refs": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.picker.no_assets": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.picker.tab_assets": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.reference_assets": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.export_option_images_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.format_json_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_missing_asset": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.kind_asset": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "canvas": {
+    "iiif_import.canvas_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.error.no_image_service": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.canvas_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.canvas-not-found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.from_canvas": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "manifest": {
+    "iiif_import.reason.not-manifest": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.url_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.bad-url": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.fetch-failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.not-json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.not-manifest": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.timeout": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.too-large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.unsupported-version": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.from_manifest": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.manifest_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.recopy_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "import": {
+    "assetlist.errors.invalid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.csv_override_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_csv": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_csv_status": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_csv_submit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_map_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_corrupt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_no_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.success_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.busy_importing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.canvas_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.error.stage_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.open": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.thumbnail_unavailable": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_long_image_import": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.data_io": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_image_machine_limit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.format_geojson_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_blocked": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_button": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_error.generic": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_error.kmz_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_fatal": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_geojson_hint": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_mode_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_nothing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.ignored_columns": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.image_dropped": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.kml_description_image_dropped": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.kml_no_placemarks": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.kml_non_point_skipped": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.pixel_coordinates_ignored": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.omitted_csv": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.invalid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.non_point": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.zip_corrupt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.zip_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.import_file": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.import_modal.import": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.import_modal.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.import_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.import_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "export": {
+    "appedit.cache_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.description_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.error_missing_base_map_master": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export.done": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export.failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export.progress": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_button": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_key_prompt_continue": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_key_prompt_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_success": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.extra_info_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.manifest_icon_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_continue": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_6_confirm_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.pwa_manifest_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.site_url_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_merc_name_collision": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.export_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.busy_exporting": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_button": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_dirty_prompt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_save_and_run": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_saved_only": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_success": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.data_io": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_map_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_options_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_success": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.message_export": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.directgo_preview_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.omitted_csv": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "configure": {
+    "appedit.app_settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "appedit.builtin_source_note": {
+      "by": [
+        "en"
+      ],
+      "role": "item"
+    },
+    "appedit.cache_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "appedit.hide_marker_ui_note": {
+      "by": [
+        "ja"
+      ],
+      "role": "item"
+    },
+    "appedit.http_settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "appedit.manifest_settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "appedit.pwa_manifest_note": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "appedit.state_url_note": {
+      "by": [
+        "ja"
+      ],
+      "role": "item"
+    },
+    "appedit.warn_provider_google_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "appedit.warn_provider_mapbox_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "basemap.always_note": {
+      "by": [
+        "ja"
+      ],
+      "role": "item"
+    },
+    "basemap.errors.always_failed": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "basemap.kind.key_required_reason": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "common.settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "dataio.import_csv_status": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "dataio.settings_title": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "mapedit.base_map_google_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "mapedit.basemap_settings_note": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "mapedit.configure_map": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "mapedit.error_image_memory_limit": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "mapedit.error_image_resolution_limit": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "mapedit.map_tile_desc": {
+      "by": [
+        "en"
+      ],
+      "role": "item"
+    },
+    "navbar.settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "poiedit.directgo_examples": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "settings.base_map": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "settings.basic_settings": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    },
+    "settings.confirm_close_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "settings.mcp_copy_mcp_remote": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "settings.save_folder_failed": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "settings.title": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "screen"
+    }
+  },
+  "settings-file": {
+    "appedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_advanced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.success_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "database.migrating_legacy_basemaps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_no_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "map": {
+    "appedit.app_coverage_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.border_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.edit_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_modal_help": {
+      "by": [
+        "en"
+      ]
+    },
+    "appedit.envelope_modal_help_with_coverage": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_pick": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.home_modal_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.home_pick": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.map_list": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_6_confirm_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.marker_list_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.no_selected_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.overlay_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.compiled_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.missing_bounds": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.no_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.strict_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.unavailable": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.search_maps_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.selected_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.start_from": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.state_url_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_duplicate_poi_reference": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.maplat_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.no_maps_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.preview.no_maplat_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.selected_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.selected_map_id": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.tabs.maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.always_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_modal_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.attr_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.google.default_data_license_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.kind.merc_disabled_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.attr_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.license_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.license_note_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "database.migrating_legacy_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.import_map_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.data_zip": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_corrupt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_exist": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_no_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.success_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.gcps_requires_image": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.image_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.image_license": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.image_license_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.reason.size-mismatch": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.size-mismatch": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.alert_mapid_checked": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.alert_mapid_duplicated": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_visibility": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_visibility_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.basemap_settings_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.check_uniqueness": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.configure_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_long_image_import": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_override_image": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.copy_or_move": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.draft_already_saved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.draft_tiles_lost": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edit_layer": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_image_machine_limit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_image_memory_limit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_image_resolution_limit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_image_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_map_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_tiles_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.illustrated_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.image_height": {
+      "by": [
+        "ja"
+      ]
+    },
+    "mapedit.image_uploading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.image_width": {
+      "by": [
+        "ja"
+      ]
+    },
+    "mapedit.import_inline_poi_alert": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.input_mapid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_author_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_author_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_copyright_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_create_at_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_create_at_pf": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.map_description_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_description_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_era_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_era_pf": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.map_error_outside": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_image_license": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_image_license_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_owner_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_owner_pf": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.map_source_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_source_pf": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.map_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_tile_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_tile_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_title_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_title_pf": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.mapid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.message_export": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.staging.missing_tiles": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.success_image_upload": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_outside": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_outside_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.thumbnail_requires_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.unique_mapid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.upload_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "maplist.migration_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "maplist.name": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "maplist.new_create": {
+      "by": [
+        "en"
+      ]
+    },
+    "maplist.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapmodel.image_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapupload.dividing_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapupload.map_image": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapupload.next_thumbnail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.modal_select_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.tab_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "navbar.edit_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.directgo_examples": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.raw_size_guard": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.add_blocked_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.hide_override_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.inline_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.inline_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.layer_ref_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.selected_list_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.delete_referenced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.ref_kind.map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_map_ref_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.kind_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.editor_api_key_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "basemap": {
+    "appedit.base_map_list": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.builtin_source_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.error_missing_base_map_master": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export.missing_thumbnail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_key_prompt_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_message": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_warning_unknown": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.overlay_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.roles.base": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.search_base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_missing_base_map_master": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_provider_google_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_provider_mapbox_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.no_base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.preview.base_layers": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.preview.no_base_layers": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.roles.base": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.add": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.always_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.builtin_section": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_modal_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.delete_failed": {
+      "by": [
+        "en"
+      ]
+    },
+    "basemap.errors.load_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.save_failed": {
+      "by": [
+        "en"
+      ]
+    },
+    "basemap.kind.key_required_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.kind.select_prompt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.builtin_read_only": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.new_draft": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.select_prompt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.add_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.edit_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.title_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.no_user_basemaps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.source_description_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.user_section": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "database.migrating_builtin_basemaps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "database.migrating_legacy_basemaps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_google_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_google_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_search_no_results": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_visibility": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.base_map_visibility_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.control_basemap": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edit_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edit_basemap_align": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.no_selected_base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.tab_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "navbar.add_basemap": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "range_filter.modal_help_basemap": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_missing_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.kind_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "app": {
+    "appedit.app_coverage": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.app_coverage_modal_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.app_coverage_modal_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.app_coverage_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.app_name": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.app_settings": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.appid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.check_uniqueness": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.description_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_modal_help_with_coverage": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.extra_info_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.input_appid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.manifest_name": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_message": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_6_confirm_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_6_confirm_message": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.marker_list_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.new_app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.no_app_name": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.overlay_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview_lang_default": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.pwa_manifest_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.selected_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.success_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.unique_appid": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_duplicate_poi_reference": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_provider_google_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_provider_mapbox_key_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.delete_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.delete_menu": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.metadata.app_id": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.preview.no_app_id": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.preview.untitled": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "navbar.edit_app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.directgo_examples": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.directgo_preview_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.hide_override_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.layer_ref_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.selected_list_app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.delete_referenced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.ref_kind.app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.kind_app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_selector.context_app_coverage": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.default_publish_api_key_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "poi": {
+    "appedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_duplicate_poi_reference": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_missing_poi_source": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_mixed_pois": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.no_poi_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.poi_search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.select_poi_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.selected_poi_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.delete_referenced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.pois": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.import_inline_poi_alert": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "navbar.edit_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.add_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.context_add": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.context_delete": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.delete_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.no_content_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.raw_size_guard": {
+      "by": [
+        "ja"
+      ]
+    },
+    "poiedit.read_only_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.select_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.size_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.format_json_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_mode_append": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_mode_overwrite": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_overwrite_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.coord_missing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.add_blocked_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.convert_group_action": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.convert_success": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.empty": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.external_url_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.hide_override_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.inline_data": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.inline_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.layer_key_missing_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.missing_source": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.mixed_layer_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.search_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.selected_list_app": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.selected_list_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.tab_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.create_local_modal.name_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.create_local_modal.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.delete_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.delete_item": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.delete_referenced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.display_id_assigned": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.errors.not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.no_sources_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.register_remote_modal.name_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.register_remote_modal.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.title_placeholder": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_missing_poi": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_pois_format": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.kind_poi_source": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "source": {
+    "appedit.error_missing_base_map_master": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "appedit.warn_duplicate_poi_reference": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "appedit.warn_missing_base_map_master": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "appedit.warn_missing_poi_source": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "applist.no_poi_sources": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "applist.poi_search_placeholder": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "applist.select_poi_sources": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "applist.selected_poi_sources": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "assetlist.delete_referenced": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.clone_failed": {
+      "by": [
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.confirm_no_save": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.not_found": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.raw_size_guard": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.read_only_notice": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiedit.size_warning": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiio.import_button": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiio.import_geojson_hint": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiio.import_title": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiio.omitted_csv": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiref.hide_override_note": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poiref.missing_source": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.create_local_modal.name_placeholder": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.create_local_modal.title": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.delete_error": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.delete_item": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.delete_referenced": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.errors.display_id_duplicate": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.errors.not_found": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.no_sources_found": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.register_remote_modal.name_placeholder": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.register_remote_modal.title": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.title": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "poisource.title_placeholder": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "resource_list.kind_poi_source": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    }
+  },
+  "citation": {
+    "basemap.source_metadata": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "mapedit.map_source": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "mapedit.map_source_desc": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    },
+    "mapedit.map_source_pf": {
+      "by": [
+        "ja",
+        "shared:en:source"
+      ],
+      "sharedForm": "en:source"
+    }
+  },
+  "attribution": {
+    "basemap.attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.attr_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.google.default_license_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.attr_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.data_attr_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.data_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.image_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_copyright_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_gcp_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_gcp_copyright_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapmodel.image_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "gcp": {
+    "appedit.preview.too_less_gcps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataio.csv_override_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.gcps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.draft_tiles_lost": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edit_gcp": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.gcp": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_error_linear": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_error_outside": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_error_too_short": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_outside": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_too_linear": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_too_short": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.generate_not_ready": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.tab_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "range_filter.active_auto": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "bibliography": {
+    "appedit.source_iiif_metadata": {
+      "by": [
+        "ja"
+      ]
+    },
+    "appedit.source_iiif_metadata_all": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_import.verdict.metadata_only": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.canvas_heading": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.copy_failed.unknown": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.heading": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.manifest_heading": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.readonly_heading": {
+      "by": [
+        "ja"
+      ]
+    },
+    "iiif_metadata.recopy_failed_help": {
+      "by": [
+        "ja"
+      ]
+    }
+  },
+  "tile": {
+    "appedit.cache_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.envelope_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.provider_source_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_url": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_merc_name_collision": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.coverage_modal_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.icon_generate_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.url_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.kind.label_merc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.kind.label_tms": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.url_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.url": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_no_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.merc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_tiles": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.export_option_tiles_help": {
+      "by": [
+        "en"
+      ]
+    },
+    "mapedit.map_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_tile_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_tile_pf": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapupload.dividing_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.default_title_suffix": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.error_generation": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.generate": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.generate_not_ready": {
+      "by": [
+        "en"
+      ]
+    },
+    "merc.generating_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.modal_select_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.modal_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.success_generation": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.tab_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.tab_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "wmtsgenerate.error_generation": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "wmtsgenerate.generate": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "wmtsgenerate.generating_tile": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "wmtsgenerate.success_generation": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "save": {
+    "appedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_key_prompt_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.extra_info_note": {
+      "by": [
+        "ja"
+      ]
+    },
+    "appedit.maplibre_export_warning_detail": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.success_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.save_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.saved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.overwrite_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.preview_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.preview_unsaved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.reselect_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.rename_modal.save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.always_failed": {
+      "by": [
+        "ja"
+      ]
+    },
+    "basemap.errors.provider_incomplete": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.errors.save_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.master_detail.overwrite_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "common.save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.delete_draft_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.discard_draft_confirm": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.draft_conflict.message": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.draft_conflict.title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_dirty_prompt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_save_and_run": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.export_saved_only": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.save_state.dirty": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.save_state.saved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.save_state.saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.thumbnail_immediate_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "iiif_import.error.thumbnail_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.draft_already_saved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.originals.unsupported_extension": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.staging.missing_tiles": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.success_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.thumbnail_requires_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.confirm_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.save_issues": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.success_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.import_error.kmz_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiio.issues.encoding_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.convert_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poisource.error.unknown": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.recent_search_record_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.confirm_close_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.mcp_port_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.save_folder_failed": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "overwrite": {
+    "assetlist.master_detail.overwrite_confirm": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "basemap.master_detail.overwrite_confirm": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "common.overwrite": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "iiif_metadata.recopy_apply": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "iiif_metadata.recopy_help": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "iiif_metadata.recopy_select": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiedit.raw_stale_notice": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiio.import_mode_overwrite": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiio.omitted_csv": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    }
+  },
+  "override": {
+    "poiref.add_override": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiref.external_url_note": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiref.icon_override": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiref.layer_ref_note": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiref.override_title": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    },
+    "poiref.selected_icon_override": {
+      "by": [
+        "en",
+        "shared:ja:上書き"
+      ],
+      "sharedForm": "ja:上書き"
+    }
+  },
+  "append": {
+    "poiio.import_mode_append": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "viewer": {
+    "appedit.border_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.builtin_source_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.hide_marker_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.marker_list_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.overlay_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.strict_error": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.share_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.warn_mixed_pois": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "field_help.display_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.layer_key_missing_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.mixed_layer_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "layer": {
+    "appedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.confirm_layer_delete": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edit_layer": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_layer_select": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_mainlayer": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_sublayer": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.layer_icon": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.layer_metadata": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.layer_selected_icon": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.convert_blocked_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.hide_override_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiref.layer_key_missing_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "preview": {
+    "appedit.error_missing_base_map_master": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.extra_info_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.maplibre_version_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.compiled_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.missing_bounds": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.no_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.too_less_gcps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview.unavailable": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview_port": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview_tab": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.preview_warnings": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "applist.tabs.preview": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "assetlist.master_detail.preview_too_large": {
+      "by": [
+        "en"
+      ]
+    },
+    "assetlist.master_detail.preview_unsaved": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.modal.style_maplibre_hint": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "editor_ui.tabs.preview": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.poi_format_unsupported": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "poiedit.directgo_preview_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.editor_api_key_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "publish-key": {
+    "appedit.export_key_prompt_description": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.export_key_prompt_title": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.default_publish_api_key_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.editor_api_key_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.same_key_warning": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "server": {
+    "basemap.errors.tilejson_http_status": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.style_gl_check_reason_http-status": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.mcp_enabled": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.mcp_tab": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  }
+}

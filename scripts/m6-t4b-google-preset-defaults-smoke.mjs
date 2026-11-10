@@ -143,6 +143,8 @@ try {
   assert.equal(isGoogleDefaultAttr("x"), false);
   assert.equal(isGoogleDefaultNote(""), true);
   assert.equal(isGoogleDefaultNote(GOOGLE_DEFAULT_LICENSE_NOTE_BY_LANG.ko), true);
+  // 用語集で de の文を改めた後も、保存済みの旧既定 Note は Google 既定として認識する
+  assert.equal(isGoogleDefaultNote("Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben."), true);
   assert.equal(isGoogleDefaultNote("nope"), false);
   assert.ok(allGoogleDefaultNoteTexts().length >= 22, "11 langs × 2 notes");
 

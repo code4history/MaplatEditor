@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -161,7 +161,7 @@
     "id": "ID",
     "map_title": "標題",
     "url": "圖磚URL",
-    "attribution": "版權標示",
+    "attribution": "署名",
     "min_zoom": "最小縮放等級",
     "max_zoom": "最大縮放等級",
     "icon": "圖示",
@@ -240,8 +240,8 @@
       "label_google": "Google",
       "label_mapbox": "Mapbox",
       "label_maplibre": "MapLibre",
-      "label_tms": "瓦片URL",
-      "label_merc": "麥卡托瓦片",
+      "label_tms": "圖磚URL",
+      "label_merc": "麥卡托圖磚",
       "select_prompt": "請選擇底圖類型。",
       "merc_disabled_reason": "由地圖編輯產生",
       "key_required_reason": "尚未設定 {{provider}} 的編輯器金鑰。請在「設定 > 底圖」中註冊。"
@@ -583,8 +583,8 @@
     "error_exist": "該地圖ID已存在。停止處理。",
     "error_no_tile": "資料中不包含圖磚圖像。停止處理。",
     "error_no_tmb": "資料中不包含縮圖。停止處理。",
-    "error_upload": "登錄地圖資料時發生錯誤。",
-    "success_upload": "地圖資料已成功登錄。",
+    "error_upload": "匯入地圖資料時發生錯誤。",
+    "success_upload": "地圖資料已成功匯入。",
     "error_too_large": "地圖資料的 ZIP 過大（無法匯入超過 2 GiB 的檔案）。",
     "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。",
     "error_no_json": "未包含地圖設定檔（JSON），無法匯入"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "將匯出的應用程式以 PWA（可加入主畫面、像獨立應用程式一樣使用的形態）方式發布的設定。開啟後會輸出 Web App Manifest，下方會出現「應用程式資訊清單設定」欄。關閉時也無法設定「快取」。",
     "overlay_ui": "疊加層UI",
-    "overlay_ui_note": "將古地圖以半透明方式疊加顯示在背景地圖之上的 UI。檢視器中會出現疊加操作控制項。若應用程式中沒有可作為背景的底圖，即使開啟也不會生效。",
+    "overlay_ui_note": "將古地圖以半透明方式疊加顯示在底圖之上的 UI。檢視器中會出現疊加操作控制項。若應用程式中沒有可作為背景的底圖，即使開啟也不會生效。",
     "hide_marker_ui": "隱藏標記UI",
     "hide_marker_ui_note": "切換標記顯示與隱藏的按鈕。它會作為檢視器的操作控制項加入。它並非刪除標記本身的設定，只是讓使用者可以暫時隱藏標記。",
     "marker_list_ui": "標記清單UI",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "部分圖示引用無法解析，已按原值輸出。",
     "warn_icon_too_small": "PWA圖示來源圖片小於512px，產生的圖示可能會模糊。",
     "warn_merc_name_collision": "有多個麥卡托圖磚集使用相同名稱，僅匯出了第一個。",
-    "warn_provider_google_key_missing": "由於未設定 API 金鑰，Google 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
-    "warn_provider_mapbox_key_missing": "由於未設定 API 金鑰，Mapbox 背景地圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
+    "warn_provider_google_key_missing": "由於未設定 API 金鑰，Google 底圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
+    "warn_provider_mapbox_key_missing": "由於未設定 API 金鑰，Mapbox 底圖未包含在內。請在「設定 > 底圖」中註冊編輯器金鑰，或設定應用程式金鑰。",
     "export_key_prompt_title": "輸入發布用 API 金鑰",
-    "export_key_prompt_description": "所選提供者的發布金鑰尚未設定。此金鑰僅用於本次匯出，不會被儲存。留空則不會包含對應的背景地圖。",
+    "export_key_prompt_description": "所選提供者的發布金鑰尚未設定。此金鑰僅用於本次匯出，不會被儲存。留空則不會包含對應的底圖。",
     "export_key_prompt_label_google": "Google API 金鑰",
     "export_key_prompt_label_mapbox": "Mapbox 存取權杖",
     "export_key_prompt_continue": "使用此內容匯出",
@@ -885,7 +885,7 @@
   },
   "poiref": {
     "tab_label": "POI資料",
-    "selected_list_app": "此應用的POI",
+    "selected_list_app": "此應用程式的POI",
     "selected_list_map": "此地圖的POI",
     "empty": "請從左側列表新增POI。",
     "added": "已加入",
@@ -1175,7 +1175,7 @@
   },
   "assetlist": {
     "master_detail": {
-      "new_draft": "新增圖片資產",
+      "new_draft": "新增素材",
       "default_language": "預設語言",
       "select_image": "選擇圖片",
       "no_source": "尚未選擇圖片",
@@ -1189,8 +1189,8 @@
       "file_size": "檔案大小",
       "untitled": "未命名",
       "overwrite_confirm": "要以目前編輯內容覆寫最新儲存版本嗎？",
-      "not_found": "找不到所選圖片資產。",
-      "select_prompt": "請從左側清單選擇圖片資產，或新增一個。"
+      "not_found": "找不到所選素材。",
+      "select_prompt": "請從左側清單選擇素材，或新增一個。"
     },
     "add_image": "新增圖片",
     "search_placeholder": "搜尋素材…",
@@ -1317,15 +1317,15 @@
     "delete_referenced_by": "Referenced by the following resources:",
     "delete_references_unavailable": "Unable to retrieve reference information.",
     "deleting": "Deleting…",
-    "import_poi": "導入",
-    "import_map": "導入",
+    "import_poi": "匯入",
+    "import_map": "匯入",
     "delete_confirm_title": "Delete \"{{title}}\"?",
     "duplicate_failed": "Duplication failed: could not reserve a slug or copy the content.",
     "badge_strict_error": "strict 錯誤",
     "badge_map_ref_error": "參照地圖錯誤",
     "badge_missing_base_map": "底圖缺失",
     "badge_missing_poi": "POI 參照缺失",
-    "badge_missing_asset": "資源缺失",
+    "badge_missing_asset": "素材缺失",
     "badge_pois_format": "POI 格式不受支援",
     "recent_searches_label": "最近的搜尋條件",
     "recent_search_apply": "搜尋「{{q}}」",

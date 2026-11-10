@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "common": {
@@ -89,7 +89,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "download": "Download",
-    "revision_conflict": "This asset was updated in another window.",
+    "revision_conflict": "This item was updated in another window.",
     "reload": "Reload",
     "overwrite": "Overwrite",
     "language": "Language",
@@ -184,8 +184,8 @@
     },
     "tilejson": {
       "label": "Load from TileJSON",
-      "import": "Import",
-      "importing": "Importing..."
+      "import": "Load",
+      "importing": "Loading..."
     },
     "errors": {
       "id_required": "Please input a slug (ID).",
@@ -400,8 +400,8 @@
     "map_owner_pf": "Enter owner of the map.",
     "map_owner_desc": "Enter owner or donor of the map.",
     "map_mapper": "Mapper",
-    "map_mapper_pf": "Enter the person who did mapping GCPs od the map.",
-    "map_mapper_desc": "Enter the person who did mapping GCPs od the map.",
+    "map_mapper_pf": "Enter the person who did the mapping.",
+    "map_mapper_desc": "Enter the person who did the mapping.",
     "map_image_license": "License of Map Image",
     "cc_allright_reserved": "All Right Reserved",
     "cc_by": "Creative Commons Attribution",
@@ -678,7 +678,7 @@
     "map_list": "Map List",
     "base_map_list": "Base Map List",
     "search_base_maps": "Search base maps…",
-    "selected_sources": "Selected Maps",
+    "selected_sources": "Maps in this app",
     "no_selected_sources": "Add maps from the list on the left.",
     "start_from": "Initial map",
     "http_settings": "HTTP Settings",
@@ -687,7 +687,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "Delivers the exported app as a PWA (a form that can be added to the home screen and used like a standalone app). When on, a Web App Manifest is emitted and the Manifest Settings section appears below. While it is off, Cache cannot be configured either.",
     "overlay_ui": "Overlay UI",
-    "overlay_ui_note": "A UI that overlays the historical map semi-transparently on top of the background map. An overlay control appears in the viewer. If the app contains no base map to serve as the background, turning it on has no effect.",
+    "overlay_ui_note": "A UI that overlays the historical map semi-transparently on top of the base map. An overlay control appears in the viewer. If the app contains no base map to serve as the background, turning it on has no effect.",
     "hide_marker_ui": "Hide Marker UI",
     "hide_marker_ui_note": "A button that toggles markers between shown and hidden. It is added as a viewer control. It does not delete the markers themselves; it only lets the user hide them temporarily.",
     "marker_list_ui": "Marker List UI",
@@ -783,10 +783,10 @@
     "warn_unresolved_icon": "Some icon references could not be resolved and were left unchanged in the output.",
     "warn_icon_too_small": "The PWA icon source image is smaller than 512px, so generated icons may look blurry.",
     "warn_merc_name_collision": "Multiple Mercator tile sets shared the same name; only the first one was exported.",
-    "warn_provider_google_key_missing": "The Google background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
-    "warn_provider_mapbox_key_missing": "The Mapbox background map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
+    "warn_provider_google_key_missing": "The Google base map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
+    "warn_provider_mapbox_key_missing": "The Mapbox base map is not included because no API key is set. Register an editor key under Settings > Base Map, or set the app's key.",
     "export_key_prompt_title": "Enter Publish API Key",
-    "export_key_prompt_description": "The publish key for the selected provider is not set. It will be used only for this export and will not be saved. If left blank, the corresponding background map will not be included.",
+    "export_key_prompt_description": "The publish key for the selected provider is not set. It will be used only for this export and will not be saved. If left blank, the corresponding base map will not be included.",
     "export_key_prompt_label_google": "Google API Key",
     "export_key_prompt_label_mapbox": "Mapbox Access Token",
     "export_key_prompt_continue": "Export with these values",

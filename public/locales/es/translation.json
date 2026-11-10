@@ -18,7 +18,7 @@
     },
     "verdict": {
       "deliverable": "Deliver from IIIF",
-      "metadata_only": "Metadata only from IIIF"
+      "metadata_only": "Bibliographic data only from IIIF"
     },
     "reason": {
       "bad-url": "This is not a valid URL, so it cannot be delivered.",
@@ -37,10 +37,10 @@
     }
   },
   "iiif_metadata": {
-    "heading": "Binding to the IIIF metadata",
-    "readonly_heading": "Metadata copied from IIIF",
-    "manifest_heading": "Manifest metadata",
-    "canvas_heading": "Metadata of this canvas",
+    "heading": "Binding to the IIIF bibliographic data",
+    "readonly_heading": "Bibliographic data copied from IIIF",
+    "manifest_heading": "Manifest bibliographic data",
+    "canvas_heading": "Bibliographic data of this canvas",
     "empty": "No items",
     "help": "For each field, choose whether to copy it from IIIF and whether the value comes from the Manifest or the selected canvas.",
     "field": "Field",
@@ -78,7 +78,7 @@
       "canvas-not-found": "The linked canvas was not found, so nothing was copied.",
       "image-service-unavailable": "The image service could not be read, so nothing was copied.",
       "size-mismatch": "The image service size differs from the map record, so nothing was copied.",
-      "unknown": "The metadata could not be copied."
+      "unknown": "The bibliographic data could not be copied."
     }
   },
   "app": {
@@ -583,8 +583,8 @@
     "error_exist": "Ya existe un mapa con ese ID. Deteniendo el proceso.",
     "error_no_tile": "Los datos no contienen imágenes de teselas. Deteniendo el proceso.",
     "error_no_tmb": "Los datos no contienen una miniatura. Deteniendo el proceso.",
-    "error_upload": "Se ha producido un error al registrar los datos del mapa.",
-    "success_upload": "Los datos del mapa se han registrado correctamente.",
+    "error_upload": "Se ha producido un error al importar los datos del mapa.",
+    "success_upload": "Los datos del mapa se han importado correctamente.",
     "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
     "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar.",
     "error_no_json": "No se puede importar porque no se incluye el archivo de configuración del mapa (JSON)"
@@ -705,7 +705,7 @@
     "pwa_manifest": "PWA",
     "pwa_manifest_note": "Publica la aplicación exportada como PWA (una forma que se puede añadir a la pantalla de inicio y usar como una aplicación independiente). Al activarlo se genera un Web App Manifest y aparece debajo la sección «Configuración del manifest». Mientras esté desactivado tampoco se puede configurar «Caché».",
     "overlay_ui": "UI de superposición",
-    "overlay_ui_note": "Una interfaz que superpone el mapa histórico de forma semitransparente sobre el mapa de fondo. En el visor aparece un control de superposición. Si la aplicación no incluye ningún mapa base que sirva de fondo, activarlo no tiene efecto.",
+    "overlay_ui_note": "Una interfaz que superpone el mapa histórico de forma semitransparente sobre el mapa base. En el visor aparece un control de superposición. Si la aplicación no incluye ningún mapa base que sirva de fondo, activarlo no tiene efecto.",
     "hide_marker_ui": "UI para ocultar marcadores",
     "hide_marker_ui_note": "Un botón que alterna entre mostrar y ocultar los marcadores. Se añade como control del visor. No elimina los marcadores en sí, solo permite al usuario ocultarlos temporalmente.",
     "marker_list_ui": "UI de lista de marcadores",
@@ -801,10 +801,10 @@
     "warn_unresolved_icon": "Algunas referencias de iconos no se pudieron resolver y se mantuvieron sin cambios en la salida.",
     "warn_icon_too_small": "La imagen de origen del icono PWA es menor de 512px, por lo que los iconos generados pueden verse borrosos.",
     "warn_merc_name_collision": "Varios conjuntos de teselas de Mercator compartían el mismo nombre; solo se exportó el primero.",
-    "warn_provider_google_key_missing": "El mapa de fondo de Google no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
-    "warn_provider_mapbox_key_missing": "El mapa de fondo de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
+    "warn_provider_google_key_missing": "El mapa base de Google no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
+    "warn_provider_mapbox_key_missing": "El mapa base de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app.",
     "export_key_prompt_title": "Introducir clave API de publicación",
-    "export_key_prompt_description": "La clave de publicación del proveedor seleccionado no está configurada. Se usará solo para esta exportación y no se guardará. Si se deja en blanco, el mapa de fondo correspondiente no se incluirá.",
+    "export_key_prompt_description": "La clave de publicación del proveedor seleccionado no está configurada. Se usará solo para esta exportación y no se guardará. Si se deja en blanco, el mapa base correspondiente no se incluirá.",
     "export_key_prompt_label_google": "Clave API de Google",
     "export_key_prompt_label_mapbox": "Token de acceso de Mapbox",
     "export_key_prompt_continue": "Exportar con estos valores",
@@ -823,7 +823,7 @@
     "no_app_name": "Please input an app name.",
     "search_maps_placeholder": "Buscar mapas…",
     "warn_mixed_pois": "Los datos de POI mezclan el formato GeoJSON con otros formatos. Es posible que no se muestren correctamente en el visor. Convierta los POIs de formato antiguo a GeoJSON.",
-    "provider_source_note": "La URL del mosaico se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
+    "provider_source_note": "La URL de las teselas se genera automáticamente a partir de la clave de API y el tipo, por lo que no es necesario introducirla manualmente.",
     "error_missing_base_map_master": "Falta el mapa base de esta fuente. Se excluirá de la exportación y la vista previa.",
     "warn_missing_base_map_master": "Se excluyeron las fuentes cuyo mapa base no se encontró.",
     "maplibre_version": "Versión de MapLibre GL JS",
@@ -903,9 +903,9 @@
     "mixed_layer_warning": "Se mezclan datos de POI en formato GeoJSON y en otros formatos. El visor no puede mostrar este arreglo correctamente. Conviértalos a GeoJSON y organícelos.",
     "convert_blocked_note": "Esta capa contiene GeoJSON, referencias de URL externas o elementos no convertibles, por lo que no puede convertirse en conjunto. Elimine esos elementos para organizarla y la conversión estará disponible.",
     "layer_key_missing_warning": "Este elemento no tiene identificador de capa (id), por lo que el visor fallará al mostrar estos datos de POI en su conjunto. Organícelo convirtiéndolo a GeoJSON (si es convertible) o eliminándolo.",
-    "icon_override": "Icono de reemplazo",
-    "selected_icon_override": "Icono de reemplazo al seleccionar",
-    "override_title": "Título de reemplazo",
+    "icon_override": "Icono de sobrescritura",
+    "selected_icon_override": "Icono de sobrescritura al seleccionar",
+    "override_title": "Título de sobrescritura",
     "missing_source": "No se encontró la fuente de POI referenciada (puede haber sido eliminada). Use × para quitar la referencia.",
     "search_placeholder": "Buscar POIs…",
     "external_item_count": "{{count}} elemento(s)",
