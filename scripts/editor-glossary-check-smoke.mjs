@@ -103,7 +103,7 @@ function run(dir, args = [], extraEnv = {}) {
     encoding: 'utf8',
     env: { ...env, ...extraEnv },
   });
-  let rep = null;
+  let rep;
   try {
     rep = readJson(report);
   } catch {
@@ -311,6 +311,7 @@ try {
     const dir = makeRepo('exceptions2');
     // 違反の無い行に例外を書く（正本だけの変更）→ 警告で緑
     editExceptions(dir, (e) => e.exceptions.push({ type: 'omission', concept: 'asset', locale: 'ja', key: 'navbar.assets', value: 'アセット管理', reason: 'fixture' }));
+    run(dir, ['--write']); // md は例外の件数を載せる
     const r = run(dir);
     check('例外: 違反を抑えなかった例外は警告で、赤にはしない', r.status === 0 && (r.report?.warnings ?? []).some((w) => w.kind === 'unused-exception' && w.key === 'navbar.assets'), summarize(r));
     // キーが違う例外は抑止しない
@@ -418,12 +419,17 @@ try {
   }
   {
     const dir = makeRepo('schema');
-    editGlossary(dir, (g) => {
-      g.concepts.find((c) => c.id === 'map').locales.de.acceptedForms.push('');
-      g.concepts.push({ ...g.concepts[0] });
-    });
+    editGlossary(dir, (g) => g.concepts.find((c) => c.id === 'map').locales.de.acceptedForms.push(''));
     const r = run(dir);
-    check('構造: 空語・概念 ID の重複は赤', r.status === 1 && findings(r, (v) => v.kind === 'structure').length >= 2, summarize(r));
+    check('構造: 正本の空語は赤', r.status === 1 && findings(r, (v) => v.kind === 'structure' && /空の文字列/.test(v.message)).length === 1, summarize(r));
+    const dir2 = makeRepo('concept-dup');
+    editGlossary(dir2, (g) => g.concepts.push({ ...g.concepts[0] }));
+    const r2 = run(dir2);
+    check('構造: 概念 ID の重複は赤', r2.status === 1 && findings(r2, (v) => v.kind === 'structure' && /概念 ID の重複/.test(v.message)).length === 1, summarize(r2));
+    const dir3 = makeRepo('exception-glob');
+    editExceptions(dir3, (e) => e.exceptions.push({ type: 'omission', concept: 'map', locale: 'de', key: 'mapedit.*', value: 'x', reason: 'fixture' }));
+    const r3 = run(dir3);
+    check('構造: glob の例外は赤', r3.status === 1 && findings(r3, (v) => v.kind === 'structure' && /glob/.test(v.message)).length === 1, summarize(r3));
   }
   {
     const dir = makeRepo('stale');
