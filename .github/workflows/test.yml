@@ -10,7 +10,8 @@ name: Tests
 # 既知の失敗・実行しない smoke は ci/test-exclusions.json に理由と Issue つきで載せる。運用は ci/README.md。
 #
 # 安全面: GITHUB_TOKEN は read のみ（例外: smoke job の pull-requests: write。用語集の正本を変えた PR へ要約を
-#         1 件コメントするためだけに使い、トークンはその step にだけ渡す）・checkout はトークンを残さない・
+#         1 件コメントするためだけに使い、トークンはその step にだけ渡す。その step は base の commit の script を走らせる）・
+#         checkout はトークンを残さない・
 #         action はすべて 40 桁 SHA 固定・secrets を使わない。
 
 on:
@@ -80,7 +81,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: node scripts/ci/post-editor-glossary-summary.mjs --report editor-glossary-report.json
+        # PR 側で書き換えた要約の script にトークンを渡さないよう、base の commit の script を走らせる
+        run: |
+          base_script="$RUNNER_TEMP/post-editor-glossary-summary.mjs"
+          if git show "${{ github.event.pull_request.base.sha }}:scripts/ci/post-editor-glossary-summary.mjs" > "$base_script" 2>/dev/null; then
+            node "$base_script" --report editor-glossary-report.json
+          else
+            echo "base に要約の script が無い（用語集の初版 PR）ので、コメントは出さない"
+          fi
 
       - name: Judge smokes
         if: always()
