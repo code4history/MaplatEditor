@@ -2,6 +2,7 @@
 
 説明・エラー・空状態・ダイアログ・ボタンを、どの部品でどう出すかの決まりです。新しい画面や部品を作る前に読んでください。タスクの設計書を書くときも、この文書に合わせます。この文書に反する設計書を書く場合は、先にこの文書を変えます。
 
+- 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は §8。
 - 2026-11-11 初版。過去のタスク設計書に散らばっていた人間の決定を 1 本に集めた。
 - 言葉の決まり（どの語を使うか）は [docs/i18n/editor-glossary.md](i18n/editor-glossary.md) と AGENTS.md の「UI Wording & Glossary」にある。この文書は「どの部品で出すか」を扱う。
 
@@ -78,9 +79,9 @@
 - 処理の状態（読み込み中、MCP の待ち受け状態、最後の要求の時刻など）
 - 一覧の見出し・節の名前
 
-### 2.4 常設の注意書き（未決）
+### 2.4 常設の注意書き
 
-T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 文」を認めていました（T5:190）。その後、T11 で `EditorField.hint` を消し（Q4）、説明の直書きをすべて `?` へ移しました（R1）。このため、取り消しの利かない操作の注意などを常に見せてよいかが決まっていません。→ **未決 U1**（§8）
+取り消せない操作・ファイルサイズ・個人情報などの注意は、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に表示します。説明は `ContextHelp` に入れます。`EditorField.hint` や説明の直書きは復活させません。【人間決定（2026-11-11、推奨どおり）】§8 U1
 
 ## 3. エラー・警告
 
@@ -104,7 +105,7 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 |---|---|---|
 | BaseMapEdit / AssetEdit のリビジョン競合 | `alert alert-warning` と、ボタン 2 個（`btn-warning` の「上書き」など） | 【人間決定】T11:23（Q5 C34/C35 現状維持）、T11:59（C45/C46） |
 | 参照切れの POI の警告（PoiReferenceEditor） | カードの中で `text-warning-emphasis` | 【人間決定】T11:77（D6） |
-| selector で追加できない理由（ResourceMasterRow） | 項目の直下に `text-danger` | 【人間決定】T11:20（Q3 D10）。ただし M6T9 と食い違う → **未決 U4** |
+| selector で追加できない理由（ResourceMasterRow） | 項目の横の `ContextHelp`。赤字にしない（従来の例外を廃止） | 【人間決定（2026-11-11、推奨どおり）】§8 U4 |
 | IconRefField の警告バッジ | 値の表示の一部 | 【人間決定】T11:79（D8） |
 
 ### 3.3 禁止の形
@@ -123,7 +124,7 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | 開いた資源が見つからない（not found） | `ResourceEmptyState` と、`#actions` slot の戻るボタン | 【人間決定】T11:23（Q5 C47/C48）、T11:60 |
 | 一覧の結果の状態（読み込み中・0 件・末尾・失敗・追加の失敗） | `ResourceResultStatus`。共通の語彙（`resource_list.*`）を使う。初回の失敗は共通のエラーと再試行、追加の失敗は取得済みの項目を残して末尾に再試行を出す | 【人間承認の文書】ListV2:156-157・ListV2:265-266 |
 | 一覧の取得の失敗（selector の候補など） | `DiagnosticFeedback scope="section"` | 【人間決定に基づく AI 設計】T11:58（C41〜C44） |
-| 節の中の小さな「該当なし」（例: 書誌の 1 群が空） | **未決 U7** | — |
+| 節の中の小さな「該当なし」（例: 書誌の 1 群が空） | 1 行の `text-muted`。ペイン全体が空のときだけ `ResourceEmptyState` | 【人間決定（2026-11-11、推奨どおり）】§8 U7 |
 
 禁止の形: `<div class="text-muted text-center py-3">該当なし</div>` のような空表示を画面ごとに作ること。【人間検証の指摘】T10M12:28・T10M12:356
 
@@ -134,9 +135,9 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | 決まり | 出典 |
 |---|---|
 | ダイアログは**破壊的な操作と、利用者に判断させるとき**だけに使う | 【人間承認の文書】EditV1:127 |
-| 破壊的な操作の確認は今のまま残す | 【人間決定】T11:80（D9/D12） |
+| 破壊的な操作の確認は残し、入力・選択が無い確認はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】§8 U3（T11:80 の確認自体を残す決定を継承） |
 | 未保存の確認ダイアログ（保存・閉じるとき）は置かない。下書きを自動で保持し、復元する | 【人間承認】`docs/superpowers/reviews/2026-07-18-m12-t1-modernized-parity-audit.md:74`（ME-32） |
-| 削除の確認は `DeleteConfirmDialog`（`useResourceDelete` の request・confirm・cancel）を使う。中身だけを差し替え、新しい文法を作らない | 【人間承認】`docs/superpowers/specs/2026-07-25-m3-poi-scope-gap-remeasurement-milestone-design.md:263` |
+| 削除の確認は `DeleteConfirmDialog`（`useResourceDelete` の request・confirm・cancel）の共通の入口を使い、確認自体はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】§8 U3 |
 | `confirm()`（ブラウザの標準のもの）を使わない | 【AI 設計】T10M11:244・T10M11:289 |
 | 複製は即時に保存せず、新しい下書きとして開く（確認ダイアログを挟まない） | 【人間決定】ListV2:30（決定 8） |
 | エクスポートは「ボタン → 確認ダイアログ（中身を選ぶ）→ 実施」の順にする | 【AI 設計】Editor のコミット e8c8722（nov26-editor-appexport-dialog） |
@@ -147,18 +148,13 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 |---|---|---|
 | 選択肢（ラジオ・チェック）の説明 | label の横に `ContextHelp`。label の下に段落を置かない | 【人間決定】state.json:12739（「タイル」は標準の「？」で説明） |
 | モーダル全体の補足説明 | 題の横に `ContextHelp` | 【人間決定に基づく AI 設計】T11:40 |
-| ダイアログの本文（何を判断させるか。例: 「この地図から生成済みのタイルセットが見つかりました。更新するものを選ぶか…」） | **未決 U2** | — |
-| 押せない理由（例: 何も選んでいないと「エクスポート」が押せない） | ボタンの横に `ContextHelp`。赤字にしない | 【人間判断】M6T9:175-181。T11 の D10 と食い違う → **未決 U4** |
+| ダイアログの本文（何を判断させるか。例: 「この地図から生成済みのタイルセットが見つかりました。更新するものを選ぶか…」） | 本文の 1 段落は直書きしてよい。選択肢の説明は `ContextHelp` | 【人間決定（2026-11-11、推奨どおり）】§8 U2 |
+| 押せない理由（例: 何も選んでいないと「エクスポート」が押せない） | ボタンの横に `ContextHelp`。赤字にしない | 【人間決定（2026-11-11、推奨どおり）】§8 U4（M6T9 に統一） |
 | 入力の検証エラー | §3 と同じ（field / section の `DiagnosticFeedback`） | 【人間決定】T11:21 |
 
 ### 5.3 ネイティブのダイアログとアプリ内のモーダル
 
-今は 2 つの方式が混ざっています。
-
-- Electron の `dialog.showMessageBox`（`window.dialog.showMessageBox`）: 確認（ボタン 2 個以上）が 22 箇所、通知だけ（ボタン 1 個）が 22 箇所
-- アプリ内の Bootstrap モーダル: `DeleteConfirmDialog`、`DraftConflictDialog`、`PoiContentModeEditor` など
-
-どちらで確認をとるかは決まっていません。保存成功などの通知だけのダイアログは、EditV1:127（ダイアログは破壊的な操作と判断に限る）に照らすと対象外の使い方ですが、どこへ移すかは決まっていません。→ **未決 U3**
+確認は Electron の `window.dialog.showMessageBox` に揃えます。アプリ内のモーダルは入力や選択がある場合だけに使います。通知だけのダイアログは成功・失敗とも `DiagnosticFeedback scope="operation"` に移します。【人間決定（2026-11-11、推奨どおり）】§8 U3・U3 付随
 
 ## 6. ボタンの種類と色
 
@@ -176,11 +172,11 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | `?` の trigger は `btn btn-link p-0` と `bi-question-circle`（中立の色） | 【人間決定】T11:18。class は【AI 設計】T5:179 |
 | リビジョン競合のボタン（`btn-warning`）は今のまま | 【人間決定】T11:59 |
 
-### 6.2 役割ごとの使い分け（提案・未決）
+### 6.2 役割ごとの使い分け
 
-人間は役割ごとの色をまだ決めていません。次の表は、今のコードで最も多い形をもとにした**提案**です。→ **未決 U5・U6**
+次の表に揃えます。ダイアログのボタンは通常の大きさとし、`btn-sm` を使いません。【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
 
-| 役割 | 提案の class | 今の主な使用例 |
+| 役割 | class | 今の主な使用例 |
 |---|---|---|
 | ダイアログ・画面の主な操作（実行・保存・エクスポート・適用） | `btn btn-primary` | エクスポートの小窓 3 つ、`PoiMergeImportDialog`、`ExportKeyPromptModal` |
 | 破壊的な操作の確定（削除・値が消える切り替え） | `btn btn-danger` | `DeleteConfirmDialog`、`PoiContentModeEditor` |
@@ -190,9 +186,11 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | 地図の上に重ねる道具のボタン | `btn btn-light btn-sm border shadow-sm` | MapEdit のホーム位置のボタン |
 | ダイアログのボタンの並び | 左から「（値のクリア）」「キャンセル」「主な操作」 | ほぼ全部のダイアログ |
 
-### 6.3 禁止の形（提案・未決）
+### 6.3 禁止の形
 
-- 同じ操作に違う見た目を使うこと（例: 「GCP からホーム位置を推定」が MapEdit では `btn-light`、AppEdit では `btn-outline-info`）。原則 1 の裏返しなので AI はこう解釈するが、ボタンの色について人間はまだ決めていない。
+【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
+
+- 同じ操作に違う見た目を使うこと（例: 「GCP からホーム位置を推定」が MapEdit では `btn-light`、AppEdit では `btn-outline-info`）。
 - ダイアログの「キャンセル」に `btn-secondary`（塗り）を使うこと。
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
@@ -221,9 +219,11 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | 14 | `src/views/Settings.vue:439` | `p.form-text` | `settings.mcp_recommend_loopback` |
 | 15 | `src/components/mapedit/MercTileSetModal.vue:116` | `EditorField` の `#help` slot に `span.text-muted.small` | `merc.modal_attr_help` |
 
-**B. 未決事項しだいで違反になる: 7 件**
+**B. U1〜U7 の決定を適用する箇所: 7 件**
 
-| # | 場所 | 中身 | 関係する未決 |
+16・17 は field warning、18・19 は `ContextHelp` へ移す。20・21 は判断の本文として許可。22 は節内の 1 行の空表示として許可。
+
+| # | 場所 | 中身 | 適用する決定 |
 |---|---|---|---|
 | 16 | `src/components/basemap/BaseMapEdit.vue:411` | 置換した画像は保存・元に戻すの対象外という注意（`editor_ui.thumbnail_immediate_note`） | U1 |
 | 17 | `src/views/MapEdit.vue:5195` | 同上（同じキー） | U1 |
@@ -300,9 +300,9 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | `btn-danger` | 2 |
 | `btn-outline-info` | 1 |
 
-§6.2 の提案から外れるもの:
+§6.2 の決定から外れるもの:
 
-| 場所 | 形 | 提案との差 |
+| 場所 | 形 | 決定との差 |
 |---|---|---|
 | `src/components/AssetPicker.vue:130` | キャンセルが `btn-secondary` | outline-secondary でない |
 | `src/components/EnvelopeEditorModal.vue:306` | 同上 | 同上 |
@@ -314,45 +314,48 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 | `src/components/resource-list/DeleteConfirmDialog.vue:25,30`、`src/components/PoiContentModeEditor.vue:41,49` | ダイアログのボタンが `btn-sm` | 他のダイアログは通常の大きさ（U6） |
 | `src/components/editor-ui/DraftConflictDialog.vue:18` | 下書きを捨てる操作が `btn-outline-secondary` | 捨てる操作を中立の色で出している（U5） |
 
-## 8. 人間に決めてもらうこと
+## 8. 人間決定の記録（2026-11-11）
 
-| # | 問い | 選択肢 | AI の推奨 |
-|---|---|---|---|
-| U1 | 常に見せる 1 文の注意書きを残すか。T5 §8 は常設 hint を認めたが、T11 は仕組みを消した | (a) 残さない。説明も注意もすべて `?` に入れる (b) 取り消せない・ファイルが大きくなる・個人情報を含むなどの**注意**だけは、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に見せる。説明は `?` (c) 1 文以内なら直書きしてよい | (b)。T11 の Q3 ルール（警告は黄色）と形が揃い、注意を見落とさない |
-| U2 | ダイアログの本文（何を判断させるか）を直書きしてよいか | (a) 本文の 1 段落は直書きしてよい。選択肢の説明は `?` (b) 本文も短い 1 文にし、残りは題の横の `?` に入れる | (a)。確認ダイアログは本文が無いと問いにならない（`DeleteConfirmDialog` も本文を持つ） |
-| U3 | ネイティブのダイアログ（`showMessageBox`）とアプリ内のモーダルの使い分け | (a) 確認はネイティブに揃え、アプリ内のモーダルは入力や選択がある場合だけにする (b) すべてアプリ内のモーダルに揃える (c) 今のまま混ぜる。あわせて、通知だけのもの 22 件を (1) `DiagnosticFeedback scope="operation"` へ移す (2) 失敗だけ移し、成功の通知は残す (3) 今のまま | (a) と (1)。(1) は EditV1:127 の文面どおり |
-| U4 | 押せない・選べない理由の出し方。T11 の D10（07-20、項目の直下に赤字のまま）と M6T9（08-06、`?` で出し赤字にしない）が食い違う | (a) すべて M6T9 に揃える (b) 一覧の行（`ResourceMasterRow`）だけ D10 のまま、ボタンは M6T9 | (a)。理由はエラーではないので赤にしない、という M6T9 の理由が一般に当てはまる |
-| U5 | ボタンの役割ごとの色（§6.2 の表） | (a) 表のとおり決める (b) 直したうえで決める (c) 決めない（画面ごと） | (a) |
-| U6 | ダイアログのボタンの大きさ | (a) 通常の大きさに揃える (b) `btn-sm` に揃える | (a)。今は通常の大きさが多数 |
-| U7 | 節の中の小さな「該当なし」も `ResourceEmptyState` にするか | (a) ペイン全体が空のときだけ `ResourceEmptyState`。節の中の空は 1 行の `text-muted` でよい (b) すべて `ResourceEmptyState` | (a)。節の中に大きなアイコンを出すと崩れる |
+出典: 本作業の人間指示（2026-11-11）。U1〜U7 と U3 付随はすべて推奨（★）どおりに決定。人間の注記は「違和感があれば改めて指摘する」。未決事項はありません。
 
-## 9. 機械で検査する案（実装はまだしない）
+| # | 人間決定（2026-11-11、推奨どおり） |
+|---|---|
+| U1 | (b) 注意だけは `DiagnosticFeedback scope="field"` の warning で常設。説明は `ContextHelp` |
+| U2 | (a) 判断を求める本文の 1 段落は直書き可。選択肢の説明は `ContextHelp` |
+| U3 | (a) 確認はネイティブに統一。アプリ内モーダルは入力・選択がある場合だけ |
+| U3 付随 | (1) 通知だけの 22 件は成功・失敗とも `DiagnosticFeedback scope="operation"` に移す |
+| U4 | (a) 押せない・選べない理由はすべて `ContextHelp`。赤字にしない |
+| U5 | (a) §6.2 のボタンの役割と class を採用 |
+| U6 | (a) ダイアログのボタンは通常の大きさに統一 |
+| U7 | (a) ペイン全体が空なら `ResourceEmptyState`。節の中の空は 1 行の `text-muted` |
 
-用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を作る案です。
+## 9. 機械で検査する規則
+
+用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を実装します。
 
 ### 9.1 仕組み
 
 - `.vue` の template を `@vue/compiler-sfc` で AST にして調べる。正規表現の grep は、属性の並びや改行の違いで取りこぼすので使わない。
 - 結果は用語集と同じく `<file>:<line> <ruleId> <hit>` の形で出し、JSON の報告も書く。
 - **許可リスト** `docs/ui-grammar.allowlist.json` を置く。1 件ごとに `rule`・`file`・`testid` または i18n キー・`reason`・出典（人間決定の場所）を書く。行番号では照合しない（行がずれても効き、キーが変われば切れる）。glob や一括の免除は認めない。消すものが無い許可は警告にする（用語集の例外と同じ）。
-- **ラチェット**: 初めは今の違反（§7）を基準の件数として記録し、**新しい違反だけ**で CI を落とす。直したら基準を下げる。今の違反を全部直すまで CI を止めないための形。
+- **ラチェット**: 今回の修正後は未許可の違反 0 件を基準にし、違反が増えたら CI を落とす。残す例外には個別の出典を必須とする。
 
 ### 9.2 検査できる決まり
 
 | ruleId | 検査 | 根拠 | 許可リストの例 |
 |---|---|---|---|
 | `help.form-text` | `class` に `form-text` を持つ要素 | T11 AC1（0 件） | 状態の表示（`Settings.vue` の最後の要求の時刻）は `testid` で許可 |
-| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | T11 R1 | ダイアログの本文（U2 の結果しだい） |
+| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | T11 R1 | 判断の本文（§8 U2） |
 | `help.key-outside-contexthelp` | 上の接尾辞のキーが `ContextHelp` の `text`・`title` 以外で使われる（template の全部の `t()` の呼び出しを集める） | T11 R1 | なし |
 | `help.slot-misuse` | `EditorField` の `#help` slot の中に `ContextHelp` 以外の要素がある | T11 P1 | なし |
 | `help.aria-label` | `ContextHelp` に `ariaLabel` が無い（型でも検出されるが、空文字も検出する） | M6T9 §3.5 | なし |
-| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | T11 Q3 ルール | §3.2 の例外（`ResourceMasterRow` など） |
+| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | T11 Q3 ルール | §3.2 の例外（`PoiReferenceEditor` など） |
 | `diag.raw-alert` | `class` に `alert` を持つ要素 | T11 R3 | `BaseMapEdit` と `AssetEdit` の競合（C45/C46） |
 | `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | T11 C49/C50、T10M11 | なし |
-| `dialog.notify-only` | `showMessageBox` の `buttons` が 1 個 | EditV1:127 | U3 の結果しだい |
-| `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | 提案・未決 | 既存の部品のファイル |
-| `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | U7 の結果しだい |
-| `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | U5 が決まってから | — |
+| `dialog.notify-only` | `showMessageBox` の `buttons` が 1 個 | EditV1:127 | なし（§8 U3 付随） |
+| `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
+| `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | 節内の空表示（§8 U7） |
+| `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |
 
 ### 9.3 検査できないこと（レビューで見る）
 
@@ -360,7 +363,7 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 - 新しい部品が共通部品の見た目を scoped CSS でまねているか（T10M12:356）
 - 同じ操作に同じ見た目を使っているか（操作の同一性は機械には分からない）
 
-### 9.4 置き場所の案
+### 9.4 置き場所
 
 - CI: `scripts/ci/run-smokes.mjs` に `smoke:editor-ui-grammar` を足す
 - AGENTS.md に「UI Grammar」の節を足し、この文書へ案内する。用語集の節と並べる
@@ -369,5 +372,5 @@ T5 の §8 は「常設 hint: 必須条件・入力形式・現在状態の 1 �
 ## 10. この文書を変えるとき
 
 - 人間が決めたことを書き足すときは、**出典（ファイル:行）**を付ける。出典が無いものは【提案・未決】と書く。
-- 未決（§8）に人間が答えたら、その節を【人間決定】に書き換え、§8 から消す。
+- 人間が決めたら、本文の規則と §8 の決定記録を更新する。
 - 決まりを変えたら §7 の棚卸しと §9 の検査の案も合わせて直す。
