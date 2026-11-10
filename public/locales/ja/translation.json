@@ -75,7 +75,9 @@
       "not-json": "Manifest が JSON として読めませんでした。",
       "not-manifest": "IIIF の Manifest として読めませんでした。",
       "unsupported-version": "この版の IIIF の Manifest には対応していません。",
-      "size-mismatch": "Manifest のこのコマの大きさが地図の画像と違うため、写しませんでした。",
+      "canvas-not-found": "結び付けたコマが見つからないため、写しませんでした。",
+      "image-service-unavailable": "画像サービスを取得できないため、写しませんでした。",
+      "size-mismatch": "画像サービスの画像の大きさが地図の記録と違うため、写しませんでした。",
       "unknown": "書誌を写せませんでした。"
     }
   },

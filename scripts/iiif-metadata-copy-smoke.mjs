@@ -62,6 +62,7 @@ try {
         applyIiifRecopy,
         applyIiifValues,
         copyIiifForMap,
+        fetchIiifCopyReply,
         copyIiifMetadata,
         copyIiifMetadataWithBindings,
         iiifBindableKeys,
@@ -495,6 +496,28 @@ try {
         );
       });
 
+      test('placeholder-canvas-uses-service-pixels', async () => {
+        const json = fixture('placeholder-size.manifest.json');
+        const canvas = listIiifCanvases(json).canvases[0];
+        const map = { iiif: { canvas: canvas.id }, delivery: { type: 'iiifImage' }, width: 11959, height: 12961 };
+        assert.equal(copyIiifForMap({ ok: true, json, imageSize: { width: 11959, height: 12961 } }, map, { sanitize }).ok, true, 'placeholder canvas must accept actual pixels');
+        for (const width of [11959, 11960]) {
+          const reply = await fetchIiifCopyReply({ ok: true, json }, map, async (args) => {
+            assert.equal(args.serviceUrl, canvas.imageService);
+            return { ok: true, json: { width, height: 12961 } };
+          });
+          for (const copy of [copyIiifForMap, planIiifRecopy]) {
+            const result = copy(reply, map, { sanitize });
+            assert.equal(result.ok, width === 11959);
+            if (!result.ok) assert.equal(result.reason, 'size-mismatch');
+          }
+        }
+        const failed = await fetchIiifCopyReply({ ok: true, json }, map, async () => ({ ok: false, reason: 'timeout' }));
+        assert.equal(failed.reason, 'image-service-unavailable');
+        const missing = await fetchIiifCopyReply({ ok: true, json }, { ...map, iiif: { canvas: 'missing' } }, async () => { throw new Error('must not fetch'); });
+        assert.equal(missing.reason, 'canvas-not-found');
+      });
+
       // 失敗したときに地図を書き換えないことの確認。是正を見分けるのは、
       // (1) 3 通りの失敗で ok:false と期待する理由を返すこと、(2) 呼んだ後の地図の
       // JSON が控えと同じであること（比べる前の値を基準に取る）、(3) delivery の無い
@@ -534,7 +557,7 @@ try {
         const failures = [
           ['fetch-failed', { ok: false, reason: 'fetch-failed' }],
           ['not-json', { ok: false, reason: 'not-json' }],
-          ['size-mismatch', { ok: true, json: resized }],
+          ['size-mismatch', { ok: true, json: resized, imageSize: { width: 4075, height: 2705 } }],
         ];
         for (const [reason, reply] of failures) {
           const plan = planIiifRecopy(reply, map, { sanitize });
@@ -551,7 +574,7 @@ try {
         // delivery の無い「書誌だけ」の地図は、画像の大きさを比べない。
         const metadataOnly = { ...map };
         delete metadataOnly.delivery;
-        const plan = planIiifRecopy({ ok: true, json: resized }, metadataOnly, { sanitize });
+        const plan = planIiifRecopy({ ok: true, json: resized, imageSize: { width: 4075, height: 2705 } }, metadataOnly, { sanitize });
         assert.equal(
           plan.ok,
           true,
@@ -588,7 +611,7 @@ try {
       // (3) 配信の地図でもコマの大きさが合えば ok:true であること、
       // (4) 取り直しが失敗したらその理由をそのまま返すこと、
       // (5) 写し直しの比較（planIiifRecopy）の大きさの判定は変わらないこと。
-      test('copy-checks-delivered-canvas-size', async () => {
+      test('copy-checks-delivered-image-size', async () => {
         const lang = 'ja';
         const canvasId = ndlCanvases.canvases[2].id;
         const bindings = proposeIiifBindings(ndl, canvasId);
@@ -619,7 +642,7 @@ try {
         const before = JSON.stringify(delivered);
 
         // (1) 配信の地図でコマの大きさが違えば、1 つも写さない
-        const mismatch = copyIiifForMap({ ok: true, json: resized }, delivered, { sanitize });
+        const mismatch = copyIiifForMap({ ok: true, json: resized, imageSize: { width: 4075, height: 2705 } }, delivered, { sanitize });
         assert.equal(mismatch.ok, false, 'a delivered map with a resized canvas must not be copied');
         assert.equal(mismatch.reason, 'size-mismatch', 'the reason must be size-mismatch');
         assert.equal(mismatch.values, undefined, 'a failed copy must not return copied values');
@@ -631,7 +654,7 @@ try {
 
         // (2) 書誌だけの地図は、同じ Manifest でも写す。値は直接呼んだ写しと同じ。
         const metadataOnly = structuredClone(metadata);
-        const copied = copyIiifForMap({ ok: true, json: resized }, metadataOnly, { sanitize });
+        const copied = copyIiifForMap({ ok: true, json: resized, imageSize: { width: 4075, height: 2705 } }, metadataOnly, { sanitize });
         assert.equal(copied.ok, true, 'a map without delivery must be copied');
         const expected = copyIiifMetadataWithBindings(
           resized,
@@ -648,7 +671,7 @@ try {
         );
 
         // (3) 配信の地図でも、コマの大きさが合えば写す
-        const sameSize = copyIiifForMap({ ok: true, json: structuredClone(ndl) }, delivered, {
+        const sameSize = copyIiifForMap({ ok: true, json: structuredClone(ndl), imageSize: { width: 4074, height: 2705 } }, delivered, {
           sanitize,
         });
         assert.equal(sameSize.ok, true, 'a delivered map with the same canvas size must be copied');
@@ -662,7 +685,7 @@ try {
         assert.equal(fetchFailed.reason, 'fetch-failed', 'the fetch reason must be kept');
 
         // (5) 写し直しの比較では、これまでどおり大きさの違いを失敗にする
-        const plan = planIiifRecopy({ ok: true, json: resized }, delivered, { sanitize });
+        const plan = planIiifRecopy({ ok: true, json: resized, imageSize: { width: 4075, height: 2705 } }, delivered, { sanitize });
         assert.equal(plan.ok, false, 'the recopy plan must still fail on a resized canvas');
         assert.equal(plan.reason, 'size-mismatch', 'the recopy reason must still be size-mismatch');
       });
