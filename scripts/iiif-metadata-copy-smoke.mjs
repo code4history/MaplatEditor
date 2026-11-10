@@ -611,7 +611,7 @@ try {
       // (3) 配信の地図でもコマの大きさが合えば ok:true であること、
       // (4) 取り直しが失敗したらその理由をそのまま返すこと、
       // (5) 写し直しの比較（planIiifRecopy）の大きさの判定は変わらないこと。
-      test('copy-checks-delivered-canvas-size', async () => {
+      test('copy-checks-delivered-image-size', async () => {
         const lang = 'ja';
         const canvasId = ndlCanvases.canvases[2].id;
         const bindings = proposeIiifBindings(ndl, canvasId);

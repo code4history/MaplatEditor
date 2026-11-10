@@ -31,6 +31,7 @@ import {
     applyIiifCopy,
     applyIiifRecopy,
     copyIiifForMap,
+    fetchIiifCopyReply,
     planIiifRecopy,
     type IiifRecopyPlanSuccess
 } from '../utils/iiifMetadataCopy';
@@ -1165,6 +1166,8 @@ const IIIF_COPY_FAILURE_REASONS = [
     'not-json',
     'not-manifest',
     'unsupported-version',
+    'canvas-not-found',
+    'image-service-unavailable',
     'size-mismatch'
 ];
 
@@ -1177,14 +1180,18 @@ const iiifCopyFailureKey = (reason: string): string =>
 
 /**
  * Manifest を取り直し、選んだ結び付けで Core に解かせて地図の metadata へ写す。
- * 配信の地図はコマの大きさも確かめる（画像が差し替わると打った GCP が合わなくなるため）。
+ * 配信の地図は画像サービスの実画素数も確かめる（画像が差し替わると打った GCP が合わなくなるため）。
  * 写しただけでは保存しない。取得や解決が失敗したら何も変えず、理由を 1 行だけ出す。
  */
 const copyIiifFromManifest = async (): Promise<void> => {
     iiifCopyError.value = null;
     const lang = (mapData.value.lang || 'ja') as string;
     try {
-        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const result = await fetchIiifCopyReply(
+            await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest }),
+            mapData.value,
+            (args) => window.iiifImport.inspect(args),
+        );
         const copied = copyIiifForMap(result, mapData.value);
         if (!copied.ok) {
             iiifCopyError.value = iiifCopyFailureKey(copied.reason);
@@ -1208,7 +1215,11 @@ const compareIiifWithManifest = async (): Promise<void> => {
     iiifCopyError.value = null;
     iiifRecopyPlan.value = null;
     try {
-        const result = await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest });
+        const result = await fetchIiifCopyReply(
+            await window.iiifImport.recopy({ manifestUrl: mapData.value.iiif.manifest }),
+            mapData.value,
+            (args) => window.iiifImport.inspect(args),
+        );
         const plan = planIiifRecopy(result, mapData.value);
         if (!plan.ok) {
             iiifCopyError.value = iiifCopyFailureKey(plan.reason);

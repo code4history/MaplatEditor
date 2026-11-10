@@ -292,7 +292,7 @@ type IiifComparedRow = {
 
 /** 取り直した Manifest の戻り値の形（main の inspect・recopy の戻り値）。 */
 export type IiifRecopyReply =
-  | { ok: true; json: unknown }
+  | { ok: true; json: unknown; imageSize?: { width: number; height: number } }
   | { ok: false; reason: string; detail?: string };
 
 /** 比べられたときの結果。 */
@@ -312,20 +312,43 @@ export type IiifRecopyPlanFailure = {
 
 export type IiifRecopyPlan = IiifRecopyPlanSuccess | IiifRecopyPlanFailure;
 
-/**
- * IIIF から配信する地図は、新しい Manifest のコマの大きさが地図の記録と合うかを見る。
- * 画像が差し替わると打った GCP が合わなくなるため、合わなければ true を返さない。
- * 「書誌だけ」の地図（delivery を持たない）は手元の画像の大きさが canvas と違ってよいので、
- * この検査をせずに常に true を返す。
- */
-export function checkDeliveredCanvasSize(json: unknown, map: Record<string, unknown>): boolean {
-  if (map.delivery === undefined || map.delivery === null) return true;
+/** main の既存の inspect 経由で、結び付いた画像サービスの実画素数を読む。 */
+export async function fetchIiifCopyReply(
+  reply: IiifRecopyReply,
+  map: Record<string, unknown>,
+  inspect: (args: { serviceUrl: string }) => Promise<IiifRecopyReply>,
+): Promise<IiifRecopyReply> {
+  if (!reply.ok || map.delivery == null) return reply;
   const iiif = (map.iiif ?? {}) as IiifSectionPart;
-  const listed = listIiifCanvases(json);
-  const canvas = listed.ok
-    ? listed.canvases.find((item: { id: string; width: number; height: number }) => item.id === iiif.canvas)
-    : undefined;
-  return canvas !== undefined && canvas.width === map.width && canvas.height === map.height;
+  const listed = listIiifCanvases(reply.json);
+  if (!listed.ok) return reply;
+  const canvas = listed.canvases.find((item: { id: string }) => item.id === iiif.canvas);
+  if (!canvas) return { ok: false, reason: 'canvas-not-found' };
+  if (!canvas.imageService) return { ok: false, reason: 'image-service-unavailable' };
+  try {
+    const info = await inspect({ serviceUrl: canvas.imageService });
+    if (!info.ok || !info.json || typeof info.json !== 'object') {
+      return { ok: false, reason: 'image-service-unavailable' };
+    }
+    const { width, height } = info.json as { width: number; height: number };
+    if (!Number.isSafeInteger(width) || width <= 0 || !Number.isSafeInteger(height) || height <= 0) {
+      return { ok: false, reason: 'image-service-unavailable' };
+    }
+    return { ...reply, imageSize: { width, height } };
+  } catch {
+    return { ok: false, reason: 'image-service-unavailable' };
+  }
+}
+
+/** 配信画像の実画素数を地図の記録と照合する。書誌だけの地図は検査しない。 */
+function deliveredImageFailure(reply: Extract<IiifRecopyReply, { ok: true }>, map: Record<string, unknown>): string | undefined {
+  if (map.delivery == null) return undefined;
+  const iiif = (map.iiif ?? {}) as IiifSectionPart;
+  const listed = listIiifCanvases(reply.json);
+  if (listed.ok && !listed.canvases.some((item: { id: string }) => item.id === iiif.canvas)) return 'canvas-not-found';
+  if (!reply.imageSize) return 'image-service-unavailable';
+  if (reply.imageSize.width !== map.width || reply.imageSize.height !== map.height) return 'size-mismatch';
+  return undefined;
 }
 
 /** IIIF から写せなかったときの結果（取り直しの失敗も同じ形で返す）。 */
@@ -340,7 +363,7 @@ export type IiifCopyForMap = IiifMetadataCopySuccess | IiifCopyForMapFailure;
 
 /**
  * 取り直した Manifest を、地図に結び付いている canvas と結び付けで写す。
- * 写し直しの比較と同じく、配信の地図はコマの大きさも確かめ、合わなければ 1 つも写さない。
+ * 写し直しの比較と同じく、配信の地図は画像サービスの実画素数も確かめ、合わなければ 1 つも写さない。
  * 何も写さないときは、写しの途中で出た警告も返さない。
  */
 export function copyIiifForMap(
@@ -358,9 +381,8 @@ export function copyIiifForMap(
     options,
   );
   if (!copied.ok) return { ok: false, reason: copied.reason, warnings: copied.warnings };
-  if (!checkDeliveredCanvasSize(reply.json, map)) {
-    return { ok: false, reason: 'size-mismatch', warnings: [] };
-  }
+  const failure = deliveredImageFailure(reply, map);
+  if (failure) return { ok: false, reason: failure, warnings: [] };
   return copied;
 }
 
@@ -392,7 +414,8 @@ export function planIiifRecopy(
     options,
   );
   if (!fresh.ok) return { ok: false, reason: fresh.reason };
-  if (!checkDeliveredCanvasSize(reply.json, map)) return { ok: false, reason: 'size-mismatch' };
+  const failure = deliveredImageFailure(reply, map);
+  if (failure) return { ok: false, reason: failure };
   const copiedValues = iiif.copiedValues ?? {};
   const compared: IiifComparedRow[] = compareIiifCopy(map, copiedValues, fresh.copiedValues, lang);
   const rows: IiifRecopyRow[] = compared.map((row) => {
