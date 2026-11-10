@@ -23,8 +23,23 @@ export const SCHEMA = 'docs/i18n/editor-glossary.schema.json';
 export const BINDINGS = 'docs/i18n/editor-glossary.bindings.json';
 export const MARKDOWN = 'docs/i18n/editor-glossary.md';
 export const SELF = 'scripts/editor-glossary-check.mjs';
-/** 関門 1 の「正本側」（§5.6）。生成物は入れない */
-export const CANONICAL_SIDE = [GLOSSARY, EXCEPTIONS, SCHEMA, SELF];
+/**
+ * 関門 1 の「正本側」（§5.6）。生成物は入れない。検査を外せるファイル（検査を動かす workflow・実行器・判定器・
+ * 除外表）も同じ扱いにする。package.json は検査の script（GATED_SCRIPTS）を変えたときだけ正本側に数える
+ */
+export const CANONICAL_SIDE = [
+  GLOSSARY,
+  EXCEPTIONS,
+  SCHEMA,
+  SELF,
+  'scripts/editor-glossary-check-smoke.mjs',
+  'scripts/ci/run-smokes.mjs',
+  'scripts/ci/judge-test-results.mjs',
+  'scripts/ci/post-editor-glossary-summary.mjs',
+  'ci/test-exclusions.json',
+  '.github/workflows/test.yml',
+];
+export const GATED_SCRIPTS = ['smoke:editor-glossary', 'smoke:editor-glossary-fixtures'];
 const LOCALE_SIDE = /^public\/locales\/[^/]+\/translation\.json$/;
 
 // ───────────────────────────── 重複キーを拒否する JSON の読み取り ─────────────────────────────
@@ -250,8 +265,12 @@ export function loadCanonical(root) {
   return { glossary, exceptions: exceptionsFile?.exceptions ?? [], errors };
 }
 
-/** 正本の意味の整合（§2.2・§5.3）。schema で書けないものだけ */
-export function validateSemantics(glossary, exceptions, keys) {
+/**
+ * 正本の意味の整合（§2.2・§5.3）。schema で書けないものだけ。
+ * 例外・additionalBindings のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（§5.6: 正本だけの PR で
+ * 新しいキーの例外を先に足し、後の locale の PR でキーを足す）
+ */
+export function validateSemantics(glossary, exceptions, keys, pending = []) {
   const errors = [];
   const langs = new Set(glossary.locales);
   const ids = new Set();
@@ -278,10 +297,10 @@ export function validateSemantics(glossary, exceptions, keys) {
       }
     }
     for (const l of Object.keys(c.excludePhrases ?? {})) if (l !== '*' && !langs.has(l)) errors.push(`${c.id}: excludePhrases に未知の言語 ${l}`);
-    for (const k of c.additionalBindings ?? []) if (!keys.has(k)) errors.push(`${c.id}: additionalBindings のキー ${k} が locale に無い`);
+    for (const k of c.additionalBindings ?? []) if (!keys.has(k)) pending.push({ kind: 'pending-key', type: 'additionalBindings', concept: c.id, lang: '-', key: k, message: 'キーがまだ locale に無い（locale の PR で足す）' });
   }
   for (const s of glossary.sharedForms ?? []) {
-    for (const cid of [...s.concepts, ...(s.fallback ? [s.fallback] : [])]) if (!ids.has(cid)) errors.push(`sharedForms: 未知の概念 ${cid}`);
+    for (const cid of s.concepts) if (!ids.has(cid)) errors.push(`sharedForms: 未知の概念 ${cid}`);
     if (!langs.has(s.locale) || !langs.has(s.decideBy)) errors.push(`sharedForms: 未知の言語 ${s.locale}/${s.decideBy}`);
   }
   const seen = new Set();
@@ -291,7 +310,7 @@ export function validateSemantics(glossary, exceptions, keys) {
     seen.add(id);
     if (!ids.has(x.concept)) errors.push(`例外: 未知の概念 ${x.concept}（${x.key}）`);
     if (/[*?]/.test(x.key)) errors.push(`例外: glob は使えない: ${x.key}`);
-    else if (!keys.has(x.key)) errors.push(`例外: キー ${x.key} が locale に無い`);
+    else if (!keys.has(x.key)) pending.push({ kind: 'pending-key', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: 'キーがまだ locale に無い例外（locale の PR で足す）' });
     if (x.type === 'anchorExclusion') {
       if (typeof x.ja !== 'string' || typeof x.en !== 'string' || 'locale' in x || 'value' in x) errors.push(`例外: anchorExclusion は ja と en の全文だけを持つ（${x.concept} ${x.key}）`);
     } else {
@@ -407,8 +426,14 @@ export function evaluateKey(glossary, values, key, exceptions = [], exIndex = in
       const forms = [...e.acceptedForms, ...(e.formerForms ?? [])].filter((f) => !s.forms.includes(f));
       return forms.some((f) => matchForm(ix.modeOf(s.decideBy), prepared(c, s.decideBy), f));
     });
-    const targets = decided.length ? decided : s.fallback ? [ix.byId.get(s.fallback)] : [];
+    const targets = decided;
     if (!targets.length) {
+      // 錨の除外（キー×ja・en の全文）は、共有形の錨にも効く（別の概念の語として外す）
+      const excluded = s.concepts.flatMap((cid) => exIndex.anchor.get(`${cid}|${key}`) ?? []).filter((i) => exceptions[i].ja === values.ja && exceptions[i].en === values.en);
+      if (excluded.length) {
+        excluded.forEach((i) => used.add(i));
+        continue;
+      }
       findings.push({ kind: 'shared', lang: s.decideBy, key, concept: s.concepts.join('/'), ruleId: `shared.${s.locale}.${s.forms[0]}`, hit: form, preferred: s.concepts.join(' / '), message: `${s.locale}「${form}」があるのに ${s.decideBy} にどちらの概念の語も無い` });
       continue;
     }
@@ -534,6 +559,7 @@ export function renderMarkdown(glossary, exceptions, all) {
   lines.push('正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。');
   lines.push('検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。');
   lines.push('正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。');
+  lines.push('まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。');
   lines.push('');
   const counts = {};
   for (const x of exceptions) counts[x.type] = (counts[x.type] ?? 0) + 1;
@@ -638,6 +664,8 @@ export function renderSummary(diff, changedCanonical) {
   const lines = ['<!-- editor-glossary-summary -->', '## 用語集の正本の変更の要約', ''];
   lines.push(`変えた正本側のファイル: ${changedCanonical.map((f) => `\`${f}\``).join('、')}`);
   if (changedCanonical.includes(SELF)) lines.push('', '検査 script を変えた。検査が緩んでいないかを差分で確かめること。');
+  const runners = changedCanonical.filter((f) => f !== SELF && ![GLOSSARY, EXCEPTIONS, SCHEMA].includes(f));
+  if (runners.length) lines.push('', `検査を動かす側（${runners.map((f) => `\`${f}\`${f === 'package.json' ? ' の ' + GATED_SCRIPTS.join('・') : ''}`).join('、')}）を変えた。検査が外れていないかを差分で確かめること。`);
   const sec = (title, items) => {
     lines.push('', `### ${title}（${items.length} 件）`, '');
     if (!items.length) lines.push('なし');
@@ -666,6 +694,24 @@ function runGate(root, base, current) {
   }
   const changed = gitOut(root, ['diff', '--name-only', base, 'HEAD']).split('\n').filter(Boolean);
   const canonical = changed.filter((f) => CANONICAL_SIDE.includes(f));
+  if (changed.includes('package.json')) {
+    const scriptsOf = (text) => {
+      try {
+        const s = JSON.parse(text).scripts ?? {};
+        return JSON.stringify(GATED_SCRIPTS.map((n) => s[n] ?? null));
+      } catch {
+        return null;
+      }
+    };
+    let baseText;
+    try {
+      baseText = gitOut(root, ['show', `${base}:package.json`]);
+    } catch {
+      baseText = '';
+    }
+    const headText = gitOut(root, ['show', 'HEAD:package.json']);
+    if (scriptsOf(baseText) !== scriptsOf(headText)) canonical.push('package.json');
+  }
   const locales = changed.filter((f) => LOCALE_SIDE.test(f));
   if (!gitOk(root, ['cat-file', '-e', `${base}:${GLOSSARY}`])) {
     out.info = `base ${base.slice(0, 12)} に正本が無い（初版 PR）ので関門 1 をかけない`;
@@ -703,8 +749,10 @@ export function runCheck({ root, write = false, base = null }) {
   if (!canon.glossary || canon.errors.length) return result;
   const g = canon.glossary;
   const keys = new Set(loc.values.ja?.keys() ?? []);
-  validateSemantics(g, canon.exceptions, keys).forEach(structure);
+  const pending = [];
+  validateSemantics(g, canon.exceptions, keys, pending).forEach(structure);
   if (violations.length) return result;
+  warnings.push(...pending);
 
   // (0) 関門・(9) 差分の要約
   const gate = runGate(root, base, canon);
@@ -726,7 +774,7 @@ export function runCheck({ root, write = false, base = null }) {
     r.usedExceptions.forEach((i) => used.add(i));
   }
   canon.exceptions.forEach((x, i) => {
-    if (!used.has(i)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: '違反を抑えなかった例外（正本だけの PR で消す）' });
+    if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: '違反を抑えなかった例外（正本だけの PR で消す）' });
   });
   // (7) 生成物
   const genBindings = renderBindings(g, all);
@@ -783,7 +831,7 @@ function main() {
   for (const v of r.violations) {
     console.log(`${v.lang} ${v.key} ${v.concept} ${v.ruleId} ${v.hit} → ${v.preferred}${v.message ? `  # ${v.message}` : ''}`);
   }
-  for (const w of r.warnings) console.log(`warning: ${w.kind} ${w.type} ${w.concept} ${w.lang} ${w.key}`);
+  for (const w of r.warnings) console.log(`warning: ${w.kind} ${w.type} ${w.concept} ${w.lang} ${w.key}  # ${w.message}`);
   if (r.gate?.info) console.log(`gate: ${r.gate.info}`);
   if (r.glossaryChangeSummary) {
     console.log(r.glossaryChangeSummary);

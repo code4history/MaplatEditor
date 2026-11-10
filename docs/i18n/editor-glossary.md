@@ -5,8 +5,9 @@
 正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。
 検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
+まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 502・例外 295（anchorExclusion 13・omission 101・untranslated 181）
+概念 26・結び付いたキー 502・例外 294（anchorExclusion 13・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
@@ -418,7 +419,7 @@ IIIF 等から写す書誌情報。Maplat の地図メタデータ（editor_ui.t
 |---|---|---|---|---|---|
 | de | überschreib | überschreib | — | — | — |
 | en | override | override、overrides、overridden | — | overwrite、overwrites | — |
-| es | sobrescritura | sobrescritura、sobrescrituras、sobrescribe | reemplazo | — | — |
+| es | sobrescritura | sobrescritura、sobrescrituras、sobrescribe、sobrescrito、sobrescrita | reemplazo | — | — |
 | fr | remplacement | remplacement、remplacements、remplace | — | écraser、écrase | — |
 | id | timpa | timpa、menimpa、penimpaan | pengganti | — | — |
 | ja | 上書き | 上書き | — | — | — |

@@ -49,8 +49,7 @@
         "source",
         "citation"
       ],
-      "decideBy": "ja",
-      "fallback": "source"
+      "decideBy": "ja"
     }
   ],
   "concepts": [
@@ -2832,7 +2831,9 @@
           "acceptedForms": [
             "sobrescritura",
             "sobrescrituras",
-            "sobrescribe"
+            "sobrescribe",
+            "sobrescrito",
+            "sobrescrita"
           ],
           "formerForms": [
             "reemplazo"

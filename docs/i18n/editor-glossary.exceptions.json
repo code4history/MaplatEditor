@@ -2227,14 +2227,6 @@
     },
     {
       "type": "omission",
-      "concept": "source",
-      "locale": "ja",
-      "key": "poiedit.clone_failed",
-      "value": "ローカルへの複製に失敗しました。",
-      "reason": "ja は「ローカルへの複製」でソースを省略。全文一致の例外"
-    },
-    {
-      "type": "omission",
       "concept": "tile",
       "locale": "ja",
       "key": "mapedit.export_option_tiles_help",

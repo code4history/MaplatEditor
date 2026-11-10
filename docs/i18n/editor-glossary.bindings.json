@@ -2950,6 +2950,7 @@
     },
     "poiedit.clone_failed": {
       "by": [
+        "ja",
         "shared:en:source"
       ],
       "sharedForm": "en:source"

@@ -103,8 +103,7 @@
         "locale": { "$ref": "#/$defs/lang" },
         "forms": { "$ref": "#/$defs/forms" },
         "concepts": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/nonEmpty" } },
-        "decideBy": { "$ref": "#/$defs/lang" },
-        "fallback": { "$ref": "#/$defs/nonEmpty" }
+        "decideBy": { "$ref": "#/$defs/lang" }
       }
     },
     "glossary": {

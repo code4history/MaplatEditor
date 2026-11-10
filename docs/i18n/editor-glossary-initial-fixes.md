@@ -70,9 +70,9 @@
 | `appedit.warn_provider_mapbox_key_missing` | basemap | El mapa de fondo de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app. | El mapa base de Mapbox no se incluye porque no hay una clave API configurada. Registre una clave de editor en Configuración > Mapa base, o configure la clave de la app. |
 | `dataupload.error_upload` | import | Se ha producido un error al registrar los datos del mapa. | Se ha producido un error al importar los datos del mapa. |
 | `dataupload.success_upload` | import | Los datos del mapa se han registrado correctamente. | Los datos del mapa se han importado correctamente. |
-| `poiref.icon_override` | override | Icono de reemplazo | Icono de sobrescritura |
-| `poiref.override_title` | override | Título de reemplazo | Título de sobrescritura |
-| `poiref.selected_icon_override` | override | Icono de reemplazo al seleccionar | Icono de sobrescritura al seleccionar |
+| `poiref.icon_override` | override | Icono de reemplazo | Icono sobrescrito |
+| `poiref.override_title` | override | Título de reemplazo | Título sobrescrito |
+| `poiref.selected_icon_override` | override | Icono de reemplazo al seleccionar | Icono sobrescrito al seleccionar |
 
 ## fr（フランス語）: 8 件
 
@@ -105,11 +105,11 @@
 | `poiedit.layer_icon` | layer | Ikon Layer | Ikon Lapisan |
 | `poiedit.layer_metadata` | layer | Metadata Layer | Metadata Lapisan |
 | `poiedit.layer_selected_icon` | layer | Ikon Layer (dipilih) | Ikon Lapisan (dipilih) |
-| `poiref.icon_override` | override | Ikon pengganti | Ikon penimpaan |
+| `poiref.icon_override` | override | Ikon pengganti | Ikon timpaan |
 | `poiref.layer_key_missing_warning` | viewer | Elemen ini tidak memiliki pengenal lapisan (id), sehingga viewer akan gagal menampilkan keseluruhan data POI ini. Rapikan dengan mengonversinya ke GeoJSON (jika dapat dikonversi) atau menghapusnya. | Elemen ini tidak memiliki pengenal lapisan (id), sehingga penampil akan gagal menampilkan keseluruhan data POI ini. Rapikan dengan mengonversinya ke GeoJSON (jika dapat dikonversi) atau menghapusnya. |
 | `poiref.mixed_layer_warning` | viewer | Data POI berformat GeoJSON dan format lainnya tercampur. Viewer tidak dapat menampilkan larik ini dengan benar. Konversikan ke GeoJSON dan rapikan. | Data POI berformat GeoJSON dan format lainnya tercampur. Penampil tidak dapat menampilkan larik ini dengan benar. Konversikan ke GeoJSON dan rapikan. |
-| `poiref.override_title` | override | Judul pengganti | Judul penimpaan |
-| `poiref.selected_icon_override` | override | Ikon pengganti saat dipilih | Ikon penimpaan saat dipilih |
+| `poiref.override_title` | override | Judul pengganti | Judul timpaan |
+| `poiref.selected_icon_override` | override | Ikon pengganti saat dipilih | Ikon timpaan saat dipilih |
 
 ## ja（日本語）: 46 件
 
@@ -326,3 +326,13 @@
 | `iiif_metadata.heading` | de, es, fr, id, ko, th, vi, zh, zh-TW | Binding to the IIIF metadata | Binding to the IIIF bibliographic data |
 | `iiif_metadata.manifest_heading` | de, es, fr, id, ko, th, vi, zh, zh-TW | Manifest metadata | Manifest bibliographic data |
 | `iiif_metadata.readonly_heading` | de, es, fr, id, ko, th, vi, zh, zh-TW | Metadata copied from IIIF | Bibliographic data copied from IIIF |
+
+## 実装レビューを受けて足した是正
+
+en「source」の共有形（POI ソースと典拠）は、ja にどちらの語も無いと失敗にする。ja だけがソースを言っていなかった 1 キーを直した（これまでは ja の省略の例外で抑えていた。例外は消した）。
+
+| 言語 | キー | 概念 | 変更前 | 変更後 |
+|---|---|---|---|---|
+| ja | `poiedit.clone_failed` | source | ローカルへの複製に失敗しました。 | ローカルのソースへの複製に失敗しました。 |
+
+es・id の override の 3 キーは、「上書きすることのアイコン」と読めないよう、上の表のとおり「Icono sobrescrito」「Ikon timpaan」などにした（es は許容形に sobrescrito・sobrescrita を足した）。
