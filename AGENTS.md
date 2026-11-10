@@ -38,6 +38,16 @@ TypeScript with `strict: true` in `tsconfig.json`. This repository has no ESLint
 
 This repository has no unified `test` script. Task-scoped smoke tests live under `scripts/` and run individually as `pnpm smoke:<task-id>` (dozens of scripts, one per implementation task, e.g. `pnpm smoke:m12-t22-data-io-dormant-preservation`). Playwright end-to-end specs live in `tests/e2e/` and run individually as `pnpm test:e2e:<task-id>` (e.g. `pnpm test:e2e:m11-t6`); most of these scripts run `scripts/ensure-electron.mjs` and `pnpm build` first. When adding a new task's tests, follow this per-task naming convention rather than introducing a shared `test` script.
 
+## UI Wording & Glossary
+
+All 11 editor UI locales (`public/locales/*/translation.json`) are checked against the UI glossary `docs/i18n/editor-glossary.json` by `node scripts/editor-glossary-check.mjs` (`pnpm smoke:editor-glossary`; CI runs it with the other smokes). `docs/i18n/editor-glossary.md` is the human-readable list.
+
+- Before designing new UI text, look up the concept in `docs/i18n/editor-glossary.md` and use its preferred term in all 11 languages. Put the concept word into the Japanese text as well: a key whose concept word appears only in English needs one omission exception per language.
+- The canonical side (`docs/i18n/editor-glossary.json`, `editor-glossary.exceptions.json`, `editor-glossary.schema.json` and `scripts/editor-glossary-check.mjs`) and the locale files must not change in the same pull request; CI fails if they do. Add new concepts, accepted forms or exceptions in a canonical-only pull request first, merge it, then change the locales in a later pull request. To tighten (e.g. forbid a former form), fix the locales first, then change the canonical side.
+- Regenerate the generated files (`editor-glossary.bindings.json` and `editor-glossary.md`) with `node scripts/editor-glossary-check.mjs --write`. It never edits locales or the canonical files.
+- A wording pull request states the concept IDs, the updates in all 11 locales, the diff of the generated bindings, the root keys, and the results of the glossary, parity and generated-file checks. When reporting a pull request that changes the canonical side, include the change summary that CI posts (added forms, removed forbidden forms, added exceptions).
+- Reviews must reject accepted forms added only to silence forbidden forms, misuse of anchor exclusions, and additions to CI exclusions. Do not record unreviewed translations as approved. The rule "do not use 設定 for nouns that mean definition data" (the `item` role of `configure`) is not machine-checked; check it in review.
+
 ## Commit & Pull Request Guidelines
 
 Commits in this repository are predominantly task-ID-prefixed (e.g. `m12-t22:`, `m14-t3:`, `m13-t2:`), reflecting this project's internal task tracking; occasional Conventional-Commit-style fallbacks appear (`fix(smoke):`) for changes outside a tracked task. Keep commits scoped to one concern. Pull requests should describe the affected editor behavior, list which smoke/e2e scripts were run, and confirm `pnpm build` (which includes type checking) succeeds locally before requesting review.
