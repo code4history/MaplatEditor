@@ -1009,7 +1009,7 @@
       "references_unavailable": "無法取得引用資訊",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
       "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
-      "directgo_blank_like": "連結目標（directgo）只有空白。如要作為連結使用，請切換到「Link」模式並輸入 URL；不使用則請刪除該值。",
+      "directgo_blank_like": "連結目標（directgo）為空或只有空白。如要作為連結使用，請切換到「Link」模式並輸入 URL；不使用則請在原始 GeoJSON 中刪除 directgo。",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP 過大（無法匯入超過 2 GiB 的檔案）",
       "zip_corrupt": "ZIP 已損壞，無法匯入"

@@ -72,7 +72,7 @@ async function save(page: Page): Promise<void> {
 }
 
 const point = (lon: number, lat: number) => ({ type: 'Point', coordinates: [lon, lat] });
-const BLANK_LIKE = 'リンク先（directgo）が空白だけです。';
+const BLANK_LIKE = 'リンク先（directgo）が空か空白だけです。';
 
 test.describe('directgo blank-like warning', () => {
   test('空白だけ・{ href: "" } の directgo は warning で知らせ、保存は止めない（リンクの形では error）', async () => {
