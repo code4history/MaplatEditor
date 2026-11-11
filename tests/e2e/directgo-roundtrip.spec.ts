@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // directgo 往復 E2E: 手で書いた POI の `directgo` が、画面の操作を伴う経路で残るかを確かめる。
 // サービス層の経路（保存・変換・取り込み・書き出し・プレビュー）は scripts/directgo-roundtrip-smoke.mjs。
 //   E3 内容の形の切替: P1〜P3 はリンクの形と推定される。各 POI で、directgo を消す切替（リンク → 他の形）の
@@ -121,7 +122,7 @@ test.describe('directgo roundtrip', () => {
       const uid = await seedSource(page, `directgo-e3-${Date.now()}`, fixture);
       await openPoiSource(page, uid);
       const linkTab = page.getByTestId('poi-content-mode-tab-link');
-      const confirm = page.getByTestId('poi-content-mode-confirm');
+      const confirmation = await captureNativeConfirmation(app);
       for (const id of ['p1', 'p2', 'p3']) {
         const want = expected[id] as string | { href: string; blank?: boolean };
         const wantHref = typeof want === 'string' ? want : want.href;
@@ -135,12 +136,12 @@ test.describe('directgo roundtrip', () => {
 
         // directgo を消す切替は確認の窓が出る。取り消せば何も変わらない
         await page.getByTestId('poi-content-mode-tab-url').click();
-        await expect(confirm).toBeVisible({ timeout: 5000 });
-        await page.getByTestId('poi-content-mode-cancel').click();
+        await confirmation.wait();
+        await confirmation.answer(1);
         await expect(linkTab).toHaveClass(/active/);
         // 確定して standard にしてから Undo 1 回で戻る
         await page.getByTestId('poi-content-mode-tab-standard').click();
-        await confirm.click();
+        await confirmation.answer(0);
         await expect(page.getByTestId('poi-content-mode-tab-standard')).toHaveClass(/active/);
         await page.locator('[data-editor-action="undo"]').click();
         await expect(linkTab).toHaveClass(/active/);

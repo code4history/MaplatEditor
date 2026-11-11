@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // directgo 編集 E2E: 内容の形「リンク」で directgo を編集する。
 //   AC1 リンク先と「新しいタブで開く」を入れて保存 → チェックなしは文字列、ありは { href, blank: true }
 //   AC3 拒否される href は保存できず理由が出る。生 JSON の窓で書いた拒否される directgo も同じ error
@@ -212,14 +213,15 @@ test.describe('directgo edit', () => {
       expect(stored.c2?.url).toBeTruthy();
       expect(stored.c2?.directgo).toBe('https://example.org/c2-link');
 
+      const confirmation = await captureNativeConfirmation(app);
       // link → standard: 確認の窓（directgo が消える）。取り消すと何も変わらない
       await page.getByTestId('poi-content-mode-tab-standard').click();
-      await expect(page.getByTestId('poi-content-mode-confirm')).toBeVisible({ timeout: 5000 });
-      await page.getByTestId('poi-content-mode-cancel').click();
+      await confirmation.wait();
+      await confirmation.answer(1);
       await expect(page.getByTestId('poi-content-mode-tab-link')).toHaveClass(/active/);
       await page.getByTestId('poi-content-mode-tab-standard').click();
-      await expect(page.getByTestId('poi-content-mode-confirm')).toBeVisible({ timeout: 5000 });
-      await page.getByTestId('poi-content-mode-confirm').click();
+      await confirmation.wait();
+      await confirmation.answer(0);
       await expect(page.getByTestId('poi-content-mode-tab-standard')).toHaveClass(/active/);
       // standard の値はそのまま見える
       await expect(page.locator('.poi-attribute-form textarea').first()).toHaveValue('C1 description');
@@ -231,7 +233,8 @@ test.describe('directgo edit', () => {
 
       // もう一度戻して保存 → directgo が消え、standard の値は残る
       await page.getByTestId('poi-content-mode-tab-standard').click();
-      await page.getByTestId('poi-content-mode-confirm').click();
+      await confirmation.answer(0);
+      await confirmation.restore();
       await save(page);
       stored = await storedProperties(page, uid);
       console.log(`result: AC4 back to standard c1 ${JSON.stringify(stored.c1)}`);

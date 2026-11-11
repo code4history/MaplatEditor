@@ -5,6 +5,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -53,10 +54,12 @@ test('new-app draft card shows label/slug and can be deleted from the list', asy
   await expect(card.locator('.resource-item__slug')).toHaveText('apptest');
   await expect(card.locator('.badge')).toHaveText('下書き');
 
-  // 操作メニューから「下書きを削除」できる
-  page.on('dialog', (dialog) => void dialog.accept());
+  // 操作メニューから「下書きを削除」できる（確認はネイティブのダイアログ。docs/ui-grammar.md §5.3）
+  const confirmation = await captureNativeConfirmation(app);
   await card.getByRole('button', { name: '操作メニュー' }).click();
   await page.getByRole('menuitem', { name: '下書きを削除' }).click();
+  await confirmation.answer(0);
+  await confirmation.restore();
 
   await expect(card).not.toBeVisible();
   const remaining = await page.evaluate(async () => (await window.assetDrafts.list('app')).length);

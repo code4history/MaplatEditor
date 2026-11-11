@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -180,8 +181,10 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
 
     // AC11: menu の 削除 → 共通 DeleteConfirmDialog 承認 → card（scroll test で開いた末尾card）が消える
     // M11-T10 (AC5): window.confirm ではなく共通ダイアログを承認する
+    const confirmation = await captureNativeConfirmation(app);
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
-    await page.getByTestId('delete-confirm-button').click();
+    await confirmation.answer(0);
+    await confirmation.restore();
     await expect(page.locator(`[data-resource-uid="${lastCardUid}"]`)).toHaveCount(0);
 
     // AC4 empty: 一致しない検索で empty 状態
@@ -286,9 +289,11 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await expect(rowParent).toHaveCSS('gap', '6px');
 
     await userTrigger.click();
+    const confirmation = await captureNativeConfirmation(app);
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
     // M11-T10 (AC5): window.confirm ではなく共通 DeleteConfirmDialog を承認して削除する
-    await page.getByTestId('delete-confirm-button').click();
+    await confirmation.answer(0);
+    await confirmation.restore();
     await expect(page.getByTestId('basemap-row-e2e-user-basemap')).toHaveCount(0);
 
     // AC16: 範囲で絞り込むボタン→ modal→ 適用が現行どおり動く（filterBaseMapCatalog 温存）

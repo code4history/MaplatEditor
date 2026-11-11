@@ -19,43 +19,6 @@
     </li>
   </ul>
 
-  <!-- 非互換フィールド削除の確認ダイアログ。Bootstrap Modal -->
-  <div
-    v-if="confirmVisible"
-    class="modal d-block"
-    tabindex="-1"
-    role="dialog"
-    style="background: rgba(0,0,0,0.5);"
-  >
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
-          <h6 class="modal-title">{{ t("poiedit.content_mode_switch_title") }}</h6>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0 small">{{ confirmMessage }}</p>
-        </div>
-        <div class="modal-footer border-0 pt-0">
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary"
-            data-testid="poi-content-mode-cancel"
-            @click="cancelSwitch"
-          >
-            {{ t("poiedit.content_mode_cancel") }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-sm btn-danger"
-            data-testid="poi-content-mode-confirm"
-            @click="confirmSwitch"
-          >
-            {{ t("poiedit.content_mode_confirm") }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -124,8 +87,8 @@ const confirmMessage = computed(() => {
   });
 });
 
-function switchTo(mode: string): void {
-  if (props.readOnly) return;
+async function switchTo(mode: string): Promise<void> {
+  if (props.readOnly || confirmVisible.value) return;
   const target = mode as PoiContentMode;
   if (target === currentValue.value) return;
   if (!CONTENT_MODE_VALUES.includes(target)) return;
@@ -136,6 +99,20 @@ function switchTo(mode: string): void {
     pendingMode.value = target;
     pendingFields.value = dropped;
     confirmVisible.value = true;
+    try {
+      const { response } = await (window as any).dialog.showMessageBox({
+        type: 'warning',
+        message: t('poiedit.content_mode_switch_title'),
+        detail: confirmMessage.value,
+        buttons: [t('poiedit.content_mode_confirm'), t('poiedit.content_mode_cancel')],
+        defaultId: 1, cancelId: 1,
+      });
+      if (response === 0 && !props.readOnly) confirmSwitch();
+      else cancelSwitch();
+    } catch (error) {
+      console.error('Content mode confirmation failed', error);
+      cancelSwitch();
+    }
   } else {
     emit("update:modelValue", target);
   }
