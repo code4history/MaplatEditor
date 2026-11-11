@@ -1,0 +1,25 @@
+{
+  "provider": "Boston Public Library / Leventhal Map Center",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://collections.leventhalmap.org/search/commonwealth:x059cb10w/manifest",
+  "manifestFinalUrl": "https://collections.leventhalmap.org/search/commonwealth:x059cb10w/manifest",
+  "infoUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115/info.json",
+  "infoFinalUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/json;charset=utf-8",
+    "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
+  },
+  "terms": "リポジトリのメタデータは CC0。対象資料の Terms of Use は No known restrictions on use。",
+  "termsUrl": "https://www.bpl.org/digitization/metadata-resources/",
+  "attribution": "Boston Public Library, Norman B. Leventhal Map & Education Center",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "e0dc9d6db11b9df3cace19b49c8be3bb6190714cd5a3edf2829256ec3a6317cc",
+    "info": "63f35d5e0041794eb38a150e195684014d7638551466079115df1b7352a16aaa"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "provider": "J. Paul Getty Museum",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://media.getty.edu/iiif/manifest/bff54470-38c3-4865-bd58-b550f19b715e",
+  "manifestFinalUrl": "https://media.getty.edu/iiif/manifest/bff54470-38c3-4865-bd58-b550f19b715e",
+  "infoUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41/info.json",
+  "infoFinalUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/3/context.json\""
+  },
+  "terms": "requiredStatement と公式規約でテキストは CC BY 4.0。rights の CC0 は画像の条件。両者を混同しない。",
+  "termsUrl": "https://www.getty.edu/legal/terms-of-use/",
+  "attribution": "© J. Paul Getty Trust. Text: CC BY 4.0. https://creativecommons.org/licenses/by/4.0/",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "d5b615d099541d608bb2a2d51a76ae0d15bdb63da081450f367417d77f42c479",
+    "info": "deeeccc895a6a6b2d978a28281785d21d4694839a7307ebbda8df0993c961e26"
+  }
+}

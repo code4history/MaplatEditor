@@ -1,0 +1,25 @@
+{
+  "provider": "National Library of Wales",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/manifest.json",
+  "manifestFinalUrl": "https://iiif.llyfrgell.cymru/manifests/2.0/4398332/manifest.json",
+  "infoUrl": "https://iiif.llyfrgell.cymru/iiif/4398333/info.json",
+  "infoFinalUrl": "https://iiif.llyfrgell.cymru/iiif/4398333/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\"",
+    "vary": "Origin"
+  },
+  "terms": "図書館が作成したメタデータ・説明文は CC0。対象は同館の目録で、第三者権利の記載なし。",
+  "termsUrl": "https://www.library.wales/copyright",
+  "attribution": "Llyfrgell Genedlaethol Cymru – The National Library of Wales",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "9c158013dcb12cc21b1ff60550cc3f7ee0ff27a536a6d463ff7a895399b7212d",
+    "info": "e85be6b3a480852aadd7785b78df07db2a7f96713afc4b7bc190554dcf5dde32"
+  }
+}

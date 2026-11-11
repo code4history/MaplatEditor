@@ -1,0 +1,411 @@
+[
+  {
+    "id": "ndl",
+    "expected": {
+      "version": "2",
+      "lang": "ja",
+      "title": "新潟市圖",
+      "titleValue": "新潟市圖",
+      "canvasCount": 9,
+      "canvasIndex": 0,
+      "canvasId": "https://dl.ndl.go.jp/api/iiif/948741/canvas/1",
+      "canvasSize": {
+        "width": 4074,
+        "height": 2705
+      },
+      "imageSize": {
+        "width": 4074,
+        "height": 2705
+      },
+      "imageService": "https://dl.ndl.go.jp/api/iiif/948741/R0000001",
+      "deliveryServiceUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001",
+      "imageVersion": "2",
+      "level": 1,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license"
+      ],
+      "metadataCount": 10,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "Persistent ID",
+        "value": "info:ndljp/pid/948741"
+      },
+      "license": "Custom",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "cookbook",
+    "expected": {
+      "version": "3",
+      "lang": "en",
+      "title": "Picture of Göttingen taken during the 2019 IIIF Conference",
+      "titleValue": {
+        "en": "Picture of Göttingen taken during the 2019 IIIF Conference"
+      },
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://iiif.io/api/cookbook/recipe/0005-image-service/canvas/p1",
+      "canvasSize": {
+        "width": 4032,
+        "height": 3024
+      },
+      "imageSize": {
+        "width": 4032,
+        "height": 3024
+      },
+      "imageService": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen",
+      "deliveryServiceUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen",
+      "imageVersion": "3",
+      "level": 1,
+      "bindingKeys": [
+        "title"
+      ],
+      "metadataCount": 0,
+      "firstMetadata": null,
+      "license": null,
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "stanford",
+    "expected": {
+      "version": "2",
+      "lang": "en",
+      "title": "France - ports",
+      "titleValue": "France - ports",
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://purl.stanford.edu/zc368qw3281/iiif/canvas/cocina-fileSet-zc368qw3281-zc368qw3281_1",
+      "canvasSize": {
+        "width": 7452,
+        "height": 7868
+      },
+      "imageSize": {
+        "width": 7452,
+        "height": 7868
+      },
+      "imageService": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001",
+      "deliveryServiceUrl": "https://stacks.stanford.edu/image/iiif/zc368qw3281/zc368qw3281_00_0001",
+      "imageVersion": "2",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license",
+        "description"
+      ],
+      "metadataCount": 26,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "Available Online",
+        "value": "<a href='https://purl.stanford.edu/zc368qw3281'>https://purl.stanford.edu/zc368qw3281</a>"
+      },
+      "license": "PD",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "bodleian",
+    "expected": {
+      "version": "2",
+      "lang": "en",
+      "title": "All Souls College Hovenden I",
+      "titleValue": "All Souls College Hovenden I",
+      "canvasCount": 33,
+      "canvasIndex": 0,
+      "canvasId": "https://iiif.bodleian.ox.ac.uk/iiif/canvas/27e0b7cb-ae81-4bdc-a127-d3815147690e.json",
+      "canvasSize": {
+        "width": 7435,
+        "height": 10328
+      },
+      "imageSize": {
+        "width": 7435,
+        "height": 10328
+      },
+      "imageService": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e",
+      "deliveryServiceUrl": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e",
+      "imageVersion": "2",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "description"
+      ],
+      "metadataCount": 16,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "Homepage",
+        "value": "<span><a href=\"https://digital.bodleian.ox.ac.uk/objects/acd9492e-25fa-4286-9fe6-e0cf2fc28106/\">View on Digital Bodleian</a></span>"
+      },
+      "license": null,
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "boston",
+    "expected": {
+      "version": "2",
+      "lang": "en",
+      "title": "Bird's eye view of Boston",
+      "titleValue": "Bird's eye view of Boston",
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://ark.digitalcommonwealth.org/ark:/50959/x059cb10w/canvas/x059cb115",
+      "canvasSize": {
+        "width": 9587,
+        "height": 6671
+      },
+      "imageSize": {
+        "width": 9587,
+        "height": 6671
+      },
+      "imageService": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115",
+      "deliveryServiceUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115",
+      "imageVersion": "2",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "attr"
+      ],
+      "metadataCount": 12,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "Title",
+        "value": "Bird's eye view of Boston"
+      },
+      "license": null,
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "wellcome",
+    "expected": {
+      "version": "3",
+      "lang": "en",
+      "title": "Wunder der Vererbung / von Fritz Bolle.",
+      "titleValue": {
+        "en": "Wunder der Vererbung / von Fritz Bolle."
+      },
+      "canvasCount": 36,
+      "canvasIndex": 0,
+      "canvasId": "https://iiif.wellcomecollection.org/presentation/b18035723/canvases/b18035723_0001.JP2",
+      "canvasSize": {
+        "width": 2569,
+        "height": 3543
+      },
+      "imageSize": {
+        "width": 2569,
+        "height": 3543
+      },
+      "imageService": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2",
+      "deliveryServiceUrl": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2",
+      "imageVersion": "2",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "license"
+      ],
+      "metadataCount": 6,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": {
+          "en": "Publication/creation"
+        },
+        "value": {
+          "en": "Murnau ; München : Sebastian Lux, [1951]"
+        }
+      },
+      "license": "CC BY-NC",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "getty",
+    "expected": {
+      "version": "3",
+      "lang": "en",
+      "title": "[ ]",
+      "titleValue": {
+        "en": "[ ]"
+      },
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://media.getty.edu/iiif/manifest/canvas/3bb42b25-96e0-4412-b4da-1dee64694e41",
+      "canvasSize": {
+        "width": 3942,
+        "height": 5728
+      },
+      "imageSize": {
+        "width": 3942,
+        "height": 5728
+      },
+      "imageService": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41",
+      "deliveryServiceUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41",
+      "imageVersion": "3",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license",
+        "description"
+      ],
+      "metadataCount": 10,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": {
+          "en": "Artist/Maker"
+        },
+        "value": {
+          "en": "Unknown maker, Russian"
+        }
+      },
+      "license": "CC0",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "wales",
+    "expected": {
+      "version": "2",
+      "lang": "en",
+      "title": "Papyri from Oxyrhynchus, 2-4 cents",
+      "titleValue": "Papyri from Oxyrhynchus, 2-4 cents",
+      "canvasCount": 16,
+      "canvasIndex": 0,
+      "canvasId": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398333.json",
+      "canvasSize": {
+        "width": 7304,
+        "height": 6496
+      },
+      "imageSize": {
+        "width": 7304,
+        "height": 6496
+      },
+      "imageService": "https://iiif.llyfrgell.cymru/iiif/4398333",
+      "deliveryServiceUrl": "https://iiif.llyfrgell.cymru/iiif/04/398/04398333.jp2",
+      "imageVersion": "2",
+      "level": 1,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license",
+        "description"
+      ],
+      "metadataCount": 6,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": {
+          "en": "Title",
+          "cy-GB": "Teitl"
+        },
+        "value": "Papyri from Oxyrhynchus, 2-4 cents"
+      },
+      "license": "Custom",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "ghent",
+    "expected": {
+      "version": "3",
+      "lang": "en",
+      "title": "[print] Beer, leeuw, struisvogel en dromedaries ",
+      "titleValue": {
+        "en": "[print] Beer, leeuw, struisvogel en dromedaries "
+      },
+      "canvasCount": 2,
+      "canvasIndex": 0,
+      "canvasId": "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/canvas/13290988780009161?iiifVersion=3",
+      "canvasSize": {
+        "width": 2526,
+        "height": 3880
+      },
+      "imageSize": {
+        "width": 2526,
+        "height": 3880
+      },
+      "imageService": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+      "deliveryServiceUrl": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+      "imageVersion": "2",
+      "level": 2,
+      "bindingKeys": [
+        "title",
+        "attr"
+      ],
+      "metadataCount": 11,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": {
+          "en": "Title"
+        },
+        "value": {
+          "en": "[print] Beer, leeuw, struisvogel en dromedaries "
+        }
+      },
+      "license": null,
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  },
+  {
+    "id": "synthetic-p2-page1",
+    "synthetic": true,
+    "expected": {
+      "version": "2",
+      "lang": "ja",
+      "title": "〔試験用架空図〕見立郡仮城下町之図",
+      "titleValue": "〔試験用架空図〕見立郡仮城下町之図",
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/canvas/p1",
+      "canvasLabel": "page 1",
+      "canvasSize": {
+        "width": 6000,
+        "height": 6000
+      },
+      "imageSize": {
+        "width": 11959,
+        "height": 12961
+      },
+      "imageService": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+      "deliveryServiceUrl": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+      "imageVersion": "2",
+      "level": 1,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license"
+      ],
+      "metadataCount": 3,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "資料名",
+        "value": "〔試験用架空図〕見立郡仮城下町之図"
+      },
+      "license": "CC0",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
+  }
+]

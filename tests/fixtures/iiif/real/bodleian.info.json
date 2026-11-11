@@ -1,0 +1,36 @@
+{
+  "@context" : "http://iiif.io/api/image/2/context.json",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 7435,
+  "height" : 10328,
+  "sizes" : [
+     { "width" : 116, "height" : 161 },
+     { "width" : 232, "height" : 322 },
+     { "width" : 464, "height" : 645 },
+     { "width" : 929, "height" : 1291 },
+     { "width" : 1858, "height" : 2582 },
+     { "width" : 3717, "height" : 5164 }
+  ],
+  "tiles" : [
+     { "width" : 256, "height" : 256, "scaleFactors" : [ 1, 2, 4, 8, 16, 32, 64 ] }
+  ],
+  "@id" : "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e",
+  "profile" : [
+     "http://iiif.io/api/image/2/level2.json",
+     { "formats" : ["jpg","png","tif","webp","avif"],
+       "qualities" : ["native","color","gray","bitonal"],
+       "supports" : ["regionByPct","regionSquare","max","sizeByConfinedWh","sizeByForcedWh","sizeByWh","sizeAboveFull","rotationBy90s","mirroring"],
+       "maxWidth" : 1000,
+       "maxHeight" : 1000
+     }
+  ],
+  "service": [
+    {
+      "@context": "http://iiif.io/api/annex/services/physdim/1/context.json",
+      "profile": "http://iiif.io/api/annex/services/physdim",
+      "physicalScale": 0.00846668,
+      "physicalUnits": "cm"
+    }
+  ]
+
+}

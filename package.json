@@ -316,6 +316,7 @@
     "smoke:provider-gl-esm": "node scripts/provider-gl-esm-smoke.mjs",
     "smoke:maplibre-style-support": "node scripts/maplibre-style-support-smoke.mjs",
     "smoke:maplibre-version-migration": "node scripts/maplibre-version-migration-smoke.mjs",
+    "smoke:iiif-real-manifests": "node scripts/iiif-real-manifests-smoke.mjs",
     "smoke:iiif-import": "node scripts/iiif-import-smoke.mjs",
     "smoke:iiif-thumbnail-safety": "node scripts/iiif-thumbnail-safety-smoke.mjs",
     "smoke:iiif-import-verdict": "node scripts/iiif-import-verdict-smoke.mjs",

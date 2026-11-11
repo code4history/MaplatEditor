@@ -1,0 +1,25 @@
+{
+  "provider": "Wellcome Collection",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://iiif.wellcomecollection.org/presentation/v3/b18035723",
+  "manifestFinalUrl": "https://iiif.wellcomecollection.org/presentation/v3/b18035723",
+  "infoUrl": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2/info.json",
+  "infoFinalUrl": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/json",
+    "vary": "Accept-Encoding"
+  },
+  "terms": "Wellcome 自作のメタデータは CC0。対象の画像・本文は CC BY-NC 4.0 だが、ここには画像も本文も保存しない。書誌と画像サービスの技術情報のみ。",
+  "termsUrl": "https://developers.wellcomecollection.org/docs/catalogue",
+  "attribution": "Wellcome Collection",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "70d49ed08785d7b86fde26e7b25d1da07c720a63156c301261ef915d43c192a8",
+    "info": "ef9fec40dd4d024e29be927336df0db69f6234deda5d352a1e71811757b53703"
+  }
+}

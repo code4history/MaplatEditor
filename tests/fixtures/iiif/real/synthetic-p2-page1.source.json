@@ -1,0 +1,28 @@
+{
+  "provider": "自作の再現 fixture（架空の資料）",
+  "synthetic": true,
+  "createdOn": "2026-11-11",
+  "createdBy": "実装エージェントが手で書いた。実在の提供元から取得しておらず、実在の Manifest の文字列・URL・構成を写していない。",
+  "reproduces": "Presentation 2、canvas 1 枚、canvas の label は page 1、canvas と画像 body は仮の 6000×6000、info.json は 11959×12961 で canvas と食い違う、Manifest の label は数字でない題名、画像サービスは型の無い Image API 2 の level 1、CORS は *。この形の実在資料は利用報告が済むまで保存しない。",
+  "manifestUrl": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001.json",
+  "manifestFinalUrl": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001.json",
+  "infoUrl": "https://iiif.example.org/selfmade/image/mitate-joka-0001/info.json",
+  "infoFinalUrl": "https://iiif.example.org/selfmade/image/mitate-joka-0001/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/json"
+  },
+  "infoResponseHeadersNote": "通信して記録した値ではない。再現する形として手で書いた想定の応答ヘッダ。",
+  "terms": "自作の試験データ。題名・所蔵・URL はすべて架空で、リポジトリのライセンスに従う。",
+  "termsUrl": null,
+  "attribution": "架空見本文庫（試験用の自作データ）",
+  "modifications": "取得していない。手で書いた JSON をそのまま保存。",
+  "sha256": {
+    "manifest": "eabd95b29ec2d7fc9498fe0e76178f5086bf52c00b838c1ce5c8fa4476e9e992",
+    "info": "7963913649c575ae77594f96893bcf80111ac7374ffac8914caa95b1f0e786bc"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "provider": "Stanford University Libraries",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://purl.stanford.edu/zc368qw3281/iiif/manifest",
+  "manifestFinalUrl": "https://purl.stanford.edu/zc368qw3281/iiif/manifest",
+  "infoUrl": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001/info.json",
+  "infoFinalUrl": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Accept,X-Requested-With,Accept-Encoding"
+  },
+  "terms": "図書館メタデータは CC0。対象画像の表示は Public Domain Mark。",
+  "termsUrl": "https://library.stanford.edu/stanford-university-libraries-open-metadata-policy",
+  "attribution": "Stanford University Libraries",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "3ad2cc28a1c9a1f7d04bdce95805c4a527d8256874a813d45c5b058d060686b7",
+    "info": "a0d4ee24939607e325d4d60049a96500d6df4db49056aab94ba053dc676c5e4f"
+  }
+}

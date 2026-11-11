@@ -1,0 +1,199 @@
+{
+  "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/manifest?iiifVersion=3",
+  "type" : "Manifest",
+  "label" : {
+    "none" : [ "[print] Beer, leeuw, struisvogel en dromedaries " ]
+  },
+  "metadata" : [ {
+    "label" : {
+      "none" : [ "Title" ]
+    },
+    "value" : {
+      "none" : [ "[print] Beer, leeuw, struisvogel en dromedaries " ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Contributor" ]
+    },
+    "value" : {
+      "none" : [ "Collaert, Adriaan" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Subject" ]
+    },
+    "value" : {
+      "none" : [ "Animals" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Genre" ]
+    },
+    "value" : {
+      "none" : [ "Graphic material" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Series" ]
+    },
+    "value" : {
+      "none" : [ "Avium Vivae Icones (...)" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Series" ]
+    },
+    "value" : {
+      "none" : [ "Bestiarum quadrupedum vivae icones" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Publisher" ]
+    },
+    "value" : {
+      "none" : [ "Utrecht : Crispijn van de Passe I" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Year" ]
+    },
+    "value" : {
+      "none" : [ "1635-1660" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Format" ]
+    },
+    "value" : {
+      "none" : [ "1 prent : gravure ; afbeelding h 117 x b 86 mm, plaatrand h 131 x b 90 mm, bladrand h 161 x b 104 mm." ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Format" ]
+    },
+    "value" : {
+      "none" : [ "Papier" ]
+    }
+  }, {
+    "label" : {
+      "none" : [ "Provenance" ]
+    },
+    "value" : {
+      "none" : [ "BIB.GRA.006754 Herkomst: Verzameling prenten Adolf Pieter Sunaert" ]
+    }
+  } ],
+  "thumbnail" : [ {
+    "id" : "https://libcatalog.ugent.be/view/delivery/thumbnail/32RUG_INST/12290974080009161",
+    "type" : "Image"
+  } ],
+  "viewingDirection" : "left-to-right",
+  "behavior" : [ "individuals" ],
+  "requiredStatement" : {
+    "label" : {
+      "none" : [ "Required statement" ]
+    },
+    "value" : {
+      "none" : [ "PUBLIC DOMAIN\r\n\"This digital work is not subject to any known copyright restrictions, including all related and neighboring rights. You may copy, modify, distribute and perform the work without asking permission, even for commercial purposes.\" " ]
+    }
+  },
+  "provider" : [ {
+    "id" : "https://libcatalog.ugent.be/delivery/32RUG_INST/12290974080009161/provider",
+    "type" : "Agent",
+    "label" : {
+      "none" : [ "Universiteit Gent" ]
+    },
+    "logo" : [ {
+      "id" : "https://libcatalog.ugent.be/infra/branding/logo/logo-main.png?institutionCode=32RUG_INST",
+      "type" : "Image",
+      "service" : [ {
+        "id" : "https://libcatalog.ugent.be/infra/branding/logo/logo-main.png?institutionCode=32RUG_INST",
+        "type" : "ImageService2",
+        "profile" : "http://iiif.io/api/image/2/level2.json"
+      } ]
+    } ]
+  } ],
+  "items" : [ {
+    "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/canvas/13290988780009161?iiifVersion=3",
+    "type" : "Canvas",
+    "label" : {
+      "none" : [ "910000422065_2019_0001_MA" ]
+    },
+    "width" : 2526,
+    "height" : 3880,
+    "items" : [ {
+      "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/annopage/13290988780009161?iiifVersion=3",
+      "type" : "AnnotationPage",
+      "items" : [ {
+        "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/annopage/13290988780009161?iiifVersion=3",
+        "type" : "Annotation",
+        "motivation" : "painting",
+        "body" : {
+          "id" : "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+          "type" : "Image",
+          "format" : "image/jpeg",
+          "service" : [ {
+            "id" : "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+            "type" : "ImageService2",
+            "profile" : "http://iiif.io/api/image/2/level2.json"
+          } ],
+          "height" : 3880,
+          "width" : 2526
+        },
+        "target" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/canvas/13290988780009161?iiifVersion=3"
+      } ]
+    } ],
+    "rendering" : [ {
+      "id" : "https://libcatalog.ugent.be/view/delivery/32RUG_INST/12290974080009161/13290988780009161?fromUV=true",
+      "label" : {
+        "none" : [ "Original Source File, 3.07 MB" ]
+      },
+      "format" : "image/jpeg"
+    } ],
+    "thumbnail" : [ {
+      "id" : "https://libcatalog.ugent.be/view/delivery/thumbnail/32RUG_INST/13290988780009161",
+      "type" : "Image"
+    } ]
+  }, {
+    "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/canvas/13290988770009161?iiifVersion=3",
+    "type" : "Canvas",
+    "label" : {
+      "none" : [ "910000422065_2019_0002_MA" ]
+    },
+    "width" : 2532,
+    "height" : 3878,
+    "items" : [ {
+      "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/annopage/13290988770009161?iiifVersion=3",
+      "type" : "AnnotationPage",
+      "items" : [ {
+        "id" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/annopage/13290988770009161?iiifVersion=3",
+        "type" : "Annotation",
+        "motivation" : "painting",
+        "body" : {
+          "id" : "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDJfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MzIiLCJoZWlnaHQiOiIzODc4Iiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+          "type" : "Image",
+          "format" : "image/jpeg",
+          "service" : [ {
+            "id" : "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDJfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MzIiLCJoZWlnaHQiOiIzODc4Iiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+            "type" : "ImageService2",
+            "profile" : "http://iiif.io/api/image/2/level2.json"
+          } ],
+          "height" : 3878,
+          "width" : 2532
+        },
+        "target" : "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/canvas/13290988770009161?iiifVersion=3"
+      } ]
+    } ],
+    "rendering" : [ {
+      "id" : "https://libcatalog.ugent.be/view/delivery/32RUG_INST/12290974080009161/13290988770009161?fromUV=true",
+      "label" : {
+        "none" : [ "Original Source File, 2.32 MB" ]
+      },
+      "format" : "image/jpeg"
+    } ],
+    "thumbnail" : [ {
+      "id" : "https://libcatalog.ugent.be/view/delivery/thumbnail/32RUG_INST/13290988770009161",
+      "type" : "Image"
+    } ]
+  } ],
+  "@context" : "http://iiif.io/api/presentation/3/context.json"
+}
