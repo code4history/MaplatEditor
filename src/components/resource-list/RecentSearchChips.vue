@@ -38,11 +38,12 @@
         ><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </span>
     </span>
-    <span v-if="error" class="recent-search-chips__error text-danger d-block mt-1">{{ error }}</span>
+    <DiagnosticFeedback v-if="error" scope="operation" :items="[{ key: 'recent-search', severity: 'danger', message: error }]" />
   </div>
 </template>
 
 <script setup lang="ts">
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import { useTranslation } from "i18next-vue";
 import { sameSearchKey } from "../../utils/recentSearches";
 

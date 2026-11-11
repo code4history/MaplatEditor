@@ -33,6 +33,8 @@ export interface RevisionedAssetSaveOptions<TResult extends RevisionedSaveResult
    * reload = common.reload / overwrite = common.overwrite（conflict ダイアログのボタンラベル。
    * 現行 MapEdit/AppEdit のボタン順 [読み直す, 上書き]・cancelId:0 を踏襲するために必要） */
   messages: { conflict: string; discard: string; reload: string; overwrite: string };
+  /** 保存を始めるとき（再入防止を通った直後）に呼ぶ。画面は前の操作の通知を消す（ui-grammar §5.3） */
+  onStart?: () => void;
 }
 
 export interface RevisionedAssetSaveHandle {
@@ -79,6 +81,7 @@ export function useRevisionedAssetSave<TResult extends RevisionedSaveResult>(
   async function performSave(initial?: { expectedRevision: number | undefined }): Promise<void> {
     if (saving.value) return; // 再入防止（二重クリック）
     saving.value = true;
+    options.onStart?.();
     try {
       // {expectedRevision: undefined} の明示指定（copy 保存等）は revision.value より優先する
       let expectedRevision = initial !== undefined ? initial.expectedRevision : revision.value;

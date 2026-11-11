@@ -3,6 +3,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { dismissOperationNotice } from './helpers/operationNotice';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -160,8 +161,11 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await appName.fill('T3 App edited');
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await appName.press(saveShortcut);
-    await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
+    // 保存の成功はネイティブのダイアログではなくバナーに出る（docs/ui-grammar.md §5.3）。
+    // ダイアログの応答待ちが無くなり保存はすぐ終わるので、Busy は書き出し（下）で確かめる
+    await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'success');
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
+    await dismissOperationNotice(page);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
     const appLanguage = page.locator('[data-editor-action="language"]');
@@ -188,8 +192,9 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await page.getByTestId('app-manifest-name').fill('Himeji Guide');
     await page.getByTestId('app-manifest-short-name').fill('Himeji');
     await page.getByTestId('editor-save').click();
-    await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
+    await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'success');
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
+    await dismissOperationNotice(page);
     const localizedApp = await page.evaluate((uid) => window.appedit.request(uid), appUid);
     expect(localizedApp.keywords).toMatchObject({
       ja: '姫路,古地図',

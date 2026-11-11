@@ -1,6 +1,7 @@
 <template>
   <div class="h-100 d-flex flex-column">
     <div class="container-fluid main flex-grow-1 mt-4 px-4">
+      <OperationNotice />
       <!-- Tabs -->
       <ul class="nav nav-tabs nav-justified mb-3" role="tablist">
         <li class="nav-item">
@@ -157,7 +158,7 @@
               <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   :disabled="!isDirty"
                   @click="resetSettings"
                 >
@@ -196,22 +197,14 @@
                   type="text"
                   class="form-control"
                   id="editorGoogleApiKey"
+                  :style="{ borderColor: sameKeyWarning.google ? 'var(--editor-ui-diag-warning-border)' : undefined }"
                   data-testid="settings-editor-google-api-key"
                   v-model="state.editorGoogleApiKey"
                 />
+                <DiagnosticFeedback v-if="sameKeyWarning.google" scope="field" :items="[{ key: 'same-key-google', severity: 'warning', message: t('settings.same_key_warning', { provider: t('basemap.kind.label_google') }) }]" data-testid="settings-same-key-warning-google" />
               </div>
             </div>
-            <div class="row mb-3 align-items-center">
-              <div class="col-sm-9 offset-sm-3">
-                <div
-                  v-if="sameKeyWarning.google"
-                  class="text-warning small"
-                  data-testid="settings-same-key-warning-google"
-                >
-                  {{ t("settings.same_key_warning", { provider: t("basemap.kind.label_google") }) }}
-                </div>
-              </div>
-            </div>
+
 
             <div class="row mb-2 align-items-center">
               <label for="editorMapboxToken" class="col-sm-3 col-form-label text-end">{{
@@ -222,22 +215,14 @@
                   type="text"
                   class="form-control"
                   id="editorMapboxToken"
+                  :style="{ borderColor: sameKeyWarning.mapbox ? 'var(--editor-ui-diag-warning-border)' : undefined }"
                   data-testid="settings-editor-mapbox-token"
                   v-model="state.editorMapboxToken"
                 />
+                <DiagnosticFeedback v-if="sameKeyWarning.mapbox" scope="field" :items="[{ key: 'same-key-mapbox', severity: 'warning', message: t('settings.same_key_warning', { provider: t('basemap.kind.label_mapbox') }) }]" data-testid="settings-same-key-warning-mapbox" />
               </div>
             </div>
-            <div class="row mb-3 align-items-center">
-              <div class="col-sm-9 offset-sm-3">
-                <div
-                  v-if="sameKeyWarning.mapbox"
-                  class="text-warning small"
-                  data-testid="settings-same-key-warning-mapbox"
-                >
-                  {{ t("settings.same_key_warning", { provider: t("basemap.kind.label_mapbox") }) }}
-                </div>
-              </div>
-            </div>
+
 
             <h5 class="mt-4 d-flex align-items-center gap-1">{{ t("settings.default_publish_api_key_heading") }} <ContextHelp :text="t('settings.default_publish_api_key_notice')" :ariaLabel="t('settings.default_publish_api_key_notice')" data-testid="settings-default-publish-api-key-help" /></h5>
 
@@ -276,7 +261,7 @@
               <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   data-testid="settings-reset-basemap"
                   :disabled="!isDirty"
                   @click="resetSettings"
@@ -306,7 +291,7 @@
           role="tabpanel"
         >
           <form class="form-horizontal" @submit.prevent>
-            <p class="form-text" data-testid="settings-mcp-external-notice">{{ mcpNotice }}</p>
+            <DiagnosticFeedback class="mt-2 mb-3" scope="field" :items="[{ key: 'mcp-external', severity: 'warning', message: mcpNotice }]" data-testid="settings-mcp-external-notice" />
 
             <div class="row mb-3 align-items-center">
               <div class="col-sm-9 offset-sm-3">
@@ -335,35 +320,27 @@
                       : t("settings.mcp_status_stopped")
                   }}
                 </div>
-                <div class="form-text">
+                <div class="small text-muted" data-testid="settings-mcp-last-request">
                   {{
                     mcp.status.lastRequestAt
                       ? t("settings.mcp_last_request", { time: new Date(mcp.status.lastRequestAt).toLocaleString() })
                       : t("settings.mcp_last_request_none")
                   }}
                 </div>
-                <div
-                  v-if="mcp.status.lastError === 'port-in-use'"
-                  class="text-danger small mt-1"
-                  data-testid="settings-mcp-port-in-use"
-                >
-                  {{ t("settings.mcp_error_port_in_use") }}
-                </div>
-                <div
-                  v-else-if="mcp.status.lastError === 'listen-failed'"
-                  class="text-danger small mt-1"
-                  data-testid="settings-mcp-listen-failed"
-                >
-                  {{ t("settings.mcp_error_listen_failed") }}
-                </div>
+                <DiagnosticFeedback v-if="mcp.status.lastError === 'port-in-use'" scope="operation" :items="[{ key: 'settings-mcp-port-in-use', severity: 'danger', message: t('settings.mcp_error_port_in_use') }]" data-testid="settings-mcp-port-in-use" />
+                <DiagnosticFeedback v-else-if="mcp.status.lastError === 'listen-failed'" scope="operation" :items="[{ key: 'settings-mcp-listen-failed', severity: 'danger', message: t('settings.mcp_error_listen_failed') }]" data-testid="settings-mcp-listen-failed" />
               </div>
             </div>
 
             <div class="row mb-3 align-items-center">
               <label for="mcpPort" class="col-sm-3 col-form-label text-end">{{ t("settings.mcp_port") }}</label>
               <div class="col-sm-9 d-flex gap-2 align-items-center">
+                <div>
                 <input
                   id="mcpPort"
+                  :class="{ 'is-invalid': mcp.portInvalid }"
+                  :aria-invalid="mcp.portInvalid"
+                  aria-describedby="mcp-port-diagnostic"
                   v-model="mcp.portInput"
                   type="number"
                   min="1024"
@@ -372,18 +349,17 @@
                   class="form-control w-auto"
                   data-testid="settings-mcp-port"
                 />
+                <DiagnosticFeedback v-if="mcp.portInvalid" id="mcp-port-diagnostic" scope="field" :items="[{ key: 'settings-mcp-port-invalid', severity: 'danger', message: t('settings.mcp_error_port_invalid') }]" data-testid="settings-mcp-port-invalid" />
+                </div>
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   data-testid="settings-mcp-port-save"
                   :disabled="mcp.busy || String(mcp.status.port) === String(mcp.portInput)"
                   @click="saveMcpPort"
                 >
                   {{ t("settings.mcp_port_save") }}
                 </button>
-              </div>
-              <div v-if="mcp.portInvalid" class="col-sm-9 offset-sm-3 text-danger small" data-testid="settings-mcp-port-invalid">
-                {{ t("settings.mcp_error_port_invalid") }}
               </div>
             </div>
 
@@ -395,7 +371,7 @@
                 }}</span>
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   data-testid="settings-mcp-regenerate"
                   :disabled="mcp.busy"
                   @click="regenerateMcpToken"
@@ -409,7 +385,7 @@
               <div class="col-sm-9 offset-sm-3 d-flex flex-wrap gap-2">
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   data-testid="settings-mcp-copy-claude-code"
                   :disabled="mcp.busy"
                   @click="copyMcpCommand('claude-code')"
@@ -418,29 +394,27 @@
                 </button>
                 <button
                   type="button"
-                  class="btn btn-light border"
+                  class="btn btn-outline-secondary"
                   data-testid="settings-mcp-copy-mcp-remote"
                   :disabled="mcp.busy"
                   @click="copyMcpCommand('mcp-remote')"
                 >
                   <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_mcp_remote") }}
                 </button>
+                <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md §2.1） -->
+                <ContextHelp class="align-self-center" :text="t('settings.mcp_recommend_loopback')" :ariaLabel="t('editor_ui.help_about', { name: t('settings.mcp_client_registration') })" data-testid="settings-mcp-recommend-loopback" />
               </div>
-              <div v-if="mcp.copied" class="col-sm-9 offset-sm-3 form-text" data-testid="settings-mcp-copied">
-                {{ t("settings.mcp_copied") }}
-              </div>
-              <div v-if="mcp.copyFailed" class="col-sm-9 offset-sm-3 text-danger small" data-testid="settings-mcp-copy-failed">
-                {{ t("settings.mcp_copy_failed") }}
+              <div v-if="mcp.copied || mcp.copyFailed" class="col-sm-9 offset-sm-3 mt-2">
+                <DiagnosticFeedback v-if="mcp.copied" scope="operation" :items="[{ key: 'settings-mcp-copied', severity: 'success', message: t('settings.mcp_copied') }]" data-testid="settings-mcp-copied" />
+                <DiagnosticFeedback v-if="mcp.copyFailed" scope="operation" :items="[{ key: 'settings-mcp-copy-failed', severity: 'danger', message: t('settings.mcp_copy_failed') }]" data-testid="settings-mcp-copy-failed" />
               </div>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-sm-9 offset-sm-3">
-                <p class="form-text mb-1">{{ t("settings.mcp_recommend_loopback") }}</p>
-                <p class="form-text mb-0">
-                  {{ t("settings.mcp_docs_link") }}:
-                  <span class="user-select-all font-monospace" data-testid="settings-mcp-docs-url">{{ MCP_DOCS_URL }}</span>
-                </p>
+            <!-- 「接続の手順」は URL の項目名（説明ではない）。他の項目と同じく左の列に置く -->
+            <div class="row mb-3 align-items-center">
+              <label class="col-sm-3 col-form-label text-end">{{ t("settings.mcp_docs_link") }}</label>
+              <div class="col-sm-9">
+                <span class="user-select-all font-monospace" data-testid="settings-mcp-docs-url">{{ MCP_DOCS_URL }}</span>
               </div>
             </div>
           </form>
@@ -451,6 +425,9 @@
 </template>
 
 <script setup lang="ts">
+import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
+import OperationNotice from "../components/editor-ui/OperationNotice.vue";
+import { useOperationNotice } from "../composables/useOperationNotice";
 import { reactive, onMounted, onUnmounted, ref, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import { SUPPORTED_LANGUAGES } from "../utils/editorLanguages";
@@ -467,6 +444,7 @@ const MCP_DOCS_URL = "https://github.com/code4history/MaplatEditor/blob/master/d
 defineOptions({ name: "SettingsView" });
 
 const { t, i18next } = useTranslation();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const activeTab = ref("basic");
 
 // ---- MCP server tab ----
@@ -692,15 +670,16 @@ const resetSettings = async () => {
 };
 
 const saveSettings = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     // 保存フォルダは main が拒否することがある（ネットワーク上のフォルダなど）。
     // 途中まで保存しないよう最初に送り、失敗したら利用者に伝えて止める
     try {
         await window.settings.set("saveFolder", state.saveFolder);
     } catch (e) {
         console.error("Failed to save the data folder:", e);
-        await (window as any).dialog.showMessageBox({
+        notifyOperation({
             type: "error",
-            buttons: ["OK"],
             message: t("settings.save_folder_failed"),
         });
         return;

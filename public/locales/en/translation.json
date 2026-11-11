@@ -296,6 +296,7 @@
     "mcp_copied": "Copied. It is removed from the clipboard after one minute.",
     "mcp_docs_link": "How to connect",
     "mcp_recommend_loopback": "Register the 127.0.0.1 URL in your client, not localhost.",
+    "mcp_client_registration": "Registering a client",
     "mcp_error_port_in_use": "Another program is using the same port. The token may have been sent to it. Please regenerate the token.",
     "mcp_error_listen_failed": "Could not start listening.",
     "mcp_error_port_invalid": "Enter a whole number from 1024 to 65535 for the port.",
@@ -548,7 +549,8 @@
     "export_option_tiles_help": "Tiles are the map image split into small squares so that the map can be displayed. They are used when the map is opened. This includes the thumbnail (the small image shown in the list).",
     "export_option_json": "Map settings file (JSON, POI)",
     "export_option_originals": "Original image",
-    "export_option_originals_note": "Includes the original image file as is. The file becomes larger and may contain photo metadata.",
+    "export_option_originals_help": "Includes the original image file as is.",
+    "export_option_originals_warning": "The file becomes larger and may contain photo metadata.",
     "export_option_none_selected": "Select at least one item"
   },
   "mapupload": {
@@ -1293,7 +1295,9 @@
       "gcps_requires_image": "Register a map image first",
       "merc": "Mercator Tiles"
     },
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "Help: {{name}}",
+    "unavailable_reason": "Why “{{name}}” is unavailable"
   },
   "resource_list": {
     "new_item": "New",

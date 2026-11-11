@@ -23,7 +23,7 @@
       @click.stop
     >
       <li v-for="action in actions" :key="action.key" role="none">
-        <button
+        <button data-testid="resource-menu-action"
           type="button"
           role="menuitem"
           class="dropdown-item"

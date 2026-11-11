@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import OperationNotice from "../components/editor-ui/OperationNotice.vue";
+import { useOperationNotice } from "../composables/useOperationNotice";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
@@ -154,6 +156,7 @@ const builtinThumbnails: Record<string, string> = {
 };
 
 const { t, i18next } = useTranslation();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const route = useRoute();
 const router = useRouter();
 
@@ -246,6 +249,8 @@ const selectEditorLanguage = (language: LangCode) => {
 let pendingSave: { document: AppDocument } | null = null;
 let appSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<AppSaveResult>({
+  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
+  onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
     // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ dispatch する
@@ -285,7 +290,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     if (route.query.uid !== result.uid) {
       router.replace({ query: { ...route.query, uid: result.uid } });
     }
-    await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("appedit.success_save") });
+    notifyOperation({ type: "success", message: t("appedit.success_save") });
   },
   reloadFromStore: () => reloadFromStore(),
   isDirty: () => isDirty.value,
@@ -1210,6 +1215,8 @@ const closeAppExportOptions = (value: { includeTiles: boolean } | null) => {
 
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+  clearOperationNotice();
   // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
   // 小窓で取り消したら何もしない
   // MapLibre の版: 5 系のままで 6 系が要るベースマップがあれば、書き出しの小窓より前に確かめる（ここでは切り替えない）
@@ -1225,26 +1232,23 @@ async function exportSavedApp(): Promise<boolean> {
     });
     if (result.result === "Canceled") return false;
     if (result.result === "Error") {
-      await (window as any).dialog.showMessageBox({
+      notifyOperation({
         type: "error",
-        buttons: ["OK"],
         message: t("appedit.export_failed"),
         detail: result.message || "",
       });
       return false;
     }
     const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
-    await (window as any).dialog.showMessageBox({
-      type: warnings ? "warning" : "info",
-      buttons: ["OK"],
+    notifyOperation({
+      type: warnings ? "warning" : "success",
       message: t("appedit.export_success", { outDir: result.outDir }),
       detail: warnings,
     });
     return true;
   } catch (error) {
-    await (window as any).dialog.showMessageBox({
+    notifyOperation({
       type: "error",
-      buttons: ["OK"],
       message: t("appedit.export_failed"),
       detail: error instanceof Error ? error.message : String(error),
     });
@@ -1411,6 +1415,9 @@ async function changePreviewLang(lang: string) {
 }
 
 async function renderPreview() {
+  // 描き直すたびに前のプレビューの警告だけを消す（警告の無い描き直しで古い警告が残らないように。
+  // 書き出しの結果は消さない）
+  clearOperationNotice("preview");
   destroyPreview();
   previewError.value = null;
   if (appData.value.sources.length === 0) {
@@ -1424,9 +1431,8 @@ async function renderPreview() {
     // main 解決層からの警告 (missing/duplicate POI 参照等) を export と同じ形式で表示する
     const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
     if (warnings) {
-      await (window as any).dialog.showMessageBox({
+      notifyOperation({ origin: "preview",
         type: "warning",
-        buttons: ["OK"],
         message: t("appedit.preview_warnings"),
         detail: warnings,
       });
@@ -1506,6 +1512,7 @@ function onPoisChange(next: unknown[]) {
         </button>
       </template>
     </EditorActionHeader>
+    <OperationNotice />
 
     <!-- M11-T7/AC8 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
          旧配置(メタデータフォーム最下部)ではスクロールしないと見えず、保存失敗が伝わらなかった -->
@@ -1720,7 +1727,7 @@ function onPoisChange(next: unknown[]) {
                 <input :value="appData.appSettings.homeLat ?? ''" type="number" step="0.000001" class="form-control form-control-sm" :disabled="translationMode" @change="appData.appSettings.homeLat = finiteOrNull(($event.target as HTMLInputElement).value); recordHistory()">
               </div>
               <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-sm btn-outline-info text-nowrap mb-1" data-testid="app-edit-estimate-home" :disabled="translationMode || !(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value)" @click="estimateHomeFromSources">
+                <button type="button" class="btn btn-light btn-sm border shadow-sm text-nowrap mb-1" data-testid="app-edit-estimate-home" :disabled="translationMode || !(appData.coverageLngLats ?? appCoverageAuto.autoCoverage.value)" @click="estimateHomeFromSources">
                   {{ t("common.estimate") }}
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap mb-1 ms-1" :disabled="translationMode" @click="openHomePositionModal">{{ t("appedit.home_pick") }}</button>

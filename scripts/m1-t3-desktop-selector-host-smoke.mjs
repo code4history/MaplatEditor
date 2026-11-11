@@ -1,4 +1,5 @@
 import { readdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -145,32 +146,16 @@ try {
 
   console.log('  [2/6] useAppSourceHost 型チェック: PASS');
 
-  // --- Part 3: DesktopRegisteredMapSelector.vue 存在チェック ---
-  const selectorComponentPath = path.join(projectRoot, 'src/components/DesktopRegisteredMapSelector.vue');
-  const selectorComponent = await readFile(selectorComponentPath, 'utf8');
-
-  // emit が SelectedRegisteredMapHostState であることを確認
-  assert.match(
-    selectorComponent,
-    /select:\s*\[\s*state\s*:\s*SelectedRegisteredMapHostState\s*\]/,
-    'DesktopRegisteredMapSelector の emit 型が SelectedRegisteredMapHostState でない'
+  // --- Part 3: 旧 DesktopRegisteredMapSelector.vue は消した ---
+  // どこからも参照されていなかったので、UI 文法の修正（PR #246 のレビュー Minor 7）で消した。
+  // 選択の状態の型（SelectedRegisteredMapHostState）は Part 1・2 が useRegisteredMapSelector・useAppSourceHost で確かめる
+  assert.equal(
+    existsSync(path.join(projectRoot, 'src/components/DesktopRegisteredMapSelector.vue')),
+    false,
+    '参照されていない DesktopRegisteredMapSelector.vue が残っている'
   );
 
-  // thumbnailUrl が string の場合のみ画像を表示することを確認
-  assert.match(
-    selectorComponent,
-    /typeof\s+item\.thumbnailUrl\s*===\s*['"]string['"]/,
-    'DesktopRegisteredMapSelector が thumbnailUrl の string 判定をしていない'
-  );
-
-  // initialSelection prop がないことを確認
-  assert.doesNotMatch(
-    selectorComponent,
-    /initialSelection/,
-    'DesktopRegisteredMapSelector に initialSelection prop が存在する'
-  );
-
-  console.log('  [3/6] DesktopRegisteredMapSelector.vue 存在チェック: PASS');
+  console.log('  [3/6] 旧 DesktopRegisteredMapSelector.vue の削除: PASS');
 
   // --- Part 4: AppList/AppEdit.vue 整合性 ---
   const appListView = await readFile(

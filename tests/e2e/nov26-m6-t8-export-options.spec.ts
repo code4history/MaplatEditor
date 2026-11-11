@@ -87,8 +87,11 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30000 });
       await page.locator('[data-editor-action="export"]').click();
       await expectDefaultMapOptions(page);
-      await expect(page.getByTestId('map-export-option-originals-note')).toBeVisible();
+      await expect(page.getByTestId('map-export-option-originals-help')).toBeVisible();
+      // ファイルサイズ・付帯情報の注意は、オリジナル画像を選んだときだけ黄色の警告で出る（ui-grammar §2.4）
+      await expect(page.getByTestId('map-export-option-originals-warning')).toHaveCount(0);
       await page.getByTestId('map-export-option-originals').check();
+      await expect(page.getByTestId('map-export-option-originals-warning')).toHaveAttribute('data-diagnostic-severity', 'warning');
       await page.getByTestId('map-export-option-tiles').uncheck();
       await page.getByTestId('map-export-options-confirm').click();
       await expect(page.getByTestId('map-export-options')).toBeHidden();

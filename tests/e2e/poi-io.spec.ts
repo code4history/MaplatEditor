@@ -70,19 +70,25 @@ type PoiExportFormat = 'geojson' | 'csv' | 'json';
 
 // ヘッダの「エクスポート」→ 選択ダイアログで形式 (と画像) を選ぶ → 確定。完了の通知まで待つ
 async function runExport(
-  app: ElectronApplication,
+  _app: ElectronApplication,
   page: Page,
   format: PoiExportFormat,
   images?: { includeImages: boolean },
 ) {
+  const previous = page.getByTestId('operation-notice');
+  if (await previous.isVisible()) await previous.locator('[data-diagnostic-dismiss]').click();
   await page.locator('[data-editor-action="export"]').click();
   await expect(page.getByTestId('poi-export-options')).toBeVisible();
   await page.getByTestId(`poi-export-format-${format}`).check();
   if (images) await page.getByTestId('poi-export-option-images').setChecked(images.includeImages);
   await page.getByTestId('poi-export-options-confirm').click();
   await expect(page.getByTestId('poi-export-options')).toBeHidden();
-  await expect.poll(() => app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBeGreaterThan(0);
-  return app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string; detail?: string }[]);
+  const notice = page.getByTestId('operation-notice');
+  // 本文が書き出しの完了になるまで待つ（未保存から保存して書き出すときの「保存できました」と取り違えない）
+  await expect(notice.locator('.editor-diagnostic__message').first()).toContainText('エクスポートしました', { timeout: 30_000 });
+  await expect(notice).toHaveAttribute('data-diagnostic-severity', 'success');
+  const messages = await notice.locator('.editor-diagnostic__message').allTextContents();
+  return [{ message: messages[0], detail: messages.slice(1).join('\n') }];
 }
 
 async function saveCalls(app: ElectronApplication): Promise<{ filters: { name: string; extensions: string[] }[] }[]> {
@@ -228,10 +234,10 @@ test.describe('POI のエクスポート', () => {
       expect(await saveCalls(app)).toHaveLength(0);
       await page.getByTestId('poi-export-options-confirm').click();
       await expect(dialog).toBeHidden();
-      await expect.poll(() => app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBe(before.length + 1);
+      await expect(page.getByTestId('operation-notice')).toContainText('エクスポートしました。');
       expect(await saveCalls(app)).toHaveLength(1);
       const after = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
-      expect(after.at(-1)?.message).toBe('エクスポートしました。');
+      expect(after).toEqual(before); // 通知はネイティブ確認を増やさない
     } finally {
       await quitElectronApplication(app);
     }

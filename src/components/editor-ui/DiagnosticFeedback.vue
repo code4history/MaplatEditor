@@ -94,6 +94,13 @@ const iconFor = (severity: DiagnosticSeverity) => DIAGNOSTIC_SEVERITY_ICON[sever
   margin-top: var(--editor-ui-space-1);
 }
 
+/* operation scope: 行が多いとき（移行レポート・書き出しの警告の detail）は、バナーを伸ばさず中をスクロールする。
+   閉じるボタンは list の外なので、スクロールしても見えたまま */
+.editor-diagnostic--operation .editor-diagnostic__list {
+  max-height: var(--editor-ui-diag-operation-max-height);
+  overflow-y: auto;
+}
+
 /* section / operation scope: compact summary（summary-bg + summary-padding + border） */
 .editor-diagnostic--section,
 .editor-diagnostic--operation {

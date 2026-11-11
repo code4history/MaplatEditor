@@ -47,6 +47,8 @@
   --editor-ui-diag-summary-bg-warning: var(--bs-warning-bg-subtle);
   --editor-ui-diag-summary-bg-danger: var(--bs-danger-bg-subtle);
   --editor-ui-diag-summary-padding: 8px 12px;
+  /* 画面上部のバナー（operation）の高さの上限。移行レポートや書き出しの警告の行が多いときは中をスクロールする */
+  --editor-ui-diag-operation-max-height: min(30vh, 14rem);
 
   /* 黒 header（現行値の維持） */
   --editor-ui-header-height: 50px;

@@ -1,6 +1,6 @@
 <template>
   <!-- 静的バックドロップ（ESC・外クリックで閉じない）→ 旧実装 data-backdrop="static" 相当 -->
-  <div
+  <div data-testid="operation-progress-dialog"
     v-if="visible"
     class="modal d-block"
     tabindex="-1"
@@ -31,7 +31,7 @@
             <div>
               <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-primary"
                 :disabled="!enableClose"
                 @click="$emit('close')"
               >OK</button>

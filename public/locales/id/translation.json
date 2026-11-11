@@ -314,6 +314,7 @@
     "mcp_copied": "Tersalin. Akan dihapus dari papan klip setelah satu menit.",
     "mcp_docs_link": "Cara menghubungkan",
     "mcp_recommend_loopback": "Daftarkan URL dengan 127.0.0.1 di klien, bukan localhost.",
+    "mcp_client_registration": "Mendaftarkan klien",
     "mcp_error_port_in_use": "Program lain memakai port yang sama. Token mungkin telah dikirim ke program itu. Buat ulang token.",
     "mcp_error_listen_failed": "Tidak dapat mulai mendengarkan.",
     "mcp_error_port_invalid": "Masukkan bilangan bulat 1024 sampai 65535 untuk port.",
@@ -566,7 +567,8 @@
     "export_option_tiles_help": "Tile adalah gambar peta yang dibagi menjadi kotak-kotak kecil agar peta dapat ditampilkan. Tile dipakai saat peta dibuka. Termasuk gambar mini (gambar kecil yang tampil di daftar).",
     "export_option_json": "File pengaturan peta (JSON dan POI)",
     "export_option_originals": "Gambar asli",
-    "export_option_originals_note": "Menyertakan berkas gambar asli apa adanya. Berkas menjadi lebih besar dan dapat berisi metadata foto.",
+    "export_option_originals_help": "Menyertakan berkas gambar asli apa adanya.",
+    "export_option_originals_warning": "Berkas menjadi lebih besar dan dapat berisi metadata foto.",
     "export_option_none_selected": "Pilih setidaknya satu item"
   },
   "mapupload": {
@@ -1293,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "Bantuan: {{name}}",
+    "unavailable_reason": "Alasan “{{name}}” tidak tersedia"
   },
   "resource_list": {
     "new_item": "Baru",

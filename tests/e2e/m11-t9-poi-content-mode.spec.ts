@@ -5,6 +5,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
@@ -79,17 +80,18 @@ test.describe('M11-T9 POI Content Mode', () => {
       // AC5: incompatible diagnostic
       await expect(page.locator('.editor-diagnostic').first()).toBeVisible({ timeout: 5000 });
 
+      const confirmation = await captureNativeConfirmation(app);
       // AC7: cancel
       await standardTab.click();
-      const confirmDialog = page.getByTestId('poi-content-mode-confirm');
-      await expect(confirmDialog).toBeVisible({ timeout: 5000 });
-      await page.getByTestId('poi-content-mode-cancel').click();
+      const prompt = await confirmation.wait();
+      expect(prompt.cancelId).toBe(1);
+      expect(prompt.detail).toContain('HTML');
+      await confirmation.answer(1);
       await expect(htmlTab).toHaveClass(/active/);
 
       // AC6: confirm → standard mode
       await standardTab.click();
-      await expect(confirmDialog).toBeVisible({ timeout: 5000 });
-      await confirmDialog.click();
+      await confirmation.answer(0);
       await expect(standardTab).toHaveClass(/active/);
 
       // AC8: undo returns to previous mode
@@ -98,8 +100,7 @@ test.describe('M11-T9 POI Content Mode', () => {
 
       // AC4+AC16: url mode
       await urlTab.click();
-      const confirmBtn2 = page.getByTestId('poi-content-mode-confirm');
-      if (await confirmBtn2.isVisible({ timeout: 1000 }).catch(() => false)) await confirmBtn2.click();
+      await confirmation.answer(0);
       await expect(urlTab).toHaveClass(/active/);
       await expect(page.locator('label:has-text("画像")')).toHaveCount(0);
 

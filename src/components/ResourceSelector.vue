@@ -6,7 +6,7 @@
     <div class="selected-pane ps-3">
       <slot name="selected" :items="selected" :move="emitMove" :remove="emitRemove">
         <h5>{{ selectedHeading }}</h5>
-        <div v-if="selected.length === 0" class="text-muted py-3">{{ emptyText }}</div>
+        <ResourceEmptyState v-if="selected.length === 0" icon-class="bi bi-list" :message="emptyText" />
         <div v-else class="selected-list">
           <div
             v-for="(item, index) in selected"
@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
 withDefaults(defineProps<{
   selected?: any[]
   selectedHeading?: string

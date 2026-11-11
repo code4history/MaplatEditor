@@ -314,6 +314,7 @@
     "mcp_copied": "已複製。一分鐘後會從剪貼簿清除。",
     "mcp_docs_link": "連線方法",
     "mcp_recommend_loopback": "請在用戶端使用 127.0.0.1 的 URL 註冊，而不是 localhost。",
+    "mcp_client_registration": "在用戶端中註冊",
     "mcp_error_port_in_use": "另一個程式正在使用同一個連接埠。權杖可能已被傳送給它。請重新產生權杖。",
     "mcp_error_listen_failed": "無法開始監聽。",
     "mcp_error_port_invalid": "請以 1024 到 65535 之間的整數指定連接埠。",
@@ -566,7 +567,8 @@
     "export_option_tiles_help": "圖磚是把地圖影像分成小正方形以便顯示地圖的部分，開啟地圖時使用。也包含縮圖（清單中顯示的小圖）。",
     "export_option_json": "地圖設定檔（JSON・POI）",
     "export_option_originals": "原始影像",
-    "export_option_originals_note": "按原樣放入原始影像檔案。檔案會變大，並可能包含照片的附加資訊",
+    "export_option_originals_help": "按原樣放入原始影像檔案。",
+    "export_option_originals_warning": "檔案會變大，並可能包含照片的附加資訊。",
     "export_option_none_selected": "請至少選擇一項"
   },
   "mapupload": {
@@ -1293,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "「{{name}}」的說明",
+    "unavailable_reason": "無法使用「{{name}}」的原因"
   },
   "resource_list": {
     "new_item": "新增",

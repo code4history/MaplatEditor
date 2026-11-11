@@ -2,6 +2,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -99,21 +100,37 @@ test('hot exit restores drafts, shows badge, resolves revision conflicts, and fl
       },
     });
   }, seeded);
+  // 競合の確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）。「下書きを適用」を選ぶ
+  const conflict = await captureNativeConfirmation(runtime.app);
   await openApp(runtime.page, seeded.uid);
-  await expect(runtime.page.getByText(/Draft differs|下書きと保存済み版/)).toBeVisible();
-  await runtime.page.getByRole('button', { name: /Apply draft|下書きを適用/ }).click();
+  const conflictPrompt = await conflict.wait();
+  expect(conflictPrompt.message).toMatch(/Draft differs|下書きと保存済み版/);
+  expect(conflictPrompt.buttons[1]).toMatch(/Apply draft|下書きを適用/);
+  await conflict.answer(1);
   await expect(runtime.page.getByTestId('app-id')).toHaveValue('conflicting-draft');
 
   await runtime.page.evaluate(async (uid) => window.assetDrafts.remove('app', uid), seeded.uid);
   await runtime.page.evaluate(() => { location.hash = '#/applist'; });
   await expect(runtime.page.getByTestId('app-id')).toBeHidden();
   await openApp(runtime.page, seeded.uid);
+  // 適用した下書きは一覧へ戻るときに書き戻される（基の版は古いまま）ので、開き直すと競合の確認が必ずもう一度出る。
+  // 出ることを期待値にする（出なければ落とす）。下書きを適用する
+  const reprompted = await conflict.wait();
+  expect(reprompted.message).toMatch(/Draft differs|下書きと保存済み版/);
+  await conflict.answer(1);
+  await conflict.restore();
   await runtime.page.getByTestId('app-id').fill('flush-on-electron-quit');
   await runtime.page.getByTestId('app-id').blur();
   await quitApplication(runtime.app);
 
   runtime = await launch(userDataDir);
+  // 下書きの基の版は古いままなので、起動し直して開くと競合の確認が必ず出る。出ることを期待値にし、下書きを適用する
+  const relaunched = await captureNativeConfirmation(runtime.app);
   await openApp(runtime.page, seeded.uid);
+  const repromptedAfterQuit = await relaunched.wait();
+  expect(repromptedAfterQuit.message).toMatch(/Draft differs|下書きと保存済み版/);
+  await relaunched.answer(1);
+  await relaunched.restore();
   await expect(runtime.page.getByTestId('app-id')).toHaveValue('flush-on-electron-quit');
   await quitApplication(runtime.app);
 });

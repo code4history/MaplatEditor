@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import OperationNotice from "../components/editor-ui/OperationNotice.vue";
+import { useOperationNotice } from "../composables/useOperationNotice";
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { isEqual, cloneDeep } from 'lodash-es';
@@ -112,6 +114,7 @@ import type Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
 
 const { t, i18next } = useTranslation();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 const router = useRouter();
 const route = useRoute();
@@ -143,6 +146,8 @@ let pendingSave: {
     copyFromUid: string | undefined;
 } | null = null;
 const saveHandle = useRevisionedAssetSave<MapSaveResult>({
+    // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
+    onStart: clearOperationNotice,
     send: async ({ expectedRevision }) => {
         const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
         // M11-T7/D5改: UID 維持改名は明示フィールド renameFromSlug で原本(slugキー)改名の
@@ -180,9 +185,8 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     },
     applySuccess: async (result) => {
         mapSaveSucceeded = true;
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
+        notifyOperation({
+            type: 'success',
             message: t('mapedit.success_save')
         });
         // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
@@ -916,9 +920,8 @@ const warnIfDraftTilesLost = async (viaConflictApply: boolean) => {
         const key = viaConflictApply && status.savedTilesExist
             ? 'mapedit.draft_already_saved'
             : 'mapedit.draft_tiles_lost';
-        await (window as any).dialog.showMessageBox({
+        notifyOperation({
             type: 'warning',
-            buttons: ['OK'],
             message: t(key),
         });
     } catch (e) {
@@ -2433,10 +2436,11 @@ onMounted(async () => {
           }
           // 期限切れなどで受け取れない: 画像の無い地図を開かず、理由を出して一覧へ戻る
           if (importMode && !draftPayload) {
-            await (window as any).dialog.showMessageBox({
+            notifyOperation({
               type: 'warning',
-              buttons: ['OK'],
               message: t('iiif_import.error.stage_failed'),
+              // 直後に一覧へ戻る: 遷移先で読めるよう 1 回だけ越えて残す
+              keepAcrossNavigation: true,
             });
             if (isUnmounted) return;
             await router.push({ name: 'MapList' });
@@ -2454,10 +2458,11 @@ onMounted(async () => {
           if (importMode === 'delivery' && draftPayload) {
             const delivery = deliveryForSource(draftPayload);
             if (!delivery) {
-              await (window as any).dialog.showMessageBox({
+              notifyOperation({
                 type: 'warning',
-                buttons: ['OK'],
                 message: t('iiif_import.reason.blocked-address'),
+                // 直後に一覧へ戻る: 遷移先で読めるよう 1 回だけ越えて残す
+                keepAcrossNavigation: true,
               });
               if (isUnmounted) return;
               await router.push({ name: 'MapList' });
@@ -2525,9 +2530,8 @@ onMounted(async () => {
     // IIIF の取り込みの預かりに載っていた警告を、ここで 1 回だけ出す。
     // 取り込みのダイアログはすぐ閉じるので、そちらに出しても読まれない。
     if (iiifImportWarnings.length > 0) {
-        await (window as any).dialog.showMessageBox({
+        notifyOperation({
             type: 'info',
-            buttons: ['OK'],
             message: t('iiif_import.thumbnail_unavailable'),
         });
         if (isUnmounted) return;
@@ -2909,6 +2913,9 @@ const boundsModifyEnd = (evt: any) => {
 const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     if (evt.originalEvent.altKey) return;
     if (!illstMap || !mercMap || !illstSource) return;
+    // 試しのクリックごとに、前の試しのクリックの通知だけを消す（失敗の赤が次の成功の後まで残らないように。
+    // 下書きの復元や保存の通知は消さない）
+    clearOperationNotice('map-test');
 
     const isIllst = (evt.map ?? (evt as any).target) === illstMap;
     const distMap = isIllst ? mercMap : illstMap;
@@ -2927,13 +2934,12 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
             tin === 'pointsOutside' ? t('mapedit.testerror_outside') :
             tin === 'edgeError'   ? t('mapedit.testerror_line') :
                                     t('mapedit.testerror_unknown');
-        await (window as any).dialog.showMessageBox({ type: 'info', buttons: ['OK'], message: msg });
+        notifyOperation({ origin: 'map-test', type: 'error', message: msg });
         return;
     }
     if (tin.strict_status === 'strict_error' && !isIllst) {
-        await (window as any).dialog.showMessageBox({
-            type: 'info', buttons: ['OK'],
-            message: t('mapedit.testerror_valid_error')
+        notifyOperation({ origin: 'map-test',
+            type: 'error', message: t('mapedit.testerror_valid_error')
         });
         return;
     }
@@ -2947,9 +2953,8 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     const distXy = tin.transform(srcXy, !isIllst);
 
     if (!distXy) {
-        await (window as any).dialog.showMessageBox({
-            type: 'info', buttons: ['OK'],
-            message: t('mapedit.testerror_outside_map')
+        notifyOperation({ origin: 'map-test',
+            type: 'error', message: t('mapedit.testerror_outside_map')
         });
         return;
     }
@@ -4421,6 +4426,8 @@ const updateWholeGcps = (newGcps: any[]) => {
 // 旧実装: vueMap.$on('importMap') 相当
 // 有効条件: !dirty && status === 'New'
 const importMap = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     modalShow('mapedit.image_uploading');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
@@ -4485,9 +4492,8 @@ const importMap = async () => {
             // 変換導線が存在しないため対象外 (案内先のない要素で出すのは誤誘導になる)。
             // 既存 DB 内データへの遡及通知は行わない (zip インポート時のみ)
             if (Array.isArray(histMap.pois) && histMap.pois.some(isNonReferenceObjectEntry)) {
-                await (window as any).dialog.showMessageBox({
-                    type: 'info', buttons: ['OK'],
-                    message: t('mapedit.import_inline_poi_alert')
+                notifyOperation({
+                    type: 'info', message: t('mapedit.import_inline_poi_alert')
                 });
             }
             // M5-T4B (人間検証 2026-08-03): 取込のホストになった新規エディタの下書きを畳む。
@@ -4595,6 +4601,8 @@ const downloadSavedMap = async (): Promise<boolean> => {
 
 const exportMap = async () => {
     if (exporting.value || saving.value) return;
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     exporting.value = true;
     try {
         await runEditorExportDecision({
@@ -4794,6 +4802,8 @@ async function onMercCreateNew(payload: { uid: string; slug: string; title: stri
 // 旧実装: vueMap.$on('uploadCsv') 相当
 // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const uploadCsv = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     if (gcps.value.length > 0) {
         const confirm = await (window as any).dialog.showMessageBox({
             type: 'info',
@@ -4812,9 +4822,8 @@ const uploadCsv = async () => {
         const message = arg.err === 'Canceled'
             ? t('mapedit.imexport_canceled')
             : `${t('dataio.error_occurs')}: ${t(`dataio.${arg.err}`)}`;
-        await (window as any).dialog.showMessageBox({
-            type: 'info',
-            buttons: ['OK'],
+        notifyOperation({
+            type: arg.err === 'Canceled' ? 'info' : 'error',
             message
         });
         return;
@@ -4882,10 +4891,11 @@ const goBack = async () => {
                             <input id="mapExportOptionOriginals" type="checkbox" class="form-check-input"
                                    data-testid="map-export-option-originals" v-model="mapExportOptions.originals" />
                             <label class="form-check-label" for="mapExportOptionOriginals">{{ t('mapedit.export_option_originals') }}</label>
-                            <div class="form-text" data-testid="map-export-option-originals-note">{{ t('mapedit.export_option_originals_note') }}</div>
-                        </div>
-                        <div v-if="!mapExportOptionsSelectable" class="text-danger small mt-2" data-testid="map-export-options-none-selected">
-                            {{ t('mapedit.export_option_none_selected') }}
+                            <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.export_option_originals') })" data-testid="map-export-option-originals-help" />
+                            <!-- ui-grammar §2.4（U1）: ファイルサイズ・個人情報の注意は ? に入れず、選んだときに黄色の警告で常に見せる -->
+                            <DiagnosticFeedback v-if="mapExportOptions.originals" scope="field"
+                                                :items="[{ key: 'export-originals', severity: 'warning', message: t('mapedit.export_option_originals_warning') }]"
+                                                data-testid="map-export-option-originals-warning" />
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -4894,6 +4904,7 @@ const goBack = async () => {
                         <button type="button" class="btn btn-primary" data-testid="map-export-options-confirm"
                                 :disabled="!mapExportOptionsSelectable"
                                 @click="closeMapExportOptions(mapExportOptions)">{{ t('editor_ui.export_button') }}</button>
+                        <ContextHelp v-if="!mapExportOptionsSelectable" :text="t('mapedit.export_option_none_selected')" :ariaLabel="t('editor_ui.unavailable_reason', { name: t('editor_ui.export_button') })" data-testid="map-export-options-none-selected" />
                     </div>
                 </div>
             </div>
@@ -4935,6 +4946,7 @@ const goBack = async () => {
                 </button>
             </template>
         </EditorActionHeader>
+    <OperationNotice />
 
         <!-- M11-T7/AC8: 保存 operation エラー(予約 conflict/ID 重複/保存失敗)は
              DiagnosticFeedback scope="operation"(旧 error ダイアログから移行) -->
@@ -5094,8 +5106,8 @@ const goBack = async () => {
                             <LicenseSelect variant="image" test-id="mapedit-image-license" :model-value="mapData.license" :disabled="translationMode" @update:model-value="mapData.license = $event" />
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license_note") }} <LangValueChips :model-value="mapData.licenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.image_license_note')" :ariaLabel="t('field_help.image_license_note')" /></div>
-                            <input type="text" class="form-control form-control-sm" v-model="licenseNote" :placeholder="t('mapedit.map_image_license_note')">
+                            <div data-testid="mapedit-map-image-license-note-div" class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license_note") }} <LangValueChips :model-value="mapData.licenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.image_license_note')" :ariaLabel="t('field_help.image_license_note')" /></div>
+                            <input data-testid="mapedit-map-image-license-note-input" type="text" class="form-control form-control-sm" v-model="licenseNote" :placeholder="t('mapedit.map_image_license_note')">
                         </div>
                     </div>
 
@@ -5110,8 +5122,8 @@ const goBack = async () => {
                             <LicenseSelect variant="data" test-id="mapedit-data-license" :model-value="mapData.dataLicense" :disabled="translationMode" @update:model-value="mapData.dataLicense = $event" />
                         </div>
                         <div class="col-md-4">
-                            <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license_note") }} <LangValueChips :model-value="mapData.dataLicenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.data_license_note')" :ariaLabel="t('field_help.data_license_note')" /></div>
-                            <input type="text" class="form-control form-control-sm" v-model="dataLicenseNote" :placeholder="t('mapedit.map_gcp_license_note')">
+                            <div data-testid="mapedit-map-gcp-license-note-div" class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_license_note") }} <LangValueChips :model-value="mapData.dataLicenseNote" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.data_license_note')" :ariaLabel="t('field_help.data_license_note')" /></div>
+                            <input data-testid="mapedit-map-gcp-license-note-input" type="text" class="form-control form-control-sm" v-model="dataLicenseNote" :placeholder="t('mapedit.map_gcp_license_note')">
                         </div>
                     </div>
                     
@@ -5147,10 +5159,10 @@ const goBack = async () => {
                                 @recopy="compareIiifWithManifest"
                                 @apply-recopied="applyIiifRecopied"
                             />
-                            <div v-if="iiifCopyError" data-testid="iiif-recopy-error">
-                                <DiagnosticFeedback scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
+                            <div v-if="iiifCopyError" class="d-flex align-items-start gap-1" data-testid="iiif-recopy-error">
+                                <DiagnosticFeedback class="flex-grow-1" scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
                                 <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
-                                <p class="small text-muted mb-0 mt-1">{{ t("iiif_metadata.recopy_failed_help") }}</p>
+                                <ContextHelp class="mt-2" :text="t('iiif_metadata.recopy_failed_help')" :ariaLabel="t('editor_ui.help_about', { name: t('iiif_metadata.recopy') })" data-testid="iiif-recopy-failed-help" />
                             </div>
                             <!-- 写した書誌の確認（読み取り専用）。全件を Manifest とこのコマに分けて出す -->
                             <IiifMetadataTable
@@ -5192,7 +5204,7 @@ const goBack = async () => {
                                         </div>
                                     </div>
                                     <!-- m19-t12 規則 T1: ベースマップ管理と同一の i18n キーで同一文言を出す -->
-                                    <div class="small text-muted mt-2" data-testid="thumbnail-immediate-note">{{ t("editor_ui.thumbnail_immediate_note") }}</div>
+                                    <DiagnosticFeedback scope="field" :items="[{ key: 'thumbnail-immediate', severity: 'warning', message: t('editor_ui.thumbnail_immediate_note') }]" data-testid="thumbnail-immediate-note" />
                                 </div>
                             </div>
                         </div>
@@ -5539,7 +5551,7 @@ const goBack = async () => {
                     <div class="card-body">
                         <!-- 旧実装 wmtsGenerate() の有効条件をそのまま踏襲 -->
                         <div class="mb-2">
-                            <button type="button" class="btn btn-secondary" data-testid="merc-generate-button"
+                            <button type="button" class="btn btn-primary" data-testid="merc-generate-button"
                                     :disabled="!wmtsEditReady"
                                     @click="wmtsGenerate">{{ t("merc.generate") }}</button>
                             <DiagnosticFeedback

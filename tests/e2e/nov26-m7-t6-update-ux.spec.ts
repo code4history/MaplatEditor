@@ -270,7 +270,7 @@ test.describe('nov26-m7-t6 更新のお知らせ', () => {
       await expect(page.locator('#basic button.btn-primary')).toBeDisabled();
       await sw.check();
       await expect(page.locator('#basic button.btn-primary')).toBeEnabled();
-      await page.locator('#basic button.btn-light').click();
+      await page.locator('#basic button.btn-outline-secondary').click();
       await expect(sw).not.toBeChecked();
       await expect(page.locator('#basic button.btn-primary')).toBeDisabled();
       expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(false);

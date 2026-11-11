@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // M18-T1: 地図管理 > POI 編集の hide 上書き UI — E2E
 // 設計 docs/superpowers/specs/2026-07-29-m18-t1-map-poi-hide-override-ui-design.md v1.3 §6.2 準拠。
 //
@@ -245,8 +246,10 @@ test.describe('M18-T1: 地図管理 POI 編集の hide 上書き UI', () => {
 
       // ================= AC1-8: 別参照の解除後も残った参照の hide / icon が保持される =================
       // 生 FC（3件目）を削除 → 参照2件が残る。B の hide と A の icon が生き残ること
+      const confirmation = await captureNativeConfirmation(app);
       await withRaw.cards.nth(2).locator('.btn-outline-danger').click();
-      await page.getByTestId('delete-confirm-button').click();
+      await confirmation.answer(0);
+      await confirmation.restore();
       await expect(withRaw.cards).toHaveCount(2);
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 20000 });
       await page.getByTestId('editor-save').click();

@@ -21,7 +21,7 @@
       <span class="resource-item__title d-block text-truncate">{{ item.title }}</span>
       <small v-if="item.slug" class="resource-item__slug d-block text-truncate">{{ item.slug }}</small>
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-truncate">{{ meta }}</small>
-      <small v-if="isDisabled && item.disabledReason" class="resource-master-row__reason d-block text-danger">{{ item.disabledReason }}</small>
+      <ContextHelp v-if="isDisabled && item.disabledReason" :text="item.disabledReason" :ariaLabel="t('editor_ui.unavailable_reason', { name: item.title })" data-testid="resource-disabled-reason" @click.stop @keydown.stop />
     </span>
     <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="resourceBadgeClass(badge.tone)">{{ badge.label }}</span>
@@ -31,7 +31,9 @@
 </template>
 
 <script setup lang="ts">
+import ContextHelp from "../editor-ui/ContextHelp.vue";
 import { computed, ref } from "vue";
+import { useTranslation } from "i18next-vue";
 import ResourceActionMenu from "./ResourceActionMenu.vue";
 import { buildResourceListActions } from "./buildResourceListActions";
 import { resourceBadgeClass, type ResourceListItemViewModel, type ResourceListKind } from "./resourceListTypes";
@@ -50,6 +52,7 @@ const props = withDefaults(defineProps<{
 }>(), { variant: "master", disabled: false, draftLabel: "", draftBadgeTestId: undefined });
 const emit = defineEmits<{ select: [uid: string]; action: [key: string, item: ResourceListItemViewModel] }>();
 
+const { t } = useTranslation();
 const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);
 const thumbBroken = ref(false); // 壊れた thumbnail(file:// 欠損等)は placeholder へフォールバック
 const isDisabled = computed(() => props.variant === "selector" && props.disabled);

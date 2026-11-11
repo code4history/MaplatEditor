@@ -104,7 +104,7 @@ function confirm() {
 </script>
 
 <template>
-  <div class="modal show d-block home-position-modal" tabindex="-1">
+  <div data-testid="home-position-dialog" class="modal show d-block home-position-modal" tabindex="-1">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -124,7 +124,7 @@ function confirm() {
           <button type="button" class="btn btn-outline-danger me-auto" @click="clearPosition">
             {{ t("appedit.home_clear") }}
           </button>
-          <button type="button" class="btn btn-secondary" @click="emit('close')">
+          <button type="button" class="btn btn-outline-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
           </button>
           <button type="button" class="btn btn-primary" @click="confirm">

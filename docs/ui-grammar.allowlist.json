@@ -1,0 +1,277 @@
+[
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/AssetPicker.vue",
+    "testid": "asset-picker-dialog",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/EnvelopeEditorModal.vue",
+    "testid": "envelope-editor-dialog",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/HomePositionEditorModal.vue",
+    "testid": "home-position-dialog",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "help.muted-text",
+    "file": "src/components/PoiAttributeForm.vue",
+    "key": "poiedit.desc",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/PoiAttributeForm.vue",
+    "key": "poiedit.desc",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/PoiMergeImportDialog.vue",
+    "testid": "poi-merge-import-dialog",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/PoiRawPane.vue",
+    "key": "poiedit.raw_dirty_notice",
+    "reason": "現在の読み取り専用・下書きの状態を示す診断。補足説明ではない。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/PoiRawPane.vue",
+    "key": "poiedit.raw_stale_notice",
+    "reason": "現在の読み取り専用・下書きの状態を示す診断。補足説明ではない。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/ProgressModal.vue",
+    "testid": "operation-progress-dialog",
+    "reason": "実行中の進捗と終了の表示を担う共通部品。入力・選択は無いが通知ではなく、実行中は閉じられない進捗の表示なので、アプリ内のモーダルのまま残す（§5.3 の【AI 設計】の行）。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "diag.raw-alert",
+    "file": "src/components/assets/AssetEdit.vue",
+    "testid": "asset-revision-conflict",
+    "reason": "リビジョン競合の警告と上書き操作は人間が現状維持を決定。",
+    "source": "docs/ui-grammar.md#32-例外として残すもの人間が現状維持と決めたもの"
+  },
+  {
+    "rule": "diag.raw-alert",
+    "file": "src/components/basemap/BaseMapEdit.vue",
+    "testid": "basemap-revision-conflict",
+    "reason": "リビジョン競合の警告と上書き操作は人間が現状維持を決定。",
+    "source": "docs/ui-grammar.md#32-例外として残すもの人間が現状維持と決めたもの"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/basemap/BaseMapEdit.vue",
+    "testid": "thumbnail-immediate-note",
+    "key": "editor_ui.thumbnail_immediate_note",
+    "reason": "取り消せない画像置換の注意。U1 に従い field warning で常設する。",
+    "source": "docs/ui-grammar.md#24-常設の注意書き"
+  },
+  {
+    "rule": "diag.inline-text",
+    "file": "src/components/editor-ui/EditorActionHeader.vue",
+    "testid": "editor-discard-draft",
+    "key": "editor_ui.discard_draft",
+    "reason": "診断ではなく破壊的操作のボタン文字色。",
+    "source": "docs/ui-grammar.md#62-役割ごとの使い分け"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/editor-ui/ExportKeyPromptModal.vue",
+    "testid": "export-key-prompt-modal",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/editor-ui/ExportKeyPromptModal.vue",
+    "key": "appedit.export_key_prompt_description",
+    "reason": "判断を求めるダイアログ本文の 1 段落。U2 で直書きを許可。",
+    "source": "docs/ui-grammar.md#52-ダイアログの中身"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/components/mapedit/MercTileSetModal.vue",
+    "testid": "merc-tile-set-modal",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/components/mapedit/MercTileSetModal.vue",
+    "key": "merc.modal_select_description",
+    "reason": "判断を求めるダイアログ本文の 1 段落。U2 で直書きを許可。",
+    "source": "docs/ui-grammar.md#52-ダイアログの中身"
+  },
+  {
+    "rule": "diag.inline-text",
+    "file": "src/components/resource-list/ResourceActionMenu.vue",
+    "testid": "resource-menu-action",
+    "reason": "診断ではなく破壊的操作のボタン文字色。",
+    "source": "docs/ui-grammar.md#62-役割ごとの使い分け"
+  },
+  {
+    "rule": "diag.inline-text",
+    "file": "src/components/resource-list/ResourceResultStatus.vue",
+    "key": "resource_list.append_error",
+    "reason": "共通の一覧結果部品が持つ追加取得の失敗表示。既存項目と再試行を残す。",
+    "source": "docs/ui-grammar.md#4-空状態読み込み失敗"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/composables/useRevisionedAssetSave.ts",
+    "key": "args:opts",
+    "reason": "保存の競合の確認（読み直す・上書き）と破棄の確認（OK・Cancel）を出す wrapper の中継。中継そのものはボタンを持たず、wrapper の呼び出し 2 か所は検査器がボタン 2 個と確かめている。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  },
+  {
+    "rule": "help.muted-text",
+    "file": "src/views/AppEdit.vue",
+    "key": "appedit.description",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/AppEdit.vue",
+    "key": "appedit.description",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/views/AppEdit.vue",
+    "testid": "app-export-options",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/views/AppEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/views/MapEdit.vue",
+    "testid": "map-export-options",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "help.muted-text",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-image-license-note-div",
+    "key": "mapedit.map_image_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-image-license-note-div",
+    "key": "mapedit.map_image_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-image-license-note-input",
+    "key": "mapedit.map_image_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.muted-text",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-gcp-license-note-div",
+    "key": "mapedit.map_gcp_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-gcp-license-note-div",
+    "key": "mapedit.map_gcp_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "testid": "mapedit-map-gcp-license-note-input",
+    "key": "mapedit.map_gcp_license_note",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.muted-text",
+    "file": "src/views/MapEdit.vue",
+    "key": "mapedit.map_description",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "key": "mapedit.map_description",
+    "reason": "説明本文ではなく項目名。接尾辞が説明キーと一致するため個別に許可する。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/MapEdit.vue",
+    "testid": "thumbnail-immediate-note",
+    "key": "editor_ui.thumbnail_immediate_note",
+    "reason": "取り消せない画像置換の注意。U1 に従い field warning で常設する。",
+    "source": "docs/ui-grammar.md#24-常設の注意書き"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/views/MapEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  },
+  {
+    "rule": "help.key-outside-contexthelp",
+    "file": "src/views/PoiEdit.vue",
+    "key": "poiedit.read_only_notice",
+    "reason": "現在の読み取り専用・下書きの状態を示す診断。補足説明ではない。",
+    "source": "docs/ui-grammar.md#23-状態の表示は説明ではない"
+  },
+  {
+    "rule": "dialog.ad-hoc-modal",
+    "file": "src/views/PoiEdit.vue",
+    "testid": "poi-export-options",
+    "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/views/PoiEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  }
+]

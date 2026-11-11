@@ -23,7 +23,14 @@ export function useAssetDraftBadges(kind: AssetDraftKind) {
   // (M11-T10: 解放しないと lease 更新で -copy 採番がセッション中ずっと占有され続ける)。
   const removeNewDraft = async (draft: AssetDraftSummary): Promise<void> => {
     const name = draft.label ?? draft.slug ?? i18next.t('editor_ui.draft_badge');
-    if (!confirm(i18next.t('editor_ui.delete_draft_confirm', { name }))) return;
+    const { response } = await (window as any).dialog.showMessageBox({
+      type: 'warning',
+      buttons: [i18next.t('editor_ui.delete_draft'), i18next.t('common.cancel')],
+      defaultId: 1,
+      cancelId: 1,
+      message: i18next.t('editor_ui.delete_draft_confirm', { name }),
+    });
+    if (response !== 0) return;
     try {
       await window.assetDrafts.remove(kind, draft.assetUid);
       if (draft.slug) {

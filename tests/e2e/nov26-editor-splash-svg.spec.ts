@@ -18,6 +18,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { readOperationNotice } from './helpers/operationNotice';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
 
 const APP_ID = 'nov26-splash-svg-app';
@@ -269,10 +270,12 @@ test.describe('nov26-editor-splash-svg: og:image を描けないとき', () => {
       const pngEntries = zip.getEntries().filter((e) => /_og\.png$/.test(e.entryName));
       expect(pngEntries, 'og:image の PNG を残さない').toEqual([]);
 
-      const messages = await app.evaluate(async () => {
+      const nativeMessages = await app.evaluate(async () => {
         const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
         return g.__splashSvgMessages ?? [];
       });
+      // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md §5.3）
+      const messages = [...nativeMessages, await readOperationNotice(page)];
       const ogWarnings = messages
         .flatMap((m) => String(m.detail ?? '').split('\n'))
         .filter((line) => line.includes('og:image'));

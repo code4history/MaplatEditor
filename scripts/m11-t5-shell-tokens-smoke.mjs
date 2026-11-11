@@ -18,7 +18,7 @@ const REQUIRED_TOKENS = [
   "--editor-ui-diag-info-fg", "--editor-ui-diag-success-fg", "--editor-ui-diag-warning-fg", "--editor-ui-diag-danger-fg",
   "--editor-ui-diag-info-border", "--editor-ui-diag-success-border", "--editor-ui-diag-warning-border", "--editor-ui-diag-danger-border",
   "--editor-ui-diag-summary-bg-info", "--editor-ui-diag-summary-bg-success", "--editor-ui-diag-summary-bg-warning", "--editor-ui-diag-summary-bg-danger",
-  "--editor-ui-diag-summary-padding",
+  "--editor-ui-diag-summary-padding", "--editor-ui-diag-operation-max-height",
   "--editor-ui-header-height", "--editor-ui-header-bg", "--editor-ui-header-fg", "--editor-ui-header-fg-active", "--editor-ui-header-bg-active",
   "--editor-ui-overlay-bg",
   "--editor-ui-z-action-header", "--editor-ui-z-overlay",
@@ -153,6 +153,8 @@ assert.match(diag, /:role="[^"]*'alert'[^"]*'status'[^"]*"/, "DiagnosticFeedback
 assert.match(diag, /dismissible/); assert.match(diag, /dismiss/);
 assert.match(diag, /var\(--editor-ui-diag-/, "DiagnosticFeedback must use diag tokens");
 assert.match(diag, /var\(--editor-ui-diag-summary-padding\)/);
+// 画面上部のバナーは行が多くても伸ばさず、中をスクロールする（PR #246 のレビュー Minor 6）
+assert.match(diag, /\.editor-diagnostic--operation \.editor-diagnostic__list \{[^}]*max-height: var\(--editor-ui-diag-operation-max-height\);[^}]*overflow-y: auto;/);
 
 const help = await read("src/components/editor-ui/ContextHelp.vue");
 assert.match(help, /bi-question-circle/);

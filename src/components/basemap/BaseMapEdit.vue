@@ -33,7 +33,7 @@
       scope="operation"
       :items="[{ key: 'save-error', severity: 'danger', message: error }]"
     />
-    <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
+    <div data-testid="basemap-revision-conflict" v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
       <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
       <button type="button" class="btn btn-sm btn-warning" @click="keepCurrentEdit">{{ t("common.overwrite") }}</button>
@@ -63,7 +63,7 @@
             <ContextHelp
               v-if="kindDisabledReason(k)"
               :text="kindDisabledReason(k)"
-              :ariaLabel="t('basemap.kind.label_' + k)"
+              :ariaLabel="t('editor_ui.unavailable_reason', { name: t('basemap.kind.label_' + k) })"
               :data-testid="'basemap-kind-' + k + '-reason'"
             />
           </template>
@@ -96,7 +96,7 @@
               <ContextHelp
                 v-if="presetDisabledReason(preset.value)"
                 :text="presetDisabledReason(preset.value)"
-                :ariaLabel="t(preset.labelKey)"
+                :ariaLabel="t('editor_ui.unavailable_reason', { name: t(preset.labelKey) })"
                 :data-testid="'basemap-google-preset-' + preset.suffix + '-reason'"
               />
             </template>
@@ -320,10 +320,10 @@
               :disabled="structuralDisabled"
               @change="updateField('style', ($event.target as HTMLInputElement).value.trim() || null)"
             >
+            <template v-if="document.kind === 'maplibre'" #help>
+              <ContextHelp :text="t('basemap.modal.style_maplibre_hint')" :ariaLabel="t('editor_ui.help_about', { name: t('basemap.modal.style_label') })" data-testid="basemap-style-maplibre-hint" />
+            </template>
           </EditorField>
-          <p v-if="document.kind === 'maplibre'" class="form-text small text-muted" data-testid="basemap-style-maplibre-hint">
-            {{ t('basemap.modal.style_maplibre_hint') }}
-          </p>
           <!-- MapLibre GL JS の 5 系で動くかの判定（保存は止めない・版はアプリの側で決めるので切り替えのボタンは置かない） -->
           <div v-if="document.kind === 'maplibre' && document.style" class="small mt-1 d-flex align-items-start gap-2" data-testid="basemap-style-gl-check">
             <span :class="styleGlCheckClass">{{ styleGlCheckText }}</span>
@@ -408,7 +408,7 @@
                 </div>
               </div>
               <!-- m19-t12 規則 T1: 地図管理と同一の i18n キーで同一文言を出す -->
-              <div class="small text-muted mt-2" data-testid="thumbnail-immediate-note">{{ t("editor_ui.thumbnail_immediate_note") }}</div>
+              <DiagnosticFeedback scope="field" :items="[{ key: 'thumbnail-immediate', severity: 'warning', message: t('editor_ui.thumbnail_immediate_note') }]" data-testid="thumbnail-immediate-note" />
             </div>
           </div>
         </div>

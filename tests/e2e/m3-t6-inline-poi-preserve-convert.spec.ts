@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // M3-T6: inline POI の保全パネル完成と GeoJSON 変換 E2E (設計 §11.1 — v1.3 レイヤ単位ペイン)。
 // フィクスチャは §4.2 の完全分割表から導出 (shape 列は smoke Part I のクラス転記表と同一表):
 //   手順1-6 = C4 単層クリーン [object, object] / 手順4b = C2a [fc, fc] → C3 [fc, fc, object] /
@@ -113,8 +114,17 @@ async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> 
   });
 }
 
+// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md §5.3）。
+// 両方を集めて返す
+async function operationNoticeTexts(app: ElectronApplication): Promise<string[]> {
+  const texts = await Promise.all(app.windows().map((w) =>
+    w.locator('[data-testid="operation-notice"] .editor-diagnostic__message').allTextContents().catch(() => [] as string[])));
+  return texts.flat();
+}
+
 async function recordedMessages(app: ElectronApplication): Promise<string[]> {
-  return app.evaluate(async () => ((globalThis as any).__t6MessageBoxLog ?? []) as string[]);
+  const native = await app.evaluate(async () => ((globalThis as any).__t6MessageBoxLog ?? []) as string[]);
+  return [...native, ...await operationNoticeTexts(app)];
 }
 
 async function clearRecordedMessages(app: ElectronApplication): Promise<void> {
@@ -132,9 +142,11 @@ async function openPoisTab(page: Page, uid: string, slug: string) {
 }
 
 // 削除確認 dialog を confirm して 1 件消す
-async function confirmDeleteCard(page: Page, cards: ReturnType<Page['locator']>, index: number, remainAfter: number): Promise<void> {
+async function confirmDeleteCard(app: ElectronApplication, page: Page, cards: ReturnType<Page['locator']>, index: number, remainAfter: number): Promise<void> {
+  const confirmation = await captureNativeConfirmation(app);
   await cards.nth(index).locator('.btn-outline-danger').click();
-  await page.getByTestId('delete-confirm-button').click();
+  await confirmation.answer(0);
+  await confirmation.restore();
   await expect(cards).toHaveCount(remainAfter);
 }
 
@@ -257,19 +269,21 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       await openHash(page, '#/maplist');
       const reopened = await openPoisTab(page, seeded.uid, seeded.slug);
       await expect(reopened.cards).toHaveCount(2, { timeout: 15000 });
-      // × → 確認 dialog (body = 変換導線つき Undo 可能文言) → cancel で残存
+      // × → 確認 dialog (body = 変換導線つき Undo 可能文言) → cancel で残存。確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）
+      const cancelConfirmation = await captureNativeConfirmation(app);
       await reopened.cards.nth(0).locator('.btn-outline-danger').click();
-      const dialogBody = page.locator('.modal-body p', { hasText: 'この外部データを一覧から削除します' });
-      await expect(dialogBody).toBeVisible();
-      await expect(dialogBody).toHaveText(/Undoで取り消せます/);
-      await expect(dialogBody).toHaveText(/GeoJSONへの変換/);
+      const prompt = await cancelConfirmation.wait();
+      expect(prompt.detail).toContain('この外部データを一覧から削除します');
+      expect(prompt.detail).toMatch(/Undoで取り消せます/);
+      expect(prompt.detail).toMatch(/GeoJSONへの変換/);
       // 確認 title に項目数が併記される
-      await expect(page.locator('.modal-title')).toHaveText(/旧POI甲（1 項目）/);
-      await page.locator('.modal-footer .btn-outline-secondary').click(); // cancel
+      expect(prompt.message).toMatch(/旧POI甲（1 項目）/);
+      await cancelConfirmation.answer(1); // cancel
+      await cancelConfirmation.restore();
       await expect(reopened.cards).toHaveCount(2);
       // confirm で削除 ×2 (全非参照要素の削除)
-      await confirmDeleteCard(page, reopened.cards, 0, 1);
-      await confirmDeleteCard(page, reopened.cards, 0, 0);
+      await confirmDeleteCard(app, page, reopened.cards, 0, 1);
+      await confirmDeleteCard(app, page, reopened.cards, 0, 0);
       // 追加が自動で再有効化される → 参照を追加できる
       const selectorPane2 = reopened.poisPane.locator('.source-pane-body');
       await expect(selectorPane2).not.toHaveClass(/poi-selector-disabled/);
@@ -375,11 +389,11 @@ test.describe('M3-T6 inline POI 保全・変換', () => {
       await expect(poisPane.getByTestId('poiref-convert-fc')).toHaveCount(0);
 
       // FC メンバーを削除 → まだ disabled (URL 残存)。C4 化により混在警告は消える (§4.2 C4 行)
-      await confirmDeleteCard(page, cards, 2, 3);
+      await confirmDeleteCard(app, page, cards, 2, 3);
       await expect(groupButton).toBeDisabled();
       await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
       // URL メンバーを削除 → 変換が自動有効化 (computed — §4.4)
-      await confirmDeleteCard(page, cards, 2, 2);
+      await confirmDeleteCard(app, page, cards, 2, 2);
       await expect(groupButton).toBeEnabled();
       await groupButton.click();
       await expect(poisPane.locator('.editor-diagnostic__message', { hasText: `POIドラフト「${seededMixed.slug}-poi」を作成しました` }))

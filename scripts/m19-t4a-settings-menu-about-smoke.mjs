@@ -168,8 +168,9 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
 
   // AC3: ContextHelp タグ数が 2 → 3、form-text の jpeg_decode_desc が 0 件
   // nov26-m7-t6: 設定画面の「起動時に更新を確認する」の説明に ContextHelp を 1 つ足した ∴ 3 → 4
+  // UI 文法（docs/ui-grammar.md §7.1 #14）: MCP の「127.0.0.1 で登録する」注意を ContextHelp へ ∴ 5
   const contextHelpCount = (settingsVue.match(/<ContextHelp/g) || []).length;
-  assert.equal(contextHelpCount, 4, `src/views/Settings.vue must have 4 <ContextHelp> tags (C1 AC3 + nov26-m7-t6: got ${contextHelpCount})`);
+  assert.equal(contextHelpCount, 5, `src/views/Settings.vue must have 5 <ContextHelp> tags (C1 AC3 + nov26-m7-t6 + UI grammar: got ${contextHelpCount})`);
   assert.ok(
     !/<div class="form-text">\{\{\s*t\("settings\.jpeg_decode_desc"\)\s*\}\}<\/div>/.test(settingsVue),
     "src/views/Settings.vue must not render jpeg_decode_desc as a plain form-text div anymore",

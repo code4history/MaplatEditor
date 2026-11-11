@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // M11-T10: 複製・削除action・Import統合 E2E Test
 // AC1/AC2/AC3/AC5/AC6/AC7/AC8/AC9/AC10/AC11/AC12 を実効検証する。
 // AC4(copyFromUidのタイル複製)・AC13/AC14(失敗経路)はコード検査+人間検証(設計v3.2)。
@@ -7,6 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { expectNoFailureNotice } from './helpers/operationNotice';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -145,16 +147,15 @@ test.describe('M11-T10 Dedup/Import', () => {
       await openHash(page, '#/poisources');
       await expect(page.locator(`[data-resource-uid="${poi.uid}"]`)).toBeVisible({ timeout: 15000 });
 
+      const confirmation = await captureNativeConfirmation(app);
       await clickCardAction(page, poi.uid, '削除');
 
       // AC5: 共通確認 dialog
-      const dialog = page.locator('.modal.show, .modal.d-block');
-      await expect(dialog).toBeVisible({ timeout: 3000 });
-      await expect(dialog.getByText('この操作は取り消せません。')).toBeVisible();
-      await expect(dialog.getByText(poi.slug.length ? 'T10 POI' : '')).toBeVisible();
-
-      // AC6: 承認 → 行が消える
-      await page.getByTestId('delete-confirm-button').click();
+      const prompt = await confirmation.wait();
+      expect(prompt.detail).toContain('この操作は取り消せません。');
+      expect(prompt.message).toContain('T10 POI');
+      await confirmation.answer(0);
+      await confirmation.restore();
       await expect(page.locator(`[data-resource-uid="${poi.uid}"]`)).toHaveCount(0, { timeout: 10000 });
       const total = await page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total);
       expect(total).toBe(0);
@@ -198,7 +199,8 @@ test.describe('M11-T10 Dedup/Import', () => {
         page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
       { timeout: 15000 }).toBe(1);
       // slug 重複（Exist）の operation 診断が出ていない（予約 promote 成立）
-      await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+      // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
+      await expectNoFailureNotice(page);
 
       console.log('  AC1+AC2: PASS');
     } finally {
@@ -287,7 +289,8 @@ test.describe('M11-T10 Dedup/Import', () => {
       }), { timeout: 20000 }).toBe(`${seeded.slug},${seeded.slug}-copy`);
 
       // slug 重複エラーが出ていない
-      await expect(page.locator('[data-diagnostic-scope="operation"]')).toHaveCount(0);
+      // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
+      await expectNoFailureNotice(page);
 
       // R6: compiled を持つ地図(いま保存した複製)を複製→即保存。request が添付する
       // compiled tins の種付けにより、再計算なしで compiled が引き継がれる
@@ -498,7 +501,10 @@ test.describe('M11-T10 Dedup/Import', () => {
       // AC5: 下書きカードを削除 → 予約ごと解放され、再複製で -copy が再採番される
       await page.getByTestId('editor-back').click();
       await expect(page.locator(`[data-resource-uid="${draftUid}"]`)).toBeVisible({ timeout: 15000 });
+      const draftConfirmation = await captureNativeConfirmation(app);
       await clickCardAction(page, draftUid!, '下書きを削除');
+      await draftConfirmation.answer(0);
+      await draftConfirmation.restore();
       await expect(page.locator(`[data-resource-uid="${draftUid}"]`)).toHaveCount(0, { timeout: 10000 });
       await expect.poll(async () =>
         page.evaluate(async (slug) => window.slugReservations.check({ slug }), `${poi.slug}-copy`),

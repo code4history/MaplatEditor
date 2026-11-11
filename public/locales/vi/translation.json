@@ -314,6 +314,7 @@
     "mcp_copied": "Đã sao chép. Sẽ bị xóa khỏi bộ nhớ tạm sau một phút.",
     "mcp_docs_link": "Cách kết nối",
     "mcp_recommend_loopback": "Hãy đăng ký URL dùng 127.0.0.1 trong ứng dụng, không dùng localhost.",
+    "mcp_client_registration": "Đăng ký với ứng dụng khách",
     "mcp_error_port_in_use": "Một chương trình khác đang dùng cùng cổng. Mã token có thể đã bị gửi tới chương trình đó. Hãy cấp lại mã token.",
     "mcp_error_listen_failed": "Không thể bắt đầu lắng nghe.",
     "mcp_error_port_invalid": "Hãy nhập cổng là số nguyên từ 1024 đến 65535.",
@@ -566,7 +567,8 @@
     "export_option_tiles_help": "Tile là hình ảnh bản đồ được chia thành các ô vuông nhỏ để hiển thị bản đồ. Chúng được dùng khi mở bản đồ. Bao gồm cả ảnh thu nhỏ (ảnh nhỏ hiển thị trong danh sách).",
     "export_option_json": "Tệp cài đặt bản đồ (JSON và POI)",
     "export_option_originals": "Ảnh gốc",
-    "export_option_originals_note": "Đưa nguyên tệp ảnh gốc vào. Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
+    "export_option_originals_help": "Đưa nguyên tệp ảnh gốc vào.",
+    "export_option_originals_warning": "Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
     "export_option_none_selected": "Hãy chọn ít nhất một mục"
   },
   "mapupload": {
@@ -1293,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "Giải thích: {{name}}",
+    "unavailable_reason": "Lý do không dùng được “{{name}}”"
   },
   "resource_list": {
     "new_item": "Mới",

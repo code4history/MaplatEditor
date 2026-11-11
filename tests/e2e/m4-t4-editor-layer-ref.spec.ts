@@ -1,3 +1,4 @@
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // M4-T4: Editor が URLレイヤ・上書きレイヤを読み書きできるようにする — E2E
 // 設計 docs/superpowers/specs/2026-08-02-m4-t4-editor-layer-ref-support-design.md v1.1 §7 準拠。
 //
@@ -262,11 +263,13 @@ test.describe('M4-T4: URLレイヤ・上書きレイヤの読み書き', () => {
       await expect(cards, 'AC9(a): クリックしてもカードは増えない').toHaveCount(1);
 
       // ---- AC9(b): 削除は確認ダイアログを経る明示操作である ----
+      const confirmation = await captureNativeConfirmation(app);
       await poisPane.locator('.selected-source .btn-outline-danger').first().click();
-      await expect(
-        page.getByTestId('delete-confirm-button'),
-        'AC9(b): 非参照要素の × は削除確認を経る（黙って消えない）',
-      ).toBeVisible({ timeout: 10000 });
+      const prompt = await confirmation.wait();
+      expect(prompt.buttons).toHaveLength(2);
+      await confirmation.answer(1);
+      await confirmation.restore();
+      await expect(cards).toHaveCount(1);
 
       // 参照した poiUid は seed の前提確認にのみ使う（追加経路が塞がれているため選択はしない）
       expect(typeof poiUid, '前提: POI ソースが seed されている').toBe('string');

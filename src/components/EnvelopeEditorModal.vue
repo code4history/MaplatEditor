@@ -282,7 +282,7 @@ function confirm() {
   <!-- 親がモーダル(ベースマップ編集等)でも確実に前面へ出るよう、body直下へテレポートし
        z-indexをBootstrapモーダル既定(1055)より上げる。親のスタッキング文脈の影響も受けない -->
   <Teleport to="body">
-  <div class="modal show d-block envelope-modal" tabindex="-1">
+  <div data-testid="envelope-editor-dialog" class="modal show d-block envelope-modal" tabindex="-1">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -303,7 +303,7 @@ function confirm() {
           <button type="button" class="btn btn-outline-danger me-auto" @click="clearBox">
             {{ t("appedit.envelope_clear") }}
           </button>
-          <button type="button" class="btn btn-secondary" @click="emit('close')">
+          <button type="button" class="btn btn-outline-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
           </button>
           <button type="button" class="btn btn-primary" @click="confirm">

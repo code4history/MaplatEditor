@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ContextHelp from "../editor-ui/ContextHelp.vue";
 import { ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 import SlugField from '../editor-ui/SlugField.vue';
@@ -113,7 +114,7 @@ function cancel(): void {
             <EditorField :label="t('basemap.modal.attr_label')" label-for="mercNewAttr">
               <input id="mercNewAttr" type="text" class="form-control form-control-sm" data-testid="merc-new-attr" v-model="attr" />
               <template #help>
-                <span class="text-muted small">{{ t('merc.modal_attr_help') }}</span>
+                <ContextHelp :text="t('merc.modal_attr_help')" :ariaLabel="t('editor_ui.help_about', { name: t('basemap.modal.attr_label') })" />
               </template>
             </EditorField>
           </template>

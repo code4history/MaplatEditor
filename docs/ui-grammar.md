@@ -61,6 +61,8 @@
 
 `ContextHelp` には `ariaLabel` を必ず渡します。どの項目の説明かが読み上げで分かるように、項目名を入れます。【AI 設計】M6T9:187
 
+項目名だけ（例: 「オリジナル画像」「MCP サーバー」）では、ボタンの名前として何の説明か分からないので、説明は `t('editor_ui.help_about', { name })`（「〈項目名〉」の説明）、押せない・選べない理由は `t('editor_ui.unavailable_reason', { name })`（「〈項目名〉」を使えない理由）で包みます。項目名には、その ? が説明している項目のもの（隣のタブやボタンの名前ではないもの）を入れます。説明の文そのものを `ariaLabel` に渡している既存の箇所は、何の説明かが読み上げで分かるのでそのままにします。【AI 設計】
+
 ### 2.2 禁止の形
 
 次の形で説明文を画面に直書きしてはいけません。【人間決定】T11:38（R1「説明の `div.form-text.small` / `p.small.text-muted` / `small.text-muted` を全て削除」）、T11:107（AC1「form-text が存在しない（grep で 0 件）」）
@@ -82,6 +84,9 @@
 ### 2.4 常設の注意書き
 
 取り消せない操作・ファイルサイズ・個人情報などの注意は、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に表示します。説明は `ContextHelp` に入れます。`EditorField.hint` や説明の直書きは復活させません。【人間決定（2026-11-11、推奨どおり）】§8 U1
+
+- 選んだときだけ効く注意は、選んだときに出す（例: 書き出しの「オリジナル画像」にチェックすると、ファイルが大きくなり写真の付帯情報を含むことがあるという warning が出る。「そのまま入れます」という説明は `ContextHelp`）。1 つの文言に説明と注意が混ざっていたら、キーを分ける。【AI 設計】
+- 2026-11-11 に `ContextHelp` の説明 68 件を全数見て、ファイルサイズ・個人情報・取り消せないことの注意が入っていたのは上の 1 件だけだった。`settings.editor_api_key_notice`（公開用とは別のキーを発行する）は鍵の扱いの説明で、この 3 つには当たらないので `ContextHelp` に残した。【AI 設計】
 
 ## 3. エラー・警告
 
@@ -156,6 +161,17 @@
 
 確認は Electron の `window.dialog.showMessageBox` に揃えます。アプリ内のモーダルは入力や選択がある場合だけに使います。通知だけのダイアログは成功・失敗とも `DiagnosticFeedback scope="operation"` に移します。【人間決定（2026-11-11、推奨どおり）】§8 U3・U3 付随
 
+実装の形【AI 設計】:
+
+- 通知は `useOperationNotice().notifyOperation()` で出し、`OperationNotice`（`EditorActionHeader` の直下。ヘッダーの無い画面は `App.vue` の予備の置き場）がバナーにする。閉じるボタンで消せる。
+- 通知は画面遷移で消える（query だけの変更は遷移に数えない）。成功の通知を別の画面へ持ち越さない。
+- 遷移を越えて残すのは、呼び出し側が `keepAcrossNavigation: true` を明示したときだけで、次の遷移を 1 回だけ越える。使うのは、失敗を知らせて一覧へ戻す操作（`MapEdit.vue` の IIIF の取り込みで預かりを受け取れなかったとき・配信先が使えないとき）の 2 か所だけ。
+- 保存・書き出し・取り込み・対応点の試しのクリックなど、操作を始めるときに前の通知を消す（`clearOperationNotice`）。前の成功と今回の失敗が並ばないように、また前の失敗が次の成功の後まで残らないようにする。保存は `useRevisionedAssetSave` の `onStart` で消す。
+- 同じ操作を繰り返す場面（対応点の試しのクリック、アプリのプレビューの描き直し）は、通知に出どころ（`origin`）を付け、`clearOperationNotice(出どころ)` で自分の通知だけを消す。下書きの復元の警告や書き出しの結果など、ほかの操作の通知は消さない【AI 設計】。
+- 通知を出した直後に path の変わる遷移をする操作は、遷移を済ませてから通知を出す（例: POI のソースの初回の保存）。
+- 処理の進み具合を出す `ProgressModal`（`operation-progress-dialog`）は、アプリ内のモーダルのまま残す。入力も選択も無いが、通知ではなく、実行中は閉じられず終わったら閉じる進捗の表示なので、ネイティブのダイアログにもバナーにも移さない。【AI 設計】
+- 確認の部品（`DeleteConfirmDialog`・`DraftConflictDialog`）は呼び出し側の入口を変えず、中でネイティブのダイアログを出す。ダイアログを出せなかったときは、壊さない側（`cancelId` と同じ）を選ぶ。
+
 ## 6. ボタンの種類と色
 
 ### 6.1 人間が決めたこと
@@ -195,11 +211,14 @@
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
 
-`src/` を grep と目視で調べました。`DesktopRegisteredMapSelector.vue` は参照されていない古いコードなので数えていません（T5:54 で対象外と記録済み）。
+`src/` を grep と目視で調べました。`DesktopRegisteredMapSelector.vue` は参照されていない古いコードなので数えていません（T5:54 で対象外と記録済み）。このファイルは 2026-11-11 のレビュー（Minor 7）で消しました。
+
+> **2026-11-11 に直しました。** この節の違反は、§8 の決定どおりに直しました。直さずに残したものは、出典つきで許可リスト `docs/ui-grammar.allowlist.json` に入れています（§9）。表は直す前の記録として残します。
+> 表と違う直し方をしたもの: 7.1 の #19「接続の手順」は説明ではなく URL の項目名なので、`ContextHelp` に入れず、他の項目と同じく左の列の項目名にしました。同じ行の #14（127.0.0.1 で登録する注意）は、コピーのボタンの横の `ContextHelp` にしました。
 
 ### 7.1 説明の直書き
 
-**A. 決まりに反する（§2.2）: 15 件・8 ファイル**
+**A. 決まりに反する（§2.2）: 14 件・7 ファイル**
 
 | # | 場所 | 形 | キー |
 |---|---|---|---|
@@ -207,7 +226,6 @@
 | 2 | `src/views/PoiEdit.vue:293` | 同上 | `poiio.format_csv_desc` |
 | 3 | `src/views/PoiEdit.vue:307` | 同上 | `poiio.format_json_desc` |
 | 4 | `src/views/PoiEdit.vue:322` | ダイアログの `form-text` | `poiio.export_option_images_help` |
-| 5 | `src/views/MapEdit.vue:4885` | ダイアログの `form-text`（同じ小窓の「タイル」は `ContextHelp` なので、1 つの小窓の中で形が揃っていない） | `mapedit.export_option_originals_note` |
 | 6 | `src/components/PoiMergeImportDialog.vue:103` | 選択肢の下の `p.small.text-muted` | `poiio.import_overwrite_note` |
 | 7 | `src/components/PoiMergeImportDialog.vue:148` | ダイアログの `p.small.text-muted` | `poiio.import_geojson_hint` |
 | 8 | `src/components/PoiAttributeForm.vue:243` | `form-text` の入力例 | `poiedit.directgo_examples` |
@@ -219,12 +237,13 @@
 | 14 | `src/views/Settings.vue:439` | `p.form-text` | `settings.mcp_recommend_loopback` |
 | 15 | `src/components/mapedit/MercTileSetModal.vue:116` | `EditorField` の `#help` slot に `span.text-muted.small` | `merc.modal_attr_help` |
 
-**B. U1〜U7 の決定を適用する箇所: 7 件**
+**B. U1〜U7 の決定を適用する箇所: 8 件**
 
-16・17 は field warning、18・19 は `ContextHelp` へ移す。20・21 は判断の本文として許可。22 は節内の 1 行の空表示として許可。
+5 は説明（「そのまま入れます」）を `ContextHelp` に、ファイルサイズと写真の付帯情報の注意を、オリジナル画像を選んだときの field warning に分ける（2026-11-11 のレビューで A から移した。初めは注意ごと `ContextHelp` に入れていた）。16・17 は field warning、18・19 は `ContextHelp` へ移す。20・21 は判断の本文として許可。22 は節内の 1 行の空表示として許可。
 
 | # | 場所 | 中身 | 適用する決定 |
 |---|---|---|---|
+| 5 | `src/views/MapEdit.vue:4885` | ダイアログの `form-text`。説明とファイルサイズ・写真の付帯情報の注意が 1 文に入っている（`mapedit.export_option_originals_note`。`_help` と `_warning` に分けた） | U1 |
 | 16 | `src/components/basemap/BaseMapEdit.vue:411` | 置換した画像は保存・元に戻すの対象外という注意（`editor_ui.thumbnail_immediate_note`） | U1 |
 | 17 | `src/views/MapEdit.vue:5195` | 同上（同じキー） | U1 |
 | 18 | `src/views/MapEdit.vue:5153` | 写せなかったときの代わりの手の案内（エラーの直後。`iiif_metadata.recopy_failed_help`） | U1 |
@@ -331,7 +350,7 @@
 
 ## 9. 機械で検査する規則
 
-用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を実装します。
+用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を実装しました（`pnpm smoke:editor-ui-grammar`。検査器そのものの試験は `pnpm smoke:editor-ui-grammar-fixtures`）。
 
 ### 9.1 仕組み
 
@@ -352,7 +371,7 @@
 | `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | T11 Q3 ルール | §3.2 の例外（`PoiReferenceEditor` など） |
 | `diag.raw-alert` | `class` に `alert` を持つ要素 | T11 R3 | `BaseMapEdit` と `AssetEdit` の競合（C45/C46） |
 | `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | T11 C49/C50、T10M11 | なし |
-| `dialog.notify-only` | `showMessageBox` の `buttons` が 1 個 | EditV1:127 | なし（§8 U3 付随） |
+| `dialog.notify-only` | `showMessageBox`（`window.dialog.showMessageBox` と自前の wrapper の `showMessageBox(...)`）の `buttons` が 1 個。`buttons` を書かないもの（Electron では OK 1 個）も 1 個とみなす。`buttons` や引数を変数で渡すなど数の分からないものも違反とし、許可リストで個別に通す（文言のキーの無い呼び出しは `args:<引数の書き方>` をキーにする） | EditV1:127 | ボタンの数が保存済みかで変わる書き出しの確認（`editor_ui.export_dirty_prompt`）と、`useRevisionedAssetSave` の wrapper の中継（§5.1） |
 | `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
 | `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | 節内の空表示（§8 U7） |
 | `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |
@@ -365,9 +384,10 @@
 
 ### 9.4 置き場所
 
-- CI: `scripts/ci/run-smokes.mjs` に `smoke:editor-ui-grammar` を足す
-- AGENTS.md に「UI Grammar」の節を足し、この文書へ案内する。用語集の節と並べる
-- タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル）
+- CI: `scripts/ci/run-smokes.mjs` は `package.json` の `smoke:*` を全数実行するので、`smoke:editor-ui-grammar` と `smoke:editor-ui-grammar-fixtures` は足すだけで CI に載る（済み）
+- 検査の報告 `editor-ui-grammar-report.json` を CI の artifact に上げるのは、別の PR にする。`.github/workflows/test.yml` は用語集の検査の正本側で、locale を変えるこの PR と同じ PR では変えられない（用語集の関門 1。AGENTS.md「UI Wording & Glossary」）
+- AGENTS.md の「UI Grammar」の節からこの文書へ案内する。用語集の節と並べる（済み）
+- タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル。このリポジトリの外なので未着手）
 
 ## 10. この文書を変えるとき
 
