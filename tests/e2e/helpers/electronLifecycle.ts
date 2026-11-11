@@ -7,7 +7,11 @@ const QUIT_TIMEOUT_MS = 30_000;
  * turns a macOS window close into hide. Request a real application quit and wait for the child
  * process so a successful E2E cannot leave an orphaned Electron process behind.
  */
-export async function quitElectronApplication(app: ElectronApplication): Promise<void> {
+export async function quitElectronApplication(
+  app: ElectronApplication,
+  options: { timeoutMs?: number } = {},
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? QUIT_TIMEOUT_MS;
   const child = app.process();
   if (child.exitCode !== null || child.signalCode !== null) return;
 
@@ -27,8 +31,8 @@ export async function quitElectronApplication(app: ElectronApplication): Promise
       exited,
       new Promise<never>((_, reject) => {
         timeout = setTimeout(
-          () => reject(new Error(`Electron did not exit within ${QUIT_TIMEOUT_MS}ms`)),
-          QUIT_TIMEOUT_MS,
+          () => reject(new Error(`Electron did not exit within ${timeoutMs}ms`)),
+          timeoutMs,
         );
       }),
     ]);
