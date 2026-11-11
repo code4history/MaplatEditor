@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "คำอธิบาย: {{name}}",
-    "unavailable_reason": "เหตุผลที่ใช้ “{{name}}” ไม่ได้"
+    "unavailable_reason": "เหตุผลที่ใช้ “{{name}}” ไม่ได้",
+    "unavailable_reason_unnamed": "เหตุผลที่ใช้รายการนี้ไม่ได้"
   },
   "resource_list": {
     "new_item": "สร้างใหม่",

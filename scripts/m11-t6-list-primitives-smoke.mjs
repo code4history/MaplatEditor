@@ -253,6 +253,85 @@ for (const rel of ["ResourceListShell.vue", "ResourceListToolbar.vue", "Resource
 }
 console.log("m11-t6 smoke Part 4: OK");
 
+// --- Part 4b: ResourceMasterRow の読み上げ名（使えない理由の ? の aria-label）---
+// title が空でも空の括弧「」を出さない。行に出ている識別子（slug）で名乗り、
+// 識別子も無ければ括弧ごと出さない文にする。実レンダリングで確かめる
+// （vite で SFC を SSR バンドルし、vue/server-renderer で描画して読む）。
+import vue from "@vitejs/plugin-vue";
+
+{
+  const helpDir = await mkdtemp(path.join(scratchRoot, "t6-help-aria-"));
+  // ContextHelp は bootstrap の Popover を import するが、SSR 描画では動かないので差し替える
+  await writeFile(path.join(helpDir, "bootstrap-stub.mjs"), "export class Popover { constructor() {} dispose() {} }\n");
+  await writeFile(
+    path.join(helpDir, "entry.ts"),
+    `export { default as ResourceMasterRow } from ${JSON.stringify(path.join(projectRoot, "src/components/resource-list/ResourceMasterRow.vue"))};\n`,
+  );
+  await build({
+    root: helpDir,
+    configFile: false,
+    logLevel: "error",
+    plugins: [vue()],
+    resolve: { alias: { bootstrap: path.join(helpDir, "bootstrap-stub.mjs") } },
+    build: {
+      ssr: path.join(helpDir, "entry.ts"),
+      outDir: path.join(helpDir, "dist"),
+      rollupOptions: {
+        external: ["vue", "vue/server-renderer", "i18next", "i18next-vue"],
+        output: { entryFileNames: "entry.mjs" },
+      },
+      minify: false,
+      emptyOutDir: true,
+    },
+  });
+
+  const { ResourceMasterRow } = await import(path.join(helpDir, "dist", "entry.mjs"));
+  const { createSSRApp, h } = await import("vue");
+  const { renderToString } = await import("vue/server-renderer");
+  const i18nextMod = await import("i18next");
+  const { default: I18NextVuePlugin } = await import("i18next-vue");
+  const i18next = (i18nextMod.default ?? i18nextMod).createInstance();
+  await i18next.init({
+    lng: "ja",
+    resources: { ja: { translation: translations.ja } },
+    interpolation: { escapeValue: false },
+  });
+
+  // selector variant + disabled + disabledReason の行（使えない理由の ? が出る条件）で描画する
+  const renderLabel = async (over) => {
+    const item = {
+      uid: "u1", slug: "map-a", title: "", thumbnailUrl: null, metadata: [], badges: [],
+      selected: false, hasDraft: false, actions: [], disabledReason: "理由", ...over,
+    };
+    const app = createSSRApp({ render: () => h(ResourceMasterRow, { item, kind: "map", variant: "selector", disabled: true }) });
+    app.use(I18NextVuePlugin, { i18next });
+    const html = await renderToString(app);
+    return /aria-label="([^"]*)"/.exec(html)?.[1] ?? "";
+  };
+
+  const named = translations.ja.editor_ui.unavailable_reason;
+  const unnamed = translations.ja.editor_ui.unavailable_reason_unnamed;
+  const withTitle = await renderLabel({ title: "地図A" });
+  const withSlug = await renderLabel({ title: "" });
+  const withNothing = await renderLabel({ title: "", slug: "" });
+  for (const [label, what] of [[withTitle, "title あり"], [withSlug, "title 空"], [withNothing, "title・slug 空"]]) {
+    assert.ok(label.trim().length > 0, `${what}: 読み上げ名が空`);
+    assert.ok(!label.includes("「」"), `${what}: 空の括弧「」が出ている: ${label}`);
+    assert.ok(!label.includes("“”"), `${what}: 空の括弧“”が出ている: ${label}`);
+    assert.ok(!label.includes("«»") && !label.includes("« »"), `${what}: 空の括弧が出ている: ${label}`);
+  }
+  assert.equal(withTitle, named.replace("{{name}}", "地図A"), "title があればその名で名乗る");
+  assert.equal(withSlug, named.replace("{{name}}", "map-a"), "title が空なら行に出ている slug で名乗る（空の括弧にしない）");
+  assert.ok(unnamed, "editor_ui.unavailable_reason_unnamed が ja に無い");
+  assert.equal(withNothing, unnamed, "slug まで無ければ括弧ごと出さない文にする");
+  // 読み上げ名の文言キーは 11 言語すべてに揃える
+  for (const loc of LOCALES) {
+    assert.ok(translations[loc].editor_ui?.unavailable_reason_unnamed, `editor_ui.unavailable_reason_unnamed missing in ${loc}`);
+  }
+  await rm(helpDir, { recursive: true, force: true });
+  console.log("m11-t6 smoke Part 4b: OK");
+}
+
 // --- Part 5: MapList 移行 ---
 const mapAdapter = await read("src/views/resource-adapters/mapListAdapter.ts");
 assert.match(mapAdapter, /window\.search\.maps/, "mapAdapter must call search.maps (M11-T8b)");

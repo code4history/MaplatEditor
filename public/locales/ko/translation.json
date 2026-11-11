@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "‘{{name}}’ 설명",
-    "unavailable_reason": "‘{{name}}’을(를) 사용할 수 없는 이유"
+    "unavailable_reason": "‘{{name}}’을(를) 사용할 수 없는 이유",
+    "unavailable_reason_unnamed": "이 항목을 사용할 수 없는 이유"
   },
   "resource_list": {
     "new_item": "새로 만들기",

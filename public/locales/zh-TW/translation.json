@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "「{{name}}」的說明",
-    "unavailable_reason": "無法使用「{{name}}」的原因"
+    "unavailable_reason": "無法使用「{{name}}」的原因",
+    "unavailable_reason_unnamed": "無法使用此項目的原因"
   },
   "resource_list": {
     "new_item": "新增",
