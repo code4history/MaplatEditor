@@ -15,7 +15,16 @@ const read = (file) => JSON.parse(readFileSync(path.join(directory, file), 'utf8
 const cases = read('cases.json');
 const options = { sanitize: (html) => html, now: () => new Date('2026-11-11T00:00:00Z') };
 
-for (const { id, expected: e } of cases) {
+// 自作 fixture に置いてよい URL の host（架空の example.org と、仕様・ライセンスの URI）。
+const SYNTHETIC_HOSTS = new Set(['example.org', 'iiif.example.org', 'iiif.io', 'creativecommons.org']);
+const urlsIn = (value, found = []) => {
+  if (typeof value === 'string') { if (/^https?:\/\//.test(value)) found.push(value); }
+  else if (Array.isArray(value)) for (const item of value) urlsIn(item, found);
+  else if (value && typeof value === 'object') for (const item of Object.values(value)) urlsIn(item, found);
+  return found;
+};
+
+for (const { id, synthetic, expected: e } of cases) {
   const manifest = read(id + '.manifest.json');
   const info = read(id + '.info.json');
   const source = read(id + '.source.json');
@@ -41,8 +50,20 @@ for (const { id, expected: e } of cases) {
     for (const suffix of ['manifest', 'info']) {
       assert.equal(createHash('sha256').update(readFileSync(path.join(directory, id + '.' + suffix + '.json'))).digest('hex'), source.sha256[suffix]);
     }
-    assert.equal(source.retrievedOn, '2026-11-11');
-    assert.ok(source.terms && source.termsUrl);
+    if (synthetic) {
+      // 自作は取得日を持たず、自作であることと架空の URL だけであることを記録に残す。
+      assert.equal(source.synthetic, true);
+      assert.equal(source.createdOn, '2026-11-11');
+      assert.equal(source.retrievedOn, undefined);
+      assert.ok(source.terms && source.reproduces);
+      const urls = [manifest, info, source].flatMap(json => urlsIn(json));
+      assert.ok(urls.length > 0);
+      assert.deepEqual(urls.filter(url => !SYNTHETIC_HOSTS.has(new URL(url).hostname)), []);
+    } else {
+      assert.equal(source.synthetic, undefined);
+      assert.equal(source.retrievedOn, '2026-11-11');
+      assert.ok(source.terms && source.termsUrl);
+    }
   });
 
   test(id + ': canvas 数と Manifest の題名を初回の書誌へ写す', () => {
@@ -93,6 +114,9 @@ for (const { id, expected: e } of cases) {
     assert.deepEqual(verdictOf({ facts, expected: { ...e.imageSize, width: e.imageSize.width + 1 } }), {
       kind: 'metadata-only', reason: 'size-mismatch', message: 'iiif_import.reason.size-mismatch',
     });
+    // canvas の寸法で照合した結果（canvas と info.json が食い違う資料は書誌だけになる）。
+    const sameSize = e.canvasSize.width === e.imageSize.width && e.canvasSize.height === e.imageSize.height;
+    assert.equal(verdictOf({ facts, expected: e.canvasSize }).kind, sameSize ? e.verdict.kind : 'metadata-only');
   });
 
   test(id + ': 書誌だけの地図はサービス解決に依存せず写し直せる', async () => {
@@ -177,6 +201,41 @@ for (const { id, expected: e } of cases) {
     assert.deepEqual(planIiifRecopy(failed, map, options), { ok: false, reason: 'image-service-unavailable' });
   });
 }
+
+test('自作の再現 fixture: page 1・仮の 6000×6000 の canvas と info.json の大きさ', () => {
+  const entry = cases.find(item => item.id === 'synthetic-p2-page1');
+  const e = entry.expected;
+  const manifest = read('synthetic-p2-page1.manifest.json');
+  const info = read('synthetic-p2-page1.info.json');
+  const source = read('synthetic-p2-page1.source.json');
+  // 自作であることを cases.json・source.json・README に記録する。
+  assert.equal(entry.synthetic, true);
+  assert.equal(source.synthetic, true);
+  assert.ok(readFileSync(path.join(directory, 'README.md'), 'utf8').includes('synthetic-p2-page1'));
+  // 題名の既定は Manifest の label で、canvas の page 1 にならない。
+  const listed = listIiifCanvases(manifest);
+  assert.equal(listed.ok, true);
+  assert.equal(listed.canvases.length, 1);
+  assert.equal(listed.canvases[0].label, 'page 1');
+  const copy = copyIiifMetadata(manifest, e.canvasId, 'ja', options);
+  assert.equal(copy.ok, true);
+  assert.equal(copy.values.title, e.title);
+  assert.notEqual(copy.values.title, 'page 1');
+  // 大きさは info.json の値で判定し、canvas の 6000×6000 と照合すると不一致。
+  assert.deepEqual({ width: listed.canvases[0].width, height: listed.canvases[0].height }, { width: 6000, height: 6000 });
+  const facts = {
+    requestedUrl: source.infoUrl,
+    finalUrl: source.infoFinalUrl,
+    accessControlAllowOrigin: source.infoResponseHeaders['access-control-allow-origin'],
+    infoJson: info,
+  };
+  const verdict = verdictOf({ facts });
+  assert.equal(verdict.kind, 'deliverable');
+  assert.deepEqual({ width: verdict.info.width, height: verdict.info.height }, { width: 11959, height: 12961 });
+  assert.deepEqual(verdictOf({ facts, expected: { width: 6000, height: 6000 } }), {
+    kind: 'metadata-only', reason: 'size-mismatch', message: 'iiif_import.reason.size-mismatch',
+  });
+});
 
 // TODO(core): Core 合流・固定更新後に skip と上の互換分岐を同時に外す。
 test('Wellcome: 修正後の Core は @id のサービスから実画素数を取得する', { skip: 'TODO(core): Core の修正合流と Editor の固定更新を待つ' }, async () => {
