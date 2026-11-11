@@ -8,6 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { expectNoFailureNotice } from './helpers/operationNotice';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -198,8 +199,8 @@ test.describe('M11-T10 Dedup/Import', () => {
         page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
       { timeout: 15000 }).toBe(1);
       // slug 重複（Exist）の operation 診断が出ていない（予約 promote 成立）
-      // 保存の成功の通知（operation-notice）は除く。エラーの operation 診断が無いことを見る
-      await expect(page.locator('[data-diagnostic-scope="operation"]:not([data-testid="operation-notice"])')).toHaveCount(0);
+      // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
+      await expectNoFailureNotice(page);
 
       console.log('  AC1+AC2: PASS');
     } finally {
@@ -288,8 +289,8 @@ test.describe('M11-T10 Dedup/Import', () => {
       }), { timeout: 20000 }).toBe(`${seeded.slug},${seeded.slug}-copy`);
 
       // slug 重複エラーが出ていない
-      // 保存の成功の通知（operation-notice）は除く。エラーの operation 診断が無いことを見る
-      await expect(page.locator('[data-diagnostic-scope="operation"]:not([data-testid="operation-notice"])')).toHaveCount(0);
+      // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
+      await expectNoFailureNotice(page);
 
       // R6: compiled を持つ地図(いま保存した複製)を複製→即保存。request が添付する
       // compiled tins の種付けにより、再計算なしで compiled が引き継がれる

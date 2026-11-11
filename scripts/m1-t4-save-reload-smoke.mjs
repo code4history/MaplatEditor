@@ -179,25 +179,8 @@ try {
 
   console.log('  [5/7] App list/edit integration: PASS');
 
-  // --- Part 6: DesktopRegisteredMapSelector initialCatalogKey ---
-  const selectorComponent = await readFile(
-    path.join(projectRoot, 'src/components/DesktopRegisteredMapSelector.vue'),
-    'utf8'
-  );
-
-  // initialCatalogKey prop が存在することを確認
-  assert.match(
-    selectorComponent,
-    /initialCatalogKey\?/,
-    'DesktopRegisteredMapSelector に initialCatalogKey prop がない'
-  );
-
-  // useRegisteredMapSelector に initialCatalogKey を渡していることを確認
-  assert.match(
-    selectorComponent,
-    /initialCatalogKey\s*:\s*props\.initialCatalogKey/,
-    'DesktopRegisteredMapSelector が initialCatalogKey を useRegisteredMapSelector に渡していない'
-  );
+  // --- Part 6: useRegisteredMapSelector initialCatalogKey ---
+  // 旧 DesktopRegisteredMapSelector.vue は参照されていなかったので消した（PR #246 のレビュー Minor 7）。composable の側だけを確かめる
 
   // useRegisteredMapSelector.ts に initialCatalogKey オプションがあることを確認
   const selectorSource = await readFile(
@@ -215,7 +198,7 @@ try {
     'useRegisteredMapSelector が initialCatalogKey を初期値として使っていない'
   );
 
-  console.log('  [6/7] DesktopRegisteredMapSelector initialCatalogKey: PASS');
+  console.log('  [6/7] useRegisteredMapSelector initialCatalogKey: PASS');
 
   // --- Part 7: m1 全体 regression (既存 smoke 再実行) ---
   // 既存 smoke テストをトランスパイルして実行

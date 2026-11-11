@@ -7,20 +7,6 @@
     "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
   },
   {
-    "rule": "empty.ad-hoc",
-    "file": "src/components/DesktopRegisteredMapSelector.vue",
-    "key": "applist.no_maps_found",
-    "reason": "参照されていない旧 selector。棚卸しで対象外とした既存表示のみを許可する。",
-    "source": "docs/ui-grammar.md#7-違反の棚卸し2026-11-11originmaster-7893dc4"
-  },
-  {
-    "rule": "diag.inline-text",
-    "file": "src/components/DesktopRegisteredMapSelector.vue",
-    "key": "applist.status.ready",
-    "reason": "参照されていない旧 selector。棚卸しで対象外とした既存表示のみを許可する。",
-    "source": "docs/ui-grammar.md#7-違反の棚卸し2026-11-11originmaster-7893dc4"
-  },
-  {
     "rule": "dialog.ad-hoc-modal",
     "file": "src/components/EnvelopeEditorModal.vue",
     "testid": "envelope-editor-dialog",
@@ -73,8 +59,8 @@
     "rule": "dialog.ad-hoc-modal",
     "file": "src/components/ProgressModal.vue",
     "testid": "operation-progress-dialog",
-    "reason": "残存: 実行中の進捗と終了確認を担う既存共通部品。入力・選択のモーダルへの統一の例外として記録し、今回の通知専用 showMessageBox 22 件とは分ける。",
-    "source": "docs/ui-grammar.md#75-ボタンの-class-のばらつき"
+    "reason": "実行中の進捗と終了の表示を担う共通部品。入力・選択は無いが通知ではなく、実行中は閉じられない進捗の表示なので、アプリ内のモーダルのまま残す（§5.3 の【AI 設計】の行）。",
+    "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
   },
   {
     "rule": "diag.raw-alert",

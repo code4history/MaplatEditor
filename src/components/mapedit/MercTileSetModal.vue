@@ -114,7 +114,7 @@ function cancel(): void {
             <EditorField :label="t('basemap.modal.attr_label')" label-for="mercNewAttr">
               <input id="mercNewAttr" type="text" class="form-control form-control-sm" data-testid="merc-new-attr" v-model="attr" />
               <template #help>
-                <ContextHelp :text="t('merc.modal_attr_help')" :ariaLabel="t('basemap.modal.attr_label')" />
+                <ContextHelp :text="t('merc.modal_attr_help')" :ariaLabel="t('editor_ui.help_about', { name: t('basemap.modal.attr_label') })" />
               </template>
             </EditorField>
           </template>

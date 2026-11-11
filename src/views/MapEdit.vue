@@ -4890,7 +4890,7 @@ const goBack = async () => {
                             <input id="mapExportOptionOriginals" type="checkbox" class="form-check-input"
                                    data-testid="map-export-option-originals" v-model="mapExportOptions.originals" />
                             <label class="form-check-label" for="mapExportOptionOriginals">{{ t('mapedit.export_option_originals') }}</label>
-                            <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_help')" :ariaLabel="t('mapedit.export_option_originals')" data-testid="map-export-option-originals-help" />
+                            <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.export_option_originals') })" data-testid="map-export-option-originals-help" />
                             <!-- ui-grammar §2.4（U1）: ファイルサイズ・個人情報の注意は ? に入れず、選んだときに黄色の警告で常に見せる -->
                             <DiagnosticFeedback v-if="mapExportOptions.originals" scope="field"
                                                 :items="[{ key: 'export-originals', severity: 'warning', message: t('mapedit.export_option_originals_warning') }]"
@@ -4903,7 +4903,7 @@ const goBack = async () => {
                         <button type="button" class="btn btn-primary" data-testid="map-export-options-confirm"
                                 :disabled="!mapExportOptionsSelectable"
                                 @click="closeMapExportOptions(mapExportOptions)">{{ t('editor_ui.export_button') }}</button>
-                        <ContextHelp v-if="!mapExportOptionsSelectable" :text="t('mapedit.export_option_none_selected')" :ariaLabel="t('editor_ui.export_button')" data-testid="map-export-options-none-selected" />
+                        <ContextHelp v-if="!mapExportOptionsSelectable" :text="t('mapedit.export_option_none_selected')" :ariaLabel="t('editor_ui.unavailable_reason', { name: t('editor_ui.export_button') })" data-testid="map-export-options-none-selected" />
                     </div>
                 </div>
             </div>
@@ -5161,7 +5161,7 @@ const goBack = async () => {
                             <div v-if="iiifCopyError" class="d-flex align-items-start gap-1" data-testid="iiif-recopy-error">
                                 <DiagnosticFeedback class="flex-grow-1" scope="section" :items="[{ key: 'iiif-copy-error', severity: 'danger', message: t(iiifCopyError) }]" />
                                 <!-- 失敗したときの代わりの手。GCP を失わないよう、取り込みのやり直しは案内しない -->
-                                <ContextHelp class="mt-2" :text="t('iiif_metadata.recopy_failed_help')" :ariaLabel="t('iiif_metadata.recopy')" data-testid="iiif-recopy-failed-help" />
+                                <ContextHelp class="mt-2" :text="t('iiif_metadata.recopy_failed_help')" :ariaLabel="t('editor_ui.help_about', { name: t('iiif_metadata.recopy') })" data-testid="iiif-recopy-failed-help" />
                             </div>
                             <!-- 写した書誌の確認（読み取り専用）。全件を Manifest とこのコマに分けて出す -->
                             <IiifMetadataTable

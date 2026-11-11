@@ -101,6 +101,26 @@ for (const phase of ['before', 'after']) {
       if (phase === 'after') {
         await expect(page.getByTestId('settings-mcp-external-notice')).toHaveAttribute('data-diagnostic-scope', 'field');
         await expect(page.getByTestId('settings-mcp-recommend-loopback')).toHaveCount(1);
+        // ? の読み上げ名は、何の説明かが分かる名前（隣のタブの名前ではない）
+        await expect(page.getByTestId('settings-mcp-recommend-loopback')).toHaveAttribute('aria-label', '「クライアントへの登録」の説明');
+      }
+      if (phase === 'after') {
+        // 移行レポートのバナー: 行が多くても画面を押し下げず、中をスクロールする（PR #246 のレビュー Minor 6）
+        await openHash(page, '#/maplist');
+        await app.evaluate(({ BrowserWindow }) => {
+          const renamedSlugs = Array.from({ length: 24 }, (_, index) => ({ kind: 'map', from: `old-map-${index + 1}`, to: `old-map-${index + 1}-2` }));
+          BrowserWindow.getAllWindows()[0].webContents.send('app:migrationReport', { renamedSlugs, warnings: ['w1', 'w2', 'w3'] });
+        });
+        const report = page.getByTestId('migration-report');
+        await expect(report).toBeVisible();
+        const list = report.locator('.editor-diagnostic__list');
+        const box = await list.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight, overflow: getComputedStyle(el).overflowY, viewport: window.innerHeight }));
+        expect(box.overflow).toBe('auto');
+        expect(box.scroll).toBeGreaterThan(box.client);
+        expect(box.client).toBeLessThanOrEqual(Math.ceil(box.viewport * 0.3));
+        // 閉じるボタンはスクロールの外にあり、見えたまま
+        await expect(report.locator('[data-diagnostic-dismiss]')).toBeInViewport();
+        await shot('migration-report');
       }
     } finally {
       await quitElectronApplication(app);

@@ -18,3 +18,15 @@ export async function readOperationNotice(page: Page, options: { timeout?: numbe
   const lines = await notice.locator('.editor-diagnostic__message').allTextContents();
   return { message: lines[0] ?? '', detail: lines.slice(1).join('\n') };
 }
+
+/**
+ * 失敗の通知が出ていないことを確かめる。operation の診断（保存の失敗など）が無く、
+ * バナーは「出ていない」か「成功（success）」のどちらか。バナーを一律に除外すると、
+ * バナーに出た失敗を見逃す。
+ */
+export async function expectNoFailureNotice(page: Page): Promise<void> {
+  await expect(page.locator('[data-diagnostic-scope="operation"]:not([data-testid="operation-notice"])')).toHaveCount(0);
+  const notice = page.getByTestId('operation-notice');
+  await expect.poll(async () => (await notice.count()) === 0 ? 'none' : await notice.getAttribute('data-diagnostic-severity'))
+    .toMatch(/^(?:none|success)$/);
+}

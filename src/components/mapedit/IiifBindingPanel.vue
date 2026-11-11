@@ -1,7 +1,7 @@
 <template>
   <div class="card mt-2" data-testid="iiif-binding-panel">
     <div class="card-header bg-light fw-bold small py-1 d-flex align-items-center justify-content-between">
-      <span>{{ t("iiif_metadata.heading") }} <ContextHelp :text="t('iiif_metadata.help')" :ariaLabel="t('iiif_metadata.heading')" /></span>
+      <span>{{ t("iiif_metadata.heading") }} <ContextHelp :text="t('iiif_metadata.help')" :ariaLabel="t('editor_ui.help_about', { name: t('iiif_metadata.heading') })" /></span>
       <span class="fw-normal text-muted">{{ t("iiif_metadata.copy_language", { language: languageLabel }) }}</span>
     </div>
     <div class="card-body py-2">
@@ -52,7 +52,7 @@
           data-testid="iiif-recopy"
           @click="emit('recopy')"
         >{{ t("iiif_metadata.recopy") }}</button>
-        <ContextHelp class="align-self-center" :text="t('iiif_metadata.recopy_help')" :ariaLabel="t('iiif_metadata.recopy')" data-testid="iiif-recopy-help" />
+        <ContextHelp class="align-self-center" :text="t('iiif_metadata.recopy_help')" :ariaLabel="t('editor_ui.help_about', { name: t('iiif_metadata.recopy') })" data-testid="iiif-recopy-help" />
       </div>
 
       <!-- 比べた結果。変わらない行は出さず、既定では IIIF の側が変わった行だけを選んでおく -->

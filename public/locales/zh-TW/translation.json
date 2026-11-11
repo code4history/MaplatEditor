@@ -314,6 +314,7 @@
     "mcp_copied": "已複製。一分鐘後會從剪貼簿清除。",
     "mcp_docs_link": "連線方法",
     "mcp_recommend_loopback": "請在用戶端使用 127.0.0.1 的 URL 註冊，而不是 localhost。",
+    "mcp_client_registration": "在用戶端中註冊",
     "mcp_error_port_in_use": "另一個程式正在使用同一個連接埠。權杖可能已被傳送給它。請重新產生權杖。",
     "mcp_error_listen_failed": "無法開始監聽。",
     "mcp_error_port_invalid": "請以 1024 到 65535 之間的整數指定連接埠。",
@@ -1294,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "「{{name}}」的說明",
+    "unavailable_reason": "無法使用「{{name}}」的原因"
   },
   "resource_list": {
     "new_item": "新增",

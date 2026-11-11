@@ -314,6 +314,7 @@
     "mcp_copied": "복사했습니다. 1분 후 클립보드에서 지웁니다.",
     "mcp_docs_link": "연결 방법",
     "mcp_recommend_loopback": "클라이언트에는 localhost가 아니라 127.0.0.1 URL로 등록하세요.",
+    "mcp_client_registration": "클라이언트에 등록",
     "mcp_error_port_in_use": "다른 프로그램이 같은 포트를 사용하고 있습니다. 토큰이 그쪽으로 전송되었을 수 있습니다. 토큰을 재발급하세요.",
     "mcp_error_listen_failed": "대기를 시작할 수 없습니다.",
     "mcp_error_port_invalid": "포트는 1024~65535 사이의 정수로 입력하세요.",
@@ -1294,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "‘{{name}}’ 설명",
+    "unavailable_reason": "‘{{name}}’을(를) 사용할 수 없는 이유"
   },
   "resource_list": {
     "new_item": "새로 만들기",

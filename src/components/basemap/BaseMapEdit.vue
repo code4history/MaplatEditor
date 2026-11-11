@@ -63,7 +63,7 @@
             <ContextHelp
               v-if="kindDisabledReason(k)"
               :text="kindDisabledReason(k)"
-              :ariaLabel="t('basemap.kind.label_' + k)"
+              :ariaLabel="t('editor_ui.unavailable_reason', { name: t('basemap.kind.label_' + k) })"
               :data-testid="'basemap-kind-' + k + '-reason'"
             />
           </template>
@@ -96,7 +96,7 @@
               <ContextHelp
                 v-if="presetDisabledReason(preset.value)"
                 :text="presetDisabledReason(preset.value)"
-                :ariaLabel="t(preset.labelKey)"
+                :ariaLabel="t('editor_ui.unavailable_reason', { name: t(preset.labelKey) })"
                 :data-testid="'basemap-google-preset-' + preset.suffix + '-reason'"
               />
             </template>
@@ -321,7 +321,7 @@
               @change="updateField('style', ($event.target as HTMLInputElement).value.trim() || null)"
             >
             <template v-if="document.kind === 'maplibre'" #help>
-              <ContextHelp :text="t('basemap.modal.style_maplibre_hint')" :ariaLabel="t('basemap.modal.style_label')" data-testid="basemap-style-maplibre-hint" />
+              <ContextHelp :text="t('basemap.modal.style_maplibre_hint')" :ariaLabel="t('editor_ui.help_about', { name: t('basemap.modal.style_label') })" data-testid="basemap-style-maplibre-hint" />
             </template>
           </EditorField>
           <!-- MapLibre GL JS の 5 系で動くかの判定（保存は止めない・版はアプリの側で決めるので切り替えのボタンは置かない） -->

@@ -276,7 +276,7 @@
                 <label class="form-check-label" for="poiExportFormat-geojson">
                   <strong>{{ t("poiio.format_geojson") }}</strong>
                 </label>
-                <ContextHelp class="ms-1" :text="t('poiio.format_geojson_desc')" :ariaLabel="t('poiio.format_geojson')" data-testid="poi-export-format-geojson-help" />
+                <ContextHelp class="ms-1" :text="t('poiio.format_geojson_desc')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.format_geojson') })" data-testid="poi-export-format-geojson-help" />
               </div>
               <div class="form-check mb-2">
                 <input
@@ -290,7 +290,7 @@
                 <label class="form-check-label" for="poiExportFormat-csv">
                   <strong>{{ t("poiio.format_csv") }}</strong>
                 </label>
-                <ContextHelp class="ms-1" :text="t('poiio.format_csv_desc')" :ariaLabel="t('poiio.format_csv')" data-testid="poi-export-format-csv-help" />
+                <ContextHelp class="ms-1" :text="t('poiio.format_csv_desc')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.format_csv') })" data-testid="poi-export-format-csv-help" />
               </div>
               <div class="form-check mb-2">
                 <input
@@ -304,7 +304,7 @@
                 <label class="form-check-label" for="poiExportFormat-json">
                   <strong>{{ t("poiio.format_json") }}</strong>
                 </label>
-                <ContextHelp class="ms-1" :text="t('poiio.format_json_desc')" :ariaLabel="t('poiio.format_json')" data-testid="poi-export-format-json-help" />
+                <ContextHelp class="ms-1" :text="t('poiio.format_json_desc')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.format_json') })" data-testid="poi-export-format-json-help" />
               </div>
             </fieldset>
             <div class="form-check mt-2">
@@ -318,7 +318,7 @@
                 @change="poiExportOptions.includeImages = ($event.target as HTMLInputElement).checked"
               />
               <label class="form-check-label" for="poiExportOptionImages">{{ t("poiio.export_option_images") }}</label>
-              <ContextHelp class="ms-1" :text="t('poiio.export_option_images_help')" :ariaLabel="t('poiio.export_option_images')" data-testid="poi-export-option-images-help" />
+              <ContextHelp class="ms-1" :text="t('poiio.export_option_images_help')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.export_option_images') })" data-testid="poi-export-option-images-help" />
             </div>
           </div>
           <div class="modal-footer">

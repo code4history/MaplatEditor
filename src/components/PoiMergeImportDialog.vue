@@ -79,7 +79,7 @@ function messageOf(issue: PoiImportIssue): string {
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title fs-5">{{ t('poiio.import_title') }} <ContextHelp :text="t('poiio.import_geojson_hint')" :ariaLabel="t('poiio.import_title')" /></h2>
+          <h2 class="modal-title fs-5">{{ t('poiio.import_title') }} <ContextHelp :text="t('poiio.import_geojson_hint')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.import_title') })" /></h2>
         </div>
         <div class="modal-body">
           <dl class="row small mb-2">
@@ -101,7 +101,7 @@ function messageOf(issue: PoiImportIssue): string {
               <div class="form-check">
                 <input id="poiMergeModeOverwrite" v-model="mode" class="form-check-input" type="radio" value="overwrite" data-testid="poi-merge-mode-overwrite" />
                 <label class="form-check-label" for="poiMergeModeOverwrite">{{ t('poiio.import_mode_overwrite') }}</label>
-                <ContextHelp class="ms-1" :text="t('poiio.import_overwrite_note')" :ariaLabel="t('poiio.import_mode_overwrite')" data-testid="poi-merge-overwrite-note" />
+                <ContextHelp class="ms-1" :text="t('poiio.import_overwrite_note')" :ariaLabel="t('editor_ui.help_about', { name: t('poiio.import_mode_overwrite') })" data-testid="poi-merge-overwrite-note" />
               </div>
             </fieldset>
 

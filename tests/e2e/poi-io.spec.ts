@@ -84,6 +84,8 @@ async function runExport(
   await page.getByTestId('poi-export-options-confirm').click();
   await expect(page.getByTestId('poi-export-options')).toBeHidden();
   const notice = page.getByTestId('operation-notice');
+  // 本文が書き出しの完了になるまで待つ（未保存から保存して書き出すときの「保存できました」と取り違えない）
+  await expect(notice.locator('.editor-diagnostic__message').first()).toContainText('エクスポートしました', { timeout: 30_000 });
   await expect(notice).toHaveAttribute('data-diagnostic-severity', 'success');
   const messages = await notice.locator('.editor-diagnostic__message').allTextContents();
   return [{ message: messages[0], detail: messages.slice(1).join('\n') }];

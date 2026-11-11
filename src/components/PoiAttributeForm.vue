@@ -220,7 +220,7 @@
           data-testid="poi-directgo-hidden-content"
         />
         <div class="mb-2">
-          <label class="form-label fw-bold small mb-0" for="poi-directgo-href-input">{{ t("poiedit.directgo_href") }}</label> <ContextHelp :text="t('poiedit.directgo_examples')" :ariaLabel="t('poiedit.directgo_href')" data-testid="poi-directgo-examples" />
+          <label class="form-label fw-bold small mb-0" for="poi-directgo-href-input">{{ t("poiedit.directgo_href") }}</label> <ContextHelp :text="t('poiedit.directgo_examples')" :ariaLabel="t('editor_ui.help_about', { name: t('poiedit.directgo_href') })" data-testid="poi-directgo-examples" />
           <input
             id="poi-directgo-href-input"
             v-model="directgoHrefInput"
@@ -249,7 +249,7 @@
             :disabled="readOnly"
             @change="onDirectgoBlankChange(($event.target as HTMLInputElement).checked)"
           />
-          <label class="form-check-label small" for="poi-directgo-blank-input">{{ t("poiedit.directgo_blank") }}</label> <ContextHelp :text="t('poiedit.directgo_preview_note')" :ariaLabel="t('poiedit.directgo_blank')" data-testid="poi-directgo-note" />
+          <label class="form-check-label small" for="poi-directgo-blank-input">{{ t("poiedit.directgo_blank") }}</label> <ContextHelp :text="t('poiedit.directgo_preview_note')" :ariaLabel="t('editor_ui.help_about', { name: t('poiedit.directgo_blank') })" data-testid="poi-directgo-note" />
         </div>
       </template>
 

@@ -402,7 +402,7 @@
                   <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_mcp_remote") }}
                 </button>
                 <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md §2.1） -->
-                <ContextHelp class="align-self-center" :text="t('settings.mcp_recommend_loopback')" :ariaLabel="t('settings.mcp_tab')" data-testid="settings-mcp-recommend-loopback" />
+                <ContextHelp class="align-self-center" :text="t('settings.mcp_recommend_loopback')" :ariaLabel="t('editor_ui.help_about', { name: t('settings.mcp_client_registration') })" data-testid="settings-mcp-recommend-loopback" />
               </div>
               <div v-if="mcp.copied || mcp.copyFailed" class="col-sm-9 offset-sm-3 mt-2">
                 <DiagnosticFeedback v-if="mcp.copied" scope="operation" :items="[{ key: 'settings-mcp-copied', severity: 'success', message: t('settings.mcp_copied') }]" data-testid="settings-mcp-copied" />

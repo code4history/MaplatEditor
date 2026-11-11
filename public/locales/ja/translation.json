@@ -314,6 +314,7 @@
     "mcp_copied": "コピーしました。1 分後にクリップボードから消します。",
     "mcp_docs_link": "接続の手順",
     "mcp_recommend_loopback": "クライアントには localhost ではなく 127.0.0.1 の URL で登録してください。",
+    "mcp_client_registration": "クライアントへの登録",
     "mcp_error_port_in_use": "別のプログラムが同じポートを使っています。トークンが送られた可能性があります。再発行してください。",
     "mcp_error_listen_failed": "待ち受けを始められませんでした。",
     "mcp_error_port_invalid": "ポートは 1024〜65535 の整数で指定してください。",
@@ -1294,7 +1295,9 @@
       "gcps_requires_image": "先に地図画像を登録してください",
       "merc": "メルカトルタイル"
     },
-    "untitled": "タイトル未設定"
+    "untitled": "タイトル未設定",
+    "help_about": "「{{name}}」の説明",
+    "unavailable_reason": "「{{name}}」を使えない理由"
   },
   "resource_list": {
     "new_item": "新規追加",

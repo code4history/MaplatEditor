@@ -314,6 +314,7 @@
     "mcp_copied": "Copié. Effacé du presse-papiers dans une minute.",
     "mcp_docs_link": "Comment se connecter",
     "mcp_recommend_loopback": "Enregistrez dans le client l’URL avec 127.0.0.1, pas localhost.",
+    "mcp_client_registration": "Enregistrement du client",
     "mcp_error_port_in_use": "Un autre programme utilise le même port. Le jeton lui a peut-être été envoyé. Veuillez régénérer le jeton.",
     "mcp_error_listen_failed": "Impossible de commencer l’écoute.",
     "mcp_error_port_invalid": "Saisissez un nombre entier de 1024 à 65535 pour le port.",
@@ -1294,7 +1295,9 @@
     },
     "delete_draft": "Delete draft",
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "help_about": "Aide : {{name}}",
+    "unavailable_reason": "Pourquoi « {{name}} » n’est pas disponible"
   },
   "resource_list": {
     "new_item": "Nouveau",
