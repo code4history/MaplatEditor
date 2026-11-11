@@ -884,6 +884,14 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   // 見かけ上のバグの原因）。保存済み label は normalizeAppSource(pickLabel) が保持するため、
   // ここで補完してはならない（設計 P2 の廃止対象）。
   source.thumbnail = typeof value === "object" && value !== null ? value.thumbnail : undefined;
+  // #147: 旧形（legacyData）は開いた時点でマスタと突き合わせて overrides へ翻訳する。
+  // 欄は overrides だけを読むので、翻訳しないと値があるのに空に見え、保存しても旧形のまま残る。
+  // マスタが引けないときは legacyData のまま返す（値を捨てない。次に開いたときに翻訳する）。
+  // title の補完の後に置くのは、翻訳で label が落ちても title を変えないため。
+  if (source.legacyData && source.sourceType !== "maplat") {
+    const resolved = resolveAppSource(source, baseMapLookup.value);
+    if (resolved.ok) return resolved.source;
+  }
   return source;
 }
 
