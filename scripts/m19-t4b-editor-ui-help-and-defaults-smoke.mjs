@@ -180,6 +180,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   // UI 文法（docs/ui-grammar.md §7）で説明の直書きを ContextHelp へ移した +17 ∴ 73
   //   （PoiEdit 4・MapEdit 3・PoiAttributeForm 2・PoiMergeImportDialog 2・IiifBindingPanel 2・
   //     BaseMapEdit 1・Settings 1・MercTileSetModal 1・ResourceMasterRow 1）
+  // #85: ソースの欄の「オフライン表示から外す」の説明と使えない理由で +2 ∴ 75（AppSourceEditor）
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -189,8 +190,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 73, `S3-S5: src 全体の <ContextHelp タグ数は 73 であること（上の注記の 56 + UI 文法の 17） (got ${total})`);
-  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 15 / MapEdit 22 / BaseMapEdit 11 / src 計 73: PASS");
+  assert.equal(total, 75, `S3-S5: src 全体の <ContextHelp タグ数は 75 であること（上の注記の 56 + UI 文法の 17 + #85 の 2） (got ${total})`);
+  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 15 / MapEdit 22 / BaseMapEdit 11 / src 計 75: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない
