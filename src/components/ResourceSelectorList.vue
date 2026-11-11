@@ -12,14 +12,13 @@
     </div>
     <div class="source-list resource-list__rows flex-grow-1 overflow-auto" @scroll.passive="onScroll">
       <slot v-for="item in items" :key="item.uid" name="item" :item="item"></slot>
-      <div v-if="state === 'loading' || state === 'appending'" class="text-muted text-center py-3">{{ t('resource_list.loading') }}</div>
-      <div v-else-if="state === 'empty'" class="text-muted text-center py-3">{{ t('resource_list.empty') }}</div>
-      <button v-else-if="state === 'error' || state === 'append-error'" type="button" class="btn btn-link w-100" @click="retry">{{ t('resource_list.retry') }}</button>
+      <ResourceResultStatus :state="state" :total="null" :loaded="items.length" @retry="retry" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import ResourceResultStatus from "./resource-list/ResourceResultStatus.vue";
 import { computed, onBeforeUnmount, onMounted, ref, useSlots, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { ResourceDataAdapter, SelectorSpatialContextView } from "./resource-list/resourceListTypes";

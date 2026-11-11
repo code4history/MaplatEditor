@@ -32,7 +32,7 @@
       scope="operation"
       :items="[{ key: 'save-error', severity: 'danger', message: error }]"
     />
-    <div v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
+    <div data-testid="asset-revision-conflict" v-if="conflictRevision !== null" class="alert alert-warning rounded-0 mb-0 py-2 d-flex align-items-center gap-2 flex-wrap">
       <span class="flex-grow-1">{{ t("common.revision_conflict") }}</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" @click="reloadLatest">{{ t("common.reload") }}</button>
       <button type="button" class="btn btn-sm btn-warning" @click="keepCurrentEdit">{{ t("common.overwrite") }}</button>

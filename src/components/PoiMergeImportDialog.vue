@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 import { computed, ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 import type { PoiEditorFeature } from '../utils/poiGeoJson';
@@ -77,7 +79,7 @@ function messageOf(issue: PoiImportIssue): string {
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title fs-5">{{ t('poiio.import_title') }}</h2>
+          <h2 class="modal-title fs-5">{{ t('poiio.import_title') }} <ContextHelp :text="t('poiio.import_geojson_hint')" :ariaLabel="t('poiio.import_title')" /></h2>
         </div>
         <div class="modal-body">
           <dl class="row small mb-2">
@@ -87,7 +89,7 @@ function messageOf(issue: PoiImportIssue): string {
             <dd class="col-9" data-testid="poi-merge-encoding" :data-encoding="parse.encoding ?? ''">{{ parse.encoding ?? '-' }}</dd>
           </dl>
 
-          <p v-if="parse.fatal" class="text-danger fw-bold" data-testid="poi-merge-fatal">{{ t('poiio.import_fatal') }}</p>
+          <DiagnosticFeedback v-if="parse.fatal" scope="section" :items="[{ key: 'parse-fatal', severity: 'danger', message: t('poiio.import_fatal') }]" data-testid="poi-merge-fatal" />
 
           <template v-else>
             <fieldset class="mb-2">
@@ -99,8 +101,8 @@ function messageOf(issue: PoiImportIssue): string {
               <div class="form-check">
                 <input id="poiMergeModeOverwrite" v-model="mode" class="form-check-input" type="radio" value="overwrite" data-testid="poi-merge-mode-overwrite" />
                 <label class="form-check-label" for="poiMergeModeOverwrite">{{ t('poiio.import_mode_overwrite') }}</label>
+                <ContextHelp class="ms-1" :text="t('poiio.import_overwrite_note')" :ariaLabel="t('poiio.import_mode_overwrite')" data-testid="poi-merge-overwrite-note" />
               </div>
-              <p v-if="mode === 'overwrite'" class="small text-muted mb-0 mt-1" data-testid="poi-merge-overwrite-note">{{ t('poiio.import_overwrite_note') }}</p>
             </fieldset>
 
             <p
@@ -145,7 +147,6 @@ function messageOf(issue: PoiImportIssue): string {
             <div v-if="hiddenCount > 0" class="small text-muted">{{ t('poiio.import_issues_more', { count: hiddenCount }) }}</div>
           </div>
 
-          <p class="small text-muted mt-3 mb-0">{{ t('poiio.import_geojson_hint') }}</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-testid="poi-merge-cancel" @click="emit('submit', null)">

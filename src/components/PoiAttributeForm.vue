@@ -1,9 +1,7 @@
 <template>
   <div class="poi-attribute-form p-3">
     <!-- 未選択時プレースホルダ -->
-    <div v-if="!feature" class="text-muted small text-center py-4">
-      {{ t("poiedit.select_poi") }}
-    </div>
+    <ResourceEmptyState v-if="!feature" icon-class="bi bi-geo-alt" :message="t('poiedit.select_poi')" />
 
     <div v-else :key="uid ?? ''">
       <!-- Content Mode 選択タブ -->
@@ -222,7 +220,7 @@
           data-testid="poi-directgo-hidden-content"
         />
         <div class="mb-2">
-          <label class="form-label fw-bold small mb-0" for="poi-directgo-href-input">{{ t("poiedit.directgo_href") }}</label>
+          <label class="form-label fw-bold small mb-0" for="poi-directgo-href-input">{{ t("poiedit.directgo_href") }}</label> <ContextHelp :text="t('poiedit.directgo_examples')" :ariaLabel="t('poiedit.directgo_href')" data-testid="poi-directgo-examples" />
           <input
             id="poi-directgo-href-input"
             v-model="directgoHrefInput"
@@ -240,7 +238,6 @@
             :items="[{ key: 'content-mode-link-format', severity: 'danger', message: directgoError }]"
             data-testid="poi-directgo-error"
           />
-          <div class="form-text small" data-testid="poi-directgo-examples">{{ t("poiedit.directgo_examples") }}</div>
         </div>
         <div class="form-check mb-2">
           <input
@@ -252,9 +249,8 @@
             :disabled="readOnly"
             @change="onDirectgoBlankChange(($event.target as HTMLInputElement).checked)"
           />
-          <label class="form-check-label small" for="poi-directgo-blank-input">{{ t("poiedit.directgo_blank") }}</label>
+          <label class="form-check-label small" for="poi-directgo-blank-input">{{ t("poiedit.directgo_blank") }}</label> <ContextHelp :text="t('poiedit.directgo_preview_note')" :ariaLabel="t('poiedit.directgo_blank')" data-testid="poi-directgo-note" />
         </div>
-        <div class="small text-muted mb-2" data-testid="poi-directgo-note">{{ t("poiedit.directgo_preview_note") }}</div>
       </template>
 
       <!-- icon / selectedIcon -->
@@ -330,6 +326,8 @@
 </template>
 
 <script setup lang="ts">
+import ResourceEmptyState from "./resource-list/ResourceEmptyState.vue";
+import ContextHelp from "./editor-ui/ContextHelp.vue";
 import { computed, nextTick, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import LangResourceInput from "./LangResourceInput.vue";

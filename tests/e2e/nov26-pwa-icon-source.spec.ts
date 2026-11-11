@@ -18,6 +18,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { dismissOperationNotice, readOperationNotice } from './helpers/operationNotice';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
 
 const APP_ID = 'nov26-pwa-icon-source-app';
@@ -55,6 +56,7 @@ async function exportTo(
   await app.evaluate(async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zipPath);
+  await dismissOperationNotice(page);
   await page.locator('[data-editor-action="export"]').click();
   await expect(page.getByTestId('app-export-options')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('app-export-options-confirm').click();
@@ -147,8 +149,9 @@ async function exportAndCollectWarnings(
   zipPath: string,
 ): Promise<string[]> {
   await exportTo(app, page, zipPath);
-  const dialogs = await takeExportDialogs(app);
-  expect(dialogs.length, '書き出し完了ダイアログが記録されているはず').toBeGreaterThan(0);
+  // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md §5.3）。ネイティブのダイアログには出ない
+  const dialogs = [...await takeExportDialogs(app), await readOperationNotice(page)];
+  expect(dialogs.length, '書き出し完了の通知が出ているはず').toBeGreaterThan(0);
   expect(await readFile(zipPath).then((data) => data.length), `${zipPath} が作られているはず`).toBeGreaterThan(0);
   return warningLines(dialogs);
 }

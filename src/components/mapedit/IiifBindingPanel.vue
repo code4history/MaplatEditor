@@ -1,11 +1,10 @@
 <template>
   <div class="card mt-2" data-testid="iiif-binding-panel">
     <div class="card-header bg-light fw-bold small py-1 d-flex align-items-center justify-content-between">
-      <span>{{ t("iiif_metadata.heading") }}</span>
+      <span>{{ t("iiif_metadata.heading") }} <ContextHelp :text="t('iiif_metadata.help')" :ariaLabel="t('iiif_metadata.heading')" /></span>
       <span class="fw-normal text-muted">{{ t("iiif_metadata.copy_language", { language: languageLabel }) }}</span>
     </div>
     <div class="card-body py-2">
-      <p class="small text-muted mb-2">{{ t("iiif_metadata.help") }}</p>
       <div class="row g-1 mb-1 small text-muted">
         <div class="col-md-4">{{ t("iiif_metadata.field") }}</div>
         <div class="col-md-3">{{ t("iiif_metadata.bind") }}</div>
@@ -53,11 +52,11 @@
           data-testid="iiif-recopy"
           @click="emit('recopy')"
         >{{ t("iiif_metadata.recopy") }}</button>
+        <ContextHelp class="align-self-center" :text="t('iiif_metadata.recopy_help')" :ariaLabel="t('iiif_metadata.recopy')" data-testid="iiif-recopy-help" />
       </div>
 
       <!-- 比べた結果。変わらない行は出さず、既定では IIIF の側が変わった行だけを選んでおく -->
       <div v-if="recopy" class="mt-2" data-testid="iiif-recopy-table">
-        <p class="small text-muted mb-1">{{ t("iiif_metadata.recopy_help") }}</p>
         <div class="row g-1 mb-1 small text-muted">
           <div class="col-md-2">{{ t("iiif_metadata.field") }}</div>
           <div class="col-md-3">{{ t("iiif_metadata.recopy_current") }}</div>
@@ -103,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+import ContextHelp from "../editor-ui/ContextHelp.vue";
 import { computed, ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 // @ts-ignore

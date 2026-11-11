@@ -63,6 +63,7 @@
           </button>
         </template>
       </EditorActionHeader>
+    <OperationNotice />
 
       <!-- title / slugは文書フィールドとしてworkspace上部に置く -->
       <div class="px-4 py-2 flex-shrink-0 bg-white border-bottom">
@@ -116,9 +117,7 @@
         <!-- POI のインポート。3 つのエディタで共通のヘッダ操作 (language・undo・redo・export・save) の
              並びは変えず、取り込みはヘッダに上げずに、この行に [このソースへインポート…] を置く。
              エクスポートはヘッダの 1 つ (形式と画像は選択ダイアログで選ぶ) -->
-        <div v-if="mergeResultMessage" class="alert alert-success py-1 px-2 small mt-1 mb-0" role="status" data-testid="poi-merge-result">
-          {{ mergeResultMessage }}
-        </div>
+        <DiagnosticFeedback v-if="mergeResultMessage" scope="operation" :items="[{ key: 'poi-merge-result', severity: 'success', message: mergeResultMessage }]" data-testid="poi-merge-result" />
         <div class="d-flex justify-content-end gap-2 mt-1">
           <button
             type="button"
@@ -276,8 +275,8 @@
                 />
                 <label class="form-check-label" for="poiExportFormat-geojson">
                   <strong>{{ t("poiio.format_geojson") }}</strong>
-                  <div class="small text-muted">{{ t("poiio.format_geojson_desc") }}</div>
                 </label>
+                <ContextHelp class="ms-1" :text="t('poiio.format_geojson_desc')" :ariaLabel="t('poiio.format_geojson')" data-testid="poi-export-format-geojson-help" />
               </div>
               <div class="form-check mb-2">
                 <input
@@ -290,8 +289,8 @@
                 />
                 <label class="form-check-label" for="poiExportFormat-csv">
                   <strong>{{ t("poiio.format_csv") }}</strong>
-                  <div class="small text-muted">{{ t("poiio.format_csv_desc") }}</div>
                 </label>
+                <ContextHelp class="ms-1" :text="t('poiio.format_csv_desc')" :ariaLabel="t('poiio.format_csv')" data-testid="poi-export-format-csv-help" />
               </div>
               <div class="form-check mb-2">
                 <input
@@ -304,8 +303,8 @@
                 />
                 <label class="form-check-label" for="poiExportFormat-json">
                   <strong>{{ t("poiio.format_json") }}</strong>
-                  <div class="small text-muted">{{ t("poiio.format_json_desc") }}</div>
                 </label>
+                <ContextHelp class="ms-1" :text="t('poiio.format_json_desc')" :ariaLabel="t('poiio.format_json')" data-testid="poi-export-format-json-help" />
               </div>
             </fieldset>
             <div class="form-check mt-2">
@@ -319,7 +318,7 @@
                 @change="poiExportOptions.includeImages = ($event.target as HTMLInputElement).checked"
               />
               <label class="form-check-label" for="poiExportOptionImages">{{ t("poiio.export_option_images") }}</label>
-              <div class="form-text" data-testid="poi-export-option-images-help">{{ t("poiio.export_option_images_help") }}</div>
+              <ContextHelp class="ms-1" :text="t('poiio.export_option_images_help')" :ariaLabel="t('poiio.export_option_images')" data-testid="poi-export-option-images-help" />
             </div>
           </div>
           <div class="modal-footer">
@@ -349,6 +348,9 @@
 </template>
 
 <script setup lang="ts">
+import ContextHelp from "../components/editor-ui/ContextHelp.vue";
+import OperationNotice from "../components/editor-ui/OperationNotice.vue";
+import { useOperationNotice } from "../composables/useOperationNotice";
 // POI エディタ (Phase 4 Task 5-8, 仕様 43 §3.3/§4/§5/§6)。
 // 地図ペインは PoiEditMap (base map selector + マーカー + contextmenu 追加/削除 +
 // Modify ドラッグ移動 + クリック選択)。右カラムは属性フォーム (PoiAttributeForm) +
@@ -408,6 +410,7 @@ import {
 import type { PoiExportOmitted, PoiSourceSaveResult, PoiValidationIssue } from "../electron";
 
 const { t } = useTranslation();
+const { notifyOperation } = useOperationNotice();
 const route = useRoute();
 const router = useRouter();
 const currentLang = ref<LangCode>(resolveEditorLanguage(i18next.language));
@@ -599,9 +602,8 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     if (route.params.sourceId !== result.uid) {
       router.replace({ path: `/poisources/${result.uid}` });
     }
-    await (window as any).dialog.showMessageBox({
-      type: "info",
-      buttons: ["OK"],
+    notifyOperation({
+      type: "success",
       message: t("poiedit.success_save"),
     });
   },
@@ -1049,9 +1051,8 @@ async function exportSavedSource(): Promise<boolean> {
     if (result.result === "Error") return reportPoiExportFailure(result.message);
     if (options.format === "csv") detail = csvOmittedNotice(result.omitted);
   }
-  await (window as any).dialog.showMessageBox({
-    type: "info",
-    buttons: ["OK"],
+  notifyOperation({
+    type: "success",
     message: t("editor_ui.export_success"),
     ...(detail ? { detail } : {}),
   });
@@ -1059,9 +1060,8 @@ async function exportSavedSource(): Promise<boolean> {
 }
 
 async function reportPoiExportFailure(message: string | undefined): Promise<false> {
-  await (window as any).dialog.showMessageBox({
+  notifyOperation({
     type: "error",
-    buttons: ["OK"],
     message: t("editor_ui.export_failed"),
     detail: message || "",
   });
@@ -1125,13 +1125,13 @@ async function openMergeImport(): Promise<void> {
         : result.code === "unsupported-extension" ? "poiio.import_error.unsupported_extension"
         : result.code === "read-failed" ? "poiio.import_error.read_failed"
         : "poiio.import_error.generic";
-      await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: t(key) });
+      notifyOperation({ type: "error", message: t(key) });
       return;
     }
     mergeDialog.value = { visible: true, fileName: result.fileName, parse: result.parse, generation };
   } catch (cause) {
     console.error("[PoiEdit] pickAndParseMerge failed", cause);
-    await (window as any).dialog.showMessageBox({ type: "error", buttons: ["OK"], message: t("poiio.import_error.generic") });
+    notifyOperation({ type: "error", message: t("poiio.import_error.generic") });
   } finally {
     mergeImportBusy.value = false;
   }
@@ -1143,7 +1143,7 @@ async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
   if (!mode || !ctx.parse) return;
   const state = editState.value;
   if (saving.value || readOnly.value || translationMode.value || ctx.generation !== loadGeneration || !state) {
-    await (window as any).dialog.showMessageBox({ type: "info", buttons: ["OK"], message: t("poiio.import_blocked") });
+    notifyOperation({ type: "info", message: t("poiio.import_blocked") });
     return;
   }
   const plan = planPoiMerge({ existing: state.features, rows: ctx.parse.rows, mode, defaultLang: state.lang });

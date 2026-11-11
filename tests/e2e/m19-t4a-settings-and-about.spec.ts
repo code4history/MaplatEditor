@@ -130,9 +130,10 @@ test.describe('m19-t4a 設定画面・アプリケーションメニュー・Abo
       await page.locator('#saveFolder').click();
       await expect(page.locator('#saveFolder')).toHaveValue('//server/share');
       await page.locator('button.btn-primary').first().click();
-      await expect.poll(() => app.evaluate(() => (globalThis as any).__messages.length)).toBe(1);
-      const messages = await app.evaluate(() => (globalThis as any).__messages);
-      expect(messages[0]).toContain('データフォルダを保存できませんでした');
+      // 失敗は通知だけなので、ネイティブのダイアログではなく画面上部のバナーに出る（docs/ui-grammar.md §5.3）
+      await expect(page.getByTestId('operation-notice')).toContainText('データフォルダを保存できませんでした');
+      await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'danger');
+      expect(await app.evaluate(() => (globalThis as any).__messages)).toEqual([]);
       expect(await page.evaluate(() => window.settings.get('saveFolder'))).not.toBe('//server/share');
       expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(before);
     } finally {

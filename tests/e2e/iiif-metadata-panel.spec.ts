@@ -292,8 +292,12 @@ test.describe('IIIF metadata panel', () => {
       const error = page.getByTestId('iiif-recopy-error');
       await expect(error).toBeVisible({ timeout: 60_000 });
       // 代わりの手は「書誌の欄で手で直す」。取り込み直しは案内しない。
-      // 直す前のコードでは失敗の案内が出ない（この assert で落ちる）。
-      await expect(error).toContainText('書誌の欄で手で直してください');
+      // 案内は失敗の表示の横の ?（ContextHelp）で出す（docs/ui-grammar.md §8 U1）。
+      const failedHelp = page.getByTestId('iiif-recopy-failed-help');
+      await expect(failedHelp).toBeVisible();
+      await failedHelp.focus();
+      await expect(page.locator('.popover')).toContainText('書誌の欄で手で直してください');
+      await failedHelp.blur();
       // 写し直しは配信の話ではないので、取り込みの判定の文（配信できません）を流用しない。
       // 直す前のコードではこの 2 つの assert で落ちる。
       await expect(error).not.toContainText('配信');

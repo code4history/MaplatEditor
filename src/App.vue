@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useTranslation } from "i18next-vue";
+import { useRouter } from "vue-router";
+import DiagnosticFeedback from "./components/editor-ui/DiagnosticFeedback.vue";
+import OperationNotice from "./components/editor-ui/OperationNotice.vue";
 import Header from "./components/Header.vue";
 import ProgressModal from "./components/ProgressModal.vue";
 import { handleMenuTextUndoRedo } from "./utils/nativeTextUndo";
+import { useOperationNotice } from "./composables/useOperationNotice";
 
 const { t } = useTranslation();
+const { onOperationNoticeNavigation } = useOperationNotice();
+// 操作の通知は次の画面遷移を 1 回だけ越えて残す（useOperationNotice）。query だけの変更は遷移に数えない
+const removeNoticeNavigationHook = useRouter().afterEach((to, from) => {
+  if (to.path !== from.path) onOperationNoticeNavigation();
+});
 
 const modalVisible = ref(false);
 const modalText = ref('');
@@ -23,6 +32,12 @@ const migrationReportVisible = ref(false);
 const migrationRenamedSlugs = ref<MigrationRenamedSlug[]>([]);
 const migrationWarningCount = ref(0);
 let migrationReportShown = false;
+const migrationItems = computed(() => [
+  { key: 'migration-title', severity: 'info' as const, message: t('database.migration_report_title') },
+  ...(migrationRenamedSlugs.value.length ? [{ key: 'migration-renamed', severity: 'info' as const, message: t('database.migration_report_renamed') }] : []),
+  ...migrationRenamedSlugs.value.map((item, index) => ({ key: `migration-${index}`, severity: 'info' as const, message: `${item.kind}: ${item.from} → ${item.to}` })),
+  ...(migrationWarningCount.value ? [{ key: 'migration-warnings', severity: 'warning' as const, message: t('database.migration_report_warnings', { count: migrationWarningCount.value }) }] : []),
+]);
 
 onMounted(() => {
   // メニューの Cmd/Ctrl+Z アクセラレータがネイティブのテキスト undo を横取りするため、
@@ -52,6 +67,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  removeNoticeNavigationHook();
   removeTaskProgressListener?.();
   removeMigrationReportListener?.();
   removeMenuTextUndoListener?.();
@@ -61,6 +77,15 @@ onUnmounted(() => {
 <template>
   <Header />
   <div class="main-content">
+    <OperationNotice fallback />
+    <DiagnosticFeedback
+      v-if="migrationReportVisible"
+      scope="operation"
+      :items="migrationItems"
+      dismissible
+      data-testid="migration-report"
+      @dismiss="migrationReportVisible = false"
+    />
     <router-view />
   </div>
   <ProgressModal
@@ -71,43 +96,6 @@ onUnmounted(() => {
     :enable-close="modalEnableClose"
     @close="modalVisible = false"
   />
-  <!-- レガシー移行レポートモーダル (一度きり) -->
-  <div
-    v-if="migrationReportVisible"
-    class="modal d-block"
-    tabindex="-1"
-    role="dialog"
-    style="background: rgba(0,0,0,0.5);"
-  >
-    <div class="modal-dialog modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ t('database.migration_report_title') }}</h5>
-        </div>
-        <div class="modal-body">
-          <template v-if="migrationRenamedSlugs.length > 0">
-            <p>{{ t('database.migration_report_renamed') }}</p>
-            <ul>
-              <li v-for="item in migrationRenamedSlugs" :key="`${item.kind}:${item.from}`">
-                <span class="badge bg-secondary me-1">{{ item.kind }}</span>
-                <code>{{ item.from }}</code> &rarr; <code>{{ item.to }}</code>
-              </li>
-            </ul>
-          </template>
-          <p v-if="migrationWarningCount > 0" class="text-warning mb-0">
-            {{ t('database.migration_report_warnings', { count: migrationWarningCount }) }}
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-primary"
-            @click="migrationReportVisible = false"
-          >OK</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </template>
 
 <style>

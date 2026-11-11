@@ -30,7 +30,7 @@
       <div v-if="loading" class="text-muted text-center py-4">{{ t("assetlist.loading") }}</div>
       <!-- M12-T11 (R3/C44): alert 直書きから DF section へ -->
       <DiagnosticFeedback v-else-if="error" scope="section" :items="[{ key: 'assets-load', severity: 'danger', message: error }]" />
-      <div v-else-if="items.length === 0 && newDrafts.length === 0" class="text-muted small text-center p-3">{{ t("assetlist.no_assets_found") }}</div>
+      <ResourceResultStatus v-else-if="items.length === 0 && newDrafts.length === 0" state="empty" :total="0" :loaded="0" />
       <template v-else>
         <ResourceMasterRow
           v-for="draft in newDrafts"
@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import ResourceResultStatus from "../resource-list/ResourceResultStatus.vue";
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import { useAssetThumbnails } from "../../composables/useAssetThumbnails";

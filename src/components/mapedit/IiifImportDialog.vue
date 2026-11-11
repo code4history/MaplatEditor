@@ -22,7 +22,7 @@
         >{{ t("iiif_import.inspect") }}</button>
       </div>
 
-      <p v-if="error" class="text-danger small mt-2 mb-0" data-testid="iiif-import-error">{{ t(error) }}</p>
+      <DiagnosticFeedback v-if="error" scope="section" :items="[{ key: 'iiif-import', severity: 'danger', message: t(error) }]" data-testid="iiif-import-error" />
 
       <div v-if="canvases.length > 0" class="mt-3">
         <p class="small text-muted mb-1">{{ t("iiif_import.canvas_heading") }}</p>
@@ -84,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import DiagnosticFeedback from "../editor-ui/DiagnosticFeedback.vue";
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTranslation } from 'i18next-vue';

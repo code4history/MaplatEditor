@@ -18,6 +18,7 @@ import { pathToFileURL } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 
 /** main の一時領域。renderer からは読めないキーなので main から同じ規則で求める */
 async function readTmpFolder(app: ElectronApplication): Promise<string> {
@@ -80,8 +81,17 @@ async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> 
   });
 }
 
+// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md §5.3）。
+// 両方を集めて返す
+async function operationNoticeTexts(app: ElectronApplication): Promise<string[]> {
+  const texts = await Promise.all(app.windows().map((w) =>
+    w.locator('[data-testid="operation-notice"] .editor-diagnostic__message').allTextContents().catch(() => [] as string[])));
+  return texts.flat();
+}
+
 async function recordedDialogs(app: ElectronApplication): Promise<string[]> {
-  return app.evaluate(() => ((globalThis as any).__t20Dialogs ?? []) as string[]);
+  const native = await app.evaluate(() => ((globalThis as any).__t20Dialogs ?? []) as string[]);
+  return [...native, ...await operationNoticeTexts(app)];
 }
 
 async function urlOf(page: Page): Promise<string | undefined> {
@@ -312,10 +322,14 @@ test.describe('M12-T20 下書きタイルの永続 staging 化', () => {
       await window.assetDrafts.put(crafted);
     }, { targetUid: uid, url_: missingStagingUrl });
 
-    // conflict 分岐で復元し、適用 → 保存済み告知（喪失警告ではない）
+    // conflict 分岐で復元し、適用 → 保存済み告知（喪失警告ではない）。確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）
+    const conflict = await captureNativeConfirmation(app);
     await openHash(page, `#/mapedit?uid=${uid}`);
-    await expect(page.getByText('下書きと保存済み版が異なります')).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: '下書きを適用する' }).click();
+    const conflictPrompt = await conflict.wait();
+    expect(conflictPrompt.message).toBe('下書きと保存済み版が異なります');
+    expect(conflictPrompt.buttons[1]).toBe('下書きを適用する');
+    await conflict.answer(1);
+    await conflict.restore();
     await expect(page.getByTestId('map-title')).toHaveValue('t20 crashed-after-save', { timeout: 20_000 });
 
     expect(ALREADY_MSG).toBeTruthy();
@@ -364,14 +378,14 @@ test.describe('M12-T20 下書きタイルの永続 staging 化', () => {
     await page.getByTestId('editor-back').click();
     await expect(page.getByTestId('map-title')).toBeHidden();
 
-    // 一覧削除は browser confirm() を使うため自動承諾する
-    // （既に閉じられていた場合の accept 失敗はテスト対象外のため握りつぶす。
-    //   承諾が実際に効いたことは後続の staging/envelope 消滅 poll が担保する）
-    page.on('dialog', (dialog) => { dialog.accept().catch(() => undefined); });
+    // 確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）。承諾して削除する
+    const confirmation = await captureNativeConfirmation(app);
     const cardB = page.locator(`[data-resource-uid="${draftUidB}"]`);
     await expect(cardB).toBeVisible({ timeout: 15_000 });
     await cardB.getByRole('button', { name: '操作メニュー' }).click();
     await page.getByRole('menuitem', { name: '下書きを削除' }).click();
+    await confirmation.answer(0);
+    await confirmation.restore();
     await expect.poll(async () => pathExists(stagingB), { timeout: 10_000 }).toBe(false);
     await expect.poll(async () => envelopeOf(page, draftUidB), { timeout: 10_000 }).toBeNull();
 
