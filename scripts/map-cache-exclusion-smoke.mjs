@@ -6,7 +6,7 @@
 //   1〜7  normalizeAppSource の 4 つの道（真偽値の true だけ・トップレベルだけを拾う）
 //   8〜10 composeViewerSource（組み込み・Maplat の地図）
 //   11    resolveAppSource（旧形の翻訳で印が消えない）
-//   12    文言 3 キー × 11 言語
+//   12    文言 2 キー × 11 言語
 import { readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -174,17 +174,15 @@ try {
   });
 
   console.log('文言');
-  row('12 3 キー × 11 言語', () => {
+  row('12 2 キー × 11 言語', () => {
     const EXPECTED = {
       ja: {
         source_no_cache: 'オフライン表示から外す',
-        source_no_cache_note: 'アプリの「オフライン表示（キャッシュ）」がオンでも、この地図のタイルは端末に残さず、毎回配信元から読み込みます。配信元が端末へのタイルの一括ダウンロードを認めていない地図（OpenStreetMap の公式タイルなど）で使います。外した地図では、ビューアのタイルの一括取得の操作も出ません。',
-        source_no_cache_unavailable: 'アプリの「オフライン表示（キャッシュ）」がオフ（または「ホーム画面に追加（PWA）」がオフ）なので、どの地図のタイルも端末に残しません。',
+        source_no_cache_note: 'アプリの「オフライン表示（キャッシュ）」がオンでも、この地図のタイルは端末に残さず、毎回配信元から読み込みます。配信元が端末へのタイルの一括ダウンロードを認めていない地図（OpenStreetMap の公式タイルなど）で使います。外した地図では、ビューアにタイルを一括取得する操作も出ません。アプリの「ホーム画面に追加（PWA）」と「オフライン表示（キャッシュ）」の両方がオンのときだけ使えます。',
       },
       en: {
         source_no_cache: 'Exclude from offline viewing',
-        source_no_cache_note: 'Even when the app\'s "Offline Viewing (Cache)" is on, tiles of this map are not kept on the device and are loaded from the provider every time. Use it for maps whose provider does not allow bulk downloading of tiles to devices (such as the official OpenStreetMap tiles). The viewer does not offer bulk download of tiles for excluded maps.',
-        source_no_cache_unavailable: 'The app\'s "Offline Viewing (Cache)" is off (or "Add to Home Screen (PWA)" is off), so no map\'s tiles are kept on the device.',
+        source_no_cache_note: 'Even when the app\'s "Offline Viewing (Cache)" is on, tiles of this map are not kept on the device and are loaded from the provider every time. Use it for maps whose provider does not allow bulk downloading of tiles to devices (such as the official OpenStreetMap tiles). The viewer does not offer bulk download of tiles for excluded maps. It can be used only while both the app\'s "Add to Home Screen (PWA)" and "Offline Viewing (Cache)" are on.',
       },
     };
     const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];

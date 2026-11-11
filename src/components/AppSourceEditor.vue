@@ -362,9 +362,10 @@ function copyCoverageToEnvelope() {
 
     <!-- #85: オフライン表示から外す（Maplat の地図とベースマップで同じ 1 つの欄）。
          アプリ所有の値なので testid は override- 接頭辞にしない（AC7 の照合集合に入れない）。
-         アプリのキャッシュが働かないときは不活性にし、右に理由の ? を出す（赤字にしない） -->
+         アプリのキャッシュが働かないときは不活性にする。? は説明の 1 つだけで、使える条件は説明の文の末尾に書く
+         （同じ画面の「オフライン表示（キャッシュ）」の欄と同じ形。赤字にしない） -->
     <div v-if="showNoCache" class="row g-2 mt-1">
-      <div class="col-12 d-flex align-items-center gap-1">
+      <div class="col-12">
         <label class="form-check d-inline-flex align-items-center gap-1 mb-0">
           <input
             type="checkbox"
@@ -381,12 +382,6 @@ function copyCoverageToEnvelope() {
             :ariaLabel="t('editor_ui.help_about', { name: t('appedit.source_no_cache') })"
           />
         </label>
-        <ContextHelp
-          v-if="!cacheEnabled"
-          data-testid="app-source-no-cache-unavailable"
-          :text="t('appedit.source_no_cache_unavailable')"
-          :ariaLabel="t('editor_ui.unavailable_reason', { name: t('appedit.source_no_cache') })"
-        />
       </div>
     </div>
 

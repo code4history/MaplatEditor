@@ -197,30 +197,29 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
     });
   }
 
-  test('S1 画面: キャッシュが働かないときは不活性で理由が出る。印は保存・Undo・開き直しに耐える', async () => {
+  test('S1 画面: キャッシュが働かないときは不活性で、説明の ? は 1 つのまま。印は保存・Undo・開き直しに耐える', async () => {
     await openAppEdit(uids.ui);
     await showSources();
     const a = card('osm');
     const b = card(B_SLUG);
     const aBox = a.getByTestId('app-source-no-cache');
-    const aReason = a.getByTestId('app-source-no-cache-unavailable');
+    const aHelp = a.getByTestId('app-source-no-cache-help');
 
-    // PWA・キャッシュともオフ: 不活性で理由の ? が見える（組み込みにも tms にも欄がある）
+    // PWA・キャッシュともオフ: 不活性。? は説明の 1 つだけ（使える条件は説明の文の末尾）。組み込みにも tms にも欄がある
     await expect(aBox).toBeDisabled();
-    await expect(aReason).toBeVisible();
+    await expect(aHelp).toHaveCount(1);
     await expect(b.getByTestId('app-source-no-cache')).toBeDisabled();
 
-    // PWA とキャッシュをオンにすると活性になり、理由が消える
+    // PWA とキャッシュをオンにすると活性になる。? は 1 つのまま
     await setHttp(true, true);
     await showSources();
     await expect(aBox).toBeEnabled();
-    await expect(aReason).toHaveCount(0);
+    await expect(aHelp).toHaveCount(1);
 
-    // PWA だけをオフに戻すと（キャッシュも従ってオフになる）、再び不活性で理由が見える
+    // PWA だけをオフに戻すと（キャッシュも従ってオフになる）、再び不活性
     await setHttp(false, false);
     await showSources();
     await expect(aBox).toBeDisabled();
-    await expect(aReason).toBeVisible();
 
     // もう一度オンにして A に印を付ける → Undo で外れる（履歴 1 件）→ Redo で戻る
     await setHttp(true, true);
@@ -247,13 +246,12 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
     await expect(card('osm').getByTestId('app-source-no-cache')).toBeChecked();
     await expect(card(B_SLUG).getByTestId('app-source-no-cache')).not.toBeChecked();
 
-    // 保存済みの「PWA オフ・キャッシュオン」の文書: 不活性で理由が見え、印（値）は消えない
+    // 保存済みの「PWA オフ・キャッシュオン」の文書: 不活性で、印（値）は消えない
     await openAppEdit(uids.legacy);
     await showSources();
     const legacyBox = card('osm').getByTestId('app-source-no-cache');
     await expect(legacyBox).toBeDisabled();
     await expect(legacyBox).toBeChecked();
-    await expect(card('osm').getByTestId('app-source-no-cache-unavailable')).toBeVisible();
   });
 
   test('S2 書き出し: 印を付けた地図の要素にだけ noCache: true が出る', async () => {
