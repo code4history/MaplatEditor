@@ -8,7 +8,8 @@
 //      blank はビューアが真偽性で読むので型を問わない。判定表の全行を level:code の配列全体で比べる
 //   4. 内容の形の表: 'link' の値・使う欄・非互換の欄（link は空・他の 3 つは directgo を含む）
 //   5. 読み込み時の推定: directgo があれば html・url があっても 'link'
-//   6. 書き出しに内部の値（_maplatContentMode）が漏れず、directgo は残る
+//   6. 書き出しに内部の値（_maplatContentMode）が漏れず、directgo は残る。
+//      空白だけ・{ href: "" } も書き出しで形を変えない（保存と同じく値はそのまま）
 //   7. フォームの値の組み立て: チェックなし → 文字列、あり → { href, blank: true }、読んだ { href } はオブジェクトのまま
 //   8. 文言: 11 言語の public/locales/*/translation.json に新しいキーがすべてあり、空でない。
 //      directgo_blank_like は文字列・空でない・キーそのものでない・（ja 以外は）ja と同文でない、を別々に断言する
@@ -227,6 +228,14 @@ try {
     const out = geo.toExportForm(internal, 'slug', { ja: 't' });
     assert.equal(Object.prototype.hasOwnProperty.call(out.features[0].properties, '_maplatContentMode'), false);
     assert.deepEqual(out.features[0].properties.directgo, { href: 'https://a/', blank: true });
+  });
+  check('export keeps directgo spaces unchanged', () => {
+    const out = geo.toExportForm(fcOf({ directgo: '  ' }), 'slug', { ja: 't' });
+    assert.deepStrictEqual(out.features[0].properties.directgo, '  ');
+  });
+  check('export keeps directgo empty href object unchanged', () => {
+    const out = geo.toExportForm(fcOf({ directgo: { href: '' } }), 'slug', { ja: 't' });
+    assert.deepStrictEqual(out.features[0].properties.directgo, { href: '' });
   });
 
   // ---------- 7. フォームの値 ----------
