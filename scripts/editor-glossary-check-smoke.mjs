@@ -346,6 +346,38 @@ try {
     const r2 = run(dir);
     check('例外: キーが違う例外は抑止しない（赤）', r2.status === 1, summarize(r2));
   }
+  {
+    // 文の変更の手順（AGENTS.md）で新旧の例外が並ぶ時点: 同じ type・concept・key で記録した文だけ違う 2 件
+    const dir = makeRepo('exceptions-text');
+    const ex = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions;
+    const u = ex.find((e) => e.type === 'untranslated');
+    const o = ex.find((e) => e.type === 'omission');
+    const a = ex.find((e) => e.type === 'anchorExclusion');
+    editExceptions(dir, (e) => {
+      e.exceptions.push({ ...u, value: `${u.value}（新）`, reason: 'fixture: 文の変更の新' });
+      e.exceptions.push({ ...o, value: `${o.value}（新）`, reason: 'fixture: 文の変更の新' });
+      e.exceptions.push({ ...a, ja: `${a.ja}（新）`, reason: 'fixture: 文の変更の新' });
+    });
+    run(dir, ['--write']); // md は例外の件数を載せる
+    const r = run(dir);
+    const stale = (r.report?.warnings ?? []).filter((w) => w.kind === 'unused-exception');
+    check('例外: 同じ type・concept・key で文だけ違う 2 件は重複にならない（合わない方は失効した例外として警告で済む）',
+      r.status === 0 && findings(r, (v) => v.kind === 'structure').length === 0 && stale.length === 3
+        && [u.key, o.key, a.key].every((k) => stale.some((w) => w.key === k)), summarize(r));
+    setValue(dir, o.locale, o.key, `${o.value}（新）`);
+    run(dir, ['--write']);
+    const r2 = run(dir);
+    const stale2 = (r2.report?.warnings ?? []).filter((w) => w.kind === 'unused-exception');
+    check('例外: 文を変えると旧い例外が失効した例外として警告で済む', r2.status === 0 && stale2.length === 3 && stale2.some((w) => w.key === o.key && w.type === o.type), summarize(r2));
+  }
+  {
+    // 記録した文まで同じ 2 件（reason だけ違う）は、今までどおり重複
+    const dir = makeRepo('exceptions-same-text');
+    const o = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions.find((e) => e.type === 'omission');
+    editExceptions(dir, (e) => e.exceptions.push({ ...o, reason: 'fixture: 文まで同じ' }));
+    const r = run(dir);
+    check('例外: 文まで同じ 2 件は今までどおり重複で赤', r.status === 1 && findings(r, (v) => v.kind === 'structure' && /例外の重複/.test(v.message ?? '')).length === 1, summarize(r));
+  }
 
   // ───────────── 関門 1・2 ─────────────
   {
