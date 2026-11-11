@@ -213,6 +213,10 @@ export interface AppSource {
   // （overrides の差分の器には入れない）。未設定は Viewer の既定（"hidden"）を意味する。
   // maplat のソースだけが持つ。
   iiifMetadata?: IiifMetadataDisplay;
+  // #85: この地図をオフライン表示（Viewer のタイルキャッシュ）の対象から外す。
+  // アプリ所有の値。マスタに対応物が無いのでトップレベルに置く（overrides の器には入れない）。
+  // true だけを持ち、外すとキーごと消す（false は保存しない ＝ 既定の出力を変えない）。
+  noCache?: true;
   title?: string; // Editor表示専用(出力しない)
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
   // 旧保存形（data にマスタ全コピー）を読んだときの生値。resolveAppSource が
@@ -420,6 +424,12 @@ export function compactLangObject(
   return Object.fromEntries(entries);
 }
 
+// #85: オフライン表示から外す印は、保存形を問わず**トップレベル**の値だけを拾う。
+// Viewer（MaplatCore）と同じく真偽値の true だけを受け入れる（文字列の "true" 等は捨てる）。
+function pickNoCache(raw: any): { noCache?: true } {
+  return raw && typeof raw === "object" && raw.noCache === true ? { noCache: true } : {};
+}
+
 function isBaseLikeMaptype(maptype: unknown): boolean {
   return maptype === undefined || maptype === null || maptype === "" || maptype === "base";
 }
@@ -475,6 +485,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     }
     if (typeof raw.title === "string") out.title = raw.title;
     if (typeof raw.mapSlug === "string") out.mapSlug = raw.mapSlug;
+    Object.assign(out, pickNoCache(raw));
     return out;
   }
 
@@ -491,6 +502,9 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   // 正規キーへ昇格させるため、ここで strip 前に退避する（設計 §3.7）。
   const rawBaseMapUid = raw?.baseMapUid ?? rawData?.baseMapUid;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
+  // #85: トップレベルの noCache は pickNoCache で拾う。data の無い旧形では rawData が raw 自身なので、
+  // legacyData に残すとトップレベルの値が翻訳の入力（上書きの候補）に混ざる。
+  delete data.noCache;
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
   const builtinRef = typeof data.builtinId === "string" ? data.builtinId : "";
@@ -521,6 +535,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     if (raw?.iiifMetadata === "hidden" || raw?.iiifMetadata === "all") {
       source.iiifMetadata = raw.iiifMetadata;
     }
+    Object.assign(source, pickNoCache(raw));
     return source;
   }
 
@@ -537,6 +552,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       legacyData: data,
       ...(typeof rawBaseMapUid === "string" ? { baseMapUid: rawBaseMapUid } : {}),
       title: typeof raw?.title === "string" ? raw.title : undefined,
+      ...pickNoCache(raw),
     };
   }
 
@@ -558,6 +574,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     legacyData: data,
     ...(typeof rawBaseMapUid === "string" ? { baseMapUid: rawBaseMapUid } : {}),
     title: typeof raw?.title === "string" ? raw.title : undefined,
+    ...pickNoCache(raw),
   };
 }
 
@@ -594,6 +611,8 @@ export function composeViewerSource(
     // 書誌の表の出し方は、値があるときだけ出す。未設定ならキーを出さない
     // （Viewer の既定は "hidden"）。
     if (source.iiifMetadata) out.iiifMetadata = source.iiifMetadata;
+    // #85: 外した地図だけキーを出す（MaplatCore は noCache === true の地図を Weiwudi へ登録しない）
+    if (source.noCache === true) out.noCache = true;
     if (options.settingFilePrefix !== undefined) {
       out.maptype = "maplat";
       out.settingFile = `${options.settingFilePrefix}${viewerMapID}.json`;
@@ -641,6 +660,8 @@ export function composeViewerSource(
     }
     out[key] = value;
   }
+  // #85: 外した地図だけキーを出す（既定の出力は変えない）
+  if (source.noCache === true) out.noCache = true;
   return out;
 }
 
