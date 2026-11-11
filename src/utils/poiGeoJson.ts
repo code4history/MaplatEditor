@@ -226,8 +226,11 @@ export function isDangerousUrlString(s: string): boolean {
   return protocol !== "http:" && protocol !== "https:";
 }
 
-// href が空白を除いて空の文字列の directgo（"  " や { href: "" }）。値なしとして扱う。
-function isBlankDirectgo(value: unknown): boolean {
+// 値なしに見えるが値なしではない directgo（"  "・全角空白・{ href: "" }・{ href: "  " }）。
+// ビューアは `if (data.directgo)` で空文字だけを値なしとして無視するので、これらは遷移の処理に入る
+// （同じページ・相対パスへ遷移する、または何も起きない）。空文字 "" そのものは値なしなので含めない。
+function isBlankLikeDirectgo(value: unknown): boolean {
+  if (value === "") return false;
   const href = typeof value === "string" ? value : isRecord(value) ? value.href : undefined;
   return typeof href === "string" && href.trim() === "";
 }
@@ -386,16 +389,25 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
     }
   }
     // directgo: link の形のときと、形によらず directgo があるとき（生 JSON の窓で書いた値も弾く）に検査する。
-    // href が空白を除いて空の値（"" や { href: "" }）は「値なし」とみなす（ビューアは空文字を無視し、
-    // 推定も link にしないので欄が出ない。error にすると直せないまま保存が止まる）。link の形では必須なので error
-    const hasDirectgo = props.directgo !== undefined && props.directgo !== null
-      && !isBlankDirectgo(props.directgo);
-    if ((mode === 'link' || hasDirectgo) && !isValidDirectgo(props.directgo)) {
-      issues.push({
-        level: "error",
-        code: "content-mode-link-format",
-        featureId: id,
-      });
+    // 「値なし」は空文字 "" だけ（ビューアの判定と同じ）。link の形では必須なので error。
+    // link 以外の形で空白だけ・{ href: "" } の値は、ビューアでは値ありとして扱われるので warning で知らせる
+    // （推定も link にしないので欄が出ず、error にすると直せないまま保存が止まる）。
+    const directgo = props.directgo;
+    const hasDirectgo = directgo !== undefined && directgo !== null && directgo !== "";
+    if ((mode === 'link' || hasDirectgo) && !isValidDirectgo(directgo)) {
+      if (mode !== 'link' && isBlankLikeDirectgo(directgo)) {
+        issues.push({
+          level: "warning",
+          code: "directgo-blank-like",
+          featureId: id,
+        });
+      } else {
+        issues.push({
+          level: "error",
+          code: "content-mode-link-format",
+          featureId: id,
+        });
+      }
     }
   }
 

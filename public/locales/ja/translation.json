@@ -1009,6 +1009,7 @@
       "references_unavailable": "参照情報を取得できませんでした",
       "content_mode_url_format": "URLに http/https 以外のプロトコル（javascript: 等）は使用できません。",
       "content_mode_link_format": "リンク先に使えない値です。http/https の URL か、相対パス（#!s:… を含む）を入れてください（javascript: 等は使えません）。",
+      "directgo_blank_like": "リンク先（directgo）が空か空白だけです。リンクとして使うなら表示形式を「リンク」にして URL を入れ、使わないなら生GeoJSON で directgo を消してください。",
       "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。",
       "zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものはインポートできません）",
       "zip_corrupt": "ZIP が壊れているためインポートできません"

@@ -991,6 +991,7 @@
       "references_unavailable": "Could not retrieve reference information",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
       "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
+      "directgo_blank_like": "The link target (directgo) is empty or contains only whitespace. Switch to the \"Link\" mode and enter a URL to use it, or remove directgo in Raw GeoJSON.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "The ZIP is too large (files over 2 GiB cannot be imported)",
       "zip_corrupt": "The ZIP is corrupted and cannot be imported"

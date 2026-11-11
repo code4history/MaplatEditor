@@ -3,13 +3,16 @@
 //      「new URL(入力, 'https://maplat.invalid/') の protocol が http:/https: でない（例外も拒否）」と一致する
 //   2. url の内容の形と directgo が同じ検査を使う（url の形でも java<TAB>script: 等を拒否する）
 //   3. content-mode-link-format: href が無い・文字列でない・検査で拒否 → error。
-//      形が 'link' でなくても directgo があれば検査する。ただし空白を除いて空の href は「値なし」（ビューアも
-//      空文字は無視する）なので link 以外の形では error にしない。blank はビューアが真偽性で読むので型を問わない
+//      形が 'link' でなくても directgo があれば検査する。「値なし」は空文字 "" だけ（ビューアも空文字だけを無視する）。
+//      空白だけ・{ href: "" } は link 以外の形では warning（directgo-blank-like。保存は止めない）、link の形では error。
+//      blank はビューアが真偽性で読むので型を問わない。判定表の全行を level:code の配列全体で比べる
 //   4. 内容の形の表: 'link' の値・使う欄・非互換の欄（link は空・他の 3 つは directgo を含む）
 //   5. 読み込み時の推定: directgo があれば html・url があっても 'link'
 //   6. 書き出しに内部の値（_maplatContentMode）が漏れず、directgo は残る
 //   7. フォームの値の組み立て: チェックなし → 文字列、あり → { href, blank: true }、読んだ { href } はオブジェクトのまま
-//   8. 文言: 11 言語の public/locales/*/translation.json に新しいキーがすべてあり、空でない
+//   8. 文言: 11 言語の public/locales/*/translation.json に新しいキーがすべてあり、空でない。
+//      directgo_blank_like は文字列・空でない・キーそのものでない・（ja 以外は）ja と同文でない、を別々に断言する
+//   9. 検証 code → 文言のキーの写像（poiSourceMessages の ISSUE_CODE_KEYS）に directgo-blank-like がある
 import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -129,22 +132,58 @@ try {
     check(`link-format ok: ${label}`, () => assert.ok(!codes(props).includes(linkError), JSON.stringify(codes(props))));
   }
 
-  // 空の directgo・真偽値でない blank で POI ソース全体の保存が止まらない（読み込み時の推定 → 検査の流れで）
-  const noErrorAfterLoad = (properties) => {
-    const fc = geo.normalizePoiSourceCollection(fcOf(properties), 'ja');
-    return geo.validateFeatureCollection(fc).filter((i) => i.level === 'error').map((i) => i.code);
-  };
-  const saveNotBlocked = [
-    ['empty directgo string', { desc: 'd', directgo: '' }],
-    ['whitespace-only directgo string', { desc: 'd', directgo: ' \t ' }],
-    ['object with empty href', { desc: 'd', directgo: { href: '  ' } }],
-    ['empty directgo string with explicit standard mode', { _maplatContentMode: 'standard', desc: 'd', directgo: '' }],
-    ['blank given as string "true"', { desc: 'd', directgo: { href: 'https://a/', blank: 'true' } }],
-    ['blank given as number 0', { desc: 'd', directgo: { href: 'https://a/', blank: 0 } }],
+  // 判定表: directgo 由来の issue の level:code の全体。fixture は directgo 以外の issue を出さない値
+  // （name と desc を必ず持たせる。desc の無い link の形は warning:no-content が付く）
+  const blankLike = ['warning:directgo-blank-like'];
+  const judgement = [
+    ['unset', { desc: 'd' }, []],
+    ['null', { desc: 'd', directgo: null }, []],
+    ['empty string', { desc: 'd', directgo: '' }, []],
+    ['empty string with standard mode', { _maplatContentMode: 'standard', desc: 'd', directgo: '' }, []],
+    ['spaces', { desc: 'd', directgo: '  ' }, blankLike],
+    ['ideographic space (U+3000)', { desc: 'd', directgo: '\u3000' }, blankLike],
+    ['space, tab, space', { desc: 'd', directgo: ' \t ' }, blankLike],
+    ['object with empty href', { desc: 'd', directgo: { href: '' } }, blankLike],
+    ['object with spaces href', { desc: 'd', directgo: { href: '  ' } }, blankLike],
+    ['spaces with standard mode', { _maplatContentMode: 'standard', desc: 'd', directgo: '  ' }, blankLike],
+    ['spaces with html mode', { _maplatContentMode: 'html', desc: 'd', html: '<p>x</p>', directgo: '  ' }, blankLike],
+    ['object with empty href with url mode', { _maplatContentMode: 'url', desc: 'd', url: 'https://b/', directgo: { href: '' } }, blankLike],
+    ['link mode, unset', { _maplatContentMode: 'link', desc: 'd' }, [linkError]],
+    ['link mode, empty string', { _maplatContentMode: 'link', desc: 'd', directgo: '' }, [linkError]],
+    ['link mode, spaces', { _maplatContentMode: 'link', desc: 'd', directgo: '  ' }, [linkError]],
+    ['link mode, object with empty href', { _maplatContentMode: 'link', desc: 'd', directgo: { href: '' } }, [linkError]],
+    ['javascript: string', { desc: 'd', directgo: 'javascript:alert(1)' }, [linkError]],
+    ['link mode, javascript: string', { _maplatContentMode: 'link', desc: 'd', directgo: 'javascript:alert(1)' }, [linkError]],
+    ['object with vbscript: href', { desc: 'd', directgo: { href: 'vbscript:x' } }, [linkError]],
+    ['number', { desc: 'd', directgo: 3 }, [linkError]],
+    ['object without href', { desc: 'd', directgo: { blank: true } }, [linkError]],
+    ['https string', { desc: 'd', directgo: 'https://a/' }, []],
+    ['object with non-boolean blank', { desc: 'd', directgo: { href: 'https://a/', blank: 'yes' } }, []],
+    ['link mode, https string', { _maplatContentMode: 'link', desc: 'd', directgo: 'https://a/' }, []],
+    ['blank given as string "true"', { desc: 'd', directgo: { href: 'https://a/', blank: 'true' } }, []],
+    ['blank given as number 0', { desc: 'd', directgo: { href: 'https://a/', blank: 0 } }, []],
   ];
-  for (const [label, props] of saveNotBlocked) {
-    check(`save not blocked: ${label}`, () => assert.deepEqual(noErrorAfterLoad(props), []));
+  for (const [label, props, expected] of judgement) {
+    check(`judgement: ${label} -> ${JSON.stringify(expected)}`, () => assert.deepEqual(codes(props), expected));
   }
+
+  // 読み込み時の推定 → 検査の流れでも同じ（空白だけの値は link と推定されないので warning のまま。保存は止めない）
+  const codesAfterLoad = (properties) => {
+    const fc = geo.normalizePoiSourceCollection(fcOf(properties), 'ja');
+    return geo.validateFeatureCollection(fc).map((i) => `${i.level}:${i.code}`);
+  };
+  const afterLoad = [
+    ['empty string', { desc: 'd', directgo: '' }, []],
+    ['space, tab, space', { desc: 'd', directgo: ' \t ' }, blankLike],
+    ['object with spaces href', { desc: 'd', directgo: { href: '  ' } }, blankLike],
+  ];
+  for (const [label, props, expected] of afterLoad) {
+    check(`after load: ${label} -> ${JSON.stringify(expected)}`, () => assert.deepEqual(codesAfterLoad(props), expected));
+  }
+  check('blank-like warning carries the feature id', () => {
+    const issues = geo.validateFeatureCollection(fcOf({ desc: 'd', directgo: '  ' }));
+    assert.deepEqual(issues, [{ level: 'warning', code: 'directgo-blank-like', featureId: 'p1' }]);
+  });
   check('empty directgo is not estimated as link', () => {
     const fc = geo.normalizePoiSourceCollection(fcOf({ desc: 'd', directgo: ' ' }), 'ja');
     assert.notEqual(fc.features[0].properties._maplatContentMode, 'link');
@@ -229,6 +268,7 @@ try {
     'poiedit.directgo_preview_note',
     'poiedit.directgo_hidden_content',
     'poisource.errors.content_mode_link_format',
+    'poisource.errors.directgo_blank_like',
   ];
   const localesDir = path.join(projectRoot, 'public/locales');
   const langs = (await readdir(localesDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name).sort();
@@ -243,6 +283,33 @@ try {
       }
     });
   }
+
+  // directgo_blank_like: 4 つの条件を別々の断言にする（どれが崩れたかが分かるように）
+  const BLANK_LIKE_KEY = 'poisource.errors.directgo_blank_like';
+  const valueOf = (json) => BLANK_LIKE_KEY.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), json);
+  const jaBlankLike = valueOf(JSON.parse(await readFile(path.join(localesDir, 'ja', 'translation.json'), 'utf8')));
+  for (const lang of langs) {
+    const value = valueOf(JSON.parse(await readFile(path.join(localesDir, lang, 'translation.json'), 'utf8')));
+    check(`locale ${lang} ${BLANK_LIKE_KEY} is a string`, () => assert.equal(typeof value, 'string', `${lang}: ${JSON.stringify(value)}`));
+    check(`locale ${lang} ${BLANK_LIKE_KEY} is not empty`, () => assert.notEqual(String(value ?? '').trim(), '', `${lang}: empty`));
+    check(`locale ${lang} ${BLANK_LIKE_KEY} is not the key itself`, () => {
+      assert.notEqual(String(value ?? '').trim(), BLANK_LIKE_KEY, `${lang}: key itself`);
+      assert.notEqual(String(value ?? '').trim(), 'directgo_blank_like', `${lang}: key itself`);
+    });
+    if (lang !== 'ja') {
+      check(`locale ${lang} ${BLANK_LIKE_KEY} differs from ja`, () => assert.notEqual(value, jaBlankLike, `${lang}: same as ja`));
+    }
+  }
+
+  // ---------- 9. 検証 code → 文言のキーの写像 ----------
+  const messages = await buildModule('src/utils/poiSourceMessages.ts', 'poiSourceMessages');
+  check('ISSUE_CODE_KEYS maps directgo-blank-like', () => {
+    assert.equal(messages.ISSUE_CODE_KEYS['directgo-blank-like'], 'poisource.errors.directgo_blank_like');
+  });
+  check('issueMessage prefixes the feature id', () => {
+    const msg = messages.issueMessage({ level: 'warning', code: 'directgo-blank-like', featureId: 'p1' }, (k) => `[${k}]`);
+    assert.equal(msg, 'p1: [poisource.errors.directgo_blank_like]');
+  });
 
   console.log(`summary: ${checks} checks passed`);
   console.log('directgo edit smoke passed');
