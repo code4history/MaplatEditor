@@ -11,7 +11,7 @@ import { useOperationNotice } from "./composables/useOperationNotice";
 
 const { t } = useTranslation();
 const { onOperationNoticeNavigation } = useOperationNotice();
-// 操作の通知は次の画面遷移を 1 回だけ越えて残す（useOperationNotice）。query だけの変更は遷移に数えない
+// 操作の通知は画面遷移で消す（明示したものだけ 1 回越える。useOperationNotice）。query だけの変更は遷移に数えない
 const removeNoticeNavigationHook = useRouter().afterEach((to, from) => {
   if (to.path !== from.path) onOperationNoticeNavigation();
 });

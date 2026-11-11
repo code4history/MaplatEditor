@@ -156,7 +156,7 @@ const builtinThumbnails: Record<string, string> = {
 };
 
 const { t, i18next } = useTranslation();
-const { notifyOperation } = useOperationNotice();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const route = useRoute();
 const router = useRouter();
 
@@ -249,6 +249,8 @@ const selectEditorLanguage = (language: LangCode) => {
 let pendingSave: { document: AppDocument } | null = null;
 let appSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<AppSaveResult>({
+  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
+  onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
     // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ dispatch する
@@ -1213,6 +1215,8 @@ const closeAppExportOptions = (value: { includeTiles: boolean } | null) => {
 
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+  clearOperationNotice();
   // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
   // 小窓で取り消したら何もしない
   // MapLibre の版: 5 系のままで 6 系が要るベースマップがあれば、書き出しの小窓より前に確かめる（ここでは切り替えない）
@@ -1411,6 +1415,8 @@ async function changePreviewLang(lang: string) {
 }
 
 async function renderPreview() {
+  // 描き直すたびに前のプレビューの警告を消す（警告の無い描き直しで古い警告が残らないように）
+  clearOperationNotice();
   destroyPreview();
   previewError.value = null;
   if (appData.value.sources.length === 0) {

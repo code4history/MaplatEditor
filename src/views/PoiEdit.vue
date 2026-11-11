@@ -410,7 +410,7 @@ import {
 import type { PoiExportOmitted, PoiSourceSaveResult, PoiValidationIssue } from "../electron";
 
 const { t } = useTranslation();
-const { notifyOperation } = useOperationNotice();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const route = useRoute();
 const router = useRouter();
 const currentLang = ref<LangCode>(resolveEditorLanguage(i18next.language));
@@ -542,6 +542,8 @@ let pendingSave: {
 } | null = null;
 let poiSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
+  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
+  onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     // saveSource が pendingSave を設定した後にしか到達しない
     const { payload } = pendingSave!;
@@ -599,8 +601,9 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
       slugInput.value = result.slug;
     }
     // path param 正準 (/poisources/:sourceId): uid 変化時のみ追随 (履歴は汚さない)
+    // 通知より先に遷移を済ませる: path が変わる遷移は通知を消すため（ui-grammar §5.3）
     if (route.params.sourceId !== result.uid) {
-      router.replace({ path: `/poisources/${result.uid}` });
+      await router.replace({ path: `/poisources/${result.uid}` });
     }
     notifyOperation({
       type: "success",
@@ -1038,6 +1041,8 @@ function csvOmittedNotice(omitted: PoiExportOmitted): string {
 async function exportSavedSource(): Promise<boolean> {
   const uid = saveHandle.uid.value;
   if (!uid) return false;
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+  clearOperationNotice();
   const options = await askPoiExportOptions();
   if (!options) return false; // 選択の画面で取り消した
   let detail = "";
@@ -1114,6 +1119,8 @@ async function openMergeImport(): Promise<void> {
   if (!state) return;
   mergeImportBusy.value = true;
   mergeResultMessage.value = "";
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+  clearOperationNotice();
   const generation = loadGeneration;
   try {
     const result = await window.poiSources.pickAndParseMerge({ lang: state.lang });

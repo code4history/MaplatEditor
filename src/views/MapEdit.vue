@@ -114,7 +114,7 @@ import type Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
 
 const { t, i18next } = useTranslation();
-const { notifyOperation } = useOperationNotice();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 const router = useRouter();
 const route = useRoute();
@@ -146,6 +146,8 @@ let pendingSave: {
     copyFromUid: string | undefined;
 } | null = null;
 const saveHandle = useRevisionedAssetSave<MapSaveResult>({
+    // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
+    onStart: clearOperationNotice,
     send: async ({ expectedRevision }) => {
         const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
         // M11-T7/D5改: UID 維持改名は明示フィールド renameFromSlug で原本(slugキー)改名の
@@ -2437,6 +2439,8 @@ onMounted(async () => {
             notifyOperation({
               type: 'warning',
               message: t('iiif_import.error.stage_failed'),
+              // 直後に一覧へ戻る: 遷移先で読めるよう 1 回だけ越えて残す
+              keepAcrossNavigation: true,
             });
             if (isUnmounted) return;
             await router.push({ name: 'MapList' });
@@ -2457,6 +2461,8 @@ onMounted(async () => {
               notifyOperation({
                 type: 'warning',
                 message: t('iiif_import.reason.blocked-address'),
+                // 直後に一覧へ戻る: 遷移先で読めるよう 1 回だけ越えて残す
+                keepAcrossNavigation: true,
               });
               if (isUnmounted) return;
               await router.push({ name: 'MapList' });
@@ -2907,6 +2913,8 @@ const boundsModifyEnd = (evt: any) => {
 const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     if (evt.originalEvent.altKey) return;
     if (!illstMap || !mercMap || !illstSource) return;
+    // 試しのクリックごとに前の結果の通知を消す（失敗の赤が次の成功の後まで残らないように）
+    clearOperationNotice();
 
     const isIllst = (evt.map ?? (evt as any).target) === illstMap;
     const distMap = isIllst ? mercMap : illstMap;
@@ -4417,6 +4425,8 @@ const updateWholeGcps = (newGcps: any[]) => {
 // 旧実装: vueMap.$on('importMap') 相当
 // 有効条件: !dirty && status === 'New'
 const importMap = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     modalShow('mapedit.image_uploading');
     const unsubscribe = window.mapedit.onProgress((progress) => {
         modalProgress(progress.text, progress.percent, progress.progress);
@@ -4590,6 +4600,8 @@ const downloadSavedMap = async (): Promise<boolean> => {
 
 const exportMap = async () => {
     if (exporting.value || saving.value) return;
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     exporting.value = true;
     try {
         await runEditorExportDecision({
@@ -4789,6 +4801,8 @@ async function onMercCreateNew(payload: { uid: string; slug: string; title: stri
 // 旧実装: vueMap.$on('uploadCsv') 相当
 // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
 const uploadCsv = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     if (gcps.value.length > 0) {
         const confirm = await (window as any).dialog.showMessageBox({
             type: 'info',

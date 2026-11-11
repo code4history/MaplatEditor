@@ -444,7 +444,7 @@ const MCP_DOCS_URL = "https://github.com/code4history/MaplatEditor/blob/master/d
 defineOptions({ name: "SettingsView" });
 
 const { t, i18next } = useTranslation();
-const { notifyOperation } = useOperationNotice();
+const { notifyOperation, clearOperationNotice } = useOperationNotice();
 const activeTab = ref("basic");
 
 // ---- MCP server tab ----
@@ -670,6 +670,8 @@ const resetSettings = async () => {
 };
 
 const saveSettings = async () => {
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    clearOperationNotice();
     // 保存フォルダは main が拒否することがある（ネットワーク上のフォルダなど）。
     // 途中まで保存しないよう最初に送り、失敗したら利用者に伝えて止める
     try {
