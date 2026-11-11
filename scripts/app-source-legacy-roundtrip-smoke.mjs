@@ -192,7 +192,8 @@ try {
   // (h) 入れ子のない旧形の規則は変えない（固定の値）
   {
     const keysOf = (s) => (s.legacyData ? Object.keys(s.legacyData).sort() : null);
-    const tmsDataKeys = ['attr', 'envelopeLngLats', 'kind', 'lang', 'maptype', 'maxZoom',
+    // kind は編集専用のキーとして落ちる（マスタから引く）
+    const tmsDataKeys = ['attr', 'envelopeLngLats', 'lang', 'maptype', 'maxZoom',
       'mercatorXShift', 'mercatorYShift', 'minZoom', 'title', 'url'];
     const cases = [
       ['role:overlay＋data overlay', legacyTms({ role: 'overlay' }), 'overlay', 'tms', tmsDataKeys],
