@@ -1,0 +1,57 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001.json",
+  "@type": "sc:Manifest",
+  "label": "〔試験用架空図〕見立郡仮城下町之図",
+  "metadata": [
+    {
+      "label": "資料名",
+      "value": "〔試験用架空図〕見立郡仮城下町之図"
+    },
+    {
+      "label": "所蔵",
+      "value": "架空見本文庫"
+    },
+    {
+      "label": "備考",
+      "value": "Maplat の試験のために自作した架空の資料。実在の資料ではない。"
+    }
+  ],
+  "attribution": "架空見本文庫（試験用の自作データ）",
+  "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sequences": [
+    {
+      "@id": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/sequence/normal",
+      "@type": "sc:Sequence",
+      "canvases": [
+        {
+          "@id": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/canvas/p1",
+          "@type": "sc:Canvas",
+          "label": "page 1",
+          "width": 6000,
+          "height": 6000,
+          "images": [
+            {
+              "@id": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/annotation/p1-image",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/canvas/p1",
+              "resource": {
+                "@id": "https://iiif.example.org/selfmade/image/mitate-joka-0001/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 6000,
+                "height": 6000,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+                  "profile": "http://iiif.io/api/image/2/level1.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

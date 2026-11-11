@@ -375,5 +375,47 @@
       },
       "requiresCoreServiceFix": false
     }
+  },
+  {
+    "id": "synthetic-p2-page1",
+    "synthetic": true,
+    "expected": {
+      "version": "2",
+      "lang": "ja",
+      "title": "〔試験用架空図〕見立郡仮城下町之図",
+      "titleValue": "〔試験用架空図〕見立郡仮城下町之図",
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://iiif.example.org/selfmade/manifest/mitate-joka-0001/canvas/p1",
+      "canvasLabel": "page 1",
+      "canvasSize": {
+        "width": 6000,
+        "height": 6000
+      },
+      "imageSize": {
+        "width": 11959,
+        "height": 12961
+      },
+      "imageService": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+      "deliveryServiceUrl": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+      "imageVersion": "2",
+      "level": 1,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license"
+      ],
+      "metadataCount": 3,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "資料名",
+        "value": "〔試験用架空図〕見立郡仮城下町之図"
+      },
+      "license": "CC0",
+      "verdict": {
+        "kind": "deliverable"
+      },
+      "requiresCoreServiceFix": false
+    }
   }
 ]

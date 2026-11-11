@@ -1,0 +1,46 @@
+{
+  "@context": "http://iiif.io/api/image/2/context.json",
+  "@id": "https://iiif.example.org/selfmade/image/mitate-joka-0001",
+  "protocol": "http://iiif.io/api/image",
+  "width": 11959,
+  "height": 12961,
+  "sizes": [
+    {
+      "width": 374,
+      "height": 405
+    },
+    {
+      "width": 748,
+      "height": 811
+    },
+    {
+      "width": 1495,
+      "height": 1621
+    }
+  ],
+  "tiles": [
+    {
+      "width": 512,
+      "height": 512,
+      "scaleFactors": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    }
+  ],
+  "profile": [
+    "http://iiif.io/api/image/2/level1.json",
+    {
+      "formats": [
+        "jpg"
+      ],
+      "qualities": [
+        "default"
+      ]
+    }
+  ]
+}

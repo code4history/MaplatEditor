@@ -1,6 +1,6 @@
 # 実在の IIIF Manifest
 
-取得日: 2026-11-11。提供元の重複がない 9 件。Manifest 全文と、選択対象の **先頭 canvas の画像サービス** の info.json のみを保存する。画像本体は保存しない。33 枚・36 枚等の資料でも、全画像の info.json を取得したわけではない。
+取得日: 2026-11-11。提供元の重複がない 9 件。ほかに、実在資料の形だけを再現した **自作の fixture が 1 件**（`synthetic-p2-page1`）ある。自作の fixture は取得したものではない（下の「自作の再現 fixture」を参照）。Manifest 全文と、選択対象の **先頭 canvas の画像サービス** の info.json のみを保存する。画像本体は保存しない。33 枚・36 枚等の資料でも、全画像の info.json を取得したわけではない。
 
 各 `*.source.json` に取得 URL、リダイレクト後の URL、確認した利用条件と根拠 URL、クレジット、Editor の main と同じ要求ヘッダ（`Origin: https://example.org`）で取得したときの CORS ヘッダ、元バイト列の SHA-256 を記録した。fixture の利用条件はリポジトリのソフトウェアライセンスとは別であり、元の権利表示を保持する。
 
@@ -32,9 +32,28 @@
 - **National Library of Wales**: 図書館が作成したメタデータ・説明文は CC0。対象は同館の目録で、第三者権利の記載なし。 [確認先](https://www.library.wales/copyright)。クレジット: Llyfrgell Genedlaethol Cymru – The National Library of Wales
 - **Ghent University Library**: 目録の記述メタデータは CC0。Manifest の requiredStatement は PUBLIC DOMAIN。 [確認先](https://www.lib.ugent.be/nl/disclaimer/)。クレジット: Universiteitsbibliotheek Gent
 
+## 自作の再現 fixture
+
+`synthetic-p2-page1.*.json` は **自作** で、実在の提供元から取得していない。題名・所蔵・URL はすべて架空で、ドメインは `example.org`（仕様の `iiif.io` とライセンスの `creativecommons.org` の URI を除く）。実在の Manifest の文字列・URL・構成は写していない。試験は、架空の URL 以外が混ざっていないことも確かめる。
+
+再現する形は、下の「保存しなかった資料」の山形 amane と同じもの。
+
+- Presentation 2、canvas 1 枚。canvas の label は `page 1`
+- canvas と画像 body の width・height は仮の 6000×6000
+- info.json の大きさは 11959×12961 で、canvas と食い違う
+- Manifest の label は数字でない題名（`〔試験用架空図〕見立郡仮城下町之図`）
+- 画像サービスは型の無い Image API 2 の level 1（`@context` と profile で画像サービスと分かる）
+- CORS は `*`。`synthetic-p2-page1.source.json` の応答ヘッダは、通信して記録したものではなく手で書いた想定の値
+
+| 提供元 | 版 | 題名 | canvas 数 | canvas の幅×高さ | info.json の幅×高さ |
+|---|---|---|---:|---|---|
+| 自作（架空） | 2 | `〔試験用架空図〕見立郡仮城下町之図` | 1 | 6000×6000 | 11959×12961 |
+
+期待値は実在の fixture と同じ形で `cases.json` に固定し、`"synthetic": true` を付けた。確かめるのは次の 3 つ。題名の既定が Manifest の label になり、`page 1` にならないこと。大きさは info.json の値で判定し、canvas の値と照合すると不一致になること。取り込みの判定（CORS が `*` で level 1 なので配信できる）。期待値は自作の JSON から手で決めた。製品の出力から生成していない。
+
 ## 保存しなかった資料
 
-- [山形 amane](https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json): Presentation 2、題名 `〔地図〕最上時代山形城下絵図`、canvas 1 枚、canvas/body は 6000×6000、label は `page 1`。[所蔵館の条件](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)に利用報告と営利利用時の事前許可があるため保存しなかった。原文の転載を伴わない既存の再現試験を維持する。
+- [山形 amane](https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json): Presentation 2、題名 `〔地図〕最上時代山形城下絵図`、canvas 1 枚、canvas/body は 6000×6000、label は `page 1`。[所蔵館の条件](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)に利用報告と営利利用時の事前許可があるため、まだ保存していない。利用報告の後に足す予定。それまでは、同じ形を自作の再現 fixture（`synthetic-p2-page1`）で試す。
 - [Harvard Art Museums](https://iiif.harvardartmuseums.org/manifests/object/299843): Presentation 2、`Self-Portrait Dedicated to Paul Gauguin`、7 枚。[API 規約](https://github.com/harvardartmuseums/api-docs#terms-of-use)に原則 2 週間超の保存禁止があり、保存しなかった。
 - [京都大学](https://rmda.kulib.kyoto-u.ac.jp/iiif/metadata_manifest/RB00007683/manifest.json): Presentation 3、`Newe Zeyttung auss der Insel Japonien`、5 枚。先頭 canvas は 6463×5880、info.json は 6464×5880。[利用条件](https://rmda.kulib.kyoto-u.ac.jp/reuse)で画像の二次利用条件は確認できたが、Manifest の長期再配布への適用を確定できないため保存しなかった。
 - [Princeton](https://figgy.princeton.edu/concern/scanned_resources/8d8b3997-d323-4b1c-aaca-1670a3181566/manifest): Presentation 2、41 枚。rights は No Known Copyright だが、メタデータの再配布許諾を確定できず保存しなかった。
