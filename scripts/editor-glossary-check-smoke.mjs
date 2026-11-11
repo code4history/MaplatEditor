@@ -5,7 +5,7 @@
 // - 照合・結び付けの単体: 検査 script の evaluateKey / matchForm を、実物の正本で呼ぶ
 // - #237 型の場合 A〜E・E′・#241 相当と関門 1・2: 実物の正本と locale を一時の git リポジトリに写し、値を変えて CLI を走らせる
 // - CI: run-smokes → judge-test-results を通して、検査の失敗がジョブの失敗に伝わることを確かめる
-// - 実物: このリポジトリの正本と locale で検査が緑・違反を抑えなかった例外が 0 件であること
+// - 実物: このリポジトリの正本と locale で検査が緑・使われない例外は文の変更で失効したもの（後の正本だけの PR で消す）だけであること
 //
 // 使い方: node scripts/editor-glossary-check-smoke.mjs
 import { spawnSync } from 'node:child_process';
@@ -144,7 +144,24 @@ try {
   {
     const r = run(root);
     check('実物: 検査が緑（exit 0・違反 0 件）', r.status === 0 && r.report?.violations?.length === 0, summarize(r));
-    check('実物: 違反を抑えなかった例外が 0 件', r.report?.warnings?.filter((w) => w.kind === 'unused-exception').length === 0, summarize(r));
+    // Text edits make an exception stop matching. AGENTS.md removes the old exception in a later
+    // guarded-side-only PR, so between the locale PR and that PR the real tree may carry unused
+    // exceptions. They must stay warnings (exit 0, checked above); this only lists them.
+    // Only an exception whose recorded text no longer equals the current text may be unused:
+    // it expired because the text changed. An unused exception that still matches the current
+    // text suppresses nothing, which AGENTS.md forbids ("only for a row that actually violates").
+    const unused = r.report?.warnings?.filter((w) => w.kind === 'unused-exception') ?? [];
+    const exList = readJson(path.join(root, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions;
+    const localeCache = {};
+    const cur = (lang, key) => key.split('.').reduce((n, p) => n?.[p], (localeCache[lang] ??= readJson(path.join(root, 'public', 'locales', lang, 'translation.json'))));
+    const expired = (x) => (x.type === 'anchorExclusion'
+      ? x.ja !== cur('ja', x.key) || x.en !== cur('en', x.key)
+      : x.value !== cur(x.locale, x.key) || (x.type === 'untranslated' && x.value !== cur('en', x.key)));
+    const unusedEx = unused.map((w) => exList.find((x) => x.type === w.type && x.concept === w.concept && x.key === w.key && (x.locale ?? '-') === w.lang));
+    const stillMatching = unusedEx.filter((x) => !x || !expired(x));
+    check('実物: 使われない例外は文の変更で失効したものだけ（消すのは後の正本だけの PR）', stillMatching.length === 0,
+      stillMatching.map((x) => (x ? `${x.type} ${x.concept} ${x.key}` : '(照合できない警告)')).join(', '));
+    for (const w of unused) console.log(`note 消し待ちの例外: ${w.type} ${w.concept} ${w.key}`);
     check('実物: 生成物（bindings.json・md）が再生成と一致', !findings(r, (v) => v.kind === 'generated').length, summarize(r));
     const parity = spawnSync(process.execPath, [path.join(root, 'scripts', 'editor-locale-parity.mjs')], { encoding: 'utf8' });
     check('実物: 11 言語の parity が成功', parity.status === 0, parity.stdout + parity.stderr);
@@ -407,7 +424,7 @@ try {
     run(dir, ['--write']);
     commitAll(dir, 'locale second');
     const r2 = run(dir, ['--base', c1]);
-    check('2 段: locale の PR でキーを足すと緑（例外が使われ、警告なし）', r2.status === 0 && (r2.report?.warnings ?? []).length === 0 && (r2.report?.counts?.suppressedByType?.untranslated ?? 0) > 0, summarize(r2));
+    check('2 段: locale の PR でキーを足すと緑（例外が使われ、警告なし）', r2.status === 0 && (r2.report?.warnings ?? []).filter((w) => w.key === KEY).length === 0 && (r2.report?.counts?.suppressedByType?.untranslated ?? 0) > 0, summarize(r2));
     // 例外なしでキーだけ足すと赤（ko の必須形の不足）
     const dir2 = makeRepo('two-step-missing');
     for (const l of LANGS) setValue(dir2, l, KEY, vals[l]);

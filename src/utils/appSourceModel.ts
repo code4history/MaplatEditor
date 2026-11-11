@@ -478,7 +478,13 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     return out;
   }
 
-  const rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
+  let rawData = raw?.data && typeof raw.data === "object" ? raw.data : raw;
+  // 旧形のまま保存された文書は legacyData が入れ子で残る。最も内側を data として読む（#147）
+  let nested = false;
+  while (rawData?.legacyData && typeof rawData.legacyData === "object" && !Array.isArray(rawData.legacyData)) {
+    rawData = rawData.legacyData;
+    nested = true;
+  }
   // m6-t10: kind の「strip 前退避 → data へ再付着」（m6-t1）は不要になった。
   // 差分保持モデルでは kind は overrides に入らず、必要な箇所はマスタから引く。
   // baseMapUid は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。トップレベルの
@@ -488,7 +494,10 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
   const builtinRef = typeof data.builtinId === "string" ? data.builtinId : "";
-  const maptype = raw?.maptype ?? data.maptype;
+  // 入れ子を降りたときだけ、レイヤの区分は最上位に保存された role を先に効かせる
+  // （画面で overlay→base に直して保存した文書が、内側の maptype で overlay に戻らないように）
+  const maptype = raw?.maptype ??
+    (nested && (raw?.role === "overlay" || raw?.role === "base") ? raw.role : data.maptype);
 
   const isMaplat =
     raw?.sourceType === "maplat" ||
