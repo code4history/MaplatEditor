@@ -1,0 +1,66 @@
+{
+  "@context": "http://iiif.io/api/image/2/context.json",
+  "@id": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2",
+  "@type": "iiif:Image",
+  "profile": [
+    "http://iiif.io/api/image/2/level2.json",
+    {
+      "formats": [
+        "jpg",
+        "tif",
+        "gif",
+        "png"
+      ],
+      "qualities": [
+        "bitonal",
+        "default",
+        "gray",
+        "color"
+      ],
+      "supports": [
+        "regionByPx",
+        "sizeByW",
+        "sizeByWhListed",
+        "cors",
+        "regionSquare",
+        "sizeByDistortedWh",
+        "canonicalLinkHeader",
+        "sizeByConfinedWh",
+        "sizeByPct",
+        "jsonldMediaType",
+        "regionByPct",
+        "rotationArbitrary",
+        "sizeByH",
+        "baseUriRedirect",
+        "rotationBy90s",
+        "profileLinkHeader",
+        "sizeByForcedWh",
+        "sizeByWh",
+        "mirroring"
+      ]
+    }
+  ],
+  "protocol": "http://iiif.io/api/image",
+  "width": 2569,
+  "height": 3543,
+  "sizes": [
+    {"width":725,"height":1000},
+    {"width":290,"height":400},
+    {"width":145,"height":200},
+    {"width":73,"height":100}
+  ],
+  "tiles": [
+    {
+      "width": 1024,
+      "height": 1024,
+      "scaleFactors": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32
+      ]
+    }
+  ]
+}

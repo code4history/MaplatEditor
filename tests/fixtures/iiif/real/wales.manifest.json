@@ -1,0 +1,787 @@
+{
+	"@context": "http://iiif.io/api/presentation/2/context.json",
+	"@type": "sc:Manifest",
+	"@id": "https://iiif.llyfrgell.cymru/manifests/2.0/4398332/manifest.json",
+	"label": "Papyri from Oxyrhynchus, 2-4 cents",
+	"metadata": [
+		{
+			"label": [
+				{
+					"@value": "Title",
+					"@language": "en"
+				},
+				{
+					"@value": "Teitl",
+					"@language": "cy-GB"
+				}
+			],
+			"value": "Papyri from Oxyrhynchus, 2-4 cents"
+		},
+		{
+			"label": [
+				{
+					"@value": "Period",
+					"@language": "en"
+				},
+				{
+					"@value": "Cyfnod",
+					"@language": "cy-GB"
+				}
+			],
+			"value": "0113 - 0400"
+		},
+		{
+			"label": [
+				{
+					"@value": "Permalink",
+					"@language": "en"
+				},
+				{
+					"@value": "Dolen barhaol",
+					"@language": "cy-GB"
+				}
+			],
+			"value": "<a href=\"http://hdl.handle.net/10107/4398332\">http://hdl.handle.net/10107/4398332</a>"
+		},
+		{
+			"label": [
+				{
+					"@value": "Language",
+					"@language": "en"
+				},
+				{
+					"@value": "Iaith",
+					"@language": "cy-GB"
+				}
+			],
+			"value": "Greek, Ancient (to 1453)."
+		},
+		{
+			"label": [
+				{
+					"@value": "Reference",
+					"@language": "en"
+				},
+				{
+					"@value": "Cyfeirnod",
+					"@language": "cy-GB"
+				}
+			],
+			"value": "NLW MS 4738D [RESTRICTED ACCESS]."
+		},
+		{
+			"label": [
+				{
+					"@value": "Repository",
+					"@language": "en"
+				},
+				{
+					"@value": "Ystorfa",
+					"@language": "cy-GB"
+				}
+			],
+			"value": [
+				{
+					"@value": "This content has been digitised by The National Library of Wales",
+					"@language": "en"
+				},
+				{
+					"@value": "Digidwyd y cynnwys hwn gan Lyfrgell Genedlaethol Cymru",
+					"@language": "cy-GB"
+				}
+			]
+		}
+	],
+	"description": "Greek papyri from Oxyrhynchus in Egypt, presented by the Egypt Exploration Society in 1922, being numbers 1521, 1572 and 1591 - dated respectively A.D. 113, A.D. 299, and 4th century - in Vol. XII of B. P. Grenfell and A. S. Hunt: Oxyrhynchus Papyri (1916).",
+	"license": "http://hdl.handle.net/10107/PublicDomainMark",
+	"logo": {
+		"@id": "https://iiif.llyfrgell.cymru/iiif/logo/full/400,/0/default.jpg",
+		"service": {
+			"@context": " http://iiif.io/api/image/2/context.json",
+			"@id": " https://iiif.llyfrgell.cymru/iiif/logo",
+			"profile": " http://iiif.io/api/image/2/level1.json"
+		}
+	},
+	"attribution": "Llyfrgell Genedlaethol Cymru – The National Library of Wales",
+	"sequences": [
+		{
+			"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/sequence/Physical.json",
+			"@type": "sc:Sequence",
+			"label": "Current Page Order",
+			"viewingDirection": "left-to-right",
+			"viewingHint": "paged",
+			"canvases": [
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398333.json",
+					"@type": "sc:Canvas",
+					"label": "general shot obverse",
+					"height": 6496,
+					"width": 7304,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398333.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398333.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398333",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 6496,
+									"width": 7304,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16,
+												32
+											]
+										}
+									]
+								},
+								"height": 6496,
+								"width": 7304
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398333.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398334.json",
+					"@type": "sc:Canvas",
+					"label": "general shot reverse",
+					"height": 6496,
+					"width": 7304,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398334.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398334.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398334",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 6496,
+									"width": 7304,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16,
+												32
+											]
+										}
+									]
+								},
+								"height": 6496,
+								"width": 7304
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398334.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398335.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 29D recto",
+					"height": 2304,
+					"width": 2936,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398335.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398335.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398335",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 2304,
+									"width": 2936,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 2304,
+								"width": 2936
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398335.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398336.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 29D verso",
+					"height": 2280,
+					"width": 2952,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398336.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398336.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398336",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 2280,
+									"width": 2952,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 2280,
+								"width": 2952
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398336.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398337.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 29D recto",
+					"height": 1673,
+					"width": 2041,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398337.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398337.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398337",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1673,
+									"width": 2041,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1673,
+								"width": 2041
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398337.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398338.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 29D verso",
+					"height": 1688,
+					"width": 2011,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398338.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398338.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398338",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1688,
+									"width": 2011,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1688,
+								"width": 2011
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398338.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398339.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 428D recto",
+					"height": 1896,
+					"width": 2872,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398339.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398339.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398339",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1896,
+									"width": 2872,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 1896,
+								"width": 2872
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398339.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398340.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 428D verso",
+					"height": 1872,
+					"width": 2872,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398340.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398340.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398340",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1872,
+									"width": 2872,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 1872,
+								"width": 2872
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398340.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398341.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 428D recto",
+					"height": 1253,
+					"width": 1884,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398341.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398341.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398341",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1253,
+									"width": 1884,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1253,
+								"width": 1884
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398341.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398342.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 428D verso",
+					"height": 1233,
+					"width": 1840,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398342.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398342.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398342",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1233,
+									"width": 1840,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1233,
+								"width": 1840
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398342.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398343.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 5029 recto",
+					"height": 1904,
+					"width": 1320,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398343.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398343.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398343",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1904,
+									"width": 1320,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1904,
+								"width": 1320
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398343.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398344.json",
+					"@type": "sc:Canvas",
+					"label": "close up of fragment 5029 verso",
+					"height": 1920,
+					"width": 1344,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398344.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398344.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398344",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 1920,
+									"width": 1344,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8
+											]
+										}
+									]
+								},
+								"height": 1920,
+								"width": 1344
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398344.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398345.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 5029 recto",
+					"height": 3447,
+					"width": 2227,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398345.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398345.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398345",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 3447,
+									"width": 2227,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 3447,
+								"width": 2227
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398345.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398346.json",
+					"@type": "sc:Canvas",
+					"label": "backlit close up of fragment 5029 verso",
+					"height": 3447,
+					"width": 2227,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398346.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398346.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398346",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 3447,
+									"width": 2227,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16
+											]
+										}
+									]
+								},
+								"height": 3447,
+								"width": 2227
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398346.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398347.json",
+					"@type": "sc:Canvas",
+					"label": "backlit general shot obverse",
+					"height": 3439,
+					"width": 4263,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398347.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398347.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398347",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 3439,
+									"width": 4263,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16,
+												32
+											]
+										}
+									]
+								},
+								"height": 3439,
+								"width": 4263
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398347.json"
+						}
+					]
+				},
+				{
+					"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398348.json",
+					"@type": "sc:Canvas",
+					"label": "backlit general shot reverse",
+					"height": 3438,
+					"width": 4293,
+					"images": [
+						{
+							"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/annotation/4398348.json",
+							"@type": "oa:Annotation",
+							"motivation": "sc:painting",
+							"resource": {
+								"@id": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/res/4398348.jpg",
+								"@type": "dctypes:Image",
+								"format": "image/jpeg",
+								"service": {
+									"@context": "http://iiif.io/api/image/2/context.json",
+									"@id": "https://iiif.llyfrgell.cymru/iiif/4398348",
+									"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1",
+									"height": 3438,
+									"width": 4293,
+									"tiles": [
+										{
+											"width": 256,
+											"height": 256,
+											"scaleFactors": [
+												1,
+												2,
+												4,
+												8,
+												16,
+												32
+											]
+										}
+									]
+								},
+								"height": 3438,
+								"width": 4293
+							},
+							"on": "https://damsssl.llgc.org.uk/iiif/2.0/4398332/canvas/4398348.json"
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,19 @@
+{
+  "provider": "国立国会図書館",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://dl.ndl.go.jp/api/iiif/948741/manifest.json",
+  "manifestFinalUrl": "https://dl.ndl.go.jp/api/iiif/948741/manifest.json",
+  "infoUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001/info.json",
+  "infoFinalUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001/info.json",
+  "infoResponseHeaders": {
+    "content-type": "application/json; charset=utf-8"
+  },
+  "terms": "国立国会図書館作成書誌データの無償利用。画像は保存しない。",
+  "termsUrl": "https://www.ndl.go.jp/en/data/data_service/quickguide",
+  "attribution": "国立国会図書館 National Diet Library, JAPAN",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "bd47ae871eda04b34e4ba0e40348057b67b4ded6ceb7e7922651338403f0d3fa",
+    "info": "120a5e4ee05e28ac909babb1522633e47ff88fc4f81864baf2fb954474ebd981"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "@context" : "http://iiif.io/api/image/2/context.json",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 7304,
+  "height" : 6496,
+  "sizes" : [
+     { "width" : 228, "height" : 203 },
+     { "width" : 456, "height" : 406 },
+     { "width" : 913, "height" : 812 },
+     { "width" : 1826, "height" : 1624 },
+     { "width" : 3652, "height" : 3248 }
+  ],
+  "tiles" : [
+     { "width" : 256, "height" : 256, "scaleFactors" : [ 1, 2, 4, 8, 16, 32 ] }
+  ],
+  "@id" : "https://iiif.llyfrgell.cymru/iiif/04/398/04398333.jp2",
+  "profile" : [
+     "http://iiif.io/api/image/2/level1.json",
+     { "formats" : ["jpg","png","tif"],
+       "qualities" : ["native","color","gray","bitonal"],
+       "supports" : ["regionByPct","regionSquare","max","sizeByConfinedWh","sizeByForcedWh","sizeByWh","sizeAboveFull","rotationBy90s","mirroring"],
+       "maxWidth" : 1200,
+       "maxHeight" : 1200
+     }
+  ]
+}

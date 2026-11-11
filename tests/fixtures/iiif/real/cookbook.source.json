@@ -1,0 +1,20 @@
+{
+  "provider": "IIIF Cookbook",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://iiif.io/api/cookbook/recipe/0005-image-service/manifest.json",
+  "manifestFinalUrl": "https://iiif.io/api/cookbook/recipe/0005-image-service/manifest.json",
+  "infoUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json",
+  "infoFinalUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json",
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/json"
+  },
+  "terms": "仕様に付随する JSON の例・試験資料は CC0。写真の権利とは別。",
+  "termsUrl": "https://iiif.io/api/annex/notes/disclaimer/",
+  "attribution": "IIIF Consortium and Community",
+  "modifications": "取得した JSON 本文をそのまま保存。画像・OCR 本文・外部アノテーションは取得しない。",
+  "sha256": {
+    "manifest": "039187cffc62ba80729beb03174debe3917a1176889a166556ebf4ece74d926b",
+    "info": "07eb3c80ce0f8bef8ce2df3e55441f912fba0f1905a9e19f32a8c710c7065a6f"
+  }
+}

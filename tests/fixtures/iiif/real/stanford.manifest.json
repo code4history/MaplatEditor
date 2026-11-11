@@ -1,0 +1,183 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://purl.stanford.edu/zc368qw3281/iiif/manifest",
+  "@type": "sc:Manifest",
+  "label": "France - ports",
+  "attribution": "This work has been identified as being free of known restrictions under copyright law, including all related and neighboring rights. You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.",
+  "logo": {
+    "@id": "https://stacks.stanford.edu/image/iiif/wy534zh7137/SULAIR_rosette/full/400,/0/default.jpg",
+    "service": {
+      "@context": "http://iiif.io/api/image/2/context.json",
+      "@id": "https://stacks.stanford.edu/image/iiif/wy534zh7137/SULAIR_rosette",
+      "profile": "http://iiif.io/api/image/2/level2.json"
+    }
+  },
+  "license": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "seeAlso": {
+    "@id": "https://purl.stanford.edu/zc368qw3281.mods",
+    "format": "application/mods+xml"
+  },
+  "metadata": [
+    {
+      "label": "Available Online",
+      "value": "<a href='https://purl.stanford.edu/zc368qw3281'>https://purl.stanford.edu/zc368qw3281</a>"
+    },
+    {
+      "label": "Title",
+      "value": "France - ports"
+    },
+    {
+      "label": "Contributor",
+      "value": "United States. Office of Strategic Services. Research and Analysis Branch."
+    },
+    {
+      "label": "Contributor",
+      "value": "United States. Office of Strategic Services. Reproduction Branch."
+    },
+    {
+      "label": "Type",
+      "value": "Cartographic image"
+    },
+    {
+      "label": "Type",
+      "value": "Maps"
+    },
+    {
+      "label": "Format",
+      "value": "1 map : color ; 29 x 27 cm"
+    },
+    {
+      "label": "Language",
+      "value": "English"
+    },
+    {
+      "label": "Statement of responsibility",
+      "value": "compiled & drawn in the Branch of Research and Analysis, OSS."
+    },
+    {
+      "label": "Description",
+      "value": "Shows major and minor ports, and railroads."
+    },
+    {
+      "label": "Description",
+      "value": "\"Reliability Code: 1-A-00-1.\""
+    },
+    {
+      "label": "Description",
+      "value": "\"Restricted,\""
+    },
+    {
+      "label": "Description",
+      "value": "\"No. 3163. 11 March 1944.\""
+    },
+    {
+      "label": "Subject",
+      "value": "Harbors"
+    },
+    {
+      "label": "Subject",
+      "value": "France"
+    },
+    {
+      "label": "Subject",
+      "value": "Railroads"
+    },
+    {
+      "label": "Subject",
+      "value": "Harbors."
+    },
+    {
+      "label": "Subject",
+      "value": "Railroads."
+    },
+    {
+      "label": "Subject",
+      "value": "France."
+    },
+    {
+      "label": "Coverage",
+      "value": "Scale [ca. 1:3,800,000]"
+    },
+    {
+      "label": "Coverage",
+      "value": "6°00′00″W -- 8°00′00″E / 53°00′00″N -- 42°00′00″N"
+    },
+    {
+      "label": "Date",
+      "value": "1944"
+    },
+    {
+      "label": "Date",
+      "value": "1944"
+    },
+    {
+      "label": "Identifier",
+      "value": "https://purl.stanford.edu/zc368qw3281"
+    },
+    {
+      "label": "Publisher",
+      "value": "Lithographed in the Reproduction Branch, OSS"
+    },
+    {
+      "label": "Record published",
+      "value": "2026-07-21"
+    }
+  ],
+  "description": "Shows major and minor ports, and railroads.",
+  "thumbnail": {
+    "@id": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001/full/!400,400/0/default.jpg",
+    "@type": "dctypes:Image",
+    "format": "image/jpeg",
+    "service": {
+      "@context": "http://iiif.io/api/image/2/context.json",
+      "@id": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001",
+      "profile": "http://iiif.io/api/image/2/level2.json"
+    },
+    "width": 379,
+    "height": 400
+  },
+  "sequences": [
+    {
+      "@id": "https://purl.stanford.edu/zc368qw3281/iiif/manifest#sequence-1",
+      "@type": "sc:Sequence",
+      "label": "Current order",
+      "viewingDirection": "left-to-right",
+      "canvases": [
+        {
+          "@id": "https://purl.stanford.edu/zc368qw3281/iiif/canvas/cocina-fileSet-zc368qw3281-zc368qw3281_1",
+          "@type": "sc:Canvas",
+          "label": "Image 1",
+          "height": 7868,
+          "width": 7452,
+          "rendering": [
+            {
+              "@id": "https://stacks.stanford.edu/file/zc368qw3281/zc368qw3281_00_0001.jp2",
+              "label": "Original source file (10.5 MB)",
+              "format": "image/jp2"
+            }
+          ],
+          "images": [
+            {
+              "@id": "https://purl.stanford.edu/zc368qw3281/iiif/annotation/https:%2F%2Fcocina.sul.stanford.edu%2Ffile%2Fzc368qw3281-zc368qw3281_1%2Fzc368qw3281_00_0001.jp2",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "on": "https://purl.stanford.edu/zc368qw3281/iiif/canvas/cocina-fileSet-zc368qw3281-zc368qw3281_1",
+              "resource": {
+                "@id": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "height": 7868,
+                "width": 7452,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001",
+                  "profile": "http://iiif.io/api/image/2/level2.json"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
