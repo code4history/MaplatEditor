@@ -1415,8 +1415,9 @@ async function changePreviewLang(lang: string) {
 }
 
 async function renderPreview() {
-  // 描き直すたびに前のプレビューの警告を消す（警告の無い描き直しで古い警告が残らないように）
-  clearOperationNotice();
+  // 描き直すたびに前のプレビューの警告だけを消す（警告の無い描き直しで古い警告が残らないように。
+  // 書き出しの結果は消さない）
+  clearOperationNotice("preview");
   destroyPreview();
   previewError.value = null;
   if (appData.value.sources.length === 0) {
@@ -1430,7 +1431,7 @@ async function renderPreview() {
     // main 解決層からの警告 (missing/duplicate POI 参照等) を export と同じ形式で表示する
     const warnings = (result.warnings || []).map((key) => t(key)).join("\n");
     if (warnings) {
-      notifyOperation({
+      notifyOperation({ origin: "preview",
         type: "warning",
         message: t("appedit.preview_warnings"),
         detail: warnings,

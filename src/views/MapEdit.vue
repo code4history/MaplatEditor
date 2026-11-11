@@ -2913,8 +2913,9 @@ const boundsModifyEnd = (evt: any) => {
 const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     if (evt.originalEvent.altKey) return;
     if (!illstMap || !mercMap || !illstSource) return;
-    // 試しのクリックごとに前の結果の通知を消す（失敗の赤が次の成功の後まで残らないように）
-    clearOperationNotice();
+    // 試しのクリックごとに、前の試しのクリックの通知だけを消す（失敗の赤が次の成功の後まで残らないように。
+    // 下書きの復元や保存の通知は消さない）
+    clearOperationNotice('map-test');
 
     const isIllst = (evt.map ?? (evt as any).target) === illstMap;
     const distMap = isIllst ? mercMap : illstMap;
@@ -2933,11 +2934,11 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
             tin === 'pointsOutside' ? t('mapedit.testerror_outside') :
             tin === 'edgeError'   ? t('mapedit.testerror_line') :
                                     t('mapedit.testerror_unknown');
-        notifyOperation({ type: 'error', message: msg });
+        notifyOperation({ origin: 'map-test', type: 'error', message: msg });
         return;
     }
     if (tin.strict_status === 'strict_error' && !isIllst) {
-        notifyOperation({
+        notifyOperation({ origin: 'map-test',
             type: 'error', message: t('mapedit.testerror_valid_error')
         });
         return;
@@ -2952,7 +2953,7 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     const distXy = tin.transform(srcXy, !isIllst);
 
     if (!distXy) {
-        notifyOperation({
+        notifyOperation({ origin: 'map-test',
             type: 'error', message: t('mapedit.testerror_outside_map')
         });
         return;
