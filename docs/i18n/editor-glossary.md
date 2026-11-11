@@ -7,7 +7,7 @@
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
 まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 504・例外 294（anchorExclusion 13・omission 100・untranslated 181）
+概念 26・結び付いたキー 504・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
