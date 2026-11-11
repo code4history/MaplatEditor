@@ -120,6 +120,23 @@ function run(dir, args = [], extraEnv = {}) {
 const findings = (r, pred) => (r.report?.violations ?? []).filter(pred);
 const summarize = (r) => `exit=${r.status} ${r.out.split('\n').slice(-12).join(' | ')}`;
 
+/**
+ * 使われない例外（unused-exception の警告）を、警告が載せる例外の添字で例外に引き当てる。
+ * 同じ鍵（type・concept・key・locale）に文違いの例外が並ぶと、鍵だけの引き当ては別の例外を拾う。
+ * still は記録した文が今の文と一致するもの（消し待ちでも locale の変更待ちでもない）。
+ */
+function matchUnusedExceptions(dir, r) {
+  const unused = r.report?.warnings?.filter((w) => w.kind === 'unused-exception') ?? [];
+  const exList = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions;
+  const localeCache = {};
+  const cur = (lang, key) => key.split('.').reduce((n, p) => n?.[p], (localeCache[lang] ??= readJson(path.join(dir, 'public', 'locales', lang, 'translation.json'))));
+  const expired = (x) => (x.type === 'anchorExclusion'
+    ? x.ja !== cur('ja', x.key) || x.en !== cur('en', x.key)
+    : x.value !== cur(x.locale, x.key) || (x.type === 'untranslated' && x.value !== cur('en', x.key)));
+  const matched = unused.map((w) => exList[w.index]);
+  return { unused, matched, still: matched.filter((x) => !x || !expired(x)) };
+}
+
 const PR237 = {
   de: ['Verweise auf Asset-Bilder sind unverändert enthalten: {{items}}. In einer anderen Umgebung haben sie keine Bedeutung.', 'Asset-Bilder', 'Asset-Symbole'],
   en: ['Asset image references are included as they are: {{items}}. They have no meaning in another environment.', 'Asset images', 'Asset icons'],
@@ -148,20 +165,14 @@ try {
     // guarded-side-only PR, so between the locale PR and that PR the real tree may carry unused
     // exceptions. They must stay warnings (exit 0, checked above); this only lists them.
     // Only an exception whose recorded text no longer equals the current text may be unused:
-    // it expired because the text changed. An unused exception that still matches the current
-    // text suppresses nothing, which AGENTS.md forbids ("only for a row that actually violates").
-    const unused = r.report?.warnings?.filter((w) => w.kind === 'unused-exception') ?? [];
-    const exList = readJson(path.join(root, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions;
-    const localeCache = {};
-    const cur = (lang, key) => key.split('.').reduce((n, p) => n?.[p], (localeCache[lang] ??= readJson(path.join(root, 'public', 'locales', lang, 'translation.json'))));
-    const expired = (x) => (x.type === 'anchorExclusion'
-      ? x.ja !== cur('ja', x.key) || x.en !== cur('en', x.key)
-      : x.value !== cur(x.locale, x.key) || (x.type === 'untranslated' && x.value !== cur('en', x.key)));
-    const unusedEx = unused.map((w) => exList.find((x) => x.type === w.type && x.concept === w.concept && x.key === w.key && (x.locale ?? '-') === w.lang));
-    const stillMatching = unusedEx.filter((x) => !x || !expired(x));
-    check('実物: 使われない例外は文の変更で失効したものだけ（消すのは後の正本だけの PR）', stillMatching.length === 0,
-      stillMatching.map((x) => (x ? `${x.type} ${x.concept} ${x.key}` : '(照合できない警告)')).join(', '));
-    for (const w of unused) console.log(`note 消し待ちの例外: ${w.type} ${w.concept} ${w.key}`);
+    // it is either waiting for its removal (the text changed under it) or waiting for the locale
+    // change it was written for (AGENTS.md two-step flow, not yet in effect). An unused exception
+    // that still matches the current text suppresses nothing, which AGENTS.md forbids
+    // ("only for a row that actually violates").
+    const { unused, still } = matchUnusedExceptions(root, r);
+    check('実物: 使われない例外は文の変更で失効したものだけ（消すのは後の正本だけの PR）', still.length === 0,
+      still.map((x) => (x ? `${x.type} ${x.concept} ${x.key}` : '(照合できない警告)')).join(', '));
+    for (const w of unused) console.log(`note 消し待ちか locale の変更待ちの例外: ${w.type} ${w.concept} ${w.key}`);
     check('実物: 生成物（bindings.json・md）が再生成と一致', !findings(r, (v) => v.kind === 'generated').length, summarize(r));
     const parity = spawnSync(process.execPath, [path.join(root, 'scripts', 'editor-locale-parity.mjs')], { encoding: 'utf8' });
     check('実物: 11 言語の parity が成功', parity.status === 0, parity.stdout + parity.stderr);
@@ -345,6 +356,61 @@ try {
     });
     const r2 = run(dir);
     check('例外: キーが違う例外は抑止しない（赤）', r2.status === 1, summarize(r2));
+  }
+  {
+    // 文の変更の手順（AGENTS.md）で新旧の例外が並ぶ時点: 同じ type・concept・key で記録した文だけ違う 2 件
+    const dir = makeRepo('exceptions-text');
+    const ex = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions;
+    const u = ex.find((e) => e.type === 'untranslated');
+    const o = ex.find((e) => e.type === 'omission');
+    const a = ex.find((e) => e.type === 'anchorExclusion');
+    editExceptions(dir, (e) => {
+      e.exceptions.push({ ...u, value: `${u.value}（新）`, reason: 'fixture: 文の変更の新' });
+      e.exceptions.push({ ...o, value: `${o.value}（新）`, reason: 'fixture: 文の変更の新' });
+      e.exceptions.push({ ...a, ja: `${a.ja}（新）`, reason: 'fixture: 文の変更の新' });
+    });
+    run(dir, ['--write']); // md は例外の件数を載せる
+    const r = run(dir);
+    const stale = (r.report?.warnings ?? []).filter((w) => w.kind === 'unused-exception');
+    check('例外: 同じ type・concept・key で文だけ違う 2 件は重複にならない（合わない方は失効した例外として警告で済む）',
+      r.status === 0 && findings(r, (v) => v.kind === 'structure').length === 0 && stale.length === 3
+        && [u.key, o.key, a.key].every((k) => stale.some((w) => w.key === k)), summarize(r));
+    setValue(dir, o.locale, o.key, `${o.value}（新）`);
+    run(dir, ['--write']);
+    const r2 = run(dir);
+    const stale2 = (r2.report?.warnings ?? []).filter((w) => w.kind === 'unused-exception');
+    check('例外: 文を変えると旧い例外が失効した例外として警告で済む', r2.status === 0 && stale2.length === 3 && stale2.some((w) => w.key === o.key && w.type === o.type), summarize(r2));
+  }
+  {
+    // 記録した文まで同じ 2 件（reason だけ違う）は、今までどおり重複
+    const dir = makeRepo('exceptions-same-text');
+    const o = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions.find((e) => e.type === 'omission');
+    editExceptions(dir, (e) => e.exceptions.push({ ...o, reason: 'fixture: 文まで同じ' }));
+    const r = run(dir);
+    check('例外: 文まで同じ 2 件は今までどおり重複で赤', r.status === 1 && findings(r, (v) => v.kind === 'structure' && /例外の重複/.test(v.message ?? '')).length === 1, summarize(r));
+  }
+  {
+    // AGENTS.md の文の変更の手順 1: 同じ鍵の例外に「今の文と違う新しい文の例外」を 1 件後ろに足す正本だけの PR
+    const dir = makeRepo('exceptions-step1');
+    const o = readJson(path.join(dir, 'docs', 'i18n', 'editor-glossary.exceptions.json')).exceptions.find((e) => e.type === 'omission');
+    const next = `${o.value}（新）`;
+    editExceptions(dir, (e) => e.exceptions.push({ ...o, value: next, reason: 'fixture: 手順 1（今の文と違う新しい文）' }));
+    run(dir, ['--write']); // md は例外の件数を載せる
+    const r = run(dir);
+    check('例外: 手順 1（今の文と違う新しい文の例外を後ろに足す）は検査が緑', r.status === 0 && r.report?.violations?.length === 0, summarize(r));
+    const { unused, matched, still } = matchUnusedExceptions(dir, r);
+    check('例外: 手順 1 の新しい例外は警告で済み、使われない例外の試験も緑', unused.length === 1 && matched[0]?.value === next && still.length === 0, summarize(r));
+  }
+  {
+    // 逆: 「今の文と一致するのに何も抑えない例外」（AGENTS.md が禁じる）を 1 件後ろに足した木では同じ試験が赤
+    const dir = makeRepo('exceptions-nothing-to-suppress');
+    const ja = readJson(localePath(dir, 'ja'));
+    const value = 'navbar.assets'.split('.').reduce((n, p) => n?.[p], ja);
+    editExceptions(dir, (e) => e.exceptions.push({ type: 'omission', concept: 'asset', locale: 'ja', key: 'navbar.assets', value, reason: 'fixture: 何も抑えない' }));
+    run(dir, ['--write']); // md は例外の件数を載せる
+    const r = run(dir);
+    const { matched, still } = matchUnusedExceptions(dir, r);
+    check('例外: 今の文と一致するのに何も抑えない例外は使われない例外の試験を赤にする', r.status === 0 && matched.length === 1 && matched[0]?.value === value && still.length === 1, summarize(r));
   }
 
   // ───────────── 関門 1・2 ─────────────

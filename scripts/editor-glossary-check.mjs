@@ -306,8 +306,9 @@ export function validateSemantics(glossary, exceptions, keys, pending = []) {
   const seen = new Set();
   for (const x of exceptions) {
     const id = `${x.type}|${x.concept}|${x.locale ?? ''}|${x.key}`;
-    if (seen.has(id)) errors.push(`例外の重複: ${id}`);
-    seen.add(id);
+    const dup = JSON.stringify([id, x.type === 'anchorExclusion' ? [x.ja, x.en] : x.value ?? '']);
+    if (seen.has(dup)) errors.push(`例外の重複: ${id}（記録した文まで同じ）`);
+    seen.add(dup);
     if (!ids.has(x.concept)) errors.push(`例外: 未知の概念 ${x.concept}（${x.key}）`);
     if (/[*?]/.test(x.key)) errors.push(`例外: glob は使えない: ${x.key}`);
     else if (!keys.has(x.key)) pending.push({ kind: 'pending-key', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: 'キーがまだ locale に無い例外（locale の PR で足す）' });
@@ -655,7 +656,7 @@ export function diffCanonical(oldG, oldEx, newG, newEx) {
   }
   if (JSON.stringify(oldG?.sharedForms ?? null) !== JSON.stringify(newG?.sharedForms ?? null)) other.push('sharedForms を変えた');
   if (JSON.stringify(oldG?.matchModes ?? null) !== JSON.stringify(newG?.matchModes ?? null)) other.push('matchModes を変えた');
-  const exKey = (x) => `${x.type} ${x.concept} ${x.locale ?? '(ja+en)'} ${x.key}`;
+  const exKey = (x) => `${x.type} ${x.concept} ${x.locale ?? '(ja+en)'} ${x.key} :: ${x.type === 'anchorExclusion' ? `ja=${x.ja} en=${x.en}` : x.value ?? ''}`;
   listDiff((oldEx ?? []).map(exKey), (newEx ?? []).map(exKey), loosen, '例外を足した', tighten, '例外を消した');
   return { loosen, tighten, other };
 }
@@ -774,7 +775,7 @@ export function runCheck({ root, write = false, base = null }) {
     r.usedExceptions.forEach((i) => used.add(i));
   }
   canon.exceptions.forEach((x, i) => {
-    if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: '違反を抑えなかった例外（正本だけの PR で消す）' });
+    if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, index: i, message: '違反を抑えなかった例外（消し待ちか locale の変更待ち。消すのは正本だけの PR で）' });
   });
   // (7) 生成物
   const genBindings = renderBindings(g, all);
