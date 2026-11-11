@@ -160,12 +160,14 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 //   変更後: MapEdit 18 (+1 merc) / AppEdit 13 (+2 説明・他情報 +8 HTTP トグル) / BaseMapEdit 10 (+7)
 //   nov26-editor-export-wording: MapEdit 19（エクスポートする中身の「タイル」の説明 +1）
 //   アプリの「MapLibre GL JS の版」の説明 +1 ∴ AppEdit 15
+//   UI 文法（docs/ui-grammar.md §7）: MapEdit +3（オリジナル画像・押せない理由・写し直しの失敗）∴ 22、
+//   BaseMapEdit +1（MapLibre の style）∴ 11
 // ---------------------------------------------------------------------------
 {
   const cases = [
     [APP_EDIT, appEditVue, 15, "S3/AC8"],
-    [MAP_EDIT, mapEditVue, 19, "S4/AC9"],
-    [BASE_MAP_EDIT, baseMapEditVue, 10, "S5/AC10"],
+    [MAP_EDIT, mapEditVue, 22, "S4/AC9"],
+    [BASE_MAP_EDIT, baseMapEditVue, 11, "S5/AC10"],
   ];
   for (const [rel, source, expected, label] of cases) {
     const actual = count(source, "<ContextHelp");
@@ -175,6 +177,9 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   // nov26-editor-export-wording: エクスポートする中身の「タイル」の説明で +1 ∴ 54
   // nov26-editor-appexport-dialog: アプリの書き出しの小窓の「タイル」の説明で +1 ∴ 55
   // アプリの「MapLibre GL JS の版」の説明で +1 ∴ 56
+  // UI 文法（docs/ui-grammar.md §7）で説明の直書きを ContextHelp へ移した +17 ∴ 73
+  //   （PoiEdit 4・MapEdit 3・PoiAttributeForm 2・PoiMergeImportDialog 2・IiifBindingPanel 2・
+  //     BaseMapEdit 1・Settings 1・MercTileSetModal 1・ResourceMasterRow 1）
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -184,8 +189,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 56, `S3-S5: src 全体の <ContextHelp タグ数は 56 であること（上の注記の 55 + アプリの MapLibre の版の説明の 1） (got ${total})`);
-  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 15 / MapEdit 19 / BaseMapEdit 10 / src 計 56: PASS");
+  assert.equal(total, 73, `S3-S5: src 全体の <ContextHelp タグ数は 73 であること（上の注記の 56 + UI 文法の 17） (got ${total})`);
+  console.log("  [S3-S5/AC8-AC10] ContextHelp タグ数 AppEdit 15 / MapEdit 22 / BaseMapEdit 11 / src 計 73: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない

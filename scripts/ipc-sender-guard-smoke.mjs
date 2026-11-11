@@ -155,7 +155,8 @@ await check('(i) a refused saveFolder is reported before anything else is saved'
   const folder = body[1].indexOf('window.settings.set("saveFolder"');
   const lang = body[1].indexOf('window.settings.set("lang"');
   assert.ok(folder >= 0 && folder < lang, 'saveFolder must be saved first');
-  assert.match(body[1], /catch[\s\S]*showMessageBox[\s\S]*settings\.save_folder_failed[\s\S]*return;/);
+  // 失敗は画面上部のバナー（notifyOperation）で知らせる（docs/ui-grammar.md §5.3）
+  assert.match(body[1], /catch[\s\S]*notifyOperation[\s\S]*settings\.save_folder_failed[\s\S]*return;/);
   const locales = await readdir(path.join(projectRoot, 'public/locales'));
   assert.equal(locales.length, 11);
   for (const locale of locales) {
