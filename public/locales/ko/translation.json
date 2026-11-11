@@ -1009,6 +1009,7 @@
       "references_unavailable": "참조 정보를 가져올 수 없습니다",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
       "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
+      "directgo_blank_like": "링크 대상(directgo)이 공백뿐입니다. 링크로 사용하려면 \"Link\" 모드로 전환해 URL을 입력하고, 사용하지 않으려면 값을 지우세요.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다)",
       "zip_corrupt": "ZIP이 손상되어 가져올 수 없습니다"

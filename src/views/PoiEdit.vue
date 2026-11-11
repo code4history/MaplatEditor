@@ -169,7 +169,7 @@
       <!-- 診断領域 (内容があるときのみ表示)。M11-T7/AC8: T5 の DiagnosticFeedback 文法
            (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
-        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarnings.length || missingAssetWarningItems.length"
+        v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarningItems.length || missingAssetWarningItems.length"
         class="px-4 py-2 flex-shrink-0 overflow-auto"
         style="max-height: 40%;"
       >
@@ -719,18 +719,6 @@ const liveErrors = computed<PoiValidationIssue[]>(() =>
   liveIssues.value.filter((issue) => issue.level === "error"),
 );
 
-// warning レベル: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB)
-const liveWarnings = computed<string[]>(() => {
-  const issues = liveIssues.value;
-  const keys: string[] = [];
-  if (issues.some((i) => i.code === "no-content")) {
-    keys.push("poiedit.no_content_warning");
-  }
-  if (issues.some((i) => i.code === "scale-feature-count" || i.code === "scale-byte-size")) {
-    keys.push("poiedit.size_warning");
-  }
-  return keys;
-});
 
 // M11-T9 AC14: Asset Reference 欠落診断。
 // HTML内の maplat-asset:<UID> (collectAssetRefsInFc) と、画像欄のアセットUID直接参照
@@ -800,9 +788,27 @@ const liveErrorItems = computed<DiagnosticItem[]>(() =>
     message: issueMessage(issue, t),
   })),
 );
-const liveWarningItems = computed<DiagnosticItem[]>(() =>
-  liveWarnings.value.map((key) => ({ key, severity: "warning" as const, message: t(key) })),
-);
+// warning レベル: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB) /
+// directgo が空白だけ・{ href: "" }（POI ごと。どの POI かが分かるよう issueMessage で ID を前に付ける）
+const liveWarningItems = computed<DiagnosticItem[]>(() => {
+  const issues = liveIssues.value;
+  const items: DiagnosticItem[] = [];
+  if (issues.some((i) => i.code === "no-content")) {
+    items.push({ key: "no-content", severity: "warning", message: t("poiedit.no_content_warning") });
+  }
+  if (issues.some((i) => i.code === "scale-feature-count" || i.code === "scale-byte-size")) {
+    items.push({ key: "scale", severity: "warning", message: t("poiedit.size_warning") });
+  }
+  issues.forEach((issue, index) => {
+    if (issue.code !== "directgo-blank-like") return;
+    items.push({
+      key: `directgo-blank-like-${issue.featureId ?? index}`,
+      severity: "warning",
+      message: issueMessage(issue, t),
+    });
+  });
+  return items;
+});
 
 // --- 読込 ---
 // M11-T10b（実装レビュー Minor）: 世代 token。既存→new 再初期化や連続した load の間に

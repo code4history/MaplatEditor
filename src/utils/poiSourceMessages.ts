@@ -23,6 +23,8 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
   // directgo（リンクの形）の値が不正（href が無い・拒否される URL・blank が真偽値でない）
   "content-mode-link-format": "poisource.errors.content_mode_link_format",
+  // directgo が空白だけ・{ href: "" }（link 以外の形。ビューアでは値ありとして扱われる）
+  "directgo-blank-like": "poisource.errors.directgo_blank_like",
   // CSV の取り込み（解析と合流が出す code）
   "missing-columns": "poiio.issues.missing_columns",
   "incomplete-coordinate-columns": "poiio.issues.incomplete_coordinate_columns",

@@ -1009,6 +1009,7 @@
       "references_unavailable": "Impossible de récupérer les informations de référence",
       "content_mode_url_format": "Only http/https URLs (or relative paths) are allowed. Protocols such as javascript: are not permitted.",
       "content_mode_link_format": "This link target is not allowed. Enter an http/https URL or a relative path (including #!s:…). Protocols such as javascript: are not permitted.",
+      "directgo_blank_like": "La cible du lien (directgo) ne contient que des espaces. Pour l’utiliser comme lien, passez au mode « Link » et saisissez une URL ; sinon, supprimez la valeur.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "Le ZIP est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés)",
       "zip_corrupt": "Le ZIP est endommagé et ne peut pas être importé"
