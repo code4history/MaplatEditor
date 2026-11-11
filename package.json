@@ -344,6 +344,7 @@
     "smoke:poi-kml": "node scripts/poi-kml-smoke.mjs",
     "test:e2e:poi-io": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/poi-io.spec.ts",
     "test:e2e:directgo-blank-like-warning": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/directgo-blank-like-warning.spec.ts",
+    "test:e2e:electron-quit-timeout": "playwright test tests/e2e/electron-quit-timeout.spec.ts",
     "smoke:editor-ui-grammar": "node scripts/editor-ui-grammar-check.mjs --report editor-ui-grammar-report.json",
     "smoke:editor-ui-grammar-fixtures": "node scripts/editor-ui-grammar-check-smoke.mjs",
     "smoke:editor-operation-notice": "node --experimental-strip-types scripts/editor-operation-notice-smoke.mjs",

@@ -6,8 +6,15 @@ const QUIT_TIMEOUT_MS = 30_000;
  * ElectronApplication.close() closes the Playwright connection, but MaplatEditor intentionally
  * turns a macOS window close into hide. Request a real application quit and wait for the child
  * process so a successful E2E cannot leave an orphaned Electron process behind.
+ *
+ * A quit timeout is cleaned up with SIGKILL and only reported as a warning; it does not change
+ * the result of the test (#145).
  */
-export async function quitElectronApplication(app: ElectronApplication): Promise<void> {
+export async function quitElectronApplication(
+  app: ElectronApplication,
+  options: { timeoutMs?: number } = {},
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? QUIT_TIMEOUT_MS;
   const child = app.process();
   if (child.exitCode !== null || child.signalCode !== null) return;
 
@@ -27,15 +34,15 @@ export async function quitElectronApplication(app: ElectronApplication): Promise
       exited,
       new Promise<never>((_, reject) => {
         timeout = setTimeout(
-          () => reject(new Error(`Electron did not exit within ${QUIT_TIMEOUT_MS}ms`)),
-          QUIT_TIMEOUT_MS,
+          () => reject(new Error(`Electron did not exit within ${timeoutMs}ms`)),
+          timeoutMs,
         );
       }),
     ]);
-  } catch (error) {
+  } catch {
     child.kill('SIGKILL');
     await exited;
-    throw error;
+    console.warn(`Electron did not exit within ${timeoutMs}ms; sent SIGKILL and continued`);
   } finally {
     if (timeout) clearTimeout(timeout);
   }
