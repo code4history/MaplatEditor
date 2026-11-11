@@ -8,7 +8,8 @@ const QUIT_TIMEOUT_MS = 30_000;
  * process so a successful E2E cannot leave an orphaned Electron process behind.
  *
  * A quit timeout is cleaned up with SIGKILL and only reported as a warning; it does not change
- * the result of the test (#145).
+ * the result of the test (#145). The warning line carries the fixed marker
+ * `maplat-e2e-quit-timeout`, which scripts/ci/judge-test-results.mjs counts into the CI summary.
  */
 export async function quitElectronApplication(
   app: ElectronApplication,
@@ -42,7 +43,7 @@ export async function quitElectronApplication(
   } catch {
     child.kill('SIGKILL');
     await exited;
-    console.warn(`Electron did not exit within ${timeoutMs}ms; sent SIGKILL and continued`);
+    console.warn(`[maplat-e2e-quit-timeout] Electron did not exit within ${timeoutMs}ms; sent SIGKILL and continued`);
   } finally {
     if (timeout) clearTimeout(timeout);
   }
