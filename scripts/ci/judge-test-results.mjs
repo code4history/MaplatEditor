@@ -231,6 +231,23 @@ export function collectTests(report) {
 
 const label = (t) => `${t.file}:${t.line} ${t.title}`;
 
+// 終了待ちの時間切れ（#145）: tests/e2e/helpers/electronLifecycle.ts が時間切れのときに出す印。
+// 報告の各試験の stdout・stderr から数えて Summary に「終了待ちの時間切れ: N 件」と出す（合否には関与しない）
+export const QUIT_TIMEOUT_MARK = 'maplat-e2e-quit-timeout';
+
+export function countQuitTimeoutMarks(report) {
+  const chunksText = (chunks) => (Array.isArray(chunks) ? chunks.map((c) => (typeof c === 'string' ? c : String(c?.text ?? ''))).join('') : '');
+  let count = 0;
+  for (const t of collectTests(report)) {
+    for (const r of t.results ?? []) {
+      for (const chunks of [r.stdout, r.stderr]) {
+        count += chunksText(chunks).split(QUIT_TIMEOUT_MARK).length - 1;
+      }
+    }
+  }
+  return count;
+}
+
 /** @returns {{ failures: string[], notes: string[] }} */
 export function judgeE2e({ report, table, exitText, shard }) {
   const failures = [];
@@ -332,6 +349,7 @@ export function judgeE2e({ report, table, exitText, shard }) {
   if (flakyUnknown.length) notes.push(`flaky（再試行で合格）${flakyUnknown.length} 件: ${flakyUnknown.join(' / ')}`);
   for (const x of intermittentSeen) notes.push(`intermittent（許容）: ${x}`);
   if (flakyKnown.length) notes.push(`known-failure が間欠化（再試行で合格）${flakyKnown.length} 件: ${flakyKnown.join(' / ')}`);
+  notes.push(`終了待ちの時間切れ: ${countQuitTimeoutMarks(report)} 件`);
   notes.push(`stats: expected=${s.expected} unexpected=${s.unexpected} flaky=${s.flaky} skipped=${s.skipped}・Playwright exit=${pwExit}`);
   return { failures, notes };
 }

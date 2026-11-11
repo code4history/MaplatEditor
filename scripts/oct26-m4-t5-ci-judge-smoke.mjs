@@ -253,7 +253,26 @@ const green = (r, msg, re) => {
   red(judge('e2e', { report: e2eReport(withSometimes('unexpected')), exitCode: '1', table: noIssue }), '(y) intermittent の issue が空', /e2e\[1\]: issue が空/);
   red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '1', table: TABLE_I }), '(z) intermittent の file は実行されたがテスト名が無い', /除外表の intermittent が報告に無い.*x\.spec\.ts:7 sometimes/);
 
-  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5＋N1 6＋intermittent (t)〜(z) 7: PASS');
+  // 終了待ちの時間切れ（#145）: helper が時間切れのときに出す印を報告の stdout・stderr から数え、
+  // Summary に「終了待ちの時間切れ: N 件」と 1 行だけ出す。合否は変えない
+  const QUIT_MARK = 'maplat-e2e-quit-timeout';
+  const markChunk = { text: `[${QUIT_MARK}] Electron did not exit within 30000ms; sent SIGKILL and continued\n` };
+  const withQuitMarks = (stdoutMarks, stderrMarks) => {
+    const specs = goodE2eSpecs();
+    specs[0] = e2eTest('passes', 3, 'expected', [{
+      status: 'passed',
+      retry: 0,
+      stdout: Array.from({ length: stdoutMarks }, () => ({ ...markChunk })),
+      stderr: Array.from({ length: stderrMarks }, () => ({ ...markChunk })),
+    }]);
+    return e2eReport(specs);
+  };
+  green(judge('e2e', { report: withQuitMarks(1, 1), exitCode: '1' }), '(aa) 終了待ちの時間切れの印が 2 つ（stdout 1・stderr 1）', /終了待ちの時間切れ: 2 件/);
+  green(judge('e2e', { report: withQuitMarks(0, 0), exitCode: '1' }), '(ab) 終了待ちの時間切れの印が 0 つ', /終了待ちの時間切れ: 0 件/);
+  const helperSource = fs.readFileSync(path.join(projectRoot, 'tests/e2e/helpers/electronLifecycle.ts'), 'utf8');
+  assert.ok(helperSource.includes(QUIT_MARK), `(ac) helper が印「${QUIT_MARK}」を出さない（判定器が数える印と一致させること）`);
+
+  console.log('  [1/5] AC2 判定器の合成ケース (a)〜(s)＋補強 5＋N1 6＋intermittent (t)〜(z) 7＋終了待ちの時間切れ (aa)〜(ac) 3: PASS');
 }
 
 // ───────────────────────────── AC3 ─────────────────────────────
