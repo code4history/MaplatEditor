@@ -715,7 +715,7 @@
     "border_ui": "UI d'affichage de l'enveloppe",
     "border_ui_note": "Un bouton qui bascule le contour indiquant l’étendue de la carte ancienne. Il est ajouté comme contrôle de la visionneuse. Ce qu’il trace est le contour de la carte, et cela n’a rien à voir avec la modification de la zone d’utilisation.",
     "cache_ui": "Affichage hors ligne (cache)",
-    "cache_ui_note": "Conserve sur l’appareil les tuiles déjà chargées afin de pouvoir les afficher la fois suivante, même hors ligne. Lorsque l’option est activée, un Service Worker est inclus dans l’export et le navigateur l’installe. Lorsqu’elle est désactivée, aucun Service Worker n’est inclus ni installé (l’ajout à l’écran d’accueil fonctionne toujours). Elle ne peut pas être utilisée tant que « Ajouter à l’écran d’accueil (PWA) » est désactivé.",
+    "cache_ui_note": "Conserve sur l’appareil les tuiles déjà chargées afin de pouvoir les afficher la fois suivante, même hors ligne. Lorsque l’option est activée, un Service Worker est inclus dans l’export et le navigateur l’enregistre. Lorsqu’elle est désactivée, aucun Service Worker n’est inclus ni enregistré (l’ajout à l’écran d’accueil fonctionne toujours). Elle ne peut pas être utilisée tant que « Ajouter à l’écran d’accueil (PWA) » est désactivé.",
     "state_url": "URL d'état",
     "state_url_note": "Reporte dans l’URL la carte, la position et le zoom affichés. Rouvrir la même URL restitue la même vue, et la fonction de partage suppose ce réglage. Lorsqu’il est désactivé, l’URL ne change pas.",
     "share_ui": "Fonction de partage",

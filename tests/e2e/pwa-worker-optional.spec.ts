@@ -176,9 +176,9 @@ test.describe('#106 キャッシュが無効なら Service Worker を登録さ�
     await openAppEdit();
     await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
     await expect(page.locator('iframe.preview-map')).toBeVisible({ timeout: 60_000 });
-    const src = (await page.locator('iframe.preview-map').getAttribute('src'))!;
-    await expect.poll(() => page.frames().some((f) => f.url() === src), { timeout: 30_000 }).toBe(true);
-    const frame: Frame = page.frames().find((f) => f.url() === src)!;
+    // Take the frame from the element itself; matching page.frames() by URL raced the first load.
+    const frame: Frame = (await (await page.locator('iframe.preview-map').elementHandle())!.contentFrame())!;
+    const src = frame.url();
     await expect.poll(() => frame.evaluate(() => Boolean((window as any).__maplatPreview)).catch(() => false), { timeout: 90_000 }).toBe(true);
     await page.waitForTimeout(5_000);
     const registrations = await frame.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope));

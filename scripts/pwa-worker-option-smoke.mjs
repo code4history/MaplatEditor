@@ -37,10 +37,10 @@ const EXPECTED = {
     cache_ui_note: '一度読み込んだタイルを端末に残し、次からはオフラインでも表示できるようにします。オンにするとエクスポートに Service Worker を含め、ブラウザに登録させます。オフにすると Service Worker を含めず、登録もさせません（ホーム画面への追加はそのまま使えます）。「ホーム画面に追加（PWA）」がオフのときは使えません。',
   },
   en: {
-    pwa_manifest: 'Add to home screen (PWA)',
-    pwa_manifest_note: 'Lets the exported app be added to the home screen of a smartphone or other device and opened like a standalone app. When on, a Web App Manifest and icons are emitted and the Manifest Settings section appears below. While it is off, Offline viewing (cache) cannot be used either.',
-    cache_ui: 'Offline viewing (cache)',
-    cache_ui_note: 'Keeps tiles that have been loaded once on the device so they can be shown next time, even offline. When on, a Service Worker is included in the export and the browser is made to register it. When off, no Service Worker is included or registered (adding to the home screen still works). It cannot be used while Add to home screen (PWA) is off.',
+    pwa_manifest: 'Add to Home Screen (PWA)',
+    pwa_manifest_note: 'Lets the exported app be added to the home screen of a smartphone or other device and opened like a standalone app. When on, a Web App Manifest and icons are emitted and the Manifest Settings section appears below. While it is off, Offline Viewing (Cache) cannot be used either.',
+    cache_ui: 'Offline Viewing (Cache)',
+    cache_ui_note: 'Keeps tiles that have been loaded once on the device so they can be shown next time, even offline. When on, a Service Worker is included in the export and the browser registers it. When off, no Service Worker is included or registered (adding to the home screen still works). It cannot be used while Add to Home Screen (PWA) is off.',
   },
 };
 const before = JSON.parse(await readFile(path.join(projectRoot, 'scripts/fixtures/pwa-cache-wording-before.json'), 'utf8'));
