@@ -269,7 +269,11 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
   });
 
   test('S3 ビューア: 外した地図では情報の窓にキャッシュの欄が無く、タイルは Weiwudi を通らない', async () => {
-    expect(exportedZip, 'S2 の書き出しがある').not.toBe('');
+    // S3 だけを走らせたとき（--grep）は、S2 と同じ保存済みの文書をここで書き出す
+    if (!exportedZip) {
+      await openAppEdit(uids.export);
+      exportedZip = await exportFromUi('export');
+    }
     const served = await serveExportedZip(exportedZip, path.join(e2eRoot, 'export-extract'));
     const { win, consoleLines, pageErrors } = await openInWindow(app, 'about:blank');
     // Resource Timing の既定の上限（250 件）で後の要求が落ちないように広げる
@@ -302,8 +306,10 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
       await loadMap('osm');
       expect(await win.evaluate(() => location.hash), '開いた地図は A').toContain('s:osm');
       observed.controlledA = await win.evaluate(() => Boolean(navigator.serviceWorker.controller));
-      await expect.poll(async () => (await entries()).filter((n) => n.includes('tile.openstreetmap.org/14/')).length, {
-        timeout: 60_000, message: 'A（osm）の実在のタイルの要求が来ない',
+      // 待つのは A のタイルの要求（直接でも Weiwudi 経由でも）。経路の合否は下で見る
+      await expect.poll(async () => (await entries()).filter((n) =>
+        n.includes('tile.openstreetmap.org/14/') || n.includes('weiwudi.example.com/api/cache/osm/14/')).length, {
+        timeout: 60_000, message: 'A（osm）のタイルの要求が来ない',
       }).toBeGreaterThan(0);
       await win.waitForTimeout(2_000);
       const entriesA = await entries();
@@ -316,6 +322,7 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
       observed.cacheContentA = await cacheA.evaluate((el) => (el as HTMLElement).style.display).catch(() => 'missing');
       await expect(cacheA, 'A を開いているとき、情報の窓にキャッシュの欄が無い').toBeHidden();
       expect(entriesA.filter((n) => n.includes('weiwudi.example.com/api/cache/osm/')), 'A のタイルは Weiwudi を通らない').toEqual([]);
+      expect(entriesA.filter((n) => n.includes('tile.openstreetmap.org/14/')).length, 'A のタイルは配信元へ直接取りに行く').toBeGreaterThan(0);
 
       await loadMap(B_SLUG);
       observed.hashB = await win.evaluate(() => location.hash);
