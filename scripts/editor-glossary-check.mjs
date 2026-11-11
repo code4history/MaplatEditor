@@ -775,7 +775,7 @@ export function runCheck({ root, write = false, base = null }) {
     r.usedExceptions.forEach((i) => used.add(i));
   }
   canon.exceptions.forEach((x, i) => {
-    if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, message: '違反を抑えなかった例外（文の変更で失効した例外は正本だけの PR で消す）' });
+    if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, index: i, message: '違反を抑えなかった例外（消し待ちか locale の変更待ち。消すのは正本だけの PR で）' });
   });
   // (7) 生成物
   const genBindings = renderBindings(g, all);
