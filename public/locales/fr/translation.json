@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "Aide : {{name}}",
-    "unavailable_reason": "Pourquoi « {{name}} » n’est pas disponible"
+    "unavailable_reason": "Pourquoi « {{name}} » n’est pas disponible",
+    "unavailable_reason_unnamed": "Pourquoi cet élément n’est pas disponible"
   },
   "resource_list": {
     "new_item": "Nouveau",

@@ -1300,7 +1300,8 @@
     },
     "untitled": "タイトル未設定",
     "help_about": "「{{name}}」の説明",
-    "unavailable_reason": "「{{name}}」を使えない理由"
+    "unavailable_reason": "「{{name}}」を使えない理由",
+    "unavailable_reason_unnamed": "この項目を使えない理由"
   },
   "resource_list": {
     "new_item": "新規追加",
