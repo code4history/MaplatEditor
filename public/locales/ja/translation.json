@@ -566,7 +566,8 @@
     "export_option_tiles_help": "地図を表示するために、画像を小さな正方形に分けたものです。地図を開くときに使います。サムネイル（一覧に出る小さな画像）も含みます。",
     "export_option_json": "地図の設定ファイル（JSON・POI）",
     "export_option_originals": "オリジナル画像",
-    "export_option_originals_note": "オリジナル画像をそのまま入れます。ファイルが大きくなり、写真の付帯情報を含むことがあります",
+    "export_option_originals_help": "オリジナル画像をそのまま入れます。",
+    "export_option_originals_warning": "ファイルが大きくなり、写真の付帯情報を含むことがあります。",
     "export_option_none_selected": "1 つ以上選んでください"
   },
   "mapupload": {

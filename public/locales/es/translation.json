@@ -566,7 +566,8 @@
     "export_option_tiles_help": "Las teselas son la imagen del mapa dividida en pequeños cuadrados para poder mostrar el mapa. Se usan al abrir el mapa. También se incluye la miniatura (la imagen pequeña que aparece en la lista).",
     "export_option_json": "Archivo de configuración del mapa (JSON y POI)",
     "export_option_originals": "Imagen original",
-    "export_option_originals_note": "Incluye el archivo de imagen original tal cual. El archivo será más grande y puede contener metadatos de la foto.",
+    "export_option_originals_help": "Incluye el archivo de imagen original tal cual.",
+    "export_option_originals_warning": "El archivo será más grande y puede contener metadatos de la foto.",
     "export_option_none_selected": "Seleccione al menos un elemento"
   },
   "mapupload": {

@@ -566,7 +566,8 @@
     "export_option_tiles_help": "Tile adalah gambar peta yang dibagi menjadi kotak-kotak kecil agar peta dapat ditampilkan. Tile dipakai saat peta dibuka. Termasuk gambar mini (gambar kecil yang tampil di daftar).",
     "export_option_json": "File pengaturan peta (JSON dan POI)",
     "export_option_originals": "Gambar asli",
-    "export_option_originals_note": "Menyertakan berkas gambar asli apa adanya. Berkas menjadi lebih besar dan dapat berisi metadata foto.",
+    "export_option_originals_help": "Menyertakan berkas gambar asli apa adanya.",
+    "export_option_originals_warning": "Berkas menjadi lebih besar dan dapat berisi metadata foto.",
     "export_option_none_selected": "Pilih setidaknya satu item"
   },
   "mapupload": {

@@ -566,7 +566,8 @@
     "export_option_tiles_help": "Tile là hình ảnh bản đồ được chia thành các ô vuông nhỏ để hiển thị bản đồ. Chúng được dùng khi mở bản đồ. Bao gồm cả ảnh thu nhỏ (ảnh nhỏ hiển thị trong danh sách).",
     "export_option_json": "Tệp cài đặt bản đồ (JSON và POI)",
     "export_option_originals": "Ảnh gốc",
-    "export_option_originals_note": "Đưa nguyên tệp ảnh gốc vào. Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
+    "export_option_originals_help": "Đưa nguyên tệp ảnh gốc vào.",
+    "export_option_originals_warning": "Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
     "export_option_none_selected": "Hãy chọn ít nhất một mục"
   },
   "mapupload": {

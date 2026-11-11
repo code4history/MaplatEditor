@@ -4890,7 +4890,11 @@ const goBack = async () => {
                             <input id="mapExportOptionOriginals" type="checkbox" class="form-check-input"
                                    data-testid="map-export-option-originals" v-model="mapExportOptions.originals" />
                             <label class="form-check-label" for="mapExportOptionOriginals">{{ t('mapedit.export_option_originals') }}</label>
-                            <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_note')" :ariaLabel="t('mapedit.export_option_originals')" data-testid="map-export-option-originals-note" />
+                            <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_help')" :ariaLabel="t('mapedit.export_option_originals')" data-testid="map-export-option-originals-help" />
+                            <!-- ui-grammar §2.4（U1）: ファイルサイズ・個人情報の注意は ? に入れず、選んだときに黄色の警告で常に見せる -->
+                            <DiagnosticFeedback v-if="mapExportOptions.originals" scope="field"
+                                                :items="[{ key: 'export-originals', severity: 'warning', message: t('mapedit.export_option_originals_warning') }]"
+                                                data-testid="map-export-option-originals-warning" />
                         </div>
                     </div>
                     <div class="modal-footer">

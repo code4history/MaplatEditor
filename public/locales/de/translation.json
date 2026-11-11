@@ -566,7 +566,8 @@
     "export_option_tiles_help": "Kacheln sind das Kartenbild, das in kleine Quadrate aufgeteilt ist, damit die Karte angezeigt werden kann. Sie werden beim Öffnen der Karte verwendet. Enthalten ist auch das Vorschaubild (das kleine Bild in der Liste).",
     "export_option_json": "Karteneinstellungsdatei (JSON und POI)",
     "export_option_originals": "Originalbild",
-    "export_option_originals_note": "Fügt die ursprüngliche Bilddatei unverändert hinzu. Die Datei wird größer und kann Fotometadaten enthalten.",
+    "export_option_originals_help": "Fügt die ursprüngliche Bilddatei unverändert hinzu.",
+    "export_option_originals_warning": "Die Datei wird größer und kann Fotometadaten enthalten.",
     "export_option_none_selected": "Wählen Sie mindestens ein Element aus"
   },
   "mapupload": {

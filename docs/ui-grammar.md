@@ -83,6 +83,9 @@
 
 取り消せない操作・ファイルサイズ・個人情報などの注意は、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に表示します。説明は `ContextHelp` に入れます。`EditorField.hint` や説明の直書きは復活させません。【人間決定（2026-11-11、推奨どおり）】§8 U1
 
+- 選んだときだけ効く注意は、選んだときに出す（例: 書き出しの「オリジナル画像」にチェックすると、ファイルが大きくなり写真の付帯情報を含むことがあるという warning が出る。「そのまま入れます」という説明は `ContextHelp`）。1 つの文言に説明と注意が混ざっていたら、キーを分ける。【AI 設計】
+- 2026-11-11 に `ContextHelp` の説明 68 件を全数見て、ファイルサイズ・個人情報・取り消せないことの注意が入っていたのは上の 1 件だけだった。`settings.editor_api_key_notice`（公開用とは別のキーを発行する）は鍵の扱いの説明で、この 3 つには当たらないので `ContextHelp` に残した。【AI 設計】
+
 ## 3. エラー・警告
 
 ### 3.1 決まり
@@ -211,7 +214,7 @@
 
 ### 7.1 説明の直書き
 
-**A. 決まりに反する（§2.2）: 15 件・8 ファイル**
+**A. 決まりに反する（§2.2）: 14 件・7 ファイル**
 
 | # | 場所 | 形 | キー |
 |---|---|---|---|
@@ -219,7 +222,6 @@
 | 2 | `src/views/PoiEdit.vue:293` | 同上 | `poiio.format_csv_desc` |
 | 3 | `src/views/PoiEdit.vue:307` | 同上 | `poiio.format_json_desc` |
 | 4 | `src/views/PoiEdit.vue:322` | ダイアログの `form-text` | `poiio.export_option_images_help` |
-| 5 | `src/views/MapEdit.vue:4885` | ダイアログの `form-text`（同じ小窓の「タイル」は `ContextHelp` なので、1 つの小窓の中で形が揃っていない） | `mapedit.export_option_originals_note` |
 | 6 | `src/components/PoiMergeImportDialog.vue:103` | 選択肢の下の `p.small.text-muted` | `poiio.import_overwrite_note` |
 | 7 | `src/components/PoiMergeImportDialog.vue:148` | ダイアログの `p.small.text-muted` | `poiio.import_geojson_hint` |
 | 8 | `src/components/PoiAttributeForm.vue:243` | `form-text` の入力例 | `poiedit.directgo_examples` |
@@ -231,12 +233,13 @@
 | 14 | `src/views/Settings.vue:439` | `p.form-text` | `settings.mcp_recommend_loopback` |
 | 15 | `src/components/mapedit/MercTileSetModal.vue:116` | `EditorField` の `#help` slot に `span.text-muted.small` | `merc.modal_attr_help` |
 
-**B. U1〜U7 の決定を適用する箇所: 7 件**
+**B. U1〜U7 の決定を適用する箇所: 8 件**
 
-16・17 は field warning、18・19 は `ContextHelp` へ移す。20・21 は判断の本文として許可。22 は節内の 1 行の空表示として許可。
+5 は説明（「そのまま入れます」）を `ContextHelp` に、ファイルサイズと写真の付帯情報の注意を、オリジナル画像を選んだときの field warning に分ける（2026-11-11 のレビューで A から移した。初めは注意ごと `ContextHelp` に入れていた）。16・17 は field warning、18・19 は `ContextHelp` へ移す。20・21 は判断の本文として許可。22 は節内の 1 行の空表示として許可。
 
 | # | 場所 | 中身 | 適用する決定 |
 |---|---|---|---|
+| 5 | `src/views/MapEdit.vue:4885` | ダイアログの `form-text`。説明とファイルサイズ・写真の付帯情報の注意が 1 文に入っている（`mapedit.export_option_originals_note`。`_help` と `_warning` に分けた） | U1 |
 | 16 | `src/components/basemap/BaseMapEdit.vue:411` | 置換した画像は保存・元に戻すの対象外という注意（`editor_ui.thumbnail_immediate_note`） | U1 |
 | 17 | `src/views/MapEdit.vue:5195` | 同上（同じキー） | U1 |
 | 18 | `src/views/MapEdit.vue:5153` | 写せなかったときの代わりの手の案内（エラーの直後。`iiif_metadata.recopy_failed_help`） | U1 |

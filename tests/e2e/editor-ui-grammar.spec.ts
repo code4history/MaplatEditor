@@ -68,9 +68,18 @@ for (const phase of ['before', 'after']) {
       await expect(page.getByTestId('map-title')).toBeVisible();
       await page.locator('[data-editor-action="export"]').click();
       await expect(page.getByTestId('map-export-options')).toBeVisible();
+      if (phase === 'after') {
+        // POI のソースを保存した通知は、地図の編集画面へ移ったら消えている（ui-grammar §5.3）
+        await expect(page.getByTestId('operation-notice')).toHaveCount(0);
+        await expect(page.getByTestId('map-export-option-originals-help').locator('i.bi-question-circle')).toHaveCount(1);
+        // ファイルサイズ・写真の付帯情報の注意は ? に入れず、オリジナル画像を選んだときに黄色の警告で出す（§2.4）
+        await expect(page.getByTestId('map-export-option-originals-warning')).toHaveCount(0);
+        await page.getByTestId('map-export-option-originals').check();
+        await expect(page.getByTestId('map-export-option-originals-warning')).toHaveAttribute('data-diagnostic-scope', 'field');
+        await expect(page.getByTestId('map-export-option-originals-warning')).toHaveAttribute('data-diagnostic-severity', 'warning');
+      }
       await shot('map-export');
       if (phase === 'after') {
-        await expect(page.getByTestId('map-export-option-originals-note').locator('i.bi-question-circle')).toHaveCount(1);
         await page.getByTestId('map-export-option-tiles').uncheck();
         await page.getByTestId('map-export-option-json').uncheck();
         await expect(page.getByTestId('map-export-options-confirm')).toBeDisabled();

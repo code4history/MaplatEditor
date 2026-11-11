@@ -12,7 +12,7 @@
 //        原画像入りは originals/<新しい uid>.<ext> に置かれる（AC3）
 //   (e)  アプリの書き出しで includeTiles:false のとき tiles/・merc/ のタイルの実体が無く、
 //        app JSON と maps/*.json の中身（タイルの URL を含む）は includeTiles:true と同じ（AC4）。進捗は 100% を超えない
-//   (f)  11 言語に 8 キーがある（AC6）
+//   (f)  11 言語に 9 キーがある（AC6。ui-grammar §2.4 でオリジナル画像の説明と注意を分けた）
 //
 // 基準（b）の作り方: 変更前の master で `node scripts/nov26-m6-t8-export-options-smoke.mjs --write-baseline` を走らせ、
 // scripts/fixtures/nov26-m6-t8-default-map-export.json に保存した（このファイルを手で書き換えない）。
@@ -442,14 +442,15 @@ try {
     }
 
     // ===================================================================
-    // (f) 11 言語に 8 キー（nov26-editor-export-wording でタイルの説明 export_option_tiles_help を追加。
+    // (f) 11 言語に 9 キー（ui-grammar §2.4 でオリジナル画像の説明と注意を分けた。nov26-editor-export-wording でタイルの説明 export_option_tiles_help を追加。
     //     nov26-editor-appexport-dialog でアプリの書き出しが小窓へ移り、appedit.export_exclude_tiles は無くなった）
     // ===================================================================
     {
       const KEYS = [
         'mapedit.export_options_title', 'mapedit.export_option_tiles', 'mapedit.export_option_tiles_help',
         'mapedit.export_option_json',
-        'mapedit.export_option_originals', 'mapedit.export_option_originals_note', 'mapedit.export_option_none_selected',
+        'mapedit.export_option_originals', 'mapedit.export_option_originals_help', 'mapedit.export_option_originals_warning',
+        'mapedit.export_option_none_selected',
         'dataupload.error_no_json',
       ];
       const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
@@ -463,7 +464,7 @@ try {
           assert.ok(value.trim().length > 0, '(f) ' + lang + ' の ' + key + ' が空でない');
         }
       }
-      console.log('ok (f): 11 言語に 8 キーがある');
+      console.log('ok (f): 11 言語に 9 キーがある');
     }
 
     console.log('nov26-m6-t8 export options OK');
