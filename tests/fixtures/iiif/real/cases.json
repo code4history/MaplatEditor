@@ -18,6 +18,7 @@
         "height": 2705
       },
       "imageService": "https://dl.ndl.go.jp/api/iiif/948741/R0000001",
+      "deliveryServiceUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001",
       "imageVersion": "2",
       "level": 1,
       "bindingKeys": [
@@ -33,8 +34,7 @@
       },
       "license": "Custom",
       "verdict": {
-        "kind": "metadata-only",
-        "reason": "cors-not-wildcard"
+        "kind": "deliverable"
       },
       "requiresCoreServiceFix": false
     }
@@ -60,6 +60,7 @@
         "height": 3024
       },
       "imageService": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen",
+      "deliveryServiceUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen",
       "imageVersion": "3",
       "level": 1,
       "bindingKeys": [
@@ -93,6 +94,7 @@
         "height": 7868
       },
       "imageService": "https://stacks.stanford.edu/image/iiif/zc368qw3281%2Fzc368qw3281_00_0001",
+      "deliveryServiceUrl": "https://stacks.stanford.edu/image/iiif/zc368qw3281/zc368qw3281_00_0001",
       "imageVersion": "2",
       "level": 2,
       "bindingKeys": [
@@ -133,6 +135,7 @@
         "height": 10328
       },
       "imageService": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e",
+      "deliveryServiceUrl": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e",
       "imageVersion": "2",
       "level": 2,
       "bindingKeys": [
@@ -172,6 +175,7 @@
         "height": 6671
       },
       "imageService": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115",
+      "deliveryServiceUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115",
       "imageVersion": "2",
       "level": 2,
       "bindingKeys": [
@@ -212,6 +216,7 @@
         "height": 3543
       },
       "imageService": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2",
+      "deliveryServiceUrl": "https://iiif.wellcomecollection.org/image/b18035723_0001.JP2",
       "imageVersion": "2",
       "level": 2,
       "bindingKeys": [
@@ -256,6 +261,7 @@
         "height": 5728
       },
       "imageService": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41",
+      "deliveryServiceUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41",
       "imageVersion": "3",
       "level": 2,
       "bindingKeys": [
@@ -300,6 +306,7 @@
         "height": 6496
       },
       "imageService": "https://iiif.llyfrgell.cymru/iiif/4398333",
+      "deliveryServiceUrl": "https://iiif.llyfrgell.cymru/iiif/04/398/04398333.jp2",
       "imageVersion": "2",
       "level": 1,
       "bindingKeys": [
@@ -345,6 +352,7 @@
         "height": 3880
       },
       "imageService": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
+      "deliveryServiceUrl": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9",
       "imageVersion": "2",
       "level": 2,
       "bindingKeys": [

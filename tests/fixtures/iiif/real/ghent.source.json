@@ -5,6 +5,10 @@
   "manifestFinalUrl": "https://libcatalog.ugent.be/view/iiif/presentation/32RUG_INST/12290974080009161/manifest?iiifVersion=3",
   "infoUrl": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9/info.json",
   "infoFinalUrl": "https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
     "content-type": "application/json"

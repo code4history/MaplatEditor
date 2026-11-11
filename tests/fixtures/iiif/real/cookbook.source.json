@@ -5,9 +5,13 @@
   "manifestFinalUrl": "https://iiif.io/api/cookbook/recipe/0005-image-service/manifest.json",
   "infoUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json",
   "infoFinalUrl": "https://iiif.io/api/image/3.0/example/reference/918ecd18c2592080851777620de9bcb5-gottingen/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
-    "content-type": "application/json"
+    "content-type": "application/ld+json"
   },
   "terms": "仕様に付随する JSON の例・試験資料は CC0。写真の権利とは別。",
   "termsUrl": "https://iiif.io/api/annex/notes/disclaimer/",

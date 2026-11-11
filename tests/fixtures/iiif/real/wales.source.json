@@ -5,9 +5,14 @@
   "manifestFinalUrl": "https://iiif.llyfrgell.cymru/manifests/2.0/4398332/manifest.json",
   "infoUrl": "https://iiif.llyfrgell.cymru/iiif/4398333/info.json",
   "infoFinalUrl": "https://iiif.llyfrgell.cymru/iiif/4398333/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
-    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\""
+    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\"",
+    "vary": "Origin"
   },
   "terms": "図書館が作成したメタデータ・説明文は CC0。対象は同館の目録で、第三者権利の記載なし。",
   "termsUrl": "https://www.library.wales/copyright",

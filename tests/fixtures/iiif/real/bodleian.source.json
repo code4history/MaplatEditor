@@ -5,9 +5,14 @@
   "manifestFinalUrl": "https://iiif.bodleian.ox.ac.uk/iiif/manifest/acd9492e-25fa-4286-9fe6-e0cf2fc28106.json",
   "infoUrl": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e/info.json",
   "infoFinalUrl": "https://iiif.bodleian.ox.ac.uk/iiif/image/27e0b7cb-ae81-4bdc-a127-d3815147690e/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
-    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\""
+    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\"",
+    "vary": "Accept"
   },
   "terms": "対象資料の attribution が CC BY 4.0 を指定。一般画像の CC BY-NC と区別し、個別表示とクレジットを保持する。",
   "termsUrl": "https://digital.bodleian.ox.ac.uk/terms/",

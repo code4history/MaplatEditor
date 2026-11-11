@@ -5,9 +5,14 @@
   "manifestFinalUrl": "https://collections.leventhalmap.org/search/commonwealth:x059cb10w/manifest",
   "infoUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115/info.json",
   "infoFinalUrl": "https://iiif.digitalcommonwealth.org/iiif/2/commonwealth:x059cb115/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
-    "content-type": "application/json;charset=utf-8"
+    "content-type": "application/json;charset=utf-8",
+    "vary": "Accept, Accept-Charset, Accept-Encoding, Accept-Language, Origin"
   },
   "terms": "リポジトリのメタデータは CC0。対象資料の Terms of Use は No known restrictions on use。",
   "termsUrl": "https://www.bpl.org/digitization/metadata-resources/",

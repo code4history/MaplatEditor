@@ -5,7 +5,12 @@
   "manifestFinalUrl": "https://dl.ndl.go.jp/api/iiif/948741/manifest.json",
   "infoUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001/info.json",
   "infoFinalUrl": "https://dl.ndl.go.jp/api/iiif/948741/R0000001/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
     "content-type": "application/json; charset=utf-8"
   },
   "terms": "国立国会図書館作成書誌データの無償利用。画像は保存しない。",

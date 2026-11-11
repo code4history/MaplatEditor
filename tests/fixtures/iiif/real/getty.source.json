@@ -5,6 +5,10 @@
   "manifestFinalUrl": "https://media.getty.edu/iiif/manifest/bff54470-38c3-4865-bd58-b550f19b715e",
   "infoUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41/info.json",
   "infoFinalUrl": "https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
   "infoResponseHeaders": {
     "access-control-allow-origin": "*",
     "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/3/context.json\""

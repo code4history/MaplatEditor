@@ -2,7 +2,7 @@
 
 取得日: 2026-11-11。提供元の重複がない 9 件。Manifest 全文と、選択対象の **先頭 canvas の画像サービス** の info.json のみを保存する。画像本体は保存しない。33 枚・36 枚等の資料でも、全画像の info.json を取得したわけではない。
 
-各 `*.source.json` に取得 URL、リダイレクト後の URL、確認した利用条件と根拠 URL、クレジット、実際に観測した CORS ヘッダ、元バイト列の SHA-256 を記録した。fixture の利用条件はリポジトリのソフトウェアライセンスとは別であり、元の権利表示を保持する。
+各 `*.source.json` に取得 URL、リダイレクト後の URL、確認した利用条件と根拠 URL、クレジット、Editor の main と同じ要求ヘッダ（`Origin: https://example.org`）で取得したときの CORS ヘッダ、元バイト列の SHA-256 を記録した。fixture の利用条件はリポジトリのソフトウェアライセンスとは別であり、元の権利表示を保持する。
 
 `cases.json` の題名・枚数・寸法・書誌の見本は JSON 原文を読んで固定した。製品の実装結果やスナップショットから生成していない。確認を行ったのは実装エージェントであり、人間の承認済みという意味ではない。寸法は info.json の申告値で、画像をダウンロードしてデコードした実測値ではない。
 
@@ -45,7 +45,8 @@
 ## 見つかった差異と試験範囲
 
 - Wellcome は Presentation 3 の中に `@id` / `@type: ImageService2` がある。Core の修正前はサイズ確認に到達しない。Editor は固定 Core のまま、この差だけを `TODO(core)` の互換期待値として分離する。題名・書誌・書誌のみの写し直しは省略しない。
-- NDL の今回の info.json 応答には CORS `*` がないため、保存した応答に対する Editor の取り込み期待値は `metadata-only / cors-not-wildcard`。現在のサービス全体が常にこの状態だとは主張しない。
+- NDL の info.json は、Origin の無い要求には `Access-Control-Allow-Origin` を返さず、Origin を付けると `*` を返す。最初の記録は Origin なしで取ったため NDL を `metadata-only / cors-not-wildcard` と誤って固定していた。Editor の main は Origin を付けて取得する（`electron/services/iiifFetch.ts`）ので、実アプリでは配信できる。全件を Origin 付きで取り直し、本文の SHA-256 は変わらないことを確かめた。
+- 配信に使う URL は info.json の `id`／`@id`（`deliveryServiceUrl`）。Stanford（`%2F` と `/`）と Wales（`4398333` と `04/398/04398333.jp2`）は Manifest のサービス id と綴りが違う。どちらの綴りでも 64 px 幅の画像要求が 200 を返すことを確かめた（画像は保存していない）。
 - Getty の題名は原文どおり `[ ]`。canvas の `Full Front` や説明文へ勝手に置き換えない。canvas 側にも書誌 1 行がある。
 - Ghent の題名は `none` 言語で末尾空白がある。これも保存時に修正しない。
 - Boston の Creator 行には配列の中に配列がある。Core は仕様どおり一段までしか読まないため、内側の作者名は書誌表へ写らない。今回の修正対象には広げていない。題名・画像サービス・サイズの判定には影響しない。

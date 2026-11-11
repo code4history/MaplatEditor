@@ -73,6 +73,13 @@ for (const { id, expected: e } of cases) {
     // 初回取り込みは canvas の寸法を expected に渡さない（ダイアログと同じ入口）。
     const verdict = verdictOf({ facts });
     assert.equal(verdict.kind, e.verdict.kind);
+    // 応答ヘッダは、アプリの main と同じく Origin を付けた要求で記録した値。
+    assert.equal(source.infoRequestHeaders.origin, 'https://example.org');
+    // ヘッダが無ければ書誌だけになる。NDL は Origin の無い要求にヘッダを返さないので、
+    // Origin なしで記録した fixture では NDL が書誌だけに見えてしまう（以前の記録の誤り）。
+    assert.deepEqual(verdictOf({ facts: { ...facts, accessControlAllowOrigin: undefined } }), {
+      kind: 'metadata-only', reason: 'cors-not-wildcard', message: 'iiif_import.reason.cors-not-wildcard',
+    });
     if (e.verdict.kind === 'metadata-only') {
       assert.deepEqual(verdict, { ...e.verdict, message: 'iiif_import.reason.' + e.verdict.reason });
     } else {
@@ -80,6 +87,8 @@ for (const { id, expected: e } of cases) {
       assert.equal(verdict.info.level, e.level);
       assert.equal(verdict.info.tiling, 'arbitrary');
       assert.deepEqual({ width: verdict.info.width, height: verdict.info.height }, e.imageSize);
+      // 配信に使うのは info.json の id（Stanford・Wales は Manifest のサービス id と綴りが違う）。
+      assert.equal(verdict.info.serviceUrl, e.deliveryServiceUrl);
     }
     assert.deepEqual(verdictOf({ facts, expected: { ...e.imageSize, width: e.imageSize.width + 1 } }), {
       kind: 'metadata-only', reason: 'size-mismatch', message: 'iiif_import.reason.size-mismatch',
