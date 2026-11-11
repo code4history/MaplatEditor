@@ -80,6 +80,9 @@ for (const phase of ['before', 'after']) {
       }
       await shot('map-export');
       if (phase === 'after') {
+        // 何も選ばない状態を作る（上で選んだオリジナル画像も外す。外すと注意も消える）
+        await page.getByTestId('map-export-option-originals').uncheck();
+        await expect(page.getByTestId('map-export-option-originals-warning')).toHaveCount(0);
         await page.getByTestId('map-export-option-tiles').uncheck();
         await page.getByTestId('map-export-option-json').uncheck();
         await expect(page.getByTestId('map-export-options-confirm')).toBeDisabled();
