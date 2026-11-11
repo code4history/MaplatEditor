@@ -364,7 +364,7 @@
 | `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | T11 Q3 ルール | §3.2 の例外（`PoiReferenceEditor` など） |
 | `diag.raw-alert` | `class` に `alert` を持つ要素 | T11 R3 | `BaseMapEdit` と `AssetEdit` の競合（C45/C46） |
 | `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | T11 C49/C50、T10M11 | なし |
-| `dialog.notify-only` | `showMessageBox` の `buttons` が 1 個 | EditV1:127 | なし（§8 U3 付随） |
+| `dialog.notify-only` | `showMessageBox`（`window.dialog.showMessageBox` と自前の wrapper の `showMessageBox(...)`）の `buttons` が 1 個。`buttons` を書かないもの（Electron では OK 1 個）も 1 個とみなす。`buttons` や引数を変数で渡すなど数の分からないものも違反とし、許可リストで個別に通す（文言のキーの無い呼び出しは `args:<引数の書き方>` をキーにする） | EditV1:127 | ボタンの数が保存済みかで変わる書き出しの確認（`editor_ui.export_dirty_prompt`）と、`useRevisionedAssetSave` の wrapper の中継（§5.1） |
 | `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
 | `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | 節内の空表示（§8 U7） |
 | `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |

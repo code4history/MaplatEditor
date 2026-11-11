@@ -30,6 +30,18 @@ function classes(node) {
   return node.props.filter((p) => propName(p) === 'class').flatMap((p) => p.type === 6 ? (p.value?.content ?? '').split(/\s+/) : strings(p.exp?.content ?? ''));
 }
 
+// showMessageBox のボタンの数。buttons を書かなければ Electron は OK を 1 個だけ出す ∴ 1。
+// 変数で渡すなど、ソースから数が決まらないときは null（違反として扱い、許可リストで個別に通す）。
+function buttonCount(call, ast) {
+  const options = call.arguments.find(ts.isObjectLiteralExpression);
+  if (!options) return null;
+  const buttons = options.properties.find((p) => p.name?.getText(ast) === 'buttons');
+  if (!buttons) return options.properties.some(ts.isSpreadAssignment) ? null : 1;
+  if (!ts.isPropertyAssignment(buttons) || !ts.isArrayLiteralExpression(buttons.initializer)) return null;
+  if (buttons.initializer.elements.some(ts.isSpreadElement)) return null;
+  return buttons.initializer.elements.length;
+}
+
 export function inspectSource(file, source) {
   const violations = [];
   const add = (rule, offset, hit, selectors = {}) => {
@@ -39,13 +51,16 @@ export function inspectSource(file, source) {
     const ast = expression(text);
     visitTs(ast, (node) => {
       if (!ts.isCallExpression(node)) return;
-      const callee = node.expression.getText(ast);
+      // 型の注釈つきの長い callee（(window as unknown as {…}).dialog.showMessageBox）も 1 行に縮める
+      const callee = node.expression.getText(ast).replace(/\s+/g, ' ');
       if (/^(?:(?:window|globalThis)\.)?(?:alert|confirm|prompt)$/.test(callee)) add('dialog.native-browser', offset + node.getStart(ast), callee);
-      if (!/\.showMessageBox$/.test(callee)) return;
-      const options = node.arguments.find(ts.isObjectLiteralExpression);
-      const buttons = options?.properties.find((p) => p.name?.getText(ast) === 'buttons');
-      if (buttons && ts.isPropertyAssignment(buttons) && ts.isArrayLiteralExpression(buttons.initializer) && buttons.initializer.elements.length === 1) {
-        add('dialog.notify-only', offset + node.getStart(ast), callee, { key: keys(node.getText(ast))[0] });
+      // 自前の wrapper（showMessageBox(...)）も同じに調べる
+      if (!/(?:^|\.)showMessageBox$/.test(callee)) return;
+      const count = buttonCount(node, ast);
+      if (count === 1 || count === null) {
+        // 許可リストで個別に通せるよう、文言のキーが無い呼び出しは引数の書き方を選択子にする
+        const key = keys(node.getText(ast))[0] ?? `args:${node.arguments.map((a) => a.getText(ast)).join(',').replace(/\s+/g, ' ')}`;
+        add('dialog.notify-only', offset + node.getStart(ast), count === null ? `${callee}（ボタンの数が分からない）` : callee, { key });
       }
     });
   };

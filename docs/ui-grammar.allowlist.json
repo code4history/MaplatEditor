@@ -149,6 +149,13 @@
     "source": "docs/ui-grammar.md#4-空状態読み込み失敗"
   },
   {
+    "rule": "dialog.notify-only",
+    "file": "src/composables/useRevisionedAssetSave.ts",
+    "key": "args:opts",
+    "reason": "保存の競合の確認（読み直す・上書き）と破棄の確認（OK・Cancel）を出す wrapper の中継。中継そのものはボタンを持たず、wrapper の呼び出し 2 か所は検査器がボタン 2 個と確かめている。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  },
+  {
     "rule": "help.muted-text",
     "file": "src/views/AppEdit.vue",
     "key": "appedit.description",
@@ -168,6 +175,13 @@
     "testid": "app-export-options",
     "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
     "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/views/AppEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
   },
   {
     "rule": "dialog.ad-hoc-modal",
@@ -247,6 +261,13 @@
     "source": "docs/ui-grammar.md#24-常設の注意書き"
   },
   {
+    "rule": "dialog.notify-only",
+    "file": "src/views/MapEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
+  },
+  {
     "rule": "help.key-outside-contexthelp",
     "file": "src/views/PoiEdit.vue",
     "key": "poiedit.read_only_notice",
@@ -259,5 +280,12 @@
     "testid": "poi-export-options",
     "reason": "入力・選択を伴う既存モーダル。共通枠への抽出は未実施のため、この入口だけを許可する。",
     "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
+  },
+  {
+    "rule": "dialog.notify-only",
+    "file": "src/views/PoiEdit.vue",
+    "key": "editor_ui.export_dirty_prompt",
+    "reason": "未保存のまま書き出すかを判断させる確認（保存して実施・保存済みを書き出す・キャンセルの 2〜3 個）。保存済みかどうかでボタンの数が変わるので配列を変数で渡しており、検査器は数を決められない。通知だけではない。",
+    "source": "docs/ui-grammar.md#51-いつダイアログを出すか"
   }
 ]

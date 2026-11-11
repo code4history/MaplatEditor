@@ -24,6 +24,19 @@ for (const [markup, rule] of [
 assert.ok(rules('window.confirm("削除")', 'src/test.ts').includes('dialog.native-browser'));
 assert.ok(rules(vue('', 'window.alert("失敗")')).includes('dialog.native-browser'));
 assert.ok(rules(vue('', 'window.dialog.showMessageBox({buttons: ["OK"], message: "通知"})')).includes('dialog.notify-only'));
+// buttons を書かない（Electron では OK 1 個）・buttons を変数で渡す・自前の wrapper も通知だけとみなす。
+assert.ok(rules(vue('', 'window.dialog.showMessageBox({type: "info", message: "通知"})')).includes('dialog.notify-only'), 'buttons なし');
+assert.ok(rules(vue('', 'const buttons = ["OK"]\nwindow.dialog.showMessageBox({buttons, message: "通知"})')).includes('dialog.notify-only'), 'buttons の短縮形');
+assert.ok(rules(vue('', 'window.dialog.showMessageBox({buttons: labels, message: "通知"})')).includes('dialog.notify-only'), 'buttons を変数で渡す');
+assert.ok(rules(vue('', 'window.dialog.showMessageBox({buttons: [...labels], message: "通知"})')).includes('dialog.notify-only'), 'buttons を展開で渡す');
+assert.ok(rules(vue('', 'window.dialog.showMessageBox(options)')).includes('dialog.notify-only'), '引数を変数で渡す');
+assert.ok(rules('showMessageBox({type: "info", buttons: ["OK"], message: "通知"})', 'src/test.ts').includes('dialog.notify-only'), '自前の wrapper');
+assert.ok(rules('showMessageBox({type: "info", message: "通知"})', 'src/test.ts').includes('dialog.notify-only'), '自前の wrapper で buttons なし');
+// 2 個以上と分かる確認は通す。名前が似ているだけの別の関数は調べない。
+assert.deepEqual(rules('showMessageBox({buttons: ["OK", "Cancel"], cancelId: 1, message: "確認"})', 'src/test.ts'), []);
+assert.deepEqual(rules('window.dialog.showMessageBoxSync({message: "x"}); showMessageBoxes({message: "x"})', 'src/test.ts'), []);
+// 文言のキーの無い呼び出しも、許可リストで個別に通せる選択子（引数の書き方）が付く。
+assert.equal(inspectSource('src/test.ts', 'window.dialog.showMessageBox(opts)')[0].key, 'args:opts');
 assert.deepEqual(rules(vue('<ContextHelp :text="t(\'x_help\')" :ariaLabel="t(\'label\')"/><span class="text-danger">*</span>')), []);
 assert.deepEqual(rules(vue('', '// confirm("コメント")\nconst text = "alert(1)"')), []);
 assert.deepEqual(rules(vue('', 'emit("confirm")')), []);
