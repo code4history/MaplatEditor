@@ -384,6 +384,7 @@
 ### 9.4 置き場所
 
 - CI: `scripts/ci/run-smokes.mjs` は `package.json` の `smoke:*` を全数実行するので、`smoke:editor-ui-grammar` と `smoke:editor-ui-grammar-fixtures` は足すだけで CI に載る（済み）
+- 検査の報告 `editor-ui-grammar-report.json` を CI の artifact に上げるのは、別の PR にする。`.github/workflows/test.yml` は用語集の検査の正本側で、locale を変えるこの PR と同じ PR では変えられない（用語集の関門 1。AGENTS.md「UI Wording & Glossary」）
 - AGENTS.md の「UI Grammar」の節からこの文書へ案内する。用語集の節と並べる（済み）
 - タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル。このリポジトリの外なので未着手）
 
