@@ -745,6 +745,8 @@
     "source_iiif_metadata_default": "Default (do not show)",
     "source_iiif_metadata_hidden": "Do not show",
     "source_iiif_metadata_all": "Show a table of all bibliographic fields",
+    "source_no_cache": "不纳入离线显示",
+    "source_no_cache_note": "即使应用的「离线显示（缓存）」已开启，此地图的瓦片也不会保留在设备上，而是每次都从提供方读取。适用于提供方不允许将瓦片批量下载到设备的地图（如 OpenStreetMap 的官方瓦片）。对于已排除的地图，查看器也不会提供批量获取瓦片的操作。仅在应用的「添加到主屏幕（PWA）」与「离线显示（缓存）」均开启时才能使用。",
     "source_advanced": "直接编辑设置文件（JSON）",
     "success_save": "应用设置文件已保存。",
     "error_saving": "应用设置文件保存失败。",

@@ -745,6 +745,8 @@
     "source_iiif_metadata_default": "Default (do not show)",
     "source_iiif_metadata_hidden": "Do not show",
     "source_iiif_metadata_all": "Show a table of all bibliographic fields",
+    "source_no_cache": "Loại khỏi hiển thị ngoại tuyến",
+    "source_no_cache_note": "Ngay cả khi «Hiển thị ngoại tuyến (bộ nhớ đệm)» của ứng dụng đang bật, các tile của bản đồ này không được giữ lại trên thiết bị mà được tải từ nhà cung cấp mỗi lần. Dùng cho các bản đồ mà nhà cung cấp không cho phép tải hàng loạt tile về thiết bị (chẳng hạn tile chính thức của OpenStreetMap). Với các bản đồ đã loại ra, trình xem cũng không cung cấp thao tác tải hàng loạt tile. Chỉ dùng được khi cả «Thêm vào màn hình chính (PWA)» và «Hiển thị ngoại tuyến (bộ nhớ đệm)» của ứng dụng đều đang bật.",
     "source_advanced": "Chỉnh sửa trực tiếp tệp cài đặt (JSON)",
     "success_save": "Đã lưu tệp cài đặt ứng dụng.",
     "error_saving": "Lưu tệp cài đặt ứng dụng thất bại.",

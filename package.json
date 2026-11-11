@@ -349,6 +349,8 @@
     "test:e2e:electron-quit-timeout": "playwright test tests/e2e/electron-quit-timeout.spec.ts",
     "smoke:app-source-legacy-roundtrip": "node scripts/app-source-legacy-roundtrip-smoke.mjs",
     "test:e2e:app-source-legacy-roundtrip": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/app-source-legacy-roundtrip.spec.ts",
+    "smoke:map-cache-exclusion": "node scripts/map-cache-exclusion-smoke.mjs",
+    "test:e2e:map-cache-exclusion": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/map-cache-exclusion.spec.ts",
     "smoke:editor-ui-grammar": "node scripts/editor-ui-grammar-check.mjs --report editor-ui-grammar-report.json",
     "smoke:editor-ui-grammar-fixtures": "node scripts/editor-ui-grammar-check-smoke.mjs",
     "smoke:editor-operation-notice": "node --experimental-strip-types scripts/editor-operation-notice-smoke.mjs",

@@ -745,6 +745,8 @@
     "source_iiif_metadata_default": "Default (do not show)",
     "source_iiif_metadata_hidden": "Do not show",
     "source_iiif_metadata_all": "Show a table of all bibliographic fields",
+    "source_no_cache": "Von der Offline-Anzeige ausnehmen",
+    "source_no_cache_note": "Auch wenn „Offline-Anzeige (Cache)“ der App aktiv ist, werden die Kacheln dieser Karte nicht auf dem Gerät behalten, sondern jedes Mal vom Anbieter geladen. Gedacht für Karten, deren Anbieter das massenhafte Herunterladen von Kacheln auf Geräte nicht erlaubt (etwa die offiziellen OpenStreetMap-Kacheln). Für ausgenommene Karten bietet der Viewer auch kein gesammeltes Herunterladen der Kacheln an. Diese Option lässt sich nur verwenden, solange „Zum Startbildschirm hinzufügen (PWA)“ und „Offline-Anzeige (Cache)“ der App beide aktiv sind.",
     "source_advanced": "Einstellungsdatei (JSON) direkt bearbeiten",
     "success_save": "Die Einstellungsdatei der App wurde gespeichert.",
     "error_saving": "Speichern der Einstellungsdatei der App fehlgeschlagen.",

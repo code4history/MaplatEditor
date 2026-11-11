@@ -49,7 +49,7 @@ import {
   envelopeToBbox,
   type AppSource,
 } from "../utils/appSourceModel";
-import { resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
+import { isProviderKind, resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
 import type { LangResource } from "../utils/langResource";
 
 const props = defineProps<{
@@ -64,6 +64,9 @@ const props = defineProps<{
   // m6-t10: マスタの生 data。**プレースホルダ（上書きしなかった場合に効く値）専用**であり、
   // マージ結果ではない。null = マスタ欠落（§3.6 で欠落表示になる）
   masterData?: Record<string, any> | null;
+  // #85: アプリのオフライン表示（キャッシュ）が働くか。判定は親（AppEdit の cacheUsable）の 1 か所だけ。
+  // 偽のとき「オフライン表示から外す」は不活性にし、理由を ? で出す（値は消さない）
+  cacheEnabled?: boolean;
 }>();
 const emit = defineEmits<{
   // nov26-m6-t4（#26）: source は prop なので子からは書き換えない。変更は新しいオブジェクトを
@@ -158,6 +161,22 @@ function setIiifMetadata(raw: string) {
   else delete next.iiifMetadata;
   commitSource(next);
 }
+
+// #85: オフライン表示から外す。アプリ所有の値なのでトップレベルに置き、true だけを持つ
+// （外すとキーごと消す ＝ 既定の出力を変えない）。
+function setNoCache(checked: boolean) {
+  const next = copySource();
+  if (checked) next.noCache = true;
+  else delete next.noCache;
+  commitSource(next);
+}
+
+// 欄を出すのは、Viewer が Weiwudi へ登録しうる地図だけ: Maplat の地図と、provider でないベースマップ
+// （組み込み・tms）。provider（Google・Mapbox・MapLibre）は元から登録されないので出さない。
+// マスタが引けないソースは欠落の表示だけにする（他の欄と同じ）。
+const showNoCache = computed(() =>
+  props.source.sourceType === "maplat" || (!masterMissing.value && !isProviderKind(master.value.kind)),
+);
 
 // 数値（mercator シフト 2 欄）。空欄＝上書きなしなので解除へ倒す
 function setNumber(key: string, raw: string) {
@@ -339,6 +358,31 @@ function copyCoverageToEnvelope() {
         </div>
       </div>
 
+    </div>
+
+    <!-- #85: オフライン表示から外す（Maplat の地図とベースマップで同じ 1 つの欄）。
+         アプリ所有の値なので testid は override- 接頭辞にしない（AC7 の照合集合に入れない）。
+         アプリのキャッシュが働かないときは不活性にする。? は説明の 1 つだけで、使える条件は説明の文の末尾に書く
+         （同じ画面の「オフライン表示（キャッシュ）」の欄と同じ形。赤字にしない） -->
+    <div v-if="showNoCache" class="row g-2 mt-1">
+      <div class="col-12">
+        <label class="form-check d-inline-flex align-items-center gap-1 mb-0">
+          <input
+            type="checkbox"
+            class="form-check-input mt-0"
+            data-testid="app-source-no-cache"
+            :checked="source.noCache === true"
+            :disabled="translationMode || !cacheEnabled"
+            @change="setNoCache(($event.target as HTMLInputElement).checked)"
+          >
+          {{ t("appedit.source_no_cache") }}
+          <ContextHelp
+            data-testid="app-source-no-cache-help"
+            :text="t('appedit.source_no_cache_note')"
+            :ariaLabel="t('editor_ui.help_about', { name: t('appedit.source_no_cache') })"
+          />
+        </label>
+      </div>
     </div>
 
     <EnvelopeEditorModal

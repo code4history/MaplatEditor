@@ -227,6 +227,9 @@ const originalAppData = ref<AppDocument>(newAppDocument());
 // m19-t4b: PWA に従属する UI の唯一の判定点。マニフェスト設定欄の表示 (v-if) と
 //   キャッシュの可否 (:disabled) が同じ 1 つの式を見る (恒久指示: 同一扱いは共通実装へ寄せる)。
 const pwaEnabled = computed(() => appData.value.httpSettings.pwaManifest);
+// #85: 地図ごとの「オフライン表示から外す」が効くかの唯一の判定点。Viewer は PWA がオフなら
+//   Service Worker を登録しないので、キャッシュの値だけでなく PWA も見る。
+const cacheUsable = computed(() => pwaEnabled.value && Boolean(appData.value.httpSettings.enableCache));
 const appCoverageAuto = useAppCoverageAutoCalc({ appDoc: appData as any });
 const appSpatialSource = computed<Wgs84Bbox | null>(() => envelopeToBbox(appData.value.coverageLngLats ?? appCoverageAuto.autoCoverage.value) as Wgs84Bbox | null);
 const appSourceSpatialContext = useSelectorSpatialContext(appSpatialSource);
@@ -1896,6 +1899,7 @@ function onPoisChange(next: unknown[]) {
                 :fallback-center="homePosition ?? undefined"
                 :app-coverage-lng-lats="appData.coverageLngLats ?? null"
                 :master-data="masterDataOf(source)"
+                :cache-enabled="cacheUsable"
                 @update:source="appData.sources[index] = $event"
                 @select-language="selectEditorLanguage"
                 @change="recordHistory"
