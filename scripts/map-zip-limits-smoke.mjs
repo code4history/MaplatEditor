@@ -1,7 +1,7 @@
 // スモーク: 地図 ZIP を展開する前の上限と、ZIP の構造の検査。
 //
 // 固定すること:
-//   (i)   件数の上限を超えた ZIP は 'TooLarge' で返り、展開先に何も書かれない
+//   (i)   件数の上限を超えた ZIP は 'TooManyEntries' で返り、展開先に何も書かれない
 //   (ii)  宣言の総量の上限・圧縮率の上限（床以上のときだけ）。床の下では比を見ない
 //   (iii) 展開後サイズを小さく偽った DEFLATED の ZIP は 'Corrupt' で返り、原文が出ない
 //   (iv)  書き出しと同じ名前の ZIP・STORE で書かれた大きな entry を含む ZIP は今までどおり取り込める
@@ -174,11 +174,11 @@ try {
     };
 
     // ---- (i) 件数 ----
-    await check('(i) 51 entry に上限 50 → TooLarge・展開先は空', async () => {
+    await check('(i) 51 entry に上限 50 → TooManyEntries・展開先は空', async () => {
       const zip = new AdmZip();
       for (let i = 0; i < 51; i++) zip.addFile('tiles/e/' + i + '.jpg', Buffer.alloc(0));
       const result = await dataUploadService.extractZip(writeFixture('entries.zip', zip.toBuffer()), { limits: { maxEntries: 50 } });
-      assert.equal(result.err, 'TooLarge', JSON.stringify(result).slice(0, 200));
+      assert.equal(result.err, 'TooManyEntries', JSON.stringify(result).slice(0, 200));
       forbidden('(i)', result);
       assert.equal(treeBytes(extractDir()).files, 0, '展開先にファイルが書かれた');
     });

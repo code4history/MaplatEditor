@@ -570,6 +570,7 @@
     "error_upload": "An error occurred during map data import.",
     "success_upload": "Map data was successfully imported.",
     "error_too_large": "The map data ZIP is too large (files over 2 GiB cannot be imported).",
+    "error_too_many_entries": "The map data ZIP contains too many files and cannot be imported.",
     "error_corrupt": "The map data ZIP is corrupted and cannot be imported.",
     "error_no_json": "Cannot import because the map settings file (JSON) is not included"
   },
@@ -996,6 +997,7 @@
       "directgo_blank_like": "The link target (directgo) is empty or contains only whitespace. Switch to the \"Link\" mode and enter a URL to use it, or remove directgo in Raw GeoJSON.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "The ZIP is too large (files over 2 GiB cannot be imported)",
+      "zip_too_many_entries": "The ZIP contains too many files",
       "zip_corrupt": "The ZIP is corrupted and cannot be imported"
     }
   },

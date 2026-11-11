@@ -588,6 +588,7 @@
     "error_upload": "지도 데이터를 가져오는 중 오류가 발생했습니다.",
     "success_upload": "지도 데이터 가져오기에 성공했습니다.",
     "error_too_large": "지도 데이터 ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다).",
+    "error_too_many_entries": "지도 데이터 ZIP에 파일이 너무 많아 가져올 수 없습니다.",
     "error_corrupt": "지도 데이터 ZIP이 손상되어 가져올 수 없습니다.",
     "error_no_json": "지도 설정 파일(JSON)이 포함되어 있지 않아 가져올 수 없습니다"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "링크 대상(directgo)이 비어 있거나 공백뿐입니다. 링크로 사용하려면 \"Link\" 모드로 전환해 URL을 입력하고, 사용하지 않으려면 원본 GeoJSON에서 directgo를 지우세요.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다)",
+      "zip_too_many_entries": "ZIP에 파일이 너무 많습니다",
       "zip_corrupt": "ZIP이 손상되어 가져올 수 없습니다"
     }
   },

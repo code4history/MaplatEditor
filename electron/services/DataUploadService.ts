@@ -25,6 +25,7 @@ import {
   ZIP_IMPORT_MAX_BYTES,
   ZipImportError,
   assertMapArchiveLimits,
+  assertZipImportable,
   classifyZipReadError,
   type MapArchiveLimits,
 } from '../utils/zipImportGuard';
@@ -142,6 +143,9 @@ class DataUploadService {
 
         // 余剰 entry: ZIP にあるのに map JSON が参照しない → warning。import しない
         // （参照されない実体を勝手に取り込むと孤児 source が増える）
+        // 件数を細工した ZIP で new AdmZip がメモリを使い切らないよう、末尾の記録を先に検査する
+        // （extractZip が同じファイルを検査済みだが、呼び口ごとに同じ関数を通す）
+        await assertZipImportable(zipFile, 'Map package');
         const inZip = listPoiDocumentEntries(zipEntryInfos(new AdmZip(zipFile)).map((i) => i.name));
         for (const name of inZip) {
             if (!referenced.includes(name)) {
@@ -283,6 +287,10 @@ class DataUploadService {
                 );
             }
 
+            // 末尾の記録（EOCD・ZIP64 EOCD）の件数と中央ディレクトリの大きさを new AdmZip の前に検査する。
+            // adm-zip は件数を信じて entry を作るので、件数を細工した小さな ZIP でメモリが尽きる。
+            // 超えたら ZipImportError('too-many-entries')、壊れていたら 'corrupt'
+            await assertZipImportable(zipFile, 'Map package');
             const zip = new AdmZip(zipFile);
 
             // M5-T4 (§6.2.7b): 安全検証は **extractAllTo の前** に、**全 entry へ**、
@@ -523,10 +531,12 @@ class DataUploadService {
             // m5-t4 の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
             const zipError = classifyZipReadError(err);
+            // 件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries（「2 GiB を超える」とは別の文言）
             const message = zipError?.kind === 'too-large' ||
-                zipError?.kind === 'too-many-entries' ||
                 zipError?.kind === 'expands-too-large'
                 ? 'TooLarge'
+                : zipError?.kind === 'too-many-entries'
+                    ? 'TooManyEntries'
                 : zipError?.kind === 'corrupt'
                     ? 'Corrupt'
                     : typeof err === 'string' ? err : (err.message || 'Unknown');

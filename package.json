@@ -286,6 +286,7 @@
     "smoke:nov26-m6-t3-zip-guards": "node scripts/nov26-m6-t3-zip-guards-smoke.mjs",
     "smoke:nov26-m6-t3-zip-errors": "node scripts/nov26-m6-t3-zip-errors-smoke.mjs",
     "smoke:map-zip-limits": "node scripts/map-zip-limits-smoke.mjs",
+    "smoke:zip-entry-limit": "node scripts/zip-entry-limit-smoke.mjs",
     "smoke:archive-entry-names": "node --experimental-strip-types scripts/archive-entry-names-smoke.mjs",
     "smoke:tmp-folder": "node --experimental-strip-types scripts/tmp-folder-smoke.mjs",
     "smoke:nov26-m6-t3-progress-phase-end": "node scripts/nov26-m6-t3-progress-phase-end-smoke.mjs",

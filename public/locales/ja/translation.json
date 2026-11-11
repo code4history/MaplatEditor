@@ -588,6 +588,7 @@
     "error_upload": "地図データのインポートでエラーが発生しました。",
     "success_upload": "地図データを正常にインポートできました。",
     "error_too_large": "地図データの ZIP が大きすぎます（2 GiB を超えるものはインポートできません）。",
+    "error_too_many_entries": "地図データの ZIP に含まれるファイルが多すぎるためインポートできません。",
     "error_corrupt": "地図データの ZIP が壊れているためインポートできません。",
     "error_no_json": "地図の設定ファイル（JSON）が含まれていないためインポートできません"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "リンク先（directgo）が空か空白だけです。リンクとして使うなら表示形式を「リンク」にして URL を入れ、使わないなら生GeoJSON で directgo を消してください。",
       "content_mode_html_missing_content": "HTMLモードですがHTML内容が空です。",
       "zip_too_large": "ZIP が大きすぎます（2 GiB を超えるものはインポートできません）",
+      "zip_too_many_entries": "ZIP に含まれるファイルが多すぎます",
       "zip_corrupt": "ZIP が壊れているためインポートできません"
     }
   },

@@ -122,7 +122,9 @@ export type PoiSourceErrorCode =
   // nov26-m6-t3 (#98・#116): ZIP の取り込みで、2 GiB 超（zip-too-large）と
   // 壊れた ZIP（adm-zip・zlib の読み取りの例外・重複名。zip-corrupt）。message を付けない
   | 'zip-too-large'
-  | 'zip-corrupt';
+  | 'zip-corrupt'
+  // 件数か中央ディレクトリの大きさが上限を超えた ZIP（末尾の記録で判定）。message を付けない
+  | 'zip-too-many-entries';
 
 // 保存系の結果 union (MapSaveResult/AppSaveResult と同形。ファイルフェーズが無いため
 // Error{uid,slug,revision} 拡張は不要)。'Invalid' = 検証エラーで拒否 (issues 参照)、
@@ -461,7 +463,11 @@ export class PoiSourceService {
         const zipError = classifyZipReadError(e);
         if (zipError) {
           console.error('[PoiSourceService] importFile zip error', e);
-          return { result: 'Error', code: zipError.kind === 'too-large' ? 'zip-too-large' : 'zip-corrupt' };
+          // 件数・中央ディレクトリの上限は zip-too-many-entries（「2 GiB を超える」とは別の文言）
+          const code = zipError.kind === 'too-large'
+            ? 'zip-too-large'
+            : zipError.kind === 'too-many-entries' ? 'zip-too-many-entries' : 'zip-corrupt';
+          return { result: 'Error', code };
         }
         return { result: 'Error', code: 'invalid-request', message: e?.message ?? String(e) };
       }

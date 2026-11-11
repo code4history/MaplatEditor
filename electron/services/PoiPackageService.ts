@@ -21,7 +21,7 @@ import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
 import { resolveAssetRefsForExport, resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
 import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
-import { assertZipImportSize } from '../utils/zipImportGuard';
+import { assertZipImportable } from '../utils/zipImportGuard';
 
 export type PoiExportInspection = {
   kind: 'geojson' | 'zip';
@@ -249,10 +249,12 @@ export async function importManagedPoiDocuments(
   filePath: string,
   dests: readonly string[],
 ): Promise<ManagedPoiDocumentsImport> {
+  // 件数を細工した ZIP で new AdmZip がメモリを使い切らないよう、大きさと末尾の記録を先に検査する
+  const archiveBytes = await assertZipImportable(filePath, 'POI package');
   const zip = new AdmZip(filePath);
   const infos = zipEntryInfos(zip);
 
-  assertArchiveStructure(infos, (await fs.stat(filePath)).size, 'POI package');
+  assertArchiveStructure(infos, archiveBytes, 'POI package');
   // (a) 安全検証は **絞り込み前に ZIP 全体へ**。API 自衛であり冪等
   //     （地図 ZIP の主たる検証点は DataUploadService.extractZip の展開前である）。
   assertSafeArchiveEntries(infos);
@@ -381,7 +383,8 @@ export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
   // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
   // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない
-  const archiveBytes = await assertZipImportSize(filePath, 'POI package');
+  // 末尾の記録（件数・中央ディレクトリの大きさ）も new AdmZip の前に見る（件数を細工した ZIP でメモリが尽きる）
+  const archiveBytes = await assertZipImportable(filePath, 'POI package');
   const zip = new AdmZip(filePath);
 
   // POI 単体パッケージは **全 entry が payload** であるため、上限も全 entry へ掛ける。

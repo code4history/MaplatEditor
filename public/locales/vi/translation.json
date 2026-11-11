@@ -588,6 +588,7 @@
     "error_upload": "Đã xảy ra lỗi khi nhập dữ liệu bản đồ.",
     "success_upload": "Đã nhập dữ liệu bản đồ thành công.",
     "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
+    "error_too_many_entries": "Tệp ZIP dữ liệu bản đồ chứa quá nhiều tệp nên không thể nhập.",
     "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập.",
     "error_no_json": "Không thể nhập vì không có tệp cài đặt bản đồ (JSON)"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "Đích liên kết (directgo) trống hoặc chỉ chứa khoảng trắng. Để dùng làm liên kết, hãy chuyển sang chế độ \"Link\" và nhập URL; nếu không dùng, hãy xóa directgo trong GeoJSON thô.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "Tệp ZIP quá lớn (không thể nhập tệp vượt quá 2 GiB)",
+      "zip_too_many_entries": "Tệp ZIP chứa quá nhiều tệp",
       "zip_corrupt": "Tệp ZIP bị hỏng nên không thể nhập"
     }
   },
