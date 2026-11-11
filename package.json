@@ -344,6 +344,8 @@
     "smoke:poi-kml": "node scripts/poi-kml-smoke.mjs",
     "test:e2e:poi-io": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/poi-io.spec.ts",
     "test:e2e:directgo-blank-like-warning": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/directgo-blank-like-warning.spec.ts",
+    "smoke:pwa-worker-option": "node scripts/pwa-worker-option-smoke.mjs",
+    "test:e2e:pwa-worker-optional": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/pwa-worker-optional.spec.ts",
     "test:e2e:electron-quit-timeout": "playwright test tests/e2e/electron-quit-timeout.spec.ts",
     "smoke:app-source-legacy-roundtrip": "node scripts/app-source-legacy-roundtrip-smoke.mjs",
     "test:e2e:app-source-legacy-roundtrip": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/app-source-legacy-roundtrip.spec.ts",

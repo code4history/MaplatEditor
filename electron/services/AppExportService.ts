@@ -57,6 +57,7 @@ import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+import { resolveViewerPwaWorker } from '../../src/utils/appHttpSettings';
 import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import { normalizeAppExportOptions, type AppExportOptions } from '../../src/utils/exportOptions';
 import {
@@ -1144,6 +1145,8 @@ class AppExportService {
       stateUrl: Boolean(httpSettings.stateUrl),
       enableShare: Boolean(httpSettings.enableShare),
     };
+    // #106: キャッシュが無効なら service-worker.js を書き出さない（copyViewerAssets）ので、ビューアに登録もさせない
+    if (resolveViewerPwaWorker(httpSettings) === false) viewerOption.pwaWorker = false;
     // m6-t6 (§3.2): アプリ単位キーの直読みをやめ、2段解決（アプリ単位→既定公開用）
     // + オンザフライ（overrideKeys、保存しない）へ
     const mapboxKey = resolvePublishKey('mapbox', httpSettings, SettingsService) ?? overrideKeys?.mapboxToken;

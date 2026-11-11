@@ -1,0 +1,68 @@
+{
+  "de": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Liefert die exportierte App als PWA aus (eine Form, die sich zum Startbildschirm hinzufügen und wie eine eigenständige App nutzen lässt). Ist die Option aktiv, wird ein Web App Manifest ausgegeben und darunter erscheint der Bereich „Manifest-Einstellungen“. Solange sie inaktiv ist, lässt sich auch „Cache“ nicht einstellen.",
+    "cache_ui": "Cache",
+    "cache_ui_note": "Speichert einmal geladene Kacheln auf dem Gerät, damit sie beim nächsten Mal und offline angezeigt werden können. Beim Export wird ein Service Worker mitgeliefert. Die Option setzt PWA voraus und lässt sich daher nicht einstellen, solange „PWA“ inaktiv ist."
+  },
+  "en": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Delivers the exported app as a PWA (a form that can be added to the home screen and used like a standalone app). When on, a Web App Manifest is emitted and the Manifest Settings section appears below. While it is off, Cache cannot be configured either.",
+    "cache_ui": "Cache",
+    "cache_ui_note": "Stores tiles that have been loaded once on the device so they can be shown next time and offline. A Service Worker is bundled at export. It requires PWA, so it cannot be configured while PWA is off."
+  },
+  "es": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Publica la aplicación exportada como PWA (una forma que se puede añadir a la pantalla de inicio y usar como una aplicación independiente). Al activarlo se genera un Web App Manifest y aparece debajo la sección «Configuración del manifest». Mientras esté desactivado tampoco se puede configurar «Caché».",
+    "cache_ui": "Caché",
+    "cache_ui_note": "Guarda en el dispositivo los teselas ya cargadas para poder mostrarlas la próxima vez y sin conexión. Al exportar se incluye un Service Worker. Requiere PWA, por lo que no se puede configurar mientras «PWA» esté desactivado."
+  },
+  "fr": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Diffuse l’application exportée sous forme de PWA (une forme que l’on peut ajouter à l’écran d’accueil et utiliser comme une application autonome). Lorsque l’option est activée, un Web App Manifest est produit et la section « Paramètres du manifest » apparaît en dessous. Tant qu’elle est désactivée, « Cache » ne peut pas non plus être configuré.",
+    "cache_ui": "Cache",
+    "cache_ui_note": "Enregistre sur l’appareil les tuiles déjà chargées afin de pouvoir les afficher la fois suivante et hors ligne. Un Service Worker est inclus lors de l’export. L’option suppose PWA : elle ne peut donc pas être configurée tant que « PWA » est désactivé."
+  },
+  "id": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Menyajikan aplikasi hasil ekspor sebagai PWA (bentuk yang dapat ditambahkan ke layar beranda dan dipakai seperti aplikasi mandiri). Saat aktif, Web App Manifest dihasilkan dan bagian «Pengaturan manifest» muncul di bawah. Selama nonaktif, «Cache» juga tidak dapat diatur.",
+    "cache_ui": "Cache",
+    "cache_ui_note": "Menyimpan ubin yang pernah dimuat ke perangkat agar dapat ditampilkan pada kunjungan berikutnya dan saat luring. Service Worker disertakan saat ekspor. Fitur ini mensyaratkan PWA, sehingga tidak dapat diatur selama «PWA» nonaktif."
+  },
+  "ja": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "エクスポートしたアプリを PWA（ホーム画面へ追加して単独アプリのように使える形）として配信する設定です。オンにすると Web App Manifest を出力し、下に「マニフェスト設定」欄が現れます。オフのときは「キャッシュ」も設定できません。",
+    "cache_ui": "キャッシュ",
+    "cache_ui_note": "一度読み込んだタイルを端末へ保存し、次回以降やオフラインでも表示できるようにする設定です。エクスポート時に Service Worker を同梱します。PWA が前提のため、「PWA」がオフのときは設定できません。"
+  },
+  "ko": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "내보낸 앱을 PWA(홈 화면에 추가해 단독 앱처럼 사용할 수 있는 형태)로 배포하는 설정입니다. 켜면 Web App Manifest를 출력하고 아래에 「매니페스트 설정」란이 나타납니다. 꺼져 있을 때는 「캐시」도 설정할 수 없습니다.",
+    "cache_ui": "캐시",
+    "cache_ui_note": "한 번 읽어들인 타일을 단말에 저장해 다음 번이나 오프라인에서도 표시할 수 있게 하는 설정입니다. 내보낼 때 Service Worker를 함께 포함합니다. PWA가 전제이므로 「PWA」가 꺼져 있을 때는 설정할 수 없습니다."
+  },
+  "th": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "การตั้งค่าให้เผยแพร่แอปพลิเคชันที่ส่งออกในรูปแบบ PWA (รูปแบบที่เพิ่มลงหน้าจอหลักและใช้งานเหมือนแอปพลิเคชันเดี่ยวได้) เมื่อเปิดจะสร้าง Web App Manifest และช่อง «การตั้งค่าแมนิเฟสต์» จะปรากฏด้านล่าง ขณะที่ปิดอยู่จะตั้งค่า «แคช» ไม่ได้เช่นกัน",
+    "cache_ui": "แคช",
+    "cache_ui_note": "การตั้งค่าให้บันทึกไทล์ที่เคยโหลดแล้วลงในอุปกรณ์ เพื่อให้แสดงผลได้ในครั้งถัดไปและขณะออฟไลน์ เมื่อส่งออกจะแนบ Service Worker ไปด้วย เนื่องจากต้องใช้ PWA เป็นพื้นฐาน จึงตั้งค่าไม่ได้ขณะที่ «PWA» ปิดอยู่"
+  },
+  "vi": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "Thiết lập phân phối ứng dụng đã xuất dưới dạng PWA (dạng có thể thêm vào màn hình chính và dùng như một ứng dụng độc lập). Khi bật, Web App Manifest sẽ được xuất ra và mục «Cài đặt manifest» xuất hiện bên dưới. Khi tắt thì cũng không thể thiết lập «Bộ nhớ đệm».",
+    "cache_ui": "Bộ nhớ đệm",
+    "cache_ui_note": "Thiết lập lưu các tile đã tải một lần vào thiết bị để có thể hiển thị ở lần sau và khi ngoại tuyến. Khi xuất, một Service Worker sẽ được đóng gói kèm. Thiết lập này cần có PWA nên không thể cấu hình khi «PWA» đang tắt."
+  },
+  "zh": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "将导出的应用以 PWA（可添加到主屏幕、像独立应用一样使用的形态）方式发布的设置。开启后会输出 Web App Manifest，下方会出现「应用清单设置」栏。关闭时也无法设置「缓存」。",
+    "cache_ui": "缓存",
+    "cache_ui_note": "将已加载过的瓦片保存到设备，使其在下次访问及离线时也能显示的设置。导出时会一并附带 Service Worker。由于以 PWA 为前提，「PWA」关闭时无法设置。"
+  },
+  "zh-TW": {
+    "pwa_manifest": "PWA",
+    "pwa_manifest_note": "將匯出的應用程式以 PWA（可加入主畫面、像獨立應用程式一樣使用的形態）方式發布的設定。開啟後會輸出 Web App Manifest，下方會出現「應用程式資訊清單設定」欄。關閉時也無法設定「快取」。",
+    "cache_ui": "快取",
+    "cache_ui_note": "將已載入過的圖磚儲存到裝置，使其在下次造訪及離線時也能顯示的設定。匯出時會一併附帶 Service Worker。由於以 PWA 為前提，「PWA」關閉時無法設定。"
+  }
+}

@@ -64,3 +64,14 @@ export function normalizeAppHttpSettings(value: any): AppHttpSettings {
 export function readAppHttpSettings(document: any): AppHttpSettings {
   return normalizeAppHttpSettings(document.httpSettings || document.http || document);
 }
+
+/**
+ * #106: PWA が有効でキャッシュが無効なら、ビューアに Service Worker を登録させない（manifest とアイコンは出す）。
+ * キャッシュが無効の書き出しには service-worker.js を入れないので、指定しないとビューアが既定の
+ * ./service-worker.js を登録しに行き 404 になる。それ以外では undefined（ビューアの既定のまま・キーを足さない）。
+ * 書き出し（AppExportService）とプレビュー（AppPreviewService）の両方がこの 1 つの判定を使う。
+ * 判定は両者の今の読み方（Boolean(httpSettings.pwaManifest) 等）に揃え、既定の補完はしない。
+ */
+export function resolveViewerPwaWorker(httpSettings: { pwaManifest?: unknown; enableCache?: unknown } | null | undefined): false | undefined {
+  return Boolean(httpSettings?.pwaManifest) && !httpSettings?.enableCache ? false : undefined;
+}

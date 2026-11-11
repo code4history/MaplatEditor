@@ -13,6 +13,7 @@ import { resolveResourceAsset, isUnderFolder } from '../utils/resourceAssets';
 // #105: プレビュー配信データの URL 書換（app://local → http://localhost）と Origin 判定に使う
 import { appUrlToLocalPath, isLocalAppUrl } from '../utils/appScheme';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+import { resolveViewerPwaWorker } from '../../src/utils/appHttpSettings';
 import SqliteDataService from './SqliteDataService';
 import { jsonForScript } from '../utils/scriptJson';
 import {
@@ -547,7 +548,7 @@ ${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMaj
 
   private createViewerOption(token: string, document: any, hasBasemap: boolean) {
     const httpSettings = document.httpSettings || {};
-    return {
+    const viewerOption: Record<string, unknown> = {
       appid: token,
       div: 'map_div',
       pwaManifest: Boolean(httpSettings.pwaManifest),
@@ -566,6 +567,9 @@ ${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMaj
       mapboxToken: resolvePreviewKey('mapbox', httpSettings, SettingsService),
       googleApiKey: resolvePreviewKey('google', httpSettings, SettingsService),
     };
+    // #106: 書き出しと同じ判定。キャッシュが無効ならプレビューでも Service Worker を登録させない
+    if (resolveViewerPwaWorker(httpSettings) === false) viewerOption.pwaWorker = false;
+    return viewerOption;
   }
 
   private async servePackageAsset(assetPath: string, res: http.ServerResponse): Promise<void> {

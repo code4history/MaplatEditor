@@ -2037,6 +2037,9 @@ function onPoisChange(next: unknown[]) {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 4px 12px;
 }
+.toggle-grid > label {
+  word-break: keep-all;
+}
 .asset-preview {
   max-width: 120px;
   max-height: 120px;

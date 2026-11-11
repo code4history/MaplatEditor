@@ -755,13 +755,6 @@
       ],
       "role": "item"
     },
-    "appedit.cache_ui_note": {
-      "by": [
-        "en",
-        "ja"
-      ],
-      "role": "item"
-    },
     "appedit.hide_marker_ui_note": {
       "by": [
         "ja"

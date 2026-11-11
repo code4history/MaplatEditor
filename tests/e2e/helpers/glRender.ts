@@ -94,7 +94,11 @@ export async function launchWithWebGlStage(root: string): Promise<{ app: Electro
   throw new Error('手元で WebGL 2 が使えない（通常の起動・swiftshader の起動の両方で getContext("webgl2") が null）。描画の確かめができないので止める');
 }
 
-export function serveStatic(root: string, opts: { cors?: boolean } = {}): Promise<{ origin: string; close: () => Promise<void> }> {
+/**
+ * root を静的に配る。opts.requests を渡したときだけ、応答ごとに { path, status } を 1 件積む
+ * （書き出したアプリが service-worker.js やタイルを取りに来たかを試験が見るため。#106）
+ */
+export function serveStatic(root: string, opts: { cors?: boolean; requests?: { path: string; status: number }[] } = {}): Promise<{ origin: string; close: () => Promise<void> }> {
   const types: Record<string, string> = {
     '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png',
@@ -105,6 +109,7 @@ export function serveStatic(root: string, opts: { cors?: boolean } = {}): Promis
     const urlPath = decodeURIComponent(new URL(req.url || '/', 'http://x').pathname);
     const rel = urlPath.endsWith('/') ? `${urlPath}index.html` : urlPath;
     const file = path.resolve(root, `.${rel}`);
+    if (opts.requests) res.on('finish', () => opts.requests!.push({ path: urlPath, status: res.statusCode }));
     if (file !== root && !file.startsWith(root + path.sep)) { res.statusCode = 403; res.end(); return; }
     try {
       const body = await readFile(file);
