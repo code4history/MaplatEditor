@@ -3,7 +3,7 @@
 //
 // S1 キャッシュ無効の書き出し: service-worker.js の要求 0 件・登録の失敗の行 0 件・登録 0。manifest は 200 で名前が一致
 // S2 対照（キャッシュ有効の書き出し）: service-worker.js が 200・登録 1・manifest は S1 と同じ
-// S3 プレビュー（キャッシュ無効）: プレビューの iframe の中で登録 0・service-worker.js の要求なし
+// S3 プレビュー（キャッシュ無効）: プレビューの iframe の中で登録 0
 //
 // 地図は組み込みの OpenStreetMap（osm）。タイルは tests/e2e/fixtures/osm-tiles の実在のタイル（札幌の周り z14）を
 // テストの中のサーバから配り、tile.openstreetmap.org への要求はそこへ振り替える（helpers/exportedApp.ts）。
@@ -172,7 +172,7 @@ test.describe('#106 キャッシュが無効なら Service Worker を登録さ�
     expectManifest(observed);
   });
 
-  test('S3 プレビュー（キャッシュ無効）: iframe の中で登録 0・service-worker.js の要求なし', async () => {
+  test('S3 プレビュー（キャッシュ無効）: iframe の中で Service Worker の登録が 0', async () => {
     await openAppEdit();
     await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
     await expect(page.locator('iframe.preview-map')).toBeVisible({ timeout: 60_000 });
@@ -184,8 +184,9 @@ test.describe('#106 キャッシュが無効なら Service Worker を登録さ�
     const registrations = await frame.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope));
     const workerEntries = await frame.evaluate(() => performance.getEntriesByType('resource').map((e) => e.name).filter((n) => n.includes('service-worker.js')));
     console.log(`OBSERVED ${JSON.stringify({ label: 'S3', src, registrations, workerEntries, resourceEntries: await frame.evaluate(() => performance.getEntriesByType('resource').length) }, null, 2)}`);
+    // 判別は登録の数で行う。Service Worker のスクリプトの取得は iframe の Resource Timing に載らない
+    // （直す前の登録 1 のときも workerEntries は空だった）ので、workerEntries は記録だけにする
     expect(registrations, 'プレビューで登録が 0').toEqual([]);
-    expect(workerEntries, 'プレビューで service-worker.js の要求が無い').toEqual([]);
   });
 
   test('S2 対照（キャッシュ有効の書き出し）: service-worker.js が 200 で登録 1。manifest は S1 と同じ', async () => {
