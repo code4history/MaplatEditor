@@ -11,8 +11,13 @@ const SIGTERM_IGNORING_CHILD = "process.on('SIGTERM', () => {}); setInterval(() 
 const SELF_EXITING_CHILD = 'setTimeout(() => process.exit(0), 200)';
 const LONG_RUNNING_CHILD = 'setInterval(() => {}, 1000)';
 
+// Children spawned by the current test. afterEach reaps them, because Playwright
+// skips the rest of a test body (including finally blocks) when the test times out.
+const spawnedChildren = new Set<ChildProcess>();
+
 async function spawnChild(script: string): Promise<ChildProcess> {
   const child = spawn(process.execPath, ['-e', script], { stdio: 'ignore' });
+  spawnedChildren.add(child);
   await new Promise<void>((resolve, reject) => {
     child.once('spawn', () => resolve());
     child.once('error', reject);
@@ -51,6 +56,12 @@ function captureWarnings(): { messages: string[]; restore: () => void } {
 
 test.describe('quitElectronApplication', () => {
   test.setTimeout(30_000);
+
+  test.afterEach(async () => {
+    const children = [...spawnedChildren];
+    spawnedChildren.clear();
+    await Promise.all(children.map((child) => reapChild(child)));
+  });
 
   test('a child that does not quit is killed and the helper returns with a warning', async () => {
     // The fake evaluate() resolves without doing anything: it does not ask the child to quit,
