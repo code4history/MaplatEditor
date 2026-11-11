@@ -121,7 +121,8 @@ test.describe('directgo blank-like warning', () => {
       await save(page);
       const stored = await storedProperties(page, uid);
       console.log(`result: stored p1=${JSON.stringify(stored.p1?.directgo)} p2=${JSON.stringify(stored.p2?.directgo)} p3=${JSON.stringify(stored.p3?.directgo)}`);
-      expect(stored.p1?.desc).toBe('P1 description (edited)');
+      // 説明は保存で言語別の形（{ ja: … }）に正規化される
+      expect(stored.p1?.desc).toEqual({ ja: 'P1 description (edited)' });
       expect(stored.p1?.directgo).toBe('  ');
       expect(stored.p2?.directgo).toEqual({ href: '' });
 
