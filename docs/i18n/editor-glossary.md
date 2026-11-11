@@ -7,7 +7,7 @@
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
 まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 502・例外 294（anchorExclusion 13・omission 100・untranslated 181）
+概念 26・結び付いたキー 504・例外 294（anchorExclusion 13・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
@@ -18,21 +18,21 @@
 | [export](#export) | 配布・交換用データを出す操作 | `editor_ui.export_button` | 37 |
 | [configure](#configure) | 振る舞いを指定する画面・項目。データ主体の名詞にはしない（2026-10-21）。役割 screen（strict）と item（weak）に分ける | `navbar.settings` | 29 |
 | [settings-file](#settings-file) | 地図・アプリ等の定義データを保持する主体（設定ファイル） | `appedit.source_advanced` | 7 |
-| [map](#map) | 編集・公開する地図。ベースマップは別概念 | `navbar.edit_map` | 141 |
+| [map](#map) | 編集・公開する地図。ベースマップは別概念 | `navbar.edit_map` | 143 |
 | [basemap](#basemap) | 古地図の下に敷く地図（ベースマップ） | `navbar.add_basemap` | 63 |
-| [app](#app) | 地図と POI をまとめて公開するアプリ | `navbar.edit_app` | 51 |
+| [app](#app) | 地図と POI をまとめて公開するアプリ | `navbar.edit_app` | 53 |
 | [poi](#poi) | 地図上の地点情報 | `navbar.edit_poi` | 61 |
 | [source](#source) | POI ソース | `resource_list.kind_poi_source` | 34 |
 | [citation](#citation) | 地図・ベースマップの出所（書誌的な典拠） | `mapedit.map_source` | 4 |
 | [attribution](#attribution) | 地図画像・データの帰属（著作権表示） | `mapedit.map_copyright_pf` | 12 |
 | [gcp](#gcp) | 地図画像と地理座標の対応点 | `editor_ui.tabs.gcps` | 15 |
 | [bibliography](#bibliography) | IIIF 等から写す書誌情報。Maplat の地図メタデータ（editor_ui.tabs.metadata）とは別。代表語は ja・en だけ | `iiif_metadata.heading` | 9 |
-| [tile](#tile) | 地図画像を分割した配信用画像。スタイル・TileJSON の tiles 配列・ベクタータイルセットは除外 | `editor_ui.tabs.merc` | 36 |
+| [tile](#tile) | 地図画像を分割した配信用画像。スタイル・TileJSON の tiles 配列・ベクタータイルセットは除外 | `editor_ui.tabs.merc` | 38 |
 | [save](#save) | 編集内容を永続化する操作。エクスポート・端末キャッシュとは区別 | `common.save` | 57 |
 | [overwrite](#overwrite) | 既存値の置換。POI import では同一 ID を更新し、無ければ追加 | `common.overwrite` | 9 |
 | [override](#override) | 参照先を変えずに表示属性（タイトル・アイコン・非表示）だけを差し替える | `poiref.add_override` | 6 |
 | [append](#append) | 既存 POI を置換せず全行を新規 POI として足す | `poiio.import_mode_append` | 1 |
-| [viewer](#viewer) | エクスポートしたアプリの表示部（Maplat UI） | `appedit.border_ui_note` | 11 |
+| [viewer](#viewer) | エクスポートしたアプリの表示部（Maplat UI） | `appedit.border_ui_note` | 12 |
 | [layer](#layer) | 地図のレイヤー・POI のレイヤー | `mapedit.edit_layer` | 13 |
 | [preview](#preview) | エクスポートする前の確認表示 | `editor_ui.tabs.preview` | 20 |
 | [publish-key](#publish-key) | エクスポートしたアプリが使う API キー（公開用キー） | `settings.default_publish_api_key_heading` | 5 |
