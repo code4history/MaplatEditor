@@ -156,6 +156,12 @@
 
 確認は Electron の `window.dialog.showMessageBox` に揃えます。アプリ内のモーダルは入力や選択がある場合だけに使います。通知だけのダイアログは成功・失敗とも `DiagnosticFeedback scope="operation"` に移します。【人間決定（2026-11-11、推奨どおり）】§8 U3・U3 付随
 
+実装の形【AI 設計】:
+
+- 通知は `useOperationNotice().notifyOperation()` で出し、`OperationNotice`（`EditorActionHeader` の直下。ヘッダーの無い画面は `App.vue` の予備の置き場）がバナーにする。閉じるボタンで消せる。
+- 失敗を知らせて一覧へ戻る操作でも読めるよう、通知は次の画面遷移を 1 回だけ越えて残り、その次の遷移で消える（query だけの変更は遷移に数えない）。
+- 確認の部品（`DeleteConfirmDialog`・`DraftConflictDialog`）は呼び出し側の入口を変えず、中でネイティブのダイアログを出す。ダイアログを出せなかったときは、壊さない側（`cancelId` と同じ）を選ぶ。
+
 ## 6. ボタンの種類と色
 
 ### 6.1 人間が決めたこと
@@ -196,6 +202,9 @@
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
 
 `src/` を grep と目視で調べました。`DesktopRegisteredMapSelector.vue` は参照されていない古いコードなので数えていません（T5:54 で対象外と記録済み）。
+
+> **2026-11-11 に直しました。** この節の違反は、§8 の決定どおりに直しました。直さずに残したものは、出典つきで許可リスト `docs/ui-grammar.allowlist.json` に入れています（§9）。表は直す前の記録として残します。
+> 表と違う直し方をしたもの: 7.1 の #19「接続の手順」は説明ではなく URL の項目名なので、`ContextHelp` に入れず、他の項目と同じく左の列の項目名にしました。同じ行の #14（127.0.0.1 で登録する注意）は、コピーのボタンの横の `ContextHelp` にしました。
 
 ### 7.1 説明の直書き
 
@@ -331,7 +340,7 @@
 
 ## 9. 機械で検査する規則
 
-用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を実装します。
+用語集の検査（`scripts/editor-glossary-check.mjs`・`pnpm smoke:editor-glossary`・CI の smoke）と同じ形で、`scripts/editor-ui-grammar-check.mjs` を実装しました（`pnpm smoke:editor-ui-grammar`。検査器そのものの試験は `pnpm smoke:editor-ui-grammar-fixtures`）。
 
 ### 9.1 仕組み
 
@@ -365,9 +374,9 @@
 
 ### 9.4 置き場所
 
-- CI: `scripts/ci/run-smokes.mjs` に `smoke:editor-ui-grammar` を足す
-- AGENTS.md に「UI Grammar」の節を足し、この文書へ案内する。用語集の節と並べる
-- タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル）
+- CI: `scripts/ci/run-smokes.mjs` は `package.json` の `smoke:*` を全数実行するので、`smoke:editor-ui-grammar` と `smoke:editor-ui-grammar-fixtures` は足すだけで CI に載る（済み）
+- AGENTS.md の「UI Grammar」の節からこの文書へ案内する。用語集の節と並べる（済み）
+- タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル。このリポジトリの外なので未着手）
 
 ## 10. この文書を変えるとき
 

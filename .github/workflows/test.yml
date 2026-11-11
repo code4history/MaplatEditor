@@ -73,6 +73,7 @@ jobs:
         env:
           # 用語集の関門 1・2 の比較元（PR は base、push は直前の commit）
           EDITOR_GLOSSARY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        # package.json の smoke:* を全数実行。UI 文法・許可リスト・fixture・通知の単体試験も含む。
         run: node scripts/ci/run-smokes.mjs --report smoke-report.json
 
       # 用語集の正本を変えた PR だけ、変更の要約を PR に 1 件コメントする（合否は決めない）
@@ -99,7 +100,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: smoke-report
-          path: smoke-report.json
+          path: |
+            smoke-report.json
+            editor-ui-grammar-report.json
           if-no-files-found: warn
 
   e2e:
