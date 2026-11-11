@@ -16,7 +16,7 @@
 | [manifest](#manifest) | IIIF Presentation の Manifest。PWA の Web App Manifest は除外語で外す | `iiif_metadata.from_manifest` | 13 |
 | [import](#import) | 外部データを取り込む操作 | `resource_list.import_map` | 48 |
 | [export](#export) | 配布・交換用データを出す操作 | `editor_ui.export_button` | 37 |
-| [configure](#configure) | 振る舞いを指定する画面・項目。データ主体の名詞にはしない（2026-10-21）。役割 screen（strict）と item（weak）に分ける | `navbar.settings` | 30 |
+| [configure](#configure) | 振る舞いを指定する画面・項目。データ主体の名詞にはしない（2026-10-21）。役割 screen（strict）と item（weak）に分ける | `navbar.settings` | 29 |
 | [settings-file](#settings-file) | 地図・アプリ等の定義データを保持する主体（設定ファイル） | `appedit.source_advanced` | 7 |
 | [map](#map) | 編集・公開する地図。ベースマップは別概念 | `navbar.edit_map` | 141 |
 | [basemap](#basemap) | 古地図の下に敷く地図（ベースマップ） | `navbar.add_basemap` | 63 |
