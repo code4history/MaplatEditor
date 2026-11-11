@@ -2307,14 +2307,6 @@
     },
     {
       "type": "anchorExclusion",
-      "concept": "save",
-      "key": "appedit.cache_ui_note",
-      "ja": "一度読み込んだタイルを端末へ保存し、次回以降やオフラインでも表示できるようにする設定です。エクスポート時に Service Worker を同梱します。PWA が前提のため、「PWA」がオフのときは設定できません。",
-      "en": "Stores tiles that have been loaded once on the device so they can be shown next time and offline. A Service Worker is bundled at export. It requires PWA, so it cannot be configured while PWA is off.",
-      "reason": "端末のキャッシュへの格納（en \"Stores tiles\"）。編集内容の保存ではない。錨の除外"
-    },
-    {
-      "type": "anchorExclusion",
       "concept": "source",
       "key": "appedit.export.no_icon_source",
       "ja": "PWAアイコン元画像が未設定のため、アイコンを生成しませんでした。",
