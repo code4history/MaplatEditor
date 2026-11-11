@@ -74,8 +74,7 @@ for (const { id, synthetic, expected: e } of cases) {
     const canvas = listed.canvases[e.canvasIndex];
     assert.equal(canvas.id, e.canvasId);
     assert.deepEqual({ width: canvas.width, height: canvas.height }, e.canvasSize);
-    // TODO(core): 固定 Core 8ed4d85 は v3 内の @id を読めない。合流後にこの分岐を外す。
-    assert.equal(canvas.imageService, e.requiresCoreServiceFix ? undefined : e.imageService);
+    assert.equal(canvas.imageService, e.imageService);
     assert.deepEqual(proposeIiifBindings(manifest, canvas.id).title, { from: 'manifest', property: 'label' });
     const copy = copyIiifMetadata(manifest, canvas.id, e.lang, options);
     assert.equal(copy.ok, true);
@@ -161,12 +160,6 @@ for (const { id, synthetic, expected: e } of cases) {
       calls.push(args.serviceUrl);
       return { ok: true, json: info };
     });
-    if (e.requiresCoreServiceFix) {
-      // TODO(core): 本番の固定 Core で起きる失敗を明示。予期しない失敗を成功扱いしない。
-      assert.deepEqual(result, { ok: false, reason: 'image-service-unavailable' });
-      assert.deepEqual(calls, []);
-      return;
-    }
     assert.deepEqual(calls, [e.imageService]);
     assert.equal(result.ok, true);
     assert.deepEqual(result.imageSize, e.imageSize);
@@ -237,8 +230,8 @@ test('自作の再現 fixture: page 1・仮の 6000×6000 の canvas と info.js
   });
 });
 
-// TODO(core): Core 合流・固定更新後に skip と上の互換分岐を同時に外す。
-test('Wellcome: 修正後の Core は @id のサービスから実画素数を取得する', { skip: 'TODO(core): Core の修正合流と Editor の固定更新を待つ' }, async () => {
+// Presentation 3 の中に @id / ImageService2 で書かれた画像サービスから実画素数を取得する
+test('Wellcome: @id のサービスから実画素数を取得する', async () => {
   const e = cases.find(item => item.id === 'wellcome').expected;
   const result = await fetchIiifCopyReply(
     { ok: true, json: read('wellcome.manifest.json') },

@@ -35,8 +35,7 @@
       "license": "Custom",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -71,8 +70,7 @@
       "license": null,
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -112,8 +110,7 @@
       "license": "PD",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -152,8 +149,7 @@
       "license": null,
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -191,8 +187,7 @@
       "license": null,
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -236,8 +231,7 @@
       "license": "CC BY-NC",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": true
+      }
     }
   },
   {
@@ -283,8 +277,7 @@
       "license": "CC0",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -327,8 +320,7 @@
       "license": "Custom",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -372,8 +364,7 @@
       "license": null,
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   },
   {
@@ -414,8 +405,7 @@
       "license": "CC0",
       "verdict": {
         "kind": "deliverable"
-      },
-      "requiresCoreServiceFix": false
+      }
     }
   }
 ]

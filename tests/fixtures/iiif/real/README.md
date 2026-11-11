@@ -63,7 +63,7 @@
 
 ## 見つかった差異と試験範囲
 
-- Wellcome は Presentation 3 の中に `@id` / `@type: ImageService2` がある。Core の修正前はサイズ確認に到達しない。Editor は固定 Core のまま、この差だけを `TODO(core)` の互換期待値として分離する。題名・書誌・書誌のみの写し直しは省略しない。
+- Wellcome は Presentation 3 の中に `@id` / `@type: ImageService2` がある。Core の修正（MaplatCore#166）で、このサービスから実画素数を取得できる。
 - NDL の info.json は、Origin の無い要求には `Access-Control-Allow-Origin` を返さず、Origin を付けると `*` を返す。最初の記録は Origin なしで取ったため NDL を `metadata-only / cors-not-wildcard` と誤って固定していた。Editor の main は Origin を付けて取得する（`electron/services/iiifFetch.ts`）ので、実アプリでは配信できる。全件を Origin 付きで取り直し、本文の SHA-256 は変わらないことを確かめた。
 - 配信に使う URL は info.json の `id`／`@id`（`deliveryServiceUrl`）。Stanford（`%2F` と `/`）と Wales（`4398333` と `04/398/04398333.jp2`）は Manifest のサービス id と綴りが違う。どちらの綴りでも 64 px 幅の画像要求が 200 を返すことを確かめた（画像は保存していない）。
 - Getty の題名は原文どおり `[ ]`。canvas の `Full Front` や説明文へ勝手に置き換えない。canvas 側にも書誌 1 行がある。
