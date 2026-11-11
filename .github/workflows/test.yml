@@ -102,6 +102,14 @@ jobs:
           path: smoke-report.json
           if-no-files-found: warn
 
+      - name: Upload UI grammar report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: editor-ui-grammar-report
+          path: editor-ui-grammar-report.json
+          if-no-files-found: warn
+
   e2e:
     runs-on: macos-26
     timeout-minutes: 45

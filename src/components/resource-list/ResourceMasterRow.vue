@@ -21,7 +21,7 @@
       <span class="resource-item__title d-block text-truncate">{{ item.title }}</span>
       <small v-if="item.slug" class="resource-item__slug d-block text-truncate">{{ item.slug }}</small>
       <small v-for="meta in item.metadata" :key="meta" class="resource-item__meta d-block text-truncate">{{ meta }}</small>
-      <ContextHelp v-if="isDisabled && item.disabledReason" :text="item.disabledReason" :ariaLabel="t('editor_ui.unavailable_reason', { name: item.title })" data-testid="resource-disabled-reason" @click.stop @keydown.stop />
+      <ContextHelp v-if="isDisabled && item.disabledReason" :text="item.disabledReason" :ariaLabel="helpAriaLabel" data-testid="resource-disabled-reason" @click.stop @keydown.stop />
     </span>
     <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
     <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="resourceBadgeClass(badge.tone)">{{ badge.label }}</span>
@@ -57,6 +57,12 @@ const menuRef = ref<InstanceType<typeof ResourceActionMenu> | null>(null);
 const thumbBroken = ref(false); // 壊れた thumbnail(file:// 欠損等)は placeholder へフォールバック
 const isDisabled = computed(() => props.variant === "selector" && props.disabled);
 const showActionMenu = computed(() => props.variant === "master");
+// 使えない理由の ? の読み上げ名。title が空でも「」のような空の括弧にしないため、
+// 行に出ている識別子（slug）で名乗る。識別子も無ければ括弧ごと出さない文にする
+const helpAriaLabel = computed(() => {
+  const name = props.item.title.trim() || props.item.slug.trim();
+  return name ? t("editor_ui.unavailable_reason", { name }) : t("editor_ui.unavailable_reason_unnamed");
+});
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
 // M12-T10 v2.0: .active → .selected rename（Bootstrap 競合回避）。
 // selector variant では added（selected=true）を青で表示（HM6）。disabled は追加不可。

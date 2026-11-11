@@ -1300,7 +1300,8 @@
     },
     "untitled": "Untitled",
     "help_about": "Help: {{name}}",
-    "unavailable_reason": "Why “{{name}}” is unavailable"
+    "unavailable_reason": "Why “{{name}}” is unavailable",
+    "unavailable_reason_unnamed": "Why this item is unavailable"
   },
   "resource_list": {
     "new_item": "New",

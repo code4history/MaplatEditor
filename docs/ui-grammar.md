@@ -2,6 +2,7 @@
 
 説明・エラー・空状態・ダイアログ・ボタンを、どの部品でどう出すかの決まりです。新しい画面や部品を作る前に読んでください。タスクの設計書を書くときも、この文書に合わせます。この文書に反する設計書を書く場合は、先にこの文書を変えます。
 
+- 2026-11-12 読み上げ名の「項目名が空」の扱い（§2.1）を追加。出典なしの追加のため【AI 設計】。
 - 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は §8。
 - 2026-11-11 初版。過去のタスク設計書に散らばっていた人間の決定を 1 本に集めた。
 - 言葉の決まり（どの語を使うか）は [docs/i18n/editor-glossary.md](i18n/editor-glossary.md) と AGENTS.md の「UI Wording & Glossary」にある。この文書は「どの部品で出すか」を扱う。
@@ -62,6 +63,8 @@
 `ContextHelp` には `ariaLabel` を必ず渡します。どの項目の説明かが読み上げで分かるように、項目名を入れます。【AI 設計】M6T9:187
 
 項目名だけ（例: 「オリジナル画像」「MCP サーバー」）では、ボタンの名前として何の説明か分からないので、説明は `t('editor_ui.help_about', { name })`（「〈項目名〉」の説明）、押せない・選べない理由は `t('editor_ui.unavailable_reason', { name })`（「〈項目名〉」を使えない理由）で包みます。項目名には、その ? が説明している項目のもの（隣のタブやボタンの名前ではないもの）を入れます。説明の文そのものを `ariaLabel` に渡している既存の箇所は、何の説明かが読み上げで分かるのでそのままにします。【AI 設計】
+
+項目名が空のときは、その行・欄に出ている識別子（slug など）を項目名にします。識別子も無いときは、括弧を付けない文（`t('editor_ui.unavailable_reason_unnamed')`）にします。名前の無い括弧「」だけが読み上げられないのを避けるためです。【AI 設計】
 
 ### 2.2 禁止の形
 
@@ -385,7 +388,7 @@
 ### 9.4 置き場所
 
 - CI: `scripts/ci/run-smokes.mjs` は `package.json` の `smoke:*` を全数実行するので、`smoke:editor-ui-grammar` と `smoke:editor-ui-grammar-fixtures` は足すだけで CI に載る（済み）
-- 検査の報告 `editor-ui-grammar-report.json` を CI の artifact に上げるのは、別の PR にする。`.github/workflows/test.yml` は用語集の検査の正本側で、locale を変えるこの PR と同じ PR では変えられない（用語集の関門 1。AGENTS.md「UI Wording & Glossary」）
+- 検査の報告 `editor-ui-grammar-report.json` を CI の artifact に上げる（済み。`.github/workflows/test.yml` の smoke ジョブの Upload UI grammar report。同 workflow は用語集の検査の正本側なので、locale を変える PR と一緒には変えない（用語集の関門 1。AGENTS.md「UI Wording & Glossary」））
 - AGENTS.md の「UI Grammar」の節からこの文書へ案内する。用語集の節と並べる（済み）
 - タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル。このリポジトリの外なので未着手）
 

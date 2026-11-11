@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "Giải thích: {{name}}",
-    "unavailable_reason": "Lý do không dùng được “{{name}}”"
+    "unavailable_reason": "Lý do không dùng được “{{name}}”",
+    "unavailable_reason_unnamed": "Lý do không dùng được mục này"
   },
   "resource_list": {
     "new_item": "Mới",

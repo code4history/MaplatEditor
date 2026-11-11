@@ -1300,7 +1300,8 @@
     "delete_draft_confirm": "Delete the unsaved draft \"{{name}}\"? This cannot be undone.",
     "untitled": "Untitled",
     "help_about": "Bantuan: {{name}}",
-    "unavailable_reason": "Alasan “{{name}}” tidak tersedia"
+    "unavailable_reason": "Alasan “{{name}}” tidak tersedia",
+    "unavailable_reason_unnamed": "Alasan item ini tidak tersedia"
   },
   "resource_list": {
     "new_item": "Baru",
