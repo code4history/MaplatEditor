@@ -73,6 +73,7 @@ export const ERROR_CODE_KEYS: Record<PoiSourceErrorCode, string> = {
   // nov26-m6-t3 (#98・#116): ZIP の取り込みの失敗は固定文（adm-zip の原文を出さない）
   "zip-too-large": "poisource.errors.zip_too_large",
   "zip-corrupt": "poisource.errors.zip_corrupt",
+  "zip-too-many-entries": "poisource.errors.zip_too_many_entries",
 };
 
 // 検証 issue を人間可読に。既知 code は専用文言、未知は code/message をそのまま出す

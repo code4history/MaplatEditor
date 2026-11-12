@@ -588,6 +588,7 @@
     "error_upload": "Se ha producido un error al importar los datos del mapa.",
     "success_upload": "Los datos del mapa se han importado correctamente.",
     "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
+    "error_too_many_entries": "El ZIP de datos del mapa contiene demasiados archivos y no se puede importar.",
     "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar.",
     "error_no_json": "No se puede importar porque no se incluye el archivo de configuración del mapa (JSON)"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "El destino del enlace (directgo) está vacío o solo contiene espacios en blanco. Para usarlo como enlace, cambie al modo «Link» e introduzca una URL; si no, elimine directgo en GeoJSON sin procesar.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "El ZIP es demasiado grande (no se pueden importar archivos de más de 2 GiB)",
+      "zip_too_many_entries": "El ZIP contiene demasiados archivos",
       "zip_corrupt": "El ZIP está dañado y no se puede importar"
     }
   },

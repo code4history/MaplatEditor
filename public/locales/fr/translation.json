@@ -588,6 +588,7 @@
     "error_upload": "Une erreur s'est produite lors de l'importation des données de carte.",
     "success_upload": "Les données de carte ont été importées avec succès.",
     "error_too_large": "Le ZIP des données de carte est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés).",
+    "error_too_many_entries": "Le ZIP des données de carte contient trop de fichiers et ne peut pas être importé.",
     "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé.",
     "error_no_json": "Importation impossible car le fichier de paramètres de la carte (JSON) n'est pas inclus"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "La cible du lien (directgo) est vide ou ne contient que des espaces. Pour l’utiliser comme lien, passez au mode « Link » et saisissez une URL ; sinon, supprimez directgo dans GeoJSON brut.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "Le ZIP est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés)",
+      "zip_too_many_entries": "Le ZIP contient trop de fichiers",
       "zip_corrupt": "Le ZIP est endommagé et ne peut pas être importé"
     }
   },

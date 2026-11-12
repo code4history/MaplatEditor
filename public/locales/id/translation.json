@@ -588,6 +588,7 @@
     "error_upload": "Terjadi kesalahan saat mengimpor data peta.",
     "success_upload": "Data peta berhasil diimpor.",
     "error_too_large": "ZIP data peta terlalu besar (file lebih dari 2 GiB tidak dapat diimpor).",
+    "error_too_many_entries": "ZIP data peta berisi terlalu banyak file sehingga tidak dapat diimpor.",
     "error_corrupt": "ZIP data peta rusak sehingga tidak dapat diimpor.",
     "error_no_json": "Tidak dapat diimpor karena file pengaturan peta (JSON) tidak disertakan"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "Tujuan tautan (directgo) kosong atau hanya berisi spasi. Untuk memakainya sebagai tautan, beralih ke mode \"Link\" lalu masukkan URL; jika tidak dipakai, hapus directgo di GeoJSON mentah.",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP terlalu besar (file lebih dari 2 GiB tidak dapat diimpor)",
+      "zip_too_many_entries": "ZIP berisi terlalu banyak file",
       "zip_corrupt": "ZIP rusak sehingga tidak dapat diimpor"
     }
   },

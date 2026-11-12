@@ -588,6 +588,7 @@
     "error_upload": "匯入地圖資料時發生錯誤。",
     "success_upload": "地圖資料已成功匯入。",
     "error_too_large": "地圖資料的 ZIP 過大（無法匯入超過 2 GiB 的檔案）。",
+    "error_too_many_entries": "地圖資料的 ZIP 包含的檔案過多，無法匯入。",
     "error_corrupt": "地圖資料的 ZIP 已損壞，無法匯入。",
     "error_no_json": "未包含地圖設定檔（JSON），無法匯入"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "連結目標（directgo）為空或只有空白。如要作為連結使用，請切換到「Link」模式並輸入 URL；不使用則請在原始 GeoJSON 中刪除 directgo。",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP 過大（無法匯入超過 2 GiB 的檔案）",
+      "zip_too_many_entries": "ZIP 包含的檔案過多",
       "zip_corrupt": "ZIP 已損壞，無法匯入"
     }
   },

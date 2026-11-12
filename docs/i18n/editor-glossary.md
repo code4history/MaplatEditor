@@ -7,18 +7,18 @@
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
 まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 503・例外 293（anchorExclusion 12・omission 100・untranslated 181）
+概念 26・結び付いたキー 504・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
 | [asset](#asset) | 管理対象の画像・アイコン等。財務資産ではない | `navbar.assets` | 18 |
 | [canvas](#canvas) | IIIF Manifest 内の canvas（コマ）。HTML canvas とは別 | `iiif_metadata.from_canvas` | 6 |
 | [manifest](#manifest) | IIIF Presentation の Manifest。PWA の Web App Manifest は除外語で外す | `iiif_metadata.from_manifest` | 13 |
-| [import](#import) | 外部データを取り込む操作 | `resource_list.import_map` | 48 |
+| [import](#import) | 外部データを取り込む操作 | `resource_list.import_map` | 49 |
 | [export](#export) | 配布・交換用データを出す操作 | `editor_ui.export_button` | 37 |
 | [configure](#configure) | 振る舞いを指定する画面・項目。データ主体の名詞にはしない（2026-10-21）。役割 screen（strict）と item（weak）に分ける | `navbar.settings` | 29 |
 | [settings-file](#settings-file) | 地図・アプリ等の定義データを保持する主体（設定ファイル） | `appedit.source_advanced` | 7 |
-| [map](#map) | 編集・公開する地図。ベースマップは別概念 | `navbar.edit_map` | 142 |
+| [map](#map) | 編集・公開する地図。ベースマップは別概念 | `navbar.edit_map` | 143 |
 | [basemap](#basemap) | 古地図の下に敷く地図（ベースマップ） | `navbar.add_basemap` | 63 |
 | [app](#app) | 地図と POI をまとめて公開するアプリ | `navbar.edit_app` | 52 |
 | [poi](#poi) | 地図上の地点情報 | `navbar.edit_poi` | 61 |

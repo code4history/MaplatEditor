@@ -588,6 +588,7 @@
     "error_upload": "导入地图数据时发生错误。",
     "success_upload": "地图数据已成功导入。",
     "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
+    "error_too_many_entries": "地图数据的 ZIP 包含的文件过多，无法导入。",
     "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。",
     "error_no_json": "未包含地图设置文件（JSON），无法导入"
   },
@@ -1014,6 +1015,7 @@
       "directgo_blank_like": "链接目标（directgo）为空或只有空白。如要作为链接使用，请切换到“Link”模式并输入 URL；不使用则请在原始 GeoJSON 中删除 directgo。",
       "content_mode_html_missing_content": "HTML mode is selected but the HTML content is empty.",
       "zip_too_large": "ZIP 过大（无法导入超过 2 GiB 的文件）",
+      "zip_too_many_entries": "ZIP 包含的文件过多",
       "zip_corrupt": "ZIP 已损坏，无法导入"
     }
   },

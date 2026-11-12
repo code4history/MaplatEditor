@@ -288,6 +288,12 @@
         "ja"
       ]
     },
+    "dataupload.error_too_many_entries": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "dataupload.error_upload": {
       "by": [
         "en",
@@ -1274,6 +1280,12 @@
       ]
     },
     "dataupload.error_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_too_many_entries": {
       "by": [
         "en",
         "ja"
