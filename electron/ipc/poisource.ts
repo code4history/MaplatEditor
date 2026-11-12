@@ -2,12 +2,70 @@ import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import { dialog, BrowserWindow } from 'electron';
 import { ipc } from './registry';
 import path from 'path';
+import os from 'os';
 import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
 import { exportPoiTable, pickAndParsePoiMerge } from '../services/PoiTableIoService';
 import { normalizePoiExportOptions } from '../../src/utils/exportOptions';
+import { createPickedPathStore } from '../utils/pickedPathStore';
+
+// 取り込み用に利用者が選んだファイルのパスを覚える表（画像の一次表示と同じ実装・別のインスタンス）。
+// renderer には token だけを返し、importFile・detectImportLanguage は token だけを受け取る。
+// renderer からパス文字列を受け取って開く口は作らない（乗っ取られた renderer に任意のファイルを読ませない）
+const pickedImportPaths = createPickedPathStore();
+
+/** token → 選ばれたパス。token 以外（パス文字列を含む）は解決しない */
+function resolvePickedImportPath(token: unknown): string | null {
+  if (typeof token !== 'string') return null;
+  const resolved = pickedImportPaths.resolve(token);
+  return resolved.ok ? resolved.filePath : null;
+}
+
+/**
+ * renderer から届いた取り込みの依頼を、main だけが知るパスへ置き換える。
+ * 受け取るのは token と slug などの値だけで、`filePath` が混じっていても使わない。
+ */
+function toImportInput(input: unknown) {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const filePath = resolvePickedImportPath(raw.token);
+  if (filePath === null) return null;
+  return {
+    slug: raw.slug as string,
+    title: raw.title as Record<string, string>,
+    filePath,
+    lang: raw.lang as string | undefined,
+    langOverride: raw.langOverride as boolean | undefined,
+    uid: raw.uid as string | undefined,
+  };
+}
+
+/**
+ * 取り込みの失敗の応答の message から、利用者の手元のパスだけを伏せる。
+ * service の message には `ENOENT … '<絶対パス>'` が入ることがある。一方、ZIP の中の名前
+ * （`pois/*.geojson`・`imgs/…`）を含む検証の文言は利用者に役立つので、message ごとは落とさない。
+ * 伏せるのは選んだパス・その親・ホームディレクトリ・一時ディレクトリ（長い順）。原文は main のログへだけ出す。
+ */
+function withoutPathInMessage<T>(result: T, filePath: string): T {
+  if (!result || typeof result !== 'object') return result;
+  const record = result as Record<string, unknown>;
+  const { message } = record;
+  if (record.result !== 'Error' || typeof message !== 'string') return result;
+  const replacements: Array<[string, string]> = [
+    [filePath, '<file>'],
+    [path.dirname(filePath), '<dir>'],
+    [os.homedir(), '~'],
+    [os.tmpdir(), '<tmp>'],
+  ];
+  let redacted = message;
+  for (const [needle, label] of replacements.sort((a, b) => b[0].length - a[0].length)) {
+    if (needle && needle !== path.sep && needle !== '.') redacted = redacted.split(needle).join(label);
+  }
+  if (redacted === message) return result;
+  console.error('[poisource:importFile] failed:', message);
+  return { ...record, message: redacted } as T;
+}
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -16,10 +74,32 @@ export function registerPoisourceHandlers() {
   ipc.handle('poisource:get', (_, uid) => poiSourceService.get(uid));
   ipc.handle('poisource:createLocal', (_, input) => poiSourceService.createLocal(input));
   ipc.handle('poisource:save', (_, uid, payload) => poiSourceService.save(uid, payload));
-  ipc.handle('poisource:importFile', (_, input) =>
-    runGuarded('poisource:importFile', () => poiSourceService.importFile(input)));
-  ipc.handle('poisource:detectImportLanguage', (_, filePath, fallbackLang) =>
-    poiSourceService.detectImportLanguage(filePath, fallbackLang));
+  // 取り込むファイルは pickImportFile が返した token で指す。選んでいない・期限切れの token は
+  // ファイルを開かずに invalid-request で返す。token が正しくても、選んだ後でファイルが消えたときなどの
+  // 失敗の応答には、パスを含みうる message を載せない（例外も同じ。原文はログへ）
+  ipc.handle('poisource:importFile', async (_, input) => {
+    const importInput = toImportInput(input);
+    if (!importInput) return { result: 'Error', code: 'invalid-request' } as const;
+    try {
+      const result = await runGuarded('poisource:importFile', () => poiSourceService.importFile(importInput));
+      return withoutPathInMessage(result, importInput.filePath);
+    } catch (error) {
+      console.error('[poisource:importFile] failed:', error);
+      return { result: 'Error', code: 'internal' } as const;
+    }
+  });
+  // 言語の判定は補助なので、token が解決しないとき・読めないとき（選んだ後で消えた等）は
+  // 既定の言語を返す。例外の原文（パスを含む）を renderer へ渡さない。続く importFile が失敗を返す
+  ipc.handle('poisource:detectImportLanguage', async (_, token, fallbackLang) => {
+    const filePath = resolvePickedImportPath(token);
+    if (filePath === null) return poiSourceService.defaultImportLanguage(fallbackLang);
+    try {
+      return await poiSourceService.detectImportLanguage(filePath, fallbackLang);
+    } catch (error) {
+      console.error('[poisource:detectImportLanguage] failed:', error);
+      return poiSourceService.defaultImportLanguage(fallbackLang);
+    }
+  });
   ipc.handle('poisource:registerRemote', (_, input) => poiSourceService.registerRemote(input));
   ipc.handle('poisource:refreshRemote', (_, uid) =>
     runGuarded('poisource:refreshRemote', () => poiSourceService.refreshRemote(uid)));
@@ -107,8 +187,8 @@ export function registerPoisourceHandlers() {
         },
       })));
 
-  // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON を選ばせ path とファイル名を返す。
-  // 実取り込みは renderer が slug/title を収集後に poisource:importFile を呼ぶ二段構え。
+  // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON/ZIP/CSV/KML を選ばせ、token とファイル名を返す（パスは返さない）。
+  // 実取り込みは renderer が slug/title を収集後に token を添えて poisource:importFile を呼ぶ二段構え。
   ipc.handle('poisource:pickImportFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
@@ -122,6 +202,6 @@ export function registerPoisourceHandlers() {
     if (ret.canceled || ret.filePaths.length === 0) return null;
     const filePath = ret.filePaths[0];
     rememberDialogPath('import', filePath, 'file');
-    return { filePath, fileName: path.basename(filePath) };
+    return { token: pickedImportPaths.register(filePath), fileName: path.basename(filePath) };
   });
 }

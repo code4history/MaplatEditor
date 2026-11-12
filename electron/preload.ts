@@ -220,8 +220,9 @@ contextBridge.exposeInMainWorld('poiSources', {
   createLocal: (input: any) => ipcRenderer.invoke('poisource:createLocal', input),
   save: (uid: string, payload: any) => ipcRenderer.invoke('poisource:save', uid, payload),
   importFile: (input: any) => ipcRenderer.invoke('poisource:importFile', input),
-  detectImportLanguage: (filePath: string, fallbackLang?: string) =>
-    ipcRenderer.invoke('poisource:detectImportLanguage', filePath, fallbackLang),
+  // 取り込むファイルは pickImportFile が返した token で指す（パスは渡さない）
+  detectImportLanguage: (token: string, fallbackLang?: string) =>
+    ipcRenderer.invoke('poisource:detectImportLanguage', token, fallbackLang),
   registerRemote: (input: any) => ipcRenderer.invoke('poisource:registerRemote', input),
   refreshRemote: (uid: string) => ipcRenderer.invoke('poisource:refreshRemote', uid),
   cloneToLocal: (uid: string, input: any) => ipcRenderer.invoke('poisource:cloneToLocal', uid, input),
@@ -233,7 +234,7 @@ contextBridge.exposeInMainWorld('poiSources', {
   exportTable: (uid: string, format: 'csv' | 'json') => ipcRenderer.invoke('poisource:exportTable', uid, format),
   // 開いているソースへの取り込み。選択と解析を main で 1 回で行い、パスは渡さない・返さない
   pickAndParseMerge: (input: { lang: string }) => ipcRenderer.invoke('poisource:pickAndParseMerge', input),
-  // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
+  // インポート用ネイティブファイル選択 (Phase 3)。{ token, fileName } を返し、パスは返さない。キャンセル時は null
   pickImportFile: () => ipcRenderer.invoke('poisource:pickImportFile'),
 })
 

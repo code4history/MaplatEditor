@@ -317,11 +317,12 @@ export async function importManagedPoiDocuments(
       const result = await imageAssetService.add({ slug, title: { ja: slug }, sourcePath: tempPath });
       if (!('result' in result) || result.result !== 'Success') {
         if ('uid' in result && result.uid) createdAssetUids.push(result.uid);
-        throw new Error(
+        // 一時ファイルのパスは利用者に見せず、ZIP の中の名前で言い換える
+        const reason =
           'result' in result && result.result === 'Error'
-            ? result.message || result.code
-            : 'Image asset registration failed',
-        );
+            ? (result.message || result.code).split(tempPath).join(value)
+            : 'Image asset registration failed';
+        throw new Error(reason);
       }
       createdAssetUids.push(result.uid);
       resolvedPaths.set(value, result.uid);

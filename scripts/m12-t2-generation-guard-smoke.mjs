@@ -103,7 +103,7 @@ try {
     const outcome = await runGuardedPoiImport({
       isCurrent: () => false,
       newUid: () => "uid-a",
-      pickImportFile: () => { pickCalls += 1; return Promise.resolve({ filePath: "/tmp/a.geojson", fileName: "a.geojson" }); },
+      pickImportFile: () => { pickCalls += 1; return Promise.resolve({ token: "token-a", fileName: "a.geojson" }); },
       detectImportLanguage: () => Promise.resolve("ja"),
       importFile: () => Promise.resolve({ result: "Success", uid: "uid-a", slug: "a", revision: 1 }),
       removeDraft: () => Promise.resolve(),
@@ -131,7 +131,7 @@ try {
       replaceRoute: () => Promise.resolve(),
     });
     current = false; // picker 待ちの間に世代切替
-    pickDef.resolve({ filePath: "/tmp/b.geojson", fileName: "b.geojson" });
+    pickDef.resolve({ token: "token-b", fileName: "b.geojson" });
     const outcome = await run;
     assert.equal(importCalls, 0, "picker 待ちの間に stale なら importFile を呼ばないはず");
     assert.deepEqual(outcome, { outcome: "stale" });
@@ -147,7 +147,7 @@ try {
     const outcome = await runGuardedPoiImport({
       isCurrent: () => current,
       newUid: () => "uid-c",
-      pickImportFile: () => Promise.resolve({ filePath: "/tmp/c.geojson", fileName: "c.geojson" }),
+      pickImportFile: () => Promise.resolve({ token: "token-c", fileName: "c.geojson" }),
       detectImportLanguage: () => Promise.resolve("ja"),
       importFile: () => {
         // importFile 完了直後の世代切替を物理的に再現（成功は成立したが、その後 stale へ）
@@ -171,7 +171,7 @@ try {
     const outcome = await runGuardedPoiImport({
       isCurrent: () => true,
       newUid: () => "uid-d",
-      pickImportFile: () => Promise.resolve({ filePath: "/tmp/d.geojson", fileName: "d.geojson" }),
+      pickImportFile: () => Promise.resolve({ token: "token-d", fileName: "d.geojson" }),
       detectImportLanguage: () => Promise.resolve("ja"),
       importFile: () => Promise.resolve(failure),
       removeDraft: () => Promise.resolve(),
@@ -185,18 +185,22 @@ try {
   // (h) AC4: current 全通過 → 全ステップが順序どおり呼ばれ outcome='current-saved'
   {
     const calls = [];
+    const importInputs = [];
     const outcome = await runGuardedPoiImport({
       isCurrent: () => true,
       newUid: () => "uid-e",
-      pickImportFile: () => { calls.push("pick"); return Promise.resolve({ filePath: "/tmp/e.geojson", fileName: "e.geojson" }); },
-      detectImportLanguage: () => { calls.push("detect"); return Promise.resolve("ja"); },
-      importFile: () => { calls.push("import"); return Promise.resolve({ result: "Success", uid: "uid-e", slug: "e", revision: 1 }); },
+      pickImportFile: () => { calls.push("pick"); return Promise.resolve({ token: "token-e", fileName: "e.geojson" }); },
+      detectImportLanguage: (token) => { calls.push(`detect:${token}`); return Promise.resolve("ja"); },
+      importFile: (input) => { calls.push("import"); importInputs.push(input); return Promise.resolve({ result: "Success", uid: "uid-e", slug: "e", revision: 1 }); },
       removeDraft: (uid) => { calls.push(`remove:${uid}`); return Promise.resolve(); },
       loadSaved: (uid) => { calls.push(`load:${uid}`); return Promise.resolve(); },
       replaceRoute: (uid) => { calls.push(`replace:${uid}`); return Promise.resolve(); },
     });
-    assert.deepEqual(calls, ["pick", "detect", "import", "remove:uid-e", "load:uid-e", "replace:uid-e"],
+    assert.deepEqual(calls, ["pick", "detect:token-e", "import", "remove:uid-e", "load:uid-e", "replace:uid-e"],
       "current なら全ステップが順序どおり呼ばれるはず");
+    // ファイルは main が発行した token で指す（renderer はパスを持たず、送らない）
+    assert.deepEqual(importInputs, [{ slug: "e", title: { ja: "e" }, token: "token-e", uid: "uid-e" }],
+      "importFile には token を渡し、filePath を渡さないはず");
     assert.deepEqual(outcome, { outcome: "current-saved" });
     console.log("ok: (h) current runs the full import flow in order");
   }
@@ -210,7 +214,7 @@ try {
     const outcome = await runGuardedPoiImport({
       isCurrent: () => current,
       newUid: () => "uid-f",
-      pickImportFile: () => { calls.push("pick"); return Promise.resolve({ filePath: "/tmp/f.geojson", fileName: "f.geojson" }); },
+      pickImportFile: () => { calls.push("pick"); return Promise.resolve({ token: "token-f", fileName: "f.geojson" }); },
       detectImportLanguage: () => Promise.resolve("ja"),
       importFile: () => { calls.push("import"); return Promise.resolve({ result: "Success", uid: "uid-f", slug: "f", revision: 1 }); },
       removeDraft: () => Promise.resolve(),
