@@ -15,7 +15,9 @@ import {
 } from '../utils/pickedPreviewSource';
 // 選ばれたパス → token の表（POI の取り込みと同じ実装。インスタンスは経路ごとに別）
 import { createPickedPathStore } from '../utils/pickedPathStore';
-import { maskPathInResult } from '../utils/maskPathInResult';
+// 失敗の応答から手元のパスを伏せる（POI の取り込みと同じ実装）
+import { redactPathsInResult } from '../utils/redactPathsInResult';
+import { UUID_PATTERN } from '../adapters/StorageAdapter';
 
 // このプロセスの間だけ「利用者が選んだ画像のパス」を覚える表
 // （ディスクへも IPC 応答へもパスを出さない。renderer は token でしか引けない）
@@ -82,7 +84,11 @@ async function toAddInput(input: unknown) {
     const resolved = pickedPaths.resolve(raw.token);
     if (!resolved.ok) return { ok: false as const, failure: { result: 'Error', code: 'invalid-request' } as const };
     sourcePath = resolved.filePath;
-  } else if (typeof raw.duplicateFrom === 'string' && raw.duplicateFrom) {
+  } else if (raw.duplicateFrom !== undefined) {
+    // 複製元は uid だけ。UUID の形でないもの（パス・'../x'・slug）は引かずに拒否する
+    if (typeof raw.duplicateFrom !== 'string' || !UUID_PATTERN.test(raw.duplicateFrom)) {
+      return { ok: false as const, failure: { result: 'Error', code: 'invalid-request' } as const };
+    }
     sourcePath = await imageAssetService.localFilePath(raw.duplicateFrom);
     if (sourcePath === null) return { ok: false as const, failure: { result: 'Error', code: 'not-found' } as const };
   } else {
@@ -105,12 +111,17 @@ async function toAddInput(input: unknown) {
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
   // 読み元は token（選んだファイル）か duplicateFrom（複製元の uid）だけ。解決しなければファイルを開かずに返す。
-  // 失敗の応答の message からは、読んだファイルのパスそのものを伏せる（ファイル名に置き換える）
+  // 失敗の応答の message からは手元のパスを伏せる（POI の取り込みと同じ）。例外は internal にし、原文はログへ
   ipc.handle('imageassets:add', async (_, input) => {
-    const resolved = await toAddInput(input);
-    if (!resolved.ok) return resolved.failure;
-    const result = await runGuarded('imageassets:add', () => imageAssetService.add(resolved.input));
-    return maskPathInResult(result, resolved.input.sourcePath);
+    try {
+      const resolved = await toAddInput(input);
+      if (!resolved.ok) return resolved.failure;
+      const result = await runGuarded('imageassets:add', () => imageAssetService.add(resolved.input));
+      return redactPathsInResult(result, resolved.input.sourcePath, 'imageassets:add');
+    } catch (error) {
+      console.error('[imageassets:add] failed:', error);
+      return { result: 'Error', code: 'internal' } as const;
+    }
   });
   ipc.handle('imageassets:list', () => imageAssetService.list());
   ipc.handle('imageassets:search', (_, query) => imageAssetService.search(query));

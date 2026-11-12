@@ -303,14 +303,14 @@ try {
     const store = await read('electron/utils/pickedPathStore.ts');
     assert.match(store, /export function createPickedPathStore\(/, '(h) pickedPathStore.ts に createPickedPathStore が無い');
     const redact = await read('electron/utils/redactPathsInResult.ts');
-    assert.match(redact, /export function redactPathsInResult\(/, '(h) redactPathsInResult.ts に redactPathsInResult が無い');
+    assert.match(redact, /export function redactPathsInResult[<(]/, '(h) redactPathsInResult.ts に redactPathsInResult が無い');
     for (const rel of ['electron/ipc/assets-images.ts', 'electron/ipc/poisource.ts']) {
       const src = await read(rel);
       assert.match(src, /createPickedPathStore\(\)/, `(h) ${rel} が共通の表を使っていない`);
       assert.match(src, /redactPathsInResult\(/, `(h) ${rel} が共通のパスを伏せる関数を使っていない`);
       assert.equal(/function (withoutPathInMessage|maskPathInResult)\(/.test(src), false, `(h) ${rel} に 2 つ目のパスを伏せる実装がある`);
     }
-    console.log('ok (h): token の表の実装は pickedPathStore.ts の 1 つで、画像と POI の IPC が使う');
+    console.log('ok (h): token の表（pickedPathStore.ts）とパスを伏せる関数（redactPathsInResult.ts）はそれぞれ 1 つで、画像と POI の IPC が使う');
   }
 } finally {
   await rm(workDir, { recursive: true, force: true });

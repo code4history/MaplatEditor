@@ -2,7 +2,6 @@ import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import { dialog, BrowserWindow } from 'electron';
 import { ipc } from './registry';
 import path from 'path';
-import os from 'os';
 import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
@@ -10,6 +9,8 @@ import { runGuarded } from '../utils/inflightGuard';
 import { exportPoiTable, pickAndParsePoiMerge } from '../services/PoiTableIoService';
 import { normalizePoiExportOptions } from '../../src/utils/exportOptions';
 import { createPickedPathStore } from '../utils/pickedPathStore';
+// 失敗の応答から手元のパスを伏せる（画像アセットの登録と同じ実装）
+import { redactPathsInResult } from '../utils/redactPathsInResult';
 
 // 取り込み用に利用者が選んだファイルのパスを覚える表（画像の一次表示と同じ実装・別のインスタンス）。
 // renderer には token だけを返し、importFile・detectImportLanguage は token だけを受け取る。
@@ -41,32 +42,6 @@ function toImportInput(input: unknown) {
   };
 }
 
-/**
- * 取り込みの失敗の応答の message から、利用者の手元のパスだけを伏せる。
- * service の message には `ENOENT … '<絶対パス>'` が入ることがある。一方、ZIP の中の名前
- * （`pois/*.geojson`・`imgs/…`）を含む検証の文言は利用者に役立つので、message ごとは落とさない。
- * 伏せるのは選んだパス・その親・ホームディレクトリ・一時ディレクトリ（長い順）。原文は main のログへだけ出す。
- */
-function withoutPathInMessage<T>(result: T, filePath: string): T {
-  if (!result || typeof result !== 'object') return result;
-  const record = result as Record<string, unknown>;
-  const { message } = record;
-  if (record.result !== 'Error' || typeof message !== 'string') return result;
-  const replacements: Array<[string, string]> = [
-    [filePath, '<file>'],
-    [path.dirname(filePath), '<dir>'],
-    [os.homedir(), '~'],
-    [os.tmpdir(), '<tmp>'],
-  ];
-  let redacted = message;
-  for (const [needle, label] of replacements.sort((a, b) => b[0].length - a[0].length)) {
-    if (needle && needle !== path.sep && needle !== '.') redacted = redacted.split(needle).join(label);
-  }
-  if (redacted === message) return result;
-  console.error('[poisource:importFile] failed:', message);
-  return { ...record, message: redacted } as T;
-}
-
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
 export function registerPoisourceHandlers() {
@@ -82,7 +57,7 @@ export function registerPoisourceHandlers() {
     if (!importInput) return { result: 'Error', code: 'invalid-request' } as const;
     try {
       const result = await runGuarded('poisource:importFile', () => poiSourceService.importFile(importInput));
-      return withoutPathInMessage(result, importInput.filePath);
+      return redactPathsInResult(result, importInput.filePath, 'poisource:importFile');
     } catch (error) {
       console.error('[poisource:importFile] failed:', error);
       return { result: 'Error', code: 'internal' } as const;
