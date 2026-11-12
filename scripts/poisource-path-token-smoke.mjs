@@ -12,10 +12,11 @@
 //   (e) detectImportLanguage も token だけを受け取り、パスを渡されてもファイルを読まない
 //   (f) token の規則は画像と同じ（期限内は何度でも使える・30 分で失効・同時に 8 件まで）
 //   (g) 画像の token は POI の取り込みに使えない（表は経路ごとに別。実装は 1 つ）
+//   (i) 選んだ後でファイルが消えても、失敗の応答に絶対パスを載せない（GeoJSON・CSV・ZIP の分岐）
 //   (h) 表の実装は 1 つ（pickedPathStore.ts）で、画像と POI の IPC がそれを使う
 //
 // 実行方法: node scripts/poisource-path-token-smoke.mjs
-// （nov26-m6-t3 と同じ vite SSR ビルド＋electron／electron-store のスタブ方式。IPC の handler を
+// （vite SSR ビルド＋electron／electron-store のスタブ方式。IPC の handler を
 // 実物のまま登録させ、ipcMain.handle の登録を拾って呼ぶ）
 import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -47,12 +48,22 @@ try {
     kml: path.join(fixtureDir, 'demo.kml'),
     unpicked: path.join(fixtureDir, 'merge-existing.json'),
     png: path.join(fixtureDir, 'fake-osm-tile.png'),
+    imageJson: path.join(fixtureDir, 'picked-as-image.json'),
+    goneGeojson: path.join(fixtureDir, 'gone.geojson'),
+    goneCsv: path.join(fixtureDir, 'gone.csv'),
+    goneZip: path.join(fixtureDir, 'gone.zip'),
   };
   await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.geojson);
   await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.csv);
   await copyFile(path.join(poiIo, 'demo.kml'), fx.kml);
   await copyFile(path.join(poiIo, 'merge-existing.json'), fx.unpicked);
   await copyFile(path.join(projectRoot, 'tests/e2e/fixtures/fake-osm-tile.png'), fx.png);
+  // (g) 画像のピッカに選ばせる GeoJSON（拡張子の判定では落ちない、POI として読めるファイル）
+  await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.imageJson);
+  // (i) 選んだ後で消すファイル（中身は読まれない。消す前に選ぶためだけに置く）
+  await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.goneGeojson);
+  await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.goneCsv);
+  await copyFile(path.join(poiIo, 'demo.kml'), fx.goneZip);
   const expectedCount = {
     geojson: JSON.parse(await readFile(fx.geojson, 'utf8')).features.length,
     unpicked: JSON.parse(await readFile(fx.unpicked, 'utf8')).features.length,
@@ -96,6 +107,8 @@ try {
 
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
+    import { rm as fsRm } from 'node:fs/promises';
+    const workDir = ${JSON.stringify(workDir)};
     const fx = ${JSON.stringify(fx)};
     const expectedCount = ${JSON.stringify(expectedCount)};
     const fixtureDir = ${JSON.stringify(fixtureDir)};
@@ -222,14 +235,37 @@ try {
 
     // ---- (g) 画像の token は POI に使えない ----
     {
-      const image = await pick(fx.png, 'imageassets:pickImageFile');
+      // 画像のピッカに POI として読める .json を選ばせる。表が共有されていれば、拡張子の判定を
+      // 素通りして取り込めてしまう ∴ 拒否されることが「表が経路ごとに別」の実効のある確かめになる
+      const image = await pick(fx.imageJson, 'imageassets:pickImageFile');
       assert.equal(typeof image?.token, 'string', '(g) 画像のピッカが token を返さない');
       const before = await sourceCount();
-      await expectRejected('(g) 画像の token', await importWith({ token: image.token }), before);
+      await expectRejected('(g) 画像の token（.json）', await importWith({ token: image.token }), before);
+      assert.equal(await invoke('poisource:detectImportLanguage', image.token, 'de'), 'de', '(g) 画像の token で言語を判定できてしまう');
       const poi = await pick(fx.png);
       const read = await invoke('imageassets:readPickedSource', poi.token);
       assert.equal(read.ok, false, '(g) POI の token で画像の一次表示を読めてしまう');
       console.log('ok (g): 画像と POI の token は互いに使えない');
+    }
+
+    // ---- (i) 選んだ後でファイルが消えた: 失敗の応答に絶対パスを載せない ----
+    {
+      for (const [label, file] of [['GeoJSON', fx.goneGeojson], ['CSV', fx.goneCsv], ['ZIP', fx.goneZip]]) {
+        const picked = await pick(file);
+        await fsRm(file);
+        // 言語の判定は投げずに既定の言語へ倒す（例外の原文にはパスが入る）
+        assert.equal(await invoke('poisource:detectImportLanguage', picked.token, 'de'), 'de', '(i) ' + label + ': 言語の判定が既定の言語を返さない');
+        const before = await sourceCount();
+        const r = await importWith({ token: picked.token });
+        const text = JSON.stringify(r);
+        assert.equal(r?.result, 'Error', '(i) ' + label + ': 失敗にならない（実際: ' + text + '）');
+        for (const needle of [fixtureDir, workDir, file]) {
+          assert.equal(text.includes(needle), false, '(i) ' + label + ': 応答に絶対パスが含まれる: ' + text);
+        }
+        assert.equal(/[\\/]/.test(r.message ?? ''), false, '(i) ' + label + ': message にパスらしい文字列が残る: ' + text);
+        assert.equal(await sourceCount(), before, '(i) ' + label + ': ソースが作られた');
+      }
+      console.log('ok (i): 選んだ後でファイルが消えても、応答に絶対パスを載せない');
     }
 
     console.log(${JSON.stringify(MARKER)});

@@ -40,6 +40,21 @@ function toImportInput(input: unknown) {
   };
 }
 
+/**
+ * 取り込みの失敗の応答から、パスを含みうる message を落とす。
+ * service の message には `ENOENT … '<絶対パス>'` や ZIP の読み取りの例外の原文が入ることがある。
+ * renderer は message が無ければ翻訳済みの文言を出す（PoiEdit の importAutoRun）ので、落としても表示は崩れない。
+ * 原文は main のログへだけ出す。
+ */
+function withoutPathInMessage<T>(result: T, filePath: string): T {
+  if (!result || typeof result !== 'object') return result;
+  const { message, ...rest } = result as Record<string, unknown>;
+  if ((result as Record<string, unknown>).result !== 'Error' || typeof message !== 'string') return result;
+  if (!message.includes(filePath) && !/[\\/]/.test(message)) return result;
+  console.error('[poisource:importFile] failed:', message);
+  return rest as T;
+}
+
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
 export function registerPoisourceHandlers() {
@@ -48,18 +63,30 @@ export function registerPoisourceHandlers() {
   ipc.handle('poisource:createLocal', (_, input) => poiSourceService.createLocal(input));
   ipc.handle('poisource:save', (_, uid, payload) => poiSourceService.save(uid, payload));
   // 取り込むファイルは pickImportFile が返した token で指す。選んでいない・期限切れの token は
-  // ファイルを開かずに invalid-request で返す（message にパスを載せない）
-  ipc.handle('poisource:importFile', (_, input) => {
+  // ファイルを開かずに invalid-request で返す。token が正しくても、選んだ後でファイルが消えたときなどの
+  // 失敗の応答には、パスを含みうる message を載せない（例外も同じ。原文はログへ）
+  ipc.handle('poisource:importFile', async (_, input) => {
     const importInput = toImportInput(input);
     if (!importInput) return { result: 'Error', code: 'invalid-request' } as const;
-    return runGuarded('poisource:importFile', () => poiSourceService.importFile(importInput));
+    try {
+      const result = await runGuarded('poisource:importFile', () => poiSourceService.importFile(importInput));
+      return withoutPathInMessage(result, importInput.filePath);
+    } catch (error) {
+      console.error('[poisource:importFile] failed:', error);
+      return { result: 'Error', code: 'internal' } as const;
+    }
   });
-  // 言語の判定は補助なので、token が解決しなければファイルを開かずに既定の言語を返す
-  // （続く importFile が invalid-request で止める）
-  ipc.handle('poisource:detectImportLanguage', (_, token, fallbackLang) => {
+  // 言語の判定は補助なので、token が解決しないとき・読めないとき（選んだ後で消えた等）は
+  // 既定の言語を返す。例外の原文（パスを含む）を renderer へ渡さない。続く importFile が失敗を返す
+  ipc.handle('poisource:detectImportLanguage', async (_, token, fallbackLang) => {
     const filePath = resolvePickedImportPath(token);
     if (filePath === null) return poiSourceService.defaultImportLanguage(fallbackLang);
-    return poiSourceService.detectImportLanguage(filePath, fallbackLang);
+    try {
+      return await poiSourceService.detectImportLanguage(filePath, fallbackLang);
+    } catch (error) {
+      console.error('[poisource:detectImportLanguage] failed:', error);
+      return poiSourceService.defaultImportLanguage(fallbackLang);
+    }
   });
   ipc.handle('poisource:registerRemote', (_, input) => poiSourceService.registerRemote(input));
   ipc.handle('poisource:refreshRemote', (_, uid) =>
