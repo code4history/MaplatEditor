@@ -224,6 +224,32 @@ try {
         assert.ok(apply.includes(token), '適用スクリプト: "' + token + '" が入るはず: ' + apply);
       }
 
+      // フレームの目印: 撮影元に前の 1 枚のフレームが残っていても見分けられる
+      assert.ok(shell.includes('id="pwa-frame-marker"'), 'シェル: フレームの目印があるはず');
+      assert.notEqual(pwaAssets.pwaFrameMarkerColor(0), pwaAssets.pwaFrameMarkerColor(1), '目印: 隣り合う 1 枚は別の色のはず');
+      const applyWithMarker = pwaAssets.buildPwaApplyScript(
+        { canvasWidth: 180, canvasHeight: 180, padding: 18, x: 18, y: 18, width: 144, height: 144 },
+        undefined,
+        { color: pwaAssets.pwaFrameMarkerColor(1), sizePx: 7 },
+      );
+      assert.ok(applyWithMarker.includes('pwa-frame-marker') && applyWithMarker.includes("marker.style.width = '7px'"),
+        '適用スクリプト: 配置と同じ JS で目印を変えるはず');
+      const settleAt = applyWithMarker.indexOf('const settle');
+      const markerCallAt = applyWithMarker.indexOf('applyMarker();');
+      assert.ok(settleAt >= 0 && markerCallAt > settleAt,
+        '適用スクリプト: 目印は元画像を読み終えた後（settle の中）で変えるはず');
+      const green = [0, 255, 0, 255];
+      const magenta = [255, 0, 255, 255];
+      const initial = [0, 0, 0, 255];
+      const background = [246, 240, 211, 255];
+      assert.ok(pwaAssets.pwaFrameMarkerMatches(green, 0) && !pwaAssets.pwaFrameMarkerMatches(green, 1), '目印: 0 番は緑');
+      assert.ok(pwaAssets.pwaFrameMarkerMatches(magenta, 1) && !pwaAssets.pwaFrameMarkerMatches(magenta, 0), '目印: 1 番はマゼンタ');
+      for (const seq of [0, 1, 2]) {
+        assert.ok(!pwaAssets.pwaFrameMarkerMatches(initial, seq), '目印: 最初の色はどの 1 枚とも一致しないはず');
+        assert.ok(!pwaAssets.pwaFrameMarkerMatches(background, seq), '目印: 背景色はどの 1 枚とも一致しないはず');
+      }
+      console.log('ok 目印: 前の 1 枚のフレームと見分けられる');
+
       // 画面より大きいウィンドウが作れないときの縮小倍率（設計書 v3 §5.4 S2）
       for (const spec of [...iconSpecs, ...splashSpecs]) {
         assert.equal(pwaAssets.pwaZoomFor(spec, 2868, 2868), 1, '縮小: 収まるなら等倍のはず: ' + spec.name);
