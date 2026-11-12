@@ -13,6 +13,7 @@
 //   (f) token の規則は画像と同じ（期限内は何度でも使える・30 分で失効・同時に 8 件まで）
 //   (g) 画像の token は POI の取り込みに使えない（表は経路ごとに別。実装は 1 つ）
 //   (i) 選んだ後でファイルが消えても、失敗の応答に絶対パスを載せない（GeoJSON・CSV・ZIP の分岐）
+//   (j) ZIP の中の名前を含む検証の文言（例: pois/*.geojson が無い）は残す（伏せるのは手元のパスだけ）
 //   (h) 表の実装は 1 つ（pickedPathStore.ts）で、画像と POI の IPC がそれを使う
 //
 // 実行方法: node scripts/poisource-path-token-smoke.mjs
@@ -24,6 +25,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import AdmZip from 'adm-zip';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -52,6 +54,7 @@ try {
     goneGeojson: path.join(fixtureDir, 'gone.geojson'),
     goneCsv: path.join(fixtureDir, 'gone.csv'),
     goneZip: path.join(fixtureDir, 'gone.zip'),
+    wrongZip: path.join(fixtureDir, 'not-a-poi-package.zip'),
   };
   await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.geojson);
   await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.csv);
@@ -64,6 +67,12 @@ try {
   await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.goneGeojson);
   await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.goneCsv);
   await copyFile(path.join(poiIo, 'demo.kml'), fx.goneZip);
+  // (j) POI パッケージではない ZIP（pois/*.geojson を持たない。地図の ZIP などを選び違えた場合）
+  {
+    const zip = new AdmZip();
+    zip.addFile('readme.txt', Buffer.from('not a POI package'));
+    zip.writeZip(fx.wrongZip);
+  }
   const expectedCount = {
     geojson: JSON.parse(await readFile(fx.geojson, 'utf8')).features.length,
     unpicked: JSON.parse(await readFile(fx.unpicked, 'utf8')).features.length,
@@ -262,10 +271,24 @@ try {
         for (const needle of [fixtureDir, workDir, file]) {
           assert.equal(text.includes(needle), false, '(i) ' + label + ': 応答に絶対パスが含まれる: ' + text);
         }
-        assert.equal(/[\\/]/.test(r.message ?? ''), false, '(i) ' + label + ': message にパスらしい文字列が残る: ' + text);
         assert.equal(await sourceCount(), before, '(i) ' + label + ': ソースが作られた');
       }
       console.log('ok (i): 選んだ後でファイルが消えても、応答に絶対パスを載せない');
+    }
+
+    // ---- (j) ZIP の中の名前を含む検証の文言は残す（伏せるのは手元のパスだけ） ----
+    {
+      const picked = await pick(fx.wrongZip);
+      const before = await sourceCount();
+      const r = await importWith({ token: picked.token });
+      const text = JSON.stringify(r);
+      assert.equal(r?.result, 'Error', '(j) 失敗にならない（実際: ' + text + '）');
+      assert.equal(typeof r.message === 'string' && r.message.includes('pois/*.geojson'), true, '(j) ZIP の検証の文言が消えた: ' + text);
+      for (const needle of [fixtureDir, workDir, fx.wrongZip]) {
+        assert.equal(text.includes(needle), false, '(j) 応答に絶対パスが含まれる: ' + text);
+      }
+      assert.equal(await sourceCount(), before, '(j) ソースが作られた');
+      console.log('ok (j): ZIP の検証の文言は残し、手元のパスは載せない');
     }
 
     console.log(${JSON.stringify(MARKER)});
