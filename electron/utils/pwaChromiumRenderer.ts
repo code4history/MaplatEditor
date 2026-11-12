@@ -12,6 +12,8 @@
 //   - requestAnimationFrame 1 回待ちでは前の寸法の描画を撮る → 2 回待つ
 //   - リサイズ直後の capturePage は UnknownVizError を投げることがある → リトライする
 //   - CSS の % による余白はビューポート基準になる → px を明示する
+//   - rAF を 2 回待っても capturePage の撮影元には前の 1 枚のフレームが残っていることがある
+//     （CPU が混んでいると起きる）→ 撮影範囲外の目印がこの 1 枚の色になるまで待ってから撮る
 // electron は名前空間で受ける（一部の node smoke は electron を最小のスタブに差し替えており、
 // `import { session } from 'electron'` のような名前付き import はリンク時に落ちてしまうため）
 import * as electron from 'electron';
@@ -25,6 +27,9 @@ import {
   buildPwaShellHtml,
   getPwaIconSpecs,
   getPwaSplashSpecs,
+  PWA_FRAME_MARKER_BAND_PX,
+  pwaFrameMarkerColor,
+  pwaFrameMarkerMatches,
   pwaImageBox,
   pwaZoomFor,
   type PwaContainBox,
@@ -90,6 +95,57 @@ async function canLoadImage(win: electron.BrowserWindow, url: string): Promise<b
   return withTimeout(win.webContents.executeJavaScript(script, true), STEP_TIMEOUT_MS, 'can-load') as Promise<boolean>;
 }
 
+/** 1 枚のウィンドウで描く間の状態 */
+type RenderState = {
+  /** いま当てている縮小倍率 */
+  appliedZoom: number;
+  /** 次に描く 1 枚の通し番号（目印の色を決める） */
+  seq: number;
+  /** ウィンドウの内容の高さ（目印の帯はこの下端にある） */
+  contentHeight: number;
+};
+
+function newRenderState(contentHeight: number): RenderState {
+  return { appliedZoom: 1, seq: 0, contentHeight };
+}
+
+/** 撮影範囲の外の目印が seq 番目の色か（撮れなければ false。リサイズ直後の UnknownVizError 等） */
+async function frameMarkerShows(win: electron.BrowserWindow, state: RenderState, seq: number): Promise<boolean> {
+  const band = PWA_FRAME_MARKER_BAND_PX;
+  let image: NativeImage;
+  try {
+    image = await withTimeout(
+      win.webContents.capturePage({ x: 0, y: state.contentHeight - band, width: band, height: band }),
+      STEP_TIMEOUT_MS,
+      'capture-marker',
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('pwa-render-timeout:')) throw error;
+    return false;
+  }
+  const bitmap = image.toBitmap();
+  if (bitmap.length < 4) return false;
+  // 帯の全体が目印なので、真ん中あたりの 1 画素を見る（DPR で画素数が変わっても同じ）
+  const offset = Math.floor(bitmap.length / 8) * 4;
+  return pwaFrameMarkerMatches(bitmap.subarray(offset, offset + 4), seq);
+}
+
+/**
+ * この 1 枚の配置が撮影元に届くまで待つ。ページ側で 1 フレームずつ進めながら目印を見る
+ * （時間では待たない。届かないまま STEP_TIMEOUT_MS を過ぎたら throw → 呼び出し側が退避へ落とす）。
+ */
+async function waitForFrame(win: electron.BrowserWindow, state: RenderState, seq: number, label: string): Promise<void> {
+  const deadline = Date.now() + STEP_TIMEOUT_MS;
+  while (!(await frameMarkerShows(win, state, seq))) {
+    if (Date.now() > deadline) throw new Error(`pwa-render-timeout:frame:${label}`);
+    await withTimeout(
+      win.webContents.executeJavaScript('new Promise((resolve) => requestAnimationFrame(() => resolve(1)))', true),
+      STEP_TIMEOUT_MS,
+      `frame:${label}`,
+    );
+  }
+}
+
 /**
  * 1 枚描いて書き出す。
  * zoom は「画面より大きいウィンドウが作れない環境」での縮小（S2）。1 のときは等倍。
@@ -99,21 +155,26 @@ async function drawSpec(
   spec: PwaImageSpec,
   sourceUrl: string,
   zoom: number,
-  appliedZoom: { value: number },
+  state: RenderState,
   // 省略時は PWA の作図（余白 10%＋contain）。og:image は余白なしの全面 contain を渡す
   imageBox: PwaContainBox = pwaImageBox(spec),
 ): Promise<void> {
   // 等倍のままなら IPC を増やさない（54 枚ぶんの往復は所要時間に効く）
-  if (appliedZoom.value !== zoom) {
+  if (state.appliedZoom !== zoom) {
     win.webContents.setZoomFactor(zoom);
-    appliedZoom.value = zoom;
+    state.appliedZoom = zoom;
   }
   const box = imageBox;
+  const seq = state.seq;
+  state.seq += 1;
+  // 目印は縮小後も帯いっぱい（PWA_FRAME_MARKER_BAND_PX）になるよう CSS px を倍率で割る
+  const marker = { color: pwaFrameMarkerColor(seq), sizePx: Math.ceil(PWA_FRAME_MARKER_BAND_PX / zoom) };
   await withTimeout(
-    win.webContents.executeJavaScript(buildPwaApplyScript(box, sourceUrl), true),
+    win.webContents.executeJavaScript(buildPwaApplyScript(box, sourceUrl, marker), true),
     STEP_TIMEOUT_MS,
     `apply:${spec.name}`,
   );
+  await waitForFrame(win, state, seq, spec.name);
   const captureWidth = Math.max(1, Math.round(spec.width * zoom));
   const captureHeight = Math.max(1, Math.round(spec.height * zoom));
   let image: NativeImage | null = null;
@@ -209,12 +270,13 @@ export async function renderPwaAssets(args: {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'maplat-pwa-render-'));
   let win: electron.BrowserWindow | null = null;
   try {
-    win = createRenderWindow(maxWidth, maxHeight);
+    // 下端に目印の帯（撮影範囲の外）を足す
+    win = createRenderWindow(maxWidth, maxHeight + PWA_FRAME_MARKER_BAND_PX);
     const renderWindow = win;
     const { contentWidth, contentHeight } = await loadShell(renderWindow, tmpDir, args.background);
 
     const availWidth = Math.max(1, Math.min(maxWidth, contentWidth));
-    const availHeight = Math.max(1, Math.min(maxHeight, contentHeight));
+    const availHeight = Math.max(1, Math.min(maxHeight, contentHeight - PWA_FRAME_MARKER_BAND_PX));
     if (availWidth < maxWidth || availHeight < maxHeight) {
       // S2: 画面の制約で要求どおりの大きさのウィンドウが作れない。縮めて撮り、縮尺を戻す
       console.warn(
@@ -226,17 +288,17 @@ export async function renderPwaAssets(args: {
     if (!(await canLoadImage(renderWindow, iconUrl))) {
       throw new Error(`pwa-source-load-failed:${args.iconSourcePath}`);
     }
-    const appliedZoom = { value: 1 };
+    const state = newRenderState(contentHeight);
     const iconSaved: PwaImageSpec[] = [];
     for (const spec of iconSpecs) {
-      await drawSpec(renderWindow, spec, iconUrl, pwaZoomFor(spec, availWidth, availHeight), appliedZoom);
+      await drawSpec(renderWindow, spec, iconUrl, pwaZoomFor(spec, availWidth, availHeight), state);
       iconSaved.push(spec);
     }
 
     // 起動画面も同じアイコン元画像から描く（スプラッシュ画像は使わない）
     const splashSaved: PwaImageSpec[] = [];
     for (const spec of splashSpecs) {
-      await drawSpec(renderWindow, spec, iconUrl, pwaZoomFor(spec, availWidth, availHeight), appliedZoom);
+      await drawSpec(renderWindow, spec, iconUrl, pwaZoomFor(spec, availWidth, availHeight), state);
       splashSaved.push(spec);
     }
     return { iconSaved, splashSaved };
@@ -281,15 +343,16 @@ export async function renderImagePng(args: {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'maplat-image-render-'));
   let win: electron.BrowserWindow | null = null;
   try {
-    win = createRenderWindow(spec.width, spec.height);
+    // 下端に目印の帯（撮影範囲の外）を足す
+    win = createRenderWindow(spec.width, spec.height + PWA_FRAME_MARKER_BAND_PX);
     const { contentWidth, contentHeight } = await loadShell(win, tmpDir, args.background);
     const availWidth = Math.max(1, Math.min(spec.width, contentWidth));
-    const availHeight = Math.max(1, Math.min(spec.height, contentHeight));
+    const availHeight = Math.max(1, Math.min(spec.height, contentHeight - PWA_FRAME_MARKER_BAND_PX));
     const sourceUrl = fileUrl(args.sourcePath);
     if (!(await canLoadImage(win, sourceUrl))) {
       throw new Error(`image-source-load-failed:${args.sourcePath}`);
     }
-    await drawSpec(win, spec, sourceUrl, pwaZoomFor(spec, availWidth, availHeight), { value: 1 }, box);
+    await drawSpec(win, spec, sourceUrl, pwaZoomFor(spec, availWidth, availHeight), newRenderState(contentHeight), box);
   } finally {
     if (win && !win.isDestroyed()) win.destroy();
     await fs.remove(tmpDir).catch(() => {});

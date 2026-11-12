@@ -258,21 +258,69 @@ export function buildPwaShellHtml(background: string): string {
   // 【NOV26-IR-EDITOR174-0453 MIN-2】背景色は <style> に埋め込むので、CSS の色として安全な書式だけを通す
   // （`</style><script>` 等を入れさせない）。書式に合わなければ既定の背景色にする
   background = sanitizeCssColor(background);
+  // 目印（#pwa-frame-marker）はウィンドウ左下の撮影範囲の外に置く。最初は「どの 1 枚でもない」色
   return `<!doctype html><html><head><meta charset="utf-8"><style>
   html,body{margin:0;padding:0;overflow:hidden;background:${background}}
   body{box-sizing:border-box;position:relative}
   img{position:absolute;object-fit:contain;display:block}
-  </style></head><body><img id="pwa-src" alt=""></body></html>`;
+  #pwa-frame-marker{position:fixed;left:0;bottom:0;width:${PWA_FRAME_MARKER_BAND_PX}px;height:${PWA_FRAME_MARKER_BAND_PX}px;background:${PWA_FRAME_MARKER_INITIAL}}
+  </style></head><body><img id="pwa-src" alt=""><div id="pwa-frame-marker"></div></body></html>`;
+}
+
+/**
+ * フレームの目印（撮る前に「この 1 枚の配置が撮影元に届いた」ことを確かめる）。
+ *
+ * ページ側で requestAnimationFrame を待っても、capturePage が読む面（ブラウザ側の合成器）には
+ * 前の 1 枚のフレームが残っていることがある。CPU が混んでいると起き、前の寸法の配置のまま撮れて
+ * 「中央が背景色の apple-splash」「左上に小さく描かれたアイコン」が警告なしに書き出されていた。
+ * そこで配置と同じ JS で目印の色を変え、撮影範囲の外（ウィンドウ下端の帯）に描かせる。
+ * 撮る側は目印がこの 1 枚の色になってから本体を撮る。色は 1 枚ごとに交互に変える
+ * （撮影元に残りうるのは直前の 1 枚のフレームだけなので 2 色で区別できる）。
+ * 緑とマゼンタは、画素の並びが RGBA でも BGRA でも緑の成分で見分けられる。
+ */
+export const PWA_FRAME_MARKER_BAND_PX = 4;
+const PWA_FRAME_MARKER_INITIAL = '#000000';
+const PWA_FRAME_MARKER_COLORS = ['#00ff00', '#ff00ff'] as const;
+
+/** seq 番目（0 から）の 1 枚に使う目印の色 */
+export function pwaFrameMarkerColor(seq: number): string {
+  return PWA_FRAME_MARKER_COLORS[Math.abs(seq) % PWA_FRAME_MARKER_COLORS.length];
+}
+
+/**
+ * 撮った目印の画素（4 バイト。RGBA でも BGRA でもよい）が seq 番目の色か。
+ * 0 番（緑）は「緑が強く、両端の成分が弱い」、1 番（マゼンタ）は「緑が弱く、両端の成分が強い」。
+ */
+export function pwaFrameMarkerMatches(pixel: ArrayLike<number>, seq: number): boolean {
+  if (pixel.length < 3) return false;
+  const [first, green, third] = [pixel[0], pixel[1], pixel[2]];
+  if (Math.abs(seq) % PWA_FRAME_MARKER_COLORS.length === 0) {
+    return green > 160 && first < 96 && third < 96;
+  }
+  return green < 96 && first > 160 && third > 160;
 }
 
 /**
  * 1 枚ぶんの寸法を当てて「新しい内容が描かれた」ところまで待つ JS。
  * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため（設計書 v3 §4.2 E4）。
+ * それでも撮影元が前のフレームのことがあるので、marker を渡したときは同じ JS で目印の色と大きさも変える
+ * （撮る側が目印を見て、届くまで待つ。pwaFrameMarkerColor を参照）。
  * sourceUrl を渡したときだけ元画像を読み直し、読めなければ reject する（呼び出し側が退避を判断する）。
  */
-export function buildPwaApplyScript(box: PwaContainBox, sourceUrl?: string): string {
+export function buildPwaApplyScript(
+  box: PwaContainBox,
+  sourceUrl?: string,
+  marker?: { color: string; sizePx: number },
+): string {
   const px = (value: number) => `'${value}px'`;
   const source = sourceUrl ? JSON.stringify(sourceUrl) : 'null';
+  const markerLines = marker
+    ? `
+  const marker = document.getElementById('pwa-frame-marker');
+  marker.style.width = ${px(marker.sizePx)};
+  marker.style.height = ${px(marker.sizePx)};
+  marker.style.background = ${JSON.stringify(sanitizeCssColor(marker.color))};`
+    : '';
   return `(() => {
   const body = document.body;
   const img = document.getElementById('pwa-src');
@@ -281,7 +329,7 @@ export function buildPwaApplyScript(box: PwaContainBox, sourceUrl?: string): str
   img.style.left = ${px(box.x)};
   img.style.top = ${px(box.y)};
   img.style.width = ${px(box.width)};
-  img.style.height = ${px(box.height)};
+  img.style.height = ${px(box.height)};${markerLines}
   const source = ${source};
   return new Promise((resolve, reject) => {
     const settle = () => requestAnimationFrame(() => requestAnimationFrame(() => resolve(1)));
