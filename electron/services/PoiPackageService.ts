@@ -62,8 +62,9 @@ export interface PoiZipImport {
 }
 
 function safeSlug(value: unknown): string {
-  // 大小を畳む: 名前は小文字に揃えて作る（取り込み側の重複検査が大小を畳むため）
-  return String(value ?? 'poi').replace(/[^A-Za-z0-9_-]+/g, '-').toLowerCase() || 'poi';
+  // 大小は保つ: pois/<slug>.geojson は1件だけでぶつかる相手がいない。小文字に揃えると
+  // 保存ダイアログの既定のファイル名（<slug>.zip）まで変わってしまう
+  return String(value ?? 'poi').replace(/[^A-Za-z0-9_-]+/g, '-') || 'poi';
 }
 
 function isSymlinkEntry(entry: AdmZip.IZipEntry): boolean {

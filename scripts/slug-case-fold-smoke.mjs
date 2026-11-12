@@ -13,6 +13,7 @@
 //       取り込みに戻せる。2画像は別名で同梱され、内容も両方残る
 //   (4) 大文字を含む slug の画像 (例: Kyoto): 書き出した名前の大小が保たれ、同じ環境へ
 //       取り込み直しても asset が二重に作られず使い回される
+//   (5) POI パッケージの pois/<slug>.geojson: 大小を保つ（1件だけでぶつかる相手がいない）
 //
 // 名前は slug の大小を保ち、比べるときだけ畳む。ZIP の entry 名の重複検査（entryNameKey、
 // 大小・Unicode 正規化を畳む）自体は変えず、ぶつかりの判定を同じ鍵に揃えることで衝突を
@@ -218,6 +219,16 @@ try {
       assert.deepEqual(imgs, ['imgs/Kyoto.png'],
         '(4) 大文字を含む slug の名前の大小が保たれていない: ' + JSON.stringify(imgs));
       return imgs.join(', ') + ' / asset ' + before + '→' + after;
+    });
+
+    // ---- (5) POI パッケージの pois/<slug>.geojson: 大小を保つ ----
+    // 1件だけでぶつかる相手がいないため連番の対象ではない。小文字に揃えると ZIP の
+    // pois/<slug>.geojson も保存ダイアログの既定のファイル名（Probe.zip → probe.zip）も変わってしまう
+    await check('(5) POI パッケージの pois/<slug>.geojson: 大小を保つ', async () => {
+      const inspection = await poiPackageService.inspectPoiExport(
+        { type: 'FeatureCollection', id: 'Probe', features: [] });
+      assert.equal(inspection.slug, 'Probe', '(5) slug の大小が保たれていない: ' + inspection.slug);
+      return inspection.slug;
     });
 
     if (failures.length > 0) {
