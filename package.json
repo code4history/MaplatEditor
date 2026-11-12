@@ -288,6 +288,7 @@
     "smoke:map-zip-limits": "node scripts/map-zip-limits-smoke.mjs",
     "smoke:zip-entry-limit": "node scripts/zip-entry-limit-smoke.mjs",
     "smoke:archive-entry-names": "node --experimental-strip-types scripts/archive-entry-names-smoke.mjs",
+    "smoke:slug-case-fold": "node scripts/slug-case-fold-smoke.mjs",
     "smoke:tmp-folder": "node --experimental-strip-types scripts/tmp-folder-smoke.mjs",
     "smoke:nov26-m6-t3-progress-phase-end": "node scripts/nov26-m6-t3-progress-phase-end-smoke.mjs",
     "smoke:nov26-m7-t4-cache-publish-guard": "node scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs",
