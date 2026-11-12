@@ -12,7 +12,10 @@
 //   (e) token の規則は POI と同じ（期限内は何度でも使える・30 分で失効・同時に 8 件まで）
 //   (f) POI の token は画像の登録に使えない（表は経路ごとに別。実装は 1 つ）
 //   (g) 選んだ後でファイルが消えた・画像でない場合も、失敗の応答に絶対パスを載せない
-//   (h) 表の実装は 1 つ（pickedPathStore.ts）で、画像と POI の IPC がそれを使う
+//   (h) 表の実装は 1 つ（pickedPathStore.ts）で、画像と POI の IPC がそれを使う。パスを伏せる関数も 1 つ
+//       （redactPathsInResult.ts）で、両方の IPC がそれを使う
+//   (i) duplicateFrom は UUID の形だけを受け付ける（絶対パス・'../x'・slug は invalid-request。
+//       形の正しい未知の uid は not-found）
 //
 // 実行方法: node scripts/imageassets-path-token-smoke.mjs
 // （vite SSR ビルド＋electron／electron-store のスタブ方式。IPC の handler を実物のまま登録させ、
@@ -165,6 +168,7 @@ try {
       await expectRejected('(c) 引数が無い', await invoke('imageassets:add', undefined), before);
       const unknownDup = await addWith({ duplicateFrom: '00000000-0000-4000-8000-000000000000' });
       assert.equal(unknownDup?.result, 'Error', '(c) 未知の複製元: ' + JSON.stringify(unknownDup));
+      assert.equal(unknownDup.code, 'not-found', '(c) 未知の複製元は not-found: ' + JSON.stringify(unknownDup));
       noPath('(c) 未知の複製元', unknownDup);
       assert.equal(await assetCount(), before, '(c) 未知の複製元: アセットが作られた');
       console.log('ok (c): 選んでいないパス・未知の token・未知の複製元は拒否し、アセットを作らない');
@@ -236,6 +240,8 @@ try {
       assert.equal(r?.result, 'Error', '(g) 消えたファイル: ' + JSON.stringify(r));
       assert.equal(r.code, 'not-found', '(g) 消えたファイルは not-found: ' + JSON.stringify(r));
       noPath('(g) 消えたファイル', r, fx.gone);
+      // 伏せ方は POI の取り込みと同じ（選んだパスは <file>）
+      assert.equal(r.message, 'File not found: <file>', '(g) 伏せ方が POI と違う: ' + JSON.stringify(r));
       const bad = await pick(fx.notImage);
       const rb = await addWith({ token: bad.token });
       assert.equal(rb?.result, 'Error', '(g) 画像でない: ' + JSON.stringify(rb));
@@ -243,6 +249,17 @@ try {
       noPath('(g) 画像でない', rb, fx.notImage);
       assert.equal(await assetCount(), before, '(g) アセットが作られた');
       console.log('ok (g): 選んだ後で消えた・画像でない場合も、応答に絶対パスを載せない');
+    }
+
+    // ---- (i) duplicateFrom は UUID の形だけを受け付ける ----
+    {
+      const before = await assetCount();
+      await expectRejected('(i) duplicateFrom に絶対パス', await addWith({ duplicateFrom: fx.unpicked }), before);
+      await expectRejected("(i) duplicateFrom に '../x'", await addWith({ duplicateFrom: '../x' }), before);
+      const existing = (await invoke('imageassets:list'))[0];
+      assert.ok(existing?.slug, '(i) 前提: 既存のアセットがある');
+      await expectRejected('(i) duplicateFrom に slug', await addWith({ duplicateFrom: existing.slug }), before);
+      console.log("ok (i): duplicateFrom の絶対パス・'../x'・slug は invalid-request で拒否し、アセットを作らない");
     }
 
     console.log(${JSON.stringify(MARKER)});
@@ -285,8 +302,13 @@ try {
     const read = (rel) => readFile(path.join(projectRoot, rel), 'utf8');
     const store = await read('electron/utils/pickedPathStore.ts');
     assert.match(store, /export function createPickedPathStore\(/, '(h) pickedPathStore.ts に createPickedPathStore が無い');
+    const redact = await read('electron/utils/redactPathsInResult.ts');
+    assert.match(redact, /export function redactPathsInResult\(/, '(h) redactPathsInResult.ts に redactPathsInResult が無い');
     for (const rel of ['electron/ipc/assets-images.ts', 'electron/ipc/poisource.ts']) {
-      assert.match(await read(rel), /createPickedPathStore\(\)/, `(h) ${rel} が共通の表を使っていない`);
+      const src = await read(rel);
+      assert.match(src, /createPickedPathStore\(\)/, `(h) ${rel} が共通の表を使っていない`);
+      assert.match(src, /redactPathsInResult\(/, `(h) ${rel} が共通のパスを伏せる関数を使っていない`);
+      assert.equal(/function (withoutPathInMessage|maskPathInResult)\(/.test(src), false, `(h) ${rel} に 2 つ目のパスを伏せる実装がある`);
     }
     console.log('ok (h): token の表の実装は pickedPathStore.ts の 1 つで、画像と POI の IPC が使う');
   }
