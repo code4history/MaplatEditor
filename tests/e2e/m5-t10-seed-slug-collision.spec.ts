@@ -35,12 +35,13 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
-  // 一覧を開いて DB 初期化（getDb → applyBuiltinBaseMapSeed）を確実に走らせる。
-  // 起動しただけでは DB がまだ作られていないことがある（実測）
-  await page.evaluate(() => { location.hash = '#/maplist'; });
-  await page.waitForLoadState('domcontentloaded');
-  // settings 経由で main を1往復させ、DB 初期化の完了を待つ
-  await page.evaluate(async () => await (window as any).settings.get('saveFolder'));
+  // 同期点: DB 初期化（getDb → migrate → applyBuiltinBaseMapSeed）の完了を待つ。
+  // maplist.request は main で SqliteDataService.getDb() を await してから答えるので、
+  // resolve した時点でシードは commit 済み（m12-t32 / m13-t5 と同じ同期点）。
+  // settings.get は SettingsService を読むだけで DB に触れないため、同期点にならない。
+  // それで待っていた頃は、起動が遅いとシード前の DB を読み、2回目の起動で
+  // 「builtin が復活していない」・1回目で「no such table」「database is locked」になった。
+  await page.evaluate(async () => await (window as any).maplist.request('', 1, 1));
   return { app, page };
 }
 
