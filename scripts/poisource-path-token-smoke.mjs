@@ -13,6 +13,7 @@
 //   (f) token の規則は画像と同じ（期限内は何度でも使える・30 分で失効・同時に 8 件まで）
 //   (g) 画像の token は POI の取り込みに使えない（表は経路ごとに別。実装は 1 つ）
 //   (i) 選んだ後でファイルが消えても、失敗の応答に絶対パスを載せない（GeoJSON・CSV・ZIP の分岐）
+//   (j) ZIP の中の名前を含む検証の文言（例: pois/*.geojson が無い・imgs/x.png が壊れている）は残し、手元の場所（取り込み中の一時ファイルを含む）は載せない
 //   (h) 表の実装は 1 つ（pickedPathStore.ts）で、画像と POI の IPC がそれを使う
 //
 // 実行方法: node scripts/poisource-path-token-smoke.mjs
@@ -24,6 +25,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import AdmZip from 'adm-zip';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -52,6 +54,8 @@ try {
     goneGeojson: path.join(fixtureDir, 'gone.geojson'),
     goneCsv: path.join(fixtureDir, 'gone.csv'),
     goneZip: path.join(fixtureDir, 'gone.zip'),
+    wrongZip: path.join(fixtureDir, 'not-a-poi-package.zip'),
+    brokenImageZip: path.join(fixtureDir, 'broken-image.zip'),
   };
   await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.geojson);
   await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.csv);
@@ -64,6 +68,22 @@ try {
   await copyFile(path.join(poiIo, 'roundtrip-source.json'), fx.goneGeojson);
   await copyFile(path.join(poiIo, 'names-utf8bom.csv'), fx.goneCsv);
   await copyFile(path.join(poiIo, 'demo.kml'), fx.goneZip);
+  // (j) POI パッケージではない ZIP（pois/*.geojson を持たない。地図の ZIP などを選び違えた場合）
+  {
+    const zip = new AdmZip();
+    zip.addFile('readme.txt', Buffer.from('not a POI package'));
+    zip.writeZip(fx.wrongZip);
+  }
+  // (j) 画像が壊れた POI パッケージ（取り込みの途中で一時フォルダへ書き出す画像の検証で落ちる）
+  {
+    const zip = new AdmZip();
+    zip.addFile('pois/broken.geojson', Buffer.from(JSON.stringify({
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [134.7, 34.8] }, properties: { image: 'imgs/broken.png' } }],
+    })));
+    zip.addFile('imgs/broken.png', Buffer.from('this is not a png'));
+    zip.writeZip(fx.brokenImageZip);
+  }
   const expectedCount = {
     geojson: JSON.parse(await readFile(fx.geojson, 'utf8')).features.length,
     unpicked: JSON.parse(await readFile(fx.unpicked, 'utf8')).features.length,
@@ -109,6 +129,7 @@ try {
     import assert from 'node:assert/strict';
     import { rm as fsRm } from 'node:fs/promises';
     const workDir = ${JSON.stringify(workDir)};
+    const workBase = ${JSON.stringify(path.basename(workDir))};
     const fx = ${JSON.stringify(fx)};
     const expectedCount = ${JSON.stringify(expectedCount)};
     const fixtureDir = ${JSON.stringify(fixtureDir)};
@@ -259,13 +280,37 @@ try {
         const r = await importWith({ token: picked.token });
         const text = JSON.stringify(r);
         assert.equal(r?.result, 'Error', '(i) ' + label + ': 失敗にならない（実際: ' + text + '）');
-        for (const needle of [fixtureDir, workDir, file]) {
-          assert.equal(text.includes(needle), false, '(i) ' + label + ': 応答に絶対パスが含まれる: ' + text);
+        // ホームの下の場所は ~ に置き換わるだけでも絶対パスの文字列は消えるので、場所の名前も見る
+        for (const needle of [fixtureDir, workDir, file, '.tmp-smoke', workBase]) {
+          assert.equal(text.includes(needle), false, '(i) ' + label + ': 応答に手元の場所が含まれる（' + needle + '）: ' + text);
         }
-        assert.equal(/[\\/]/.test(r.message ?? ''), false, '(i) ' + label + ': message にパスらしい文字列が残る: ' + text);
         assert.equal(await sourceCount(), before, '(i) ' + label + ': ソースが作られた');
       }
       console.log('ok (i): 選んだ後でファイルが消えても、応答に絶対パスを載せない');
+    }
+
+    // ---- (j) ZIP の中の名前を含む検証の文言は残す（伏せるのは手元のパスだけ） ----
+    {
+      const picked = await pick(fx.wrongZip);
+      const before = await sourceCount();
+      const r = await importWith({ token: picked.token });
+      const text = JSON.stringify(r);
+      assert.equal(r?.result, 'Error', '(j) 失敗にならない（実際: ' + text + '）');
+      assert.equal(typeof r.message === 'string' && r.message.includes('pois/*.geojson'), true, '(j) ZIP の検証の文言が消えた: ' + text);
+      for (const needle of [fixtureDir, workDir, fx.wrongZip, '.tmp-smoke', workBase]) {
+        assert.equal(text.includes(needle), false, '(j) 応答に手元の場所が含まれる（' + needle + '）: ' + text);
+      }
+      assert.equal(await sourceCount(), before, '(j) ソースが作られた');
+      // 画像が壊れたパッケージ: 取り込み中の一時ファイルのパスではなく、ZIP の中の名前で知らせる
+      const broken = await pick(fx.brokenImageZip);
+      const rb = await importWith({ token: broken.token });
+      const textB = JSON.stringify(rb);
+      assert.equal(rb?.result, 'Error', '(j) 壊れた画像で失敗にならない（実際: ' + textB + '）');
+      assert.equal(textB.includes('imgs/broken.png'), true, '(j) 壊れた画像の文言に ZIP の中の名前が無い: ' + textB);
+      for (const needle of [workDir, '.tmp-smoke', workBase, 'poi-import-']) {
+        assert.equal(textB.includes(needle), false, '(j) 壊れた画像の応答に手元の場所が含まれる（' + needle + '）: ' + textB);
+      }
+      console.log('ok (j): ZIP の検証の文言は残し、手元のパスは載せない');
     }
 
     console.log(${JSON.stringify(MARKER)});

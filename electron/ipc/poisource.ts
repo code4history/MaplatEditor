@@ -2,6 +2,7 @@ import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import { dialog, BrowserWindow } from 'electron';
 import { ipc } from './registry';
 import path from 'path';
+import os from 'os';
 import poiSourceService from '../services/PoiSourceService';
 import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
@@ -41,18 +42,29 @@ function toImportInput(input: unknown) {
 }
 
 /**
- * 取り込みの失敗の応答から、パスを含みうる message を落とす。
- * service の message には `ENOENT … '<絶対パス>'` や ZIP の読み取りの例外の原文が入ることがある。
- * renderer は message が無ければ翻訳済みの文言を出す（PoiEdit の importAutoRun）ので、落としても表示は崩れない。
- * 原文は main のログへだけ出す。
+ * 取り込みの失敗の応答の message から、利用者の手元のパスだけを伏せる。
+ * service の message には `ENOENT … '<絶対パス>'` が入ることがある。一方、ZIP の中の名前
+ * （`pois/*.geojson`・`imgs/…`）を含む検証の文言は利用者に役立つので、message ごとは落とさない。
+ * 伏せるのは選んだパス・その親・ホームディレクトリ・一時ディレクトリ（長い順）。原文は main のログへだけ出す。
  */
 function withoutPathInMessage<T>(result: T, filePath: string): T {
   if (!result || typeof result !== 'object') return result;
-  const { message, ...rest } = result as Record<string, unknown>;
-  if ((result as Record<string, unknown>).result !== 'Error' || typeof message !== 'string') return result;
-  if (!message.includes(filePath) && !/[\\/]/.test(message)) return result;
+  const record = result as Record<string, unknown>;
+  const { message } = record;
+  if (record.result !== 'Error' || typeof message !== 'string') return result;
+  const replacements: Array<[string, string]> = [
+    [filePath, '<file>'],
+    [path.dirname(filePath), '<dir>'],
+    [os.homedir(), '~'],
+    [os.tmpdir(), '<tmp>'],
+  ];
+  let redacted = message;
+  for (const [needle, label] of replacements.sort((a, b) => b[0].length - a[0].length)) {
+    if (needle && needle !== path.sep && needle !== '.') redacted = redacted.split(needle).join(label);
+  }
+  if (redacted === message) return result;
   console.error('[poisource:importFile] failed:', message);
-  return rest as T;
+  return { ...record, message: redacted } as T;
 }
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
