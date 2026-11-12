@@ -230,10 +230,14 @@ try {
       const applyWithMarker = pwaAssets.buildPwaApplyScript(
         { canvasWidth: 180, canvasHeight: 180, padding: 18, x: 18, y: 18, width: 144, height: 144 },
         undefined,
-        { color: pwaAssets.pwaFrameMarkerColor(1), sizePx: 8 },
+        { color: pwaAssets.pwaFrameMarkerColor(1), sizePx: 7 },
       );
-      assert.ok(applyWithMarker.includes('pwa-frame-marker') && applyWithMarker.includes('8px'),
+      assert.ok(applyWithMarker.includes('pwa-frame-marker') && applyWithMarker.includes("marker.style.width = '7px'"),
         '適用スクリプト: 配置と同じ JS で目印を変えるはず');
+      const settleAt = applyWithMarker.indexOf('const settle');
+      const markerCallAt = applyWithMarker.indexOf('applyMarker();');
+      assert.ok(settleAt >= 0 && markerCallAt > settleAt,
+        '適用スクリプト: 目印は元画像を読み終えた後（settle の中）で変えるはず');
       const green = [0, 255, 0, 255];
       const magenta = [255, 0, 255, 255];
       const initial = [0, 0, 0, 255];

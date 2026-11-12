@@ -304,7 +304,7 @@ export function pwaFrameMarkerMatches(pixel: ArrayLike<number>, seq: number): bo
  * 1 枚ぶんの寸法を当てて「新しい内容が描かれた」ところまで待つ JS。
  * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため（設計書 v3 §4.2 E4）。
  * それでも撮影元が前のフレームのことがあるので、marker を渡したときは同じ JS で目印の色と大きさも変える
- * （撮る側が目印を見て、届くまで待つ。pwaFrameMarkerColor を参照）。
+ * （撮る側が目印を見て、届くまで待つ。pwaFrameMarkerColor を参照）。目印は元画像を読み終えた後（settle）で変える。
  * sourceUrl を渡したときだけ元画像を読み直し、読めなければ reject する（呼び出し側が退避を判断する）。
  */
 export function buildPwaApplyScript(
@@ -314,12 +314,13 @@ export function buildPwaApplyScript(
 ): string {
   const px = (value: number) => `'${value}px'`;
   const source = sourceUrl ? JSON.stringify(sourceUrl) : 'null';
+  // 目印は元画像を読み終えてから変える（読み込み前の「目印は新しい・画像はまだ無い」フレームを正しいと見なさないため）
   const markerLines = marker
     ? `
-  const marker = document.getElementById('pwa-frame-marker');
-  marker.style.width = ${px(marker.sizePx)};
-  marker.style.height = ${px(marker.sizePx)};
-  marker.style.background = ${JSON.stringify(sanitizeCssColor(marker.color))};`
+    const marker = document.getElementById('pwa-frame-marker');
+    marker.style.width = ${px(marker.sizePx)};
+    marker.style.height = ${px(marker.sizePx)};
+    marker.style.background = ${JSON.stringify(sanitizeCssColor(marker.color))};`
     : '';
   return `(() => {
   const body = document.body;
@@ -329,10 +330,15 @@ export function buildPwaApplyScript(
   img.style.left = ${px(box.x)};
   img.style.top = ${px(box.y)};
   img.style.width = ${px(box.width)};
-  img.style.height = ${px(box.height)};${markerLines}
+  img.style.height = ${px(box.height)};
   const source = ${source};
+  const applyMarker = () => {${markerLines}
+  };
   return new Promise((resolve, reject) => {
-    const settle = () => requestAnimationFrame(() => requestAnimationFrame(() => resolve(1)));
+    const settle = () => {
+      applyMarker();
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve(1)));
+    };
     if (source && img.src !== source) {
       img.onload = settle;
       img.onerror = () => reject(new Error('pwa-source-load-failed'));
