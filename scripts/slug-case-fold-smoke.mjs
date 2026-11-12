@@ -11,6 +11,8 @@
 //   (2) 外部化された pois/<name>.geojson の名前も同じ規則
 //   (3) POI パッケージの画像 (imgs/<slug>.<ext>): 大小だけ違う slug の2画像を書き出しても
 //       取り込みに戻せる。2画像は別名で同梱され、内容も両方残る
+//   (4) 大文字を含む slug の画像 (例: Kyoto): 書き出した名前の大小が保たれ、同じ環境へ
+//       取り込み直しても asset が二重に作られず使い回される
 //
 // 名前はすべて小文字。ZIP の entry 名の重複検査（entryNameKey、大小・Unicode 正規化を畳む）
 // 自体は変えず、書き出す側が大小を畳んだ名前を作らないことで衝突を起こさない。
@@ -127,13 +129,14 @@ try {
       return JSON.stringify(names);
     });
 
+    const pngPath = async (name, hex) => {
+      const p = nodePath.join(workDir, name);
+      await new Jimp({ width: 2, height: 2, color: hex }).write(p);
+      return p;
+    };
+
     // ---- (3) POI パッケージの画像 (大小だけ違う slug の2画像) ----
     await check('(3) 書き出した ZIP が取り込みに戻る・2画像とも残る', async () => {
-      const pngPath = async (name, hex) => {
-        const p = nodePath.join(workDir, name);
-        await new Jimp({ width: 2, height: 2, color: hex }).write(p);
-        return p;
-      };
       const red = await pngPath('src-red.png', 0xff0000ff);
       const blue = await pngPath('src-blue.png', 0x0000ffff);
       const r1 = await imageAssetService.add({ slug: 'Foo', title: { ja: 'Foo' }, lang: 'ja', sourcePath: red });
@@ -174,6 +177,44 @@ try {
       const imgEntries = zip.getEntries().filter((e) => e.entryName.startsWith('imgs/'));
       assert.equal(new Set(imgEntries.map((e) => e.header.crc >>> 0)).size, 2, '2画像の内容が同じに畳まれている');
       return imgs.join(', ');
+    });
+
+    // ---- (4) 大文字を含む slug の画像: 同じ環境へ取り込み直しても asset を使い回す ----
+    // 書き出す名前は slug の大小を保たなければならない。取り込み側は ZIP の名前の slug で
+    // 既存の asset を探して使い回す（PoiPackageService.sameStoredBytes）ため、
+    // 小文字に揃えると元の Kyoto が見つからず、同じ画像が2つの asset になってしまう。
+    await check('(4) 大文字を含む slug の画像: 取り込み直しても asset を使い回す', async () => {
+      const green = await pngPath('src-green.png', 0x00ff00ff);
+      const added = await imageAssetService.add({ slug: 'Kyoto', title: { ja: 'Kyoto' }, lang: 'ja', sourcePath: green });
+      assert.equal(added.result, 'Success', JSON.stringify(added));
+      const before = (await imageAssetService.list()).length;
+
+      const fc = {
+        type: 'FeatureCollection',
+        id: 'reuse',
+        features: [
+          { type: 'Feature', geometry: { type: 'Point', coordinates: [139.7, 35.6] },
+            properties: { icon: added.uid } },
+        ],
+      };
+      const inspection = await poiPackageService.inspectPoiExport(fc);
+      assert.equal(inspection.kind, 'zip', JSON.stringify(inspection.files));
+      const file = nodePath.join(workDir, 'reuse-poi.zip');
+      await poiPackageService.writePoiExport(inspection, file);
+      const zip = new AdmZip(file);
+      const imgs = zip.getEntries().map((e) => e.entryName).filter((n) => n.startsWith('imgs/'));
+
+      const imported = await poiPackageService.importPoiZip(file);
+      assert.deepEqual(imported.createdAssetUids, [],
+        '(4) 取り込みで新しい asset が作られた（既存 asset を使い回していない）: '
+          + JSON.stringify(imported.createdAssetUids));
+      assert.equal(imported.fc.features[0].properties.icon, added.uid, '(4) asset を使い回していない');
+      const after = (await imageAssetService.list()).length;
+      assert.equal(after, before, '(4) asset の件数が増えた: ' + before + ' → ' + after);
+      // 名前は slug の大小を保つ（ぶつかったときだけ連番が付く）
+      assert.deepEqual(imgs, ['imgs/Kyoto.png'],
+        '(4) 大文字を含む slug の名前の大小が保たれていない: ' + JSON.stringify(imgs));
+      return imgs.join(', ') + ' / asset ' + before + '→' + after;
     });
 
     if (failures.length > 0) {
