@@ -7,6 +7,7 @@
 import { _electron as electron, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pickImageToken } from './pickedImage';
 
 export const projectRoot = path.resolve(import.meta.dirname, '../../..');
 
@@ -101,7 +102,7 @@ export interface SeededMap {
  *  - properties.html 内の maplat-asset:
  *  - 通常/512px サムネイル・タイル実体
  */
-export async function seedFullMap(page: Page, saveFolder: string, workDir: string, options: {
+export async function seedFullMap(app: ElectronApplication, page: Page, saveFolder: string, workDir: string, options: {
   visibleImages?: boolean;
   /** slug の接頭辞。spec ごとに分けて、同一 root に複数 seed しても衝突しないようにする */
   prefix?: string;
@@ -111,7 +112,7 @@ export async function seedFullMap(page: Page, saveFolder: string, workDir: strin
   const prefix = options.prefix ?? 't4b';
   const title = options.title ?? 'T4B 地図';
 
-  // imageAssets.add は **実ファイルパス** を受ける（renderer から bytes は渡せない）
+  // imageAssets.add はパスを受け取らない。選択ダイアログ経由の token で指す（helpers/pickedImage.ts）
   const srcPng = path.join(workDir, `${prefix}-seed-source.png`);
   if (options.visibleImages) {
     // 人間確認では **目で見える画像**でなければ意味がない。
@@ -123,7 +124,9 @@ export async function seedFullMap(page: Page, saveFolder: string, workDir: strin
     await writeFile(srcPng, Buffer.from(PNG_B64, 'base64'));
   }
 
-  const seeded = await page.evaluate(async ({ sourcePath, slugPrefix, mapTitle }) => {
+  // token は期限内なら何度でも使えるので、2 件の asset で 1 つを使い回す
+  const token = await pickImageToken(app, page, srcPng);
+  const seeded = await page.evaluate(async ({ token, slugPrefix, mapTitle }) => {
     const stamp = Date.now();
     const iconSlug = `${slugPrefix}-icon-${stamp}`;
     const photoSlug = `${slugPrefix}-photo-${stamp}`;
@@ -131,7 +134,7 @@ export async function seedFullMap(page: Page, saveFolder: string, workDir: strin
     // 画像 asset 2件（icon 用・html 埋め込み用）
     const mkAsset = async (slug: string) => {
       const r = await window.imageAssets.add({
-        slug, title: { ja: slug }, lang: 'ja', sourceName: `${slug}.png`, sourcePath,
+        slug, title: { ja: slug }, lang: 'ja', sourceName: `${slug}.png`, token,
       });
       if (!r || r.result !== 'Success') throw new Error(`asset ${slug}: ${JSON.stringify(r)}`);
       return r.uid as string;
@@ -183,7 +186,7 @@ export async function seedFullMap(page: Page, saveFolder: string, workDir: strin
     });
     if (!mapR || mapR.result !== 'Success') throw new Error(`map: ${JSON.stringify(mapR)}`);
     return { mapUid: mapR.uid as string, mapSlug, poiUid: created.uid as string, iconSlug, photoSlug };
-  }, { sourcePath: srcPng, slugPrefix: prefix, mapTitle: title });
+  }, { token, slugPrefix: prefix, mapTitle: title });
 
   // サムネイル・タイルの実体を配置する（搬出の同梱対象）
   const bytes = Buffer.from(PNG_B64, 'base64');

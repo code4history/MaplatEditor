@@ -63,7 +63,7 @@ for (const phase of ['before', 'after']) {
       }
       await shot('poi-save-notice');
       await writeFile(path.join(artifacts, 'native-notifications.json'), JSON.stringify(await app.evaluate(() => (globalThis as any).__grammarMessages), null, 2));
-      const seeded = await seedFullMap(page, await saveFolderOf(page), root, { prefix: 'grammar', title: '街歩きの地図' });
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), root, { prefix: 'grammar', title: '街歩きの地図' });
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
       await expect(page.getByTestId('map-title')).toBeVisible();
       await page.locator('[data-editor-action="export"]').click();

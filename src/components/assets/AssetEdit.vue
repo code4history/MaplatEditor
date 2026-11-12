@@ -160,18 +160,15 @@ import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../..
 import { localizeTitle } from "../../utils/langResource";
 import { isEditableElement } from "../../utils/nativeTextUndo";
 import { suggestSlug as sharedSuggestSlug } from "../../utils/poiSourceSlug";
-// #105: 表示用 URL は file:// から app://local へ移行した。複製時の「URL → 絶対パス」復元も
-// それに追随する (appUrlToLocalPath が URL をネイティブ絶対パスへ戻す)。
-import { appUrlToLocalPath } from "../../utils/appUrl";
 import { bytesToDataUrl } from "../../utils/previewDataUrl";
 
 // feat2: 未保存の画像（volatileSource）は 2 種類ある。
 //   'picked'    … 今回選んだファイル。token で main から一次画像（バイト列）を読む
 //   'duplicate' … 複製元アセット。元の uid から実体の URL（app://）を引く
-// どちらも「まだこのアセットとして保存されていない画像」であり、保存時は sourcePath から実体を複製する。
+// どちらも「まだこのアセットとして保存されていない画像」であり、保存時は main が token か複製元の uid から
+// 実体を読んで複製する（renderer はパスを持たない）。
 interface VolatileSource {
   previewKind: "picked" | "duplicate";
-  sourcePath: string;
   sourceName: string;
   /** 'picked' のとき: main が選択ダイアログで発行した一次画像の token */
   token?: string;
@@ -278,17 +275,14 @@ function duplicateInitialDoc(source: ImageAssetRow, uid: string): ImageAssetEdit
 }
 
 // M11-T10 複製: 元アセットの実体ファイルを volatileSource として流し込む
-// (表示用 URL を絶対パスへ正規化。新規保存(add)が sourcePath から実体を複製する。
-//  #105: app://local へ移行済み。旧 file:// はフォールバックとして残す)
+// (新規保存(add)は複製元の uid を main へ渡し、main が実体を引いて複製する。ここでは実体の有無だけを確かめる)
 async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
   try {
     const fileUrl = await window.imageAssets.getFilePath(source.uid);
     if (!fileUrl) throw new Error("source file not found");
-    const sourcePath = appUrlToLocalPath(String(fileUrl)) ?? decodeURIComponent(String(fileUrl).replace(/^file:\/\//, ""));
     volatileSource.value = {
       previewKind: "duplicate",
       duplicateFromUid: source.uid,
-      sourcePath,
       sourceName: source.sourceName || `${source.slug}.${source.ext ?? "png"}`,
     };
     pushCurrent();
@@ -473,7 +467,7 @@ async function refreshPreview(): Promise<void> {
       unsaved = true;
     } else {
       // too-large は「大きすぎて表示できない」、それ以外は「表示できない」。
-      // どちらも**保存は妨げない**（保存時に main がパスから読み直す）
+      // どちらも**保存は妨げない**（保存時に main が token から読み直す）
       issue = result?.code === "too-large" ? "too-large" : "unavailable";
     }
   } else if (source?.previewKind === "duplicate" && source.duplicateFromUid) {
@@ -507,7 +501,6 @@ async function pickImageFile(): Promise<void> {
     if (!picked) return;
     volatileSource.value = {
       previewKind: "picked",
-      sourcePath: picked.filePath,
       sourceName: picked.fileName,
       token: picked.token,
     };
@@ -609,7 +602,10 @@ async function save(): Promise<void> {
         title: clone(document.value.title),
         lang: document.value.defaultLang,
         sourceName: volatileSource.value.sourceName,
-        sourcePath: volatileSource.value.sourcePath,
+        // 読み元は token（選んだファイル）か複製元の uid。パスは渡さない
+        ...(volatileSource.value.previewKind === "picked"
+          ? { token: volatileSource.value.token }
+          : { duplicateFrom: volatileSource.value.duplicateFromUid }),
         // AC6: 新規 = 事前採番 uid(予約帰属 asset_uid と行 uid を一致させる)
         uid: document.value.uid,
       });

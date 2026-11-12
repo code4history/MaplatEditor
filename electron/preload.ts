@@ -247,7 +247,8 @@ contextBridge.exposeInMainWorld('assets', {
 // channel prefix は imageassets:* (asset:checkSlug とは別名前空間)
 contextBridge.exposeInMainWorld('imageAssets', {
   // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
-  add: (input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string; uid?: string }) =>
+  // 読み元は token（pickImageFile が返したもの）か duplicateFrom（複製元アセットの uid）。パスは渡さない
+  add: (input: { slug: string; title: any; lang: string; sourceName: string; token?: string; duplicateFrom?: string; uid?: string }) =>
     ipcRenderer.invoke('imageassets:add', input),
   list: () => ipcRenderer.invoke('imageassets:list'),
   search: (query: string) => ipcRenderer.invoke('imageassets:search', query),

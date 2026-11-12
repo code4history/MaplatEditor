@@ -73,7 +73,7 @@ test.describe('M5-T5: 実 UI からの同名 slug 取込（AC8）', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, {
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, {
         prefix: 't5', title: 'T5 地図',
       });
 
@@ -131,7 +131,7 @@ test.describe('M5-T5: 実 UI からの同名 slug 取込（AC8）', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, {
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, {
         prefix: 't5seq', title: 'T5 連番',
       });
 
@@ -167,7 +167,7 @@ test.describe('M5-T5: 実 UI からの同名 slug 取込（AC8）', () => {
     try {
       await snapshotDialogs(app);
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, {
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, {
         visibleImages: true, prefix: 't5', title: 'T5 地図',
       });
 

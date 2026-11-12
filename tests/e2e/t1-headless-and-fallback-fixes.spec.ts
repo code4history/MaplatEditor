@@ -141,7 +141,7 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
     });
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       // 地図 ZIP を実 UI の搬出ボタンから作る（m5-t4b AC11-b と同じ導線）
       const zipPath = path.join(e2eRoot, 'map-export.zip');

@@ -15,6 +15,7 @@ import {
 } from '../utils/pickedPreviewSource';
 // 選ばれたパス → token の表（POI の取り込みと同じ実装。インスタンスは経路ごとに別）
 import { createPickedPathStore } from '../utils/pickedPathStore';
+import { maskPathInResult } from '../utils/maskPathInResult';
 
 // このプロセスの間だけ「利用者が選んだ画像のパス」を覚える表
 // （ディスクへも IPC 応答へもパスを出さない。renderer は token でしか引けない）
@@ -67,11 +68,50 @@ async function readPickedSource(token: string) {
   }
 }
 
+/**
+ * renderer から届いた新規登録の依頼の読み元を、main だけが知るパスへ置き換える。
+ * 読み元は 2 通りだけで、どちらも renderer はパスを持たない:
+ *   - token: imageassets:pickImageFile が発行したもの（利用者がダイアログで選んだファイル）
+ *   - duplicateFrom: 複製元アセットの uid（実体は main が saveFolder から引く）
+ * `sourcePath` が混じっていても使わない（乗っ取られた renderer に任意のファイルを読ませない）。
+ */
+async function toAddInput(input: unknown) {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  let sourcePath: string | null;
+  if (typeof raw.token === 'string') {
+    const resolved = pickedPaths.resolve(raw.token);
+    if (!resolved.ok) return { ok: false as const, failure: { result: 'Error', code: 'invalid-request' } as const };
+    sourcePath = resolved.filePath;
+  } else if (typeof raw.duplicateFrom === 'string' && raw.duplicateFrom) {
+    sourcePath = await imageAssetService.localFilePath(raw.duplicateFrom);
+    if (sourcePath === null) return { ok: false as const, failure: { result: 'Error', code: 'not-found' } as const };
+  } else {
+    return { ok: false as const, failure: { result: 'Error', code: 'invalid-request' } as const };
+  }
+  return {
+    ok: true as const,
+    input: {
+      slug: raw.slug as string,
+      title: raw.title as Record<string, string>,
+      lang: raw.lang as string | undefined,
+      sourceName: raw.sourceName as string | undefined,
+      sourcePath,
+      uid: raw.uid as string | undefined,
+    },
+  };
+}
+
 // 画像アセット IPC (Phase 2 Task 4, ADR-0007)。channel prefix は imageassets:* を使う
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
-  ipc.handle('imageassets:add', (_, input) =>
-    runGuarded('imageassets:add', () => imageAssetService.add(input)));
+  // 読み元は token（選んだファイル）か duplicateFrom（複製元の uid）だけ。解決しなければファイルを開かずに返す。
+  // 失敗の応答の message からは、読んだファイルのパスそのものを伏せる（ファイル名に置き換える）
+  ipc.handle('imageassets:add', async (_, input) => {
+    const resolved = await toAddInput(input);
+    if (!resolved.ok) return resolved.failure;
+    const result = await runGuarded('imageassets:add', () => imageAssetService.add(resolved.input));
+    return maskPathInResult(result, resolved.input.sourcePath);
+  });
   ipc.handle('imageassets:list', () => imageAssetService.list());
   ipc.handle('imageassets:search', (_, query) => imageAssetService.search(query));
   ipc.handle('imageassets:get', (_, ref) => imageAssetService.get(ref));
@@ -81,7 +121,7 @@ export function registerImageAssetHandlers() {
   ipc.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
   // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)
   ipc.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
-  // インポート用ファイル選択 (poisource:pickImportFile と同型)。SVG / webp は Jimp でデコードできず
+  // インポート用ファイル選択 (poisource:pickImportFile と同型。token とファイル名を返す)。SVG / webp は Jimp でデコードできず
   // add が invalid-request で拒否するため、フィルタから外す(選ばせても必ず失敗する形式を
   // ダイアログに出さない)。webp は Jimp 1.6 が decode 非対応(実機で
   // "Mime type image/webp does not support decoding" を確認済み。@jimp/wasm-webp 導入は本 Phase 対象外)
@@ -98,9 +138,9 @@ export function registerImageAssetHandlers() {
     if (ret.canceled || ret.filePaths.length === 0) return null;
     const filePath = ret.filePaths[0];
     rememberDialogPath('image', filePath, 'file');
-    // feat2: 一次表示用の token（renderer はこの token でしかバイト列を要求できない）
+    // renderer はこの token でしか一次画像の読み出し（readPickedSource）と登録（add）を要求できない。パスは返さない
     const token = pickedPaths.register(filePath);
-    return { filePath, fileName: path.basename(filePath), token };
+    return { fileName: path.basename(filePath), token };
   });
   // feat2: 指定した画像の一次画像（保存前のプレビュー）。引数は token だけ
   ipc.handle('imageassets:readPickedSource', (_, token) =>

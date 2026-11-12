@@ -16,6 +16,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { pickImageToken } from './helpers/pickedImage';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const LOCAL_URL_PREFIX = 'app://bundle/__local';
@@ -144,14 +145,16 @@ test('複製は元アセットの画像を出し、選び直しで一次画像�
     await page.reload();
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
 
-    // 元アセットを 1 件用意する（API 経由。UI の新規登録経路は上のテストが見る）
-    const seeded = await page.evaluate(async (sourcePath) => {
+    // 元アセットを 1 件用意する（API 経由。UI の新規登録経路は上のテストが見る）。
+    // add はパスを受け取らないので、選択ダイアログ経由の token で指す
+    const tokenA = await pickImageToken(app, page, imageA);
+    const seeded = await page.evaluate(async (token) => {
       const result = await window.imageAssets.add({
         slug: 'feat2-source', title: { ja: '元アセット' }, lang: 'ja',
-        sourceName: 'source.png', sourcePath,
+        sourceName: 'source.png', token,
       });
       return result;
-    }, imageA);
+    }, tokenA);
     expect(seeded.result).toBe('Success');
     const sourceUid = (seeded as { uid: string }).uid;
     await page.reload();

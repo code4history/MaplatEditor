@@ -367,13 +367,19 @@ export class ImageAssetService {
     return SqliteDataService.findAssetReferences(record.uid);
   }
 
-  // renderer 表示用の URL (AppAssetService.fileUrlFor と同じ形)。実体が無ければ null
-  async getFilePath(ref: string): Promise<string | null> {
+  // アセットの実体の絶対パス。**main の内部でだけ使う**（複製の読み元。renderer へは返さない）。実体が無ければ null
+  async localFilePath(ref: string): Promise<string | null> {
     const record = await SqliteDataService.findAssetByRef(ref);
     if (!record) return null;
     const abs = path.join(this.assetsDir, `${record.uid}.${record.ext}`);
     if (!(await fs.pathExists(abs)) || !(await fs.stat(abs)).isFile()) return null;
-    return localFileUrl(abs);
+    return abs;
+  }
+
+  // renderer 表示用の URL (AppAssetService.fileUrlFor と同じ形)。実体が無ければ null
+  async getFilePath(ref: string): Promise<string | null> {
+    const abs = await this.localFilePath(ref);
+    return abs === null ? null : localFileUrl(abs);
   }
 }
 

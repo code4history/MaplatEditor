@@ -144,7 +144,9 @@ const assetEdit = await readSrc("src/components/assets/AssetEdit.vue");
   assert.match(assetEdit, /previewKind:\s*"picked"\s*\|\s*"duplicate"/, "VolatileSource に previewKind がない");
   assert.match(assetEdit, /duplicateFromUid\??:\s*string/, "VolatileSource に duplicateFromUid がない");
   assert.match(assetEdit, /previewKind:\s*"duplicate",\s*duplicateFromUid/, "複製 prefill が duplicate を名乗っていない");
-  assert.match(assetEdit, /previewKind:\s*"picked",\s*sourcePath:\s*picked\.filePath/, "選択時に picked を名乗っていない");
+  assert.match(assetEdit, /previewKind:\s*"picked",\s*sourceName:\s*picked\.fileName/, "選択時に picked を名乗っていない");
+  // 未保存の画像は token か複製元 uid で指し、renderer はパスを持たない
+  assert.doesNotMatch(assetEdit, /sourcePath|picked\.filePath/, "AssetEdit がパスを持っている");
 
   const body = bodyOf(assetEdit, "refreshPreview");
   // 優先順: picked（token で一次画像）→ duplicate（元 uid の実体）→ 保存済み（自分の uid）
