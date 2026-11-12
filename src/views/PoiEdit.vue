@@ -1445,7 +1445,7 @@ async function importAutoRun(generation: number): Promise<void> {
       isCurrent: () => generation === loadGeneration,
       newUid: () => importUid,
       pickImportFile: () => window.poiSources.pickImportFile(),
-      detectImportLanguage: (filePath, fallback) => window.poiSources.detectImportLanguage(filePath, fallback),
+      detectImportLanguage: (token, fallback) => window.poiSources.detectImportLanguage(token, fallback),
       importFile: (input) => window.poiSources.importFile(input),
       removeDraft: (uid) => window.assetDrafts.remove("poi", uid),
       loadSaved: (uid) => load(uid),

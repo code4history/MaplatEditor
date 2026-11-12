@@ -9,11 +9,12 @@ import { runGuarded } from '../utils/inflightGuard';
 // feat2: 指定直後の一次表示。**token 方式**（main が選ばれたファイルにだけ発行し、
 // renderer はパスを渡せない）で、判定は electron 非依存の純関数に寄せる
 import {
-  createPickedPathStore,
   mimeForPreviewExt,
   PREVIEW_MAX_BYTES,
   validatePreviewRequest,
 } from '../utils/pickedPreviewSource';
+// 選ばれたパス → token の表（POI の取り込みと同じ実装。インスタンスは経路ごとに別）
+import { createPickedPathStore } from '../utils/pickedPathStore';
 
 // このプロセスの間だけ「利用者が選んだ画像のパス」を覚える表
 // （ディスクへも IPC 応答へもパスを出さない。renderer は token でしか引けない）

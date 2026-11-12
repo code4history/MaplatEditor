@@ -581,6 +581,11 @@ export class PoiSourceService {
     return await this.createSource(input.slug, input.title, 'remote', prepared.fc, snapshot.issues, url, input.uid);
   }
 
+  // ファイルを読まずに決まる取り込みの言語（言語の宣言が無いとき・読む対象が無いときに使う）
+  defaultImportLanguage(fallbackLang?: string): string {
+    return resolvePoiSourceLanguage(undefined, fallbackLang || SettingsService.get('lang'));
+  }
+
   async detectImportLanguage(filePath: string, fallbackLang?: string): Promise<string> {
     const ext = path.extname(String(filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
@@ -606,7 +611,7 @@ export class PoiSourceService {
       }
     }
     // CSV・KML には言語の宣言が無い。JSON として読まず、既定の言語を返す
-    if (ext === '.csv' || ext === '.kml') return resolvePoiSourceLanguage(undefined, fallbackLang || SettingsService.get('lang'));
+    if (ext === '.csv' || ext === '.kml') return this.defaultImportLanguage(fallbackLang);
     const parsed = JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
     return resolvePoiSourceLanguage(parsed?.lang, fallbackLang || SettingsService.get('lang'));
   }

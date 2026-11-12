@@ -6,7 +6,7 @@
 //
 // 固定する受け入れ条件:
 //   (a) poisource:pickImportFile の応答は { token, fileName } で、パスを含まない
-//   (b) token の経路で GeoJSON・CSV・KML を取り込める（リポジトリの fixture を使う）
+//   (b) token の経路で GeoJSON・CSV・KML を読める（リポジトリの fixture を使う）
 //   (c) ダイアログで選んでいないパス（旧契約の filePath・未知の token）は拒否し、ソースを作らない
 //   (d) token と一緒に filePath を送っても filePath は無視する（token の指すファイルを読む）
 //   (e) detectImportLanguage も token だけを受け取り、パスを渡されてもファイルを読まない
@@ -127,7 +127,7 @@ try {
       (globalThis as any).__pickPath = filePath;
       try { return await invoke(channel); } finally { (globalThis as any).__pickPath = null; }
     };
-    const sourceCount = async () => (await invoke('poisource:list', { query: '', page: 1, pageSize: 200 })).total;
+    const sourceCount = async () => (await invoke('poisource:list', { query: '', page: 1, pageSize: 100 })).total;
     const featureCount = async (uid: string) => (await invoke('poisource:get', uid)).featureCount;
     let seq = 0;
     const importWith = (extra: Record<string, unknown>) =>
@@ -175,10 +175,15 @@ try {
       assert.equal(rc.result, 'Success', '(b) CSV: ' + JSON.stringify(rc));
       assert.ok((await featureCount(rc.uid)) > 0, '(b) CSV の件数が 0');
       const kml = await pick(fx.kml);
+      // demo.kml は取り込みの試験用に、緯度経度が入れ替わった行（error）と Point 以外（warning）を含む。
+      // ∴ 新しいソースは作られず Invalid になるが、行ごとの指摘が返ること = token の指すファイルを読めたこと
+      const beforeKml = await sourceCount();
       const rk = await importWith({ token: kml.token });
-      assert.equal(rk.result, 'Success', '(b) KML: ' + JSON.stringify(rk));
-      assert.ok((await featureCount(rk.uid)) > 0, '(b) KML の件数が 0');
-      console.log('ok (b): token の経路で GeoJSON・CSV・KML を取り込める');
+      assert.equal(rk.result, 'Invalid', '(b) KML: ' + JSON.stringify(rk));
+      const kmlCodes = rk.issues.map((i: any) => i.code);
+      assert.ok(kmlCodes.includes('kml-non-point-skipped') && kmlCodes.includes('coord-range'), '(b) KML の中身の指摘が返らない: ' + JSON.stringify(rk));
+      assert.equal(await sourceCount(), beforeKml, '(b) KML: Invalid なのにソースが作られた');
+      console.log('ok (b): token の経路で GeoJSON・CSV を取り込め、KML も中身を読んで行ごとに指摘する');
     }
 
     // ---- (d) filePath を一緒に送っても無視する ----

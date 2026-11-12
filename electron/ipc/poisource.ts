@@ -8,6 +8,37 @@ import { inspectPoiExport, writePoiExport } from '../services/PoiPackageService'
 import { runGuarded } from '../utils/inflightGuard';
 import { exportPoiTable, pickAndParsePoiMerge } from '../services/PoiTableIoService';
 import { normalizePoiExportOptions } from '../../src/utils/exportOptions';
+import { createPickedPathStore } from '../utils/pickedPathStore';
+
+// 取り込み用に利用者が選んだファイルのパスを覚える表（画像の一次表示と同じ実装・別のインスタンス）。
+// renderer には token だけを返し、importFile・detectImportLanguage は token だけを受け取る。
+// renderer からパス文字列を受け取って開く口は作らない（乗っ取られた renderer に任意のファイルを読ませない）
+const pickedImportPaths = createPickedPathStore();
+
+/** token → 選ばれたパス。token 以外（パス文字列を含む）は解決しない */
+function resolvePickedImportPath(token: unknown): string | null {
+  if (typeof token !== 'string') return null;
+  const resolved = pickedImportPaths.resolve(token);
+  return resolved.ok ? resolved.filePath : null;
+}
+
+/**
+ * renderer から届いた取り込みの依頼を、main だけが知るパスへ置き換える。
+ * 受け取るのは token と slug などの値だけで、`filePath` が混じっていても使わない。
+ */
+function toImportInput(input: unknown) {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const filePath = resolvePickedImportPath(raw.token);
+  if (filePath === null) return null;
+  return {
+    slug: raw.slug as string,
+    title: raw.title as Record<string, string>,
+    filePath,
+    lang: raw.lang as string | undefined,
+    langOverride: raw.langOverride as boolean | undefined,
+    uid: raw.uid as string | undefined,
+  };
+}
 
 // POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
@@ -16,10 +47,20 @@ export function registerPoisourceHandlers() {
   ipc.handle('poisource:get', (_, uid) => poiSourceService.get(uid));
   ipc.handle('poisource:createLocal', (_, input) => poiSourceService.createLocal(input));
   ipc.handle('poisource:save', (_, uid, payload) => poiSourceService.save(uid, payload));
-  ipc.handle('poisource:importFile', (_, input) =>
-    runGuarded('poisource:importFile', () => poiSourceService.importFile(input)));
-  ipc.handle('poisource:detectImportLanguage', (_, filePath, fallbackLang) =>
-    poiSourceService.detectImportLanguage(filePath, fallbackLang));
+  // 取り込むファイルは pickImportFile が返した token で指す。選んでいない・期限切れの token は
+  // ファイルを開かずに invalid-request で返す（message にパスを載せない）
+  ipc.handle('poisource:importFile', (_, input) => {
+    const importInput = toImportInput(input);
+    if (!importInput) return { result: 'Error', code: 'invalid-request' } as const;
+    return runGuarded('poisource:importFile', () => poiSourceService.importFile(importInput));
+  });
+  // 言語の判定は補助なので、token が解決しなければファイルを開かずに既定の言語を返す
+  // （続く importFile が invalid-request で止める）
+  ipc.handle('poisource:detectImportLanguage', (_, token, fallbackLang) => {
+    const filePath = resolvePickedImportPath(token);
+    if (filePath === null) return poiSourceService.defaultImportLanguage(fallbackLang);
+    return poiSourceService.detectImportLanguage(filePath, fallbackLang);
+  });
   ipc.handle('poisource:registerRemote', (_, input) => poiSourceService.registerRemote(input));
   ipc.handle('poisource:refreshRemote', (_, uid) =>
     runGuarded('poisource:refreshRemote', () => poiSourceService.refreshRemote(uid)));
@@ -107,8 +148,8 @@ export function registerPoisourceHandlers() {
         },
       })));
 
-  // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON を選ばせ path とファイル名を返す。
-  // 実取り込みは renderer が slug/title を収集後に poisource:importFile を呼ぶ二段構え。
+  // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON/ZIP/CSV/KML を選ばせ、token とファイル名を返す（パスは返さない）。
+  // 実取り込みは renderer が slug/title を収集後に token を添えて poisource:importFile を呼ぶ二段構え。
   ipc.handle('poisource:pickImportFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
     const options = {
@@ -122,6 +163,6 @@ export function registerPoisourceHandlers() {
     if (ret.canceled || ret.filePaths.length === 0) return null;
     const filePath = ret.filePaths[0];
     rememberDialogPath('import', filePath, 'file');
-    return { filePath, fileName: path.basename(filePath) };
+    return { token: pickedImportPaths.register(filePath), fileName: path.basename(filePath) };
   });
 }

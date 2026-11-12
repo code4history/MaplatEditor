@@ -34,9 +34,10 @@ export type GuardedImportOutcome =
 export async function runGuardedPoiImport(opts: {
   isCurrent: () => boolean;
   newUid: () => string;
-  pickImportFile: () => Promise<{ filePath: string; fileName: string } | null>;
-  detectImportLanguage: (filePath: string, fallback: string) => Promise<string>;
-  importFile: (input: { slug: string; title: Record<string, string>; filePath: string; uid: string }) => Promise<unknown>;
+  // ファイルは main が発行した token で指す（renderer はパスを持たない）
+  pickImportFile: () => Promise<{ token: string; fileName: string } | null>;
+  detectImportLanguage: (token: string, fallback: string) => Promise<string>;
+  importFile: (input: { slug: string; title: Record<string, string>; token: string; uid: string }) => Promise<unknown>;
   removeDraft: (uid: string) => Promise<void>;
   loadSaved: (uid: string) => Promise<void>;
   replaceRoute: (uid: string) => Promise<void>;
@@ -45,12 +46,12 @@ export async function runGuardedPoiImport(opts: {
   const picked = await opts.pickImportFile();
   if (!picked) return { outcome: "cancelled" };
   if (!opts.isCurrent()) return { outcome: "stale" }; // picker 待ちの間の遷移も破棄
-  const lang = resolveEditorLanguage(await opts.detectImportLanguage(picked.filePath, "ja"));
+  const lang = resolveEditorLanguage(await opts.detectImportLanguage(picked.token, "ja"));
   if (!opts.isCurrent()) return { outcome: "stale" };
   const result: any = await opts.importFile({
     slug: suggestSlug(picked.fileName),
     title: { [lang]: picked.fileName.replace(/\.[^.]+$/, "") },
-    filePath: picked.filePath,
+    token: picked.token,
     uid: opts.newUid(),
   });
   if (!opts.isCurrent()) {
