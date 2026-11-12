@@ -11,6 +11,7 @@ import {
   assertSafeArchiveEntries,
   assertPoiPayloadLimits,
   assertSafePoiPackageEntries,
+  entryNameKey,
   findPoiDocumentEntry,
   isPoiPayloadEntry,
   rewritePoiMediaReferences,
@@ -20,6 +21,7 @@ import { resolveImportSlug } from './importSlugResolver';
 import SettingsService from './SettingsService';
 import imageAssetService from './ImageAssetService';
 import { resolveAssetRefsForExport, resolvePoiFeatureCollection, type IconFile } from './poiReferenceResolver';
+import { createPackageImageNames } from '../../src/utils/poiExportFileName';
 import { writeZipStreaming, type ZipSourceEntry } from '../utils/zipWriter';
 import { assertZipImportable } from '../utils/zipImportGuard';
 
@@ -60,6 +62,8 @@ export interface PoiZipImport {
 }
 
 function safeSlug(value: unknown): string {
+  // 大小は保つ: pois/<slug>.geojson は1件だけでぶつかる相手がいない。小文字に揃えると
+  // 保存ダイアログの既定のファイル名（<slug>.zip）まで変わってしまう
   return String(value ?? 'poi').replace(/[^A-Za-z0-9_-]+/g, '-') || 'poi';
 }
 
@@ -121,9 +125,11 @@ export async function inspectPoiExport(
     return { kind: 'geojson', slug, fc, files: [], warnings: [] };
   }
   // アプリ・地図の書き出しと同じ 2 段: アイコンと image の参照 → html 本文の maplat-asset:<UID>
-  const resolved = await resolvePoiFeatureCollection(fc);
+  // 2 段で imgs/<slug>.<ext> の名前予約を共有する（同じ asset は同じ名前、大小だけ違う slug は連番で分かれる）
+  const names = createPackageImageNames();
+  const resolved = await resolvePoiFeatureCollection(fc, names);
   const files = new Map(resolved.files.map((file) => [file.dest, file]));
-  const assetResolved = await resolveAssetRefsForExport(resolved.fc, files);
+  const assetResolved = await resolveAssetRefsForExport(resolved.fc, files, names);
   const warnings = [...resolved.warnings];
   for (const warning of assetResolved.warnings) {
     if (!warnings.includes(warning)) warnings.push(warning);
@@ -262,7 +268,9 @@ export async function importManagedPoiDocuments(
   assertPoiPayloadLimits(infos.filter((info) => isPoiPayloadEntry(info.name)));
 
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
-  const byName = new Map(entries.map((entry) => [entry.entryName, entry]));
+  // 参照と entry 名の突合も重複検査（entryNameKey）と同じ鍵で畳む（畳み方を揃える）。
+  // 古い ZIP の大小違いの参照も同じ entry へ着地する。entry 名の重複検査は assertSafeArchiveEntries が済んでいる
+  const byName = new Map(entries.map((entry) => [entryNameKey(entry.entryName), entry]));
 
   const createdAssetUids: string[] = [];
   // 全 document で共有する解決キャッシュ。同じ imgs/x.png を複数 document が参照しても
@@ -274,7 +282,7 @@ export async function importManagedPoiDocuments(
 
   const cleanup = makeAssetCleanup(createdAssetUids);
 
-  const resolveMedia = async (value: string): Promise<string> => {
+  const resolveMediaOnce = async (value: string): Promise<string> => {
     const cached = resolvedPaths.get(value);
     if (cached) return cached;
 
@@ -292,7 +300,7 @@ export async function importManagedPoiDocuments(
 
     const assetMatch = /^imgs\/([^/]+)\.([A-Za-z0-9]+)$/.exec(value);
     if (!assetMatch) return value;
-    const entry = byName.get(value);
+    const entry = byName.get(entryNameKey(value));
     if (!entry) throw new Error(`Packaged image is missing: ${value}`);
     const bytes = entry.getData();
     const [, baseSlug, ext] = assetMatch;
@@ -323,6 +331,18 @@ export async function importManagedPoiDocuments(
     }
   };
 
+  // 「空き slug を探してから登録する」手続きはアトミックではない（slugSequence が予約を持たないのは
+  // 設計どおり）。rewritePoiMediaReferences は features を並列に解決するため、このままでは2画像が
+  // 同じ採番候補（base-2）を掴み、片方が 'Exist' になって取り込み全体が失敗する。
+  // 1 回の取り込みの中では登録を直列化して自己競合を起こさない（取り込み同士の競合は今までどおり
+  // 'Exist' → 失敗になる）。
+  let mediaQueue: Promise<unknown> = Promise.resolve();
+  const resolveMedia = (value: string): Promise<string> => {
+    const run = mediaQueue.then(() => resolveMediaOnce(value));
+    mediaQueue = run.then(() => undefined, () => undefined);
+    return run;
+  };
+
   // M5-T4B: html 本文の imgs 参照を asset の正本記法へ戻す。
   //
   // 搬出側 (poiReferenceResolver.resolveAssetRefsForExport) は features[].properties.html の
@@ -337,7 +357,7 @@ export async function importManagedPoiDocuments(
     // ∴ Error にせず原文のまま残す。pois/*.geojson や icon の欠損を Error にする契約
     // （AC7）とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
     // 「我々が書いた参照」は常に byName に居る
-    if (!byName.has(imgsPath)) return null;
+    if (!byName.has(entryNameKey(imgsPath))) return null;
     const resolved = await resolveMedia(imgsPath);
     // icon set 参照 (`setId:iconId`) や未解決の原文はそのまま残す — asset ではない
     return resolved === imgsPath || resolved.includes(':') ? null : resolved;
@@ -348,7 +368,7 @@ export async function importManagedPoiDocuments(
     for (const dest of dests) {
       // 重複参照（複数 entry が同じ dest を指す）は1回だけ正本化する
       if (documents.has(dest)) continue;
-      const entry = byName.get(dest);
+      const entry = byName.get(entryNameKey(dest));
       // 参照されているのに ZIP に無い → Error。黙って落とすと POI が欠けた地図が生まれる
       if (!entry) throw new Error(`Packaged POI document is missing: ${dest}`);
 

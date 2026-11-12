@@ -46,8 +46,12 @@ function isUnportableSegment(segment: string): boolean {
  * 重複の判定に使う鍵。Windows が落とす末尾のドットと空白を除き、APFS・NTFS が同じファイルとして扱う
  * 大小と Unicode の正規化を畳む。toUpperCase と toLowerCase の往復で ß/ss・ſ/s・ς/σ・ﬁ/fi も同じ鍵になる。
  * ẞ だけは往復しても ß で止まるので、先に ss へ置き換える。
+ *
+ * 書き出す側の名前予約（poiExportFileName.reservePoiFileBase）と取り込み側の参照と entry 名の突合
+ * （PoiPackageService.importManagedPoiDocuments）も同じ鍵で畳む。畳み方を分けると、片方では別名でも
+ * もう片方では重複になる名前が作られる。
  */
-function entryNameKey(name: string): string {
+export function entryNameKey(name: string): string {
   return name
     .split('/')
     .map((segment) =>
