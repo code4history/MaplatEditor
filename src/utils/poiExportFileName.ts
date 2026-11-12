@@ -12,16 +12,20 @@
 // NFKD 正規化・拡張子除去・小文字化を含む。ここで必要なのは既存 slug を壊さない防御であって、
 // `Kyoto_1` を `kyoto-1` へ変えてはならない（文字種の畳み込みは下の名前予約が担う）。
 //
-// 【大小の扱い】slug から作る名前は**小文字に揃え、大小を畳んで比べる**。
-// 大小を保ったまま ZIP に並ぶと、大小を畳んで重複を検査する取り込み側
-// （poiPackage.assertSafeArchiveEntries の entryNameKey）で「Duplicate … entry」として
-// 拒否される。だから作る側（名前を作るとき）と比べる側（予約の taken）の両方を小文字へ
-// 揃え、衝突は連番（base-2 …）で分ける。slug そのものの表示は変わらない。
+// 【大小の扱い】作る名前は slug の大小を保ち、比べるときだけ畳む。
+// 大小を保つのは、取り込み側が ZIP の名前の slug で既存の asset を探して使い回すためである
+// （PoiPackageService.sameStoredBytes）。小文字に揃えると元の `Kyoto` が見つからず、
+// 同じ画像が2つの asset になってしまう。だから名前が変わるのは大小だけ違う名前が
+// ぶつかったときだけで、`Foo` は `imgs/Foo.png`、`foo` は `imgs/foo-2.png`。
+// ぶつかりの判定（taken の鍵）は取り込み側の重複検査と同じ entryNameKey で畳む
+// （poiPackage.assertSafeArchiveEntries）。畳まないと `imgs/Foo.png` と `imgs/foo.png` が
+// 同じ ZIP に並び「Duplicate … entry」として拒否される。slug そのものの表示は変わらない。
 //
 // 【重要】ここで決まるのはファイル名だけで、viewer のレイヤ key ではない。viewer は key を
 // 外部ファイルの中身（`FC.id || FC.properties.id`, MaplatCore/src/normalize_pois.ts:124）から
 // 決めるため、sanitize で名前が変わっても cluster の key・namespaceID は変わらない。
 import { SLUG_MAX, SEQUENCE_MAX_INDEX, slugCandidate } from "./slugSequence";
+import { entryNameKey } from "./poiPackage";
 
 /** sanitize の結果が空になったときの基底名 */
 export const POI_FILE_BASE_FALLBACK = "poi";
@@ -47,14 +51,14 @@ export function sanitizePoiFileBase(raw: unknown): string {
  * 候補生成は slugCandidate（slugSequence）と同一規則。確保した名前は `taken` へ追加する。
  * 全候補が埋まっている場合は null（呼び出し側が非外部化のフォールバックへ倒す）。
  *
- * 大小はここで畳む（名前を作るとき・比べるときの両方）: 基底は小文字の名前として作られ、
- * `taken` も小文字の鍵で持つ。`Foo` と `foo` は同じ基底名として連番で分かれる。
+ * 返す名前は `base` の大小を保つ（取り込み側が slug で asset を探し直すため）。
+ * 比べるときだけ畳む: `taken` の鍵は entryNameKey（取り込み側の重複検査と同じ畳み）で、
+ * 大小だけ違う基底名は連番で分かれる（`Foo` → `Foo`、`foo` → `foo-2`）。
  */
 export function reservePoiFileBase(base: string, taken: Set<string>): string | null {
-  const folded = String(base).toLowerCase();
   for (let n = 1; n <= SEQUENCE_MAX_INDEX; n++) {
-    const candidate = slugCandidate(folded, n);
-    const key = candidate.toLowerCase();
+    const candidate = slugCandidate(base, n);
+    const key = entryNameKey(candidate);
     if (taken.has(key)) continue;
     taken.add(key);
     return candidate;
@@ -66,7 +70,7 @@ export function reservePoiFileBase(base: string, taken: Set<string>): string | n
 export interface PackageImageNames {
   /** uid → 確定した entry 名 */
   byUid: Map<string, string>;
-  /** 予約済みの基底名（小文字の鍵） */
+  /** 予約済みの基底名（entryNameKey で畳んだ鍵） */
   taken: Set<string>;
 }
 
@@ -77,8 +81,8 @@ export function createPackageImageNames(): PackageImageNames {
 /**
  * 画像 asset の entry 名（`imgs/<base>.<ext>`）を確保する。
  *
- * 大小だけ違う slug（例: `Foo` と `foo`）は同じ基底名へ畳まれるため、reservePoiFileBase の
- * 連番で分ける（`imgs/foo.png` と `imgs/foo-2.png`）。名前は小文字、拡張子も小文字。
+ * 大小だけ違う slug（例: `Foo` と `foo`）は同じ基底名として reservePoiFileBase の連番で
+ * 分ける（`imgs/Foo.png` と `imgs/foo-2.png`）。名前は slug の大小を保ち、拡張子は小文字。
  * 同じ uid には常に同じ名前を返す（同じ asset の再参照で名前が増えない）。
  * 連番が枯渇した場合は uid の先頭で名前を分ける（まず到達しない保険）。
  */
@@ -92,7 +96,7 @@ export function reservePackageImageName(
   if (prior) return prior;
   const suffix = String(ext ?? '').toLowerCase().replace(/^\.+/, '');
   const base = reservePoiFileBase(slug, names.taken)
-    ?? `${String(slug).toLowerCase().slice(0, SLUG_MAX - 9)}-${uid.slice(0, 8)}`;
+    ?? `${String(slug).slice(0, SLUG_MAX - 9)}-${uid.slice(0, 8)}`;
   const entryName = `imgs/${base}${suffix ? `.${suffix}` : ''}`;
   names.byUid.set(uid, entryName);
   return entryName;

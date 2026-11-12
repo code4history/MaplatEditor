@@ -6,16 +6,18 @@
 // （例: Foo と foo）を持つ POI パッケージは、書き出した ZIP が戻せない。
 //
 // 固定すること:
-//   (1) 予約名 (reservePoiFileBase): 大小だけ違う基底名は、作る名前を小文字に揃えて
-//       比べる（畳んだ）結果、連番で分かれる。重複検査にかからない
+//   (1) 予約名 (reservePoiFileBase): 大小を保った名前を作り、比べるときだけ畳む。
+//       大小だけ違う基底名は連番で分かれる（Foo → Foo、foo → foo-2）。重複検査にかからない
 //   (2) 外部化された pois/<name>.geojson の名前も同じ規則
 //   (3) POI パッケージの画像 (imgs/<slug>.<ext>): 大小だけ違う slug の2画像を書き出しても
 //       取り込みに戻せる。2画像は別名で同梱され、内容も両方残る
 //   (4) 大文字を含む slug の画像 (例: Kyoto): 書き出した名前の大小が保たれ、同じ環境へ
 //       取り込み直しても asset が二重に作られず使い回される
 //
-// 名前はすべて小文字。ZIP の entry 名の重複検査（entryNameKey、大小・Unicode 正規化を畳む）
-// 自体は変えず、書き出す側が大小を畳んだ名前を作らないことで衝突を起こさない。
+// 名前は slug の大小を保ち、比べるときだけ畳む。ZIP の entry 名の重複検査（entryNameKey、
+// 大小・Unicode 正規化を畳む）自体は変えず、ぶつかりの判定を同じ鍵に揃えることで衝突を
+// 起こさない。取り込み側は名前の slug で既存 asset を探し直すため、大小を保たないと
+// asset が二重に登録される（(4)）。
 //
 // 実行方法: node scripts/slug-case-fold-smoke.mjs
 // 失敗しても途中で止めず、全部の結果を出してから exit 1 にする。
@@ -96,8 +98,7 @@ try {
     // 重複検査（大小・Unicode 正規化を畳む）にかからないこと。かかれば 'Duplicate … entry'
     const assertNamesPass = (names, label) => {
       poiPackage.assertSafeArchiveEntries(infos(names), 'POI package');
-      for (const name of names) assert.equal(name, name.toLowerCase(), label + ' の名前が小文字でない: ' + name);
-      assert.equal(new Set(names.map((n) => n.toLowerCase())).size, names.length,
+      assert.equal(new Set(names.map((n) => poiPackage.entryNameKey(n))).size, names.length,
         label + ' の名前が大小を畳むと重なる: ' + JSON.stringify(names));
     };
 
@@ -106,6 +107,8 @@ try {
       const taken = new Set();
       const names = ['Foo', 'foo'].map((base) => 'pois/' + reservePoiFileBase(base, taken) + '.geojson');
       assertNamesPass(names, '(1)');
+      assert.deepEqual(names, ['pois/Foo.geojson', 'pois/foo-2.geojson'],
+        '(1) 名前は大小を保ち、ぶつかったときだけ連番が付く: ' + JSON.stringify(names));
       return JSON.stringify(names);
     });
     await check('(1) 予約名: 今までどおりの連番 x / x-2 / x-3 と枯渇', () => {

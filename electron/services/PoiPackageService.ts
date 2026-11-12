@@ -11,6 +11,7 @@ import {
   assertSafeArchiveEntries,
   assertPoiPayloadLimits,
   assertSafePoiPackageEntries,
+  entryNameKey,
   findPoiDocumentEntry,
   isPoiPayloadEntry,
   rewritePoiMediaReferences,
@@ -266,9 +267,9 @@ export async function importManagedPoiDocuments(
   assertPoiPayloadLimits(infos.filter((info) => isPoiPayloadEntry(info.name)));
 
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
-  // 参照と entry 名の突合は大小を畳む（作る側が小文字に揃えるので、古い ZIP の大小違いの
-  // 参照も同じ entry へ着地する）。entry 名の重複検査は assertSafeArchiveEntries が済んでいる
-  const byName = new Map(entries.map((entry) => [entry.entryName.toLowerCase(), entry]));
+  // 参照と entry 名の突合も重複検査（entryNameKey）と同じ鍵で畳む（畳み方を揃える）。
+  // 古い ZIP の大小違いの参照も同じ entry へ着地する。entry 名の重複検査は assertSafeArchiveEntries が済んでいる
+  const byName = new Map(entries.map((entry) => [entryNameKey(entry.entryName), entry]));
 
   const createdAssetUids: string[] = [];
   // 全 document で共有する解決キャッシュ。同じ imgs/x.png を複数 document が参照しても
@@ -298,7 +299,7 @@ export async function importManagedPoiDocuments(
 
     const assetMatch = /^imgs\/([^/]+)\.([A-Za-z0-9]+)$/.exec(value);
     if (!assetMatch) return value;
-    const entry = byName.get(value.toLowerCase());
+    const entry = byName.get(entryNameKey(value));
     if (!entry) throw new Error(`Packaged image is missing: ${value}`);
     const bytes = entry.getData();
     const [, baseSlug, ext] = assetMatch;
@@ -355,7 +356,7 @@ export async function importManagedPoiDocuments(
     // ∴ Error にせず原文のまま残す。pois/*.geojson や icon の欠損を Error にする契約
     // （AC7）とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
     // 「我々が書いた参照」は常に byName に居る
-    if (!byName.has(imgsPath.toLowerCase())) return null;
+    if (!byName.has(entryNameKey(imgsPath))) return null;
     const resolved = await resolveMedia(imgsPath);
     // icon set 参照 (`setId:iconId`) や未解決の原文はそのまま残す — asset ではない
     return resolved === imgsPath || resolved.includes(':') ? null : resolved;
@@ -366,7 +367,7 @@ export async function importManagedPoiDocuments(
     for (const dest of dests) {
       // 重複参照（複数 entry が同じ dest を指す）は1回だけ正本化する
       if (documents.has(dest)) continue;
-      const entry = byName.get(dest.toLowerCase());
+      const entry = byName.get(entryNameKey(dest));
       // 参照されているのに ZIP に無い → Error。黙って落とすと POI が欠けた地図が生まれる
       if (!entry) throw new Error(`Packaged POI document is missing: ${dest}`);
 
