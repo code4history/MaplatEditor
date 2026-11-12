@@ -358,7 +358,8 @@
     "smoke:editor-operation-notice": "node --experimental-strip-types scripts/editor-operation-notice-smoke.mjs",
     "test:e2e:editor-ui-grammar": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/editor-ui-grammar.spec.ts --grep after",
     "smoke:editor-native-confirm": "node scripts/editor-native-confirm-smoke.mjs",
-    "smoke:poisource-path-token": "node scripts/poisource-path-token-smoke.mjs"
+    "smoke:poisource-path-token": "node scripts/poisource-path-token-smoke.mjs",
+    "smoke:imageassets-path-token": "node scripts/imageassets-path-token-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
