@@ -7,6 +7,7 @@ import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { pickImageToken } from './helpers/pickedImage';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -126,14 +127,15 @@ test.describe('M11-T9 POI Content Mode', () => {
       const assetSlug = `t9-asset-${Date.now()}`;
       const imgPath = path.join(e2eRoot, 'test-1x1.png');
       await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
+      const assetToken = await pickImageToken(app, page, imgPath);
       const assetUid = await page.evaluate(async (params) => {
         const r = await window.imageAssets.add({
           slug: params.slug, title: { ja: 'テストアセット' }, lang: 'ja',
-          sourceName: 'test-1x1.png', sourcePath: params.imgPath,
+          sourceName: 'test-1x1.png', token: params.assetToken,
         });
         if (!r || r.result !== 'Success') throw new Error(`asset create: ${JSON.stringify(r)}`);
         return r.uid as string;
-      }, { slug: assetSlug, imgPath });
+      }, { slug: assetSlug, assetToken });
 
       // html mode + 参照素材(image)に asset UID を持つ POI を seed
       const slug = `m11-t9-ac10-${Date.now()}`;
@@ -187,10 +189,11 @@ test.describe('M11-T9 POI Content Mode', () => {
       const assetSlug = `t9-prev-asset-${Date.now()}`;
       const imgPath = path.join(e2eRoot, 'prev-1x1.png');
       await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
+      const assetToken = await pickImageToken(app, page, imgPath);
       const seeded = await page.evaluate(async (params) => {
         const a = await window.imageAssets.add({
           slug: params.slug, title: { ja: 'プレビュー素材' }, lang: 'ja',
-          sourceName: 'prev-1x1.png', sourcePath: params.imgPath,
+          sourceName: 'prev-1x1.png', token: params.assetToken,
         });
         if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
         const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'AC12 POI' }, lang: 'ja' });
@@ -206,7 +209,7 @@ test.describe('M11-T9 POI Content Mode', () => {
           },
         });
         return { assetUid: a.uid as string, poiUid: p.uid as string };
-      }, { slug: assetSlug, imgPath });
+      }, { slug: assetSlug, assetToken });
 
       // AC12: app 直下 pois に {poiUid} を持つアプリのプレビューセッションを生成し、解決結果を実HTTPで検証
       const preview = await page.evaluate(async (poiUid) => {
@@ -287,10 +290,11 @@ test.describe('M11-T9 POI Content Mode', () => {
       const assetSlug = `t9-exp-asset-${Date.now()}`;
       const imgPath = path.join(e2eRoot, 'exp-1x1.png');
       await writeFile(imgPath, Buffer.from(MINI_PNG_BASE64, 'base64'));
+      const assetToken = await pickImageToken(app, page, imgPath);
       const seeded = await page.evaluate(async (params) => {
         const a = await window.imageAssets.add({
           slug: params.slug, title: { ja: 'エクスポート素材' }, lang: 'ja',
-          sourceName: 'exp-1x1.png', sourcePath: params.imgPath,
+          sourceName: 'exp-1x1.png', token: params.assetToken,
         });
         if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
         const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'AC13 POI' }, lang: 'ja' });
@@ -306,7 +310,7 @@ test.describe('M11-T9 POI Content Mode', () => {
           },
         });
         return { assetUid: a.uid as string, poiUid: p.uid as string };
-      }, { slug: assetSlug, imgPath });
+      }, { slug: assetSlug, assetToken });
 
       // 保存ダイアログを stub して zip 出力先を固定（既存 m11-t4 等と同型）
       const zipPath = path.join(e2eRoot, 'ac13-export.zip');

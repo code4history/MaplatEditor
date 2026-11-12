@@ -299,7 +299,9 @@ export type ReadPickedSourceResult =
 
 export interface ImageAssetsAPI {
     // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
-    add(input: { slug: string; title: any; lang: string; sourceName: string; sourcePath: string; uid?: string }): Promise<ImageAssetSaveResult>;
+    // 読み元は token（pickImageFile が返したもの）か duplicateFrom（複製元アセットの uid）。
+    // 選んでいない・期限切れの token は Error{code:'invalid-request'}、実体の無い複製元は Error{code:'not-found'}
+    add(input: { slug: string; title: any; lang: string; sourceName: string; token?: string; duplicateFrom?: string; uid?: string }): Promise<ImageAssetSaveResult>;
     list(): Promise<ImageAssetRow[]>;
     search(query: string): Promise<ImageAssetRow[]>;
     get(ref: string): Promise<ImageAssetRow | null>;
@@ -309,7 +311,7 @@ export interface ImageAssetsAPI {
     findReferences(ref: string): Promise<ImageAssetReferencesResult>;
     // インポート用ネイティブファイル選択。キャンセル時は null
     // token は一次表示用の鍵（main が選ばれたファイルにだけ発行する）
-    pickImageFile(): Promise<{ filePath: string; fileName: string; token: string } | null>;
+    pickImageFile(): Promise<{ fileName: string; token: string } | null>;
     // 一次画像（保存前のプレビュー）。token でしか引けない
     readPickedSource(token: string): Promise<ReadPickedSourceResult>;
 }

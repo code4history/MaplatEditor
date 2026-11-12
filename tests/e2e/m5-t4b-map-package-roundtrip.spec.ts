@@ -51,7 +51,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
@@ -98,7 +98,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
@@ -161,7 +161,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot);
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'app-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
@@ -253,7 +253,7 @@ test.describe('M5-T4B: 実 UI からの地図搬出・別 slug import・アプ�
       // 準備のあいだだけダイアログを差し替える。原本は先に退避しておく
       await snapshotDialogs(app);
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, { visibleImages: true });
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, { visibleImages: true });
 
       // 取込に使う ZIP を作るため、ここでは一度スクリプトから搬出する
       const zipPath = path.join(e2eRoot, 'map-export.zip');

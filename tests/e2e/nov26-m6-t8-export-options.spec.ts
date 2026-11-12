@@ -75,7 +75,7 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
     try {
       await stubMessageBoxAutoOk(app);
       const saveFolder = await saveFolderOf(page);
-      const seeded = await seedFullMap(page, saveFolder, e2eRoot, { prefix: 'm6t8', title: 'M6T8 地図' });
+      const seeded = await seedFullMap(app, page, saveFolder, e2eRoot, { prefix: 'm6t8', title: 'M6T8 地図' });
       // 原画像の実体（内部は uid キー。seed の imageExtension は jpg）
       await mkdir(path.join(saveFolder, 'originals'), { recursive: true });
       await writeFile(path.join(saveFolder, 'originals', `${seeded.mapUid}.jpg`), Buffer.from(PNG_B64, 'base64'));
@@ -179,7 +179,7 @@ test.describe('nov26-m6-t8: 書き出す中身の選択', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       await stubMessageBoxAutoOk(app);
-      const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, { prefix: 'm6t8app', title: 'M6T8 アプリの地図' });
+      const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, { prefix: 'm6t8app', title: 'M6T8 アプリの地図' });
       const appUid = await page.evaluate(async ({ mapSlug, mapUid }) => {
         const slug = `m6t8-app-${Date.now()}`;
         const uid = crypto.randomUUID();

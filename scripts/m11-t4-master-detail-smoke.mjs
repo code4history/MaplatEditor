@@ -507,7 +507,10 @@ try {
   assert.match(assetEditor, /EditorActionHeader/);
   assert.match(assetEditor, /EditorBusyOverlay/);
   assert.match(assetEditor, /pickImageFile/);
-  assert.match(assetEditor, /sourcePath/);
+  // 新規登録の読み元は token（選んだファイル）か複製元の uid。renderer はパスを持たない
+  assert.match(assetEditor, /token: volatileSource\.value\.token/);
+  assert.match(assetEditor, /duplicateFrom: volatileSource\.value\.duplicateFromUid/);
+  assert.doesNotMatch(assetEditor, /sourcePath/);
   assert.match(assetEditor, /toImageAssetDraft/);
   assert.match(assetEditor, /pendingSavedIdentity/);
   const draftSerializer = assetEditor.match(/serialize:[\s\S]*?apply:/)?.[0] ?? "";

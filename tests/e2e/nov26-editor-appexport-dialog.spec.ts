@@ -48,8 +48,8 @@ async function closeFinishedModals(page: Page): Promise<void> {
 
 /** 地図 1 件＋それを 1 つめのソースに持つアプリ 1 件を作り、アプリの編集画面を開く */
 async function seedApp(launched: Launched, e2eRoot: string, prefix: string): Promise<{ appUid: string; mapSlug: string }> {
-  const { page } = launched;
-  const seeded = await seedFullMap(page, await saveFolderOf(page), e2eRoot, { prefix, title: `${prefix} の地図` });
+  const { app, page } = launched;
+  const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot, { prefix, title: `${prefix} の地図` });
   const appUid = await page.evaluate(async ({ mapSlug, mapUid }) => {
     const slug = `appedit-export-${Date.now()}`;
     const uid = crypto.randomUUID();
