@@ -36,7 +36,13 @@ import {
   poisLayerKeyOf,
   isPoiLayerRef,
 } from '../../src/utils/poisLayerStructure';
-import { sanitizePoiFileBase, reservePoiFileBase } from '../../src/utils/poiExportFileName';
+import {
+  sanitizePoiFileBase,
+  reservePoiFileBase,
+  createPackageImageNames,
+  reservePackageImageName,
+  type PackageImageNames,
+} from '../../src/utils/poiExportFileName';
 import {
   collectAssetRefUids,
 } from '../../src/utils/poiContentMode';
@@ -89,8 +95,9 @@ type IconValueResolution =
   | { kind: 'unresolved' }
   | null; // 無変更 (URL/相対パス/非文字列)
 
-// icon/selectedIcon 1 値の解決。判別は parseIconRef (src/utils/iconRefs が正) に委ねる
-async function resolveIconValue(value: unknown): Promise<IconValueResolution> {
+// icon/selectedIcon 1 値の解決。判別は parseIconRef (src/utils/iconRefs が正) に委ねる。
+// asset の entry 名は PackageImageNames で予約する（大小を畳んで作り、連番で分ける）
+async function resolveIconValue(value: unknown, names: PackageImageNames): Promise<IconValueResolution> {
   if (typeof value !== 'string' || value === '') return null;
   const ref = parseIconRef(value);
   if (ref.kind === 'url') return null;
@@ -110,13 +117,15 @@ async function resolveIconValue(value: unknown): Promise<IconValueResolution> {
   const saveFolder = SettingsService.get('saveFolder') as string;
   const src = path.join(saveFolder, 'assets', `${record.uid}.${record.ext}`);
   if (!(await fs.pathExists(src))) return { kind: 'unresolved' };
-  const dest = `imgs/${record.slug}.${record.ext}`;
+  const dest = reservePackageImageName(names, record.uid, record.slug, record.ext);
   return { kind: 'resolved', dest, file: { src, dest } };
 }
 
 interface IconResolutionSink {
   files: Map<string, IconFile>; // dest キーで重複コピー要求を畳む
   warnings: string[];
+  /** imgs/<slug>.<ext> の名前予約（書き出し1回分で共有し、同じ uid は同じ名前になる） */
+  names: PackageImageNames;
 }
 
 async function resolveImageValue(
@@ -124,7 +133,7 @@ async function resolveImageValue(
   sink: IconResolutionSink,
 ): Promise<{ value: unknown; changed: boolean }> {
   if (typeof value === 'string') {
-    const resolution = await resolveIconValue(value);
+    const resolution = await resolveIconValue(value, sink.names);
     if (!resolution) return { value, changed: false };
     if (resolution.kind === 'unresolved') {
       mergeWarnings(sink.warnings, [UNRESOLVED_ICON_WARNING]);
@@ -158,7 +167,7 @@ async function resolveIconProps(
 ): Promise<Record<string, unknown> | null> {
   let changed: Record<string, unknown> | null = null;
   for (const key of ['icon', 'selectedIcon']) {
-    const resolution = await resolveIconValue(props[key]);
+    const resolution = await resolveIconValue(props[key], sink.names);
     if (!resolution) continue;
     if (resolution.kind === 'unresolved') {
       mergeWarnings(sink.warnings, [UNRESOLVED_ICON_WARNING]);
@@ -218,13 +227,16 @@ async function resolveIconRefsInFc(entry: unknown, sink: IconResolutionSink): Pr
   return out ?? entry;
 }
 
-export async function resolvePoiFeatureCollection(entry: unknown): Promise<{
+export async function resolvePoiFeatureCollection(
+  entry: unknown,
+  names: PackageImageNames = createPackageImageNames(),
+): Promise<{
   fc: unknown;
   files: IconFile[];
   warnings: string[];
 }> {
   const warnings: string[] = [];
-  const sink: IconResolutionSink = { files: new Map(), warnings };
+  const sink: IconResolutionSink = { files: new Map(), warnings, names };
   const fc = await resolveIconRefsInFc(entry, sink);
   return { fc, files: [...sink.files.values()], warnings };
 }
@@ -310,7 +322,7 @@ export async function resolvePoisArray(
   options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
 ): Promise<ResolvedPois> {
   const warnings: string[] = [];
-  const sink: IconResolutionSink = { files: new Map(), warnings };
+  const sink: IconResolutionSink = { files: new Map(), warnings, names: createPackageImageNames() };
   if (!Array.isArray(pois)) return { pois: [], files: [], warnings };
   const out: unknown[] = [];
   let missing = false;
@@ -372,10 +384,12 @@ export interface PoiExternalizationContext {
   taken: Set<string>;
   /** dest → 実体。重複書き出しを抑止する */
   documents: Map<string, PoiDocument>;
+  /** imgs/<slug>.<ext> の名前予約。app JSON と map JSON をまたいで共有する */
+  names: PackageImageNames;
 }
 
 export function createPoiExternalizationContext(): PoiExternalizationContext {
-  return { byUid: new Map(), taken: new Set(), documents: new Map() };
+  return { byUid: new Map(), taken: new Set(), documents: new Map(), names: createPackageImageNames() };
 }
 
 export interface ExternalizedPois {
@@ -411,7 +425,7 @@ async function emitPoiDocument(
   if (reserved === null) return null;
   const dest = `pois/${reserved}.geojson`;
   const withIcons = await resolveIconRefsInFc(fc, sink);
-  const assetResolved = await resolveAssetRefsForExport(withIcons, sink.files);
+  const assetResolved = await resolveAssetRefsForExport(withIcons, sink.files, sink.names);
   mergeWarnings(sink.warnings, assetResolved.warnings);
   ctx.documents.set(dest, { dest, json: assetResolved.entry });
   return dest;
@@ -437,7 +451,7 @@ async function buildPoiLayerRef(
   for (const key of ['icon', 'selectedIcon'] as const) {
     const value = entry[key];
     if (typeof value !== 'string' || value === '') continue;
-    const resolution = await resolveIconValue(value);
+    const resolution = await resolveIconValue(value, sink.names);
     if (!resolution) {
       wrapper[key] = value; // URL / 相対パス — 無変更 (resolveIconProps と同じ扱い)
       continue;
@@ -476,7 +490,7 @@ export async function externalizePoisArray(
   options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
 ): Promise<ExternalizedPois> {
   const warnings: string[] = [];
-  const sink: IconResolutionSink = { files: new Map(), warnings };
+  const sink: IconResolutionSink = { files: new Map(), warnings, names: ctx.names };
   if (!Array.isArray(pois)) {
     return { pois: [], files: [], documents: [...ctx.documents.values()], warnings };
   }
@@ -769,11 +783,13 @@ function collectAssetRefUidsFromFcProps(entry: unknown): Set<string> {
 }
 
 // エクスポート用: FC 内の maplat-asset:<UID> を imgs/{slug}.{ext} に置換し、
-// 実体コピー要求を icons Map に追加。
+// 実体コピー要求を icons Map に追加。entry 名は names で予約する（icon 解決と同じ規則で、
+// 同じ uid は同じ名前、大小だけ違う slug は連番で分かれる）。
 // 戻り値の warnings は欠落 Asset の警告キー（複数欠落でも1回だけ）。
 export async function resolveAssetRefsForExport(
   entry: unknown,
   icons: Map<string, IconFile>,
+  names: PackageImageNames = createPackageImageNames(),
 ): Promise<{ entry: unknown; warnings: string[] }> {
   const warnings: string[] = [];
   const allUids = collectAssetRefUidsFromFcProps(entry);
@@ -791,7 +807,7 @@ export async function resolveAssetRefsForExport(
       mergeWarnings(warnings, [MISSING_ASSET_REF_WARNING]);
       continue;
     }
-    const dest = `imgs/${record.slug}.${record.ext}`;
+    const dest = reservePackageImageName(names, record.uid, record.slug, record.ext);
     uidToDest.set(uid, dest);
     icons.set(dest, { src, dest });
   }
