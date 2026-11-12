@@ -45,7 +45,7 @@ function toImportInput(input: unknown) {
  * 取り込みの失敗の応答の message から、利用者の手元のパスだけを伏せる。
  * service の message には `ENOENT … '<絶対パス>'` が入ることがある。一方、ZIP の中の名前
  * （`pois/*.geojson`・`imgs/…`）を含む検証の文言は利用者に役立つので、message ごとは落とさない。
- * 伏せるのは選んだパス・その親・ホームディレクトリ（長い順）。原文は main のログへだけ出す。
+ * 伏せるのは選んだパス・その親・ホームディレクトリ・一時ディレクトリ（長い順）。原文は main のログへだけ出す。
  */
 function withoutPathInMessage<T>(result: T, filePath: string): T {
   if (!result || typeof result !== 'object') return result;
@@ -56,6 +56,7 @@ function withoutPathInMessage<T>(result: T, filePath: string): T {
     [filePath, '<file>'],
     [path.dirname(filePath), '<dir>'],
     [os.homedir(), '~'],
+    [os.tmpdir(), '<tmp>'],
   ];
   let redacted = message;
   for (const [needle, label] of replacements.sort((a, b) => b[0].length - a[0].length)) {
