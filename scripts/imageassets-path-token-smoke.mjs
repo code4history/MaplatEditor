@@ -308,7 +308,7 @@ try {
       const src = await read(rel);
       assert.match(src, /createPickedPathStore\(\)/, `(h) ${rel} が共通の表を使っていない`);
       assert.match(src, /redactPathsInResult\(/, `(h) ${rel} が共通のパスを伏せる関数を使っていない`);
-      assert.equal(/function (withoutPathInMessage|maskPathInResult)\(/.test(src), false, `(h) ${rel} に 2 つ目のパスを伏せる実装がある`);
+      assert.equal(/function (withoutPathInMessage|maskPathInResult)[<(]/.test(src), false, `(h) ${rel} に 2 つ目のパスを伏せる実装がある`);
     }
     console.log('ok (h): token の表（pickedPathStore.ts）とパスを伏せる関数（redactPathsInResult.ts）はそれぞれ 1 つで、画像と POI の IPC が使う');
   }
