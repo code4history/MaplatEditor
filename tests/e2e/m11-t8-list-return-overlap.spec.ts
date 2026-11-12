@@ -25,10 +25,17 @@ test('list toolbar stays below fixed header after editor -> list return', async 
   test.setTimeout(180_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-hdr-return-'));
   let { app, page } = await launch(e2eRoot);
-  const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+  // 同期点: DB 初期化（getDb → migrate → applyBuiltinBaseMapSeed）の完了を待つ。
+  // maplist.request は main で SqliteDataService.getDb() を await してから答えるので、
+  // resolve した時点でシードは commit 済み（ほかの DB を直接読む e2e と同じ同期点）。
+  // settings.get は SettingsService を読むだけで DB に触れないため、同期点にならない。
+  // それで待っていた頃は、起動が遅いと初期化の途中で終了し、その DB を直接開いて
+  // 「no such table: maps」・「database is locked」になった。
+  await page.evaluate(async () => await (window as any).maplist.request('', 1, 1));
   await quitElectronApplication(app);
 
-  const dbPath = path.join(saveFolder, 'maplat.sqlite');
+  // DB の場所は、隔離起動の saveFolder（<e2eRoot>/save-folder）から組む
+  const dbPath = path.join(e2eRoot, 'save-folder', 'maplat.sqlite');
   const db = new DatabaseSync(dbPath);
   db.exec(`
     DROP TRIGGER IF EXISTS maps_search_ai; DROP TRIGGER IF EXISTS maps_search_au; DROP TRIGGER IF EXISTS maps_search_ad;
