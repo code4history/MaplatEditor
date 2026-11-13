@@ -86,6 +86,7 @@ import i18next from "i18next";
 import noImage from "../assets/img/no_image.png";
 import { useInfiniteResourceList } from "../composables/useInfiniteResourceList";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { consumeScreenReturn } from "../utils/screenNavigation";
 import { useRecentSearches } from "../composables/useRecentSearches";
 import { useAssetDraftBadges } from "../composables/useAssetDraftBadges";
 import { useResourceDelete } from "../composables/useResourceDelete";
@@ -200,6 +201,9 @@ async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {
 
 // --- lifecycle ---
 onMounted(async () => {
+  // 戻るボタンで戻ってきても、この一覧は位置を復元しない。戻りの札だけここで落とし、
+  // ほかの一覧へ持ち越さない（復元する一覧のふるまいは戻るボタンの帰還だけで変わる）
+  consumeScreenReturn();
   await loadFirst();
   await refreshDrafts();
 });

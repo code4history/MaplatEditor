@@ -103,6 +103,7 @@ import { useBboxRangeFilter } from "../composables/useBboxRangeFilter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
 import { localizeTitle } from "../utils/langResource";
 import { mergeMasterDetailFilters } from "../utils/masterDetailRouteState";
+import { consumeScreenReturn } from "../utils/screenNavigation";
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -286,7 +287,8 @@ async function toggleAlways(item: BaseMapCatalogItem, always: boolean): Promise<
 onMounted(async () => {
   await loadBaseMaps();
   await nextTick();
-  await restoreScroll(masterList.value?.scrollElement ?? null);
+  // 戻るボタンでの帰還のときだけ、離れる前の位置へ戻す。それ以外の画面移動では先頭から表示する
+  if (consumeScreenReturn()) await restoreScroll(masterList.value?.scrollElement ?? null);
 });
 
 watch([searchQuery, filterBbox], () => { void loadBaseMaps(); });

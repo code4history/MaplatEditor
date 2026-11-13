@@ -70,6 +70,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceDelete } from "../composables/useResourceDelete";
 import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { consumeScreenReturn } from "../utils/screenNavigation";
 import { useRecentSearches } from "../composables/useRecentSearches";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
@@ -118,7 +119,8 @@ const {
 } = useRecentSearches("app");
 function firstVisibleUid() { const r = shellRef.value?.contentRef; if (!r) return null; const t = r.getBoundingClientRect().top; for (const e of Array.from(r.querySelectorAll<HTMLElement>("[data-resource-uid]"))) { if (e.getBoundingClientRect().bottom >= t) return e.dataset.resourceUid ?? null; } return null; }
 onBeforeRouteLeave(() => { flushRecent(); const r = shellRef.value?.contentRef; backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: r?.scrollTop ?? 0 }); });
-async function restoreOrLoad() { const c = backCache.load(); if (c && c.q === query.value && c.bbox === bboxQuery.value && c.batches >= 1) { await restore(c.batches); await nextTick(); const r = shellRef.value?.contentRef; if (r) { const a = c.anchorUid ? r.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(c.anchorUid)}"]`) : null; if (a) r.scrollTop += a.getBoundingClientRect().top - r.getBoundingClientRect().top; else r.scrollTop = c.scrollTop; } } else { await loadFirst(); } }
+// 戻るボタンでの帰還のときだけ、離れる前の条件と位置へ戻す。それ以外の画面移動では新しい画面を先頭から表示する
+async function restoreOrLoad() { const returning = consumeScreenReturn(); const c = backCache.load(); if (returning && c && c.q === query.value && c.bbox === bboxQuery.value && c.batches >= 1) { await restore(c.batches); await nextTick(); const r = shellRef.value?.contentRef; if (r) { const a = c.anchorUid ? r.querySelector<HTMLElement>(`[data-resource-uid="${CSS.escape(c.anchorUid)}"]`) : null; if (a) r.scrollTop += a.getBoundingClientRect().top - r.getBoundingClientRect().top; else r.scrollTop = c.scrollTop; } } else { await loadFirst(); } }
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, "")));
 function updateQuery(value: string): void { recordRecent(value); void router.replace({ query: { ...route.query, q: value.trim() ? value : undefined } }); }
 // チップの適用: その q で検索し、使った条件を先頭へ移動する（bbox は変えない）

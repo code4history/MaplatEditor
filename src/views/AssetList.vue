@@ -92,6 +92,7 @@ import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import type { ImageAssetReference, ImageAssetRow } from "../electron";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import { localizeTitle } from "../utils/langResource";
+import { consumeScreenReturn } from "../utils/screenNavigation";
 
 const { t } = useTranslation();
 const route = useRoute();
@@ -262,7 +263,8 @@ async function duplicateAsset(row: ImageAssetRow): Promise<void> {
 onMounted(async () => {
   await Promise.all([masterList.value?.reload(), refreshDrafts()]);
   await nextTick();
-  await restoreScroll(masterList.value?.scrollElement ?? null);
+  // 戻るボタンでの帰還のときだけ、離れる前の位置へ戻す。それ以外の画面移動では先頭から表示する
+  if (consumeScreenReturn()) await restoreScroll(masterList.value?.scrollElement ?? null);
 });
 
 watch([selectedUid, isNew], () => { void resolveSelected(); });
