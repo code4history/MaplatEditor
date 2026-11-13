@@ -23,7 +23,6 @@
         @create="createAsset"
         @delete="requestDeleteAsset"
         @duplicate="duplicateAsset"
-        @scroll="saveScroll"
       />
     </div>
     <div class="asset-master-detail__detail flex-grow-1 min-w-0">
@@ -75,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DeleteConfirmDialog from "../components/resource-list/DeleteConfirmDialog.vue";
 import DiagnosticFeedback from "../components/editor-ui/DiagnosticFeedback.vue";
@@ -92,12 +91,11 @@ import { reserveCopySlug } from "../composables/useResourceDuplicate";
 import type { ImageAssetReference, ImageAssetRow } from "../electron";
 import { resolveEditorLanguage } from "../utils/editorLanguages";
 import { localizeTitle } from "../utils/langResource";
-import { consumeScreenReturn } from "../utils/screenNavigation";
 
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
 // nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
@@ -260,11 +258,10 @@ async function duplicateAsset(row: ImageAssetRow): Promise<void> {
   await selectDuplicate(row.uid, reserved);
 }
 
+// 一覧は画面を移るたびに先頭から表示する。離れる前のスクロール位置は復元しない
+// （戻るボタンで戻る先は地図・アプリ・POI の一覧だけで、この一覧へは戻らない）
 onMounted(async () => {
   await Promise.all([masterList.value?.reload(), refreshDrafts()]);
-  await nextTick();
-  // 戻るボタンでの帰還のときだけ、離れる前の位置へ戻す。それ以外の画面移動では先頭から表示する
-  if (consumeScreenReturn()) await restoreScroll(masterList.value?.scrollElement ?? null);
 });
 
 watch([selectedUid, isNew], () => { void resolveSelected(); });

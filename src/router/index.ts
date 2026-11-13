@@ -62,8 +62,9 @@ const router = createRouter({
   scrollBehavior: () => ({ left: 0, top: 0 })
 })
 
-router.afterEach((to, from) => {
-  if (to.path === from.path) return
+router.afterEach((to, from, failure) => {
+  // 取り消された・重複した遷移と、同じ画面の中の操作（クエリの変更など）では動かさない
+  if (failure || to.path === from.path) return
   for (const el of [
     document.querySelector('.main-content'),
     document.body,
