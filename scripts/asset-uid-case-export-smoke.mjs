@@ -1,5 +1,5 @@
 // アセット UID の大文字・小文字の扱いを、エディタの診断と書き出しで揃えたことのスモーク。
-// m4-t2 と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
+// 既存の書き出し smoke と同じ方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // AppExportService.exportApp の実出力を検証する。
 //
 // アセットの UID は小文字で保存する。POI の icon・selectedIcon・image・html 本文の
@@ -9,6 +9,10 @@
 //   ② その実体が zip に同梱される
 //   ③ appedit.warn_unresolved_icon・appedit.warn_missing_asset_ref が出ない
 // あわせて、レイヤの既定のアイコン（FC.properties.icon）と、アプリ側の icon 上書きも見る。
+// 後半では ImageAssetService の入口も見る:
+//   ④ 大文字の UID を指定して add すると、行の uid・実体のファイル名・返る uid が小文字になる
+//   ⑤ 大文字の UID で rename / updateMetadata が Success になり、返る uid が小文字
+//   ⑥ 大文字の UID で delete すると行が消え、実体が _trash へ移る
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -36,6 +40,7 @@ try {
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const poiServicePath = path.join(projectRoot, 'electron/services/PoiSourceService.ts');
   const appExportServicePath = path.join(projectRoot, 'electron/services/AppExportService.ts');
+  const imageAssetServicePath = path.join(projectRoot, 'electron/services/ImageAssetService.ts');
   const iconRefsPath = path.join(projectRoot, 'src/utils/iconRefs.ts');
   const poiContentModePath = path.join(projectRoot, 'src/utils/poiContentMode.ts');
 
@@ -93,6 +98,7 @@ try {
       import assert from 'node:assert/strict';
       import { readFile as fsReadFile } from 'node:fs/promises';
       import nodePath from 'node:path';
+      import { randomUUID } from 'node:crypto';
 
       process.env.APP_ROOT = ${JSON.stringify(projectRoot)};
 
@@ -102,6 +108,7 @@ try {
       const { default: SqliteDataService } = await import(${JSON.stringify(sqlitePath)});
       const { default: PoiSourceService } = await import(${JSON.stringify(poiServicePath)});
       const { default: AppExportService } = await import(${JSON.stringify(appExportServicePath)});
+      const { default: ImageAssetService } = await import(${JSON.stringify(imageAssetServicePath)});
       const { collectIconAssetUids } = await import(${JSON.stringify(iconRefsPath)});
       const { collectImageAssetUids, collectAssetRefUids } = await import(${JSON.stringify(poiContentModePath)});
       await SqliteDataService.getDb();
@@ -219,6 +226,45 @@ try {
         const bytes = await fsReadFile(nodePath.join(exportDir, 'imgs', name));
         assert.ok(bytes.equals(assetBytes), 'imgs/' + name + ' の実体が zip に同梱されるはず');
       }
+
+      // ④ 大文字の UID を指定して add → 小文字で保存される
+      const presetLower = randomUUID().toLowerCase();
+      const presetUpper = presetLower.toUpperCase();
+      const srcPng = nodePath.join(${JSON.stringify(workDir)}, 'source-upper.png');
+      await fsExtra.writeFile(srcPng, assetBytes);
+      const added = await ImageAssetService.add({
+        slug: 'upper-preset', title: { ja: '大文字指定' }, lang: 'ja', sourcePath: srcPng, uid: presetUpper,
+      });
+      assert.equal(added.result, 'Success', '大文字の UID を指定した add は Success のはず: ' + JSON.stringify(added));
+      assert.equal(added.uid, presetLower, 'add が返す uid は小文字のはず: ' + added.uid);
+      const addedRow = await SqliteDataService.findAsset(presetLower);
+      assert.ok(addedRow, '大文字で add した行が小文字の UID で見つかるはず');
+      assert.equal(addedRow.uid, presetLower, '保存される行の uid は小文字のはず: ' + addedRow.uid);
+      const assetNames = await fsExtra.readdir(assetsDir);
+      assert.ok(assetNames.includes(presetLower + '.png'),
+        '実体のファイル名は小文字の UID のはず: ' + JSON.stringify(assetNames));
+      assert.ok(!assetNames.includes(presetUpper + '.png'), '実体のファイル名に大文字の UID を使ってはいけない');
+
+      // ⑤ 大文字の UID で改名
+      const renamed = await ImageAssetService.rename(MARK, { slug: 'sample-mark-renamed', title: { ja: '改名した印' } });
+      assert.equal(renamed.result, 'Success', '大文字の UID の rename は Success のはず: ' + JSON.stringify(renamed));
+      assert.equal(renamed.uid, markUid, 'rename が返す uid は小文字のはず: ' + renamed.uid);
+      assert.equal((await SqliteDataService.findAsset(markUid))?.slug, 'sample-mark-renamed', '改名が行に反映されるはず');
+      const updated = await ImageAssetService.updateMetadata(MARK, {
+        slug: 'sample-mark-renamed', title: { ja: '題を変えた印' }, lang: 'ja', expectedRevision: renamed.revision,
+      });
+      assert.equal(updated.result, 'Success', '大文字の UID の updateMetadata は Success のはず: ' + JSON.stringify(updated));
+      assert.equal(updated.uid, markUid, 'updateMetadata が返す uid は小文字のはず: ' + updated.uid);
+
+      // ⑥ 大文字の UID で削除 → 行が消え、実体が _trash へ
+      const deleted = await ImageAssetService.delete(PHOTO);
+      assert.equal(deleted.ok, true, '大文字の UID の delete は ok のはず: ' + JSON.stringify(deleted));
+      assert.equal(deleted.bytes, 'trashed', '実体は _trash へ移るはず: ' + JSON.stringify(deleted));
+      assert.equal(await SqliteDataService.findAsset(photoUid), null, '削除した行は小文字の UID でも見つからないはず');
+      const trashNames = await fsExtra.readdir(nodePath.join(assetsDir, '_trash'));
+      assert.ok(trashNames.includes(photoUid + '.png'), '_trash に小文字の UID の実体があるはず: ' + JSON.stringify(trashNames));
+      assert.ok(!(await fsExtra.readdir(assetsDir)).some((n: string) => n.toLowerCase() === photoUid + '.png'),
+        'assets 直下に削除した実体が残ってはいけない');
 
       console.log('asset uid case export smoke passed');
       process.exit(0);

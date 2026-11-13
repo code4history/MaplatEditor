@@ -2052,7 +2052,10 @@ class SqliteDataService {
   // searchAssets は slug/title の LIKE 一致で足りる(maps/apps の raw LIKE フォールバックと同機構)。
 
   private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput, presetUid?: string): string {
-    const uid = presetUid ?? generateUid(); // D11改: 事前採番uid受け入れ(後方互換)
+    // D11改: 事前採番uid受け入れ(後方互換)。アセットの UID は小文字で保存する（findAsset は
+    // 小文字に揃えて引くので、大文字のまま保存すると二度と見つからない）。行の uid・registry・
+    // 呼び出し側が実体のファイル名に使う戻り値を、ここで同じ小文字に揃える
+    const uid = (presetUid ?? generateUid()).toLowerCase();
     this.withTransaction(db, () => {
       this.promoteSlugWithin(db, slug, uid); // AC4
       this.registerAsset(db, 'asset', uid, slug);
