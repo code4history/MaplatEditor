@@ -5,11 +5,14 @@
 import { defaults as controlDefaults } from 'ol/control';
 import type { Collection } from 'ol';
 import type Control from 'ol/control/Control';
-import Style, { type StyleFunction } from 'ol/style/Style';
+import Style, { type RenderFunction, type StyleFunction } from 'ol/style/Style';
 import Stroke from 'ol/style/Stroke';
 import Fill from 'ol/style/Fill';
 import CircleStyle from 'ol/style/Circle';
 import LayerSwitcher from 'ol-layerswitcher';
+import type OlMap from 'ol/Map';
+import type { EventsKey } from 'ol/events';
+import { unByKey } from 'ol/Observable';
 
 export const MAP_TOOL_EDGE = 'rgba(0,0,0,.45)';
 export const HALO_OUTER = '#555555';
@@ -21,6 +24,27 @@ export function iconElement(className: string): HTMLElement {
   el.className = `bi ${className}`;
   el.setAttribute('aria-hidden', 'true');
   return el;
+}
+
+// ---- 地図の上に描く文字（帰属表示・ベースマップの名前）の escape ----
+// OL の帰属表示（ol/control/Attribution）と ol-layerswitcher のレイヤ名は innerHTML で描かれる。
+// 著作権表示とベースマップの名前は利用者の入力や取り込んだデータから来るので、HTML として解釈させず
+// 文字として出す（例: 著作権表示に <img src="https://…"> を書いても要素は作らず外部へ要求も出さない）。
+
+/** 文字列を HTML の文字として escape する（innerHTML に入れても要素にならない） */
+export function escapeHtmlText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** `source.setAttributions` に渡す帰属表示。空なら空の配列、あれば escape した 1 件 */
+export function textAttributions(value: unknown): string[] {
+  const text = value == null ? '' : String(value).trim();
+  return text ? [escapeHtmlText(text)] : [];
 }
 
 export interface MapOverlayControlLabels {
@@ -102,22 +126,62 @@ export function layoutMapOverlayControls(
 
 // ---- 編集中・参考の図形の縁取り（§4.2） ----
 
-/** 線の外側に白 1.5px の halo、さらに外に濃い灰の細線を重ねたスタイル */
+type PixelCoordinates = Parameters<RenderFunction>[0];
+
+/** 描画関数に渡る画素座標（線・面・その集まり）を、線の経路として辿る */
+function tracePath(context: CanvasRenderingContext2D, coords: PixelCoordinates, close: boolean): void {
+  if (!Array.isArray(coords) || coords.length === 0) return;
+  if (typeof coords[0] === 'number') return;
+  if (Array.isArray(coords[0]) && typeof (coords[0] as unknown[])[0] === 'number') {
+    const path = coords as number[][];
+    context.moveTo(path[0][0], path[0][1]);
+    for (let i = 1; i < path.length; i++) context.lineTo(path[i][0], path[i][1]);
+    if (close) context.closePath();
+    return;
+  }
+  for (const child of coords as PixelCoordinates[]) tracePath(context, child, close);
+}
+
+/**
+ * 縁取りの線だけを描く描画関数。当たり判定（`hitDetectionRenderer`）では何も描かない。
+ * 縁取りを付けても、地物の当たり判定の幅は色の線（縁取りを付ける前と同じ幅）のままにする。
+ */
+function underlayStyle(width: number, color: string, dash?: number[]): Style {
+  const renderer: RenderFunction = (coords, state) => {
+    const context = state.context;
+    const ratio = state.pixelRatio;
+    const close = /Polygon/.test(state.geometry.getType());
+    context.save();
+    context.beginPath();
+    tracePath(context, coords, close);
+    context.lineWidth = width * ratio;
+    context.strokeStyle = color;
+    context.lineJoin = 'round';
+    context.lineCap = 'round';
+    context.setLineDash(dash ? dash.map((d) => d * ratio) : []);
+    context.stroke();
+    context.restore();
+  };
+  return new Style({ renderer, hitDetectionRenderer: () => {} });
+}
+
+/**
+ * 線の外側に白 1.5px の halo、さらに外に濃い灰の細線を重ねたスタイル（編集中の図形）。
+ * `outline: false` のときは白の halo だけにする（参考の図形。§4.2）。
+ * 当たり判定は色の線と塗りだけで行う（縁取りでは広げない）。
+ */
 export function haloLineStyles(
   color: string,
   width: number,
-  options?: { fill?: string; dash?: number[] },
+  options?: { fill?: string; dash?: number[]; outline?: boolean },
 ): Style[] {
   const dash = options?.dash;
-  const stroke = (w: number, c: string) =>
-    new Stroke({ color: c, width: w, ...(dash ? { lineDash: [...dash] } : {}) });
+  const outline = options?.outline ?? true;
   return [
-    new Style({
-      ...(options?.fill ? { fill: new Fill({ color: options.fill }) } : {}),
-      stroke: stroke(width + HALO_WIDTH * 2 + 2, HALO_OUTER),
-    }),
-    new Style({ stroke: stroke(width + HALO_WIDTH * 2, '#ffffff') }),
-    new Style({ stroke: stroke(width, color) }),
+    ...(options?.fill ? [new Style({ fill: new Fill({ color: options.fill }) })] : []),
+    ...(outline ? [underlayStyle(width + HALO_WIDTH * 2 + 2, HALO_OUTER, dash)] : []),
+    underlayStyle(width + HALO_WIDTH * 2, '#ffffff', dash),
+    new Style({ stroke: new Stroke({ color, width, ...(dash ? { lineDash: [...dash] } : {}) }) }),
   ];
 }
 
@@ -187,13 +251,25 @@ export interface BaseMapSwitcher {
   refreshLabel: () => void;
 }
 
+let switcherSeq = 0;
+
 /**
  * 今の選択の名前を札に出し、クリックで開くベースマップの切り替え。
  * 全部の地図（MapEdit・POI・ホーム位置と範囲の小窓）で同じ部品を使う。
+ *
+ * ol-layerswitcher の 'click' モードに次を足す（§4.2 表示の切り替え）。
+ * - 選んだら閉じる（ポインタで選んだとき・Enter）。矢印キーで選び直している間は開いたまま
+ * - 地図を押したとき・Esc で閉じる
+ * - 札に aria-expanded、読み上げ名に今の選択の名前を含める
+ * - ラジオに同じ name を付け、矢印キーで選び直せるようにする（描き直しの後もフォーカスを戻す）
  */
 export class MapBaseMapSwitcherControl extends LayerSwitcher {
   private labelOf: () => string = () => '';
   private tipText = '';
+  private radioName = '';
+  private pointerSelecting = false;
+  private refocusChecked = false;
+  private mapKeys: EventsKey[] = [];
 
   constructor(options: { tipLabel: string; labelOf: () => string }) {
     super({
@@ -205,24 +281,94 @@ export class MapBaseMapSwitcherControl extends LayerSwitcher {
     });
     this.labelOf = options.labelOf;
     this.tipText = options.tipLabel;
+    this.radioName = `map-base-map-switcher-${++switcherSeq}`;
+    this.button.setAttribute('aria-haspopup', 'true');
+
+    const panel = this.panel as HTMLElement;
+    // ol-layerswitcher は選び直すたびにパネルを描き直す（静的な renderPanel を直接呼ぶ）。
+    // 描き直しの完了はパネルの rendercomplete で分かるので、そこでラジオに name を付ける
+    panel.addEventListener('rendercomplete', () => this.decoratePanel());
+    panel.addEventListener('pointerdown', () => {
+      this.pointerSelecting = true;
+    });
+    panel.addEventListener('change', (event) => {
+      if ((event.target as HTMLInputElement | null)?.type !== 'radio') return;
+      if (this.pointerSelecting) {
+        this.pointerSelecting = false;
+        this.hidePanel();
+      } else {
+        // キーボード（矢印キー）で選び直した。描き直しで失うフォーカスを選んだラジオへ戻す
+        this.refocusChecked = true;
+        this.focusChecked();
+      }
+    });
+    (this.element as HTMLElement).addEventListener('keydown', (event: KeyboardEvent) => {
+      // ポインタで押した後にキーボードで選び直したときは、キーボードの扱いにする
+      this.pointerSelecting = false;
+      if (!this.isShown()) return;
+      const onRadio = (event.target as HTMLInputElement | null)?.type === 'radio';
+      if (event.key === 'Escape' || (event.key === 'Enter' && onRadio)) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.hidePanel();
+        this.button.focus();
+      }
+    });
     this.refreshLabel();
+  }
+
+  private isShown(): boolean {
+    return (this.element as HTMLElement | null)?.classList.contains('shown') ?? false;
+  }
+
+  private decoratePanel(): void {
+    this.panel.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((input) => {
+      input.name = this.radioName;
+    });
+    if (this.refocusChecked) this.focusChecked();
+  }
+
+  private focusChecked(): void {
+    const checked = this.panel.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+    if (!checked) return;
+    this.refocusChecked = false;
+    checked.focus();
+  }
+
+  setMap(map: OlMap | null): void {
+    this.mapKeys.forEach((key) => unByKey(key));
+    this.mapKeys = [];
+    super.setMap(map as OlMap);
+    if (map) {
+      // 地図を押したら閉じる（'click' モードの ol-layerswitcher は閉じない）
+      this.mapKeys.push(map.on('pointerdown' as any, () => this.hidePanel()));
+    }
+  }
+
+  hidePanel(): void {
+    this.pointerSelecting = false;
+    this.refocusChecked = false;
+    super.hidePanel();
   }
 
   /** 現在の選択の名前を札に書き直す（開閉のたびにも呼ばれる） */
   refreshLabel(): void {
     if (!this.tipText) return;
     const button = this.button;
+    const current = this.labelOf();
     button.textContent = '';
     button.classList.add('map-tool', 'map-tool--wide', 'map-base-map-switcher__trigger');
     const label = document.createElement('span');
     label.className = 'map-base-map-switcher__label';
-    label.textContent = this.labelOf();
+    label.textContent = current;
     button.appendChild(label);
     const caret = iconElement('bi-caret-down-fill');
     caret.classList.add('map-base-map-switcher__caret');
     button.appendChild(caret);
-    button.setAttribute('aria-label', this.tipText);
-    button.setAttribute('title', this.tipText);
+    const name = current ? `${this.tipText}: ${current}` : this.tipText;
+    button.setAttribute('aria-label', name);
+    button.setAttribute('title', name);
+    button.setAttribute('aria-expanded', this.isShown() ? 'true' : 'false');
     button.setAttribute('type', 'button');
   }
 

@@ -5,6 +5,7 @@ import { Tile as TileLayer, Group } from 'ol/layer';
 import { mapSourceFactory } from '@maplat/core/src/source_ex';
 import { resolveSourceThumbnail } from './sourceThumbnail';
 import { resolveBaseMapLayerMetadata, toBaseMapLayerData } from './baseMapEditorDocument';
+import { escapeHtmlText, textAttributions } from './mapOverlayTools';
 
 export interface OverlayBaseMapItem {
   mapID: string;
@@ -78,11 +79,12 @@ export async function createOverlayBaseMaps(
       }
       if (!source) return null;
       const meta = resolveBaseMapLayerMetadata(tms, lang);
-      // §5-8: 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す
-      source.setAttributions?.(meta.attr ? [meta.attr] : []);
+      // §5-8: 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
+      // 帰属表示とレイヤ名（title）はどちらも innerHTML で描かれるので escape して渡す
+      source.setAttributions?.(textAttributions(meta.attr));
       return new TileLayer({
         source,
-        properties: { title: meta.title || String(tms.mapID), mapID: tms.mapID, type: 'base' },
+        properties: { title: escapeHtmlText(meta.title || String(tms.mapID)), mapID: tms.mapID, type: 'base' },
         visible: tms.mapID === visibleId,
       });
     }),
@@ -96,7 +98,7 @@ export async function createOverlayBaseMaps(
   return {
     items,
     group: new Group({
-      properties: { title: groupTitle },
+      properties: { title: escapeHtmlText(groupTitle) },
       layers: validLayers,
     }),
   };

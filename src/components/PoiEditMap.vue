@@ -459,6 +459,8 @@ const setupBaseMaps = async (): Promise<void> => {
     currentBaseMapID.value,
     t("mapedit.control_basemap"),
   );
+  // await の間に地図が片付けられていたら載せない
+  if (!map) return;
   baseMapList.value = built.items;
   if (!built.items.some((item) => item.mapID === currentBaseMapID.value)) {
     currentBaseMapID.value = built.items[0]?.mapID || "osm";

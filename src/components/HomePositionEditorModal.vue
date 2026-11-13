@@ -32,6 +32,8 @@ const emit = defineEmits<{
 const { t } = useTranslation();
 const mapElement = ref<HTMLDivElement | null>(null);
 let map: Map | null = null;
+// onMounted の await の間に小窓が閉じられたら、閉じた後に Map を作らない
+let disposed = false;
 const vectorSource = new VectorSource();
 const currentPosition = ref<[number, number] | null>(null);
 // §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
@@ -58,6 +60,7 @@ onMounted(async () => {
     currentBaseMapID.value,
     t("mapedit.control_basemap"),
   );
+  if (disposed || !mapElement.value) return;
   baseMapList.value = baseMaps.items;
   if (!baseMaps.items.some((item) => item.mapID === currentBaseMapID.value)) {
     currentBaseMapID.value = baseMaps.items[0]?.mapID || "osm";
@@ -124,6 +127,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  disposed = true;
   map?.setTarget(undefined);
   map = null;
   baseMapSwitcher = null;

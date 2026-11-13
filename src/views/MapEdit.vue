@@ -91,7 +91,8 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
-import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloLineStyles, editSketchStyleFunction } from '../utils/mapOverlayTools';
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloLineStyles, editSketchStyleFunction, escapeHtmlText, textAttributions } from '../utils/mapOverlayTools';
+import GoogleSource from 'ol/source/Google';
 import { localizeTitle } from '../utils/langResource';
 import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
@@ -2714,8 +2715,8 @@ const edgeModifyCondition = (e: any) => {
 const tinStyle = (feature: any) => {
     const type = feature.getGeometry()?.getType();
     if (type === 'Polygon') {
-        // §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りを付ける
-        return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)' });
+        // §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
+        return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)', outline: false });
     } else if (type === 'LineString') {
         // §5-7: 対対応線（編集中の図形）に縁取りを付ける
         return haloLineStyles('red', 2);
@@ -3250,8 +3251,8 @@ const exchangeTileSource = async (): Promise<any> => {
     try {
         const source = await mapSourceFactory(options, {});
         // §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
-        const illstAttr = localizeTitle(mapData.value.attr, currentLang.value);
-        source.setAttributions?.(illstAttr ? [illstAttr] : []);
+        // （innerHTML で描かれるので escape する。applyIllstAttribution の注記）
+        source.setAttributions?.(illstAttributions());
         illstSource = source;
         illstMap.exchangeSource(source);
         // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる（設計 §5.4）
@@ -3607,6 +3608,41 @@ const setSwitchableBaseMaps = (allowed: 'all' | 'none' | { exclude: string }) =>
     baseMapSwitcher?.control.renderPanel();
 };
 
+// 帰属表示とベースマップの名前を、地図の著作権表示の欄の書き換えと言語の切り替えに追随させる。
+// OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描かれる。著作権表示・ベースマップの
+// 名前は利用者の入力・取り込んだデータから来るので、HTML としては解釈させず escape して文字で出す。
+const illstAttributions = (): string[] =>
+    textAttributions(localizeTitle(mapData.value.attr, currentLang.value));
+
+const applyIllstAttribution = () => {
+    illstSource?.setAttributions?.(illstAttributions());
+};
+
+const applyBaseMapTexts = () => {
+    const layers = getBaseMapLayerCollection();
+    if (!layers) return;
+    layers.getArray().forEach((layer: any) => {
+        const mapID = layer.get?.('mapID');
+        if (!mapID) return;
+        const tms = baseMapList.value.find((x: any) => x.mapID === mapID);
+        if (!tms) return;
+        const meta = resolveBaseMapLayerMetadata(tms, currentLang.value);
+        const source = layer.getSource?.();
+        if (source && !(source instanceof GoogleSource)) {
+            source.setAttributions?.(textAttributions(meta.attr));
+        }
+        const title = escapeHtmlText(meta.title);
+        // 切り替えを止めている間（title 退避中）は退避先を書き換え、ラジオを出さないままにする
+        if (baseMapTitleStash[mapID] !== undefined) baseMapTitleStash[mapID] = title;
+        else layer.set('title', title);
+    });
+    baseMapSwitcher?.control.renderPanel();
+    baseMapSwitcher?.refreshLabel();
+};
+
+watch(() => [mapData.value.attr, currentLang.value], applyIllstAttribution, { deep: true });
+watch(currentLang, applyBaseMapTexts);
+
 // 現在の相に応じた切替候補（P0=全許可 / P1=全禁止 / P2=対象以外許可）。
 // setupBaseMaps 末尾からも呼び直す（設計レビュー MIN-3: P1/P2 中の再構築で
 // title 退避が失われ切替禁止が解けるのを防ぐ。C-4 と同型の結線）
@@ -3953,13 +3989,19 @@ const setupBaseMaps = async () => {
         // §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
         // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
         // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
-        // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）
-        source.setAttributions?.(localizedMeta.attr ? [localizedMeta.attr] : []);
+        // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）。
+        // 帰属表示は innerHTML で描かれるので escape して渡す。
+        // Google の源には載せない: ol/source/Google は session の後に帰属（利用条件で必須）を
+        // 自分で設定するため、ここで上書きするとそれが消え得る
+        if (!(source instanceof GoogleSource)) {
+            source.setAttributions?.(textAttributions(localizedMeta.attr));
+        }
 
         const tileLayer = new Tile({
             source: source,
             properties: {
-                title: localizedMeta.title,
+                // ol-layerswitcher はレイヤ名を innerHTML で描くので escape して渡す
+                title: escapeHtmlText(localizedMeta.title),
                 mapID: tms.mapID,
                 type: 'base'
             },
@@ -3978,7 +4020,7 @@ const setupBaseMaps = async () => {
 
     const layerGroup = new Group({
         properties: {
-            title: t('mapedit.control_basemap') || 'Base Maps',
+            title: escapeHtmlText(t('mapedit.control_basemap') || 'Base Maps'),
         },
         layers: validLayers
     });
@@ -5725,6 +5767,7 @@ const goBack = async () => {
                     :model-value="baseMapFilterRegion"
                     title-key="range_filter.modal_title"
                     help-key="range_filter.modal_help_basemap"
+                    range-label-key="range_filter.filter_area"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
@@ -5776,6 +5819,7 @@ const goBack = async () => {
                     :model-value="poiFilterRegion"
                     title-key="range_filter.modal_title"
                     help-key="range_filter.modal_help"
+                    range-label-key="range_filter.filter_area"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="poiFilterRegion = $event"
                     @close="showPoiRegionModal = false"
