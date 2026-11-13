@@ -157,6 +157,9 @@ async function makeThumbnail(from: string, to: string): Promise<void> {
 /**
  * M12-T15 R3: ズーム2タイルを stitch して長辺512pxサムネイルを生成
  * 画像ピラミッド方式: ズーム2の全タイルを合成すると画像全体が復元される
+ *
+ * 長辺が 512px 以下の画像はズーム2のタイルを持たない（maxZoom が 0 か 1）。
+ * そのときは最大ズーム（＝原寸）の段を合成し、拡大せずに元の大きさのまま書く。
  * @param outFolder - タイル出力フォルダ（{z}/{x}/{y}.{ext} 構造）
  * @param to - 出力ファイルパス
  * @param ext - タイル拡張子（jpg/png 等）
@@ -172,14 +175,14 @@ async function makeThumbnail512(
     origHeight: number,
     maxZoom: number
 ): Promise<void> {
-    // ズーム2のタイルディレクトリ
-    const zoom2Dir = path.resolve(outFolder, '2');
-    // §C3: maxZoom < 2 の場合は呼ばれないが、万が一ディレクトリがない場合はスキップ
-    if (!await fs.pathExists(zoom2Dir)) return;
+    // 合成する段: ズーム2。ズーム2が無い小さい画像（maxZoom < 2）は最大ズーム（原寸）の段
+    const z = Math.min(2, maxZoom);
+    const zoomDir = path.resolve(outFolder, `${z}`);
+    // タイル化の直後に呼ぶので段は必ずある。万が一無ければ作らずに戻る
+    if (!await fs.pathExists(zoomDir)) return;
 
-    // ズーム2のタイル数を計算
-    const pw = Math.round(origWidth / Math.pow(2, maxZoom - 2));
-    const ph = Math.round(origHeight / Math.pow(2, maxZoom - 2));
+    // その段の幅高とタイル数（タイルを書いた側と同じ式）
+    const { pw, ph } = tileLevelSize(origWidth, origHeight, maxZoom, z);
     const tilesX = Math.ceil(pw / 256);
     const tilesY = Math.ceil(ph / 256);
 
@@ -192,7 +195,7 @@ async function makeThumbnail512(
 
     for (let tx = 0; tx < tilesX; tx++) {
         for (let ty = 0; ty < tilesY; ty++) {
-            const tilePath = path.resolve(zoom2Dir, `${tx}`, `${ty}.${ext}`);
+            const tilePath = path.resolve(zoomDir, `${tx}`, `${ty}.${ext}`);
             if (await fs.pathExists(tilePath)) {
                 try {
                     const tileImage = await Jimp.read(tilePath);
@@ -211,7 +214,7 @@ async function makeThumbnail512(
         canvas.crop({ x: 0, y: 0, w: cropW, h: cropH });
     }
 
-    // 長辺512pxへ縮小
+    // 長辺512pxへ縮小（512px 以下は拡大しない）
     const longSide = Math.max(canvas.width, canvas.height);
     if (longSide > 512) {
         const scale = 512 / longSide;
@@ -512,11 +515,10 @@ export async function imageCutter(
         const thumbTo = path.resolve(outFolder, 'thumbnail.jpg');
         await makeThumbnail(thumbFrom, thumbTo);
 
-        // M12-T15 R3: ズーム2タイルから長辺512pxサムネイル生成（§C3: maxZoom < 2 はスキップ）
-        if (maxZoom >= 2) {
-            const thumb512To = path.resolve(outFolder, THUMB_512_TMP_BASENAME);
-            await makeThumbnail512(outFolder, thumb512To, toExtKey, width, height, maxZoom);
-        }
+        // M12-T15 R3: タイルから長辺512pxサムネイル生成。
+        // 長辺 512px 以下の画像（maxZoom < 2）も原寸のまま作る（以前はここで飛ばしていた）
+        const thumb512To = path.resolve(outFolder, THUMB_512_TMP_BASENAME);
+        await makeThumbnail512(outFolder, thumb512To, toExtKey, width, height, maxZoom);
 
         // 旧実装: url = `${fileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`（#105: app://local へ移行）
         const url = `${localFileUrl(outFolder)}/{z}/{x}/{y}.${toExtKey}`;

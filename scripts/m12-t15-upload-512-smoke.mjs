@@ -1,6 +1,6 @@
 // M12-T15 (Test-2): 新規地図画像登録経路の 512px 生成検証。
 // imageCutter（showMapSelectDialog 経由）で thumbnail_512.webp が正しいアスペクト比で生成されること、
-// 長辺≤512px の画像ではスキップされることを、実データ不使用（一時フォルダ）で検証する。
+// 長辺≤512px の画像でも拡大せず元の大きさのまま作られることを、実データ不使用（一時フォルダ）で検証する。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -103,7 +103,8 @@ try {
       assert.ok(Math.max(img1.width, img1.height) <= 512, '長辺は 512px 以下');
       console.log('ok: Test-2 positive (800x400 -> 512px aspect ' + aspect1.toFixed(2) + ')');
 
-      // Test-2 負例: 300x200 (<=512px) の画像 → thumbnail_512.webp はスキップ（§C3）
+      // Test-2 小さい画像: 300x200 (<=512px) → thumbnail_512.webp は拡大せず 300x200 のまま作られる
+      // （以前はズーム2のタイルが無いので飛ばしていた）
       const tmpFolder2 = nodePath.join(${JSON.stringify(workDir)}, 'tmp2');
       await fs.mkdir(tmpFolder2, { recursive: true });
       const srcFile2 = nodePath.join(${JSON.stringify(workDir)}, 'src300x200.png');
@@ -112,11 +113,13 @@ try {
       const r2 = await showMapSelectDialog(null, tmpFolder2, '地図画像');
       assert.ok(!r2.err, 'imageCutter 300x200 成功: ' + JSON.stringify(r2));
       const thumb512_2 = nodePath.join(tmpFolder2, 'thumbnail_512.webp');
-      const exists2 = await fs.stat(thumb512_2).then(() => true).catch(() => false);
-      assert.equal(exists2, false, '長辺<=512px の画像では thumbnail_512.webp はスキップ');
+      const img2 = await readImageMeta(thumb512_2);
+      assert.ok(img2, '長辺<=512px の画像でも thumbnail_512.webp が生成される');
+      assert.equal(img2.width, 300, '小さい画像は拡大しない（幅）');
+      assert.equal(img2.height, 200, '小さい画像は拡大しない（高さ）');
       // 52px は現行どおり生成される
       assert.ok(await fs.stat(nodePath.join(tmpFolder2, 'thumbnail.jpg')).then(() => true).catch(() => false), '52px thumbnail.jpg は生成される');
-      console.log('ok: Test-2 negative (300x200 -> 512px skipped, 52px generated)');
+      console.log('ok: Test-2 small (300x200 -> 512px kept at 300x200, 52px generated)');
 
       console.log('m12-t15 upload smoke: ALL PASS');
     `,
