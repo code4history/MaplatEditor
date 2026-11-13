@@ -51,5 +51,6 @@ export function useHashRouteSync(router: Router): void {
     window.removeEventListener("popstate", onPopState);
     window.removeEventListener("hashchange", onHashChange);
   });
-  void sync();
+  // 初期遷移が失敗したときは寄せ直さない（失敗そのものは router 側が扱う）
+  void sync().catch(() => undefined);
 }
