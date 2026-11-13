@@ -37,6 +37,7 @@ const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
 const appAssetServicePath = path.join(projectRoot, 'electron/services/AppAssetService.ts');
 const mapUploadServicePath = path.join(projectRoot, 'electron/services/MapUploadService.ts');
+const stitchPath = path.join(projectRoot, 'electron/utils/thumbnail512Stitch.ts');
 
 // AC-9 の写し（製品ファイルは書き換えない。THUMB_512_EXT を null へ戻した複製を別ディレクトリへ作る）
 const revertDir = path.join(workDir, 'revert');
@@ -120,23 +121,21 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
   assert.equal(countMatches(w1, /writeImageByExt\(/), 1, 'AC-4/W1: writeThumbnail が writeImageByExt を 1 回呼ぶ');
   assert.equal(countMatches(w1, /\.write\(/), 0, 'AC-4/W1: writeThumbnail に生の .write( が残っていない');
 
+  // W4（取り込み）と W8（起動時の補完）は 1 つの実装 stitchThumbnail512 を呼ぶ。
+  // 両経路がそれを呼び、旧来の個別実装が残っていないことも確かめる
+  const stitchSrc = await readFile(stitchPath, 'utf8');
+  const w48 = sliceFn(stitchSrc, 'export async function stitchThumbnail512(', '\n}\n', 'W4/W8 stitchThumbnail512');
+  assert.equal(countMatches(w48, /writeImageByExt\(/), 1, 'AC-4/W4・W8: stitchThumbnail512 が writeImageByExt を 1 回呼ぶ');
+  assert.equal(countMatches(w48, /\.write\(/), 0, 'AC-4/W4・W8: stitchThumbnail512 に生の .write( が残っていない');
   const uploadSrc = await readFile(mapUploadServicePath, 'utf8');
-  const w4 = sliceFn(uploadSrc, 'async function makeThumbnail512(', '\n/**', 'W4 makeThumbnail512');
-  assert.equal(countMatches(w4, /writeImageByExt\(/), 1, 'AC-4/W4: makeThumbnail512 が writeImageByExt を 1 回呼ぶ');
-  assert.equal(countMatches(w4, /\.write\(/), 0, 'AC-4/W4: makeThumbnail512 に生の .write( が残っていない');
-
   const sqliteSrc = await readFile(sqlitePath, 'utf8');
-  const w8 = sliceFn(
-    sqliteSrc,
-    'private async generateThumbnail512FromTiles(',
-    'private applySearchIndexSchema(',
-    'W8 generateThumbnail512FromTiles',
-  );
-  assert.equal(countMatches(w8, /writeImageByExt\(/), 1, 'AC-4/W8: generateThumbnail512FromTiles が writeImageByExt を 1 回呼ぶ');
-  assert.equal(countMatches(w8, /\.write\(/), 0, 'AC-4/W8: generateThumbnail512FromTiles に生の .write( が残っていない');
+  assert.equal(countMatches(uploadSrc, /stitchThumbnail512\(/), 1, 'AC-4/W4: 取り込みが stitchThumbnail512 を呼ぶ');
+  assert.equal(countMatches(sqliteSrc, /stitchThumbnail512\(/), 1, 'AC-4/W8: 起動時の補完が stitchThumbnail512 を呼ぶ');
+  assert.equal(countMatches(uploadSrc, /function makeThumbnail512\(/), 0, 'AC-4/W4: 取り込み側に個別の縫い合わせが残っていない');
+  assert.equal(countMatches(sqliteSrc, /generateThumbnail512FromTiles\(/), 0, 'AC-4/W8: 補完側に個別の縫い合わせが残っていない');
 
   // R1: 破損シグネチャ判定は readImageMeta を通る（webp を読めないと catch に落ちて自己修復が黙って死ぬ）
-  const r1 = sliceFn(sqliteSrc, 'private async isBrokenThumbnail512(', '\n  // ズーム2タイルを stitch', 'R1 isBrokenThumbnail512');
+  const r1 = sliceFn(sqliteSrc, 'private async isBrokenThumbnail512(', '\n  // maps/appsへの書き込み', 'R1 isBrokenThumbnail512');
   assert.equal(countMatches(r1, /readImageMeta\(/), 1, 'AC-4/R1: isBrokenThumbnail512 が 512px を readImageMeta で読む');
 
   // 符号化点の単一性: 製品コード（electron / src）で webp 符号化器を握るのは codec 1 ファイルだけ。

@@ -327,7 +327,7 @@ await writeFile(
 
       await check('AC9 デコードへ渡す値が recommendedMemoryMB / recommendedResolutionMP と一致', () => {
         assert.ok(!r.err, '取り込みが成功する（err=' + (r.err ?? '') + '）');
-        // makeThumbnail / makeThumbnail512 の Jimp.read も内部で fromBuffer を通るが、
+        // makeThumbnail / stitchThumbnail512 の Jimp.read も内部で fromBuffer を通るが、
         // options を渡すのは原寸デコードの1回だけである。そこで絞る
         const withOptions = captured.filter((o) => o && o['image/jpeg']);
         assert.equal(withOptions.length, 1,

@@ -21,7 +21,8 @@ import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 // m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
-import { readImageMeta, writeImageByExt } from '../utils/thumbnail512Codec';
+import { readImageMeta } from '../utils/thumbnail512Codec';
+import { selectThumbnail512Level, stitchThumbnail512, THUMB_512_MAX_LEVEL } from '../utils/thumbnail512Stitch';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -169,7 +170,7 @@ const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
 // M12-T15 M7: 512px サムネイル起動時マイニング（§C2）の v2 マーカー。レガシー移行後に1回だけ実行する。
 // v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
 // 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）。
-// これは「スキーマの移行」ではなく z2 タイルからの **導出** なので m19-t7 でも残る
+// これは「スキーマの移行」ではなくタイルからの **導出** なので m19-t7 でも残る
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 // 512px サムネイル起動時マイニングの v3 マーカー。v2 はズーム2タイルが無い小さい地図（長辺 512px 以下）を
 // 飛ばしていたため、その地図にだけ最大ズームの段から 512px を作る。v2 とは別に 1 回だけ実行する
@@ -998,7 +999,7 @@ class SqliteDataService {
     // 放棄された暫定表示設定の掃除。marker を持たない**毎起動の掃除**であって migration ではない
     this.sweepStaleProvisionalVisibility(db);
     // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行。
-    // スキーマ移行ではなく z2 タイルからの導出であり、出力は最初から正規形（THUMB_512_EXT）
+    // スキーマ移行ではなくタイルからの導出であり、出力は最初から正規形（THUMB_512_EXT）
     await this.runThumbnail512MiningIfNeeded(db);
 
     // 既存(T3): originals UUID migration
@@ -1187,8 +1188,9 @@ class SqliteDataService {
 
   // v3: 小さい地図（長辺 512px 以下）はズーム2タイルを持たないため v2 が飛ばしていた。
   // 取り込みは今は原寸の段から 512px を作るが、それ以前に取り込んだ地図には 512px が無い。
-  // 対象は「512px が無く、かつ tiles/{uid}/2 が無い地図」だけ。512px を持つ地図（利用者が
-  // 置き換えたものも含む）には触れない。段は tiles/{uid} の下の数字の段のうち最大のもの（2 未満）。
+  // 対象は「512px が無く、かつ使う段がズーム2より下の地図」だけ。512px を持つ地図（利用者が
+  // 置き換えたものも含む）には触れない。段は取り込みと同じ selectThumbnail512Level で選ぶ
+  // （タイルのファイルが 1 枚以上ある段のうち 2 以下で最大のもの）。最大の段が空でも下の段を使う。
   private async mineThumbnail512ForSmallMaps(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
@@ -1203,19 +1205,13 @@ class SqliteDataService {
     for (const map of maps) {
       const uid = String(map.uid);
       const thumb512Path = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
-      const uidTileDir = path.join(tileFolder, uid);
-      if (await fs.pathExists(thumb512Path) || await fs.pathExists(path.join(uidTileDir, '2'))) {
+      if (await fs.pathExists(thumb512Path)) {
         skippedCount++;
         continue;
       }
-      let levels: number[] = [];
-      try {
-        levels = (await fs.readdir(uidTileDir)).filter((d) => /^\d+$/.test(d)).map((d) => parseInt(d, 10));
-      } catch {
-        // タイルの無い地図（画像未登録など）は対象外
-      }
-      const level = levels.length > 0 ? Math.max(...levels) : -1;
-      if (level < 0 || level >= 2) {
+      // タイルの無い地図（画像未登録など）は null。ズーム2を使う地図は v2 の対象
+      const level = await selectThumbnail512Level(path.join(tileFolder, uid));
+      if (level === null || level >= THUMB_512_MAX_LEVEL) {
         skippedCount++;
         continue;
       }
@@ -1233,7 +1229,6 @@ class SqliteDataService {
   ): Promise<void> {
     const saveFolder = SettingsService.get('saveFolder') as string;
     const tileFolder = path.join(saveFolder, 'tiles');
-    const thumbFolder = path.join(saveFolder, 'tmbs');
 
     if (targets.length === 0) {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(markerId);
@@ -1251,8 +1246,11 @@ class SqliteDataService {
     for (let i = 0; i < targets.length; i++) {
       const { uid, level } = targets[i];
       try {
-        // その段のタイルを stitch して 512px 生成（M6: コンテンツ寸法はタイル実寸から導出）
-        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder, level);
+        // その段のタイルを縫い合わせて 512px を作る（取り込みと同じ関数。大きさはタイルの実寸から出す）
+        await stitchThumbnail512(
+          path.join(tileFolder, uid, `${level}`),
+          path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!),
+        );
         success++;
       } catch (e: any) {
         const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
@@ -1324,94 +1322,6 @@ class SqliteDataService {
     }
   }
 
-  // ズーム2タイルを stitch して長辺512pxサムネイルを生成（小さい地図は最大ズームの段＝原寸を stitch する）
-  // M12-T15 (M6): コンテンツ寸法は data_json ではなくタイルの実寸から導出する。
-  // 端タイルは非パディング実寸で保存されるため、タイルピラミッド自体が正確なコンテンツ寸法を持つ。
-  // legacy データの DB 記録が不正・欠損でも正しく crop できる（data_json 依存の廃止）。
-  private async generateThumbnail512FromTiles(
-    uid: string,
-    saveFolder: string,
-    tileFolder: string,
-    thumbFolder: string,
-    level: number
-  ): Promise<void> {
-    // @ts-ignore - Jimp は ESM 動的 import
-    const { Jimp } = await import('jimp');
-
-    const zoomDir = path.join(tileFolder, uid, `${level}`);
-    // その段のタイル数を取得
-    const xDirs = await fs.readdir(zoomDir);
-    const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
-
-    // 先に全カラムの最大行 index (maxY) を確定させ、正しい寸法のキャンバスを1度だけ作る
-    // （縦長・横長どちらでもグリッド全体を収める。長辺512px 縮小は後段で行う）
-    let maxY = 0;
-    for (let tx = 0; tx <= maxX; tx++) {
-      const txDir = path.join(zoomDir, `${tx}`);
-      if (!await fs.pathExists(txDir)) continue;
-      const yFiles = await fs.readdir(txDir);
-      for (const f of yFiles) {
-        if (/^\d+\.(jpg|jpeg|png)$/.test(f)) maxY = Math.max(maxY, parseInt(f, 10));
-      }
-    }
-
-    // M6: 全タイルを合成しつつ、実コンテンツ領域を「タイルの実寸」から導出する。
-    // contentWidth/contentHeight = 各タイルの (tx*256 + tile.width) / (ty*256 + tile.height) の最大値。
-    // 端タイルが非パディング実寸のため、グリッド切り上げでなく実コンテンツの正確な境界になる。
-    const canvas = new Jimp({ width: (maxX + 1) * 256, height: (maxY + 1) * 256, color: 0xffffffff });
-    let contentWidth = 0;
-    let contentHeight = 0;
-    let tilesRead = 0;
-
-    for (let tx = 0; tx <= maxX; tx++) {
-      const txDir = path.join(zoomDir, `${tx}`);
-      if (!await fs.pathExists(txDir)) continue;
-      const yFiles = await fs.readdir(txDir);
-      const yTiles = yFiles.filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f)).sort((a, b) => {
-        return parseInt(a, 10) - parseInt(b, 10);
-      });
-
-      for (const yFile of yTiles) {
-        const tilePath = path.join(txDir, yFile);
-        const ty = parseInt(yFile, 10);
-        try {
-          const tileImage = await Jimp.read(tilePath);
-          tilesRead++;
-          // M6: 実コンテンツ境界をタイル実寸から記録
-          contentWidth = Math.max(contentWidth, tx * 256 + tileImage.width);
-          contentHeight = Math.max(contentHeight, ty * 256 + tileImage.height);
-          canvas.composite(tileImage, tx * 256, ty * 256);
-        } catch {
-          // タイル読み込み失敗は白背景のまま残す
-        }
-      }
-    }
-
-    if (tilesRead === 0) throw new Error(`no zoom${level} tiles could be read`);
-
-    // M6: crop はタイル実寸から導出したコンテンツ領域（contentWidth x contentHeight）へ行う。
-    // data_json の width/height に依存しないため、legacy データの寸法不一致でも正しく白帯を除去できる。
-    const cropW = Math.min(canvas.width, contentWidth);
-    const cropH = Math.min(canvas.height, contentHeight);
-    if (cropW > 0 && cropH > 0 && (cropW < canvas.width || cropH < canvas.height)) {
-      canvas.crop({ x: 0, y: 0, w: cropW, h: cropH });
-    }
-
-    // 長辺512pxへ縮小
-    const longSide = Math.max(canvas.width, canvas.height);
-    if (longSide > 512) {
-      const scale = 512 / longSide;
-      canvas.resize({
-        w: Math.max(1, Math.round(canvas.width * scale)),
-        h: Math.max(1, Math.round(canvas.height * scale)),
-      });
-    }
-
-    // 512px サムネイルの所在（派生規約の単一モジュールが導く）へ保存する
-    await fs.ensureDir(thumbFolder);
-    const dest = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
-    await writeImageByExt(canvas, dest);
-  }
   // maps/appsへの書き込み(経路を問わず)でトリガが発火し、JSトークナイザで
   // 分かち書きした全文索引とbbox索引が同一トランザクション内で更新される。
   // raw には slug も含める(slug rename は行UPDATEなのでトリガで索引が追随する)。

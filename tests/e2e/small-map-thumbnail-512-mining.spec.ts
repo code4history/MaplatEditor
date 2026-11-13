@@ -6,13 +6,16 @@
 // 最大ズームの段（原寸）から 512px を作る。
 //
 // 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。画像はこの試験が作る架空のもの。
-// 次の 4 つの地図を置き、v2 の印だけが付いた状態で起動する。
+// 次の 6 つの地図を置き、v2 の印だけが付いた状態で起動する。
 //   A: 200x150・z0 だけ・512px なし → 200x150 の 512px が作られる
 //   B: 400x300・z0 と z1・512px なし → z1（原寸）から 400x300 の 512px が作られる
 //   C: 300x200・z0 と z1・利用者が置き換えた 512px あり → 触れない（中身が変わらない）
 //   D: z2 を持つ地図・512px なし → v3 の対象外（v2 の印があるので作られない）
+//   E: タイルの無い地図（画像未登録）→ 補完は止まらず、512px は作られず、警告にも出ない
+//   F: 400x300・tiles/{uid}/1 が空で z0（200x150）にはタイルがある → z0 から 200x150 の 512px が作られる
+//      （最大の段が空でも、タイルのある下の段を使う）
 import { expect, test, type Page } from '@playwright/test';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -84,7 +87,7 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
 
     const first = await launch(e2eRoot);
     let saveFolder = '';
-    const uids: Record<'A' | 'B' | 'C' | 'D', string> = { A: '', B: '', C: '', D: '' };
+    const uids: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', string> = { A: '', B: '', C: '', D: '', E: '', F: '' };
     let userThumbBytes: Buffer;
     try {
       const page = first.page;
@@ -93,6 +96,8 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
       uids.B = await seedMap(page, 'b', 400, 300);
       uids.C = await seedMap(page, 'c', 300, 200);
       uids.D = await seedMap(page, 'd', 900, 300);
+      uids.E = await seedMap(page, 'e', 300, 200);
+      uids.F = await seedMap(page, 'f', 400, 300);
     } finally {
       await quitElectronApplication(first.app);
     }
@@ -109,6 +114,13 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
     await placePyramid(saveFolder, uids.B, srcB, 1);
     await placePyramid(saveFolder, uids.C, srcC, 1);
     await placePyramid(saveFolder, uids.D, srcD, 2);
+    // E: タイルを置かない
+    // F: z0（原寸の半分＝200x150）だけを置き、tiles/{uid}/1 は空のフォルダにする
+    const srcF = path.join(workDir, 'f.png');
+    await writeCornerImage(srcF, 200, 150);
+    await placePyramid(saveFolder, uids.F, srcF, 0);
+    await mkdir(path.join(saveFolder, 'tiles', uids.F, '1'), { recursive: true });
+    expect(await readdir(path.join(saveFolder, 'tiles', uids.F, '1')), 'F の 1 は空').toEqual([]);
 
     // C: 利用者が置き換えた 512px（緑一色の 100x100）
     const tmbs = path.join(saveFolder, 'tmbs');
@@ -116,7 +128,7 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
     const thumbOf = (uid: string) => path.join(tmbs, `${uid}_512.webp`);
     await writeImageByExt(new Jimp({ width: 100, height: 100, color: 0x00ff00ff }), thumbOf(uids.C));
     userThumbBytes = await readFile(thumbOf(uids.C));
-    for (const key of ['A', 'B', 'D'] as const) {
+    for (const key of ['A', 'B', 'D', 'E', 'F'] as const) {
       expect(await readImageMeta(thumbOf(uids[key])), `${key} は起動前に 512px を持たない`).toBeNull();
     }
 
@@ -133,6 +145,7 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
     try {
       await expect.poll(async () => (await readImageMeta(thumbOf(uids.A))) !== null, { timeout: 60_000 }).toBe(true);
       await expect.poll(async () => (await readImageMeta(thumbOf(uids.B))) !== null, { timeout: 60_000 }).toBe(true);
+      await expect.poll(async () => (await readImageMeta(thumbOf(uids.F))) !== null, { timeout: 60_000 }).toBe(true);
 
       const metaA = (await readImageMeta(thumbOf(uids.A)))!;
       const metaB = (await readImageMeta(thumbOf(uids.B)))!;
@@ -146,6 +159,13 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
       expect((await readFile(thumbOf(uids.C))).equals(userThumbBytes), 'C の 512px は変わらない').toBe(true);
       // D: z2 を持つ地図は v3 の対象外（v2 は印があるので走らない）
       expect(await readImageMeta(thumbOf(uids.D)), 'D には作られない').toBeNull();
+      // E: タイルの無い地図には作られない（補完は止まらず、他の地図には作られている）
+      expect(await readImageMeta(thumbOf(uids.E)), 'E には作られない').toBeNull();
+      // F: 空の 1 を飛ばし、z0（200x150）から作られる
+      const metaF = (await readImageMeta(thumbOf(uids.F)))!;
+      console.log(`  F -> ${metaF.width}x${metaF.height}`);
+      expect(metaF).toEqual({ width: 200, height: 150 });
+      await expectCornerColors(thumbOf(uids.F), workDir);
     } finally {
       await quitElectronApplication(second.app);
     }
@@ -156,5 +176,11 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
     } finally {
       after.close();
     }
+
+    // E・F は失敗として扱われない（補完の失敗は migration-report-v2.json の warnings に残る）
+    const report = await readFile(path.join(saveFolder, 'migration-report-v2.json'), 'utf8').catch(() => '{}');
+    const warnings = JSON.stringify((JSON.parse(report) as { warnings?: unknown }).warnings ?? []);
+    expect(warnings.includes(uids.E), 'E は補完の警告に出ない').toBe(false);
+    expect(warnings.includes(uids.F), 'F は補完の警告に出ない').toBe(false);
   });
 });
