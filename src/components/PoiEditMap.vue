@@ -30,7 +30,7 @@ import { transform } from "ol/proj";
 import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
-import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from "../utils/mapOverlayTools";
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, editSketchStyleFunction } from "../utils/mapOverlayTools";
 import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
 import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
 import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
@@ -511,6 +511,8 @@ onMounted(async () => {
   modify = new Modify({
     source: markerSource,
     hitDetection: map.getLayer("marker"),
+    // §5-7: 取っ手をピンの色（青）にそろえ、縁取りを付ける
+    style: editSketchStyleFunction("#0099ff"),
   });
   modify.on("modifystart", onModifyStart);
   modify.on("modifyend", onModifyEnd);

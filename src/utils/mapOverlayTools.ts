@@ -5,7 +5,7 @@
 import { defaults as controlDefaults } from 'ol/control';
 import type { Collection } from 'ol';
 import type Control from 'ol/control/Control';
-import Style from 'ol/style/Style';
+import Style, { type StyleFunction } from 'ol/style/Style';
 import Stroke from 'ol/style/Stroke';
 import Fill from 'ol/style/Fill';
 import CircleStyle from 'ol/style/Circle';
@@ -173,11 +173,10 @@ export function handleStyles(color: string): Style[] {
  * `Modify` / `Draw` の `style` に渡す関数。
  * 頂点は取っ手の色、線分は編集中の図形の色にそろえる（§5-7）。
  */
-export function editSketchStyleFunction(color: string, lineWidth = 2) {
+export function editSketchStyleFunction(color: string, lineWidth = 2): StyleFunction {
   const vertex = handleStyles(color);
   const line = haloLineStyles(color, lineWidth);
-  return (feature: { getGeometry?: () => { getType(): string } | null }): Style[] =>
-    feature.getGeometry?.()?.getType() === 'Point' ? vertex : line;
+  return (feature) => (feature.getGeometry()?.getType() === 'Point' ? vertex : line);
 }
 
 // ---- ベースマップの切り替え（§4.2 表示の切り替え） ----

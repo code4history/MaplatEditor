@@ -91,7 +91,7 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
-import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from '../utils/mapOverlayTools';
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloLineStyles, editSketchStyleFunction } from '../utils/mapOverlayTools';
 import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
@@ -100,7 +100,7 @@ import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Style, Stroke, Fill, Icon } from 'ol/style';
+import { Style, Icon } from 'ol/style';
 import { LineString } from 'ol/geom';
 import { transform } from 'ol/proj';
 import { useGcpAutoRange } from '../composables/useGcpAutoRange';
@@ -1802,12 +1802,8 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         
         const illst1 = illstSource.xy2SysCoord(gcp1[0]);
         const illst2 = illstSource.xy2SysCoord(gcp2[0]);
-        const style = new Style({
-            stroke: new Stroke({
-                color: 'red',
-                width: 2
-            })
-        });
+        // §5-7: 対応線（編集中の図形）に縁取りを付ける
+        const style = haloLineStyles('red', 2);
 
         const mercCoords = [gcp1[1]];
         edge[1].forEach((node: any) => mercCoords.push(node));
@@ -2718,14 +2714,11 @@ const edgeModifyCondition = (e: any) => {
 const tinStyle = (feature: any) => {
     const type = feature.getGeometry()?.getType();
     if (type === 'Polygon') {
-        return new Style({
-            stroke: new Stroke({ color: 'blue', width: 1 }),
-            fill: new Fill({ color: 'rgba(0, 0, 255, 0.05)' })
-        });
+        // §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りを付ける
+        return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)' });
     } else if (type === 'LineString') {
-        return new Style({
-            stroke: new Stroke({ color: 'red', width: 2 })
-        });
+        // §5-7: 対対応線（編集中の図形）に縁取りを付ける
+        return haloLineStyles('red', 2);
     }
     // Point: kinks（交差エラー点）を黄色ダイヤ型アイコンで表示
     // 旧実装 mapedit.js L.731-743 に準拠
@@ -3020,10 +3013,8 @@ const initMaps = async () => {
     illstBoundsSource = illstBoundsVSrc;
     const illstBoundsLayer = new VectorLayer({
         source: illstBoundsVSrc,
-        style: new Style({
-            stroke: new Stroke({ color: 'red', width: 2 }),
-            fill: new Fill({ color: 'rgba(0,0,0,0)' })
-        })
+        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     illstBoundsLayer.set('name', 'bounds');
     // json レイヤー（TIN 三角形メッシュ）
@@ -3056,7 +3047,9 @@ const initMaps = async () => {
 
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
-        condition: edgeModifyCondition
+        condition: edgeModifyCondition,
+        // §5-7: 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
+        style: editSketchStyleFunction('red')
     });
     illstEdgeModify.on('modifystart', edgeModifyStart);
     illstEdgeModify.on('modifyend', edgeModifyEnd);
@@ -3066,6 +3059,7 @@ const initMaps = async () => {
 
     const illstBoundsModify = new Modify({
         source: illstBoundsVSrc,
+        style: editSketchStyleFunction('red')
     });
     illstBoundsModify.on('modifyend', boundsModifyEnd);
     const illstBoundsSnap = new Snap({ source: illstBoundsVSrc });
@@ -3097,10 +3091,8 @@ const initMaps = async () => {
     mercBoundsSource = mercBoundsVSrc;
     const mercBoundsLayer = new VectorLayer({
         source: mercBoundsVSrc,
-        style: new Style({
-            stroke: new Stroke({ color: 'red', width: 2 }),
-            fill: new Fill({ color: 'rgba(0,0,0,0)' })
-        })
+        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     mercBoundsLayer.set('name', 'bounds');
     // json レイヤー（TIN 三角形メッシュ）
@@ -3140,7 +3132,8 @@ const initMaps = async () => {
     
     const mercEdgeModify = new Modify({
         source: mercEdgesVSrc as VectorSource,
-        condition: edgeModifyCondition
+        condition: edgeModifyCondition,
+        style: editSketchStyleFunction('red')
     });
     mercEdgeModify.on('modifystart', edgeModifyStart);
     mercEdgeModify.on('modifyend', edgeModifyEnd);

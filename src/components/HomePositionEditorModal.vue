@@ -9,12 +9,11 @@ import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import { Vector as VectorLayer } from "ol/layer";
 import { Vector as VectorSource } from "ol/source";
-import { Style, Circle as CircleStyle, Stroke, Fill } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import i18next from "i18next";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
-import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from "../utils/mapOverlayTools";
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloPointStyles } from "../utils/mapOverlayTools";
 import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
 import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
 import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
@@ -42,13 +41,8 @@ let baseMapSwitcher: BaseMapSwitcher | null = null;
 const currentBaseMapLabel = (): string =>
   baseMapList.value.find((item) => item.mapID === currentBaseMapID.value)?.label ?? "";
 
-const markerStyle = new Style({
-  image: new CircleStyle({
-    radius: 8,
-    stroke: new Stroke({ color: "#dc3545", width: 2 }),
-    fill: new Fill({ color: "rgba(220, 53, 69, 0.4)" }),
-  }),
-});
+// §5-7: ホーム位置の点は不透明にし、白 1.5px の halo と濃い灰の細線を重ねる
+const markerStyle = haloPointStyles("#dc3545", 8, { strokeColor: "#dc3545", strokeWidth: 2 });
 
 function renderMarker(position: [number, number] | null) {
   vectorSource.clear();
