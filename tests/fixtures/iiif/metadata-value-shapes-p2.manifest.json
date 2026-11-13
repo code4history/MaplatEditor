@@ -1,0 +1,45 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.example.org/p2/value-shapes/manifest.json",
+  "@type": "sc:Manifest",
+  "label": "〔試験用〕書誌の値の形の見本",
+  "metadata": [
+    { "label": "文字列", "value": "そのままの文字列" },
+    { "label": "言語つきの値", "value": { "@value": "language-tagged value", "@language": "en" } },
+    { "label": "平らな配列", "value": ["一つ目", "二つ目"] },
+    { "label": "作者", "value": ["作者", ["架空 太郎（かくそ たろう）, 1850-1900"]] },
+    { "label": "言語の表", "value": { "ja": ["日本語の値"], "en": ["English value"] } },
+    { "label": "言語の表の入れ子", "value": { "ja": [["入れ子の", "値"]] } },
+    { "label": "読めない形", "value": { "@type": "example:Unreadable" } },
+    { "label": "空の値", "value": [""] }
+  ],
+  "sequences": [
+    {
+      "@type": "sc:Sequence",
+      "canvases": [
+        {
+          "@id": "https://iiif.example.org/p2/value-shapes/canvas/c1",
+          "@type": "sc:Canvas",
+          "label": "page 1",
+          "height": 6000,
+          "width": 6000,
+          "metadata": [
+            { "label": "コマの作者", "value": ["コマの作者", ["架空 花子（かくそ はなこ）, 1860-1930"]] }
+          ],
+          "images": [
+            {
+              "@type": "oa:Annotation",
+              "resource": {
+                "@id": "https://iiif.example.org/p2/value-shapes/image/c1.jpg",
+                "@type": "dctypes:Image",
+                "height": 6000,
+                "width": 6000
+              },
+              "on": "https://iiif.example.org/p2/value-shapes/canvas/c1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
