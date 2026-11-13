@@ -1,6 +1,11 @@
 // 保存先フォルダの DB を開けないとき、main 側が返す理由の code の単体試験。
 // 権限なし（chmod 000 の一時フォルダ）と場所なし（存在しないパス）のそれぞれで、
 // 理由が「権限が無い」「場所が無い」と分類されることを検査する。実データは開かない。
+// 読み取り専用のフォルダ（chmod 555）と読み取り専用の DB ファイル（chmod 444）は
+// 開封に成功してから最初の書き込みで失敗するため、そこも「権限が無い」になること、
+// 外付けドライブが外れたパス（/Volumes/<存在しない名前>/x）は ensureDir が EACCES を
+// 返しても「場所が無い」を優先すること、権限を戻せば同じフォルダのまま再試行で
+// 直ることも検査する。
 //
 // Part 1: electron/utils/dbOpenFailure.ts の分類・応答写像（vite バンドル → node）
 // Part 2: SqliteDataService の実経路（getDb → searchMaps）をスタブ付きバンドルで検査
@@ -79,6 +84,7 @@ try {
     `
       import assert from 'node:assert/strict';
       import { chmod, mkdir, rm, symlink } from 'node:fs/promises';
+      import { DatabaseSync } from 'node:sqlite';
       import path from 'node:path';
       import {
         DbOpenError,
@@ -99,6 +105,11 @@ try {
       assert.equal(dbOpenFailureCode({ code: 'ENOENT' }), 'ENOENT');
       assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 14 }), 'SQLITE_CANTOPEN');
       assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 8 }), 'SQLITE_READONLY');
+      // SQLite は拡張 result code を返すことがある（1544 = SQLITE_READONLY_DIRECTORY、
+      // 526 = SQLITE_CANTOPEN_ISDIR 等）。基本 code（下位 8bit）まで正規化すること
+      assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 1544 }), 'SQLITE_READONLY');
+      assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 264 }), 'SQLITE_READONLY');
+      assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 526 }), 'SQLITE_CANTOPEN');
       assert.equal(dbOpenFailureCode({}), 'unknown');
       assert.equal(dbOpenFailureCode(null), 'unknown');
 
@@ -111,6 +122,13 @@ try {
       assert.equal(await classifyDbOpenFailure({ code: 'ENOENT' }, presentDir), 'not-found');
       assert.equal(await classifyDbOpenFailure({ code: 'ENOTDIR' }, presentDir), 'not-found');
       assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 8 }, presentDir), 'permission');
+      assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 1544 }, presentDir), 'permission');
+      // 外付けドライブが外れたパスは ensureDir が EACCES を返すが、「場所が無い」を優先する
+      assert.equal(
+        await classifyDbOpenFailure({ code: 'EACCES' }, '/Volumes/maplat-db-open-reason-missing-drive/x'),
+        'not-found',
+        'マウント点が外れたパスは場所が無い',
+      );
 
       // --- Part 1c: 実測（chmod 000 のフォルダ・存在しないパス） ---
       // SQLite は chmod 000 の中へ開けないとき OS の errno ではなく SQLITE_CANTOPEN しか返さないため、
@@ -174,6 +192,14 @@ try {
         throw new Error('searchMaps は失敗するはず');
       };
 
+      // 試験用の DB を作る。wal=true はアプリが作る形（WAL 化済み）、false は未 WAL の形
+      const seedDatabase = (file: string, wal: boolean) => {
+        const seed = new DatabaseSync(file);
+        if (wal) seed.exec('PRAGMA journal_mode=WAL');
+        seed.exec('CREATE TABLE t (x)');
+        seed.close();
+      };
+
       // 権限なし: chmod 000 の一時フォルダを保存先にする
       const lockedRoot = path.join(scratch, 'locked-store');
       await mkdir(lockedRoot, { recursive: true });
@@ -195,6 +221,85 @@ try {
       assert.ok(missingFailure instanceof DbOpenError, '場所なしの失敗は DbOpenError: ' + String(missingFailure));
       assert.equal(missingFailure.failure.reason, 'not-found', '理由は場所が無い');
       assert.equal(missingFailure.failure.code, 'ENOENT');
+
+      // 読み取り専用フォルダ（chmod 555）に DB が既にある: 開封と読取りは通り、最初の
+      // 書き込み（PRAGMA journal_mode=WAL）で errcode 1544（SQLITE_READONLY_DIRECTORY）になる
+      const roDirStore = path.join(scratch, 'ro-dir-store');
+      await mkdir(roDirStore, { recursive: true });
+      seedDatabase(path.join(roDirStore, 'maplat.sqlite'), false);
+      await chmod(roDirStore, 0o555);
+      try {
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', roDirStore);
+        const roDirFailure = await readFailure();
+        assert.ok(roDirFailure instanceof DbOpenError, '読み取り専用フォルダの失敗は DbOpenError: ' + String(roDirFailure));
+        assert.equal(roDirFailure.failure.reason, 'permission', '読み取り専用フォルダは権限が無い');
+        assert.equal(roDirFailure.failure.code, 'SQLITE_READONLY', '拡張 errcode 1544 は SQLITE_READONLY へ正規化する');
+      } finally {
+        await chmod(roDirStore, 0o755);
+      }
+
+      // WAL 化済みの DB では -shm/-wal が作れず、読取りでも errcode 1544 になる
+      const roDirWalStore = path.join(scratch, 'ro-dir-wal-store');
+      await mkdir(roDirWalStore, { recursive: true });
+      seedDatabase(path.join(roDirWalStore, 'maplat.sqlite'), true);
+      await chmod(roDirWalStore, 0o555);
+      try {
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', roDirWalStore);
+        const roDirWalFailure = await readFailure();
+        assert.ok(roDirWalFailure instanceof DbOpenError, 'WAL 化済み DB の読み取り専用フォルダも DbOpenError: ' + String(roDirWalFailure));
+        assert.equal(roDirWalFailure.failure.reason, 'permission', 'WAL 化済み DB も権限が無い');
+        assert.equal(roDirWalFailure.failure.code, 'SQLITE_READONLY');
+      } finally {
+        await chmod(roDirWalStore, 0o755);
+      }
+
+      // DB ファイルだけが読み取り専用（chmod 444）: 開封と読取りは通り、
+      // PRAGMA journal_mode=WAL で errcode 8（SQLITE_READONLY）になる
+      const roFileStore = path.join(scratch, 'ro-file-store');
+      await mkdir(roFileStore, { recursive: true });
+      const roFile = path.join(roFileStore, 'maplat.sqlite');
+      seedDatabase(roFile, false);
+      await chmod(roFile, 0o444);
+      try {
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', roFileStore);
+        const roFileFailure = await readFailure();
+        assert.ok(roFileFailure instanceof DbOpenError, '読み取り専用 DB ファイルの失敗は DbOpenError: ' + String(roFileFailure));
+        assert.equal(roFileFailure.failure.reason, 'permission', '読み取り専用 DB ファイルは権限が無い');
+        assert.equal(roFileFailure.failure.code, 'SQLITE_READONLY');
+      } finally {
+        await chmod(roFile, 0o644);
+      }
+
+      // 外付けドライブが外れた状態のパス: ensureDir は ENOENT ではなく EACCES を返すが、
+      // 「場所が無い」を優先する（この名前のドライブは無いので作ろうとしても失敗するだけ）
+      const goneVolume = '/Volumes/maplat-db-open-reason-missing-drive/x';
+      await SqliteDataService.reset();
+      SettingsService.set('saveFolder', goneVolume);
+      const goneVolumeFailure = await readFailure();
+      assert.ok(goneVolumeFailure instanceof DbOpenError, '外れたマウント先の失敗は DbOpenError: ' + String(goneVolumeFailure));
+      assert.equal(goneVolumeFailure.failure.reason, 'not-found', '外れたマウント先は場所が無い');
+
+      // 権限を戻した後、同じフォルダのまま再試行で直る（reset() を挟まない）
+      const retryStore = path.join(scratch, 'retry-store');
+      await mkdir(retryStore, { recursive: true });
+      await SqliteDataService.reset();
+      SettingsService.set('saveFolder', retryStore);
+      await chmod(retryStore, 0o000);
+      try {
+        const retryFailure = await readFailure();
+        assert.ok(retryFailure instanceof DbOpenError, '権限が無い間の失敗は DbOpenError: ' + String(retryFailure));
+        assert.equal(retryFailure.failure.reason, 'permission');
+      } finally {
+        await chmod(retryStore, 0o755);
+      }
+      assert.deepEqual(
+        await SqliteDataService.searchMaps(''),
+        [],
+        '権限を戻した同じフォルダで再試行すると直る（reset なし）',
+      );
 
       // 健全性: 使える保存先では一覧が返る（包み込みで通常経路を壊していないこと）
       await SqliteDataService.reset();
