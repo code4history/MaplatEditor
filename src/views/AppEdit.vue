@@ -651,6 +651,8 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
     applyAppCoverage,
     appCoverageAuto,
     estimateHomeFromSources,
+    // undo の履歴の位置（書き込みで履歴が増えたかを e2e で確かめる）
+    historyPointer: () => historyStack.value?.snapshot().pointer ?? null,
   };
 }
 

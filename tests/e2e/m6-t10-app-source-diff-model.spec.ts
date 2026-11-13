@@ -120,8 +120,8 @@ const COVERAGE_LNG_LATS: [number, number][] = [
   [130.9, 33.8],
   [130.25, 33.25],
 ];
-// envelopeToBbox と同じ外接矩形（west, south, east, north）
-const COVERAGE_BBOX = ['130.25', '32.5', '131.75', '33.8'];
+// 外接矩形（west, south, east, north）を入力欄へ出したときの並び（小窓と同じ西・東・南・北 = DOM 順）
+const COVERAGE_INPUT_ORDER = ['130.25', '131.75', '32.5', '33.8'];
 
 // 新規アプリを立ち上げ、ソースタブでベースマップを1件選ぶところまで進める
 async function newAppWithSource(page: Page, appSlug: string, masterSlug: string) {
@@ -256,7 +256,7 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
       await expect(
         envelopeInputs.nth(i),
         `AC7(a): コピー後の利用範囲がマスタの存在範囲の外接矩形になる（${i}）`,
-      ).toHaveValue(COVERAGE_BBOX[i]);
+      ).toHaveValue(COVERAGE_INPUT_ORDER[i]);
     }
     // AC7(c): 値が入ったので × が現れ、押すと解除される（従来どおりの挙動）
     const covClear = covCard.getByTestId('app-source-clear-envelopeLngLats');
@@ -269,7 +269,7 @@ test('m6-t10 AC12/AC14/AC25/AC28: 差分保持フォーム（プレースホル�
     // 再コピーで同じ値へ戻る（4 隅をそのまま保持しており、bbox 化で情報が落ちていない）
     await covCopy.click();
     for (let i = 0; i < 4; i += 1) {
-      await expect(envelopeInputs.nth(i)).toHaveValue(COVERAGE_BBOX[i]);
+      await expect(envelopeInputs.nth(i)).toHaveValue(COVERAGE_INPUT_ORDER[i]);
     }
 
     // ---- AC13(UI 面): builtin osm にも tms と同一のフォームが出る ----

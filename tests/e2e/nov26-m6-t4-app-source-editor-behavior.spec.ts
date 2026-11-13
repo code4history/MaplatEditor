@@ -9,7 +9,7 @@
 //   (a) ベースマップのラベルの上書き・空にする（setLangResource → writeOverride / clearOverride）
 //   (b) 数値の上書きと消去（setNumber。mercator シフト。m19-t3 で minZoom 等は撤去済みのため、
 //       setNumber の唯一の利用者である overlay の mercatorXShift で通す）
-//   (c) 範囲の bbox の入力（setBboxPart）と消去（clearEnvelope）
+//   (c) 範囲の入力（4 欄そろえて反映。小窓と同じ検査）と消去（clearEnvelope）
 //   (d) 「存在範囲からコピー」（copyCoverageToEnvelope）
 //   (e) Maplat 地図のラベルの設定・空にする
 //   (f) 元に戻す（undo）で直前の値に戻る（@change → recordHistory の記録）
@@ -30,7 +30,8 @@ const COVERAGE_LNG_LATS: [number, number][] = [
   [130.9, 33.8],
   [130.25, 33.25],
 ];
-const COVERAGE_BBOX = ['130.25', '32.5', '131.75', '33.8'];
+// 外接矩形（west, south, east, north）を入力欄へ出したときの並び（小窓と同じ西・東・南・北 = DOM 順）
+const COVERAGE_INPUT_ORDER = ['130.25', '131.75', '32.5', '33.8'];
 
 async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
@@ -172,25 +173,30 @@ test('nov26-m6-t4 AC1: AppSourceEditor の書き込み経路（ラベル・数�
     base = await savedSource(page, appUid, { sourceType: 'tms', mapUid: masterSlug });
     expect(base.overrides, '(b) 消去するとキーが消え、空の {} が残る').toEqual({});
 
-    // ---- (c) 範囲の bbox の入力と消去 ----
+    // ---- (c) 範囲の入力と消去（小窓と同じ: 4 欄そろわないと反映・保存しない）----
     const envelopeInputs = baseCard.getByTestId('app-source-override-envelopeLngLats').locator('.envelope-input input');
     await expect(envelopeInputs).toHaveCount(4);
-    // 東（index 2）から入れる: 初期の bbox は [0,0,0,0] なので、西を先に入れると
-    // 外接矩形の正規化で欄が入れ替わる。ここでは入れ替わらない順で通す
-    await envelopeInputs.nth(2).fill('140');
-    await envelopeInputs.nth(2).press('Tab');
-    await expect(envelopeInputs.nth(2)).toHaveValue('140');
+    // 1 欄だけの入力では反映されず、理由が出る（残りを 0 で埋める形は廃止）。
+    // 反映されていないので保存の状態も「保存済み」のまま、欄は空のまま
+    await envelopeInputs.nth(1).fill('131'); // 東（西・東・南・北の並び）
+    await envelopeInputs.nth(1).press('Tab');
+    await expect(baseCard.getByTestId('app-source-envelope-diagnostics')).toContainText('4 つすべてを入力', { timeout: 15000 });
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
+    expect(await envelopeInputs.nth(0).inputValue(), '(c) 1 欄だけでは残りは空のまま').toBe('');
+
+    // 4 欄そろうと反映・保存される（存在範囲の内側の値はそのまま）
+    await envelopeInputs.nth(0).fill('130.5');
+    await envelopeInputs.nth(1).fill('131.5');
+    await envelopeInputs.nth(2).fill('32.6');
+    await envelopeInputs.nth(3).fill('33.5');
+    await envelopeInputs.nth(3).press('Tab');
+    await expect(envelopeInputs.nth(3)).toHaveValue('33.5');
     await saveNow(page);
     base = await savedSource(page, appUid, { sourceType: 'tms', mapUid: masterSlug });
-    expect(base.overrides, '(c) 1 欄の入力で残りは 0 の bbox（4 隅）が入る').toEqual({
-      envelopeLngLats: [[0, 0], [140, 0], [140, 0], [0, 0]],
+    expect(base.overrides, '(c) 4 欄そろうと利用範囲（4 隅）が入る').toEqual({
+      envelopeLngLats: [[130.5, 32.6], [131.5, 32.6], [131.5, 33.5], [130.5, 33.5]],
     });
-    const bboxAfterOne = await Promise.all([0, 1, 2, 3].map((i) => envelopeInputs.nth(i).inputValue()));
-    expect(bboxAfterOne).toEqual(['0', '0', '140', '0']);
 
-    await envelopeInputs.nth(3).fill('36');
-    await envelopeInputs.nth(3).press('Tab');
-    await expect(envelopeInputs.nth(3)).toHaveValue('36');
     const clearEnv = baseCard.getByTestId('app-source-clear-envelopeLngLats');
     await expect(clearEnv).toBeVisible();
     await clearEnv.click();
@@ -202,7 +208,7 @@ test('nov26-m6-t4 AC1: AppSourceEditor の書き込み経路（ラベル・数�
 
     // ---- (d) 存在範囲からコピー ----
     await baseCard.getByTestId('app-source-copy-coverage-envelopeLngLats').click();
-    for (let i = 0; i < 4; i += 1) await expect(envelopeInputs.nth(i)).toHaveValue(COVERAGE_BBOX[i]);
+    for (let i = 0; i < 4; i += 1) await expect(envelopeInputs.nth(i)).toHaveValue(COVERAGE_INPUT_ORDER[i]);
     await saveNow(page);
     base = await savedSource(page, appUid, { sourceType: 'tms', mapUid: masterSlug });
     expect(base.overrides, '(d) 存在範囲の生の点列がそのまま写る').toEqual({ envelopeLngLats: COVERAGE_LNG_LATS });

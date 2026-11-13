@@ -20,6 +20,15 @@ import { containsExtent } from "ol/extent";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
+import {
+  bboxEquals,
+  COORD_FIELDS,
+  cropToCoverage,
+  evaluateCoordInputs,
+  NO_COORD_INVALID,
+  round6,
+  type CoordField,
+} from "../utils/envelopeCoordInput";
 import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, editSketchStyleFunction, haloLineStyles } from "../utils/mapOverlayTools";
 import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
 import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
@@ -79,8 +88,6 @@ const currentBbox = ref<[number, number, number, number] | null>(null);
 
 // 経緯度の直接入力欄（西・南・東・北）。地図で描いた矩形と双方向に同期する。
 // 入力途中の文字列を失わないよう、反映は Enter か欄から離れたときだけに限る
-type CoordField = "west" | "south" | "east" | "north";
-const COORD_FIELDS: CoordField[] = ["west", "south", "east", "north"];
 const coordTexts = ref<Record<CoordField, string>>({ west: "", south: "", east: "", north: "" });
 // 入力の検証エラー（矩形は変えず理由だけ出す）と、存在範囲へ切り詰めた事実の通知
 const coordDiagnostics = ref<DiagnosticItem[]>([]);
@@ -257,7 +264,7 @@ onMounted(async () => {
       round6(extent[2]),
       round6(extent[3]),
     ];
-    const cropped = cropToCoverage(entered);
+    const cropped = cropToCoverage(entered, coverageBbox());
     currentBbox.value = cropped;
     isGuide.value = false;
     // 描いた範囲も存在範囲へ切り詰めたときは、そのことを短く知らせる
@@ -294,18 +301,6 @@ onMounted(async () => {
   requestAnimationFrame(() => map?.updateSize());
 });
 
-// 存在範囲の内側へ頂点をクロップ。交差しない場合はnull(選択なし)
-function cropToCoverage(bbox: [number, number, number, number]): [number, number, number, number] | null {
-  const coverage = coverageBbox();
-  if (!coverage) return bbox;
-  const west = Math.max(bbox[0], coverage[0]);
-  const south = Math.max(bbox[1], coverage[1]);
-  const east = Math.min(bbox[2], coverage[2]);
-  const north = Math.min(bbox[3], coverage[3]);
-  if (west >= east || south >= north) return null;
-  return [round6(west), round6(south), round6(east), round6(north)];
-}
-
 onBeforeUnmount(() => {
   disposed = true;
   map?.setTarget(undefined);
@@ -326,14 +321,6 @@ watch(currentBbox, (bbox) => {
   syncFieldsFromBbox(bbox);
 });
 
-function round6(value: number): number {
-  return Math.round(value * 1e6) / 1e6;
-}
-
-function bboxEquals(a: [number, number, number, number], b: [number, number, number, number]): boolean {
-  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
-}
-
 function syncFieldsFromBbox(bbox: [number, number, number, number] | null) {
   for (const field of COORD_FIELDS) {
     const index = field === "west" ? 0 : field === "south" ? 1 : field === "east" ? 2 : 3;
@@ -341,29 +328,9 @@ function syncFieldsFromBbox(bbox: [number, number, number, number] | null) {
   }
 }
 
-function fieldLabel(field: CoordField): string {
-  // エラー文では方角の正式名を使う（欄の見出しは言語によって 1 文字の略号のため）
-  return t(`appedit.envelope_${field}_name`);
-}
-
 function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, boolean>) {
   coordDiagnostics.value = items;
   coordInvalid.value = { ...invalid };
-}
-
-// 数でない文字列は value: null（空欄は blank）で区別する
-function parseCoordInput(raw: string): { blank: boolean; value: number | null } {
-  // 全角の数字・記号は半角に寄せ、小数点のコンマ（点が無いときだけ）も受け付ける
-  let text = raw.normalize("NFKC").trim();
-  if (!text.includes(".") && (text.match(/,/g) || []).length === 1) text = text.replace(",", ".");
-  if (text === "") return { blank: true, value: null };
-  if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(text)) return { blank: false, value: null };
-  const value = Number(text);
-  return { blank: false, value: Number.isFinite(value) ? value : null };
-}
-
-function coordRange(field: CoordField): [number, number] {
-  return field === "west" || field === "east" ? [-180, 180] : [-90, 90];
 }
 
 // 入れた値が今の画面の外にあるときは、地図をその矩形へ合わせる
@@ -382,93 +349,36 @@ function fitViewToBboxIfNeeded(bbox: [number, number, number, number]) {
   }
 }
 
-// 経緯度の入力を矩形へ反映する（Enter か欄から離れたとき）
+// 経緯度の入力を矩形へ反映する（Enter か欄から離れたとき）。
+// 検査の段取り・理由の文言は envelopeCoordInput の共通関数（小窓と AppSourceEditor で同じ）
 function applyFieldInputs() {
-  const parsed = {
-    west: parseCoordInput(coordTexts.value.west),
-    south: parseCoordInput(coordTexts.value.south),
-    east: parseCoordInput(coordTexts.value.east),
-    north: parseCoordInput(coordTexts.value.north),
-  };
-  const items: DiagnosticItem[] = [];
-  const invalid: Record<CoordField, boolean> = { west: false, south: false, east: false, north: false };
-  const badNumber: CoordField[] = [];
-  const badRange: CoordField[] = [];
-  for (const field of COORD_FIELDS) {
-    const input = parsed[field];
-    if (input.blank) continue;
-    if (input.value === null) {
-      badNumber.push(field);
-      continue;
-    }
-    const [min, max] = coordRange(field);
-    if (input.value < min || input.value > max) badRange.push(field);
-  }
-  for (const field of badNumber) {
-    invalid[field] = true;
-    items.push({ key: `number-${field}`, severity: "danger", message: t("appedit.envelope_coord_error_number", { name: fieldLabel(field) }) });
-  }
-  if (badRange.length) {
-    for (const field of badRange) invalid[field] = true;
-    items.push({ key: "coord-range", severity: "danger", message: t("poisource.errors.coord_range") });
-  }
-  const usable = (field: CoordField): boolean =>
-    !parsed[field].blank && parsed[field].value !== null && !invalid[field];
-  if (usable("west") && usable("east") && parsed.west.value! >= parsed.east.value!) {
-    invalid.west = true;
-    invalid.east = true;
-    items.push({ key: "order-west-east", severity: "danger", message: t("appedit.envelope_coord_error_west_east", { west: fieldLabel("west"), east: fieldLabel("east") }) });
-  }
-  if (usable("south") && usable("north") && parsed.south.value! >= parsed.north.value!) {
-    invalid.south = true;
-    invalid.north = true;
-    items.push({ key: "order-south-north", severity: "danger", message: t("appedit.envelope_coord_error_south_north", { south: fieldLabel("south"), north: fieldLabel("north") }) });
-  }
-  // 正しくない値があるときは矩形を変えずに理由だけ出す
-  if (items.length) {
-    setCoordFeedback(items, invalid);
-    return;
-  }
-  const allBlank = COORD_FIELDS.every((field) => parsed[field].blank);
-  const allFilled = COORD_FIELDS.every((field) => !parsed[field].blank);
-  if (allBlank) {
+  const outcome = evaluateCoordInputs(coordTexts.value, coverageBbox(), t);
+  if (outcome.kind === "clear") {
     // 欄が空 = 範囲なし。「範囲をクリア」と同じ扱いにする
     clearBox();
     return;
   }
-  if (!allFilled) {
-    // 4つ揃うまで矩形は作らない（途中の入力も消さない）。空の欄を示し、理由を出す
-    for (const field of COORD_FIELDS) invalid[field] = parsed[field].blank;
-    setCoordFeedback([{ key: "incomplete", severity: "danger", message: t("appedit.envelope_coord_error_incomplete") }], invalid);
+  if (outcome.kind === "invalid") {
+    // 4つ揃うまで矩形は作らない（途中の入力も消さない）。正しくない値があるときも
+    // 矩形を変えずに理由だけ出す
+    setCoordFeedback(outcome.diagnostics, outcome.invalid);
     return;
   }
-  const entered: [number, number, number, number] = [
-    round6(parsed.west.value!),
-    round6(parsed.south.value!),
-    round6(parsed.east.value!),
-    round6(parsed.north.value!),
-  ];
-  // 描いたときと同じく存在範囲の内側へ切り詰める。重ならないときは未選択にせず理由を出す
-  const cropped = cropToCoverage(entered);
-  if (!cropped) {
-    setCoordFeedback([{ key: "no-overlap", severity: "danger", message: t("appedit.envelope_coord_no_overlap") }], invalid);
-    return;
-  }
-  const wasCropped = !bboxEquals(cropped, entered);
   // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）。
   // ガイド表示中に値を変えずに Enter したときも、自動のまま（手動の範囲にしない）
-  if (currentBbox.value && bboxEquals(currentBbox.value, cropped)) {
+  if (currentBbox.value && bboxEquals(currentBbox.value, outcome.cropped)) {
     syncFieldsFromBbox(currentBbox.value);
-    setCoordFeedback([], invalid);
+    setCoordFeedback([], NO_COORD_INVALID);
     return;
   }
   isGuide.value = false;
-  currentBbox.value = cropped;
+  currentBbox.value = outcome.cropped;
   guideSource.clear();
-  renderBbox(cropped);
-  fitViewToBboxIfNeeded(cropped);
-  cropNotice.value = wasCropped;
-  setCoordFeedback([], invalid);
+  renderBbox(outcome.cropped);
+  fitViewToBboxIfNeeded(outcome.cropped);
+  // 描いたときと同じく存在範囲の内側へ切り詰めたときは、そのことを短く知らせる
+  cropNotice.value = outcome.wasCropped;
+  setCoordFeedback([], NO_COORD_INVALID);
 }
 
 // 欄に正しくない値が残っている間は確定させない（古い矩形を黙って保存しない）
