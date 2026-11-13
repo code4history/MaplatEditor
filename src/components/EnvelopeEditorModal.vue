@@ -19,7 +19,7 @@ import { transformExtent } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
-import { layoutMapOverlayControls } from "../utils/mapOverlayTools";
+import { layoutMapOverlayControls, mapOverlayControlDefaults } from "../utils/mapOverlayTools";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
@@ -154,6 +154,12 @@ onMounted(() => {
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
+    // §5-3: 小窓も MapEdit・POI と同じ部品の名前を使う
+    controls: mapOverlayControlDefaults({
+      zoomIn: t("mapedit.control_zoom_in"),
+      zoomOut: t("mapedit.control_zoom_out"),
+      resetRotation: t("mapedit.control_reset_rotation"),
+    }),
   });
   const coverage = coverageBbox();
   if (coverage) {
@@ -230,7 +236,7 @@ onMounted(() => {
   map.addControl(geocoder);
 
   // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
-  layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'));
+  layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'), { searchAddress: t("mapedit.control_search_address") });
 
   // モーダル挿入直後はレイアウト確定前でOpenLayersがサイズ0を掴むことがあるため、
   // 描画フレーム後にサイズを再計測する(モーダル内地図の定番対策)

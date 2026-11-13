@@ -57,7 +57,11 @@ export function mapOverlayControlDefaults(labels: MapOverlayControlLabels): Coll
  * 右下の余白（`toolsEl`）の最下段に帰属表示を置く。
  * OL の部品の `title` を `aria-label` に写し、住所検索の拡大鏡を Bootstrap Icons にする。
  */
-export function layoutMapOverlayControls(mapEl: HTMLElement | null, toolsEl?: HTMLElement | null): void {
+export function layoutMapOverlayControls(
+  mapEl: HTMLElement | null,
+  toolsEl?: HTMLElement | null,
+  labels?: { searchAddress?: string },
+): void {
   const overlay = mapEl?.querySelector('.ol-overlaycontainer-stopevent');
   if (!overlay) return;
 
@@ -73,9 +77,15 @@ export function layoutMapOverlayControls(mapEl: HTMLElement | null, toolsEl?: HT
   }
 
   const geocoderButton = overlay.querySelector<HTMLElement>('.ol-geocoder .gcd-gl-btn');
-  if (geocoderButton && !geocoderButton.querySelector('.bi')) {
-    geocoderButton.textContent = '';
-    geocoderButton.appendChild(iconElement('bi-search'));
+  if (geocoderButton) {
+    if (!geocoderButton.querySelector('.bi')) {
+      geocoderButton.textContent = '';
+      geocoderButton.appendChild(iconElement('bi-search'));
+    }
+    if (labels?.searchAddress) {
+      geocoderButton.setAttribute('title', labels.searchAddress);
+      geocoderButton.setAttribute('aria-label', labels.searchAddress);
+    }
   }
 
   if (toolsEl) {

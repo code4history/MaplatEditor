@@ -570,7 +570,11 @@
     "export_option_originals_help": "オリジナル画像をそのまま入れます。",
     "export_option_originals_warning": "ファイルが大きくなり、写真の付帯情報を含むことがあります。",
     "export_option_none_selected": "1 つ以上選んでください",
-    "control_set_home": "ホーム位置に設定"
+    "control_set_home": "ホーム位置に設定",
+    "control_zoom_in": "拡大",
+    "control_zoom_out": "縮小",
+    "control_reset_rotation": "向きをリセット",
+    "control_search_address": "住所検索"
   },
   "mapupload": {
     "map_image": "地図画像",

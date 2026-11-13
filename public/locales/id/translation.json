@@ -570,7 +570,11 @@
     "export_option_originals_help": "Menyertakan berkas gambar asli apa adanya.",
     "export_option_originals_warning": "Berkas menjadi lebih besar dan dapat berisi metadata foto.",
     "export_option_none_selected": "Pilih setidaknya satu item",
-    "control_set_home": "Tetapkan sebagai posisi awal"
+    "control_set_home": "Tetapkan sebagai posisi awal",
+    "control_zoom_in": "Perbesar",
+    "control_zoom_out": "Perkecil",
+    "control_reset_rotation": "Atur ulang rotasi",
+    "control_search_address": "Cari alamat"
   },
   "mapupload": {
     "map_image": "Gambar peta",

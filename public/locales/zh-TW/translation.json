@@ -570,7 +570,11 @@
     "export_option_originals_help": "按原樣放入原始影像檔案。",
     "export_option_originals_warning": "檔案會變大，並可能包含照片的附加資訊。",
     "export_option_none_selected": "請至少選擇一項",
-    "control_set_home": "設為首頁位置"
+    "control_set_home": "設為首頁位置",
+    "control_zoom_in": "放大",
+    "control_zoom_out": "縮小",
+    "control_reset_rotation": "重設旋轉",
+    "control_search_address": "搜尋地址"
   },
   "mapupload": {
     "map_image": "地圖圖像",

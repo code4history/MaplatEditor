@@ -570,7 +570,11 @@
     "export_option_originals_help": "Fügt die ursprüngliche Bilddatei unverändert hinzu.",
     "export_option_originals_warning": "Die Datei wird größer und kann Fotometadaten enthalten.",
     "export_option_none_selected": "Wählen Sie mindestens ein Element aus",
-    "control_set_home": "Als Startposition festlegen"
+    "control_set_home": "Als Startposition festlegen",
+    "control_zoom_in": "Vergrößern",
+    "control_zoom_out": "Verkleinern",
+    "control_reset_rotation": "Drehung zurücksetzen",
+    "control_search_address": "Adresse suchen"
   },
   "mapupload": {
     "map_image": "Kartenbild",

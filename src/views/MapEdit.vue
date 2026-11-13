@@ -91,10 +91,9 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
-import { layoutMapOverlayControls } from '../utils/mapOverlayTools';
+import { layoutMapOverlayControls, mapOverlayControlDefaults } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
-import { defaults as controlDefaults } from 'ol/control';
 import { altKeyOnly } from 'ol/events/condition';
 import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
@@ -2985,6 +2984,13 @@ x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background
 
 const initMaps = async () => {
 
+    // 地図の上の部品の名前（aria-label / title）を i18n で渡す（§5-3）
+    const controlLabels = {
+        zoomIn: t('mapedit.control_zoom_in'),
+        zoomOut: t('mapedit.control_zoom_out'),
+        resetRotation: t('mapedit.control_reset_rotation'),
+    };
+
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -2994,7 +3000,7 @@ const initMaps = async () => {
             }),
             new Drag()
         ]),
-        controls: controlDefaults()
+        controls: mapOverlayControlDefaults(controlLabels)
     });
     // m1-t2 §6.3: P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
     illstContextMenu = createContextMenu(illstMap);
@@ -3066,7 +3072,7 @@ const initMaps = async () => {
             }),
             new Drag()
         ]),
-        controls: controlDefaults().extend([
+        controls: mapOverlayControlDefaults(controlLabels).extend([
             // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する
             (layerSwitcher = new LayerSwitcher())
         ])
@@ -3173,8 +3179,9 @@ const initMaps = async () => {
     await setupBaseMaps();
 
     // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
-    layoutMapOverlayControls(document.getElementById('illstMap'), document.querySelector('[data-testid="map-overlay-tools-illst"]'));
-    layoutMapOverlayControls(document.getElementById('mercMap'), document.querySelector('[data-testid="map-overlay-tools-merc"]'));
+    const overlayLabels = { searchAddress: t('mapedit.control_search_address') };
+    layoutMapOverlayControls(document.getElementById('illstMap'), document.querySelector('[data-testid="map-overlay-tools-illst"]'), overlayLabels);
+    layoutMapOverlayControls(document.getElementById('mercMap'), document.querySelector('[data-testid="map-overlay-tools-merc"]'), overlayLabels);
 };
 
 // ... (imports)

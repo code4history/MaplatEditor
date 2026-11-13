@@ -570,7 +570,11 @@
     "export_option_originals_help": "Đưa nguyên tệp ảnh gốc vào.",
     "export_option_originals_warning": "Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
     "export_option_none_selected": "Hãy chọn ít nhất một mục",
-    "control_set_home": "Đặt làm vị trí chính"
+    "control_set_home": "Đặt làm vị trí chính",
+    "control_zoom_in": "Phóng to",
+    "control_zoom_out": "Thu nhỏ",
+    "control_reset_rotation": "Đặt lại hướng xoay",
+    "control_search_address": "Tìm địa chỉ"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

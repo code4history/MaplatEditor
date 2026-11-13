@@ -570,7 +570,11 @@
     "export_option_originals_help": "Incluye el archivo de imagen original tal cual.",
     "export_option_originals_warning": "El archivo será más grande y puede contener metadatos de la foto.",
     "export_option_none_selected": "Seleccione al menos un elemento",
-    "control_set_home": "Establecer como posición de inicio"
+    "control_set_home": "Establecer como posición de inicio",
+    "control_zoom_in": "Acercar",
+    "control_zoom_out": "Alejar",
+    "control_reset_rotation": "Restablecer rotación",
+    "control_search_address": "Buscar dirección"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

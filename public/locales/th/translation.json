@@ -570,7 +570,11 @@
     "export_option_originals_help": "ใส่ไฟล์ภาพต้นฉบับตามเดิม",
     "export_option_originals_warning": "ไฟล์จะมีขนาดใหญ่ขึ้นและอาจมีข้อมูลเมตาของภาพถ่าย",
     "export_option_none_selected": "โปรดเลือกอย่างน้อยหนึ่งรายการ",
-    "control_set_home": "ตั้งเป็นตำแหน่งเริ่มต้น"
+    "control_set_home": "ตั้งเป็นตำแหน่งเริ่มต้น",
+    "control_zoom_in": "ซูมเข้า",
+    "control_zoom_out": "ซูมออก",
+    "control_reset_rotation": "รีเซ็ตการหมุน",
+    "control_search_address": "ค้นหาที่อยู่"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

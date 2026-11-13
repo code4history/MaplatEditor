@@ -36,7 +36,6 @@ import { MaplatMap } from "@maplat/core/src/map_ex";
 // @ts-ignore
 import { mapSourceFactory } from "@maplat/core/src/source_ex";
 import { defaults as interactionDefaults, Modify, Snap } from "ol/interaction";
-import { defaults as controlDefaults } from "ol/control";
 import "ol/ol.css";
 import { Tile, Group } from "ol/layer";
 import { Style, Icon } from "ol/style";
@@ -47,7 +46,7 @@ import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
-import { layoutMapOverlayControls } from "../utils/mapOverlayTools";
+import { layoutMapOverlayControls, mapOverlayControlDefaults } from "../utils/mapOverlayTools";
 import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
 // t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
@@ -564,7 +563,11 @@ onMounted(async () => {
   map = new MaplatMap({
     div: "poiEditMap",
     interactions: interactionDefaults(),
-    controls: controlDefaults(),
+    controls: mapOverlayControlDefaults({
+      zoomIn: t("mapedit.control_zoom_in"),
+      zoomOut: t("mapedit.control_zoom_out"),
+      resetRotation: t("mapedit.control_reset_rotation"),
+    }),
   });
 
   contextmenu = createContextMenu();
@@ -611,6 +614,7 @@ onMounted(async () => {
   layoutMapOverlayControls(
     document.getElementById("poiEditMap"),
     document.querySelector('[data-testid="map-overlay-tools-poi"]'),
+    { searchAddress: t("mapedit.control_search_address") },
   );
 });
 
