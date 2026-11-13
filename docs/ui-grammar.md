@@ -212,7 +212,7 @@
 【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
 
 - 同じ操作に違う見た目を使うこと（例: 同じ「キャンセル」が、あるダイアログでは `btn-outline-secondary`、別のダイアログでは `btn-secondary`）。
-  - 名前が似ていても別の操作なら、形は置き場所の役割（§6.2）で決まる。MapEdit の「推定」（GCP からホーム位置を推定する、地図の上に重ねる道具）は地図の道具の形、AppEdit の「推定」（地図の範囲からホーム位置を推定する、入力欄の横のボタン）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。【人間決定（2026-11-13）】白背景の上と地図の上は形が違ってよい（`docs/superpowers/state/nayuta-state-2.json:1922`）。地図の上の UI 同士の一貫性は未検討で、案を [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) に置いた（【提案・未決】）
+  - 名前が似ていても別の操作なら、形は置き場所の役割（§6.2）で決まる。MapEdit の「推定」（GCP からホーム位置を推定する、地図の上に重ねる道具）は地図の道具の形、AppEdit の「推定」（地図の範囲からホーム位置を推定する、入力欄の横のボタン）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。【人間決定（2026-11-13）】白背景の上と地図の上は形が違ってよい。地図の上の UI 同士の決まりは [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) の案 A（【人間決定（2026-11-13）】）
 - ダイアログの「キャンセル」に `btn-secondary`（塗り）を使うこと。
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
