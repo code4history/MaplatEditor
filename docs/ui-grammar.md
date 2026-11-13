@@ -210,6 +210,7 @@
 【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
 
 - 同じ操作に違う見た目を使うこと（例: 「GCP からホーム位置を推定」が MapEdit では `btn-light`、AppEdit では `btn-outline-info`）。
+  - ただし形は置き場所の役割で決まる。地図の上に重ねる「推定」（MapEdit）は地図の道具の形、入力欄の横に並ぶ「推定」（AppEdit のホーム位置）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。
 - ダイアログの「キャンセル」に `btn-secondary`（塗り）を使うこと。
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
