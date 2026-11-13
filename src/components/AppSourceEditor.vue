@@ -286,6 +286,8 @@ function applyFieldInputs() {
   if (bbox.value && bboxEquals(roundBbox(bbox.value), outcome.cropped)) {
     syncFieldsFromBbox(bbox.value);
     setCoordFeedback([], NO_COORD_INVALID);
+    // 切り詰めた結果が今の範囲と同じでも、入れた値を切り詰めたことは知らせる（欄が黙って戻らないように）
+    cropNotice.value = outcome.wasCropped || cropNotice.value;
     return;
   }
   appliedBbox.value = outcome.cropped;
