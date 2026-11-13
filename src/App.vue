@@ -32,11 +32,15 @@ const migrationReportVisible = ref(false);
 const migrationRenamedSlugs = ref<MigrationRenamedSlug[]>([]);
 const migrationWarningCount = ref(0);
 let migrationReportShown = false;
-const migrationItems = computed(() => [
+// 見出しと警告件数の行はスクロールの外（上）に固定し、IDの変更の一覧だけをスクロールさせる。
+// 行が増えると見出しと件数がスクロールで隠れてしまうため
+const migrationHeaderItems = computed(() => [
   { key: 'migration-title', severity: 'info' as const, message: t('database.migration_report_title') },
+  ...(migrationWarningCount.value ? [{ key: 'migration-warnings', severity: 'warning' as const, message: t('database.migration_report_warnings', { count: migrationWarningCount.value }) }] : []),
+]);
+const migrationItems = computed(() => [
   ...(migrationRenamedSlugs.value.length ? [{ key: 'migration-renamed', severity: 'info' as const, message: t('database.migration_report_renamed') }] : []),
   ...migrationRenamedSlugs.value.map((item, index) => ({ key: `migration-${index}`, severity: 'info' as const, message: `${item.kind}: ${item.from} → ${item.to}` })),
-  ...(migrationWarningCount.value ? [{ key: 'migration-warnings', severity: 'warning' as const, message: t('database.migration_report_warnings', { count: migrationWarningCount.value }) }] : []),
 ]);
 
 onMounted(() => {
@@ -81,6 +85,7 @@ onUnmounted(() => {
     <DiagnosticFeedback
       v-if="migrationReportVisible"
       scope="operation"
+      :header-items="migrationHeaderItems"
       :items="migrationItems"
       dismissible
       data-testid="migration-report"

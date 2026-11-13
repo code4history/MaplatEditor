@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -107,8 +107,8 @@ for (const phase of ['before', 'after']) {
         // ? の読み上げ名は、何の説明かが分かる名前（隣のタブの名前ではない）
         await expect(page.getByTestId('settings-mcp-recommend-loopback')).toHaveAttribute('aria-label', '「クライアントへの登録」の説明');
       }
-      if (phase === 'after') {
-        // 移行レポートのバナー: 行が多くても画面を押し下げず、中をスクロールする（PR #246 のレビュー Minor 6）
+      {
+        // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246 のレビュー Minor 6）
         await openHash(page, '#/maplist');
         await app.evaluate(({ BrowserWindow }) => {
           const renamedSlugs = Array.from({ length: 24 }, (_, index) => ({ kind: 'map', from: `old-map-${index + 1}`, to: `old-map-${index + 1}-2` }));
@@ -116,14 +116,73 @@ for (const phase of ['before', 'after']) {
         });
         const report = page.getByTestId('migration-report');
         await expect(report).toBeVisible();
-        const list = report.locator('.editor-diagnostic__list');
-        const box = await list.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight, overflow: getComputedStyle(el).overflowY, viewport: window.innerHeight }));
-        expect(box.overflow).toBe('auto');
-        expect(box.scroll).toBeGreaterThan(box.client);
-        expect(box.client).toBeLessThanOrEqual(Math.ceil(box.viewport * 0.3));
-        // 閉じるボタンはスクロールの外にあり、見えたまま
-        await expect(report.locator('[data-diagnostic-dismiss]')).toBeInViewport();
+        // 証拠の写真は、判定の前に撮る（直す前でも同じ画面が残るようにする）
         await shot('migration-report');
+        if (phase === 'after') {
+          const list = report.locator('.editor-diagnostic__list');
+          const box = await list.evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight, overflow: getComputedStyle(el).overflowY, viewport: window.innerHeight }));
+          expect(box.overflow).toBe('auto');
+          expect(box.scroll).toBeGreaterThan(box.client);
+          expect(box.client).toBeLessThanOrEqual(Math.ceil(box.viewport * 0.3));
+          // 見出しと警告件数の行はスクロール領域の外（上）に固定され、一覧だけがスクロールする
+          const header = report.locator('.editor-diagnostic__header');
+          await expect(header.locator('.editor-diagnostic__item')).toHaveCount(2);
+          await expect(header.locator('.editor-diagnostic__item--warning')).toHaveCount(1);
+          await expect(header).toContainText('データ移行レポート');
+          await expect(header).toContainText('警告が3件');
+          // 一覧を最後まで送っても、見出しと件数は見えたまま
+          await list.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+          await expect(header).toBeInViewport();
+          await expect(list).not.toContainText('データ移行レポート');
+          await expect(list.locator('.editor-diagnostic__item--warning')).toHaveCount(0);
+          // スクロール領域に入るのは ID の変更の一覧（前置きの行と 24 件）
+          await expect(list.locator('.editor-diagnostic__item')).toHaveCount(25);
+          // 閉じるボタンはスクロールの外にあり、見えたまま
+          await expect(report.locator('[data-diagnostic-dismiss]')).toBeInViewport();
+        }
+      }
+      {
+        // AppEdit の「推定」ボタン: 入力欄の横の副次の操作なので、隣の「地図で指定」と同じ形（class）にする。
+        // btn-light shadow-sm は地図に重ねる道具用（ui-grammar §6.2）
+        const appUid = await page.evaluate(async () => {
+          const slug = `grammar-app-${Date.now()}`;
+          const r = await window.appedit.save({
+            slug,
+            document: {
+              appID: slug,
+              appName: { ja: '街歩きのアプリ' },
+              title: { ja: '街歩きのアプリ' },
+              description: {},
+              lang: 'ja',
+              sources: [],
+              pois: [],
+              httpSettings: {},
+              appSettings: {},
+              manifestSettings: {},
+              coverageLngLats: [[139.6, 35.6], [139.8, 35.6], [139.8, 35.8], [139.6, 35.8]],
+            },
+          });
+          if (!r || r.result !== 'Success') throw new Error(`app seed failed: ${JSON.stringify(r)}`);
+          return r.uid;
+        });
+        await openHash(page, `#/appedit?uid=${appUid}`);
+        const estimate = page.getByTestId('app-edit-estimate-home');
+        await expect(estimate).toBeVisible({ timeout: 30_000 });
+        await expect(estimate).toBeEnabled();
+        const homePick = page.locator('[data-testid="app-edit-estimate-home"] ~ button').first();
+        await expect(homePick).toBeVisible();
+        // 証拠の写真は、判定の前に撮る（直す前でも同じ画面が残るようにする）。
+        // 推定ボタンが写る位置まで送ってから撮る
+        await estimate.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await shot('app-edit-estimate-home');
+        if (phase === 'after') {
+          // 形を決める class は隣のボタンと同じ（間隔を空ける margin / padding は比べない）
+          const shapeClasses = async (button: Locator) => {
+            const tokens = await button.evaluate((el) => Array.from((el as HTMLElement).classList));
+            return tokens.filter((token) => !/^[mp][stblxy]?-\d+$/.test(token)).sort();
+          };
+          expect(await shapeClasses(estimate)).toEqual(await shapeClasses(homePick));
+        }
       }
     } finally {
       await quitElectronApplication(app);
