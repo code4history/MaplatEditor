@@ -1,8 +1,8 @@
 // 一覧の読み取りが保存先フォルダの DB を開けずに失敗したとき、main から届く理由。
-// 理由（権限が無い／場所が無い／その他）と code だけを持ち、利用者の手元のパスは含めない
+// 理由（権限が無い／読み取り専用の場所／場所が無い／その他）と code だけを持ち、利用者の手元のパスは含めない
 // （main 側の electron/utils/dbOpenFailure.ts と対で、画面の文言はこちらの理由で決める）。
 
-export type LoadFailureReason = "permission" | "not-found" | "other";
+export type LoadFailureReason = "permission" | "readonly-location" | "not-found" | "other";
 
 export interface ResourceLoadFailure {
   reason: LoadFailureReason;
@@ -20,7 +20,7 @@ export class ResourceLoadFailureError extends Error {
   }
 }
 
-const REASONS: readonly LoadFailureReason[] = ["permission", "not-found", "other"];
+const REASONS: readonly LoadFailureReason[] = ["permission", "readonly-location", "not-found", "other"];
 
 /** search:* の応答が「DB を開けなかった」理由つきの失敗かどうか */
 export function isSearchFailureReply(value: unknown): value is { failure: ResourceLoadFailure } {

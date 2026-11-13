@@ -4,7 +4,8 @@
 // 読み取り専用のフォルダ（chmod 555）と読み取り専用の DB ファイル（chmod 444）は
 // 開封に成功してから最初の書き込みで失敗するため、そこも「権限が無い」になること、
 // 外付けドライブが外れたパス（/Volumes/<存在しない名前>/x）は ensureDir が EACCES を
-// 返しても「場所が無い」を優先すること、権限を戻せば同じフォルダのまま再試行で
+// 返しても「場所が無い」を優先すること、読み取り専用の場所（読み取り専用でつないだ
+// ディスクイメージ。EROFS）は「読み取り専用の場所」に分けること、権限を戻せば同じフォルダのまま再試行で
 // 直ることも検査する。
 //
 // Part 1: electron/utils/dbOpenFailure.ts の分類・応答写像（vite バンドル → node）
@@ -130,7 +131,8 @@ try {
       await mkdir(presentDir, { recursive: true });
       assert.equal(await classifyDbOpenFailure({ code: 'EACCES' }, presentDir), 'permission');
       assert.equal(await classifyDbOpenFailure({ code: 'EPERM' }, presentDir), 'permission');
-      assert.equal(await classifyDbOpenFailure({ code: 'EROFS' }, presentDir), 'permission');
+      // 失敗そのものが EROFS（読み取り専用のファイルシステム）なら、フォルダを見ずに読み取り専用の場所
+      assert.equal(await classifyDbOpenFailure({ code: 'EROFS' }, presentDir), 'readonly-location');
       assert.equal(await classifyDbOpenFailure({ code: 'ENOENT' }, presentDir), 'not-found');
       assert.equal(await classifyDbOpenFailure({ code: 'ENOTDIR' }, presentDir), 'not-found');
       assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 8 }, presentDir), 'permission');
@@ -329,7 +331,8 @@ try {
       }
 
       // 読み取り専用のディスクイメージ上の未 WAL の DB: PRAGMA journal_mode=WAL は例外を出さず
-      // delete を返す。書けることの確かめで errcode 8 になり「権限が無い」へ分ける。
+      // delete を返す。書けることの確かめで errcode 8 になり、場所が読み取り専用（access が
+      // EROFS）なので「読み取り専用の場所」へ分ける。
       // hdiutil のある macOS だけで試す（小さなイメージを作り、必ず外して消す）
       if (process.platform === 'darwin') {
         const imageSrc = path.join(scratch, 'ro-image-src');
@@ -347,8 +350,27 @@ try {
           SettingsService.set('saveFolder', mountPoint);
           const roImageFailure = await readFailure();
           assert.ok(roImageFailure instanceof DbOpenError, '読み取り専用イメージ上の DB の失敗は DbOpenError: ' + String(roImageFailure));
-          assert.equal(roImageFailure.failure.reason, 'permission', '読み取り専用イメージ上の DB は権限が無い');
+          // 権限を足しても直らない（システム設定・chmod では書けるようにならない）ので、
+          // 「権限が無い」ではなく「読み取り専用の場所」に分ける
+          assert.equal(roImageFailure.failure.reason, 'readonly-location', '読み取り専用イメージ上の DB は読み取り専用の場所');
           assert.equal(roImageFailure.failure.code, 'SQLITE_READONLY');
+
+          // 合成エラーでも、フォルダが読み取り専用のファイルシステム上なら読み取り専用の場所
+          assert.equal(await classifyDbOpenFailure({ code: 'EACCES' }, mountPoint), 'readonly-location', 'EACCES でも場所が読み取り専用なら読み取り専用の場所');
+          assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 14 }, mountPoint), 'readonly-location', 'SQLITE_CANTOPEN でも場所が読み取り専用なら読み取り専用の場所');
+          // まだ無いフォルダでも、作る先（在る最も近い祖先）が読み取り専用なら読み取り専用の場所
+          assert.equal(await classifyDbOpenFailure({ code: 'EACCES' }, path.join(mountPoint, 'a', 'b')), 'readonly-location', '読み取り専用の場所の下のまだ無いフォルダも読み取り専用の場所');
+          // 壊れた DB（26）は、場所が読み取り専用でも「その他」のまま
+          assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 26 }, mountPoint), 'other');
+
+          // 読み取り専用のイメージの中に、まだ無いフォルダを保存先にする: ensureDir の mkdir は
+          // EROFS ではなく ENOENT で落ちる（macOS の実測）が、作る先が読み取り専用なので読み取り専用の場所
+          await SqliteDataService.reset();
+          SettingsService.set('saveFolder', path.join(mountPoint, 'MaplatEditor'));
+          const roImageSubFailure = await readFailure();
+          assert.ok(roImageSubFailure instanceof DbOpenError, '読み取り専用イメージの中の新しいフォルダの失敗は DbOpenError: ' + String(roImageSubFailure));
+          assert.equal(roImageSubFailure.failure.reason, 'readonly-location', '読み取り専用イメージの中の新しいフォルダは読み取り専用の場所');
+          assert.equal(roImageSubFailure.failure.code, 'ENOENT');
         } finally {
           await SqliteDataService.reset();
           // 外すのに失敗しても、イメージのファイルは消す
@@ -451,11 +473,17 @@ try {
   // --- Part 3: 画面の文言（全言語）と一覧の失敗表示の結線 ---
   const { readFile } = await import('node:fs/promises');
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
-  const REASON_KEYS = ['load_error_reason_permission', 'load_error_reason_not_found', 'load_error_reason_other'];
+  const REASON_KEYS = [
+    'load_error_reason_permission',
+    'load_error_reason_readonly_location',
+    'load_error_reason_not_found',
+    'load_error_reason_other',
+  ];
   const FIX_KEYS = [
     'load_error_fix_permission',
     'load_error_fix_permission_windows',
     'load_error_fix_permission_linux',
+    'load_error_fix_readonly_location',
     'load_error_fix_not_found',
     'load_error_fix_other',
   ];
@@ -471,6 +499,12 @@ try {
   const ja = JSON.parse(await readFile(path.join(projectRoot, 'public/locales/ja/translation.json'), 'utf8'));
   assert.equal(ja.resource_list.load_error_reason_permission, 'データフォルダを開く権限がありません');
   assert.equal(ja.resource_list.load_error_reason_not_found, 'データフォルダが見つかりません');
+  // 読み取り専用の場所は、権限を足しても直らない。許可の場所（システム設定・権限）を案内せず、
+  // データフォルダを書き込める場所へ変えることだけを案内する
+  assert.equal(ja.resource_list.load_error_reason_readonly_location, 'データフォルダが読み取り専用の場所にあります');
+  assert.match(ja.resource_list.load_error_fix_readonly_location, /読み取り専用/);
+  assert.match(ja.resource_list.load_error_fix_readonly_location, /設定でデータフォルダを書き込める場所へ変えてください/);
+  assert.doesNotMatch(ja.resource_list.load_error_fix_readonly_location, /システム設定|権限|許可/);
   assert.match(ja.resource_list.load_error_fix_permission, /システム設定で/);
   assert.match(ja.resource_list.load_error_fix_permission, /設定でデータフォルダを変えてください/);
   // Windows・Linux の文言に macOS の言い方（システム設定）を持ち込まない
