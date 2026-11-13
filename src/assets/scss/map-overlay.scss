@@ -89,8 +89,12 @@ $map-tool-gap: 8px;
   pointer-events: none;
 
   > * {
-    position: static;
     pointer-events: auto;
+  }
+
+  > .ol-control,
+  > .ol-geocoder.gcd-gl-container {
+    position: static;
     top: auto;
     left: auto;
     right: auto;
@@ -101,14 +105,21 @@ $map-tool-gap: 8px;
 }
 
 // ---- OL の部品 ----
+// ol.css が別チャンクで後から載ることがあるため、class を重ねて確実に上書きする
 .ol-control {
   background-color: transparent;
   border: none;
   border-radius: $map-tool-radius;
 }
 
+.ol-control.ol-zoom,
+.ol-control.ol-rotate {
+  background-color: transparent;
+  border: none;
+}
+
 // ズーム（＋／−）は 1 枚の札にまとめる
-.ol-zoom {
+.ol-control.ol-zoom {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -143,7 +154,7 @@ $map-tool-gap: 8px;
 }
 
 // 回転のリセット。回していないときは札ごと畳んで空きを残さない
-.ol-rotate {
+.ol-control.ol-rotate {
   width: $map-tool-size;
   height: $map-tool-size;
   overflow: hidden;
@@ -179,12 +190,13 @@ $map-tool-gap: 8px;
   }
 }
 
-.ol-rotate.ol-hidden {
+.ol-control.ol-rotate.ol-hidden {
   display: none;
 }
 
 // 帰属表示（情報）。右下の最下段、縁なし・半透明の白地
-.ol-attribution {
+.map-overlay-tools > .ol-control.ol-attribution,
+.ol-control.ol-attribution {
   position: static;
   max-width: 100%;
   background-color: rgba(255, 255, 255, .85);
@@ -223,7 +235,7 @@ $map-tool-gap: 8px;
 }
 
 // ---- 取り込み: 住所検索（ol-geocoder） ----
-.ol-geocoder.gcd-gl-container {
+.map-overlay-column > .ol-geocoder.gcd-gl-container {
   position: relative;
   top: auto;
   left: auto;
@@ -320,7 +332,8 @@ $map-tool-gap: 8px;
 }
 
 // ---- 浮かぶメニュー（右クリックのメニュー・ベースマップの切り替えのパネル） ----
-.ol-ctx-menu-container {
+// ol-contextmenu の CSS は JS が実行時に注入するため常に後から載る ∴ class を重ねる
+.ol-overlaycontainer-stopevent .ol-ctx-menu-container {
   min-width: 180px;
   padding: .25rem 0;
   background-color: #fff;
@@ -340,6 +353,9 @@ $map-tool-gap: 8px;
 
   li {
     margin: 0;
+    line-height: 1.5;
+    padding: 0;
+    white-space: nowrap;
 
     > a,
     > span.ol-ctx-menu-title {
@@ -351,10 +367,12 @@ $map-tool-gap: 8px;
       box-shadow: none;
       background: none;
     }
+  }
 
-    > a:hover {
-      background-color: var(--bs-secondary-bg, #e9ecef);
-    }
+  li:not(.ol-ctx-menu-separator):hover {
+    cursor: pointer;
+    background-color: var(--bs-secondary-bg, #e9ecef);
+    color: #212529;
   }
 
   li.ol-ctx-menu-separator {
@@ -364,6 +382,10 @@ $map-tool-gap: 8px;
     padding: 0;
     background: none;
     box-shadow: none;
+  }
+
+  li.ol-ctx-menu-submenu::after {
+    border-color: #6c757d;
   }
 }
 
@@ -488,9 +510,11 @@ $map-tool-gap: 8px;
 }
 
 .map-base-map-switcher__label {
-  max-width: 160px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
+  // line-height: 1 だと ascender / descender が overflow: hidden で切れる
+  line-height: 1.35;
 }
 
 .map-base-map-switcher__caret {

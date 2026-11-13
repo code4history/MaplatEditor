@@ -97,7 +97,6 @@ import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { altKeyOnly } from 'ol/events/condition';
-import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
@@ -3998,6 +3997,7 @@ const setupBaseMaps = async () => {
     // m1-t2 設計レビュー MIN-3: レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
     // 再構築が起きると切替禁止（HR-4.6(c)/HR-4.7(c)）が解ける。相に応じて呼び直す
     applySwitchableBaseMapsForPhase();
+    baseMapSwitcher?.refreshLabel();
 };
 
 /*

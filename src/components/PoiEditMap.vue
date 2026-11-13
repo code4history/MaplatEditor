@@ -22,7 +22,6 @@ import ContextMenu from "../libs/ol-contextmenu/main";
 // @ts-ignore
 import { MaplatMap } from "@maplat/core/src/map_ex";
 import { defaults as interactionDefaults, Modify, Snap } from "ol/interaction";
-import "ol/ol.css";
 import { Style, Icon } from "ol/style";
 // @ts-ignore 住所検索コントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
