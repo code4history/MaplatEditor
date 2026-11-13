@@ -97,7 +97,12 @@
     "modal_title": "필터 범위 지정",
     "modal_help": "목록에 표시하려는 범위를 드래그로 지정하세요. 지정한 범위와 겹치는 항목만 목록에 표시됩니다.",
     "modal_help_basemap": "표시하고 싶은 베이스맵이 있는 지역을 드래그로 지정하세요. 지정 영역과 존재 범위가 겹치는 베이스맵만 목록에 표시됩니다(존재 범위가 설정되지 않은 베이스맵은 전 지구로 간주되어 항상 표시됩니다).",
-    "guide_badge": "필터 범위(자동)"
+    "guide_badge": "필터 범위(자동)",
+    "legend_title": "범례",
+    "legend_range": "범위",
+    "legend_guide": "안내",
+    "legend_map_range": "지도 범위",
+    "legend_app_range": "앱 범위"
   },
   "common": {
     "close": "닫기",

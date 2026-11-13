@@ -97,7 +97,12 @@
     "modal_title": "指定篩選範圍",
     "modal_help": "請以拖曳方式指定希望在清單中顯示的範圍。僅與指定範圍重疊的項目會顯示在清單中。",
     "modal_help_basemap": "請以拖曳方式指定您想查看底圖的地區。僅會列出涵蓋範圍與指定區域重疊的底圖(未設定涵蓋範圍的底圖將視為全球範圍,永遠列出)。",
-    "guide_badge": "篩選範圍（自動）"
+    "guide_badge": "篩選範圍（自動）",
+    "legend_title": "圖例",
+    "legend_range": "範圍",
+    "legend_guide": "參考",
+    "legend_map_range": "地圖範圍",
+    "legend_app_range": "應用程式範圍"
   },
   "common": {
     "close": "關閉",

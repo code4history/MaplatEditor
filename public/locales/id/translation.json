@@ -97,7 +97,12 @@
     "modal_title": "Tentukan area filter",
     "modal_help": "Seret untuk menentukan area yang ingin ditampilkan dalam daftar. Hanya item yang bertumpang tindih dengan area tersebut yang ditampilkan.",
     "modal_help_basemap": "Silakan seret untuk menentukan wilayah tempat peta dasar yang ingin Anda tampilkan berada. Hanya peta dasar yang cakupannya tumpang tindih dengan wilayah yang ditentukan yang akan ditampilkan dalam daftar (peta dasar tanpa cakupan yang diatur dianggap global dan selalu ditampilkan).",
-    "guide_badge": "Area filter (otomatis)"
+    "guide_badge": "Area filter (otomatis)",
+    "legend_title": "Legenda",
+    "legend_range": "Area",
+    "legend_guide": "Panduan",
+    "legend_map_range": "Area peta",
+    "legend_app_range": "Area aplikasi"
   },
   "common": {
     "close": "Tutup",

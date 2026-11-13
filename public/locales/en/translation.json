@@ -1022,7 +1022,12 @@
     "modal_title": "Specify filter area",
     "modal_help": "Drag to specify the area you want to see in the list. Only items that overlap the specified area are listed.",
     "modal_help_basemap": "Drag to draw the region you are interested in. Only base maps whose coverage overlaps the region are listed (base maps without coverage are treated as global and always listed).",
-    "guide_badge": "Filter area (auto)"
+    "guide_badge": "Filter area (auto)",
+    "legend_title": "Legend",
+    "legend_range": "Range",
+    "legend_guide": "Guide",
+    "legend_map_range": "Map range",
+    "legend_app_range": "App range"
   },
   "poiedit": {
     "confirm_no_save": "This POI source has unsaved changes.\nClose without saving?",

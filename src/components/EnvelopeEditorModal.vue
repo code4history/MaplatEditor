@@ -13,14 +13,13 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import { XYZ, Vector as VectorSource } from "ol/source";
 import { Draw, Snap } from "ol/interaction";
 import { createBox } from "ol/interaction/Draw";
-import { Style, Stroke, Fill } from "ol/style";
 import { fromExtent } from "ol/geom/Polygon";
 import i18next from "i18next";
 import { transformExtent } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
-import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from "../utils/mapOverlayTools";
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, editSketchStyleFunction, haloLineStyles } from "../utils/mapOverlayTools";
 import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
 import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
 import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
@@ -71,29 +70,19 @@ const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
 const isGuide = ref(false);
-const boxStyle = new Style({
-  stroke: new Stroke({ color: "#dc3545", width: 2, lineDash: [6, 6] }),
-  fill: new Fill({ color: "rgba(220, 53, 69, 0.08)" }),
-});
+// §5-6: 4 色の線はいずれも縁取り（白 1.5px の halo と濃い灰の細線）を付ける。
+// 編集中の図形（範囲）と参考の図形（案内・地図の範囲・アプリの範囲）を色のまま見分けられるようにする
+const boxStyle = haloLineStyles("#dc3545", 2, { fill: "rgba(220, 53, 69, 0.08)", dash: [6, 6] });
 
 // fallbackBbox 用のガイド矩形（オレンジ点線）
 const guideSource = new VectorSource();
-const guideStyle = new Style({
-  stroke: new Stroke({ color: "#fd7e14", width: 2, lineDash: [6, 6] }),
-  fill: new Fill({ color: "rgba(253, 126, 20, 0.08)" }),
-});
+const guideStyle = haloLineStyles("#fd7e14", 2, { fill: "rgba(253, 126, 20, 0.08)", dash: [6, 6] });
 
 // 存在範囲: 薄い青のポリゴン
-const coverageStyle = new Style({
-  stroke: new Stroke({ color: "#0d6efd", width: 1 }),
-  fill: new Fill({ color: "rgba(13, 110, 253, 0.08)" }),
-});
+const coverageStyle = haloLineStyles("#0d6efd", 1.5, { fill: "rgba(13, 110, 253, 0.08)" });
 
 // アプリ対象範囲: 薄い緑のポリゴン
-const appCoverageStyle = new Style({
-  stroke: new Stroke({ color: "#198754", width: 1 }),
-  fill: new Fill({ color: "rgba(25, 135, 84, 0.08)" }),
-});
+const appCoverageStyle = haloLineStyles("#198754", 1.5, { fill: "rgba(25, 135, 84, 0.08)" });
 
 function coverageBbox(): [number, number, number, number] | null {
   return envelopeToBbox(props.coverageLngLats ?? null);
@@ -229,6 +218,8 @@ onMounted(async () => {
     source: vectorSource,
     type: "Circle",
     geometryFunction: createBox(),
+    // §5-7: 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
+    style: editSketchStyleFunction("#dc3545"),
   });
   draw.on("drawstart", () => {
     vectorSource.clear();
@@ -340,6 +331,22 @@ function confirm() {
           <div ref="mapElement" class="envelope-map">
             <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
             <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
+            <!-- §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる -->
+            <div class="map-overlay-legend" data-testid="envelope-map-legend">
+              <div class="map-overlay-legend__title">{{ t("range_filter.legend_title") }}</div>
+              <div class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545"></span>{{ t("range_filter.legend_range") }}
+              </div>
+              <div v-if="fallbackBbox" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14"></span>{{ t("range_filter.legend_guide") }}
+              </div>
+              <div v-if="coverageLngLats" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #0d6efd"></span>{{ t("range_filter.legend_map_range") }}
+              </div>
+              <div v-if="appCoverageLngLats" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #198754"></span>{{ t("range_filter.legend_app_range") }}
+              </div>
+            </div>
           </div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">
