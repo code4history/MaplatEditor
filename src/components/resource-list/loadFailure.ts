@@ -31,3 +31,14 @@ export function isSearchFailureReply(value: unknown): value is { failure: Resour
     && REASONS.includes((failure as { reason: LoadFailureReason }).reason)
     && typeof (failure as { code?: unknown }).code === "string";
 }
+
+/**
+ * 「権限が無い」の直し方の文言のキーを OS ごとに選ぶ。許可を与える場所の名前が OS で違う
+ * （macOS はシステム設定、Windows は Windows セキュリティかフォルダのプロパティ、
+ * Linux 等はフォルダの権限そのもの）。OS が分からないとき（Electron の外）は macOS の文言のまま。
+ */
+export function permissionFixKey(platform: string | undefined): string {
+  if (platform === undefined || platform === "darwin") return "resource_list.load_error_fix_permission";
+  if (platform === "win32") return "resource_list.load_error_fix_permission_windows";
+  return "resource_list.load_error_fix_permission_linux";
+}

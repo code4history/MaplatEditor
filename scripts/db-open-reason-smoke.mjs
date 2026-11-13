@@ -31,6 +31,7 @@ try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const dbOpenFailurePath = path.join(projectRoot, 'electron/utils/dbOpenFailure.ts');
+  const loadFailurePath = path.join(projectRoot, 'src/components/resource-list/loadFailure.ts');
 
   await writeFile(
     electronStubFile,
@@ -96,6 +97,7 @@ try {
         toDbOpenFailureReply,
         withDbOpenFailureReply,
       } from ${JSON.stringify(dbOpenFailurePath)};
+      import { permissionFixKey } from ${JSON.stringify(loadFailurePath)};
 
       const execFileAsync = promisify(execFile);
       const workDir = ${JSON.stringify(workDir)};
@@ -115,6 +117,13 @@ try {
       assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 526 }), 'SQLITE_CANTOPEN');
       assert.equal(dbOpenFailureCode({}), 'unknown');
       assert.equal(dbOpenFailureCode(null), 'unknown');
+
+      // --- Part 1a': 「権限が無い」の直し方は OS ごとに文言を選ぶ ---
+      assert.equal(permissionFixKey('darwin'), 'resource_list.load_error_fix_permission');
+      assert.equal(permissionFixKey(undefined), 'resource_list.load_error_fix_permission', 'OS が分からないときは従来の文言');
+      assert.equal(permissionFixKey('win32'), 'resource_list.load_error_fix_permission_windows');
+      assert.equal(permissionFixKey('linux'), 'resource_list.load_error_fix_permission_linux');
+      assert.equal(permissionFixKey('freebsd'), 'resource_list.load_error_fix_permission_linux');
 
       // --- Part 1b: 分類（合成エラー） ---
       const presentDir = path.join(scratch, 'present');
@@ -440,7 +449,13 @@ try {
   const { readFile } = await import('node:fs/promises');
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
   const REASON_KEYS = ['load_error_reason_permission', 'load_error_reason_not_found', 'load_error_reason_other'];
-  const FIX_KEYS = ['load_error_fix_permission', 'load_error_fix_not_found', 'load_error_fix_other'];
+  const FIX_KEYS = [
+    'load_error_fix_permission',
+    'load_error_fix_permission_windows',
+    'load_error_fix_permission_linux',
+    'load_error_fix_not_found',
+    'load_error_fix_other',
+  ];
   for (const locale of LOCALES) {
     const translation = JSON.parse(await readFile(path.join(projectRoot, 'public/locales', locale, 'translation.json'), 'utf8'));
     for (const key of [...REASON_KEYS, ...FIX_KEYS]) {
@@ -455,11 +470,22 @@ try {
   assert.equal(ja.resource_list.load_error_reason_not_found, 'データフォルダが見つかりません');
   assert.match(ja.resource_list.load_error_fix_permission, /システム設定で/);
   assert.match(ja.resource_list.load_error_fix_permission, /設定でデータフォルダを変えてください/);
+  // Windows・Linux の文言に macOS の言い方（システム設定）を持ち込まない
+  assert.match(ja.resource_list.load_error_fix_permission_windows, /Windows セキュリティ/);
+  assert.match(ja.resource_list.load_error_fix_permission_linux, /書き込みの権限/);
+  for (const key of ['load_error_fix_permission_windows', 'load_error_fix_permission_linux']) {
+    assert.doesNotMatch(ja.resource_list[key], /システム設定/, key + ' は macOS の言い方を使わない');
+    assert.match(ja.resource_list[key], /設定でデータフォルダを変えてください/);
+  }
 
   const status = await readFile(path.join(projectRoot, 'src/components/resource-list/ResourceResultStatus.vue'), 'utf8');
+  const loadFailureSource = await readFile(path.join(projectRoot, 'src/components/resource-list/loadFailure.ts'), 'utf8');
   for (const key of [...REASON_KEYS, ...FIX_KEYS]) {
-    assert.match(status, new RegExp('resource_list\\.' + key), 'ResultStatus must render resource_list.' + key);
+    // 権限の直し方は OS ごとに loadFailure.ts の permissionFixKey が選ぶ
+    const source = key.startsWith('load_error_fix_permission') ? loadFailureSource : status;
+    assert.match(source, new RegExp('resource_list\\.' + key + '"'), 'resource_list.' + key + ' must be rendered');
   }
+  assert.match(status, /permissionFixKey\(/, 'ResultStatus must pick the permission fix per OS');
   assert.match(status, /data-load-failure-reason/, 'ResultStatus must expose the reason hook');
   assert.match(status, /data-load-failure-fix/, 'ResultStatus must expose the fix hook');
 

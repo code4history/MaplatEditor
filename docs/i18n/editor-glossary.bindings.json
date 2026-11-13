@@ -925,6 +925,20 @@
       ],
       "role": "item"
     },
+    "resource_list.load_error_fix_permission_linux": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "resource_list.load_error_fix_permission_windows": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
     "settings.base_map": {
       "by": [
         "en",

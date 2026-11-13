@@ -1339,6 +1339,8 @@
     "load_error_reason_not_found": "ไม่พบโฟลเดอร์ข้อมูล",
     "load_error_reason_other": "เปิดโฟลเดอร์ข้อมูลไม่ได้",
     "load_error_fix_permission": "อนุญาตให้ Maplat Editor เข้าถึงในการตั้งค่าระบบ หรือเปลี่ยนโฟลเดอร์ข้อมูลในการตั้งค่า",
+    "load_error_fix_permission_windows": "อนุญาตให้ Maplat Editor เขียนในความปลอดภัยของ Windows หรือในคุณสมบัติของโฟลเดอร์ หรือเปลี่ยนโฟลเดอร์ข้อมูลในการตั้งค่า",
+    "load_error_fix_permission_linux": "ให้สิทธิ์การเขียนกับโฟลเดอร์ข้อมูล หรือเปลี่ยนโฟลเดอร์ข้อมูลในการตั้งค่า",
     "load_error_fix_not_found": "ระบุโฟลเดอร์ข้อมูลอีกครั้งในการตั้งค่า",
     "load_error_fix_other": "เปลี่ยนโฟลเดอร์ข้อมูลในการตั้งค่า หรือลองใหม่",
     "menu_delete": "ลบ",

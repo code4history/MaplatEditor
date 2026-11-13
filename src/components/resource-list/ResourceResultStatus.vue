@@ -25,7 +25,7 @@
 import { computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { ResourceListState } from "./resourceListTypes";
-import type { ResourceLoadFailure } from "./loadFailure";
+import { permissionFixKey, type ResourceLoadFailure } from "./loadFailure";
 
 const props = defineProps<{ state: ResourceListState; total: number | null; loaded: number; failure?: ResourceLoadFailure | null }>();
 const emit = defineEmits<{ retry: [] }>();
@@ -46,8 +46,9 @@ const REASON_KEYS: Record<ResourceLoadFailure["reason"], string> = {
   "not-found": "resource_list.load_error_reason_not_found",
   other: "resource_list.load_error_reason_other",
 };
+// 「権限が無い」の直し方は OS で許可の場所が違うので、OS ごとの文言を選ぶ
 const FIX_KEYS: Record<ResourceLoadFailure["reason"], string> = {
-  permission: "resource_list.load_error_fix_permission",
+  permission: permissionFixKey(typeof window === "undefined" ? undefined : window.runtimeInfo?.platform),
   "not-found": "resource_list.load_error_fix_not_found",
   other: "resource_list.load_error_fix_other",
 };

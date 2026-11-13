@@ -9,6 +9,10 @@ ipcRenderer.on('backend:log', (_event, payload: { level: 'error' | 'warn'; messa
 
 // --------- Expose some API to the Renderer process ---------
 
+// 画面の文言を OS ごとに変えるため（例: 権限の直し方。macOS はシステム設定、Windows は
+// Windows セキュリティ）、OS の種類だけを渡す
+contextBridge.exposeInMainWorld('runtimeInfo', { platform: process.platform })
+
 contextBridge.exposeInMainWorld('settings', {
   get: (key: string) => ipcRenderer.invoke('settings:get', key),
   set: (key: string, value: any) => ipcRenderer.invoke('settings:set', key, value),
