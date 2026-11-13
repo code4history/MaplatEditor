@@ -36,6 +36,9 @@ const props = defineProps<{
   // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
   titleKey?: string;
   helpKey?: string;
+  // 凡例で赤の線（ここで指定する範囲）に付ける名前（翻訳キー）。呼び出し元ごとに中身が違う
+  // （利用範囲・存在範囲・アプリ対象範囲・絞り込み範囲）。未指定なら利用範囲
+  rangeLabelKey?: string;
   // 対象ベースマップのタイルをOSMの上に重ねて表示する(URLテンプレート定義済みの場合)。
   // タイルが実在する範囲を目視しながら正確に範囲指定できるようにするため
   overlayTms?: { url: string; minZoom?: number; maxZoom?: number } | null;
@@ -58,6 +61,8 @@ const helpText = computed(() =>
 const mapElement = ref<HTMLDivElement | null>(null);
 let map: Map | null = null;
 let draw: Draw | null = null;
+// onMounted の await の間に小窓が閉じられたら、閉じた後に Map を作らない
+let disposed = false;
 // §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
 const baseMapList = ref<OverlayBaseMapItem[]>([]);
 const currentBaseMapID = ref("osm");
@@ -70,19 +75,19 @@ const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
 const isGuide = ref(false);
-// §5-6: 4 色の線はいずれも縁取り（白 1.5px の halo と濃い灰の細線）を付ける。
-// 編集中の図形（範囲）と参考の図形（案内・地図の範囲・アプリの範囲）を色のまま見分けられるようにする
+// §5-6: 4 色の線はいずれも縁取りを付ける（§4.2）。編集中の図形（赤の範囲）は白 1.5px の halo と
+// 濃い灰の細線、参考の図形（絞り込み範囲（自動）・存在範囲・アプリ対象範囲）は白の halo だけ
 const boxStyle = haloLineStyles("#dc3545", 2, { fill: "rgba(220, 53, 69, 0.08)", dash: [6, 6] });
 
 // fallbackBbox 用のガイド矩形（オレンジ点線）
 const guideSource = new VectorSource();
-const guideStyle = haloLineStyles("#fd7e14", 2, { fill: "rgba(253, 126, 20, 0.08)", dash: [6, 6] });
+const guideStyle = haloLineStyles("#fd7e14", 2, { fill: "rgba(253, 126, 20, 0.08)", dash: [6, 6], outline: false });
 
 // 存在範囲: 薄い青のポリゴン
-const coverageStyle = haloLineStyles("#0d6efd", 1.5, { fill: "rgba(13, 110, 253, 0.08)" });
+const coverageStyle = haloLineStyles("#0d6efd", 1.5, { fill: "rgba(13, 110, 253, 0.08)", outline: false });
 
 // アプリ対象範囲: 薄い緑のポリゴン
-const appCoverageStyle = haloLineStyles("#198754", 1.5, { fill: "rgba(25, 135, 84, 0.08)" });
+const appCoverageStyle = haloLineStyles("#198754", 1.5, { fill: "rgba(25, 135, 84, 0.08)", outline: false });
 
 function coverageBbox(): [number, number, number, number] | null {
   return envelopeToBbox(props.coverageLngLats ?? null);
@@ -147,6 +152,7 @@ onMounted(async () => {
     currentBaseMapID.value,
     t("mapedit.control_basemap"),
   );
+  if (disposed || !mapElement.value) return;
   baseMapList.value = baseMaps.items;
   if (!baseMaps.items.some((item) => item.mapID === currentBaseMapID.value)) {
     currentBaseMapID.value = baseMaps.items[0]?.mapID || "osm";
@@ -283,6 +289,7 @@ function cropToCoverage(bbox: [number, number, number, number]): [number, number
 }
 
 onBeforeUnmount(() => {
+  disposed = true;
   map?.setTarget(undefined);
   map = null;
   baseMapSwitcher = null;
@@ -331,20 +338,22 @@ function confirm() {
           <div ref="mapElement" class="envelope-map">
             <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
             <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
-            <!-- §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる -->
+            <!-- §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
+                 名前は画面の他の場所の語にそろえる（赤は呼び出し元が渡す・橙は絞り込み範囲（自動）の札と同じ・
+                 青は存在範囲・緑はアプリ対象範囲） -->
             <div class="map-overlay-legend" data-testid="envelope-map-legend">
               <div class="map-overlay-legend__title">{{ t("range_filter.legend_title") }}</div>
               <div class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545"></span>{{ t("range_filter.legend_range") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545"></span>{{ t(rangeLabelKey || "appedit.envelope") }}
               </div>
               <div v-if="fallbackBbox" class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14"></span>{{ t("range_filter.legend_guide") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14"></span>{{ t("range_filter.guide_badge") }}
               </div>
               <div v-if="coverageLngLats" class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #0d6efd"></span>{{ t("range_filter.legend_map_range") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #0d6efd"></span>{{ t("basemap.coverage") }}
               </div>
               <div v-if="appCoverageLngLats" class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #198754"></span>{{ t("range_filter.legend_app_range") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #198754"></span>{{ t("appedit.app_coverage") }}
               </div>
             </div>
           </div>

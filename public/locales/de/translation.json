@@ -99,10 +99,7 @@
     "modal_help_basemap": "Ziehen Sie den Bereich, in dem Sie Basiskarten anzeigen möchten. Es werden nur Basiskarten aufgelistet, deren Abdeckungsbereich sich mit der Region überschneidet (Basiskarten ohne festgelegten Abdeckungsbereich gelten als global und werden immer angezeigt).",
     "guide_badge": "Filterbereich (automatisch)",
     "legend_title": "Legende",
-    "legend_range": "Bereich",
-    "legend_guide": "Leitlinie",
-    "legend_map_range": "Kartenbereich",
-    "legend_app_range": "App-Bereich"
+    "filter_area": "Filterbereich"
   },
   "common": {
     "close": "Schließen",

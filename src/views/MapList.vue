@@ -66,7 +66,7 @@
         />
       </div>
     </ResourceListShell>
-    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="range_filter.modal_title" help-key="range_filter.modal_help" @update:model-value="apply" @close="modalOpen = false" />
+    <EnvelopeEditorModal v-if="modalOpen" :model-value="envelopeForModal" title-key="range_filter.modal_title" help-key="range_filter.modal_help" range-label-key="range_filter.filter_area" @update:model-value="apply" @close="modalOpen = false" />
 
     <IiifImportDialog v-if="iiifDialogOpen" @close="iiifDialogOpen = false" />
     <DeleteConfirmDialog

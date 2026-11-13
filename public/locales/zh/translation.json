@@ -99,10 +99,7 @@
     "modal_help_basemap": "请通过拖动指定您想查看底图的区域。仅列出覆盖范围与指定区域重叠的底图(未设置覆盖范围的底图将被视为全球范围,始终列出)。",
     "guide_badge": "筛选范围（自动）",
     "legend_title": "图例",
-    "legend_range": "范围",
-    "legend_guide": "参考",
-    "legend_map_range": "地图范围",
-    "legend_app_range": "应用范围"
+    "filter_area": "筛选范围"
   },
   "common": {
     "close": "关闭",

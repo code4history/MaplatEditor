@@ -99,10 +99,7 @@
     "modal_help_basemap": "Arrastre para dibujar la región que le interese. Solo se listan los mapas base cuya cobertura se superpone con la región (los mapas base sin cobertura definida se consideran globales y siempre se listan).",
     "guide_badge": "Área de filtro (automática)",
     "legend_title": "Leyenda",
-    "legend_range": "Área",
-    "legend_guide": "Guía",
-    "legend_map_range": "Área del mapa",
-    "legend_app_range": "Área de la aplicación"
+    "filter_area": "Área de filtro"
   },
   "common": {
     "close": "Cerrar",

@@ -99,10 +99,7 @@
     "modal_help_basemap": "表示したいベースマップがある範囲をドラッグで指定してください。指定した範囲と存在範囲が重なるベースマップだけが一覧に表示されます(存在範囲未設定のベースマップは全球扱いとして常に表示されます)。",
     "guide_badge": "絞り込み範囲（自動）",
     "legend_title": "凡例",
-    "legend_range": "範囲",
-    "legend_guide": "案内",
-    "legend_map_range": "地図の範囲",
-    "legend_app_range": "アプリの範囲"
+    "filter_area": "絞り込み範囲"
   },
   "common": {
     "close": "閉じる",

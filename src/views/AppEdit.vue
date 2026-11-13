@@ -1958,6 +1958,7 @@ function onPoisChange(next: unknown[]) {
       :fallback-center="homePosition ?? undefined"
       title-key="appedit.app_coverage_modal_title"
       help-key="appedit.app_coverage_modal_help"
+      range-label-key="appedit.app_coverage"
       @update:model-value="applyAppCoverage"
       @close="appCoverageModalVisible = false"
     />

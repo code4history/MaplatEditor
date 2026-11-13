@@ -1844,12 +1844,6 @@
         "ja"
       ]
     },
-    "range_filter.legend_map_range": {
-      "by": [
-        "en",
-        "ja"
-      ]
-    },
     "resource_list.badge_map_ref_error": {
       "by": [
         "en",
@@ -2537,12 +2531,6 @@
       ]
     },
     "poisource.ref_kind.app": {
-      "by": [
-        "en",
-        "ja"
-      ]
-    },
-    "range_filter.legend_app_range": {
       "by": [
         "en",
         "ja"

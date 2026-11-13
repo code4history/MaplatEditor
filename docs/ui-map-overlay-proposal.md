@@ -133,7 +133,7 @@
 | 情報 | 押さない表示 | 帰属表示・凡例 |
 | 浮かぶメニュー | 呼んだときだけ出る | 右クリックのメニュー・住所検索の候補・切り替えのパネル |
 | 編集中の図形 | 利用者が動かす・描く線と点、その取っ手 | 外郭・対応線・範囲の矩形・ホーム位置の点・POI のピン・取っ手 |
-| 参考の図形 | 動かさない線・面 | TIN の網・地図の範囲・アプリの範囲・案内の矩形 |
+| 参考の図形 | 動かさない線・面 | TIN の網・存在範囲・アプリ対象範囲・絞り込み範囲（自動）の矩形 |
 
 ### 4.2 案 A: 白い札にそろえる（推奨）
 
@@ -183,7 +183,7 @@
 | 3 | `src/views/MapEdit.vue:2996`・`3068`、`src/components/PoiEditMap.vue:564` | `controlDefaults` に i18n の名前を渡す。小窓 2 つ（`HomePositionEditorModal.vue:51`・`EnvelopeEditorModal.vue:146`）も `controls` を明示して同じにする |
 | 4 | `src/views/MapEdit.vue:3068-3071`、`src/components/PoiEditMap.vue:5-16` | ベースマップの切り替えを 1 つの部品にして、両方の右上に置く。開くのはクリック。回転のリセットを左上へ移し、右上の重なりを無くす |
 | 5 | `src/components/HomePositionEditorModal.vue`・`EnvelopeEditorModal.vue` | 右上にベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える。要否は §6 の 3） |
-| 6 | `src/components/EnvelopeEditorModal.vue:63-86` と template | 4 色の線に縁取りを付け、左下に凡例（範囲・案内・地図の範囲・アプリの範囲）を置く。凡例の文言は用語集の語（範囲・地図・アプリ）で作る |
+| 6 | `src/components/EnvelopeEditorModal.vue:63-86` と template | 4 色の線に縁取りを付け、左下に凡例を置く。凡例の名前は画面の他の場所の語にそろえる（青＝存在範囲・緑＝アプリ対象範囲・橙＝絞り込み範囲（自動）の札と同じ語）。赤の線は呼び出し元ごとに中身が違う（利用範囲・存在範囲・アプリ対象範囲・絞り込み範囲）ので、名前は呼び出し元が渡す |
 | 7 | `src/views/MapEdit.vue:2709-2732`・`3006-3010`・`3079-3083`・`1735-1755`、`src/components/HomePositionEditorModal.vue:34-40` | 外郭・対応線・TIN の網・ホーム位置の点に縁取りを付ける。取っ手（`Modify` の `style`）と描画中の線（`Draw` の `style`）を編集中の図形の色にそろえる |
 | 8 | MapEdit と POI の地図の帰属表示 | 出ない理由（`MaplatMap` に渡すベースマップのソースに帰属が付いていないと推測）を調べ、出す |
 | 9 | `docs/ui-grammar.md` §6.2 の地図の行 | 決まったら「地図の上の部品はこの文書の §4.2」と書き換え、§9.2 に検査の規則を足す |

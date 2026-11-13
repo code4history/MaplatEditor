@@ -99,10 +99,7 @@
     "modal_help_basemap": "Vui lòng kéo để chỉ định khu vực có bản đồ nền bạn muốn hiển thị. Chỉ những bản đồ nền có phạm vi tồn tại trùng với khu vực đã chỉ định mới hiển thị trong danh sách (bản đồ nền chưa thiết lập phạm vi tồn tại được coi là toàn cầu và luôn hiển thị).",
     "guide_badge": "Phạm vi lọc (tự động)",
     "legend_title": "Chú giải",
-    "legend_range": "Phạm vi",
-    "legend_guide": "Hướng dẫn",
-    "legend_map_range": "Phạm vi bản đồ",
-    "legend_app_range": "Phạm vi ứng dụng"
+    "filter_area": "Phạm vi lọc"
   },
   "common": {
     "close": "Đóng",
