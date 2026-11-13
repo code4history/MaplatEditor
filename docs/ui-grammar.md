@@ -382,7 +382,7 @@
 | `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
 | `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | 節内の空表示（§8 U7） |
 | `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |
-| `map.tool-button` | 地図の上に重ねる道具のボタン（`map-overlay-tools` の中の `button`）に `map-tool` が無い、または `aria-label` が無い | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2（案 A） | — |
+| `map.tool-button` | 地図の上に重ねる道具のボタン（`map-overlay-tools` の中の `button`）に `map-tool` が無い、または `aria-label` か `title` が無い | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2（案 A） | — |
 
 ### 9.3 検査できないこと（レビューで見る）
 

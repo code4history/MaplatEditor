@@ -85,14 +85,17 @@ export function inspectSource(file, source) {
       if (cls.includes('text-center') && cls.includes('text-muted') && ownKeys.some((k) => /empty|no_|not_found|select_/.test(k))) emit('empty.ad-hoc');
       const inFooter = ancestors.some((n) => n.type === 1 && classes(n).includes('modal-footer'));
       if (node.tag === 'button' && (cls.includes('btn-secondary') || cls.includes('btn-outline-info') || (inFooter && cls.includes('btn-sm')) || (ownKeys.includes('common.cancel') && !cls.includes('btn-outline-secondary')))) emit('button.variant', cls.join(' '));
-      // 地図の上に重ねる道具のボタン（ui-map-overlay-proposal.md §4.2）。札（map-tool）を持ち、読み上げ名があること
+      // 地図の上に重ねる道具のボタン（ui-map-overlay-proposal.md §4.2）。札（map-tool）を持ち、aria-label と title の両方があること
       const inMapOverlay = ancestors.some((n) => n.type === 1 && classes(n).some((c) => c === 'map-overlay-tools' || c === 'map-overlay-tools__row'));
       if (node.tag === 'button' && inMapOverlay) {
-        const label = attr(node, 'aria-label');
-        const labelText = attrValue(label)?.trim() ?? '';
-        const hasLabel = Boolean(labelText) && !/^(?:''|"")$/.test(labelText);
-        if (!cls.includes('map-tool') || !hasLabel) {
-          emit('map.tool-button', [cls.includes('map-tool') ? '' : 'map-tool が無い', hasLabel ? '' : 'aria-label が無い'].filter(Boolean).join(' / '), { ...selectors, key: 'map-tool' });
+        const hasText = (name) => {
+          const text = attrValue(attr(node, name))?.trim() ?? '';
+          return Boolean(text) && !/^(?:''|"")$/.test(text);
+        };
+        const hasLabel = hasText('aria-label');
+        const hasTitle = hasText('title');
+        if (!cls.includes('map-tool') || !hasLabel || !hasTitle) {
+          emit('map.tool-button', [cls.includes('map-tool') ? '' : 'map-tool が無い', hasLabel ? '' : 'aria-label が無い', hasTitle ? '' : 'title が無い'].filter(Boolean).join(' / '), { ...selectors, key: 'map-tool' });
         }
       }
       if (normalize(node.tag) === 'contexthelp') {
