@@ -398,6 +398,7 @@ import { localizeTitle } from "../utils/langResource";
 import { guardedReleaseThenFallback, runGuardedPoiImport } from "../utils/initGenerationGuard";
 import { validateFeatureCollection, type PoiEditorFC } from "../utils/poiGeoJson";
 import { collectAssetRefsInFc, collectImageAssetUids } from "../utils/poiContentMode";
+import { collectIconAssetUids } from "../utils/iconRefs";
 import { ERROR_CODE_KEYS, issueMessage } from "../utils/poiSourceMessages";
 import { isEditableElement } from "../utils/nativeTextUndo";
 import { isTranslationMode } from "../utils/editorLanguageMode";
@@ -722,15 +723,17 @@ const liveErrors = computed<PoiValidationIssue[]>(() =>
 
 // M11-T9 AC14: Asset Reference 欠落診断。
 // HTML内の maplat-asset:<UID> (collectAssetRefsInFc) と、画像欄のアセットUID直接参照
-// (collectImageAssetUids、人間検証Round1で標準表示の画像が未検査だった穴を解消) を合算し、
+// (collectImageAssetUids、人間検証Round1で標準表示の画像が未検査だった穴を解消) と、
+// アイコン (POI ごと・レイヤの icon/selectedIcon) のアセットUID (collectIconAssetUids) を合算し、
 // window.imageAssets.getFilePath で1件ずつ存在照会して解決できない UID のみ warning を立てる。
 // 参照が1件もない場合は何も表示しない（有効な参照だけならノイズ警告しない）。
 const missingAssetRefUids = ref<string[]>([]);
 const assetRefCheckSeq = ref(0);
 
 watch(
-  () => session.state.value?.features,
-  (features) => {
+  // レイヤのアイコン (layerMeta.icon/selectedIcon) を変えたときも診断し直すため layerMeta も見る
+  () => [session.state.value?.features, session.state.value?.layerMeta] as const,
+  ([features]) => {
     // load() 前は toSaveFc() が throw し watcher ごと停止するため、state 未初期化時はスキップする
     if (!features) {
       missingAssetRefUids.value = [];
@@ -742,6 +745,7 @@ watch(
     for (const f of (fc as { features?: Array<{ properties?: Record<string, unknown> }> }).features ?? []) {
       for (const uid of collectImageAssetUids(f?.properties?.image)) uidSet.add(uid);
     }
+    for (const uid of collectIconAssetUids(fc)) uidSet.add(uid);
     const uids = [...uidSet];
     if (uids.length === 0) {
       missingAssetRefUids.value = [];
