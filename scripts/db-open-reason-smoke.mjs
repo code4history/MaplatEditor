@@ -339,8 +339,10 @@ try {
         const mountPoint = path.join(scratch, 'ro-image-mnt');
         await mkdir(mountPoint, { recursive: true });
         await execFileAsync('hdiutil', ['create', '-quiet', '-srcfolder', imageSrc, '-format', 'UDRO', '-volname', 'maplat-ro-smoke', '-ov', imageFile]);
-        await execFileAsync('hdiutil', ['attach', '-quiet', '-readonly', '-nobrowse', '-mountpoint', mountPoint, imageFile]);
+        let attached = false;
         try {
+          await execFileAsync('hdiutil', ['attach', '-quiet', '-readonly', '-nobrowse', '-mountpoint', mountPoint, imageFile]);
+          attached = true;
           await SqliteDataService.reset();
           SettingsService.set('saveFolder', mountPoint);
           const roImageFailure = await readFailure();
@@ -349,7 +351,8 @@ try {
           assert.equal(roImageFailure.failure.code, 'SQLITE_READONLY');
         } finally {
           await SqliteDataService.reset();
-          await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+          // 外すのに失敗しても、イメージのファイルは消す
+          if (attached) await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]).catch(() => undefined);
           await rm(imageFile, { force: true });
         }
       }

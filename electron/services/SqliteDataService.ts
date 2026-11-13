@@ -708,7 +708,14 @@ class SqliteDataService {
       db.exec(`PRAGMA user_version=${Number.isSafeInteger(version) ? version : 0}`);
     } finally {
       // 書き込みの失敗で SQLite が取引を閉じていることがある。開いているときだけ取り消す
-      if (db.isTransaction) db.exec('ROLLBACK');
+      // 取り消しの失敗で元の書き込みの失敗を上書きしない（閉じるときに取り消される）
+      if (db.isTransaction) {
+        try {
+          db.exec('ROLLBACK');
+        } catch {
+          /* 元の失敗を残す */
+        }
+      }
     }
   }
 
