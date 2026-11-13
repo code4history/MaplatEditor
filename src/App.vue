@@ -8,6 +8,7 @@ import Header from "./components/Header.vue";
 import ProgressModal from "./components/ProgressModal.vue";
 import { handleMenuTextUndoRedo } from "./utils/nativeTextUndo";
 import { useOperationNotice } from "./composables/useOperationNotice";
+import { useHashRouteSync } from "./composables/useHashRouteSync";
 
 const { t } = useTranslation();
 const { onOperationNoticeNavigation } = useOperationNotice();
@@ -15,6 +16,8 @@ const { onOperationNoticeNavigation } = useOperationNotice();
 const removeNoticeNavigationHook = useRouter().afterEach((to, from) => {
   if (to.path !== from.path) onOperationNoticeNavigation();
 });
+// hash の書き換え（openHash）が初期遷移と競合して取りこぼされないよう、行き先を寄せ直す
+useHashRouteSync(useRouter());
 
 const modalVisible = ref(false);
 const modalText = ref('');

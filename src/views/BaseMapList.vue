@@ -29,7 +29,6 @@
         @delete="requestDeleteBaseMap"
         @duplicate="duplicateBaseMap"
         @toggle-always="toggleAlways"
-        @scroll="saveScroll"
       />
     </div>
     <div class="base-map-master-detail__detail flex-grow-1 min-w-0">
@@ -83,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 import i18next from "i18next";
@@ -114,7 +113,7 @@ const {
   apply: applyRangeFilter,
   clear: clearRangeFilter,
 } = useBboxRangeFilter({ route, router });
-const { select, selectDuplicate, clearSelection, saveScroll, restoreScroll } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
 // nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
@@ -283,10 +282,10 @@ async function toggleAlways(item: BaseMapCatalogItem, always: boolean): Promise<
   }
 }
 
+// 一覧は画面を移るたびに先頭から表示する。離れる前のスクロール位置は復元しない
+// （戻るボタンで戻る先は地図・アプリ・POI の一覧だけで、この一覧へは戻らない）
 onMounted(async () => {
   await loadBaseMaps();
-  await nextTick();
-  await restoreScroll(masterList.value?.scrollElement ?? null);
 });
 
 watch([searchQuery, filterBbox], () => { void loadBaseMaps(); });

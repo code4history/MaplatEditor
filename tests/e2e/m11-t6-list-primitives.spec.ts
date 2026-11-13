@@ -3,6 +3,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
@@ -352,7 +353,7 @@ test('captures list screenshots for human review', async () => {
   test.setTimeout(180_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m11-t6-'));
   const { app, page } = await launch(e2eRoot);
-  const shot = (name: string) => page.screenshot({ path: path.join(artifactDir, `${name}.png`), fullPage: true });
+  const shot = (name: string) => takeScreenshot(page, path.join(artifactDir, `${name}.png`), { fullPage: true });
   try {
     await forceJapanese(page);
     await seedMap(page, 'shot');

@@ -55,7 +55,23 @@ const routes = [
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes
+  routes,
+  // 画面を移ったら新しい画面を先頭から表示する。スクロールは .main-content など
+  // 画面の外にある要素でも行われるため、window の位置に加えて共有のスクロール要素も
+  // ここで揃える（画面の中のスクロールは各画面が持つので触らない）。
+  scrollBehavior: () => ({ left: 0, top: 0 })
+})
+
+router.afterEach((to, from, failure) => {
+  // 取り消された・重複した遷移と、同じ画面の中の操作（クエリの変更など）では動かさない
+  if (failure || to.path === from.path) return
+  for (const el of [
+    document.querySelector('.main-content'),
+    document.body,
+    document.documentElement,
+  ]) {
+    if (el) el.scrollTop = 0
+  }
 })
 
 export default router

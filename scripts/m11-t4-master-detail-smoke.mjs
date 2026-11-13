@@ -351,8 +351,9 @@ try {
   );
   assert.match(routeComposable, /select/);
   assert.match(routeComposable, /clearSelection/);
-  assert.match(routeComposable, /saveScroll/);
-  assert.match(routeComposable, /restoreScroll/);
+  // 一覧の位置の復元は、一覧へ戻るボタンで戻ったときだけ（screenNavigation の札）。この composable は持たない
+  assert.doesNotMatch(routeComposable, /saveScroll/);
+  assert.doesNotMatch(routeComposable, /restoreScroll/);
   assert.match(routeComposable, /mergeMasterDetailQuery/);
 
   const generatorSource = await readFile(

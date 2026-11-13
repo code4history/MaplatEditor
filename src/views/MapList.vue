@@ -91,6 +91,7 @@ import { useInfiniteResourceList } from "../composables/useInfiniteResourceList"
 import { useResourceDelete } from "../composables/useResourceDelete";
 import { duplicateEditorPath, reserveCopySlug } from "../composables/useResourceDuplicate";
 import { useResourceListBackCache } from "../composables/useResourceListBackCache";
+import { consumeScreenReturn } from "../utils/screenNavigation";
 import { useRecentSearches } from "../composables/useRecentSearches";
 import ResourceListShell from "../components/resource-list/ResourceListShell.vue";
 import ResourceGridCard from "../components/resource-list/ResourceGridCard.vue";
@@ -163,8 +164,11 @@ onBeforeRouteLeave(() => {
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
 });
 async function restoreOrLoad(): Promise<void> {
+  // 戻るボタンでの帰還のときだけ、離れる前の条件と位置へ戻す。それ以外の画面移動では
+  // 新しい画面を先頭から表示する（前のスクロール位置を持ち越さない）
+  const returning = consumeScreenReturn();
   const cached = backCache.load();
-  if (cached && cached.q === query.value && cached.bbox === bboxQuery.value && cached.batches >= 1) {
+  if (returning && cached && cached.q === query.value && cached.bbox === bboxQuery.value && cached.batches >= 1) {
     await restore(cached.batches);
     await nextTick();
     const root = shellRef.value?.contentRef ?? null;

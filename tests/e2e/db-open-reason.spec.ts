@@ -5,6 +5,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { chmod, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 
@@ -31,7 +32,7 @@ async function expectDbOpenFailure(
 ): Promise<void> {
   await expect(page.locator('[data-resource-status]')).toHaveAttribute('data-state', 'error', { timeout: 30_000 });
   // 証拠の画面写真は、判定の前に撮る（直す前でも同じ画面が残るようにする）
-  await page.screenshot({ path: path.join(evidenceDir, `db-open-reason-${evidenceTag}-${shotName}.png`) });
+  await takeScreenshot(page, path.join(evidenceDir, `db-open-reason-${evidenceTag}-${shotName}.png`));
   await expect(page.locator('[data-resource-status]')).toContainText('読み込みに失敗しました');
   await expect(page.locator('[data-load-failure-reason]')).toHaveText(reasonText);
   const fix = page.locator('[data-load-failure-fix]');

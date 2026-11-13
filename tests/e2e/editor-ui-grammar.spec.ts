@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { launch, openHash, saveFolderOf, seedFullMap, projectRoot } from './helpers/mapPackage';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 // UI 文法（docs/ui-grammar.md）の代表画面を、同じ隔離データ・画面サイズで撮って確かめる。
@@ -30,7 +31,7 @@ for (const phase of ['before', 'after']) {
       });
       const shot = async (name: string) => {
         const file = path.join(artifacts, `${name}.png`);
-        await page.screenshot({ path: file });
+        await takeScreenshot(page, file);
         await testInfo.attach(name, { path: file, contentType: 'image/png' });
       };
       const uid = await page.evaluate(async () => {

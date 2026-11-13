@@ -23,6 +23,7 @@ import { expect, test, type ElectronApplication, type Page } from '@playwright/t
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 import { evalMain, openAboutWindow } from './helpers/electronMenu';
@@ -74,7 +75,7 @@ async function openHash(page: Page, hash: string, ready: string): Promise<void> 
 }
 
 function shooter(page: Page) {
-  return (name: string) => page.screenshot({ path: path.join(artifactDir, `${name}.png`) });
+  return (name: string) => takeScreenshot(page, path.join(artifactDir, `${name}.png`));
 }
 
 async function saveFolderOf(page: Page): Promise<string> {
