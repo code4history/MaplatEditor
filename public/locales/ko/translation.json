@@ -569,7 +569,8 @@
     "export_option_originals": "원본 이미지",
     "export_option_originals_help": "원본 이미지 파일을 그대로 넣습니다.",
     "export_option_originals_warning": "파일이 커지고 사진의 부가 정보가 포함될 수 있습니다.",
-    "export_option_none_selected": "하나 이상 선택하십시오"
+    "export_option_none_selected": "하나 이상 선택하십시오",
+    "control_set_home": "홈 위치로 설정"
   },
   "mapupload": {
     "map_image": "지도 이미지",

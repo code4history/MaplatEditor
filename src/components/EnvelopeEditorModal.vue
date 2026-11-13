@@ -19,6 +19,7 @@ import { transformExtent } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
+import { layoutMapOverlayControls } from "../utils/mapOverlayTools";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
@@ -228,6 +229,9 @@ onMounted(() => {
   });
   map.addControl(geocoder);
 
+  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'));
+
   // モーダル挿入直後はレイアウト確定前でOpenLayersがサイズ0を掴むことがあるため、
   // 描画フレーム後にサイズを再計測する(モーダル内地図の定番対策)
   requestAnimationFrame(() => map?.updateSize());
@@ -290,7 +294,10 @@ function confirm() {
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <div ref="mapElement" class="envelope-map"></div>
+          <div ref="mapElement" class="envelope-map">
+            <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
+            <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
+          </div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">
               <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("range_filter.guide_badge") }}</span>
@@ -322,6 +329,7 @@ function confirm() {
   z-index: 1080;
 }
 .envelope-map {
+  position: relative;
   width: 100%;
   height: 55vh;
   border: 1px solid var(--bs-border-color);

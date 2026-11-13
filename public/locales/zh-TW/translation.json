@@ -569,7 +569,8 @@
     "export_option_originals": "原始影像",
     "export_option_originals_help": "按原樣放入原始影像檔案。",
     "export_option_originals_warning": "檔案會變大，並可能包含照片的附加資訊。",
-    "export_option_none_selected": "請至少選擇一項"
+    "export_option_none_selected": "請至少選擇一項",
+    "control_set_home": "設為首頁位置"
   },
   "mapupload": {
     "map_image": "地圖圖像",

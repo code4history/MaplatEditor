@@ -569,7 +569,8 @@
     "export_option_originals": "Gambar asli",
     "export_option_originals_help": "Menyertakan berkas gambar asli apa adanya.",
     "export_option_originals_warning": "Berkas menjadi lebih besar dan dapat berisi metadata foto.",
-    "export_option_none_selected": "Pilih setidaknya satu item"
+    "export_option_none_selected": "Pilih setidaknya satu item",
+    "control_set_home": "Tetapkan sebagai posisi awal"
   },
   "mapupload": {
     "map_image": "Gambar peta",

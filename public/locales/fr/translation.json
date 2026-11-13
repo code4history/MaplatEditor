@@ -569,7 +569,8 @@
     "export_option_originals": "Image originale",
     "export_option_originals_help": "Inclut le fichier image original tel quel.",
     "export_option_originals_warning": "Le fichier devient plus volumineux et peut contenir des métadonnées de la photo.",
-    "export_option_none_selected": "Sélectionnez au moins un élément"
+    "export_option_none_selected": "Sélectionnez au moins un élément",
+    "control_set_home": "Définir comme position d'accueil"
   },
   "mapupload": {
     "map_image": "Image de la carte",

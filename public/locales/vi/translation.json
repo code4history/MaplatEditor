@@ -569,7 +569,8 @@
     "export_option_originals": "Ảnh gốc",
     "export_option_originals_help": "Đưa nguyên tệp ảnh gốc vào.",
     "export_option_originals_warning": "Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
-    "export_option_none_selected": "Hãy chọn ít nhất một mục"
+    "export_option_none_selected": "Hãy chọn ít nhất một mục",
+    "control_set_home": "Đặt làm vị trí chính"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

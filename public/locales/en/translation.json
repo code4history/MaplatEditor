@@ -551,7 +551,8 @@
     "export_option_originals": "Original image",
     "export_option_originals_help": "Includes the original image file as is.",
     "export_option_originals_warning": "The file becomes larger and may contain photo metadata.",
-    "export_option_none_selected": "Select at least one item"
+    "export_option_none_selected": "Select at least one item",
+    "control_set_home": "Set home position"
   },
   "mapupload": {
     "map_image": "Map Image",

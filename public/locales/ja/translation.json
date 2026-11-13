@@ -569,7 +569,8 @@
     "export_option_originals": "オリジナル画像",
     "export_option_originals_help": "オリジナル画像をそのまま入れます。",
     "export_option_originals_warning": "ファイルが大きくなり、写真の付帯情報を含むことがあります。",
-    "export_option_none_selected": "1 つ以上選んでください"
+    "export_option_none_selected": "1 つ以上選んでください",
+    "control_set_home": "ホーム位置に設定"
   },
   "mapupload": {
     "map_image": "地図画像",

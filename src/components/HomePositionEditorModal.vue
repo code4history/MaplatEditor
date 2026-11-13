@@ -13,6 +13,7 @@ import { Style, Circle as CircleStyle, Stroke, Fill } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
+import { layoutMapOverlayControls } from "../utils/mapOverlayTools";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
@@ -81,6 +82,9 @@ onMounted(() => {
     }
   });
   map.addControl(geocoder);
+
+  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'));
 });
 
 onBeforeUnmount(() => {
@@ -112,7 +116,10 @@ function confirm() {
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <div ref="mapElement" class="home-position-map"></div>
+          <div ref="mapElement" class="home-position-map">
+            <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
+            <div class="map-overlay-tools" data-testid="map-overlay-tools-home-position"></div>
+          </div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentPosition">
               {{ t("appedit.home_lng") }} {{ currentPosition[0] }} / {{ t("appedit.home_lat") }} {{ currentPosition[1] }}
@@ -141,6 +148,7 @@ function confirm() {
   background: rgba(0, 0, 0, 0.4);
 }
 .home-position-map {
+  position: relative;
   width: 100%;
   height: 55vh;
   border: 1px solid var(--bs-border-color);

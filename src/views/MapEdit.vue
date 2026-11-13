@@ -91,6 +91,7 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
+import { layoutMapOverlayControls } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { defaults as controlDefaults } from 'ol/control';
@@ -3170,6 +3171,10 @@ const initMaps = async () => {
 
     // ベースマップの初期設定
     await setupBaseMaps();
+
+    // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+    layoutMapOverlayControls(document.getElementById('illstMap'), document.querySelector('[data-testid="map-overlay-tools-illst"]'));
+    layoutMapOverlayControls(document.getElementById('mercMap'), document.querySelector('[data-testid="map-overlay-tools-merc"]'));
 };
 
 // ... (imports)
@@ -5331,24 +5336,32 @@ const goBack = async () => {
                     <!-- Left: Illustrated Map (Source) -->
                     <div class="col-6 h-100 position-relative px-1">
                         <div id="illstMap" class="w-100 h-100"></div>
-                        <!-- Home Button Illst -->
-                        <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
-                                <i class="bi bi-magic"></i>
-                            </button>
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeIllst" @click="setHomeIllst"><i class="bi bi-house"></i></button>
+                        <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
+                        <div class="map-overlay-tools" data-testid="map-overlay-tools-illst">
+                            <div class="map-overlay-tools__row">
+                                <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
+                                    <i class="bi bi-magic"></i>
+                                </button>
+                                <button class="btn map-tool" data-testid="map-edit-set-home-illst" :disabled="!enableSetHomeIllst" @click="setHomeIllst" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
+                                    <i class="bi bi-house"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Right: Mercator Map (Destination/Reference) -->
                     <div class="col-6 h-100 position-relative px-1">
                         <div id="mercMap" class="w-100 h-100"></div>
-                         <!-- Home Button Merc -->
-                        <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
-                                <i class="bi bi-magic"></i>
-                            </button>
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeMerc" @click="setHomeMerc"><i class="bi bi-house"></i></button>
+                        <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
+                        <div class="map-overlay-tools" data-testid="map-overlay-tools-merc">
+                            <div class="map-overlay-tools__row">
+                                <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
+                                    <i class="bi bi-magic"></i>
+                                </button>
+                                <button class="btn map-tool" data-testid="map-edit-set-home-merc" :disabled="!enableSetHomeMerc" @click="setHomeMerc" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
+                                    <i class="bi bi-house"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

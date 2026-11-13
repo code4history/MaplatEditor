@@ -2,6 +2,8 @@
   <!-- 地図ペイン (Phase 4 Task 6, 仕様 §3.3 POI-132)。base map selector は地図右上のオーバーレイ -->
   <div class="w-100 h-100 position-relative">
     <div id="poiEditMap" class="w-100 h-100"></div>
+    <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
+    <div class="map-overlay-tools" data-testid="map-overlay-tools-poi"></div>
     <div class="position-absolute top-0 end-0 m-2" style="z-index: 10;">
       <select
         v-model="currentBaseMapID"
@@ -45,6 +47,7 @@ import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
 import { localizeTitle } from "../utils/langResource";
+import { layoutMapOverlayControls } from "../utils/mapOverlayTools";
 import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
 // t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
@@ -603,6 +606,12 @@ onMounted(async () => {
     }
   });
   map.addControl(geocoder);
+
+  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  layoutMapOverlayControls(
+    document.getElementById("poiEditMap"),
+    document.querySelector('[data-testid="map-overlay-tools-poi"]'),
+  );
 });
 
 onBeforeUnmount(() => {
