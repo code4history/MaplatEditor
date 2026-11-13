@@ -9,6 +9,7 @@
       :state="state"
       :total="total"
       :loaded="loaded"
+      :failure="failure"
       :new-draft="newDrafts.length > 0"
       :recent-searches="recentItems"
       :recent-active-query="query"
@@ -125,7 +126,7 @@ const adapter = createMapListAdapter({
     poisFormat: t("resource_list.badge_pois_format"),
   },
 });
-const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<MapListRow, number>(
+const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<MapListRow, number>(
   adapter,
   { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" },
   { limit: 20 },

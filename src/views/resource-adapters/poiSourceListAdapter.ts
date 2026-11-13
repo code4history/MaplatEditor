@@ -1,5 +1,6 @@
 import i18next from "i18next";
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
+import { isSearchFailureReply, ResourceLoadFailureError } from "../../components/resource-list/loadFailure";
 import type { PoiSourceListRow } from "../../electron";
 import { localizeTitle } from "../../utils/langResource";
 import {
@@ -24,6 +25,7 @@ export function createPoiSourceListAdapter(deps: PoiSourceAdapterDeps): Resource
     async load({ filter, cursor, limit }) {
       const page = cursor ?? 1;
       const result = await window.search.poiSources({ q: filter.q, bbox: filter.bbox ?? undefined, page, pageSize: limit || pageSize });
+      if (isSearchFailureReply(result)) throw new ResourceLoadFailureError(result.failure);
       return { items: result.docs as PoiSourceListRow[], total: result.total, nextCursor: result.next ?? null };
     },
     toViewModel(item): ResourceListItemViewModel {

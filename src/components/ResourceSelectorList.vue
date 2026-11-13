@@ -12,7 +12,7 @@
     </div>
     <div class="source-list resource-list__rows flex-grow-1 overflow-auto" @scroll.passive="onScroll">
       <slot v-for="item in items" :key="item.uid" name="item" :item="item"></slot>
-      <ResourceResultStatus :state="state" :total="null" :loaded="items.length" @retry="retry" />
+      <ResourceResultStatus :state="state" :total="null" :loaded="items.length" :failure="failure" @retry="retry" />
     </div>
   </div>
 </template>
@@ -41,7 +41,7 @@ const list = useInfiniteResourceList<any, any>(props.adapter, {
   filter: () => ({ q: effectiveQuery.value, bbox: props.spatialContext?.bbox ?? null }),
   activeLang: () => "",
 }, { limit: props.limit });
-const { items, state, loadFirst, loadMore, retry, dispose } = list;
+const { items, state, failure, loadFirst, loadMore, retry, dispose } = list;
 let queryTimer: ReturnType<typeof setTimeout> | null = null;
 
 watch(() => props.query, (value) => {

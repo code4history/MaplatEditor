@@ -517,13 +517,25 @@ declare global {
   }
 }
 
+/** 保存先フォルダの DB を開けない失敗の応答。理由と code だけを持ち、パスは含めない */
+interface SearchFailureReply {
+  failure: { reason: 'permission' | 'not-found' | 'other'; code: string };
+}
+
+interface SearchListResult {
+  docs: any[];
+  total: number;
+  prev?: number;
+  next?: number;
+}
+
 interface SearchAPI {
   /** bboxはWGS84。main processでEPSG:3857へ変換される。 */
-  maps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
-  apps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
-  poiSources(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
-  baseMaps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
-  imageAssets(filter: { q?: string; page: number; pageSize: number }): Promise<{ docs: any[]; total: number; prev?: number; next?: number }>;
+  maps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<SearchListResult | SearchFailureReply>;
+  apps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<SearchListResult | SearchFailureReply>;
+  poiSources(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<SearchListResult | SearchFailureReply>;
+  baseMaps(filter: { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number }): Promise<SearchListResult | SearchFailureReply>;
+  imageAssets(filter: { q?: string; page: number; pageSize: number }): Promise<SearchListResult | SearchFailureReply>;
   /** 既存互換のraw API。bboxはEPSG:3857。UIは各search APIを使用する。 */
   searchExtent(kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]): Promise<string[]>;
   resourceBbox(kind: 'map', uid: string): Promise<[number, number, number, number] | null>;

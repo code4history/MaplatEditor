@@ -9,6 +9,7 @@
       :state="state"
       :total="total"
       :loaded="loaded"
+      :failure="failure"
       :new-draft="newDrafts.length > 0"
       :recent-searches="recentItems"
       :recent-active-query="query"
@@ -100,7 +101,7 @@ const adapter = createAppListAdapter({
     poisFormat: t("resource_list.badge_pois_format"),
   },
 });
-const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" });
+const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" });
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("app");
 // nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）

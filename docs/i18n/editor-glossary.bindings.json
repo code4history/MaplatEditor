@@ -904,6 +904,27 @@
       ],
       "role": "item"
     },
+    "resource_list.load_error_fix_not_found": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "resource_list.load_error_fix_other": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
+    "resource_list.load_error_fix_permission": {
+      "by": [
+        "en",
+        "ja"
+      ],
+      "role": "item"
+    },
     "settings.base_map": {
       "by": [
         "en",
