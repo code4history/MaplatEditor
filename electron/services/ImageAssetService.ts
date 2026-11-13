@@ -276,13 +276,14 @@ export class ImageAssetService {
 
     const slug = String(input.slug ?? '').trim();
     if (!slug) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    if (slug !== existing.slug && !(await SqliteDataService.isSlugAvailable(slug, uid))) {
+    if (slug !== existing.slug && !(await SqliteDataService.isSlugAvailable(slug, existing.uid))) {
       return { result: 'Exist' };
     }
 
     try {
+      // findAsset は UID を小文字に揃えて引く。以降の書き込みも保存されている表記（existing.uid）で行う
       const { revision } = await SqliteDataService.upsertAssetMeta(
-        uid,
+        existing.uid,
         slug,
         {
           lang: String(input.lang || existing.lang || 'ja'),
@@ -298,7 +299,7 @@ export class ImageAssetService {
       );
       return {
         result: 'Success',
-        uid,
+        uid: existing.uid,
         slug,
         revision,
         mime: existing.mime,
@@ -330,7 +331,8 @@ export class ImageAssetService {
     const existing = await SqliteDataService.findAsset(uid);
     if (!existing) return { ok: true, bytes: 'absent' };
 
-    await SqliteDataService.deleteAsset(uid);
+    // findAsset は UID を小文字に揃えて引く。消すのも保存されている表記（existing.uid）で行う
+    await SqliteDataService.deleteAsset(existing.uid);
 
     const from = path.join(this.assetsDir, `${existing.uid}.${existing.ext}`);
     if (!(await fs.pathExists(from))) return { ok: true, bytes: 'absent' };

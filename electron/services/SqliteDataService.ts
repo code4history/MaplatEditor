@@ -2111,11 +2111,15 @@ class SqliteDataService {
     return { uid: this.createAssetRow(db, slug, input, presetUid) };
   }
 
+  // アセットの UID は小文字で保存する。参照側（icon・image・html 本文の maplat-asset:<UID>）に
+  // 大文字で書かれていても見つかるよう、引く前に小文字へ揃える。エディタの診断
+  // （src/utils/iconRefs.ts・src/utils/poiContentMode.ts）も小文字に直して数えるので、
+  // 書き出し・プレビュー・診断の判定が揃う。UID でアセットを引く処理はすべてここを通す
   async findAsset(uid: string): Promise<AssetRecord | null> {
     const db = await this.getDb();
     const row = db
       .prepare('SELECT uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at FROM assets WHERE uid = ?')
-      .get(uid) as any;
+      .get(uid.toLowerCase()) as any;
     return row ? assetRowToRecord(row) : null;
   }
 
