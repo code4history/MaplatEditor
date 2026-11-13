@@ -17,7 +17,8 @@ import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
 const ENVELOPE: [number, number][] = [[130.5, 32.5], [131, 32.5], [131, 33], [130.5, 33]];
-const ENVELOPE_BBOX = ['130.5', '32.5', '131', '33'];
+// 欄に出る順（小窓と同じ西・東・南・北 = DOM 順）
+const ENVELOPE_INPUT_ORDER = ['130.5', '131', '32.5', '33'];
 const OWNED = { envelopeLngLats: ENVELOPE, mercatorXShift: 1.5, mercatorYShift: -2.25 };
 
 const masterDoc = () => baseMapMasterDoc({
@@ -109,7 +110,7 @@ async function expectOwnedFields(page: Page, slug: string): Promise<void> {
   await expect(card.getByTestId('app-source-override-mercatorYShift')).toHaveValue('-2.25');
   const bbox = card.getByTestId('app-source-override-envelopeLngLats').locator('input');
   await expect(bbox).toHaveCount(4);
-  for (let i = 0; i < 4; i += 1) await expect(bbox.nth(i)).toHaveValue(ENVELOPE_BBOX[i]);
+  for (let i = 0; i < 4; i += 1) await expect(bbox.nth(i)).toHaveValue(ENVELOPE_INPUT_ORDER[i]);
   await expect(card.getByTestId('app-source-override-label')).toHaveValue('旧ラベル');
 }
 
