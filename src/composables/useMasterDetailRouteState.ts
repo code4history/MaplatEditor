@@ -27,11 +27,13 @@ export function useMasterDetailRouteState() {
   };
 
   // 保存の後: 一覧を読み直してから保存した行を選ぶ。読み直しの間に利用者が別の画面や行へ
-  // 移ったら、保存した行へ引き戻さない（BaseMap/Asset の master-detail 共通）
+  // 移ったら、保存した行へ引き戻さない（BaseMap/Asset の master-detail 共通）。
+  // 検索語だけの変更は移動に数えない（選び直して new の印を外す。検索語は残る）
   const selectSavedAfterReload = async (uid: string, reload: () => Promise<void>) => {
-    const routeAtSave = route.fullPath;
+    const pathAtSave = route.path;
+    const uidAtSave = route.query.uid;
     await reload();
-    if (route.fullPath !== routeAtSave) return;
+    if (route.path !== pathAtSave || route.query.uid !== uidAtSave) return;
     await select(uid, false);
   };
 
