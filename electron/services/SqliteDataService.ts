@@ -692,6 +692,26 @@ class SqliteDataService {
     return initialized.db;
   }
 
+  /**
+   * DB に書けることを、何も残さずに確かめる。user_version を同じ値で書き、取り消す。
+   * 書けなければ SQLite が errcode 8（SQLITE_READONLY）を投げる。
+   * 取り消すので WAL へのフレームも本体の更新時刻も残らない（同じ値を確定させる方法は
+   * 毎回 WAL を 1 頁伸ばし、閉じたときの checkpoint で本体の更新時刻を変える）。
+   * journal_mode の戻り値は見ない: WAL を使えないが書ける場所（delete のまま）を
+   * 失敗にしてしまい、また 444 のファイルは wal を返すので見分けられないため。
+   */
+  private probeWritable(db: DatabaseSync): void {
+    const row = db.prepare('PRAGMA user_version').get() as { user_version?: number } | undefined;
+    const version = Number(row?.user_version ?? 0);
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      db.exec(`PRAGMA user_version=${Number.isSafeInteger(version) ? version : 0}`);
+    } finally {
+      // 書き込みの失敗で SQLite が取引を閉じていることがある。開いているときだけ取り消す
+      if (db.isTransaction) db.exec('ROLLBACK');
+    }
+  }
+
   private async initializeDb(saveFolder: string, sqliteFile: string): Promise<InitializedDb> {
     let db: DatabaseSync | null = null;
     try {
@@ -708,14 +728,21 @@ class SqliteDataService {
         // 読み取り専用のフォルダ（chmod 555 等）や読み取り専用の DB ファイル（chmod 444）では
         // 開封は成功し、WAL 化で初めて失敗する（errcode 1544 = SQLITE_READONLY_DIRECTORY 等）。
         // 「開けない」失敗として包む範囲に入れる
+        // 書けることの確かめ（BEGIN IMMEDIATE）が他の接続の書き込み中に即 BUSY で落ちないよう、
+        // 待ち時間は WAL 化より前に入れる（書き込みではないので開封の失敗の分類に影響しない）
+        db.exec('PRAGMA busy_timeout=5000');
         db.exec('PRAGMA journal_mode=WAL');
+        // WAL 化が失敗せずに通っても書けないことがある: WAL 化済みの DB ファイルだけが
+        // 読み取り専用（chmod 444。journal_mode は wal を返す）、読み取り専用のディスク
+        // イメージ上の未 WAL の DB（journal_mode は delete を返し例外を出さない）。
+        // どちらも最初の書き込み（migrate）で初めて失敗するため、ここで書けることを確かめる
+        this.probeWritable(db);
       } catch (e) {
         // 保存先フォルダの DB を開けない失敗は、理由（権限が無い／場所が無い／その他）と code
         // だけを renderer へ渡せる形へ写像する。原文（パス入り）は main のログにだけ残す
         console.error('[SqliteDataService] failed to open the write store:', e);
         throw await toDbOpenError(e, saveFolder);
       }
-      db.exec('PRAGMA busy_timeout=5000');
       // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
       db.exec('PRAGMA synchronous=NORMAL');
       // INSERT OR REPLACE時の内部DELETEでもトリガを発火させる(検索索引の同期漏れ防止)

@@ -83,7 +83,9 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { chmod, mkdir, rm, symlink } from 'node:fs/promises';
+      import { chmod, mkdir, rm, stat, symlink } from 'node:fs/promises';
+      import { execFile } from 'node:child_process';
+      import { promisify } from 'node:util';
       import { DatabaseSync } from 'node:sqlite';
       import path from 'node:path';
       import {
@@ -95,6 +97,7 @@ try {
         withDbOpenFailureReply,
       } from ${JSON.stringify(dbOpenFailurePath)};
 
+      const execFileAsync = promisify(execFile);
       const workDir = ${JSON.stringify(workDir)};
       const scratch = path.join(workDir, 'cases');
       await mkdir(scratch, { recursive: true });
@@ -295,6 +298,71 @@ try {
         assert.equal(roFileFailure.failure.code, 'SQLITE_READONLY');
       } finally {
         await chmod(roFile, 0o644);
+      }
+
+      // WAL 化済みの DB ファイルだけが読み取り専用（chmod 444）: PRAGMA journal_mode=WAL は
+      // 失敗せず wal を返すため、書けることの確かめ（user_version を書いて取り消す）で
+      // errcode 8（SQLITE_READONLY）になる。確かめが無いと migrate の書き込みで理由なしに落ちる
+      const roWalFileStore = path.join(scratch, 'ro-wal-file-store');
+      await mkdir(roWalFileStore, { recursive: true });
+      const roWalFile = path.join(roWalFileStore, 'maplat.sqlite');
+      seedDatabase(roWalFile, true);
+      await chmod(roWalFile, 0o444);
+      try {
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', roWalFileStore);
+        const roWalFileFailure = await readFailure();
+        assert.ok(roWalFileFailure instanceof DbOpenError, 'WAL 化済みの読み取り専用 DB ファイルの失敗は DbOpenError: ' + String(roWalFileFailure));
+        assert.equal(roWalFileFailure.failure.reason, 'permission', 'WAL 化済みの読み取り専用 DB ファイルは権限が無い');
+        assert.equal(roWalFileFailure.failure.code, 'SQLITE_READONLY');
+      } finally {
+        await chmod(roWalFile, 0o644);
+      }
+
+      // 読み取り専用のディスクイメージ上の未 WAL の DB: PRAGMA journal_mode=WAL は例外を出さず
+      // delete を返す。書けることの確かめで errcode 8 になり「権限が無い」へ分ける。
+      // hdiutil のある macOS だけで試す（小さなイメージを作り、必ず外して消す）
+      if (process.platform === 'darwin') {
+        const imageSrc = path.join(scratch, 'ro-image-src');
+        await mkdir(imageSrc, { recursive: true });
+        seedDatabase(path.join(imageSrc, 'maplat.sqlite'), false);
+        const imageFile = path.join(scratch, 'ro-image.dmg');
+        const mountPoint = path.join(scratch, 'ro-image-mnt');
+        await mkdir(mountPoint, { recursive: true });
+        await execFileAsync('hdiutil', ['create', '-quiet', '-srcfolder', imageSrc, '-format', 'UDRO', '-volname', 'maplat-ro-smoke', '-ov', imageFile]);
+        await execFileAsync('hdiutil', ['attach', '-quiet', '-readonly', '-nobrowse', '-mountpoint', mountPoint, imageFile]);
+        try {
+          await SqliteDataService.reset();
+          SettingsService.set('saveFolder', mountPoint);
+          const roImageFailure = await readFailure();
+          assert.ok(roImageFailure instanceof DbOpenError, '読み取り専用イメージ上の DB の失敗は DbOpenError: ' + String(roImageFailure));
+          assert.equal(roImageFailure.failure.reason, 'permission', '読み取り専用イメージ上の DB は権限が無い');
+          assert.equal(roImageFailure.failure.code, 'SQLITE_READONLY');
+        } finally {
+          await SqliteDataService.reset();
+          await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+          await rm(imageFile, { force: true });
+        }
+      }
+
+      // 書けることの確かめは何も残さない: 健全な WAL 化済み DB の user_version と、
+      // 確かめの前後で WAL の大きさが変わらないこと（同じ値を確定させる方法なら 1 頁伸びる）
+      {
+        const probeStore = path.join(scratch, 'probe-store');
+        await mkdir(probeStore, { recursive: true });
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', probeStore);
+        await SqliteDataService.searchMaps('');
+        const probeDb = await SqliteDataService.getDb();
+        const versionBefore = (probeDb.prepare('PRAGMA user_version').get() as any).user_version;
+        probeDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+        const walFile = path.join(probeStore, 'maplat.sqlite-wal');
+        const walSizeBefore = (await stat(walFile)).size;
+        (SqliteDataService as any).probeWritable(probeDb);
+        assert.equal((await stat(walFile)).size, walSizeBefore, '確かめで WAL が伸びない');
+        assert.equal((probeDb.prepare('PRAGMA user_version').get() as any).user_version, versionBefore, 'user_version は変わらない');
+        assert.equal(probeDb.isTransaction, false, '確かめの後に取引を残さない');
+        await SqliteDataService.reset();
       }
 
       // 外付けドライブが外れた状態のパス: ensureDir は ENOENT ではなく EACCES を返すが、
