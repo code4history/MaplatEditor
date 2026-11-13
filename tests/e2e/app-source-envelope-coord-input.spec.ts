@@ -8,6 +8,11 @@
 //      重ならないときは保存済みの値を変えず、理由を出す
 //   3. 全角の数字と小数点のコンマを受け付け、半角で欄に戻す。並びは小窓と同じ
 //      経度（西・東）と緯度（南・北）の 2 組
+//   4. 外からの操作（「地図で指定」の確定・「存在範囲からコピー」）で範囲が今と同じ値になっても、
+//      欄は範囲から同期し直され、残っていた正しくない入力と理由が消える
+//   5. 正しくない結果が出たら、前の「切り詰めました」の通知は下りる
+//   6. 何も変えずに Enter・欄から離れても書き込まない（7 桁以上の値・非矩形の形を変えず、undo の履歴も増やさない）
+//   7. 正しくない入力では undo の履歴が増えない。全欄を空にすると × と同じクリアになる
 import { _electron as electron, expect, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -56,7 +61,11 @@ async function seedApp(page: Page, appSlug: string, sources: unknown[]): Promise
 }
 
 // マスタ（存在範囲つき）と、そのソースを持つアプリを作り、ソースのカードまで開く
-async function openSourceCard(page: Page, prefix: string): Promise<{ card: Locator; masterSlug: string }> {
+async function openSourceCard(
+  page: Page,
+  prefix: string,
+  overrides?: Record<string, unknown>,
+): Promise<{ card: Locator; masterSlug: string }> {
   const masterSlug = `${prefix}-base-${Date.now()}`;
   await seedBaseMap(page, masterSlug, baseMapMasterDoc({
     kind: 'tms',
@@ -67,7 +76,7 @@ async function openSourceCard(page: Page, prefix: string): Promise<{ card: Locat
     coverageLngLats: COVERAGE_LNG_LATS,
   }));
   const appUid = await seedApp(page, `${prefix}-app-${Date.now()}`, [
-    { sourceType: 'tms', mapUid: masterSlug, role: 'base', startFrom: true },
+    { sourceType: 'tms', mapUid: masterSlug, role: 'base', startFrom: true, ...(overrides ? { overrides } : {}) },
   ]);
   await page.evaluate((uid: string) => { location.hash = `#/appedit?uid=${uid}`; }, appUid);
   await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 30000 });
@@ -99,6 +108,11 @@ async function fieldValues(card: Locator): Promise<string[]> {
   const inputs = card.locator('.envelope-input input');
   await expect(inputs).toHaveCount(4);
   return Promise.all([0, 1, 2, 3].map((i) => inputs.nth(i).inputValue()));
+}
+
+// undo の履歴の位置（書き込みが 1 つ増えると 1 進む）
+async function historyPointer(page: Page): Promise<number | null> {
+  return await page.evaluate(() => (window as any).testDebug.historyPointer());
 }
 
 async function fillCoord(card: Locator, field: string, value: string): Promise<void> {
@@ -233,6 +247,130 @@ test('全角の数字と小数点のコンマを受け付け、半角で欄に�
     // 半角で欄に戻り、並びは小窓と同じ（西・東・南・北）
     await expect.poll(() => fieldValues(card), { timeout: 15000 }).toEqual(['130.45', '131.5', '32.6', '33.5']);
     await expect(envelopeDiagnostics(card)).toHaveCount(0);
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
+test('外からの操作で同じ値になっても欄を同期し直し、正しくない入力・理由・切り詰めの通知が消える', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-source-coord-4-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    const { card, masterSlug } = await openSourceCard(page, 'srccoord4');
+    const diagnostics = envelopeDiagnostics(card);
+    const copyButton = card.getByTestId('app-source-copy-coverage-envelopeLngLats');
+
+    // 存在範囲からコピーして、欄に bbox が出る
+    await copyButton.click();
+    await expect.poll(async () => savedEnvelope(page, masterSlug), { timeout: 15000 }).toEqual(COVERAGE_LNG_LATS);
+    await expect.poll(() => fieldValues(card), { timeout: 15000 }).toEqual(['130.25', '131.75', '32.5', '33.8']);
+
+    // 正しくない入力で理由が出たあと、同じ値になる「存在範囲からコピー」を押す → 欄が戻り理由が消える
+    await fillCoord(card, 'west', 'abc');
+    await coordInput(card, 'west').press('Enter');
+    await expect(diagnostics).toContainText('数字で入力', { timeout: 15000 });
+    await copyButton.click();
+    await expect(diagnostics).toHaveCount(0, { timeout: 15000 });
+    await expect(coordInput(card, 'west')).not.toHaveClass(/is-invalid/);
+    expect(await fieldValues(card)).toEqual(['130.25', '131.75', '32.5', '33.8']);
+    expect(await savedEnvelope(page, masterSlug)).toEqual(COVERAGE_LNG_LATS);
+
+    // 矩形の値を入れ、切り詰めの通知を出す（欄から離れるたびに反映されるので、
+    // いったん東を内側の 131.5 で反映してから、存在範囲の外へ出る 133 を入れる）
+    await fillCoord(card, 'west', '131');
+    await fillCoord(card, 'south', '32.6');
+    await fillCoord(card, 'north', '33');
+    await fillCoord(card, 'east', '131.5');
+    await coordInput(card, 'east').press('Enter');
+    await expect.poll(async () => savedEnvelope(page, masterSlug), { timeout: 15000 })
+      .toEqual([[131, 32.6], [131.5, 32.6], [131.5, 33], [131, 33]]);
+    await fillCoord(card, 'east', '133');
+    await coordInput(card, 'east').press('Enter');
+    await expect(diagnostics).toContainText('切り詰めました', { timeout: 15000 });
+    const rect = [[131, 32.6], [131.75, 32.6], [131.75, 33], [131, 33]];
+    await expect.poll(async () => savedEnvelope(page, masterSlug), { timeout: 15000 }).toEqual(rect);
+
+    // 正しくない結果が出たら、前の切り詰めの通知は下りる（理由だけが出る）
+    await fillCoord(card, 'west', 'abc');
+    await coordInput(card, 'west').press('Enter');
+    await expect(diagnostics).toContainText('数字で入力', { timeout: 15000 });
+    await expect(diagnostics).not.toContainText('切り詰めました');
+
+    // 値を変えずに「地図で指定」の小窓を確定する → 欄が戻り理由が消える
+    await card.getByRole('button', { name: '地図で指定' }).click();
+    await expect(page.getByTestId('envelope-editor-dialog')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('envelope-confirm')).toBeEnabled({ timeout: 15000 });
+    await page.getByTestId('envelope-confirm').click();
+    await expect(page.getByTestId('envelope-editor-dialog')).not.toBeVisible({ timeout: 15000 });
+    await expect(diagnostics).toHaveCount(0, { timeout: 15000 });
+    await expect(coordInput(card, 'west')).not.toHaveClass(/is-invalid/);
+    expect(await fieldValues(card)).toEqual(['131', '131.75', '32.6', '33']);
+    expect(await savedEnvelope(page, masterSlug)).toEqual(rect);
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
+test('何も変えずに Enter・欄から離れても書き込まず、正しくない入力でも履歴が増えない。全欄を空にすると × と同じクリアになる', async () => {
+  test.setTimeout(300_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-source-coord-5-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    // 小数 7 桁以上・非矩形（5 隅）の保存済みの値
+    const stored: [number, number][] = [
+      [130.51234567, 32.61234567],
+      [131.41234567, 32.61234567],
+      [131.41234567, 33.41234567],
+      [130.9, 33.71234567],
+      [130.51234567, 33.41234567],
+    ];
+    const { card, masterSlug } = await openSourceCard(page, 'srccoord5', { envelopeLngLats: stored });
+    await expect.poll(() => fieldValues(card), { timeout: 15000 })
+      .toEqual(['130.512346', '131.412346', '32.612346', '33.712346']);
+    const start = await historyPointer(page);
+    expect(start).not.toBeNull();
+
+    // 何も変えずに Enter → 書き込まない（値も形も履歴もそのまま）
+    await coordInput(card, 'west').press('Enter');
+    await coordInput(card, 'west').press('Tab');
+    await coordInput(card, 'north').focus();
+    await coordInput(card, 'north').press('Enter');
+    expect(await savedEnvelope(page, masterSlug), '7 桁以上・非矩形の値を変えない').toEqual(stored);
+    expect(await historyPointer(page), '何も変えないと履歴は増えない').toBe(start);
+
+    // 同じ 6 桁の値を書き直しただけでも書き込まない
+    await fillCoord(card, 'west', '130.5123460');
+    await coordInput(card, 'west').press('Enter');
+    expect(await savedEnvelope(page, masterSlug)).toEqual(stored);
+    expect(await historyPointer(page)).toBe(start);
+    await expect(envelopeDiagnostics(card)).toHaveCount(0);
+
+    // 正しくない入力では保存せず、履歴も増えない
+    await fillCoord(card, 'west', 'abc');
+    await coordInput(card, 'west').press('Enter');
+    await expect(envelopeDiagnostics(card)).toContainText('数字で入力', { timeout: 15000 });
+    await fillCoord(card, 'west', '132');
+    await coordInput(card, 'west').press('Tab');
+    await expect(envelopeDiagnostics(card)).toContainText('西は東より小さい値', { timeout: 15000 });
+    expect(await savedEnvelope(page, masterSlug)).toEqual(stored);
+    expect(await historyPointer(page), '正しくない入力では履歴が増えない').toBe(start);
+
+    // 全欄を空にすると × と同じクリア（値が消え、× が消え、理由も出ず、履歴は 1 つ増える）
+    for (const field of ['west', 'south', 'east', 'north']) await fillCoord(card, field, '');
+    await coordInput(card, 'north').press('Enter');
+    await expect.poll(async () => savedEnvelope(page, masterSlug), { timeout: 15000 }).toBeNull();
+    await expect(card.getByTestId('app-source-clear-envelopeLngLats')).toHaveCount(0);
+    await expect(envelopeDiagnostics(card)).toHaveCount(0);
+    expect(await fieldValues(card)).toEqual(['', '', '', '']);
+    expect(await historyPointer(page)).toBe((start as number) + 1);
+    // × で消したときと同じく、overrides からキーごと外れる
+    const hasKey = await page.evaluate((uid: string) => {
+      const data = (window as any).testDebug.appData.value;
+      const source = (data.sources ?? []).find((s: any) => s.mapUid === uid);
+      return Object.prototype.hasOwnProperty.call(source?.overrides ?? {}, 'envelopeLngLats');
+    }, masterSlug);
+    expect(hasKey).toBe(false);
   } finally {
     await quitElectronApplication(app);
   }

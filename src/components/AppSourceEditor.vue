@@ -205,6 +205,9 @@ const coordInvalid = ref<Record<CoordField, boolean>>({ ...NO_COORD_INVALID });
 const cropNotice = ref(false);
 // 自分で反映した矩形。自分の反映と、他の操作（undo・「存在範囲からコピー」等）の変化を見分ける
 const appliedBbox = ref<[number, number, number, number] | null>(null);
+// 前に範囲から欄へ同期したときの文字列。欄が同期のときから変わっていなければ、
+// Enter や欄から離れても何も書き込まない（保存済みの値の桁や非矩形の形を黙って変えない）
+const syncedTexts = ref<Record<CoordField, string>>({ west: "", south: "", east: "", north: "" });
 
 // マスタの存在範囲。小窓と同じく、入れた値はその内側へ切り詰める
 const coverageBbox = computed<[number, number, number, number] | null>(() =>
@@ -216,6 +219,21 @@ function syncFieldsFromBbox(value: [number, number, number, number] | null) {
     const index = field === "west" ? 0 : field === "south" ? 1 : field === "east" ? 2 : 3;
     coordTexts.value[field] = value ? String(round6(value[index])) : "";
   }
+  syncedTexts.value = { ...coordTexts.value };
+}
+
+function textsUnchangedSinceSync(): boolean {
+  return COORD_FIELDS.every((field) => coordTexts.value[field] === syncedTexts.value[field]);
+}
+
+// 外からの操作（「地図で指定」の確定・「存在範囲からコピー」）で範囲を決めたとき、
+// 欄を範囲から同期し直し、残っていた理由と切り詰めの通知を消す。値が今と同じだと
+// watch(bbox) は動かないため、ここで直接そろえる
+function resetCoordFieldsTo(value: [number, number][] | null) {
+  appliedBbox.value = null;
+  cropNotice.value = false;
+  setCoordFeedback([], NO_COORD_INVALID);
+  syncFieldsFromBbox(envelopeToBbox(value));
 }
 
 function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, boolean>) {
@@ -239,20 +257,33 @@ watch(bbox, (value, previous) => {
 
 // 経緯度の入力を反映する（Enter か欄から離れたとき）。小窓と同じ検査・同じ挙動
 function applyFieldInputs() {
+  // 欄が前の同期から変わっていなければ何もしない（書き込みも undo の履歴も増やさない）。
+  // 入れ直して元の文字へ戻した場合に残る理由だけは消す
+  if (textsUnchangedSinceSync()) {
+    setCoordFeedback([], NO_COORD_INVALID);
+    return;
+  }
   const outcome = evaluateCoordInputs(coordTexts.value, coverageBbox.value, t);
   if (outcome.kind === "clear") {
     // 欄が空 = 範囲なし。「範囲をクリア」（×）と同じ扱いにする（未設定なら何もしない）
     if (bbox.value) clearEnvelope();
-    else setCoordFeedback([], NO_COORD_INVALID);
+    else {
+      cropNotice.value = false;
+      setCoordFeedback([], NO_COORD_INVALID);
+    }
     return;
   }
   if (outcome.kind === "invalid") {
-    // 正しくない値は保存せず、理由だけ出す（保存済みの値は消さない）
+    // 正しくない値は保存せず、理由だけ出す（保存済みの値は消さない）。
+    // 前の切り詰めの通知は、いま出す理由と関係が無いので下ろす
+    cropNotice.value = false;
     setCoordFeedback(outcome.diagnostics, outcome.invalid);
     return;
   }
-  // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）
-  if (bbox.value && bboxEquals(bbox.value, outcome.cropped)) {
+  // 今の範囲を 6 桁へ丸めた値と同じなら書き込まない（Enter 直後に change が来ても二度反映しない。
+  // 保存済みの値が 7 桁以上でも、非矩形の形でも、同じ範囲を入れ直しただけなら変えない。
+  // 切り詰めた通知も消さない）
+  if (bbox.value && bboxEquals(roundBbox(bbox.value), outcome.cropped)) {
     syncFieldsFromBbox(bbox.value);
     setCoordFeedback([], NO_COORD_INVALID);
     return;
@@ -261,6 +292,10 @@ function applyFieldInputs() {
   cropNotice.value = outcome.wasCropped;
   writeOverride("envelopeLngLats", bboxToEnvelope(outcome.cropped));
   setCoordFeedback([], NO_COORD_INVALID);
+}
+
+function roundBbox(value: [number, number, number, number]): [number, number, number, number] {
+  return [round6(value[0]), round6(value[1]), round6(value[2]), round6(value[3])];
 }
 
 const diagnosticItems = computed<DiagnosticItem[]>(() => [
@@ -276,6 +311,7 @@ function clearEnvelope() {
 }
 
 function onEnvelopeUpdate(value: [number, number][] | null) {
+  resetCoordFieldsTo(value);
   if (value) writeOverride("envelopeLngLats", value);
   else clearOverride("envelopeLngLats");
 }
@@ -296,7 +332,9 @@ function copyCoverageToEnvelope() {
   // マスタ配列の参照をアプリ文書へ差し込まないよう深いコピーを渡す。
   // EnvelopeEditorModal の確定（onEnvelopeUpdate）と同じ writeOverride 経路を通し、
   // 履歴（change emit → recordHistory）も同一に保つ。
-  writeOverride("envelopeLngLats", coverage.map((point: [number, number]) => [...point]));
+  const copied = coverage.map((point: [number, number]) => [...point] as [number, number]);
+  resetCoordFieldsTo(copied);
+  writeOverride("envelopeLngLats", copied);
 }
 </script>
 
