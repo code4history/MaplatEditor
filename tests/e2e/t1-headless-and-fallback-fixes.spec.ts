@@ -116,11 +116,23 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
       await page.evaluate((nextHash) => { location.hash = nextHash; }, `#/poisources/${poi}`);
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 20_000 });
 
-      // 地図右上オーバーレイのセレクター選択肢 = 常時表示（alwaysVisible）3種
-      const options = page.locator('#poiEditMap + div select option');
-      await expect(options).toHaveCount(3, { timeout: 20_000 });
-      const values = await options.evaluateAll((els) => els.map((el) => (el as HTMLOptionElement).value));
-      expect(values.sort()).toEqual(['gsi', 'gsi_ortho', 'osm']);
+      // 地図右上の札（ベースマップの切り替え）を開くと、選択肢 = 常時表示（alwaysVisible）3種
+      const expected = await page.evaluate(async () => {
+        const list = await window.baseMaps.list();
+        return list.filter((item: any) => item.alwaysVisible).map((item: any) => String(item.mapID));
+      });
+      expect(expected.sort()).toEqual(['gsi', 'gsi_ortho', 'osm']);
+      const trigger = page.locator('#poiEditMap .layer-switcher > button');
+      await expect(trigger).toBeVisible({ timeout: 20_000 });
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      await trigger.click();
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      const radios = page.locator('#poiEditMap .layer-switcher .panel input[type=radio]');
+      await expect(radios).toHaveCount(3, { timeout: 20_000 });
+      // 選択肢の名前は空でなく、3 種とも別の名前
+      const names = await page.locator('#poiEditMap .layer-switcher .panel li.layer label').allTextContents();
+      expect(names.map((name) => name.trim()).filter(Boolean)).toHaveLength(3);
+      expect(new Set(names).size).toBe(3);
     } finally {
       await quitElectronApplication(app);
     }
