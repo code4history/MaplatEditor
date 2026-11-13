@@ -344,10 +344,10 @@ function confirm() {
             <div class="map-overlay-legend" data-testid="envelope-map-legend">
               <div class="map-overlay-legend__title">{{ t("range_filter.legend_title") }}</div>
               <div class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545"></span>{{ t(rangeLabelKey || "appedit.envelope") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545; border-top-style: dashed"></span>{{ t(rangeLabelKey || "appedit.envelope") }}
               </div>
               <div v-if="fallbackBbox" class="map-overlay-legend__item">
-                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14"></span>{{ t("range_filter.guide_badge") }}
+                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14; border-top-style: dashed"></span>{{ t("range_filter.guide_badge") }}
               </div>
               <div v-if="coverageLngLats" class="map-overlay-legend__item">
                 <span class="map-overlay-legend__swatch" style="border-top-color: #0d6efd"></span>{{ t("basemap.coverage") }}

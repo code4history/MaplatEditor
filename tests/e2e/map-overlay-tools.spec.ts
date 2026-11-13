@@ -13,8 +13,11 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 
 const PROBE_HOST = 'overlay-escape-probe.invalid';
-const EVIL_TITLE = `<img src="https://${PROBE_HOST}/title.png" data-evil="title">EVIL_TITLE`;
-const EVIL_ATTR = `<img src="https://${PROBE_HOST}/attr.png" data-evil="attr">EVIL_ATTR`;
+const EVIL_TITLE = `<img src="https://${PROBE_HOST}/title.png" data-evil="title">EVIL_TITLE T1 &amp; T2 & T3`;
+const EVIL_ATTR = `<img src="https://${PROBE_HOST}/attr.png" data-evil="attr">EVIL_ATTR A1 &amp; A2 & A3`;
+// 二重 escape で正当な文字が化けないこと（`&amp;` が `&amp;amp;` に、`&` が `&amp;` に見えない）
+const AMP_TITLE = 'T1 &amp; T2 & T3';
+const AMP_ATTR = 'A1 &amp; A2 & A3';
 
 async function seedEvilBaseMap(page: Page): Promise<string> {
   return page.evaluate(async ({ title, attr }) => {
@@ -72,12 +75,15 @@ test.describe('地図の上の部品', () => {
       const evilLabel = page.locator('#poiEditMap .layer-switcher .panel li.layer label', { hasText: 'EVIL_TITLE' });
       await expect(evilLabel).toHaveCount(1, { timeout: 20_000 });
       await expect(evilLabel).toContainText('<img');
+      await expect(evilLabel).toContainText(AMP_TITLE);
       await evilLabel.click();
       // 選んだ名前が札に出る（textContent なので文字のまま）
       await expect(trigger).toContainText('EVIL_TITLE');
+      await expect(trigger).toContainText(AMP_TITLE);
       const attribution = page.locator('[data-testid="map-overlay-tools-poi"] .ol-attribution');
       await expect(attribution).toContainText('EVIL_ATTR', { timeout: 20_000 });
       await expect(attribution).toContainText('<img');
+      await expect(attribution).toContainText(AMP_ATTR);
       expect(await page.locator('[data-evil]').count()).toBe(0);
 
       // MapEdit のベースマップ（setupBaseMaps の経路）
