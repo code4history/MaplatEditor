@@ -209,7 +209,33 @@ test('正しくない値では矩形を変えずに理由を出す（数字で�
     await expect(diagnostics).toContainText('南は北より小さい値', { timeout: 15000 });
     expectCloseList((await featureExtent(page))!, before);
 
+    // 正しくない値が残っている間は確定できない
+    await expect(page.getByTestId('envelope-confirm')).toBeDisabled();
+
+    // 4 欄が揃わない（西を空にする）→ 矩形を変えず、空の欄を示して理由を出す
+    await fillCoord(page, 'north', '35.9');
+    await fillCoord(page, 'west', '');
+    await page.getByTestId('envelope-coord-west').press('Enter');
+    await expect(diagnostics).toContainText('4 つすべてを入力', { timeout: 15000 });
+    await expect(page.getByTestId('envelope-coord-west')).toHaveClass(/is-invalid/);
+    await expect(page.getByTestId('envelope-coord-east')).not.toHaveClass(/is-invalid/);
+    expectCloseList((await featureExtent(page))!, before);
+    await expect(page.getByTestId('envelope-confirm')).toBeDisabled();
+
+    // 全角の数字と小数点のコンマも受け付ける
+    await fillCoord(page, 'west', '１３９．４５');
+    await fillCoord(page, 'east', '139,85');
+    await page.getByTestId('envelope-coord-east').press('Enter');
+    await expect.poll(async () => (await featureExtent(page))![0], { timeout: 15000 }).toBeCloseTo(139.45, 5);
+    expectCloseList((await featureExtent(page))!, [139.45, 35.5, 139.85, 35.9]);
+    expect(await fieldValues(page), '受け付けた値を半角で欄に戻す').toEqual(['139.45', '35.5', '139.85', '35.9']);
+    await expect(diagnostics).toHaveCount(0);
+    await expect(page.getByTestId('envelope-confirm')).toBeEnabled();
+
     // 正しい値へ直して欄から離れると反映され、理由は消える
+    await fillCoord(page, 'north', '30');
+    await page.getByTestId('envelope-coord-north').press('Enter');
+    await expect(diagnostics).toContainText('南は北より小さい値', { timeout: 15000 });
     await fillCoord(page, 'north', '35.95');
     await page.getByTestId('envelope-coord-north').press('Tab');
     await expect.poll(() => featureExtent(page), { timeout: 15000 }).not.toBeNull();

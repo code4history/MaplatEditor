@@ -837,7 +837,12 @@
     "maplibre_export_warning_message": "Some MapLibre base maps in this app need MapLibre GL JS 6 and will not be shown with version 5.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nTo show them, switch \"MapLibre GL JS version\" to 6 on the app management screen, save the app, and export again.",
     "maplibre_export_warning_continue": "Export anyway",
-    "maplibre_export_warning_cancel": "Cancel"
+    "maplibre_export_warning_cancel": "Cancel",
+    "envelope_west_name": "West",
+    "envelope_south_name": "South",
+    "envelope_east_name": "East",
+    "envelope_north_name": "North",
+    "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north."
   },
   "mapmodel": {
     "untitled": "Untitled",

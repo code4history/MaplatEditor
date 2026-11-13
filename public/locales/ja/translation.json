@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "このアプリの MapLibre のベースマップの一部は 6 系が要るため、5 系では表示されません。",
     "maplibre_export_warning_detail": "{{reasons}}\n\n表示するには、アプリ管理の画面の「MapLibre GL JS の版」で 6 系に切り替えて保存してから、もう一度エクスポートしてください。",
     "maplibre_export_warning_continue": "このままエクスポート",
-    "maplibre_export_warning_cancel": "やめる"
+    "maplibre_export_warning_cancel": "やめる",
+    "envelope_west_name": "西",
+    "envelope_south_name": "南",
+    "envelope_east_name": "東",
+    "envelope_north_name": "北",
+    "envelope_coord_error_incomplete": "西・南・東・北の 4 つすべてを入力してください。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",

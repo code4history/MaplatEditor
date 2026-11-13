@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "Một số bản đồ nền MapLibre trong ứng dụng này cần MapLibre GL JS 6 và sẽ không hiển thị với phiên bản 5.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nĐể hiển thị, hãy chuyển \"Phiên bản MapLibre GL JS\" sang 6 trên màn hình quản lý ứng dụng, lưu ứng dụng rồi xuất lại.",
     "maplibre_export_warning_continue": "Vẫn xuất",
-    "maplibre_export_warning_cancel": "Hủy"
+    "maplibre_export_warning_cancel": "Hủy",
+    "envelope_west_name": "Tây",
+    "envelope_south_name": "Nam",
+    "envelope_east_name": "Đông",
+    "envelope_north_name": "Bắc",
+    "envelope_coord_error_incomplete": "Hãy nhập đủ bốn giá trị: tây, nam, đông và bắc."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

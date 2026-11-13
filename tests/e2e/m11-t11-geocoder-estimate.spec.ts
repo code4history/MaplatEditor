@@ -481,15 +481,28 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     const region = await page.evaluate(() => (window as any).testDebug.baseMapFilterRegion.value);
     expect(region).toBeNull();
 
-    // 経緯度の入力欄を手で書き換えると、ガイドではなく通常の範囲になる
+    // 値を変えずに Enter しても、ガイドのまま（自動を手動の範囲に変えない）
+    await page.locator('[data-testid="map-base-map-region-button"]').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
+    await page.getByTestId('envelope-coord-west').press('Enter');
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
+    await page.getByTestId('envelope-confirm').click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
+    expect(await page.evaluate(() => (window as any).testDebug.baseMapFilterRegion.value), '値を変えずに確定しても自動のまま').toBeNull();
+
+    // 経緯度の入力欄を手で書き換えると、ガイドではなく通常の範囲になり、確定で保存される
     await page.locator('[data-testid="map-base-map-region-button"]').click();
     await expect(page.locator('.envelope-modal')).toBeVisible();
     await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
     await page.getByTestId('envelope-coord-west').fill('139.65');
     await page.getByTestId('envelope-coord-west').press('Enter');
     await expect(page.locator('[data-testid="envelope-guide-badge"]')).not.toBeVisible();
-    await page.locator('.envelope-modal .btn-close').first().click();
+    await page.getByTestId('envelope-confirm').click();
     await expect(page.locator('.envelope-modal')).not.toBeVisible();
+    const manual = await page.evaluate(() => (window as any).testDebug.baseMapFilterRegion.value);
+    expect(manual, '手で書き換えて確定すると手動の範囲になる').not.toBeNull();
+    expect(JSON.stringify(manual)).toContain('139.65');
 
     await quitElectronApplication(app);
   });

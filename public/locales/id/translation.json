@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "Beberapa peta dasar MapLibre di aplikasi ini memerlukan MapLibre GL JS 6 dan tidak akan ditampilkan dengan versi 5.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nUntuk menampilkannya, ubah \"Versi MapLibre GL JS\" ke 6 di layar pengelolaan aplikasi, simpan aplikasi, lalu ekspor lagi.",
     "maplibre_export_warning_continue": "Tetap ekspor",
-    "maplibre_export_warning_cancel": "Batal"
+    "maplibre_export_warning_cancel": "Batal",
+    "envelope_west_name": "Barat",
+    "envelope_south_name": "Selatan",
+    "envelope_east_name": "Timur",
+    "envelope_north_name": "Utara",
+    "envelope_coord_error_incomplete": "Isi keempat nilai: barat, selatan, timur, dan utara."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",

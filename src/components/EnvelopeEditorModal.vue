@@ -342,7 +342,8 @@ function syncFieldsFromBbox(bbox: [number, number, number, number] | null) {
 }
 
 function fieldLabel(field: CoordField): string {
-  return t(`appedit.envelope_${field}`);
+  // エラー文では方角の正式名を使う（欄の見出しは言語によって 1 文字の略号のため）
+  return t(`appedit.envelope_${field}_name`);
 }
 
 function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, boolean>) {
@@ -352,7 +353,9 @@ function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, b
 
 // 数でない文字列は value: null（空欄は blank）で区別する
 function parseCoordInput(raw: string): { blank: boolean; value: number | null } {
-  const text = raw.trim();
+  // 全角の数字・記号は半角に寄せ、小数点のコンマ（点が無いときだけ）も受け付ける
+  let text = raw.normalize("NFKC").trim();
+  if (!text.includes(".") && (text.match(/,/g) || []).length === 1) text = text.replace(",", ".");
   if (text === "") return { blank: true, value: null };
   if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(text)) return { blank: false, value: null };
   const value = Number(text);
@@ -434,8 +437,9 @@ function applyFieldInputs() {
     return;
   }
   if (!allFilled) {
-    // 4つ揃うまで矩形は作らない（途中の入力も消さない）
-    setCoordFeedback([], invalid);
+    // 4つ揃うまで矩形は作らない（途中の入力も消さない）。空の欄を示し、理由を出す
+    for (const field of COORD_FIELDS) invalid[field] = parsed[field].blank;
+    setCoordFeedback([{ key: "incomplete", severity: "danger", message: t("appedit.envelope_coord_error_incomplete") }], invalid);
     return;
   }
   const entered: [number, number, number, number] = [
@@ -451,19 +455,24 @@ function applyFieldInputs() {
     return;
   }
   const wasCropped = !bboxEquals(cropped, entered);
-  // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）
-  if (!isGuide.value && currentBbox.value && bboxEquals(currentBbox.value, cropped)) {
+  // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）。
+  // ガイド表示中に値を変えずに Enter したときも、自動のまま（手動の範囲にしない）
+  if (currentBbox.value && bboxEquals(currentBbox.value, cropped)) {
     syncFieldsFromBbox(currentBbox.value);
     setCoordFeedback([], invalid);
     return;
   }
   isGuide.value = false;
   currentBbox.value = cropped;
+  guideSource.clear();
   renderBbox(cropped);
   fitViewToBboxIfNeeded(cropped);
   cropNotice.value = wasCropped;
   setCoordFeedback([], invalid);
 }
+
+// 欄に正しくない値が残っている間は確定させない（古い矩形を黙って保存しない）
+const hasCoordError = computed(() => coordDiagnostics.value.some((item) => item.severity === "danger"));
 
 const diagnosticItems = computed<DiagnosticItem[]>(() => [
   ...coordDiagnostics.value,
@@ -621,7 +630,7 @@ if (typeof window !== "undefined" && (window as any).isE2E) {
           <button type="button" class="btn btn-outline-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
           </button>
-          <button type="button" class="btn btn-primary" @click="confirm">
+          <button type="button" class="btn btn-primary" :disabled="hasCoordError" data-testid="envelope-confirm" @click="confirm">
             {{ t("appedit.confirm") }}
           </button>
         </div>

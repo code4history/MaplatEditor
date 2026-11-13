@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "此应用中的部分 MapLibre 底图需要 MapLibre GL JS 6，在版本 5 中不会显示。",
     "maplibre_export_warning_detail": "{{reasons}}\n\n要显示它们，请在应用管理界面将“MapLibre GL JS 版本”切换为 6，保存应用后再次导出。",
     "maplibre_export_warning_continue": "仍然导出",
-    "maplibre_export_warning_cancel": "取消"
+    "maplibre_export_warning_cancel": "取消",
+    "envelope_west_name": "西",
+    "envelope_south_name": "南",
+    "envelope_east_name": "东",
+    "envelope_north_name": "北",
+    "envelope_coord_error_incomplete": "请输入西、南、东、北全部四个值。"
   },
   "mapmodel": {
     "untitled": "标题未设置",

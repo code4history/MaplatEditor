@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "Einige MapLibre-Basiskarten dieser App benötigen MapLibre GL JS 6 und werden mit Version 5 nicht angezeigt.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nUm sie anzuzeigen, stellen Sie in der App-Verwaltung „MapLibre-GL-JS-Version“ auf 6 um, speichern die App und exportieren erneut.",
     "maplibre_export_warning_continue": "Trotzdem exportieren",
-    "maplibre_export_warning_cancel": "Abbrechen"
+    "maplibre_export_warning_cancel": "Abbrechen",
+    "envelope_west_name": "Westen",
+    "envelope_south_name": "Süden",
+    "envelope_east_name": "Osten",
+    "envelope_north_name": "Norden",
+    "envelope_coord_error_incomplete": "Geben Sie alle vier Werte ein: Westen, Süden, Osten und Norden."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",

@@ -857,7 +857,12 @@
     "maplibre_export_warning_message": "Certains fonds de carte MapLibre de cette app nécessitent MapLibre GL JS 6 et ne s’afficheront pas avec la version 5.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nPour les afficher, réglez « Version de MapLibre GL JS » sur 6 dans l’écran de gestion de l’app, enregistrez l’app, puis exportez-la à nouveau.",
     "maplibre_export_warning_continue": "Exporter quand même",
-    "maplibre_export_warning_cancel": "Annuler"
+    "maplibre_export_warning_cancel": "Annuler",
+    "envelope_west_name": "Ouest",
+    "envelope_south_name": "Sud",
+    "envelope_east_name": "Est",
+    "envelope_north_name": "Nord",
+    "envelope_coord_error_incomplete": "Saisissez les quatre valeurs : ouest, sud, est et nord."
   },
   "mapmodel": {
     "untitled": "Titre non défini",
