@@ -91,14 +91,13 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
-import { layoutMapOverlayControls, mapOverlayControlDefaults } from '../utils/mapOverlayTools';
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from '../utils/mapOverlayTools';
+import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
 import { altKeyOnly } from 'ol/events/condition';
 import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
-import LayerSwitcher from 'ol-layerswitcher';
-import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Style, Stroke, Fill, Icon } from 'ol/style';
@@ -1680,10 +1679,20 @@ let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
 // let mercSource: any = null;
-// m1-t2: 地図面の contextmenu と LayerSwitcher はモード制御（§5.4 / §6.3）で
+// m1-t2: 地図面の contextmenu とベースマップの切り替えはモード制御（§5.4 / §6.3）で
 // 実行時に enable/disable・renderPanel を呼ぶため、インスタンス参照を保持する
 let illstContextMenu: any = null;
-let layerSwitcher: any = null;
+let baseMapSwitcher: BaseMapSwitcher | null = null;
+
+// 札に出す名前（今の選択）
+const currentBaseMapLabel = (): string => {
+    const tms = baseMapList.value.find((x: any) => x.mapID === currentBaseMapID.value);
+    if (!tms) return String(currentBaseMapID.value || '');
+    return resolveBaseMapLayerMetadata(tms, currentLang.value).title || String(tms.mapID);
+};
+
+// 選択が変わったら札の名前を書き直す（切り替えは change:visible から currentBaseMapID が追随する）
+watch(currentBaseMapID, () => baseMapSwitcher?.refreshLabel());
 
 // json/bounds レイヤーの VectorSource 参照キャッシュ（MaplatMap.getSource() 経由では取得できない）
 let illstJsonSource: VectorSource | null = null;
@@ -3073,8 +3082,12 @@ const initMaps = async () => {
             new Drag()
         ]),
         controls: mapOverlayControlDefaults(controlLabels).extend([
-            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する
-            (layerSwitcher = new LayerSwitcher())
+            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する。
+            // §5-4: 今の選択の名前を札に出し、クリックで開く
+            (baseMapSwitcher = createBaseMapSwitcher({
+                tipLabel: t('mapedit.control_basemap'),
+                labelOf: currentBaseMapLabel
+            })).control
         ])
     });
     mercMap.addControl(createContextMenu(mercMap));
@@ -3595,7 +3608,7 @@ const setSwitchableBaseMaps = (allowed: 'all' | 'none' | { exclude: string }) =>
             delete baseMapTitleStash[mapID];
         }
     });
-    layerSwitcher?.renderPanel?.();
+    baseMapSwitcher?.control.renderPanel();
 };
 
 // 現在の相に応じた切替候補（P0=全許可 / P1=全禁止 / P2=対象以外許可）。

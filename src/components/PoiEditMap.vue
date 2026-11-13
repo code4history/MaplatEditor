@@ -1,21 +1,9 @@
 <template>
-  <!-- 地図ペイン (Phase 4 Task 6, 仕様 §3.3 POI-132)。base map selector は地図右上のオーバーレイ -->
+  <!-- 地図ペイン (Phase 4 Task 6, 仕様 §3.3 POI-132)。ベースマップの切り替えは地図右上の札 -->
   <div class="w-100 h-100 position-relative">
     <div id="poiEditMap" class="w-100 h-100"></div>
     <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
     <div class="map-overlay-tools" data-testid="map-overlay-tools-poi"></div>
-    <div class="position-absolute top-0 end-0 m-2" style="z-index: 10;">
-      <select
-        v-model="currentBaseMapID"
-        class="form-select form-select-sm shadow-sm"
-        :aria-label="t('mapedit.control_basemap')"
-        @change="applyBaseMapSelection"
-      >
-        <option v-for="tms in baseMapList" :key="tms.mapID" :value="tms.mapID">
-          {{ baseMapTitle(tms) }}
-        </option>
-      </select>
-    </div>
   </div>
 </template>
 
@@ -33,11 +21,8 @@ import i18next from "i18next";
 import ContextMenu from "../libs/ol-contextmenu/main";
 // @ts-ignore
 import { MaplatMap } from "@maplat/core/src/map_ex";
-// @ts-ignore
-import { mapSourceFactory } from "@maplat/core/src/source_ex";
 import { defaults as interactionDefaults, Modify, Snap } from "ol/interaction";
 import "ol/ol.css";
-import { Tile, Group } from "ol/layer";
 import { Style, Icon } from "ol/style";
 // @ts-ignore 住所検索コントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
@@ -45,12 +30,10 @@ import { transform } from "ol/proj";
 import { containsCoordinate } from "ol/extent";
 import type VectorSource from "ol/source/Vector";
 import type { Point } from "ol/geom";
-import { localizeTitle } from "../utils/langResource";
-import { layoutMapOverlayControls, mapOverlayControlDefaults } from "../utils/mapOverlayTools";
-import { toBaseMapLayerData } from "../utils/baseMapEditorDocument";
-// t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
-// 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
-import { resolveSourceThumbnail } from "../utils/sourceThumbnail";
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher } from "../utils/mapOverlayTools";
+import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
+import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
+import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
 import { listIconSets, parseIconRef } from "../utils/iconRefs";
 import { resolveIconPair, resolveDisplayIcon } from "../utils/poiMarkerStyle";
 import type { PoiEditSession } from "../composables/usePoiEditSession";
@@ -79,8 +62,13 @@ let contextmenu: any = null;
 let modifyActive = false;
 let modifyTarget: { uid: string } | null = null;
 
-const baseMapList = ref<any[]>([]);
+const baseMapList = ref<OverlayBaseMapItem[]>([]);
 const currentBaseMapID = ref("osm");
+let baseMapSwitcher: BaseMapSwitcher | null = null;
+
+// 札に出す名前（今の選択）
+const currentBaseMapLabel = (): string =>
+  baseMapList.value.find((item) => item.mapID === currentBaseMapID.value)?.label ?? "";
 
 // --- 標準マーカースタイル (Phase 8 Task 4, ユーザー決定 2026-07-11「ビューア標準に整合」) ---
 // ビューア (MaplatCore) と同じ defaultpin.png / defaultpin_selected.png を使う
@@ -460,103 +448,38 @@ const fitInitialView = (): void => {
   }
 };
 
-// --- base map (MapEdit setupBaseMaps の移植) ---
-const baseMapTitle = (tms: any): string => {
-  const title = tms?.title ?? tms?.mapID ?? "";
-  if (typeof title === "object" && title !== null) {
-    return localizeTitle(title, i18next.language) || tms.mapID;
-  }
-  return String(title);
-};
-
+// --- base map (表示の切り替え。utils/overlayBaseMaps に寄せる) ---
 // POI ソースは地図単位の表示設定を持たないため、一覧は Always-Visible な base map
-// (仕様 §3.3 POI-132) とする。IPC 失敗時はハードコード既定 3 種へフォールバック。
-// （旧2段目の dev 専用 fetch（ルート直下の一覧 JSON・file:// 配布物で常に死ぬ）は
-// t1 HR-2 で撤去。1段目 IPC と3段目は実効内容が同一（always:true は osm/gsi/gsi_ortho のみ））
+// (仕様 §3.3 POI-132) とする。切り替えは MapEdit・小窓と同じ部品 (ol-layerswitcher) で、
+// 今の選択の名前を札に出し、クリックで開く。
 const setupBaseMaps = async (): Promise<void> => {
   if (!map) return;
 
-  if (baseMapList.value.length === 0) {
-    try {
-      const list = await window.baseMaps.list();
-      // m22-t1: 実行時専用の url_ は item レベルに来るため、data だけを取り出すと落ちる。
-      // 載せ替えは共通ヘルパー（MapEdit.vue と同一実装）に寄せる。
-      baseMapList.value = list
-        .filter((item) => item.alwaysVisible)
-        .map(toBaseMapLayerData);
-    } catch (e) {
-      console.error("[PoiEditMap] Failed to fetch base map list via IPC:", e);
-    }
-
-    if (baseMapList.value.length === 0) {
-      baseMapList.value = [
-        { mapID: "osm", title: "OpenStreetMap", maxZoom: 18 },
-        { mapID: "gsi", title: "GSI Maps", maxZoom: 18 },
-        { mapID: "gsi_ortho", title: "GSI Ortho", maxZoom: 18 },
-      ];
-    }
-  }
-
-  // default は 'osm' (POI-132)。一覧に無い場合のみ先頭へフォールバック
-  if (!baseMapList.value.some((tms) => tms.mapID === currentBaseMapID.value)) {
-    currentBaseMapID.value = baseMapList.value.some((tms) => tms.mapID === "osm")
-      ? "osm"
-      : baseMapList.value[0]?.mapID || "osm";
-  }
-
-  const layers = await Promise.all(
-    [...baseMapList.value].reverse().map(async (tms) => {
-      let source;
-      try {
-        if (["osm", "gsi", "gsi_ortho"].includes(tms.mapID)) {
-          source = await mapSourceFactory(tms.mapID, {});
-        } else {
-          source = await mapSourceFactory(
-            {
-              mapID: tms.mapID || "custom",
-              // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
-              // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
-              url: tms.url_ || tms.url,
-              attr: tms.attr,
-              maptype: "base",
-              maxZoom: tms.maxZoom || 18,
-              minZoom: tms.minZoom || 0,
-              // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
-              // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
-              thumbnail: await resolveSourceThumbnail(tms.mapID),
-            },
-            {},
-          );
-        }
-      } catch (e) {
-        console.error(`[PoiEditMap] Failed to create source for ${tms.mapID}:`, e);
-        return null;
-      }
-      if (!source) return null;
-      return new Tile({
-        source,
-        properties: { title: tms.title, mapID: tms.mapID, type: "base" },
-        visible: tms.mapID === (currentBaseMapID.value || "osm"),
-      });
-    }),
+  const built = await createOverlayBaseMaps(
+    i18next.language,
+    currentBaseMapID.value,
+    t("mapedit.control_basemap"),
   );
+  baseMapList.value = built.items;
+  if (!built.items.some((item) => item.mapID === currentBaseMapID.value)) {
+    currentBaseMapID.value = built.items[0]?.mapID || "osm";
+  }
 
-  const layerGroup = new Group({
-    layers: layers.filter((layer) => layer !== null),
+  const group = built.group;
+  const layers = group.getLayers?.();
+  layers?.forEach((layer: any) => {
+    layer.setVisible(layer.get("mapID") === currentBaseMapID.value);
+    // 切り替えを currentBaseMapID へ追随させる (MapEdit setupBaseMaps と同じ結線)
+    layer.on("change:visible", () => {
+      if (layer.getVisible()) {
+        currentBaseMapID.value = layer.get("mapID");
+        baseMapSwitcher?.refreshLabel();
+      }
+    });
   });
   // インデックス 0 (デフォルトベースレイヤー) をグループに置き換え (MapEdit と同じ)
-  map.getLayers().setAt(0, layerGroup);
-};
-
-// select 切替で背景タイルを差し替える (Undo 対象外: 編集内容ではない)
-const applyBaseMapSelection = (): void => {
-  if (!map) return;
-  const group = map.getLayers().item(0);
-  const layers = group?.getLayers?.();
-  if (!layers) return;
-  layers.forEach((layer: any) => {
-    layer.setVisible(layer.get("mapID") === currentBaseMapID.value);
-  });
+  map.getLayers().setAt(0, group);
+  baseMapSwitcher?.refreshLabel();
 };
 
 onMounted(async () => {
@@ -573,6 +496,13 @@ onMounted(async () => {
   contextmenu = createContextMenu();
   map.addControl(contextmenu);
   map.on("click", onMapClick);
+
+  // §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  baseMapSwitcher = createBaseMapSwitcher({
+    tipLabel: t("mapedit.control_basemap"),
+    labelOf: currentBaseMapLabel,
+  });
+  map.addControl(baseMapSwitcher.control);
 
   // MaplatMap 組み込みの marker layer / source を編集対象にする
   markerSource = map.getSource("marker") as VectorSource;
