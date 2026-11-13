@@ -150,6 +150,12 @@ $map-tool-gap: 8px;
       background-color: #f2f2f2;
       outline: none;
     }
+
+    // マウスで押したときは枠を出さず、キーボードで来たときだけ枠を出す（札の中に収める）
+    &:focus-visible {
+      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline-offset: -2px;
+    }
   }
 }
 
@@ -180,6 +186,11 @@ $map-tool-gap: 8px;
       color: $map-tool-ink;
       background-color: #f2f2f2;
       outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline-offset: -2px;
     }
   }
 
@@ -288,6 +299,12 @@ $map-tool-gap: 8px;
     border: none;
     outline: none;
     box-shadow: none;
+  }
+
+  // 入力欄は札（overflow: hidden）の中にあるので、枠を内側に描く
+  &:focus-visible {
+    outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+    outline-offset: -2px;
   }
 }
 
@@ -401,12 +418,20 @@ $map-tool-gap: 8px;
     display: inline-flex;
     width: auto;
     height: $map-tool-size;
+    // ol.css の `.ol-control button { padding: 0 }` が勝つと名前が左の縁に付くので、ここで余白を戻す
+    padding: 0 .5rem 0 .7rem;
     background-color: $map-tool-bg;
     background-image: none;
     border: 1px solid $map-tool-edge;
     border-radius: $map-tool-radius;
     box-shadow: $map-tool-shadow;
     color: $map-tool-ink;
+
+    // ol.css の `.ol-control button:focus`（薄い 1px の枠）より強く、札と同じ枠を出す
+    &:focus-visible {
+      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline-offset: 1px;
+    }
   }
 
   .panel {
