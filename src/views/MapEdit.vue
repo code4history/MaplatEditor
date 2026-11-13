@@ -92,6 +92,7 @@ import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
 import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloLineStyles, editSketchStyleFunction } from '../utils/mapOverlayTools';
+import { localizeTitle } from '../utils/langResource';
 import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
@@ -3249,6 +3250,9 @@ const exchangeTileSource = async (): Promise<any> => {
     }
     try {
         const source = await mapSourceFactory(options, {});
+        // §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
+        const illstAttr = localizeTitle(mapData.value.attr, currentLang.value);
+        source.setAttributions?.(illstAttr ? [illstAttr] : []);
         illstSource = source;
         illstMap.exchangeSource(source);
         // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる（設計 §5.4）
@@ -3947,7 +3951,11 @@ const setupBaseMaps = async () => {
 
         if (!source) return null;
 
-        // 旧実装: source.setAttributions(attr) - mapSourceFactory 側で通常処理される
+        // §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
+        // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
+        // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
+        // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）
+        source.setAttributions?.(localizedMeta.attr ? [localizedMeta.attr] : []);
 
         const tileLayer = new Tile({
             source: source,
