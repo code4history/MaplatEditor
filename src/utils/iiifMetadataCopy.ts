@@ -1,9 +1,7 @@
 // 取り込みのときの最初の書誌の写し。
 //
 // Manifest から地図の metadata の鍵へ値を写す規則は Core が持つ。ここは
-// 「既定の selector を作る」「値を取り出す」「写した日時を添える」の薄い包みを置き、
-// Core へ渡す前の読み替えは「廃止した属性を外す」と「metadata の値の中の入れ子の配列を
-// 平らにする」の 2 つだけに閉じる。
+// 「既定の selector を作る」「値を取り出す」「写した日時を添える」の薄い包みだけを置く。
 // renderer（取り込みのダイアログ）から呼び、main では呼ばない。
 //
 // 値の洗浄は呼び出し側が渡せる（省略したら Core の sanitizeIiifHtml）。
@@ -64,79 +62,10 @@ function withoutRetiredKeys(bindings: IiifBindings): IiifBindings {
   return next;
 }
 
-/** 入れ子をたどる深さの上限。それ以上はそのまま（Core が読めない形として扱う）。 */
-const MAX_NEST_DEPTH = 32;
-
-/** 辞書（配列でも文字列でもない値）か */
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * metadata の値の中の入れ子の配列を平らにする（元は変えない）。
- *
- * 仕様の形は文字列・言語つきの値（{"@value","@language"}）・文字列の配列・版 3 の
- * 言語の表（{"ja":["…"]}）だが、実在資料には配列の中に配列が入った仕様外の形がある
- * （値の先頭に項目名と同じ文字列が入り、その次に作者名の入った配列が入る形）。
- * Core は配列を一段しか読まないため、そのまま渡すと内側の文字列が消えて作者名が書誌表に
- * 出ない。ここで配列を再帰的に畳んで文字列の葉だけを並べ、Core が文字列として読める形へ
- * 寄せる。文字列・言語つきの値・言語の表の形は変えない。
- */
-function flattenMetadataValue(value: unknown, depth: number): unknown {
-  if (depth > MAX_NEST_DEPTH) return value;
-  if (Array.isArray(value)) {
-    const out: unknown[] = [];
-    for (const item of value) {
-      const flat = flattenMetadataValue(item, depth + 1);
-      if (Array.isArray(flat)) {
-        for (const inner of flat) out.push(inner);
-      } else {
-        out.push(flat);
-      }
-    }
-    return out;
-  }
-  if (isPlainRecord(value)) {
-    const out: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value)) out[key] = flattenMetadataValue(item, depth + 1);
-    return out;
-  }
-  return value;
-}
-
-/**
- * すべての metadata（Manifest 本体・canvas など）の value を平らにした Manifest の複製を返す（元は変えない）。
- * 対象は metadata の value だけ。label・license など他の項目は、形を変えずに複製する。
- */
-function withFlatMetadataValues(value: unknown, depth = 0): unknown {
-  if (depth > MAX_NEST_DEPTH) return value;
-  if (Array.isArray(value)) return value.map((item) => withFlatMetadataValues(item, depth + 1));
-  if (!isPlainRecord(value)) return value;
-  const out: Record<string, unknown> = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (key === 'metadata' && Array.isArray(item)) {
-      out[key] = item.map((entry) => {
-        if (!isPlainRecord(entry)) return withFlatMetadataValues(entry, depth + 1);
-        const next: Record<string, unknown> = {};
-        for (const [entryKey, entryValue] of Object.entries(entry)) {
-          next[entryKey] = entryKey === 'value'
-            ? flattenMetadataValue(entryValue, 0)
-            : withFlatMetadataValues(entryValue, depth + 1);
-        }
-        return next;
-      });
-      continue;
-    }
-    out[key] = withFlatMetadataValues(item, depth + 1);
-  }
-  return out;
-}
-
 /**
  * 選んだ canvas の書誌を、地図の metadata の鍵へ写す。
- * selector の規則も値の取り出し方も Core に任せ、ここでは廃止した属性を外す
- * ことと、metadata の値の中の入れ子の配列を平らにすることだけを行う
- *（形が読めない値はそのまま渡し、Core の警告に任せる）。
+ * selector の規則も値の取り出し方も Core に任せ、ここでは何も読み替えない
+ *（廃止した属性を外すことだけをここで行う）。
  */
 export function copyIiifMetadata(
   manifest: unknown,
@@ -145,9 +74,8 @@ export function copyIiifMetadata(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const source = withFlatMetadataValues(manifest);
-  const bindings = withoutRetiredKeys(proposeIiifBindings(source, canvasId));
-  const resolved = resolveIiifMetadata(source, { canvas: canvasId, bindings }, lang, sanitize);
+  const bindings = withoutRetiredKeys(proposeIiifBindings(manifest, canvasId));
+  const resolved = resolveIiifMetadata(manifest, { canvas: canvasId, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
     return { ok: false, reason: resolved.reason, warnings: [] };
@@ -193,8 +121,7 @@ export function setIiifBinding(
 
 /**
  * 選んだ結び付けのまま Manifest を取り直して写す。
- * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは廃止した属性を外すことと、
- * metadata の値の中の入れ子の配列を平らにすることだけを行う。
+ * 結び付けの決め方も値の取り出し方も Core に任せ、ここでは廃止した属性を外すことだけを行う。
  * 戻り値の結び付けも外した後のもの（写し直しはこの関数を通るので同じく外れる）。
  */
 export function copyIiifMetadataWithBindings(
@@ -204,9 +131,8 @@ export function copyIiifMetadataWithBindings(
   options: IiifMetadataCopyOptions = {},
 ): IiifMetadataCopy {
   const sanitize = options.sanitize ?? sanitizeIiifHtml;
-  const source = withFlatMetadataValues(manifest);
   const bindings = withoutRetiredKeys(iiif.bindings ?? {});
-  const resolved = resolveIiifMetadata(source, { canvas: iiif.canvas, bindings }, lang, sanitize);
+  const resolved = resolveIiifMetadata(manifest, { canvas: iiif.canvas, bindings }, lang, sanitize);
   const copiedAt = (options.now ? options.now() : new Date()).toISOString();
   if (!resolved.ok) {
     return { ok: false, reason: resolved.reason, warnings: [] };

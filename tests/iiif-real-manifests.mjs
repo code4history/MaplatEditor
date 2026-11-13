@@ -246,7 +246,7 @@ test('Wellcome: @id のサービスから実画素数を取得する', async () 
 });
 
 // Boston の Creator 行は値の配列の中に入れた配列に作者名が入る（仕様外の形）。
-// 入れ子を平らにして読むので、その作者名が書誌の行の値に入る（期待の文字列は fixture から読む）。
+// Core が入れ子を平らにして読むので、その作者名が書誌の行の値に入る（期待の文字列は fixture から読む）。
 test('Boston: Creator 行の入れ子の配列の作者名が書誌の値に入る', () => {
   const e = cases.find(item => item.id === 'boston').expected;
   const manifest = read('boston.manifest.json');

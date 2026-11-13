@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@maplat/core': github:code4history/MaplatCore#31c5920c7522a31909c47d40f21e66cf9b721fd7
+  '@maplat/core': github:code4history/MaplatCore#3c6747bbaef8f8b8f9de4b04340e10014ddbeb70
   '@maplat/ui>@maplat/core': ^1.2.0-rc.1
   js-yaml: ^4.3.1
   http-cache-semantics: ^4.3.0
@@ -46,8 +46,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@maplat/core':
-        specifier: github:code4history/MaplatCore#31c5920c7522a31909c47d40f21e66cf9b721fd7
-        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/31c5920c7522a31909c47d40f21e66cf9b721fd7(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
+        specifier: github:code4history/MaplatCore#3c6747bbaef8f8b8f9de4b04340e10014ddbeb70
+        version: https://codeload.github.com/code4history/MaplatCore/tar.gz/3c6747bbaef8f8b8f9de4b04340e10014ddbeb70(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)
       '@maplat/tin':
         specifier: ^1.1.1
         version: 1.1.1
@@ -712,8 +712,8 @@ packages:
       maplibre-gl:
         optional: true
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/31c5920c7522a31909c47d40f21e66cf9b721fd7':
-    resolution: {gitHosted: true, integrity: sha512-kLr3jkSKCCi2bmPUXzxPIU4FNlEWRoh5PEWY167y3+D/ymP9qOLZRM7Sass/q7yjXnHusBx7KhvMhyX6gJQQyA==, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/31c5920c7522a31909c47d40f21e66cf9b721fd7}
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/3c6747bbaef8f8b8f9de4b04340e10014ddbeb70':
+    resolution: {gitHosted: true, integrity: sha512-GGWRljwSKTQcG6yih9xCglY7HYlzdC5ceRni6QsIyx/CNJic0yUYuTpeI6mIfxeQN8zjsbh0HUGNnVBaxA8aIg==, tarball: https://codeload.github.com/code4history/MaplatCore/tar.gz/3c6747bbaef8f8b8f9de4b04340e10014ddbeb70}
     version: 1.2.0
     engines: {pnpm: '>=9'}
     peerDependencies:
@@ -4705,7 +4705,7 @@ snapshots:
     transitivePeerDependencies:
       - workbox-routing
 
-  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/31c5920c7522a31909c47d40f21e66cf9b721fd7(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
+  '@maplat/core@https://codeload.github.com/code4history/MaplatCore/tar.gz/3c6747bbaef8f8b8f9de4b04340e10014ddbeb70(@c4h/chuci@1.0.2)(mapbox-gl@3.28.1)(maplibre-gl@6.4.1)(ol@10.11.0)(workbox-routing@7.4.1)':
     dependencies:
       '@c4h/quyuan': 1.1.1(@c4h/chuci@1.0.2)
       '@c4h/weiwudi': 1.1.1(workbox-routing@7.4.1)
