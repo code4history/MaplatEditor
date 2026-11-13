@@ -355,7 +355,8 @@ $map-tool-gap: 8px;
     margin: 0;
     line-height: 1.5;
     padding: 0;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 
     > a,
     > span.ol-ctx-menu-title {
