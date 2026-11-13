@@ -95,20 +95,12 @@ test('アイコンのアセット参照の欠落を数え、実体のあるも�
     const sidePane = page.locator('.poi-side-pane');
     const warningText = /参照先が存在しないアセット参照が\d+件/;
 
-    // 欠落 0 件のソース: 警告は出ない
-    await page.evaluate((hash) => { location.hash = hash; }, `#/poisources/${seeded.okUid}`);
-    await expect(sidePane).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="layer-icon"] input')).toHaveValue(/^[0-9a-f-]{36}$/i, { timeout: 10000 });
-    // 照会は非同期なので、出るなら出るだけの間を置いてから「出ていない」を確かめる
-    await page.waitForTimeout(1500);
-    await expect(page.getByText(warningText)).toHaveCount(0);
-
     // 欠落 2 件のソース
     await page.evaluate((hash) => { location.hash = hash; }, `#/poisources/${seeded.missingUid}`);
+    await expect(sidePane).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="layer-icon"] input')).toHaveValue(MISSING_LAYER_ICON, { timeout: 15000 });
-    await page.waitForTimeout(1500);
-    await takeScreenshot(page, path.join(shotDir, `poi-icon-asset-diagnostics-${shotTag}-missing.png`));
     await expect(page.getByText(/参照先が存在しないアセット参照が2件/)).toBeVisible({ timeout: 10000 });
+    await takeScreenshot(page, path.join(shotDir, `poi-icon-asset-diagnostics-${shotTag}-missing.png`));
 
     // レイヤのアイコンを組み込みに替えると 1 件に数え直す
     const layerInput = page.locator('[data-testid="layer-icon"] input');
@@ -117,6 +109,12 @@ test('アイコンのアセット参照の欠落を数え、実体のあるも�
     await layerInput.blur();
     await expect(page.getByText(/参照先が存在しないアセット参照が1件/)).toBeVisible({ timeout: 10000 });
     await takeScreenshot(page, path.join(shotDir, `poi-icon-asset-diagnostics-${shotTag}-layer-fixed.png`));
+
+    // 欠落 0 件のソース: 警告が出ている状態から移り、警告が消えるのを待つ
+    // （照会が終わるのを固定の待ち時間ではなく、表示の変化で待つ）
+    await page.evaluate((hash) => { location.hash = hash; }, `#/poisources/${seeded.okUid}`);
+    await expect(page.locator('[data-testid="layer-icon"] input')).toHaveValue(/^[0-9a-f-]{36}$/i, { timeout: 10000 });
+    await expect(page.getByText(warningText)).toHaveCount(0, { timeout: 10000 });
   } finally {
     await quitElectronApplication(app);
   }
