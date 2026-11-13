@@ -113,7 +113,7 @@ const {
   apply: applyRangeFilter,
   clear: clearRangeFilter,
 } = useBboxRangeFilter({ route, router });
-const { select, selectDuplicate, clearSelection } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection, selectSavedAfterReload } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
 // nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
@@ -223,11 +223,7 @@ async function closeEditor(): Promise<void> {
 }
 
 async function saved(uid: string): Promise<void> {
-  // 読み直しの間に利用者が別の画面や行へ移ったら、保存した行へ引き戻さない
-  const routeAtSave = route.fullPath;
-  await loadBaseMaps();
-  if (route.fullPath !== routeAtSave) return;
-  await select(uid, false);
+  await selectSavedAfterReload(uid, loadBaseMaps);
 }
 
 async function reloadEditor(): Promise<void> {
