@@ -2,6 +2,7 @@
 
 説明・エラー・空状態・ダイアログ・ボタンを、どの部品でどう出すかの決まりです。新しい画面や部品を作る前に読んでください。タスクの設計書を書くときも、この文書に合わせます。この文書に反する設計書を書く場合は、先にこの文書を変えます。
 
+- 2026-11-13 §6.3 の例を「キャンセル」に替え、名前が似た別の操作は置き場所の役割で形が決まる旨を追加（AppEdit の「推定」を副次の操作の形にしたため）。出典なしの追加のため【AI 設計】。§7.5 の該当の行を直した。
 - 2026-11-12 読み上げ名の「項目名が空」の扱い（§2.1）を追加。出典なしの追加のため【AI 設計】。
 - 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は §8。
 - 2026-11-11 初版。過去のタスク設計書に散らばっていた人間の決定を 1 本に集めた。
@@ -209,8 +210,8 @@
 
 【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
 
-- 同じ操作に違う見た目を使うこと（例: 「GCP からホーム位置を推定」が MapEdit では `btn-light`、AppEdit では `btn-outline-info`）。
-  - ただし形は置き場所の役割で決まる。地図の上に重ねる「推定」（MapEdit）は地図の道具の形、入力欄の横に並ぶ「推定」（AppEdit のホーム位置）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。
+- 同じ操作に違う見た目を使うこと（例: 同じ「キャンセル」が、あるダイアログでは `btn-outline-secondary`、別のダイアログでは `btn-secondary`）。
+  - 名前が似ていても別の操作なら、形は置き場所の役割（§6.2）で決まる。MapEdit の「推定」（GCP からホーム位置を推定する、地図の上に重ねる道具）は地図の道具の形、AppEdit の「推定」（地図の範囲からホーム位置を推定する、入力欄の横のボタン）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。【AI 設計】
 - ダイアログの「キャンセル」に `btn-secondary`（塗り）を使うこと。
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
@@ -331,7 +332,7 @@
 | `src/components/EnvelopeEditorModal.vue:306` | 同上 | 同上 |
 | `src/components/HomePositionEditorModal.vue:127` | 同上 | 同上 |
 | `src/components/ProgressModal.vue:34` | 閉じる（OK）が `btn-secondary` | `src/App.vue:101` の OK は `btn-primary`。同じ「OK」で色が違う |
-| `src/views/AppEdit.vue:1723` | 「ホーム位置を推定」が `btn-outline-info` | `src/views/MapEdit.vue:5321,5333` の同じ操作は `btn-light` |
+| `src/views/AppEdit.vue:1723` | 「ホーム位置を推定」が `btn-outline-info` | 隣の「地図で指定」と形が違う。MapEdit の推定は別の操作（GCP から推定）。2026-11-13 に `btn-outline-secondary` へ直した |
 | `src/views/MapEdit.vue:5542` | タイルの生成が `btn-secondary` | 主な操作なら primary |
 | `src/views/Settings.vue:160,279,377,398,412,421` | `btn-light border`（6 個） | 設定の画面だけの形 |
 | `src/components/resource-list/DeleteConfirmDialog.vue:25,30`、`src/components/PoiContentModeEditor.vue:41,49` | ダイアログのボタンが `btn-sm` | 他のダイアログは通常の大きさ（U6） |
