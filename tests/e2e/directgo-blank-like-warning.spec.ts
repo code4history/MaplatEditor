@@ -10,6 +10,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
@@ -92,7 +93,7 @@ test.describe('directgo blank-like warning', () => {
       const screenshotDir = process.env.DIRECTGO_BLANK_LIKE_SCREENSHOT_DIR;
       if (screenshotDir) {
         await mkdir(screenshotDir, { recursive: true });
-        await page.screenshot({ path: path.join(screenshotDir, 'poi-edit-opened.png') });
+        await takeScreenshot(page, path.join(screenshotDir, 'poi-edit-opened.png'));
       }
 
       // 1. 主画面の診断領域: p1・p2 の warning だけ。error は無い

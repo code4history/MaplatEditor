@@ -10,9 +10,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { launch } from './helpers/launchIsolated';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { takeScreenshot } from './helpers/screenshot';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-const evidenceDir = path.join(projectRoot, '.tmp-evidence');
+const evidenceDir = path.join(projectRoot, '.tmp-evidence', 'after-fix');
 
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
@@ -87,36 +88,44 @@ test('hash の書き換えで画面を移ると、上部タブの強調は移っ
       await openHash(page, step.hash, step.ready);
       await expect.poll(async () => activeTabs(page), { timeout: 5000 }).toEqual([step.label]);
     }
-    await page.screenshot({ path: path.join(evidenceDir, 'nav-tabs-settled.png') });
+    await takeScreenshot(page, path.join(evidenceDir, 'nav-tabs-settled.png'));
 
     // 初期遷移の途中で hash を書き換えても、書き換え先の画面とタブに着くこと。
     // 初期遷移（遅いチャンク読み込み）が URL を初期ターゲットへ書き戻して書き換えを
     // 取りこぼすと、前の画面（タブの強調を含む）が残ってしまうため、ここを固定する。
+    // Settings のチャンクを止めて初期遷移を確定させないまま書き換え、書き換えた後に放す
+    // （時間の決め打ちに頼らず、書き換えが必ず初期遷移の確定より前になるようにする）。
     await openHash(page, '#/settings', '#langSwitcher');
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+    const held: string[] = [];
     let holding = true;
+    const release = (requestId: string) => cdp.send('Fetch.continueRequest', { requestId }).catch(() => undefined);
     cdp.on('Fetch.requestPaused', (e) => {
-      const release = () => { void cdp.send('Fetch.continueRequest', { requestId: e.requestId }).catch(() => undefined); };
-      if (holding && /Settings-[^/]+\.js/.test(e.request.url)) setTimeout(release, 1500);
-      else release();
+      if (holding && /Settings-[^/]+\.js/.test(e.request.url)) held.push(e.requestId);
+      else void release(e.requestId);
     });
-    await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
+    try {
+      await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
+      await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
 
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(100);
-    await page.evaluate(() => { location.hash = '#/poisources'; });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      // 初期遷移が Settings のチャンクで止まっていることを確かめてから書き換える
+      await expect.poll(() => held.length, { timeout: 20000 }).toBeGreaterThanOrEqual(1);
+      expect(await page.locator('#langSwitcher').count()).toBe(0);
+      await page.evaluate(() => { location.hash = '#/poisources'; });
 
-    // 初期遷移（遅いチャンク読み込み）が確定するまで待ってから撮る
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: path.join(evidenceDir, 'nav-tabs-after-hash-write.png') });
+      holding = false;
+      await Promise.all(held.map(release));
 
-    await expect(page.locator('[data-resource-list="poi-source"]')).toBeVisible({ timeout: 15000 });
-    await expect.poll(async () => page.evaluate(() => location.hash), { timeout: 5000 }).toContain('#/poisources');
-    await expect.poll(async () => activeTabs(page), { timeout: 5000 }).toEqual(['POI管理']);
-
-    holding = false;
-    await cdp.send('Fetch.disable');
+      await expect(page.locator('[data-resource-list="poi-source"]')).toBeVisible({ timeout: 15000 });
+      await expect.poll(async () => page.evaluate(() => location.hash), { timeout: 5000 }).toContain('#/poisources');
+      await expect.poll(async () => activeTabs(page), { timeout: 5000 }).toEqual(['POI管理']);
+      await takeScreenshot(page, path.join(evidenceDir, 'nav-tabs-after-hash-write.png'));
+    } finally {
+      holding = false;
+      await cdp.send('Fetch.disable').catch(() => undefined);
+      await cdp.send('Network.setCacheDisabled', { cacheDisabled: false }).catch(() => undefined);
+    }
   } finally {
     await quitElectronApplication(app);
   }
@@ -144,11 +153,11 @@ test('画面を移ると、新しい画面は先頭から表示される', async
     await page.locator('[data-resource-content="map"]').evaluate((el) => { el.scrollTop = 900; });
     await expect.poll(async () => page.locator('[data-resource-content="map"]').evaluate((el) => el.scrollTop))
       .toBeGreaterThan(0);
-    await page.screenshot({ path: path.join(evidenceDir, 'nav-scroll-long-list.png') });
+    await takeScreenshot(page, path.join(evidenceDir, 'nav-scroll-long-list.png'));
 
     // 長い一覧の下のほうから別の画面へ移る → 新しい画面は先頭から表示される
     await openHash(page, '#/applist', '[data-resource-content="app"]');
-    await page.screenshot({ path: path.join(evidenceDir, 'nav-scroll-after-move.png') });
+    await takeScreenshot(page, path.join(evidenceDir, 'nav-scroll-after-move.png'));
     await expect
       .poll(async () => page.locator('[data-resource-content="app"]').evaluate((el) => el.scrollTop), { timeout: 5000 })
       .toBe(0);
@@ -166,6 +175,30 @@ test('画面を移ると、新しい画面は先頭から表示される', async
     await expect.poll(async () => page.locator('[data-resource-content="map"]').evaluate((el) => el.scrollTop))
       .toBeGreaterThan(0);
     await openHash(page, '#/settings', '#langSwitcher');
+    expect(await sharedScrollTops(page)).toEqual({ main: 0, body: 0, html: 0 });
+
+    // 画面の外（共有）の .main-content をスクロールしてから移っても、新しい画面は先頭から表示される。
+    // 画面の上に残るバナー（移行レポート）があると、.main-content は画面の高さを超えてはみ出す。
+    // このはみ出しは画面を移っても残るので、.main-content の位置を揃えないと前の位置を持ち越す。
+    await app.evaluate(({ BrowserWindow }) => {
+      const warnings = Array.from({ length: 12 }, (_, index) => `画面遷移試験の警告 ${index + 1}`);
+      BrowserWindow.getAllWindows()[0].webContents.send('app:migrationReport', { renamedSlugs: [], warnings });
+    });
+    await expect(page.getByTestId('migration-report')).toBeVisible();
+    const scrollMain = async (): Promise<number> => page.locator('.main-content').evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+      return Math.round(el.scrollTop);
+    });
+    const mainOverflow = async (): Promise<number> => page.locator('.main-content')
+      .evaluate((el) => el.scrollHeight - el.clientHeight);
+    await expect.poll(mainOverflow).toBeGreaterThan(0);
+    await expect.poll(scrollMain).toBeGreaterThan(0);
+    await takeScreenshot(page, path.join(evidenceDir, 'nav-main-content-scrolled.png'));
+
+    await openHash(page, '#/maplist', '[data-resource-content="map"]');
+    // 移った先の画面もはみ出す（はみ出さなければ位置は自然に 0 になり、確かめにならない）
+    expect(await mainOverflow()).toBeGreaterThan(0);
+    await takeScreenshot(page, path.join(evidenceDir, 'nav-main-content-after-move.png'));
     expect(await sharedScrollTops(page)).toEqual({ main: 0, body: 0, html: 0 });
   } finally {
     await quitElectronApplication(app);

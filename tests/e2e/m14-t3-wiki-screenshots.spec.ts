@@ -22,6 +22,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdir, mkdtemp, cp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 
@@ -88,7 +89,7 @@ test('m14-t3: capture current-1..4 wiki screenshots (MapList / MapEdit-GCP / Poi
   await mkdir(artifactDir, { recursive: true });
 
   const { app, page } = await launch(e2eRoot);
-  const shot = (name: string) => page.screenshot({ path: path.join(artifactDir, `${name}.png`) });
+  const shot = (name: string) => takeScreenshot(page, path.join(artifactDir, `${name}.png`));
 
   try {
     await forceEnglish(page);
