@@ -408,8 +408,9 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     // ガイドバッジは表示されず、currentBbox は auto 値になっている。
     await page.locator('[data-testid="app-coverage-pick-button"]').first().click();
     await expect(page.locator('.envelope-modal')).toBeVisible();
-    const autoCoordinateText = await page.locator('.envelope-modal .font-monospace').textContent();
-    expect(autoCoordinateText).not.toBe('—');
+    // 経緯度の入力欄に auto 値が出ている（読み取り専用の表示は入力欄に置き換わった）
+    await expect(page.getByTestId('envelope-coord-west')).not.toHaveValue('');
+    await expect(page.getByTestId('envelope-coord-north')).not.toHaveValue('');
 
     // モーダル内でクリア→確定しても、手動 coverage は null のまま（auto 維持）
     await page.locator('.envelope-modal .btn-outline-danger').first().click();
@@ -470,15 +471,25 @@ test.describe('M11-T11 Geocoder & GCP Estimate E2E Tests', () => {
     await page.locator('[data-testid="map-base-map-region-button"]').click();
     await expect(page.locator('.envelope-modal')).toBeVisible();
     await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
-    const coordinateText = await page.locator('.envelope-modal .font-monospace').textContent();
-    expect(coordinateText).toMatch(/W\s*139\./);
-    expect(coordinateText).toMatch(/N\s*35\./);
+    // ガイドの値が経緯度の入力欄に出ている
+    await expect(page.getByTestId('envelope-coord-west')).toHaveValue(/^139\./);
+    await expect(page.getByTestId('envelope-coord-north')).toHaveValue(/^35\./);
 
     // ガイド表示だけでは auto 状態は上書きしない
     await page.locator('.envelope-modal .btn-close').first().click();
     await expect(page.locator('.envelope-modal')).not.toBeVisible();
     const region = await page.evaluate(() => (window as any).testDebug.baseMapFilterRegion.value);
     expect(region).toBeNull();
+
+    // 経緯度の入力欄を手で書き換えると、ガイドではなく通常の範囲になる
+    await page.locator('[data-testid="map-base-map-region-button"]').click();
+    await expect(page.locator('.envelope-modal')).toBeVisible();
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).toBeVisible();
+    await page.getByTestId('envelope-coord-west').fill('139.65');
+    await page.getByTestId('envelope-coord-west').press('Enter');
+    await expect(page.locator('[data-testid="envelope-guide-badge"]')).not.toBeVisible();
+    await page.locator('.envelope-modal .btn-close').first().click();
+    await expect(page.locator('.envelope-modal')).not.toBeVisible();
 
     await quitElectronApplication(app);
   });
