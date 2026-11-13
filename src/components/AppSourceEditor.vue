@@ -37,18 +37,27 @@
 // 上書き可能フィールドの正本は appSourceModel の APP_SOURCE_OVERRIDABLE_KEYS /
 // APP_SOURCE_OWNED_KEYS。各操作子に data-testid="app-source-override-<key>" を付け、
 // smoke（AC7）が宣言テーブルとの一致を機械照合する。
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
 import LangResourceInput from "./LangResourceInput.vue";
 import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
+import type { DiagnosticItem } from "./editor-ui/editorUiTypes";
 import type { LangCode } from "../utils/editorLanguages";
 import {
   bboxToEnvelope,
   envelopeToBbox,
   type AppSource,
 } from "../utils/appSourceModel";
+import {
+  bboxEquals,
+  COORD_FIELDS,
+  evaluateCoordInputs,
+  NO_COORD_INVALID,
+  round6,
+  type CoordField,
+} from "../utils/envelopeCoordInput";
 import { isProviderKind, resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
 import type { LangResource } from "../utils/langResource";
 
@@ -187,15 +196,82 @@ function setNumber(key: string, raw: string) {
 
 const bbox = computed(() => envelopeToBbox(overrides.value.envelopeLngLats));
 
-function setBboxPart(index: number, raw: string) {
-  const current: [number, number, number, number] = bbox.value ? [...bbox.value] as any : [0, 0, 0, 0];
-  const value = Number(raw);
-  if (Number.isNaN(value)) return;
-  current[index] = value;
-  writeOverride("envelopeLngLats", bboxToEnvelope(current));
+// 利用範囲の 4 欄（西・南・東・北）。小窓（EnvelopeEditorModal）と同じ検査・同じ並びで扱う。
+// 入力途中の文字列を失わないよう、反映は Enter か欄から離れたときだけに限る
+const coordTexts = ref<Record<CoordField, string>>({ west: "", south: "", east: "", north: "" });
+// 入力の検証エラー（保存せず理由だけ出す）と、存在範囲へ切り詰めた事実の通知
+const coordDiagnostics = ref<DiagnosticItem[]>([]);
+const coordInvalid = ref<Record<CoordField, boolean>>({ ...NO_COORD_INVALID });
+const cropNotice = ref(false);
+// 自分で反映した矩形。自分の反映と、他の操作（undo・「存在範囲からコピー」等）の変化を見分ける
+const appliedBbox = ref<[number, number, number, number] | null>(null);
+
+// マスタの存在範囲。小窓と同じく、入れた値はその内側へ切り詰める
+const coverageBbox = computed<[number, number, number, number] | null>(() =>
+  envelopeToBbox(master.value.coverageLngLats ?? null),
+);
+
+function syncFieldsFromBbox(value: [number, number, number, number] | null) {
+  for (const field of COORD_FIELDS) {
+    const index = field === "west" ? 0 : field === "south" ? 1 : field === "east" ? 2 : 3;
+    coordTexts.value[field] = value ? String(round6(value[index])) : "";
+  }
 }
 
+function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, boolean>) {
+  coordDiagnostics.value = items;
+  coordInvalid.value = { ...invalid };
+}
+
+// 矩形の変化を入力欄へ反映する（反映・クリア・undo・「存在範囲からコピー」すべて）
+watch(bbox, (value, previous) => {
+  // 値の変わらない再計算（他の欄の編集でソースごと差し替わる等）では入力途中の文字列を消さない
+  const sameValue = (value == null && previous == null)
+    || (value != null && previous != null && bboxEquals(value, previous));
+  if (sameValue) return;
+  syncFieldsFromBbox(value);
+  // 自分で反映した直後は欄の表記を半角へ直すだけで、切り詰めの通知は残す
+  if (value != null && appliedBbox.value != null && bboxEquals(value, appliedBbox.value)) return;
+  appliedBbox.value = null;
+  cropNotice.value = false;
+  setCoordFeedback([], NO_COORD_INVALID);
+}, { immediate: true });
+
+// 経緯度の入力を反映する（Enter か欄から離れたとき）。小窓と同じ検査・同じ挙動
+function applyFieldInputs() {
+  const outcome = evaluateCoordInputs(coordTexts.value, coverageBbox.value, t);
+  if (outcome.kind === "clear") {
+    // 欄が空 = 範囲なし。「範囲をクリア」（×）と同じ扱いにする（未設定なら何もしない）
+    if (bbox.value) clearEnvelope();
+    else setCoordFeedback([], NO_COORD_INVALID);
+    return;
+  }
+  if (outcome.kind === "invalid") {
+    // 正しくない値は保存せず、理由だけ出す（保存済みの値は消さない）
+    setCoordFeedback(outcome.diagnostics, outcome.invalid);
+    return;
+  }
+  // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）
+  if (bbox.value && bboxEquals(bbox.value, outcome.cropped)) {
+    syncFieldsFromBbox(bbox.value);
+    setCoordFeedback([], NO_COORD_INVALID);
+    return;
+  }
+  appliedBbox.value = outcome.cropped;
+  cropNotice.value = outcome.wasCropped;
+  writeOverride("envelopeLngLats", bboxToEnvelope(outcome.cropped));
+  setCoordFeedback([], NO_COORD_INVALID);
+}
+
+const diagnosticItems = computed<DiagnosticItem[]>(() => [
+  ...coordDiagnostics.value,
+  ...(cropNotice.value ? [{ key: "cropped", severity: "warning" as const, message: t("appedit.envelope_coord_cropped") }] : []),
+]);
+
 function clearEnvelope() {
+  appliedBbox.value = null;
+  cropNotice.value = false;
+  setCoordFeedback([], NO_COORD_INVALID);
   clearOverride("envelopeLngLats");
 }
 
@@ -324,17 +400,75 @@ function copyCoverageToEnvelope() {
             :ariaLabel="t('appedit.envelope_help')"
           />
         </label>
-        <div class="d-flex align-items-center gap-2 flex-wrap" data-testid="app-source-override-envelopeLngLats">
-          <div v-for="(labelKey, index) in ['envelope_west', 'envelope_south', 'envelope_east', 'envelope_north']" :key="labelKey" class="envelope-input">
-            <span class="small text-muted">{{ t(`appedit.${labelKey}`) }}</span>
-            <input
-              :value="bbox ? bbox[index] : ''"
-              type="number"
-              step="0.000001"
-              class="form-control form-control-sm"
-              :disabled="translationMode"
-              @change="setBboxPart(index, ($event.target as HTMLInputElement).value)"
-            >
+        <!-- 経緯度の直接入力。並び・検査・理由の出し方は小窓（EnvelopeEditorModal）と同じ:
+             経度（西・東）と緯度（南・北）の 2 組、反映は Enter か欄から離れたときだけ。
+             正しくない値は保存せず理由を出し、存在範囲があれば内側へ切り詰めて知らせる -->
+        <div class="d-flex align-items-end gap-3 flex-wrap" data-testid="app-source-override-envelopeLngLats">
+          <div>
+            <div class="form-label small mb-1">{{ t("mapedit.longitude") }}</div>
+            <div class="d-flex gap-2">
+              <div class="envelope-input">
+                <span class="small text-muted">{{ t("appedit.envelope_west") }}</span>
+                <input
+                  v-model="coordTexts.west"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control form-control-sm"
+                  :class="{ 'is-invalid': coordInvalid.west }"
+                  :disabled="translationMode"
+                  data-testid="app-source-envelope-west"
+                  @change="applyFieldInputs"
+                  @keydown.enter="applyFieldInputs"
+                >
+              </div>
+              <div class="envelope-input">
+                <span class="small text-muted">{{ t("appedit.envelope_east") }}</span>
+                <input
+                  v-model="coordTexts.east"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control form-control-sm"
+                  :class="{ 'is-invalid': coordInvalid.east }"
+                  :disabled="translationMode"
+                  data-testid="app-source-envelope-east"
+                  @change="applyFieldInputs"
+                  @keydown.enter="applyFieldInputs"
+                >
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="form-label small mb-1">{{ t("mapedit.latitude") }}</div>
+            <div class="d-flex gap-2">
+              <div class="envelope-input">
+                <span class="small text-muted">{{ t("appedit.envelope_south") }}</span>
+                <input
+                  v-model="coordTexts.south"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control form-control-sm"
+                  :class="{ 'is-invalid': coordInvalid.south }"
+                  :disabled="translationMode"
+                  data-testid="app-source-envelope-south"
+                  @change="applyFieldInputs"
+                  @keydown.enter="applyFieldInputs"
+                >
+              </div>
+              <div class="envelope-input">
+                <span class="small text-muted">{{ t("appedit.envelope_north") }}</span>
+                <input
+                  v-model="coordTexts.north"
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control form-control-sm"
+                  :class="{ 'is-invalid': coordInvalid.north }"
+                  :disabled="translationMode"
+                  data-testid="app-source-envelope-north"
+                  @change="applyFieldInputs"
+                  @keydown.enter="applyFieldInputs"
+                >
+              </div>
+            </div>
           </div>
           <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="showEnvelopeModal = true">
             {{ t("appedit.envelope_pick") }}
@@ -356,6 +490,7 @@ function copyCoverageToEnvelope() {
             <i class="bi bi-x-lg" aria-hidden="true"></i>
           </button>
         </div>
+        <DiagnosticFeedback v-if="diagnosticItems.length" scope="field" :items="diagnosticItems" data-testid="app-source-envelope-diagnostics" />
       </div>
 
     </div>
