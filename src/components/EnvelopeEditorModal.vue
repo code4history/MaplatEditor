@@ -16,6 +16,7 @@ import { createBox } from "ol/interaction/Draw";
 import { fromExtent } from "ol/geom/Polygon";
 import i18next from "i18next";
 import { transformExtent } from "ol/proj";
+import { containsExtent } from "ol/extent";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
@@ -24,6 +25,8 @@ import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
 import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
 import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
+import DiagnosticFeedback from "./editor-ui/DiagnosticFeedback.vue";
+import type { DiagnosticItem } from "./editor-ui/editorUiTypes";
 
 const props = defineProps<{
   modelValue: [number, number][] | null;
@@ -73,6 +76,16 @@ const vectorSource = new VectorSource();
 const coverageSource = new VectorSource();
 const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
+
+// 経緯度の直接入力欄（西・南・東・北）。地図で描いた矩形と双方向に同期する。
+// 入力途中の文字列を失わないよう、反映は Enter か欄から離れたときだけに限る
+type CoordField = "west" | "south" | "east" | "north";
+const COORD_FIELDS: CoordField[] = ["west", "south", "east", "north"];
+const coordTexts = ref<Record<CoordField, string>>({ west: "", south: "", east: "", north: "" });
+// 入力の検証エラー（矩形は変えず理由だけ出す）と、存在範囲へ切り詰めた事実の通知
+const coordDiagnostics = ref<DiagnosticItem[]>([]);
+const coordInvalid = ref<Record<CoordField, boolean>>({ west: false, south: false, east: false, north: false });
+const cropNotice = ref(false);
 
 const isGuide = ref(false);
 // §5-6: 4 色の線はいずれも縁取りを付ける（§4.2）。編集中の図形（赤の範囲）は白 1.5px の halo と
@@ -231,19 +244,24 @@ onMounted(async () => {
     vectorSource.clear();
     guideSource.clear();
     isGuide.value = false;
+    cropNotice.value = false;
+    setCoordFeedback([], { west: false, south: false, east: false, north: false });
   });
   draw.on("drawend", (event) => {
     const geometry = event.feature.getGeometry();
     if (!geometry) return;
     const extent = transformExtent(geometry.getExtent(), "EPSG:3857", "EPSG:4326");
-    const cropped = cropToCoverage([
+    const entered: [number, number, number, number] = [
       round6(extent[0]),
       round6(extent[1]),
       round6(extent[2]),
       round6(extent[3]),
-    ]);
+    ];
+    const cropped = cropToCoverage(entered);
     currentBbox.value = cropped;
     isGuide.value = false;
+    // 描いた範囲も存在範囲へ切り詰めたときは、そのことを短く知らせる
+    cropNotice.value = Boolean(cropped && !bboxEquals(cropped, entered));
     // クロップ結果を正として矩形を描き直す
     renderBbox(cropped);
   });
@@ -293,6 +311,9 @@ onBeforeUnmount(() => {
   map?.setTarget(undefined);
   map = null;
   baseMapSwitcher = null;
+  if (typeof window !== "undefined" && (window as any).envelopeModalDebug) {
+    delete (window as any).envelopeModalDebug;
+  }
 });
 
 watch(currentBbox, (bbox) => {
@@ -301,15 +322,168 @@ watch(currentBbox, (bbox) => {
     vectorSource.clear();
     guideSource.clear();
   }
+  // 矩形の変化を入力欄へ反映する（描き直し・クリア・手入力の反映すべて）
+  syncFieldsFromBbox(bbox);
 });
 
 function round6(value: number): number {
   return Math.round(value * 1e6) / 1e6;
 }
 
+function bboxEquals(a: [number, number, number, number], b: [number, number, number, number]): boolean {
+  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+}
+
+function syncFieldsFromBbox(bbox: [number, number, number, number] | null) {
+  for (const field of COORD_FIELDS) {
+    const index = field === "west" ? 0 : field === "south" ? 1 : field === "east" ? 2 : 3;
+    coordTexts.value[field] = bbox ? String(round6(bbox[index])) : "";
+  }
+}
+
+function fieldLabel(field: CoordField): string {
+  // エラー文では方角の正式名を使う（欄の見出しは言語によって 1 文字の略号のため）
+  return t(`appedit.envelope_${field}_name`);
+}
+
+function setCoordFeedback(items: DiagnosticItem[], invalid: Record<CoordField, boolean>) {
+  coordDiagnostics.value = items;
+  coordInvalid.value = { ...invalid };
+}
+
+// 数でない文字列は value: null（空欄は blank）で区別する
+function parseCoordInput(raw: string): { blank: boolean; value: number | null } {
+  // 全角の数字・記号は半角に寄せ、小数点のコンマ（点が無いときだけ）も受け付ける
+  let text = raw.normalize("NFKC").trim();
+  if (!text.includes(".") && (text.match(/,/g) || []).length === 1) text = text.replace(",", ".");
+  if (text === "") return { blank: true, value: null };
+  if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(text)) return { blank: false, value: null };
+  const value = Number(text);
+  return { blank: false, value: Number.isFinite(value) ? value : null };
+}
+
+function coordRange(field: CoordField): [number, number] {
+  return field === "west" || field === "east" ? [-180, 180] : [-90, 90];
+}
+
+// 入れた値が今の画面の外にあるときは、地図をその矩形へ合わせる
+function fitViewToBboxIfNeeded(bbox: [number, number, number, number]) {
+  if (!map) return;
+  try {
+    const view = map.getView();
+    const size = map.getSize();
+    if (!size) return;
+    const extent = transformExtent(bbox, "EPSG:4326", "EPSG:3857");
+    if (!containsExtent(view.calculateExtent(size), extent)) {
+      view.fit(extent, { padding: [40, 40, 40, 40], maxZoom: 16 });
+    }
+  } catch (e) {
+    console.error("Failed to fit view to entered extent:", e);
+  }
+}
+
+// 経緯度の入力を矩形へ反映する（Enter か欄から離れたとき）
+function applyFieldInputs() {
+  const parsed = {
+    west: parseCoordInput(coordTexts.value.west),
+    south: parseCoordInput(coordTexts.value.south),
+    east: parseCoordInput(coordTexts.value.east),
+    north: parseCoordInput(coordTexts.value.north),
+  };
+  const items: DiagnosticItem[] = [];
+  const invalid: Record<CoordField, boolean> = { west: false, south: false, east: false, north: false };
+  const badNumber: CoordField[] = [];
+  const badRange: CoordField[] = [];
+  for (const field of COORD_FIELDS) {
+    const input = parsed[field];
+    if (input.blank) continue;
+    if (input.value === null) {
+      badNumber.push(field);
+      continue;
+    }
+    const [min, max] = coordRange(field);
+    if (input.value < min || input.value > max) badRange.push(field);
+  }
+  for (const field of badNumber) {
+    invalid[field] = true;
+    items.push({ key: `number-${field}`, severity: "danger", message: t("appedit.envelope_coord_error_number", { name: fieldLabel(field) }) });
+  }
+  if (badRange.length) {
+    for (const field of badRange) invalid[field] = true;
+    items.push({ key: "coord-range", severity: "danger", message: t("poisource.errors.coord_range") });
+  }
+  const usable = (field: CoordField): boolean =>
+    !parsed[field].blank && parsed[field].value !== null && !invalid[field];
+  if (usable("west") && usable("east") && parsed.west.value! >= parsed.east.value!) {
+    invalid.west = true;
+    invalid.east = true;
+    items.push({ key: "order-west-east", severity: "danger", message: t("appedit.envelope_coord_error_west_east", { west: fieldLabel("west"), east: fieldLabel("east") }) });
+  }
+  if (usable("south") && usable("north") && parsed.south.value! >= parsed.north.value!) {
+    invalid.south = true;
+    invalid.north = true;
+    items.push({ key: "order-south-north", severity: "danger", message: t("appedit.envelope_coord_error_south_north", { south: fieldLabel("south"), north: fieldLabel("north") }) });
+  }
+  // 正しくない値があるときは矩形を変えずに理由だけ出す
+  if (items.length) {
+    setCoordFeedback(items, invalid);
+    return;
+  }
+  const allBlank = COORD_FIELDS.every((field) => parsed[field].blank);
+  const allFilled = COORD_FIELDS.every((field) => !parsed[field].blank);
+  if (allBlank) {
+    // 欄が空 = 範囲なし。「範囲をクリア」と同じ扱いにする
+    clearBox();
+    return;
+  }
+  if (!allFilled) {
+    // 4つ揃うまで矩形は作らない（途中の入力も消さない）。空の欄を示し、理由を出す
+    for (const field of COORD_FIELDS) invalid[field] = parsed[field].blank;
+    setCoordFeedback([{ key: "incomplete", severity: "danger", message: t("appedit.envelope_coord_error_incomplete") }], invalid);
+    return;
+  }
+  const entered: [number, number, number, number] = [
+    round6(parsed.west.value!),
+    round6(parsed.south.value!),
+    round6(parsed.east.value!),
+    round6(parsed.north.value!),
+  ];
+  // 描いたときと同じく存在範囲の内側へ切り詰める。重ならないときは未選択にせず理由を出す
+  const cropped = cropToCoverage(entered);
+  if (!cropped) {
+    setCoordFeedback([{ key: "no-overlap", severity: "danger", message: t("appedit.envelope_coord_no_overlap") }], invalid);
+    return;
+  }
+  const wasCropped = !bboxEquals(cropped, entered);
+  // Enter 直後に change が来ても二度反映しない（切り詰めた通知も消さない）。
+  // ガイド表示中に値を変えずに Enter したときも、自動のまま（手動の範囲にしない）
+  if (currentBbox.value && bboxEquals(currentBbox.value, cropped)) {
+    syncFieldsFromBbox(currentBbox.value);
+    setCoordFeedback([], invalid);
+    return;
+  }
+  isGuide.value = false;
+  currentBbox.value = cropped;
+  guideSource.clear();
+  renderBbox(cropped);
+  fitViewToBboxIfNeeded(cropped);
+  cropNotice.value = wasCropped;
+  setCoordFeedback([], invalid);
+}
+
+// 欄に正しくない値が残っている間は確定させない（古い矩形を黙って保存しない）
+const hasCoordError = computed(() => coordDiagnostics.value.some((item) => item.severity === "danger"));
+
+const diagnosticItems = computed<DiagnosticItem[]>(() => [
+  ...coordDiagnostics.value,
+  ...(cropNotice.value ? [{ key: "cropped", severity: "warning" as const, message: t("appedit.envelope_coord_cropped") }] : []),
+]);
+
 function clearBox() {
   currentBbox.value = null;
   isGuide.value = false;
+  cropNotice.value = false;
+  setCoordFeedback([], { west: false, south: false, east: false, north: false });
   vectorSource.clear();
   guideSource.clear();
 }
@@ -320,6 +494,23 @@ function confirm() {
     emit("update:modelValue", currentBbox.value ? bboxToEnvelope(currentBbox.value) : null);
   }
   emit("close");
+}
+
+// e2e の口（testDebug と同じ window.isE2E の条件。製品では置かない）。
+// 矩形そのものを確かめるため、描画レイヤの feature の extent を EPSG:4326 へ戻して渡す
+if (typeof window !== "undefined" && (window as any).isE2E) {
+  (window as any).envelopeModalDebug = {
+    featureExtents4326: () =>
+      vectorSource.getFeatures().map((feature) => {
+        const geometry = feature.getGeometry();
+        return geometry ? transformExtent(geometry.getExtent(), "EPSG:3857", "EPSG:4326") : [];
+      }),
+    bbox: () => currentBbox.value,
+    isGuide: () => isGuide.value,
+    fieldTexts: () => ({ ...coordTexts.value }),
+    viewExtent4326: () =>
+      map ? transformExtent(map.getView().calculateExtent(map.getSize()), "EPSG:3857", "EPSG:4326") : null,
+  };
 }
 </script>
 
@@ -357,12 +548,79 @@ function confirm() {
               </div>
             </div>
           </div>
-          <div class="small mt-2 font-monospace">
-            <template v-if="currentBbox">
-              <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("range_filter.guide_badge") }}</span>
-              W {{ currentBbox[0] }} / S {{ currentBbox[1] }} / E {{ currentBbox[2] }} / N {{ currentBbox[3] }}
-            </template>
-            <template v-else>—</template>
+          <!-- 経緯度の直接入力（西・南・東・北）。地図の下・白背景の上の普通のフォーム部品。
+               描いた矩形の値を出し、入力した値は Enter か欄から離れたとき矩形へ反映する -->
+          <div class="mt-2" data-testid="envelope-coord-fields">
+            <div class="d-flex flex-wrap align-items-end gap-3">
+              <div>
+                <div class="form-label small mb-1">{{ t("mapedit.longitude") }}</div>
+                <div class="d-flex gap-2">
+                  <div class="envelope-coord-field">
+                    <label class="small text-muted mb-0" for="envelope-coord-west">{{ t("appedit.envelope_west") }}</label>
+                    <input
+                      id="envelope-coord-west"
+                      v-model="coordTexts.west"
+                      type="text"
+                      inputmode="decimal"
+                      class="form-control form-control-sm"
+                      :class="{ 'is-invalid': coordInvalid.west }"
+                      data-testid="envelope-coord-west"
+                      @change="applyFieldInputs"
+                      @keydown.enter="applyFieldInputs"
+                    >
+                  </div>
+                  <div class="envelope-coord-field">
+                    <label class="small text-muted mb-0" for="envelope-coord-east">{{ t("appedit.envelope_east") }}</label>
+                    <input
+                      id="envelope-coord-east"
+                      v-model="coordTexts.east"
+                      type="text"
+                      inputmode="decimal"
+                      class="form-control form-control-sm"
+                      :class="{ 'is-invalid': coordInvalid.east }"
+                      data-testid="envelope-coord-east"
+                      @change="applyFieldInputs"
+                      @keydown.enter="applyFieldInputs"
+                    >
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="form-label small mb-1">{{ t("mapedit.latitude") }}</div>
+                <div class="d-flex gap-2">
+                  <div class="envelope-coord-field">
+                    <label class="small text-muted mb-0" for="envelope-coord-south">{{ t("appedit.envelope_south") }}</label>
+                    <input
+                      id="envelope-coord-south"
+                      v-model="coordTexts.south"
+                      type="text"
+                      inputmode="decimal"
+                      class="form-control form-control-sm"
+                      :class="{ 'is-invalid': coordInvalid.south }"
+                      data-testid="envelope-coord-south"
+                      @change="applyFieldInputs"
+                      @keydown.enter="applyFieldInputs"
+                    >
+                  </div>
+                  <div class="envelope-coord-field">
+                    <label class="small text-muted mb-0" for="envelope-coord-north">{{ t("appedit.envelope_north") }}</label>
+                    <input
+                      id="envelope-coord-north"
+                      v-model="coordTexts.north"
+                      type="text"
+                      inputmode="decimal"
+                      class="form-control form-control-sm"
+                      :class="{ 'is-invalid': coordInvalid.north }"
+                      data-testid="envelope-coord-north"
+                      @change="applyFieldInputs"
+                      @keydown.enter="applyFieldInputs"
+                    >
+                  </div>
+                </div>
+              </div>
+              <span v-if="isGuide" class="badge text-bg-warning mb-1" data-testid="envelope-guide-badge">{{ t("range_filter.guide_badge") }}</span>
+            </div>
+            <DiagnosticFeedback v-if="diagnosticItems.length" scope="field" :items="diagnosticItems" data-testid="envelope-coord-diagnostics" />
           </div>
         </div>
         <div class="modal-footer">
@@ -372,7 +630,7 @@ function confirm() {
           <button type="button" class="btn btn-outline-secondary" @click="emit('close')">
             {{ t("basemap.modal.cancel") }}
           </button>
-          <button type="button" class="btn btn-primary" @click="confirm">
+          <button type="button" class="btn btn-primary" :disabled="hasCoordError" data-testid="envelope-confirm" @click="confirm">
             {{ t("appedit.confirm") }}
           </button>
         </div>
@@ -392,5 +650,14 @@ function confirm() {
   width: 100%;
   height: 55vh;
   border: 1px solid var(--bs-border-color);
+}
+/* 経緯度の入力欄。AppSourceEditor の .envelope-input と同じ形・幅にする */
+.envelope-coord-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.envelope-coord-field input {
+  width: 8.5rem;
 }
 </style>

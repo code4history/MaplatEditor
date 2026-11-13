@@ -792,6 +792,11 @@
     "envelope_south": "ใต้",
     "envelope_east": "ตะวันออก",
     "envelope_north": "เหนือ",
+    "envelope_coord_error_number": "{{name}}ต้องเป็นตัวเลข",
+    "envelope_coord_error_west_east": "{{west}}ต้องน้อยกว่า {{east}}",
+    "envelope_coord_error_south_north": "{{south}}ต้องน้อยกว่า {{north}}",
+    "envelope_coord_cropped": "ตัดให้อยู่ภายในขอบเขตที่มีอยู่",
+    "envelope_coord_no_overlap": "ขอบเขตที่ป้อนไม่ทับซ้อนกับขอบเขตที่มีอยู่",
     "envelope_pick": "ระบุบนแผนที่",
     "envelope_clear": "ล้าง",
     "envelope_copy_coverage": "คัดลอกจากขอบเขตที่มีอยู่",
@@ -852,7 +857,12 @@
     "maplibre_export_warning_message": "แผนที่พื้นฐาน MapLibre บางส่วนในแอปพลิเคชันนี้ต้องใช้ MapLibre GL JS 6 และจะไม่แสดงในเวอร์ชัน 5",
     "maplibre_export_warning_detail": "{{reasons}}\n\nหากต้องการให้แสดง ให้เปลี่ยน \"เวอร์ชันของ MapLibre GL JS\" เป็น 6 ในหน้าจัดการแอปพลิเคชัน บันทึกแอปพลิเคชัน แล้วส่งออกอีกครั้ง",
     "maplibre_export_warning_continue": "ส่งออกต่อไป",
-    "maplibre_export_warning_cancel": "ยกเลิก"
+    "maplibre_export_warning_cancel": "ยกเลิก",
+    "envelope_west_name": "ตะวันตก",
+    "envelope_south_name": "ใต้",
+    "envelope_east_name": "ตะวันออก",
+    "envelope_north_name": "เหนือ",
+    "envelope_coord_error_incomplete": "กรอกค่าให้ครบทั้งสี่ค่า: ตะวันตก ใต้ ตะวันออก และเหนือ"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",

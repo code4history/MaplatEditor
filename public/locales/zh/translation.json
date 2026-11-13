@@ -792,6 +792,11 @@
     "envelope_south": "南",
     "envelope_east": "东",
     "envelope_north": "北",
+    "envelope_coord_error_number": "{{name}}必须是数字。",
+    "envelope_coord_error_west_east": "{{west}}必须小于{{east}}。",
+    "envelope_coord_error_south_north": "{{south}}必须小于{{north}}。",
+    "envelope_coord_cropped": "已裁剪到覆盖范围内。",
+    "envelope_coord_no_overlap": "输入的范围与覆盖范围没有重叠。",
     "envelope_pick": "在地图上指定",
     "envelope_clear": "清除",
     "envelope_copy_coverage": "从覆盖范围复制",
@@ -852,7 +857,12 @@
     "maplibre_export_warning_message": "此应用中的部分 MapLibre 底图需要 MapLibre GL JS 6，在版本 5 中不会显示。",
     "maplibre_export_warning_detail": "{{reasons}}\n\n要显示它们，请在应用管理界面将“MapLibre GL JS 版本”切换为 6，保存应用后再次导出。",
     "maplibre_export_warning_continue": "仍然导出",
-    "maplibre_export_warning_cancel": "取消"
+    "maplibre_export_warning_cancel": "取消",
+    "envelope_west_name": "西",
+    "envelope_south_name": "南",
+    "envelope_east_name": "东",
+    "envelope_north_name": "北",
+    "envelope_coord_error_incomplete": "请输入西、南、东、北全部四个值。"
   },
   "mapmodel": {
     "untitled": "标题未设置",

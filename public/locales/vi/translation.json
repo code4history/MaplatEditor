@@ -792,6 +792,11 @@
     "envelope_south": "Nam",
     "envelope_east": "Đông",
     "envelope_north": "Bắc",
+    "envelope_coord_error_number": "{{name}} phải là một số.",
+    "envelope_coord_error_west_east": "{{west}} phải nhỏ hơn {{east}}.",
+    "envelope_coord_error_south_north": "{{south}} phải nhỏ hơn {{north}}.",
+    "envelope_coord_cropped": "Đã cắt vào bên trong phạm vi tồn tại.",
+    "envelope_coord_no_overlap": "Phạm vi đã nhập không chồng lấn với phạm vi tồn tại.",
     "envelope_pick": "Chỉ định trên bản đồ",
     "envelope_clear": "Xóa",
     "envelope_copy_coverage": "Sao chép từ phạm vi tồn tại",
@@ -852,7 +857,12 @@
     "maplibre_export_warning_message": "Một số bản đồ nền MapLibre trong ứng dụng này cần MapLibre GL JS 6 và sẽ không hiển thị với phiên bản 5.",
     "maplibre_export_warning_detail": "{{reasons}}\n\nĐể hiển thị, hãy chuyển \"Phiên bản MapLibre GL JS\" sang 6 trên màn hình quản lý ứng dụng, lưu ứng dụng rồi xuất lại.",
     "maplibre_export_warning_continue": "Vẫn xuất",
-    "maplibre_export_warning_cancel": "Hủy"
+    "maplibre_export_warning_cancel": "Hủy",
+    "envelope_west_name": "Tây",
+    "envelope_south_name": "Nam",
+    "envelope_east_name": "Đông",
+    "envelope_north_name": "Bắc",
+    "envelope_coord_error_incomplete": "Hãy nhập đủ bốn giá trị: tây, nam, đông và bắc."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

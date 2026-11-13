@@ -792,6 +792,11 @@
     "envelope_south": "남",
     "envelope_east": "동",
     "envelope_north": "북",
+    "envelope_coord_error_number": "{{name}}에는 숫자를 입력하세요.",
+    "envelope_coord_error_west_east": "{{west}} 값은 {{east}} 값보다 작아야 합니다.",
+    "envelope_coord_error_south_north": "{{south}} 값은 {{north}} 값보다 작아야 합니다.",
+    "envelope_coord_cropped": "존재 범위 안쪽으로 잘렸습니다.",
+    "envelope_coord_no_overlap": "입력한 범위가 존재 범위와 겹치지 않습니다.",
     "envelope_pick": "지도에서 지정",
     "envelope_clear": "지우기",
     "envelope_copy_coverage": "존재 범위에서 복사",
@@ -852,7 +857,12 @@
     "maplibre_export_warning_message": "이 앱의 일부 MapLibre 베이스맵은 MapLibre GL JS 6이 필요하므로 버전 5에서는 표시되지 않습니다.",
     "maplibre_export_warning_detail": "{{reasons}}\n\n표시하려면 앱 관리 화면의 \"MapLibre GL JS 버전\"을 6으로 바꾸고 앱을 저장한 뒤 다시 내보내세요.",
     "maplibre_export_warning_continue": "그대로 내보내기",
-    "maplibre_export_warning_cancel": "취소"
+    "maplibre_export_warning_cancel": "취소",
+    "envelope_west_name": "서",
+    "envelope_south_name": "남",
+    "envelope_east_name": "동",
+    "envelope_north_name": "북",
+    "envelope_coord_error_incomplete": "서·남·동·북 네 값을 모두 입력하세요."
   },
   "mapmodel": {
     "untitled": "제목 미설정",
