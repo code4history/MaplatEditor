@@ -1342,7 +1342,7 @@
     "load_error_fix_permission": "Permita el acceso de Maplat Editor en la Configuración del sistema, o cambie la carpeta de datos en Configuración.",
     "load_error_fix_permission_windows": "Permita que Maplat Editor escriba en Seguridad de Windows o en las Propiedades de la carpeta, o cambie la carpeta de datos en Configuración.",
     "load_error_fix_permission_linux": "Conceda permiso de escritura en la carpeta de datos, o cambie la carpeta de datos en Configuración.",
-    "load_error_fix_readonly_location": "Esta ubicación es de solo lectura. Cambie la carpeta de datos a una ubicación con permiso de escritura en Configuración.",
+    "load_error_fix_readonly_location": "En Configuración, cambie la carpeta de datos a una ubicación en la que se pueda escribir.",
     "load_error_fix_not_found": "Vuelva a especificar la carpeta de datos en Configuración.",
     "load_error_fix_other": "Cambie la carpeta de datos en Configuración, o reintente.",
     "menu_delete": "Eliminar",

@@ -101,6 +101,22 @@ try {
       import { permissionFixKey } from ${JSON.stringify(loadFailurePath)};
 
       const execFileAsync = promisify(execFile);
+
+      // 読み取り専用でつないだディスクイメージを外す。外し損ねたら 1 度だけやり直し、それでも
+      // 外れなければ警告する（握りつぶさない。残ったイメージは hdiutil detach -force で外す）
+      async function detachImage(mountPoint) {
+        try {
+          await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+          return;
+        } catch {
+          // 1 度だけやり直す
+        }
+        try {
+          await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+        } catch (err) {
+          console.warn('[db-open-reason-smoke] ディスクイメージを外せませんでした（hdiutil detach -force で外してください）: ' + mountPoint + ': ' + String(err && err.message ? err.message : err));
+        }
+      }
       const workDir = ${JSON.stringify(workDir)};
       const scratch = path.join(workDir, 'cases');
       await mkdir(scratch, { recursive: true });
@@ -373,8 +389,8 @@ try {
           assert.equal(roImageSubFailure.failure.code, 'ENOENT');
         } finally {
           await SqliteDataService.reset();
-          // 外すのに失敗しても、イメージのファイルは消す
-          if (attached) await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]).catch(() => undefined);
+          // 外すのに失敗しても、イメージのファイルは消す。外し損ねは握りつぶさず警告する
+          if (attached) await detachImage(mountPoint);
           await rm(imageFile, { force: true });
         }
       }
@@ -502,8 +518,9 @@ try {
   // 読み取り専用の場所は、権限を足しても直らない。許可の場所（システム設定・権限）を案内せず、
   // データフォルダを書き込める場所へ変えることだけを案内する
   assert.equal(ja.resource_list.load_error_reason_readonly_location, 'データフォルダが読み取り専用の場所にあります');
-  assert.match(ja.resource_list.load_error_fix_readonly_location, /読み取り専用/);
-  assert.match(ja.resource_list.load_error_fix_readonly_location, /設定でデータフォルダを書き込める場所へ変えてください/);
+  assert.equal(ja.resource_list.load_error_fix_readonly_location, '設定でデータフォルダを書き込める場所へ変えてください。');
+  // 直し方の文は理由の文（読み取り専用の場所にあります）を繰り返さない
+  assert.doesNotMatch(ja.resource_list.load_error_fix_readonly_location, /読み取り専用/);
   assert.doesNotMatch(ja.resource_list.load_error_fix_readonly_location, /システム設定|権限|許可/);
   assert.match(ja.resource_list.load_error_fix_permission, /システム設定で/);
   assert.match(ja.resource_list.load_error_fix_permission, /設定でデータフォルダを変えてください/);

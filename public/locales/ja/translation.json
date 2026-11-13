@@ -1342,7 +1342,7 @@
     "load_error_fix_permission": "システム設定で Maplat Editor のアクセスを許可するか、設定でデータフォルダを変えてください。",
     "load_error_fix_permission_windows": "Windows セキュリティまたはフォルダのプロパティで Maplat Editor の書き込みを許可するか、設定でデータフォルダを変えてください。",
     "load_error_fix_permission_linux": "データフォルダに書き込みの権限を付けるか、設定でデータフォルダを変えてください。",
-    "load_error_fix_readonly_location": "この場所は読み取り専用です。設定でデータフォルダを書き込める場所へ変えてください。",
+    "load_error_fix_readonly_location": "設定でデータフォルダを書き込める場所へ変えてください。",
     "load_error_fix_not_found": "設定でデータフォルダを指定し直してください。",
     "load_error_fix_other": "設定でデータフォルダを変えるか、再試行してください。",
     "menu_delete": "削除",

@@ -1342,7 +1342,7 @@
     "load_error_fix_permission": "Autorisez l'accès de Maplat Editor dans les Paramètres système, ou changez le dossier de données dans les Paramètres.",
     "load_error_fix_permission_windows": "Autorisez Maplat Editor à écrire dans Sécurité Windows ou dans les Propriétés du dossier, ou changez le dossier de données dans les Paramètres.",
     "load_error_fix_permission_linux": "Accordez l'autorisation d'écriture sur le dossier de données, ou changez le dossier de données dans les Paramètres.",
-    "load_error_fix_readonly_location": "Cet emplacement est en lecture seule. Changez le dossier de données pour un emplacement accessible en écriture dans les Paramètres.",
+    "load_error_fix_readonly_location": "Changez le dossier de données pour un emplacement accessible en écriture dans les Paramètres.",
     "load_error_fix_not_found": "Indiquez à nouveau le dossier de données dans les Paramètres.",
     "load_error_fix_other": "Changez le dossier de données dans les Paramètres, ou réessayez.",
     "menu_delete": "Supprimer",

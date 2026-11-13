@@ -1342,7 +1342,7 @@
     "load_error_fix_permission": "請在系統設定中允許 Maplat Editor 存取，或在設定中變更資料夾。",
     "load_error_fix_permission_windows": "請在 Windows 安全性或資料夾內容中允許 Maplat Editor 寫入，或在設定中變更資料夾。",
     "load_error_fix_permission_linux": "請為資料夾授予寫入權限，或在設定中變更資料夾。",
-    "load_error_fix_readonly_location": "此位置為唯讀。請在設定中將資料夾變更為可寫入的位置。",
+    "load_error_fix_readonly_location": "請在設定中將資料夾變更為可寫入的位置。",
     "load_error_fix_not_found": "請在設定中重新指定資料夾。",
     "load_error_fix_other": "請在設定中變更資料夾，或重試。",
     "menu_delete": "刪除",

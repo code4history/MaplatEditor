@@ -1342,7 +1342,7 @@
     "load_error_fix_permission": "Cho phép Maplat Editor truy cập trong Cài đặt hệ thống, hoặc thay đổi Thư mục dữ liệu trong Cài đặt.",
     "load_error_fix_permission_windows": "Cho phép Maplat Editor ghi trong Bảo mật Windows hoặc Thuộc tính của thư mục, hoặc thay đổi Thư mục dữ liệu trong Cài đặt.",
     "load_error_fix_permission_linux": "Cấp quyền ghi cho Thư mục dữ liệu, hoặc thay đổi Thư mục dữ liệu trong Cài đặt.",
-    "load_error_fix_readonly_location": "Vị trí này chỉ đọc. Thay đổi Thư mục dữ liệu sang vị trí có thể ghi trong Cài đặt.",
+    "load_error_fix_readonly_location": "Thay đổi Thư mục dữ liệu sang vị trí có thể ghi trong Cài đặt.",
     "load_error_fix_not_found": "Chỉ định lại Thư mục dữ liệu trong Cài đặt.",
     "load_error_fix_other": "Thay đổi Thư mục dữ liệu trong Cài đặt, hoặc thử lại.",
     "menu_delete": "Xóa",

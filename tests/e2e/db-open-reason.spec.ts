@@ -17,6 +17,26 @@ const evidenceDir = path.join(projectRoot, '.tmp-evidence');
 const evidenceTag = process.env.MAPLAT_E2E_EVIDENCE_TAG ?? 'run';
 const execFileAsync = promisify(execFile);
 
+// 読み取り専用でつないだディスクイメージのマウント点。時間切れで finally を抜けても
+// afterEach で必ず外せるように、テストの外側に持つ
+let attachedMountPoint: string | null = null;
+
+// ディスクイメージを外す。外し損ねたら 1 度だけやり直し、それでも外れなければ警告する
+// （握りつぶさない。残ったイメージは hdiutil detach -force で外す）
+async function detachImage(mountPoint: string): Promise<void> {
+  try {
+    await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+    return;
+  } catch {
+    // 1 度だけやり直す
+  }
+  try {
+    await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]);
+  } catch (err) {
+    console.warn(`[db-open-reason e2e] ディスクイメージを外せませんでした（hdiutil detach -force で外してください）: ${mountPoint}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 async function forceJapanese(page: Page): Promise<void> {
   await page.evaluate(() => window.settings.set('lang', 'ja'));
   await page.reload();
@@ -44,6 +64,13 @@ async function expectDbOpenFailure(
 }
 
 test.describe('保存先フォルダが開けないときの地図一覧', () => {
+  test.afterEach(async () => {
+    if (attachedMountPoint === null) return;
+    const mountPoint = attachedMountPoint;
+    attachedMountPoint = null;
+    await detachImage(mountPoint);
+  });
+
   test('理由と直し方を示す', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-db-open-reason-'));
@@ -94,23 +121,26 @@ test.describe('保存先フォルダが開けないときの地図一覧', () =>
         await writeFile(path.join(imageSrc, 'README.txt'), 'read-only test image\n');
         await mkdir(mountPoint, { recursive: true });
         await execFileAsync('hdiutil', ['create', '-quiet', '-srcfolder', imageSrc, '-format', 'UDRO', '-volname', 'maplat-ro-e2e', '-ov', imageFile]);
-        let attached = false;
         try {
           await execFileAsync('hdiutil', ['attach', '-quiet', '-readonly', '-nobrowse', '-mountpoint', mountPoint, imageFile]);
-          attached = true;
+          attachedMountPoint = mountPoint;
           await page.evaluate((folder) => window.settings.set('saveFolder', folder), mountPoint);
           await expectDbOpenFailure(
             page,
             'データフォルダが読み取り専用の場所にあります',
-            ['この場所は読み取り専用です', '設定でデータフォルダを書き込める場所へ変えてください'],
+            ['設定でデータフォルダを書き込める場所へ変えてください'],
             'readonly-location',
           );
+          // 直し方は理由の文を繰り返さず、許可の場所も案内しない
           const fixText = await page.locator('[data-load-failure-fix]').textContent();
-          expect(fixText).not.toMatch(/システム設定|権限|許可/);
+          expect(fixText).not.toMatch(/読み取り専用|システム設定|権限|許可/);
         } finally {
           // DB を手放してから外す（外す前に保存先を一時フォルダへ戻す）
           await page.evaluate((folder) => window.settings.set('saveFolder', folder), goneLink).catch(() => undefined);
-          if (attached) await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]).catch(() => undefined);
+          if (attachedMountPoint !== null) {
+            attachedMountPoint = null;
+            await detachImage(mountPoint);
+          }
           await rm(imageFile, { force: true });
         }
       }
