@@ -26,5 +26,14 @@ export function useMasterDetailRouteState() {
     await router.push({ query: mergeMasterDetailQuery(route.query, { uid: null }) });
   };
 
-  return { select, selectDuplicate, clearSelection };
+  // 保存の後: 一覧を読み直してから保存した行を選ぶ。読み直しの間に利用者が別の画面や行へ
+  // 移ったら、保存した行へ引き戻さない（BaseMap/Asset の master-detail 共通）
+  const selectSavedAfterReload = async (uid: string, reload: () => Promise<void>) => {
+    const routeAtSave = route.fullPath;
+    await reload();
+    if (route.fullPath !== routeAtSave) return;
+    await select(uid, false);
+  };
+
+  return { select, selectDuplicate, clearSelection, selectSavedAfterReload };
 }

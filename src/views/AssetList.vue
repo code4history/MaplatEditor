@@ -95,7 +95,7 @@ import { localizeTitle } from "../utils/langResource";
 const { t } = useTranslation();
 const route = useRoute();
 const router = useRouter();
-const { select, selectDuplicate, clearSelection } = useMasterDetailRouteState();
+const { select, selectDuplicate, clearSelection, selectSavedAfterReload } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
 // nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
@@ -209,9 +209,10 @@ async function closeEditor(): Promise<void> {
   await refreshDraftsNow();
 }
 async function saved(uid: string): Promise<void> {
-  await masterList.value?.reload();
-  await refreshDraftsNow();
-  await select(uid, false);
+  await selectSavedAfterReload(uid, async () => {
+    await masterList.value?.reload();
+    await refreshDraftsNow();
+  });
 }
 async function reloadEditor(): Promise<void> { await masterList.value?.reload(); }
 
