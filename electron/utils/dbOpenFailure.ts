@@ -45,10 +45,12 @@ function reasonOfCode(code: string): DbOpenFailureReason | null {
 
 /** ドライブを差し込むフォルダ。この直下が無いのはドライブが外れたとき */
 const MOUNT_PARENTS = new Set(['/Volumes', '/media', '/mnt', '/run/media']);
+/** Linux はユーザーごとの /media/<user>・/run/media/<user> の下に差し込む */
+const PER_USER_MOUNT_PARENTS = new Set(['/media', '/run/media']);
 
 function isMountParent(dir: string): boolean {
-  // Linux はユーザーごとの /media/<user>・/run/media/<user> の下に差し込む
-  return MOUNT_PARENTS.has(dir) || MOUNT_PARENTS.has(path.dirname(dir));
+  // /Volumes/<ドライブ名> はつながっているドライブそのものなので含めない
+  return MOUNT_PARENTS.has(dir) || PER_USER_MOUNT_PARENTS.has(path.dirname(dir));
 }
 
 /**
