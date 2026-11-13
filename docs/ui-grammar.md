@@ -2,7 +2,8 @@
 
 説明・エラー・空状態・ダイアログ・ボタンを、どの部品でどう出すかの決まりです。新しい画面や部品を作る前に読んでください。タスクの設計書を書くときも、この文書に合わせます。この文書に反する設計書を書く場合は、先にこの文書を変えます。
 
-- 2026-11-13 §6.3 の推定ボタンの注記の出典を【AI 設計】から人間決定（白背景の上と地図の上は形が違ってよい）に改めた。地図の上の UI の棚卸しと決まりの案は [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md)（【提案・未決】）。
+- 2026-11-13 §6.2 の地図の行を「地図の上の部品は ui-map-overlay-proposal.md §4.2」に書き換え、§9.2 に `map.tool-button` の検査を足した（地図の上の UI の実装に伴う）。
+- 2026-11-13 §6.3 の推定ボタンの注記の出典を【AI 設計】から人間決定（白背景の上と地図の上は形が違ってよい）に改めた。地図の上の UI の棚卸しと決まりは [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md)（案 A。人間決定）。
 - 2026-11-13 §6.3 の例を「キャンセル」に替え、名前が似た別の操作は置き場所の役割で形が決まる旨を追加（AppEdit の「推定」を副次の操作の形にしたため）。出典なしの追加のため【AI 設計】。§7.5 の該当の行を直した。
 - 2026-11-12 読み上げ名の「項目名が空」の扱い（§2.1）を追加。出典なしの追加のため【AI 設計】。
 - 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は §8。
@@ -204,7 +205,7 @@
 | 取り消し・戻る・副次の操作 | `btn btn-outline-secondary` | 多くのダイアログの「キャンセル」 |
 | 値を消す（範囲・ホーム位置のクリア、行の削除） | `btn btn-outline-danger`（ダイアログでは左端 `me-auto`） | `EnvelopeEditorModal`、`HomePositionEditorModal` |
 | 入口の操作（新規追加・追加・選択） | `btn btn-outline-primary` | `＋ 新規追加`（人間決定）ほか |
-| 地図の上に重ねる道具のボタン | `btn btn-light btn-sm border shadow-sm` | MapEdit のホーム位置のボタン |
+| 地図の上に重ねる道具（ボタン・表示の切り替え・情報） | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2 の白い札（`map-tool`）。地図の上の部品はこの文書の他の行ではなく §4.2 に従う | MapEdit の推定・ホーム位置のボタン |
 | ダイアログのボタンの並び | 左から「（値のクリア）」「キャンセル」「主な操作」 | ほぼ全部のダイアログ |
 
 ### 6.3 禁止の形
@@ -381,9 +382,11 @@
 | `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
 | `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | T10M12 | 節内の空表示（§8 U7） |
 | `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |
+| `map.tool-button` | 地図の上に重ねる道具のボタン（`map-overlay-tools` の中の `button`）に `map-tool` が無い、または `aria-label` が無い | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2（案 A） | — |
 
 ### 9.3 検査できないこと（レビューで見る）
 
+- 地図の上の OpenLayers 既定・取り込みの部品の札の見た目と読み上げ名は JS・CSS 側で付けるため template の検査に出ない（`src/utils/mapOverlayTools.ts` と `src/assets/scss/map-overlay.scss` をレビューで見る）
 - 文言が説明か状態の表示か（キーの名前で推し量るだけ）
 - 新しい部品が共通部品の見た目を scoped CSS でまねているか（T10M12:356）
 - 同じ操作に同じ見た目を使っているか（操作の同一性は機械には分からない）

@@ -18,6 +18,8 @@ for (const [markup, rule] of [
   ['<div class="text-center text-muted">{{t("x.empty")}}</div>', 'empty.ad-hoc'],
   ['<div class="modal-footer"><button class="btn btn-secondary">{{t("common.cancel")}}</button></div>', 'button.variant'],
   ['<div class="modal-footer"><button class="btn btn-primary btn-sm">OK</button></div>', 'button.variant'],
+  ['<div class="map-overlay-tools"><button class="btn">推定</button></div>', 'map.tool-button'],
+  ['<div class="map-overlay-tools"><button class="btn map-tool"><i class="bi bi-magic"/></button></div>', 'map.tool-button'],
 ]) {
   assert.ok(rules(vue(markup)).includes(rule), rule);
 }
@@ -38,6 +40,8 @@ assert.deepEqual(rules('window.dialog.showMessageBoxSync({message: "x"}); showMe
 // 文言のキーの無い呼び出しも、許可リストで個別に通せる選択子（引数の書き方）が付く。
 assert.equal(inspectSource('src/test.ts', 'window.dialog.showMessageBox(opts)')[0].key, 'args:opts');
 assert.deepEqual(rules(vue('<ContextHelp :text="t(\'x_help\')" :ariaLabel="t(\'label\')"/><span class="text-danger">*</span>')), []);
+// 地図の上に重ねる道具のボタンは、札（map-tool）と読み上げ名があれば通る
+assert.deepEqual(rules(vue('<div class="map-overlay-tools"><div class="map-overlay-tools__row"><button class="btn map-tool" :aria-label="t(\'common.estimate\')" :title="t(\'common.estimate\')"><i class="bi bi-magic"/></button></div></div>')), []);
 assert.deepEqual(rules(vue('', '// confirm("コメント")\nconst text = "alert(1)"')), []);
 assert.deepEqual(rules(vue('', 'emit("confirm")')), []);
 assert.deepEqual(rules(vue('<div class="text-muted">{{t("x.empty")}}</div>')), []);
