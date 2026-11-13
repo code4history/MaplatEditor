@@ -154,6 +154,43 @@ export function parseIconRef(value: string): IconRef {
   return { kind: "url", url: value };
 }
 
+const ICON_KEYS = ["icon", "selectedIcon"] as const;
+
+function addIconAssetUids(props: unknown, uids: Set<string>): void {
+  if (!props || typeof props !== "object" || Array.isArray(props)) return;
+  for (const key of ICON_KEYS) {
+    const value = (props as Record<string, unknown>)[key];
+    if (typeof value !== "string" || value === "") continue;
+    const ref = parseIconRef(value);
+    // アイコンセットの参照（builtin:… 等）と URL・相対パスはアセットではないので数えない
+    if (ref.kind === "asset") uids.add(ref.uid.toLowerCase());
+  }
+}
+
+/**
+ * FeatureCollection 中のアイコン（icon / selectedIcon）が参照するアセット UID を集める。
+ * 見る場所は、main 側の書き出し（poiReferenceResolver の resolveIconRefsInFc）と同じ 3 か所:
+ *   - FC トップレベル（過去の形。エディタの layer metadata 欄もここに書く）
+ *   - FC.properties（layer metadata の正本の位置）
+ *   - 各 feature の properties（POI ごとのアイコン）
+ * 判別は parseIconRef に任せる（書き出しと同じ判別で、欠落の誤検出を避ける）。
+ */
+export function collectIconAssetUids(fc: unknown): Set<string> {
+  const uids = new Set<string>();
+  if (!fc || typeof fc !== "object" || Array.isArray(fc)) return uids;
+  const obj = fc as Record<string, unknown>;
+  addIconAssetUids(obj, uids);
+  addIconAssetUids(obj.properties, uids);
+  if (Array.isArray(obj.features)) {
+    for (const feature of obj.features) {
+      if (feature && typeof feature === "object") {
+        addIconAssetUids((feature as Record<string, unknown>).properties, uids);
+      }
+    }
+  }
+  return uids;
+}
+
 /** parseIconRef の逆（正規形へ）。 */
 export function formatIconRef(ref: IconRef): string {
   switch (ref.kind) {
