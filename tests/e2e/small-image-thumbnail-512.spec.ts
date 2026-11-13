@@ -8,7 +8,8 @@
 // - 書誌だけの道（IIIF の書誌だけを写し、画像は利用者が選ぶ）
 //
 // 期待する大きさ: 長辺は min(元の長辺, 512)。512px より小さい画像は拡大せず元の大きさのまま。
-// 縦横の比は元の画像と同じ（丸めの 1px は許す）。
+// 縦横の比は元の画像と同じ（丸めの 1px は許す）。四隅に色の違う四角を置いた画像を使い、
+// 出力の四隅の色も確かめる（ずれや端の切れが無いこと）。
 //
 // 取得は本物のネットワークに出さない（iiif-metadata-only.spec.ts と同じ差し替え）。
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -18,6 +19,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
+import { expectCornerColors, writeCornerImage } from './helpers/cornerImage';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixtureDir = path.join(projectRoot, 'tests', 'fixtures', 'iiif');
@@ -169,9 +171,7 @@ test.describe('512px のサムネイルは画像の大きさによらず作ら�
         const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-small-thumb512-'));
         await writeMainResponses(e2eRoot);
         const imagePath = path.join(e2eRoot, `image-${size.width}x${size.height}.png`);
-        const { Jimp } = await import('jimp');
-        await new Jimp({ width: size.width, height: size.height, color: 0x3366ccff })
-          .write(imagePath as `${string}.${string}`);
+        await writeCornerImage(imagePath, size.width, size.height);
 
         let app: ElectronApplication | null = null;
         try {
@@ -199,6 +199,8 @@ test.describe('512px のサムネイルは画像の大きさによらず作ら�
           console.log(`  ${route.name} ${size.width}x${size.height} -> ${meta.width}x${meta.height}`);
           expect(Math.abs(meta.width - expectedW)).toBeLessThanOrEqual(1);
           expect(Math.abs(meta.height - expectedH)).toBeLessThanOrEqual(1);
+          // 中身: 四隅の色が残っている（ずれ・端の切れ・白い帯が無い）
+          await expectCornerColors(thumbPath, e2eRoot);
         } finally {
           if (app) await quitElectronApplication(app);
         }

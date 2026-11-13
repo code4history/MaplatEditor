@@ -171,6 +171,9 @@ const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
 // 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）。
 // これは「スキーマの移行」ではなく z2 タイルからの **導出** なので m19-t7 でも残る
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
+// 512px サムネイル起動時マイニングの v3 マーカー。v2 はズーム2タイルが無い小さい地図（長辺 512px 以下）を
+// 飛ばしていたため、その地図にだけ最大ズームの段から 512px を作る。v2 とは別に 1 回だけ実行する
+const THUMBNAIL_512_MINING_V3_ID = '2026-11-14-thumbnail-512-mining-v3';
 // nov26-m6-t5 (#109): 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行の印。
 // 取込の段ではない（0.7.0 の取込行に限らず 1.0.0〜1.1.x のすべての行が対象で、到達先は 1.2.0 の命名の契約）。
 // 印の定数はこのファイルの行頭に集める規約に従い、AssetUuidNamesMigrationService へは引数で渡す（T5-R2-MIN-1）
@@ -1114,11 +1117,18 @@ class SqliteDataService {
     ).run();
   }
 
-  // M12-T15 R3 §C2: 512px サムネイル起動時マイニング。
-  // 「ズーム2タイルは存在するが 512px サムネイルがない地図」を対象に、
+  // M12-T15 R3 §C2: 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
+  // v2: ズーム2タイルを持つ地図。v3: ズーム2タイルを持たない小さい地図（長辺 512px 以下）。
+  // 印は別々で、それぞれ 1 回だけ走る。v2 の印が既にある利用者のフォルダでも v3 は 1 回走る。
+  private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
+    await this.mineThumbnail512FromZoom2(db);
+    await this.mineThumbnail512ForSmallMaps(db);
+  }
+
+  // v2: 「ズーム2タイルは存在するが 512px サムネイルがない地図」を対象に、
   // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
   // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
-  private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
+  private async mineThumbnail512FromZoom2(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
       .get(THUMBNAIL_512_MINING_V2_ID);
@@ -1126,7 +1136,6 @@ class SqliteDataService {
 
     const saveFolder = SettingsService.get('saveFolder') as string;
     const tileFolder = path.join(saveFolder, 'tiles');
-    const thumbFolder = path.join(saveFolder, 'tmbs');
 
     // 全地図の uid を取得（M6 により data_json の width/height は使わないため uid のみでよい）
     const maps = db.prepare('SELECT uid FROM maps').all() as any[];
@@ -1173,9 +1182,62 @@ class SqliteDataService {
       targets.push(uid);
     }
 
+    await this.generateThumbnail512Batch(db, THUMBNAIL_512_MINING_V2_ID, targets.map((uid) => ({ uid, level: 2 })), skipped.length);
+  }
+
+  // v3: 小さい地図（長辺 512px 以下）はズーム2タイルを持たないため v2 が飛ばしていた。
+  // 取り込みは今は原寸の段から 512px を作るが、それ以前に取り込んだ地図には 512px が無い。
+  // 対象は「512px が無く、かつ tiles/{uid}/2 が無い地図」だけ。512px を持つ地図（利用者が
+  // 置き換えたものも含む）には触れない。段は tiles/{uid} の下の数字の段のうち最大のもの（2 未満）。
+  private async mineThumbnail512ForSmallMaps(db: DatabaseSync): Promise<void> {
+    const alreadyMined = db
+      .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
+      .get(THUMBNAIL_512_MINING_V3_ID);
+    if (alreadyMined) return;
+
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const tileFolder = path.join(saveFolder, 'tiles');
+    const maps = db.prepare('SELECT uid FROM maps').all() as any[];
+    const targets: Array<{ uid: string; level: number }> = [];
+    let skippedCount = 0;
+    for (const map of maps) {
+      const uid = String(map.uid);
+      const thumb512Path = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
+      const uidTileDir = path.join(tileFolder, uid);
+      if (await fs.pathExists(thumb512Path) || await fs.pathExists(path.join(uidTileDir, '2'))) {
+        skippedCount++;
+        continue;
+      }
+      let levels: number[] = [];
+      try {
+        levels = (await fs.readdir(uidTileDir)).filter((d) => /^\d+$/.test(d)).map((d) => parseInt(d, 10));
+      } catch {
+        // タイルの無い地図（画像未登録など）は対象外
+      }
+      const level = levels.length > 0 ? Math.max(...levels) : -1;
+      if (level < 0 || level >= 2) {
+        skippedCount++;
+        continue;
+      }
+      targets.push({ uid, level });
+    }
+    await this.generateThumbnail512Batch(db, THUMBNAIL_512_MINING_V3_ID, targets, skippedCount);
+  }
+
+  // v2 / v3 の共通の後段: 各地図の 512px を生成し、進捗を知らせ、失敗は warnings へ残し、印を書く。
+  private async generateThumbnail512Batch(
+    db: DatabaseSync,
+    markerId: string,
+    targets: Array<{ uid: string; level: number }>,
+    skippedCount: number,
+  ): Promise<void> {
+    const saveFolder = SettingsService.get('saveFolder') as string;
+    const tileFolder = path.join(saveFolder, 'tiles');
+    const thumbFolder = path.join(saveFolder, 'tmbs');
+
     if (targets.length === 0) {
-      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
-      console.log('[Thumbnail512Mining] no targets, skipped:', skipped.length);
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(markerId);
+      console.log(`[Thumbnail512Mining] ${markerId}: no targets, skipped:`, skippedCount);
       return;
     }
 
@@ -1187,10 +1249,10 @@ class SqliteDataService {
     let failed = 0;
 
     for (let i = 0; i < targets.length; i++) {
-      const uid = targets[i];
+      const { uid, level } = targets[i];
       try {
-        // ズーム2タイルを stitch して 512px 生成（M6: コンテンツ寸法はタイル実寸から導出）
-        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder);
+        // その段のタイルを stitch して 512px 生成（M6: コンテンツ寸法はタイル実寸から導出）
+        await this.generateThumbnail512FromTiles(uid, saveFolder, tileFolder, thumbFolder, level);
         success++;
       } catch (e: any) {
         const msg = `512px mining failed for ${uid}: ${e?.message ?? e}`;
@@ -1203,7 +1265,7 @@ class SqliteDataService {
     }
 
     // マーカーを記録（失敗があっても記録して再実行を防止。warnings に残る）
-    db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
+    db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(markerId);
 
     // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）。
     // M13-T5 §5.3: atomic write（temp+fsync+rename）primitive へ差し替え。既存の
@@ -1214,7 +1276,7 @@ class SqliteDataService {
       await appendMigrationWarnings(saveFolder, warnings);
     }
 
-    console.log(`[Thumbnail512Mining] done: ${success} success, ${skipped.length} skipped, ${failed} failed`);
+    console.log(`[Thumbnail512Mining] ${markerId}: ${success} success, ${skippedCount} skipped, ${failed} failed`);
     sendMigrationProgress('database.migrating_thumbnails_512_done', 100, '(512px)');
   }
 
@@ -1262,7 +1324,7 @@ class SqliteDataService {
     }
   }
 
-  // ズーム2タイルを stitch して長辺512pxサムネイルを生成
+  // ズーム2タイルを stitch して長辺512pxサムネイルを生成（小さい地図は最大ズームの段＝原寸を stitch する）
   // M12-T15 (M6): コンテンツ寸法は data_json ではなくタイルの実寸から導出する。
   // 端タイルは非パディング実寸で保存されるため、タイルピラミッド自体が正確なコンテンツ寸法を持つ。
   // legacy データの DB 記録が不正・欠損でも正しく crop できる（data_json 依存の廃止）。
@@ -1270,21 +1332,22 @@ class SqliteDataService {
     uid: string,
     saveFolder: string,
     tileFolder: string,
-    thumbFolder: string
+    thumbFolder: string,
+    level: number
   ): Promise<void> {
     // @ts-ignore - Jimp は ESM 動的 import
     const { Jimp } = await import('jimp');
 
-    const zoom2Dir = path.join(tileFolder, uid, '2');
-    // zoom2 のタイル数を取得
-    const xDirs = await fs.readdir(zoom2Dir);
-      const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+    const zoomDir = path.join(tileFolder, uid, `${level}`);
+    // その段のタイル数を取得
+    const xDirs = await fs.readdir(zoomDir);
+    const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
 
     // 先に全カラムの最大行 index (maxY) を確定させ、正しい寸法のキャンバスを1度だけ作る
     // （縦長・横長どちらでもグリッド全体を収める。長辺512px 縮小は後段で行う）
     let maxY = 0;
     for (let tx = 0; tx <= maxX; tx++) {
-      const txDir = path.join(zoom2Dir, `${tx}`);
+      const txDir = path.join(zoomDir, `${tx}`);
       if (!await fs.pathExists(txDir)) continue;
       const yFiles = await fs.readdir(txDir);
       for (const f of yFiles) {
@@ -1301,7 +1364,7 @@ class SqliteDataService {
     let tilesRead = 0;
 
     for (let tx = 0; tx <= maxX; tx++) {
-      const txDir = path.join(zoom2Dir, `${tx}`);
+      const txDir = path.join(zoomDir, `${tx}`);
       if (!await fs.pathExists(txDir)) continue;
       const yFiles = await fs.readdir(txDir);
       const yTiles = yFiles.filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f)).sort((a, b) => {
@@ -1324,7 +1387,7 @@ class SqliteDataService {
       }
     }
 
-    if (tilesRead === 0) throw new Error('no zoom2 tiles could be read');
+    if (tilesRead === 0) throw new Error(`no zoom${level} tiles could be read`);
 
     // M6: crop はタイル実寸から導出したコンテンツ領域（contentWidth x contentHeight）へ行う。
     // data_json の width/height に依存しないため、legacy データの寸法不一致でも正しく白帯を除去できる。

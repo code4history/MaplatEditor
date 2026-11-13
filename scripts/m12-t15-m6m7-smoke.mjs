@@ -96,7 +96,7 @@ try {
       // M6: data_json なし（width/height を渡さない）で generateThumbnail512FromTiles を実行
       // タイル実寸からコンテンツ寸法（673x991）を導出し、348x512 を生成するはず
       const svc = SqliteDataService;
-      await svc.generateThumbnail512FromTiles(uid, dataDir, tileFolder, thumbFolder);
+      await svc.generateThumbnail512FromTiles(uid, dataDir, tileFolder, thumbFolder, 2);
       const thumb512 = nodePath.join(thumbFolder, uid + '_512.webp');
       const img = await readImageMeta(thumb512);
       assert.equal(img.width, 348, 'M6: 348px 幅（673*512/991）: ' + img.width);
