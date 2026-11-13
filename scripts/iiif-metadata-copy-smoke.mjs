@@ -359,10 +359,18 @@ try {
         }
 
         // 行の 3 つの値は、地図・写した時点の控え・新しい取得から取る。
-        const attrRow = plan.rows.find((item) => item.key === 'attr');
-        assert.equal(attrRow.current, map.attr, 'the current value must come from the map');
-        assert.equal(attrRow.copied, map.iiif.copiedValues.attr.ja, 'the copied value must come from copiedValues');
-        assert.equal(attrRow.next, plan.fresh.copiedValues.attr.ja, 'the next value must come from the fresh copy');
+        // 見るのは license の行（人が直し、IIIF の側も変わった）。3 つの値がすべて違うので、
+        // 出どころを取り違えれば必ず落ちる（attr の行は 3 つが同じ値で、取り違えを見分けられない）。
+        const licenseRow = plan.rows.find((item) => item.key === 'license' && item.lang === lang);
+        assert.ok(licenseRow, 'license/ja: the row must be in the plan');
+        assert.equal(
+          new Set([map.license, map.iiif.copiedValues.license[lang], plan.fresh.copiedValues.license[lang]]).size,
+          3,
+          'the three values of the license row must all differ',
+        );
+        assert.equal(licenseRow.current, map.license, 'the current value must come from the map');
+        assert.equal(licenseRow.copied, map.iiif.copiedValues.license[lang], 'the copied value must come from copiedValues');
+        assert.equal(licenseRow.next, plan.fresh.copiedValues.license[lang], 'the next value must come from the fresh copy');
         const noteRow = plan.rows.find((item) => item.key === 'licenseNote');
         assert.equal(
           noteRow.next,
