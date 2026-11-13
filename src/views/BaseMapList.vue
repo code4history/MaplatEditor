@@ -69,6 +69,7 @@
       :model-value="filterEnvelope"
       title-key="range_filter.modal_title"
       help-key="range_filter.modal_help_basemap"
+      range-label-key="range_filter.filter_area"
       @update:model-value="applyRangeFilter"
       @close="rangeFilterOpen = false"
     />

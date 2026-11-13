@@ -403,11 +403,17 @@ try {
     'PoiEditMap が session.selectedUid を更新していない'
   );
 
-  // base map selector: osm default + IPC 一覧（alwaysVisible フォールバック）
+  // base map selector: osm default + IPC 一覧（alwaysVisible フォールバック）。
+  // 一覧の取得は POI と小窓で共有する src/utils/overlayBaseMaps.ts の createOverlayBaseMaps に移した
   assert.match(
     poiEditMap,
+    /createOverlayBaseMaps/,
+    'PoiEditMap が createOverlayBaseMaps で base map 一覧を取っていない'
+  );
+  assert.match(
+    await readFile(path.join(projectRoot, 'src/utils/overlayBaseMaps.ts'), 'utf8'),
     /baseMaps\.list/,
-    'PoiEditMap が window.baseMaps.list で base map 一覧を取っていない'
+    'overlayBaseMaps が window.baseMaps.list で base map 一覧を取っていない'
   );
   // t1 HR-2 (設計 §7.2): renderer の /tms_list.json fetch は廃止。PoiEditMap 単体でなく
   // src/ 全域で参照 0 件が要件（AC3・コメント含む）。PoiEdit 専用 smoke への MapEdit 側

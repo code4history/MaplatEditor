@@ -97,7 +97,9 @@
     "modal_title": "Chỉ định phạm vi lọc",
     "modal_help": "Vui lòng kéo để chỉ định phạm vi bạn muốn hiển thị trong danh sách. Chỉ những mục chồng lấn với phạm vi đã chỉ định mới được liệt kê.",
     "modal_help_basemap": "Vui lòng kéo để chỉ định khu vực có bản đồ nền bạn muốn hiển thị. Chỉ những bản đồ nền có phạm vi tồn tại trùng với khu vực đã chỉ định mới hiển thị trong danh sách (bản đồ nền chưa thiết lập phạm vi tồn tại được coi là toàn cầu và luôn hiển thị).",
-    "guide_badge": "Phạm vi lọc (tự động)"
+    "guide_badge": "Phạm vi lọc (tự động)",
+    "legend_title": "Chú giải",
+    "filter_area": "Phạm vi lọc"
   },
   "common": {
     "close": "Đóng",
@@ -569,7 +571,12 @@
     "export_option_originals": "Ảnh gốc",
     "export_option_originals_help": "Đưa nguyên tệp ảnh gốc vào.",
     "export_option_originals_warning": "Tệp sẽ lớn hơn và có thể chứa siêu dữ liệu của ảnh.",
-    "export_option_none_selected": "Hãy chọn ít nhất một mục"
+    "export_option_none_selected": "Hãy chọn ít nhất một mục",
+    "control_set_home": "Đặt làm vị trí chính",
+    "control_zoom_in": "Phóng to",
+    "control_zoom_out": "Thu nhỏ",
+    "control_reset_rotation": "Đặt lại hướng xoay",
+    "control_search_address": "Tìm địa chỉ"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

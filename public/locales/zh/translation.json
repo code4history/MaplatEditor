@@ -97,7 +97,9 @@
     "modal_title": "指定筛选范围",
     "modal_help": "请通过拖动指定希望在列表中显示的范围。仅与指定范围重叠的项目会显示在列表中。",
     "modal_help_basemap": "请通过拖动指定您想查看底图的区域。仅列出覆盖范围与指定区域重叠的底图(未设置覆盖范围的底图将被视为全球范围,始终列出)。",
-    "guide_badge": "筛选范围（自动）"
+    "guide_badge": "筛选范围（自动）",
+    "legend_title": "图例",
+    "filter_area": "筛选范围"
   },
   "common": {
     "close": "关闭",
@@ -569,7 +571,12 @@
     "export_option_originals": "原始图像",
     "export_option_originals_help": "按原样放入原始图像文件。",
     "export_option_originals_warning": "文件会变大，并可能包含照片的附加信息。",
-    "export_option_none_selected": "请至少选择一项"
+    "export_option_none_selected": "请至少选择一项",
+    "control_set_home": "设为主页位置",
+    "control_zoom_in": "放大",
+    "control_zoom_out": "缩小",
+    "control_reset_rotation": "重置旋转",
+    "control_search_address": "搜索地址"
   },
   "mapupload": {
     "map_image": "地图图像",

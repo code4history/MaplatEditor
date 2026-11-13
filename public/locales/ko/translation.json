@@ -97,7 +97,9 @@
     "modal_title": "필터 범위 지정",
     "modal_help": "목록에 표시하려는 범위를 드래그로 지정하세요. 지정한 범위와 겹치는 항목만 목록에 표시됩니다.",
     "modal_help_basemap": "표시하고 싶은 베이스맵이 있는 지역을 드래그로 지정하세요. 지정 영역과 존재 범위가 겹치는 베이스맵만 목록에 표시됩니다(존재 범위가 설정되지 않은 베이스맵은 전 지구로 간주되어 항상 표시됩니다).",
-    "guide_badge": "필터 범위(자동)"
+    "guide_badge": "필터 범위(자동)",
+    "legend_title": "범례",
+    "filter_area": "필터 범위"
   },
   "common": {
     "close": "닫기",
@@ -569,7 +571,12 @@
     "export_option_originals": "원본 이미지",
     "export_option_originals_help": "원본 이미지 파일을 그대로 넣습니다.",
     "export_option_originals_warning": "파일이 커지고 사진의 부가 정보가 포함될 수 있습니다.",
-    "export_option_none_selected": "하나 이상 선택하십시오"
+    "export_option_none_selected": "하나 이상 선택하십시오",
+    "control_set_home": "홈 위치로 설정",
+    "control_zoom_in": "확대",
+    "control_zoom_out": "축소",
+    "control_reset_rotation": "회전 초기화",
+    "control_search_address": "주소 검색"
   },
   "mapupload": {
     "map_image": "지도 이미지",

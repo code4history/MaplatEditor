@@ -7,7 +7,7 @@ import { parse } from 'vue/compiler-sfc';
 import ts from 'typescript';
 
 const helpKey = /(?:[_.](?:help|note|desc|hint|examples|notice|description))$/;
-const ruleIds = new Set(['help.form-text', 'help.muted-text', 'help.key-outside-contexthelp', 'help.slot-misuse', 'help.aria-label', 'diag.inline-text', 'diag.raw-alert', 'dialog.native-browser', 'dialog.notify-only', 'dialog.ad-hoc-modal', 'empty.ad-hoc', 'button.variant']);
+const ruleIds = new Set(['help.form-text', 'help.muted-text', 'help.key-outside-contexthelp', 'help.slot-misuse', 'help.aria-label', 'diag.inline-text', 'diag.raw-alert', 'dialog.native-browser', 'dialog.notify-only', 'dialog.ad-hoc-modal', 'empty.ad-hoc', 'button.variant', 'map.tool-button']);
 const normalize = (name) => name.replace(/-/g, '').toLowerCase();
 function expression(text) { return ts.createSourceFile('expression.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS); }
 function visitTs(node, visit) { visit(node); ts.forEachChild(node, (child) => visitTs(child, visit)); }
@@ -85,6 +85,19 @@ export function inspectSource(file, source) {
       if (cls.includes('text-center') && cls.includes('text-muted') && ownKeys.some((k) => /empty|no_|not_found|select_/.test(k))) emit('empty.ad-hoc');
       const inFooter = ancestors.some((n) => n.type === 1 && classes(n).includes('modal-footer'));
       if (node.tag === 'button' && (cls.includes('btn-secondary') || cls.includes('btn-outline-info') || (inFooter && cls.includes('btn-sm')) || (ownKeys.includes('common.cancel') && !cls.includes('btn-outline-secondary')))) emit('button.variant', cls.join(' '));
+      // 地図の上に重ねる道具のボタン（ui-map-overlay-proposal.md §4.2）。札（map-tool）を持ち、aria-label と title の両方があること
+      const inMapOverlay = ancestors.some((n) => n.type === 1 && classes(n).some((c) => c === 'map-overlay-tools' || c === 'map-overlay-tools__row'));
+      if (node.tag === 'button' && inMapOverlay) {
+        const hasText = (name) => {
+          const text = attrValue(attr(node, name))?.trim() ?? '';
+          return Boolean(text) && !/^(?:''|"")$/.test(text);
+        };
+        const hasLabel = hasText('aria-label');
+        const hasTitle = hasText('title');
+        if (!cls.includes('map-tool') || !hasLabel || !hasTitle) {
+          emit('map.tool-button', [cls.includes('map-tool') ? '' : 'map-tool が無い', hasLabel ? '' : 'aria-label が無い', hasTitle ? '' : 'title が無い'].filter(Boolean).join(' / '), { ...selectors, key: 'map-tool' });
+        }
+      }
       if (normalize(node.tag) === 'contexthelp') {
         const label = attr(node, 'ariaLabel');
         if (!label || !attrValue(label)?.trim() || /^(?:''|"")$/.test(attrValue(label).trim())) emit('help.aria-label');

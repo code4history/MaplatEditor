@@ -551,7 +551,12 @@
     "export_option_originals": "Original image",
     "export_option_originals_help": "Includes the original image file as is.",
     "export_option_originals_warning": "The file becomes larger and may contain photo metadata.",
-    "export_option_none_selected": "Select at least one item"
+    "export_option_none_selected": "Select at least one item",
+    "control_set_home": "Set home position",
+    "control_zoom_in": "Zoom in",
+    "control_zoom_out": "Zoom out",
+    "control_reset_rotation": "Reset rotation",
+    "control_search_address": "Search address"
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -1017,7 +1022,9 @@
     "modal_title": "Specify filter area",
     "modal_help": "Drag to specify the area you want to see in the list. Only items that overlap the specified area are listed.",
     "modal_help_basemap": "Drag to draw the region you are interested in. Only base maps whose coverage overlaps the region are listed (base maps without coverage are treated as global and always listed).",
-    "guide_badge": "Filter area (auto)"
+    "guide_badge": "Filter area (auto)",
+    "legend_title": "Legend",
+    "filter_area": "Filter area"
   },
   "poiedit": {
     "confirm_no_save": "This POI source has unsaved changes.\nClose without saving?",

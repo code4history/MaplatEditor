@@ -91,17 +91,17 @@ import Tin from '@maplat/tin';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, haloLineStyles, editSketchStyleFunction, escapeHtmlText, textAttributions } from '../utils/mapOverlayTools';
+import GoogleSource from 'ol/source/Google';
+import { localizeTitle } from '../utils/langResource';
+import type { BaseMapSwitcher } from '../utils/mapOverlayTools';
 
 import { defaults as interactionDefaults, DragRotateAndZoom, Modify, Snap, Pointer } from 'ol/interaction';
-import { defaults as controlDefaults } from 'ol/control';
 import { altKeyOnly } from 'ol/events/condition';
-import 'ol/ol.css';
 import { Tile, Group } from 'ol/layer';
-import LayerSwitcher from 'ol-layerswitcher';
-import 'ol-layerswitcher/dist/ol-layerswitcher.css';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Style, Stroke, Fill, Icon } from 'ol/style';
+import { Style, Icon } from 'ol/style';
 import { LineString } from 'ol/geom';
 import { transform } from 'ol/proj';
 import { useGcpAutoRange } from '../composables/useGcpAutoRange';
@@ -1680,10 +1680,20 @@ let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
 // let mercSource: any = null;
-// m1-t2: 地図面の contextmenu と LayerSwitcher はモード制御（§5.4 / §6.3）で
+// m1-t2: 地図面の contextmenu とベースマップの切り替えはモード制御（§5.4 / §6.3）で
 // 実行時に enable/disable・renderPanel を呼ぶため、インスタンス参照を保持する
 let illstContextMenu: any = null;
-let layerSwitcher: any = null;
+let baseMapSwitcher: BaseMapSwitcher | null = null;
+
+// 札に出す名前（今の選択）
+const currentBaseMapLabel = (): string => {
+    const tms = baseMapList.value.find((x: any) => x.mapID === currentBaseMapID.value);
+    if (!tms) return String(currentBaseMapID.value || '');
+    return resolveBaseMapLayerMetadata(tms, currentLang.value).title || String(tms.mapID);
+};
+
+// 選択が変わったら札の名前を書き直す（切り替えは change:visible から currentBaseMapID が追随する）
+watch(currentBaseMapID, () => baseMapSwitcher?.refreshLabel());
 
 // json/bounds レイヤーの VectorSource 参照キャッシュ（MaplatMap.getSource() 経由では取得できない）
 let illstJsonSource: VectorSource | null = null;
@@ -1793,12 +1803,8 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         
         const illst1 = illstSource.xy2SysCoord(gcp1[0]);
         const illst2 = illstSource.xy2SysCoord(gcp2[0]);
-        const style = new Style({
-            stroke: new Stroke({
-                color: 'red',
-                width: 2
-            })
-        });
+        // §5-7: 対応線（編集中の図形）に縁取りを付ける
+        const style = haloLineStyles('red', 2);
 
         const mercCoords = [gcp1[1]];
         edge[1].forEach((node: any) => mercCoords.push(node));
@@ -2709,14 +2715,11 @@ const edgeModifyCondition = (e: any) => {
 const tinStyle = (feature: any) => {
     const type = feature.getGeometry()?.getType();
     if (type === 'Polygon') {
-        return new Style({
-            stroke: new Stroke({ color: 'blue', width: 1 }),
-            fill: new Fill({ color: 'rgba(0, 0, 255, 0.05)' })
-        });
+        // §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
+        return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)', outline: false });
     } else if (type === 'LineString') {
-        return new Style({
-            stroke: new Stroke({ color: 'red', width: 2 })
-        });
+        // §5-7: 対対応線（編集中の図形）に縁取りを付ける
+        return haloLineStyles('red', 2);
     }
     // Point: kinks（交差エラー点）を黄色ダイヤ型アイコンで表示
     // 旧実装 mapedit.js L.731-743 に準拠
@@ -2984,6 +2987,13 @@ x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background
 
 const initMaps = async () => {
 
+    // 地図の上の部品の名前（aria-label / title）を i18n で渡す（§5-3）
+    const controlLabels = {
+        zoomIn: t('mapedit.control_zoom_in'),
+        zoomOut: t('mapedit.control_zoom_out'),
+        resetRotation: t('mapedit.control_reset_rotation'),
+    };
+
     // 1. Initialize Illustrated Map (LEFT side)
     illstMap = new MaplatMap({
         div: 'illstMap',
@@ -2993,7 +3003,7 @@ const initMaps = async () => {
             }),
             new Drag()
         ]),
-        controls: controlDefaults()
+        controls: mapOverlayControlDefaults(controlLabels)
     });
     // m1-t2 §6.3: P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
     illstContextMenu = createContextMenu(illstMap);
@@ -3004,10 +3014,8 @@ const initMaps = async () => {
     illstBoundsSource = illstBoundsVSrc;
     const illstBoundsLayer = new VectorLayer({
         source: illstBoundsVSrc,
-        style: new Style({
-            stroke: new Stroke({ color: 'red', width: 2 }),
-            fill: new Fill({ color: 'rgba(0,0,0,0)' })
-        })
+        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     illstBoundsLayer.set('name', 'bounds');
     // json レイヤー（TIN 三角形メッシュ）
@@ -3040,7 +3048,9 @@ const initMaps = async () => {
 
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
-        condition: edgeModifyCondition
+        condition: edgeModifyCondition,
+        // §5-7: 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
+        style: editSketchStyleFunction('red')
     });
     illstEdgeModify.on('modifystart', edgeModifyStart);
     illstEdgeModify.on('modifyend', edgeModifyEnd);
@@ -3050,6 +3060,7 @@ const initMaps = async () => {
 
     const illstBoundsModify = new Modify({
         source: illstBoundsVSrc,
+        style: editSketchStyleFunction('red')
     });
     illstBoundsModify.on('modifyend', boundsModifyEnd);
     const illstBoundsSnap = new Snap({ source: illstBoundsVSrc });
@@ -3065,9 +3076,13 @@ const initMaps = async () => {
             }),
             new Drag()
         ]),
-        controls: controlDefaults().extend([
-            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する
-            (layerSwitcher = new LayerSwitcher())
+        controls: mapOverlayControlDefaults(controlLabels).extend([
+            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する。
+            // §5-4: 今の選択の名前を札に出し、クリックで開く
+            (baseMapSwitcher = createBaseMapSwitcher({
+                tipLabel: t('mapedit.control_basemap'),
+                labelOf: currentBaseMapLabel
+            })).control
         ])
     });
     mercMap.addControl(createContextMenu(mercMap));
@@ -3077,10 +3092,8 @@ const initMaps = async () => {
     mercBoundsSource = mercBoundsVSrc;
     const mercBoundsLayer = new VectorLayer({
         source: mercBoundsVSrc,
-        style: new Style({
-            stroke: new Stroke({ color: 'red', width: 2 }),
-            fill: new Fill({ color: 'rgba(0,0,0,0)' })
-        })
+        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     mercBoundsLayer.set('name', 'bounds');
     // json レイヤー（TIN 三角形メッシュ）
@@ -3120,7 +3133,8 @@ const initMaps = async () => {
     
     const mercEdgeModify = new Modify({
         source: mercEdgesVSrc as VectorSource,
-        condition: edgeModifyCondition
+        condition: edgeModifyCondition,
+        style: editSketchStyleFunction('red')
     });
     mercEdgeModify.on('modifystart', edgeModifyStart);
     mercEdgeModify.on('modifyend', edgeModifyEnd);
@@ -3170,6 +3184,11 @@ const initMaps = async () => {
 
     // ベースマップの初期設定
     await setupBaseMaps();
+
+    // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+    const overlayLabels = { searchAddress: t('mapedit.control_search_address') };
+    layoutMapOverlayControls(document.getElementById('illstMap'), document.querySelector('[data-testid="map-overlay-tools-illst"]'), overlayLabels);
+    layoutMapOverlayControls(document.getElementById('mercMap'), document.querySelector('[data-testid="map-overlay-tools-merc"]'), overlayLabels);
 };
 
 // ... (imports)
@@ -3231,6 +3250,9 @@ const exchangeTileSource = async (): Promise<any> => {
     }
     try {
         const source = await mapSourceFactory(options, {});
+        // §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
+        // （innerHTML で描かれるので escape する。applyIllstAttribution の注記）
+        source.setAttributions?.(illstAttributions());
         illstSource = source;
         illstMap.exchangeSource(source);
         // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる（設計 §5.4）
@@ -3583,8 +3605,43 @@ const setSwitchableBaseMaps = (allowed: 'all' | 'none' | { exclude: string }) =>
             delete baseMapTitleStash[mapID];
         }
     });
-    layerSwitcher?.renderPanel?.();
+    baseMapSwitcher?.control.renderPanel();
 };
+
+// 帰属表示とベースマップの名前を、地図の著作権表示の欄の書き換えと言語の切り替えに追随させる。
+// OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描かれる。著作権表示・ベースマップの
+// 名前は利用者の入力・取り込んだデータから来るので、HTML としては解釈させず escape して文字で出す。
+const illstAttributions = (): string[] =>
+    textAttributions(localizeTitle(mapData.value.attr, currentLang.value));
+
+const applyIllstAttribution = () => {
+    illstSource?.setAttributions?.(illstAttributions());
+};
+
+const applyBaseMapTexts = () => {
+    const layers = getBaseMapLayerCollection();
+    if (!layers) return;
+    layers.getArray().forEach((layer: any) => {
+        const mapID = layer.get?.('mapID');
+        if (!mapID) return;
+        const tms = baseMapList.value.find((x: any) => x.mapID === mapID);
+        if (!tms) return;
+        const meta = resolveBaseMapLayerMetadata(tms, currentLang.value);
+        const source = layer.getSource?.();
+        if (source && !(source instanceof GoogleSource)) {
+            source.setAttributions?.(textAttributions(meta.attr));
+        }
+        const title = escapeHtmlText(meta.title);
+        // 切り替えを止めている間（title 退避中）は退避先を書き換え、ラジオを出さないままにする
+        if (baseMapTitleStash[mapID] !== undefined) baseMapTitleStash[mapID] = title;
+        else layer.set('title', title);
+    });
+    baseMapSwitcher?.control.renderPanel();
+    baseMapSwitcher?.refreshLabel();
+};
+
+watch(() => [mapData.value.attr, currentLang.value], applyIllstAttribution, { deep: true });
+watch(currentLang, applyBaseMapTexts);
 
 // 現在の相に応じた切替候補（P0=全許可 / P1=全禁止 / P2=対象以外許可）。
 // setupBaseMaps 末尾からも呼び直す（設計レビュー MIN-3: P1/P2 中の再構築で
@@ -3929,12 +3986,22 @@ const setupBaseMaps = async () => {
 
         if (!source) return null;
 
-        // 旧実装: source.setAttributions(attr) - mapSourceFactory 側で通常処理される
+        // §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
+        // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
+        // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
+        // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）。
+        // 帰属表示は innerHTML で描かれるので escape して渡す。
+        // Google の源には載せない: ol/source/Google は session の後に帰属（利用条件で必須）を
+        // 自分で設定するため、ここで上書きするとそれが消え得る
+        if (!(source instanceof GoogleSource)) {
+            source.setAttributions?.(textAttributions(localizedMeta.attr));
+        }
 
         const tileLayer = new Tile({
             source: source,
             properties: {
-                title: localizedMeta.title,
+                // ol-layerswitcher はレイヤ名を innerHTML で描くので escape して渡す
+                title: escapeHtmlText(localizedMeta.title),
                 mapID: tms.mapID,
                 type: 'base'
             },
@@ -3953,7 +4020,7 @@ const setupBaseMaps = async () => {
 
     const layerGroup = new Group({
         properties: {
-            title: t('mapedit.control_basemap') || 'Base Maps',
+            title: escapeHtmlText(t('mapedit.control_basemap') || 'Base Maps'),
         },
         layers: validLayers
     });
@@ -3972,6 +4039,7 @@ const setupBaseMaps = async () => {
     // m1-t2 設計レビュー MIN-3: レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
     // 再構築が起きると切替禁止（HR-4.6(c)/HR-4.7(c)）が解ける。相に応じて呼び直す
     applySwitchableBaseMapsForPhase();
+    baseMapSwitcher?.refreshLabel();
 };
 
 /*
@@ -5331,24 +5399,32 @@ const goBack = async () => {
                     <!-- Left: Illustrated Map (Source) -->
                     <div class="col-6 h-100 position-relative px-1">
                         <div id="illstMap" class="w-100 h-100"></div>
-                        <!-- Home Button Illst -->
-                        <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
-                                <i class="bi bi-magic"></i>
-                            </button>
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeIllst" @click="setHomeIllst"><i class="bi bi-house"></i></button>
+                        <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
+                        <div class="map-overlay-tools" data-testid="map-overlay-tools-illst">
+                            <div class="map-overlay-tools__row">
+                                <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
+                                    <i class="bi bi-magic"></i>
+                                </button>
+                                <button class="btn map-tool" data-testid="map-edit-set-home-illst" :disabled="!enableSetHomeIllst" @click="setHomeIllst" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
+                                    <i class="bi bi-house"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Right: Mercator Map (Destination/Reference) -->
                     <div class="col-6 h-100 position-relative px-1">
                         <div id="mercMap" class="w-100 h-100"></div>
-                         <!-- Home Button Merc -->
-                        <div class="position-absolute bottom-0 end-0 m-3 mb-4" style="z-index: 10;">
-                            <button class="btn btn-light btn-sm shadow-sm border" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')">
-                                <i class="bi bi-magic"></i>
-                            </button>
-                            <button class="btn btn-light btn-sm shadow-sm border" :disabled="!enableSetHomeMerc" @click="setHomeMerc"><i class="bi bi-house"></i></button>
+                        <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
+                        <div class="map-overlay-tools" data-testid="map-overlay-tools-merc">
+                            <div class="map-overlay-tools__row">
+                                <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
+                                    <i class="bi bi-magic"></i>
+                                </button>
+                                <button class="btn map-tool" data-testid="map-edit-set-home-merc" :disabled="!enableSetHomeMerc" @click="setHomeMerc" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
+                                    <i class="bi bi-house"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5691,6 +5767,7 @@ const goBack = async () => {
                     :model-value="baseMapFilterRegion"
                     title-key="range_filter.modal_title"
                     help-key="range_filter.modal_help_basemap"
+                    range-label-key="range_filter.filter_area"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="baseMapFilterRegion = $event"
                     @close="showBaseMapRegionModal = false"
@@ -5742,6 +5819,7 @@ const goBack = async () => {
                     :model-value="poiFilterRegion"
                     title-key="range_filter.modal_title"
                     help-key="range_filter.modal_help"
+                    range-label-key="range_filter.filter_area"
                     :fallback-bbox="baseMapRegionFallbackBbox"
                     @update:model-value="poiFilterRegion = $event"
                     @close="showPoiRegionModal = false"

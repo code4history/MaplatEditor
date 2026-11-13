@@ -10,15 +10,19 @@ import Map from "ol/Map";
 import View from "ol/View";
 import Feature from "ol/Feature";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
-import { OSM, XYZ, Vector as VectorSource } from "ol/source";
+import { XYZ, Vector as VectorSource } from "ol/source";
 import { Draw, Snap } from "ol/interaction";
 import { createBox } from "ol/interaction/Draw";
-import { Style, Stroke, Fill } from "ol/style";
 import { fromExtent } from "ol/geom/Polygon";
+import i18next from "i18next";
 import { transformExtent } from "ol/proj";
 // @ts-ignore ジオコーディングコントロール(MapEditベースマップ側と同一のバンドル同梱ライブラリ)
 import Geocoder from "../libs/ol-geocoder/base";
 import { bboxToEnvelope, envelopeToBbox } from "../utils/appSourceModel";
+import { layoutMapOverlayControls, mapOverlayControlDefaults, createBaseMapSwitcher, editSketchStyleFunction, haloLineStyles } from "../utils/mapOverlayTools";
+import type { BaseMapSwitcher } from "../utils/mapOverlayTools";
+import { createOverlayBaseMaps } from "../utils/overlayBaseMaps";
+import type { OverlayBaseMapItem } from "../utils/overlayBaseMaps";
 import ContextHelp from "./editor-ui/ContextHelp.vue";
 
 const props = defineProps<{
@@ -32,6 +36,9 @@ const props = defineProps<{
   // モーダルの文言(翻訳キー)。未指定なら利用範囲(envelope)用の既定文言
   titleKey?: string;
   helpKey?: string;
+  // 凡例で赤の線（ここで指定する範囲）に付ける名前（翻訳キー）。呼び出し元ごとに中身が違う
+  // （利用範囲・存在範囲・アプリ対象範囲・絞り込み範囲）。未指定なら利用範囲
+  rangeLabelKey?: string;
   // 対象ベースマップのタイルをOSMの上に重ねて表示する(URLテンプレート定義済みの場合)。
   // タイルが実在する範囲を目視しながら正確に範囲指定できるようにするため
   overlayTms?: { url: string; minZoom?: number; maxZoom?: number } | null;
@@ -54,35 +61,33 @@ const helpText = computed(() =>
 const mapElement = ref<HTMLDivElement | null>(null);
 let map: Map | null = null;
 let draw: Draw | null = null;
+// onMounted の await の間に小窓が閉じられたら、閉じた後に Map を作らない
+let disposed = false;
+// §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
+const baseMapList = ref<OverlayBaseMapItem[]>([]);
+const currentBaseMapID = ref("osm");
+let baseMapSwitcher: BaseMapSwitcher | null = null;
+const currentBaseMapLabel = (): string =>
+  baseMapList.value.find((item) => item.mapID === currentBaseMapID.value)?.label ?? "";
 const vectorSource = new VectorSource();
 const coverageSource = new VectorSource();
 const appCoverageSource = new VectorSource();
 const currentBbox = ref<[number, number, number, number] | null>(null);
 
 const isGuide = ref(false);
-const boxStyle = new Style({
-  stroke: new Stroke({ color: "#dc3545", width: 2, lineDash: [6, 6] }),
-  fill: new Fill({ color: "rgba(220, 53, 69, 0.08)" }),
-});
+// §5-6: 4 色の線はいずれも縁取りを付ける（§4.2）。編集中の図形（赤の範囲）は白 1.5px の halo と
+// 濃い灰の細線、参考の図形（絞り込み範囲（自動）・存在範囲・アプリ対象範囲）は白の halo だけ
+const boxStyle = haloLineStyles("#dc3545", 2, { fill: "rgba(220, 53, 69, 0.08)", dash: [6, 6] });
 
 // fallbackBbox 用のガイド矩形（オレンジ点線）
 const guideSource = new VectorSource();
-const guideStyle = new Style({
-  stroke: new Stroke({ color: "#fd7e14", width: 2, lineDash: [6, 6] }),
-  fill: new Fill({ color: "rgba(253, 126, 20, 0.08)" }),
-});
+const guideStyle = haloLineStyles("#fd7e14", 2, { fill: "rgba(253, 126, 20, 0.08)", dash: [6, 6], outline: false });
 
 // 存在範囲: 薄い青のポリゴン
-const coverageStyle = new Style({
-  stroke: new Stroke({ color: "#0d6efd", width: 1 }),
-  fill: new Fill({ color: "rgba(13, 110, 253, 0.08)" }),
-});
+const coverageStyle = haloLineStyles("#0d6efd", 1.5, { fill: "rgba(13, 110, 253, 0.08)", outline: false });
 
 // アプリ対象範囲: 薄い緑のポリゴン
-const appCoverageStyle = new Style({
-  stroke: new Stroke({ color: "#198754", width: 1 }),
-  fill: new Fill({ color: "rgba(25, 135, 84, 0.08)" }),
-});
+const appCoverageStyle = haloLineStyles("#198754", 1.5, { fill: "rgba(25, 135, 84, 0.08)", outline: false });
 
 function coverageBbox(): [number, number, number, number] | null {
   return envelopeToBbox(props.coverageLngLats ?? null);
@@ -100,7 +105,7 @@ function renderBbox(bbox: [number, number, number, number] | null, guide = false
   target.addFeature(new Feature({ geometry: fromExtent(extent) }));
 }
 
-onMounted(() => {
+onMounted(async () => {
   currentBbox.value = envelopeToBbox(props.modelValue);
   isGuide.value = false;
   // modelValue が未設定かつ fallbackBbox があれば、現在有効範囲をガイド表示する
@@ -142,10 +147,30 @@ onMounted(() => {
   } catch (e) {
     console.error("Failed to create overlay tile layer:", e);
   }
+  const baseMaps = await createOverlayBaseMaps(
+    i18next.language,
+    currentBaseMapID.value,
+    t("mapedit.control_basemap"),
+  );
+  if (disposed || !mapElement.value) return;
+  baseMapList.value = baseMaps.items;
+  if (!baseMaps.items.some((item) => item.mapID === currentBaseMapID.value)) {
+    currentBaseMapID.value = baseMaps.items[0]?.mapID || "osm";
+  }
+  baseMaps.group.getLayers?.().forEach((layer: any) => {
+    layer.setVisible(layer.get("mapID") === currentBaseMapID.value);
+    layer.on("change:visible", () => {
+      if (layer.getVisible()) {
+        currentBaseMapID.value = layer.get("mapID");
+        baseMapSwitcher?.refreshLabel();
+      }
+    });
+  });
+
   map = new Map({
     target: mapElement.value!,
     layers: [
-      new TileLayer({ source: new OSM() }),
+      baseMaps.group,
       ...overlayLayers,
       new VectorLayer({ source: appCoverageSource, style: appCoverageStyle }),
       new VectorLayer({ source: coverageSource, style: coverageStyle }),
@@ -153,7 +178,20 @@ onMounted(() => {
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
+    // §5-3: 小窓も MapEdit・POI と同じ部品の名前を使う
+    controls: mapOverlayControlDefaults({
+      zoomIn: t("mapedit.control_zoom_in"),
+      zoomOut: t("mapedit.control_zoom_out"),
+      resetRotation: t("mapedit.control_reset_rotation"),
+    }),
   });
+
+  // §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  baseMapSwitcher = createBaseMapSwitcher({
+    tipLabel: t("mapedit.control_basemap"),
+    labelOf: currentBaseMapLabel,
+  });
+  map.addControl(baseMapSwitcher.control);
   const coverage = coverageBbox();
   if (coverage) {
     const extent = transformExtent(coverage, "EPSG:4326", "EPSG:3857");
@@ -186,6 +224,8 @@ onMounted(() => {
     source: vectorSource,
     type: "Circle",
     geometryFunction: createBox(),
+    // §5-7: 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
+    style: editSketchStyleFunction("#dc3545"),
   });
   draw.on("drawstart", () => {
     vectorSource.clear();
@@ -228,6 +268,9 @@ onMounted(() => {
   });
   map.addControl(geocoder);
 
+  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'), { searchAddress: t("mapedit.control_search_address") });
+
   // モーダル挿入直後はレイアウト確定前でOpenLayersがサイズ0を掴むことがあるため、
   // 描画フレーム後にサイズを再計測する(モーダル内地図の定番対策)
   requestAnimationFrame(() => map?.updateSize());
@@ -246,8 +289,10 @@ function cropToCoverage(bbox: [number, number, number, number]): [number, number
 }
 
 onBeforeUnmount(() => {
+  disposed = true;
   map?.setTarget(undefined);
   map = null;
+  baseMapSwitcher = null;
 });
 
 watch(currentBbox, (bbox) => {
@@ -290,7 +335,28 @@ function confirm() {
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
-          <div ref="mapElement" class="envelope-map"></div>
+          <div ref="mapElement" class="envelope-map">
+            <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
+            <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
+            <!-- §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
+                 名前は画面の他の場所の語にそろえる（赤は呼び出し元が渡す・橙は絞り込み範囲（自動）の札と同じ・
+                 青は存在範囲・緑はアプリ対象範囲） -->
+            <div class="map-overlay-legend" data-testid="envelope-map-legend">
+              <div class="map-overlay-legend__title">{{ t("range_filter.legend_title") }}</div>
+              <div class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #dc3545; border-top-style: dashed"></span>{{ t(rangeLabelKey || "appedit.envelope") }}
+              </div>
+              <div v-if="fallbackBbox" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #fd7e14; border-top-style: dashed"></span>{{ t("range_filter.guide_badge") }}
+              </div>
+              <div v-if="coverageLngLats" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #0d6efd"></span>{{ t("basemap.coverage") }}
+              </div>
+              <div v-if="appCoverageLngLats" class="map-overlay-legend__item">
+                <span class="map-overlay-legend__swatch" style="border-top-color: #198754"></span>{{ t("appedit.app_coverage") }}
+              </div>
+            </div>
+          </div>
           <div class="small mt-2 font-monospace">
             <template v-if="currentBbox">
               <span v-if="isGuide" class="badge text-bg-warning me-2" data-testid="envelope-guide-badge">{{ t("range_filter.guide_badge") }}</span>
@@ -322,6 +388,7 @@ function confirm() {
   z-index: 1080;
 }
 .envelope-map {
+  position: relative;
   width: 100%;
   height: 55vh;
   border: 1px solid var(--bs-border-color);

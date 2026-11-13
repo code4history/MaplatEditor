@@ -97,7 +97,9 @@
     "modal_title": "Définir la zone de filtrage",
     "modal_help": "Faites glisser pour définir la zone que vous souhaitez voir dans la liste. Seuls les éléments qui recoupent la zone indiquée sont listés.",
     "modal_help_basemap": "Faites glisser pour dessiner la région qui vous intéresse. Seuls les fonds de carte dont la couverture chevauche la région sont listés (les fonds de carte sans couverture définie sont considérés comme globaux et toujours listés).",
-    "guide_badge": "Zone de filtrage (auto)"
+    "guide_badge": "Zone de filtrage (auto)",
+    "legend_title": "Légende",
+    "filter_area": "Zone de filtrage"
   },
   "common": {
     "close": "Fermer",
@@ -569,7 +571,12 @@
     "export_option_originals": "Image originale",
     "export_option_originals_help": "Inclut le fichier image original tel quel.",
     "export_option_originals_warning": "Le fichier devient plus volumineux et peut contenir des métadonnées de la photo.",
-    "export_option_none_selected": "Sélectionnez au moins un élément"
+    "export_option_none_selected": "Sélectionnez au moins un élément",
+    "control_set_home": "Définir comme position d'accueil",
+    "control_zoom_in": "Zoom avant",
+    "control_zoom_out": "Zoom arrière",
+    "control_reset_rotation": "Réinitialiser la rotation",
+    "control_search_address": "Rechercher une adresse"
   },
   "mapupload": {
     "map_image": "Image de la carte",

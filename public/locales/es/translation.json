@@ -97,7 +97,9 @@
     "modal_title": "Especificar el área de filtro",
     "modal_help": "Arrastre para especificar el área que desea ver en la lista. Solo se muestran los elementos que se superponen con el área especificada.",
     "modal_help_basemap": "Arrastre para dibujar la región que le interese. Solo se listan los mapas base cuya cobertura se superpone con la región (los mapas base sin cobertura definida se consideran globales y siempre se listan).",
-    "guide_badge": "Área de filtro (automática)"
+    "guide_badge": "Área de filtro (automática)",
+    "legend_title": "Leyenda",
+    "filter_area": "Área de filtro"
   },
   "common": {
     "close": "Cerrar",
@@ -569,7 +571,12 @@
     "export_option_originals": "Imagen original",
     "export_option_originals_help": "Incluye el archivo de imagen original tal cual.",
     "export_option_originals_warning": "El archivo será más grande y puede contener metadatos de la foto.",
-    "export_option_none_selected": "Seleccione al menos un elemento"
+    "export_option_none_selected": "Seleccione al menos un elemento",
+    "control_set_home": "Establecer como posición de inicio",
+    "control_zoom_in": "Acercar",
+    "control_zoom_out": "Alejar",
+    "control_reset_rotation": "Restablecer rotación",
+    "control_search_address": "Buscar dirección"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

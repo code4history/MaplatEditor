@@ -436,6 +436,7 @@
       :overlay-tms="overlayTms"
       title-key="basemap.coverage_modal_title"
       help-key="basemap.coverage_modal_help"
+      range-label-key="basemap.coverage"
       @update:model-value="updateField('coverageLngLats', $event)"
       @close="showEnvelopeModal = false"
     />

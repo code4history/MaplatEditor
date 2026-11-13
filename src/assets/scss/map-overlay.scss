@@ -1,0 +1,586 @@
+// 地図の上に重ねる UI（docs/ui-map-overlay-proposal.md §4.2 案 A）。
+// OL 既定・取り込み（ol-geocoder / ol-contextmenu / ol-layerswitcher）・自作の部品を、
+// 「不透明の白地＋濃い縁＋影の札」「情報の帯」「浮かぶメニュー」の 3 つに揃える。
+// main.scss から OL の CSS の後に読むこと（上書きのため）。
+
+$map-tool-size: 32px;
+$map-tool-bg: #fff;
+$map-tool-edge: rgba(0, 0, 0, .45);
+$map-tool-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+$map-tool-radius: 4px;
+$map-tool-ink: #212529;
+$map-tool-gap: 8px;
+// キーボードのフォーカスの枠の色。--editor-ui-focus-ring は box-shadow の値なので outline には使えない
+$map-tool-focus: var(--bs-primary, #0d6efd);
+
+// ---- 札（視点の道具・表示の切り替え・画面の道具） ----
+.map-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  min-width: $map-tool-size;
+  height: $map-tool-size;
+  padding: 0 .45rem;
+  color: $map-tool-ink;
+  background-color: $map-tool-bg;
+  border: 1px solid $map-tool-edge;
+  border-radius: $map-tool-radius;
+  box-shadow: $map-tool-shadow;
+  font-size: 1rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    color: $map-tool-ink;
+    background-color: $map-tool-bg;
+    border-color: $map-tool-edge;
+    box-shadow: $map-tool-shadow;
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $map-tool-focus;
+    outline-offset: 1px;
+  }
+
+  &:disabled,
+  &.disabled {
+    opacity: .55;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  &.map-tool--wide {
+    min-width: 0;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// 自作の道具（推定・ホーム位置）を並べる枠。右下・帰属表示の上
+.map-overlay-tools {
+  position: absolute;
+  right: $map-tool-gap;
+  bottom: $map-tool-gap;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $map-tool-gap;
+}
+
+.map-overlay-tools__row {
+  display: flex;
+  gap: $map-tool-gap;
+}
+
+// ---- 左上の縦並び（ズーム → 回転のリセット → 住所検索） ----
+.map-overlay-column {
+  position: absolute;
+  top: $map-tool-gap;
+  left: $map-tool-gap;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $map-tool-gap;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+
+  > .ol-control,
+  > .ol-geocoder.gcd-gl-container {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 0;
+    float: none;
+  }
+}
+
+// ---- OL の部品 ----
+// ol.css が別チャンクで後から載ることがあるため、class を重ねて確実に上書きする
+.ol-control {
+  background-color: transparent;
+  border: none;
+  border-radius: $map-tool-radius;
+}
+
+.ol-control.ol-zoom,
+.ol-control.ol-rotate {
+  background-color: transparent;
+  border: none;
+}
+
+// ズーム（＋／−）は 1 枚の札にまとめる
+.ol-control.ol-zoom {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: $map-tool-bg;
+  border: 1px solid $map-tool-edge;
+  border-radius: $map-tool-radius;
+  box-shadow: $map-tool-shadow;
+
+  > button {
+    width: $map-tool-size;
+    height: $map-tool-size;
+    margin: 0;
+    padding: 0;
+    color: $map-tool-ink;
+    background-color: $map-tool-bg;
+    border: none;
+    border-radius: 0;
+    font-size: 1.05rem;
+    line-height: 1;
+
+    & + button {
+      border-top: 1px solid rgba(0, 0, 0, .15);
+    }
+
+    &:hover,
+    &:focus {
+      color: $map-tool-ink;
+      background-color: #f2f2f2;
+      outline: none;
+    }
+
+    // マウスで押したときは枠を出さず、キーボードで来たときだけ枠を出す（札の中に収める）
+    &:focus-visible {
+      outline: 2px solid $map-tool-focus;
+      outline-offset: -2px;
+    }
+  }
+}
+
+// 回転のリセット。回していないときは札ごと畳んで空きを残さない
+.ol-control.ol-rotate {
+  width: $map-tool-size;
+  height: $map-tool-size;
+  overflow: hidden;
+  background-color: $map-tool-bg;
+  border: 1px solid $map-tool-edge;
+  border-radius: $map-tool-radius;
+  box-shadow: $map-tool-shadow;
+  transition: none;
+
+  > button {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    color: $map-tool-ink;
+    background-color: transparent;
+    border: none;
+    border-radius: $map-tool-radius;
+    font-size: 1.05rem;
+
+    &:hover,
+    &:focus {
+      color: $map-tool-ink;
+      background-color: #f2f2f2;
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $map-tool-focus;
+      outline-offset: -2px;
+    }
+  }
+
+  .ol-compass {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.ol-control.ol-rotate.ol-hidden {
+  display: none;
+}
+
+// 帰属表示（情報）。右下の最下段、縁なし・半透明の白地
+.map-overlay-tools > .ol-control.ol-attribution,
+.ol-control.ol-attribution {
+  position: static;
+  max-width: 100%;
+  background-color: rgba(255, 255, 255, .85);
+  border: none;
+  border-radius: 0;
+  text-align: right;
+
+  ul {
+    margin: 0;
+    padding: 1px .5em;
+    color: #333;
+    text-shadow: none;
+    font-size: 12px;
+    line-height: 1.35;
+    background: none;
+    display: block;
+  }
+
+  button {
+    display: none;
+  }
+
+  &.ol-collapsed ul {
+    display: block;
+  }
+
+  &.ol-uncollapsible {
+    position: static;
+    border-radius: 0;
+  }
+
+  a {
+    color: #333;
+    text-decoration: underline;
+  }
+}
+
+// ---- 取り込み: 住所検索（ol-geocoder） ----
+.map-overlay-column > .ol-geocoder.gcd-gl-container {
+  position: relative;
+  top: auto;
+  left: auto;
+  font-size: 16px;
+}
+
+.ol-geocoder .gcd-gl-control {
+  width: $map-tool-size;
+  height: $map-tool-size;
+  overflow: hidden;
+  background-color: $map-tool-bg;
+  border: 1px solid $map-tool-edge;
+  border-radius: $map-tool-radius;
+  box-shadow: $map-tool-shadow;
+  transition: width 200ms;
+}
+
+.ol-geocoder .gcd-gl-expanded {
+  width: 232px;
+  height: $map-tool-size;
+}
+
+.ol-geocoder .gcd-gl-btn {
+  top: 0;
+  left: 0;
+  width: $map-tool-size;
+  height: $map-tool-size;
+  background-image: none;
+  color: $map-tool-ink;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  border-right: 1px solid rgba(0, 0, 0, .15);
+}
+
+.ol-geocoder .gcd-gl-input {
+  top: 1px;
+  left: $map-tool-size + 4;
+  width: 188px;
+  height: 28px;
+  padding: 2px 26px 2px 6px;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: #222;
+  font-size: 14px;
+
+  &:focus {
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
+
+  // 入力欄は札（overflow: hidden）の中にあるので、枠を内側に描く
+  &:focus-visible {
+    outline: 2px solid $map-tool-focus;
+    outline-offset: -2px;
+  }
+}
+
+.ol-geocoder .gcd-gl-reset {
+  top: 1px;
+  right: 2px;
+  height: 28px;
+  line-height: 28px;
+  color: #333;
+}
+
+// 候補は浮かぶメニューの形
+.ol-geocoder ul.gcd-gl-result {
+  top: $map-tool-size + 4;
+  left: 0;
+  width: 232px;
+  max-height: 300px;
+  padding: .25rem 0;
+  margin: 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: $map-tool-radius;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+
+  > li {
+    border-bottom: none;
+    background-color: #fff;
+
+    > a {
+      padding: .25rem .75rem;
+      color: #212529;
+
+      &:hover {
+        background-color: var(--bs-secondary-bg, #e9ecef);
+      }
+    }
+
+    &:nth-child(odd) {
+      background-color: #fff;
+    }
+  }
+}
+
+// ---- 浮かぶメニュー（右クリックのメニュー・ベースマップの切り替えのパネル） ----
+// ol-contextmenu の CSS は JS が実行時に注入するため常に後から載る ∴ class を重ねる
+.ol-overlaycontainer-stopevent .ol-ctx-menu-container {
+  min-width: 180px;
+  padding: .25rem 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: $map-tool-radius;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    background: none;
+  }
+
+  li {
+    margin: 0;
+    line-height: 1.5;
+    padding: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+
+    > a,
+    > span.ol-ctx-menu-title {
+      display: block;
+      padding: .25rem .75rem;
+      color: #212529;
+      font-size: 13px;
+      border-radius: 0;
+      box-shadow: none;
+      background: none;
+    }
+  }
+
+  li:not(.ol-ctx-menu-separator):hover {
+    cursor: pointer;
+    background-color: var(--bs-secondary-bg, #e9ecef);
+    color: #212529;
+  }
+
+  li.ol-ctx-menu-separator {
+    border-top: 1px solid rgba(0, 0, 0, .15);
+    margin: .25rem 0;
+    height: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  li.ol-ctx-menu-submenu::after {
+    border-color: #6c757d;
+  }
+}
+
+// ---- ベースマップの切り替え（ol-layerswitcher） ----
+.layer-switcher {
+  top: $map-tool-gap;
+  right: $map-tool-gap;
+  text-align: left;
+
+  > button.map-tool {
+    float: none;
+    display: inline-flex;
+    width: auto;
+    height: $map-tool-size;
+    // ol.css の `.ol-control button { padding: 0 }` が勝つと名前が左の縁に付くので、ここで余白を戻す
+    padding: 0 .5rem 0 .7rem;
+    background-color: $map-tool-bg;
+    background-image: none;
+    border: 1px solid $map-tool-edge;
+    border-radius: $map-tool-radius;
+    box-shadow: $map-tool-shadow;
+    color: $map-tool-ink;
+
+    // ol.css の `.ol-control button:focus`（薄い 1px の枠）より強く、札と同じ枠を出す
+    &:focus-visible {
+      outline: 2px solid $map-tool-focus;
+      outline-offset: 1px;
+    }
+  }
+
+  .panel {
+    position: absolute;
+    top: $map-tool-size + 4;
+    right: 0;
+    display: none;
+    margin: 0;
+    padding: .25rem 0;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: $map-tool-radius;
+    background-color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    height: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    min-width: 190px;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    margin-top: 0;
+    position: relative;
+  }
+
+  li.group > label {
+    display: block;
+    padding: .25rem .75rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    padding-left: .75rem;
+  }
+
+  li input {
+    position: absolute;
+    left: .75rem;
+    margin: 0;
+    height: 1em;
+    width: 1em;
+    top: .5em;
+    font-size: 1em;
+  }
+
+  li label {
+    display: block;
+    padding: .3rem .75rem .3rem 2rem;
+    margin: 0;
+    font-size: 13px;
+    color: #212529;
+    border-radius: 0;
+    padding-left: 2rem;
+  }
+
+  li label:hover {
+    background-color: var(--bs-secondary-bg, #e9ecef);
+  }
+
+  li.layer-switcher-base-group > label {
+    padding-left: .75rem;
+  }
+
+  &.shown,
+  &.shown.ol-control {
+    display: block;
+    overflow-y: visible;
+    max-height: none;
+    background-color: transparent;
+  }
+
+  &.shown .panel,
+  &.shown.layer-switcher-activation-mode-click .panel {
+    display: block;
+  }
+
+  &.shown button,
+  &.shown.layer-switcher-activation-mode-click > button {
+    display: inline-flex;
+    position: static;
+    float: none;
+    right: auto;
+    margin: 0;
+    background-color: $map-tool-bg;
+    background-image: none;
+    border: 1px solid $map-tool-edge;
+    border-radius: $map-tool-radius;
+    box-shadow: $map-tool-shadow;
+  }
+
+  &.shown.layer-switcher-activation-mode-click {
+    padding-left: 0;
+  }
+
+  .group button {
+    display: none;
+  }
+}
+
+.map-base-map-switcher__label {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  // line-height: 1 だと ascender / descender が overflow: hidden で切れる
+  line-height: 1.35;
+}
+
+.map-base-map-switcher__caret {
+  font-size: .7rem;
+  opacity: .75;
+}
+
+// ---- 範囲の小窓の凡例（情報） ----
+.map-overlay-legend {
+  position: absolute;
+  left: $map-tool-gap;
+  bottom: $map-tool-gap;
+  z-index: 10;
+  padding: .35rem .55rem;
+  background-color: rgba(255, 255, 255, .85);
+  border: none;
+  border-radius: $map-tool-radius;
+  color: #333;
+  font-size: 12px;
+  line-height: 1.5;
+
+  .map-overlay-legend__title {
+    font-weight: 600;
+  }
+
+  .map-overlay-legend__item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    white-space: nowrap;
+  }
+
+  .map-overlay-legend__swatch {
+    display: inline-block;
+    width: 18px;
+    height: 0;
+    border-top-width: 2px;
+    border-top-style: solid;
+    flex: none;
+  }
+}

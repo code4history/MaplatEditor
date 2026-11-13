@@ -97,7 +97,9 @@
     "modal_title": "Filterbereich festlegen",
     "modal_help": "Ziehen Sie den Bereich, den Sie in der Liste sehen möchten. Nur Einträge, die sich mit dem angegebenen Bereich überschneiden, werden aufgelistet.",
     "modal_help_basemap": "Ziehen Sie den Bereich, in dem Sie Basiskarten anzeigen möchten. Es werden nur Basiskarten aufgelistet, deren Abdeckungsbereich sich mit der Region überschneidet (Basiskarten ohne festgelegten Abdeckungsbereich gelten als global und werden immer angezeigt).",
-    "guide_badge": "Filterbereich (automatisch)"
+    "guide_badge": "Filterbereich (automatisch)",
+    "legend_title": "Legende",
+    "filter_area": "Filterbereich"
   },
   "common": {
     "close": "Schließen",
@@ -569,7 +571,12 @@
     "export_option_originals": "Originalbild",
     "export_option_originals_help": "Fügt die ursprüngliche Bilddatei unverändert hinzu.",
     "export_option_originals_warning": "Die Datei wird größer und kann Fotometadaten enthalten.",
-    "export_option_none_selected": "Wählen Sie mindestens ein Element aus"
+    "export_option_none_selected": "Wählen Sie mindestens ein Element aus",
+    "control_set_home": "Als Startposition festlegen",
+    "control_zoom_in": "Vergrößern",
+    "control_zoom_out": "Verkleinern",
+    "control_reset_rotation": "Drehung zurücksetzen",
+    "control_search_address": "Adresse suchen"
   },
   "mapupload": {
     "map_image": "Kartenbild",
