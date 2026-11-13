@@ -55,12 +55,19 @@ test.describe('保存先フォルダが開けないときの地図一覧', () =>
       await openMapList(page);
       await expect(page.locator('[data-resource-status]')).not.toHaveAttribute('data-state', 'error');
 
-      // 権限の無い一時フォルダを保存先にする（chmod 000）
+      // 直し方の文言を OS ごとに選ぶため、preload が OS の種類を渡していること
+      expect(await page.evaluate(() => window.runtimeInfo?.platform)).toBe(process.platform);
+
+      // 権限の無い一時フォルダを保存先にする（chmod 000）。直し方はこの OS の言い方になる
+      const permissionFix: Record<string, string> = {
+        darwin: 'システム設定で',
+        win32: 'Windows セキュリティ',
+      };
       await page.evaluate((folder) => window.settings.set('saveFolder', folder), lockedFolder);
       await expectDbOpenFailure(
         page,
         'データフォルダを開く権限がありません',
-        ['システム設定で', '設定でデータフォルダを変えてください'],
+        [permissionFix[process.platform] ?? '書き込みの権限', '設定でデータフォルダを変えてください'],
         'permission',
       );
 

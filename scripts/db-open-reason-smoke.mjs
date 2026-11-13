@@ -31,6 +31,7 @@ try {
   const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
   const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
   const dbOpenFailurePath = path.join(projectRoot, 'electron/utils/dbOpenFailure.ts');
+  const loadFailurePath = path.join(projectRoot, 'src/components/resource-list/loadFailure.ts');
 
   await writeFile(
     electronStubFile,
@@ -83,7 +84,9 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { chmod, mkdir, rm, symlink } from 'node:fs/promises';
+      import { chmod, mkdir, rm, stat, symlink } from 'node:fs/promises';
+      import { execFile } from 'node:child_process';
+      import { promisify } from 'node:util';
       import { DatabaseSync } from 'node:sqlite';
       import path from 'node:path';
       import {
@@ -94,7 +97,9 @@ try {
         toDbOpenFailureReply,
         withDbOpenFailureReply,
       } from ${JSON.stringify(dbOpenFailurePath)};
+      import { permissionFixKey } from ${JSON.stringify(loadFailurePath)};
 
+      const execFileAsync = promisify(execFile);
       const workDir = ${JSON.stringify(workDir)};
       const scratch = path.join(workDir, 'cases');
       await mkdir(scratch, { recursive: true });
@@ -112,6 +117,13 @@ try {
       assert.equal(dbOpenFailureCode({ code: 'ERR_SQLITE_ERROR', errcode: 526 }), 'SQLITE_CANTOPEN');
       assert.equal(dbOpenFailureCode({}), 'unknown');
       assert.equal(dbOpenFailureCode(null), 'unknown');
+
+      // --- Part 1a': 「権限が無い」の直し方は OS ごとに文言を選ぶ ---
+      assert.equal(permissionFixKey('darwin'), 'resource_list.load_error_fix_permission');
+      assert.equal(permissionFixKey(undefined), 'resource_list.load_error_fix_permission', 'OS が分からないときは従来の文言');
+      assert.equal(permissionFixKey('win32'), 'resource_list.load_error_fix_permission_windows');
+      assert.equal(permissionFixKey('linux'), 'resource_list.load_error_fix_permission_linux');
+      assert.equal(permissionFixKey('freebsd'), 'resource_list.load_error_fix_permission_linux');
 
       // --- Part 1b: 分類（合成エラー） ---
       const presentDir = path.join(scratch, 'present');
@@ -297,6 +309,74 @@ try {
         await chmod(roFile, 0o644);
       }
 
+      // WAL 化済みの DB ファイルだけが読み取り専用（chmod 444）: PRAGMA journal_mode=WAL は
+      // 失敗せず wal を返すため、書けることの確かめ（user_version を書いて取り消す）で
+      // errcode 8（SQLITE_READONLY）になる。確かめが無いと migrate の書き込みで理由なしに落ちる
+      const roWalFileStore = path.join(scratch, 'ro-wal-file-store');
+      await mkdir(roWalFileStore, { recursive: true });
+      const roWalFile = path.join(roWalFileStore, 'maplat.sqlite');
+      seedDatabase(roWalFile, true);
+      await chmod(roWalFile, 0o444);
+      try {
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', roWalFileStore);
+        const roWalFileFailure = await readFailure();
+        assert.ok(roWalFileFailure instanceof DbOpenError, 'WAL 化済みの読み取り専用 DB ファイルの失敗は DbOpenError: ' + String(roWalFileFailure));
+        assert.equal(roWalFileFailure.failure.reason, 'permission', 'WAL 化済みの読み取り専用 DB ファイルは権限が無い');
+        assert.equal(roWalFileFailure.failure.code, 'SQLITE_READONLY');
+      } finally {
+        await chmod(roWalFile, 0o644);
+      }
+
+      // 読み取り専用のディスクイメージ上の未 WAL の DB: PRAGMA journal_mode=WAL は例外を出さず
+      // delete を返す。書けることの確かめで errcode 8 になり「権限が無い」へ分ける。
+      // hdiutil のある macOS だけで試す（小さなイメージを作り、必ず外して消す）
+      if (process.platform === 'darwin') {
+        const imageSrc = path.join(scratch, 'ro-image-src');
+        await mkdir(imageSrc, { recursive: true });
+        seedDatabase(path.join(imageSrc, 'maplat.sqlite'), false);
+        const imageFile = path.join(scratch, 'ro-image.dmg');
+        const mountPoint = path.join(scratch, 'ro-image-mnt');
+        await mkdir(mountPoint, { recursive: true });
+        await execFileAsync('hdiutil', ['create', '-quiet', '-srcfolder', imageSrc, '-format', 'UDRO', '-volname', 'maplat-ro-smoke', '-ov', imageFile]);
+        let attached = false;
+        try {
+          await execFileAsync('hdiutil', ['attach', '-quiet', '-readonly', '-nobrowse', '-mountpoint', mountPoint, imageFile]);
+          attached = true;
+          await SqliteDataService.reset();
+          SettingsService.set('saveFolder', mountPoint);
+          const roImageFailure = await readFailure();
+          assert.ok(roImageFailure instanceof DbOpenError, '読み取り専用イメージ上の DB の失敗は DbOpenError: ' + String(roImageFailure));
+          assert.equal(roImageFailure.failure.reason, 'permission', '読み取り専用イメージ上の DB は権限が無い');
+          assert.equal(roImageFailure.failure.code, 'SQLITE_READONLY');
+        } finally {
+          await SqliteDataService.reset();
+          // 外すのに失敗しても、イメージのファイルは消す
+          if (attached) await execFileAsync('hdiutil', ['detach', '-quiet', '-force', mountPoint]).catch(() => undefined);
+          await rm(imageFile, { force: true });
+        }
+      }
+
+      // 書けることの確かめは何も残さない: 健全な WAL 化済み DB の user_version と、
+      // 確かめの前後で WAL の大きさが変わらないこと（同じ値を確定させる方法なら 1 頁伸びる）
+      {
+        const probeStore = path.join(scratch, 'probe-store');
+        await mkdir(probeStore, { recursive: true });
+        await SqliteDataService.reset();
+        SettingsService.set('saveFolder', probeStore);
+        await SqliteDataService.searchMaps('');
+        const probeDb = await SqliteDataService.getDb();
+        const versionBefore = (probeDb.prepare('PRAGMA user_version').get() as any).user_version;
+        probeDb.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+        const walFile = path.join(probeStore, 'maplat.sqlite-wal');
+        const walSizeBefore = (await stat(walFile)).size;
+        (SqliteDataService as any).probeWritable(probeDb);
+        assert.equal((await stat(walFile)).size, walSizeBefore, '確かめで WAL が伸びない');
+        assert.equal((probeDb.prepare('PRAGMA user_version').get() as any).user_version, versionBefore, 'user_version は変わらない');
+        assert.equal(probeDb.isTransaction, false, '確かめの後に取引を残さない');
+        await SqliteDataService.reset();
+      }
+
       // 外付けドライブが外れた状態のパス: ensureDir は ENOENT ではなく EACCES を返すが、
       // 「場所が無い」を優先する（この名前のドライブは無いので作ろうとしても失敗するだけ）
       const goneVolume = '/Volumes/maplat-db-open-reason-missing-drive/x';
@@ -372,7 +452,13 @@ try {
   const { readFile } = await import('node:fs/promises');
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
   const REASON_KEYS = ['load_error_reason_permission', 'load_error_reason_not_found', 'load_error_reason_other'];
-  const FIX_KEYS = ['load_error_fix_permission', 'load_error_fix_not_found', 'load_error_fix_other'];
+  const FIX_KEYS = [
+    'load_error_fix_permission',
+    'load_error_fix_permission_windows',
+    'load_error_fix_permission_linux',
+    'load_error_fix_not_found',
+    'load_error_fix_other',
+  ];
   for (const locale of LOCALES) {
     const translation = JSON.parse(await readFile(path.join(projectRoot, 'public/locales', locale, 'translation.json'), 'utf8'));
     for (const key of [...REASON_KEYS, ...FIX_KEYS]) {
@@ -387,11 +473,22 @@ try {
   assert.equal(ja.resource_list.load_error_reason_not_found, 'データフォルダが見つかりません');
   assert.match(ja.resource_list.load_error_fix_permission, /システム設定で/);
   assert.match(ja.resource_list.load_error_fix_permission, /設定でデータフォルダを変えてください/);
+  // Windows・Linux の文言に macOS の言い方（システム設定）を持ち込まない
+  assert.match(ja.resource_list.load_error_fix_permission_windows, /Windows セキュリティ/);
+  assert.match(ja.resource_list.load_error_fix_permission_linux, /書き込みの権限/);
+  for (const key of ['load_error_fix_permission_windows', 'load_error_fix_permission_linux']) {
+    assert.doesNotMatch(ja.resource_list[key], /システム設定/, key + ' は macOS の言い方を使わない');
+    assert.match(ja.resource_list[key], /設定でデータフォルダを変えてください/);
+  }
 
   const status = await readFile(path.join(projectRoot, 'src/components/resource-list/ResourceResultStatus.vue'), 'utf8');
+  const loadFailureSource = await readFile(path.join(projectRoot, 'src/components/resource-list/loadFailure.ts'), 'utf8');
   for (const key of [...REASON_KEYS, ...FIX_KEYS]) {
-    assert.match(status, new RegExp('resource_list\\.' + key), 'ResultStatus must render resource_list.' + key);
+    // 権限の直し方は OS ごとに loadFailure.ts の permissionFixKey が選ぶ
+    const source = key.startsWith('load_error_fix_permission') ? loadFailureSource : status;
+    assert.match(source, new RegExp('resource_list\\.' + key + '"'), 'resource_list.' + key + ' must be rendered');
   }
+  assert.match(status, /permissionFixKey\(/, 'ResultStatus must pick the permission fix per OS');
   assert.match(status, /data-load-failure-reason/, 'ResultStatus must expose the reason hook');
   assert.match(status, /data-load-failure-fix/, 'ResultStatus must expose the fix hook');
 

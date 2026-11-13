@@ -1339,6 +1339,8 @@
     "load_error_reason_not_found": "Folder Data tidak ditemukan",
     "load_error_reason_other": "Folder Data tidak dapat dibuka",
     "load_error_fix_permission": "Izinkan akses Maplat Editor di Pengaturan sistem, atau ubah Folder Data di Pengaturan.",
+    "load_error_fix_permission_windows": "Izinkan Maplat Editor menulis di Keamanan Windows atau di Properti folder, atau ubah Folder Data di Pengaturan.",
+    "load_error_fix_permission_linux": "Berikan izin tulis pada Folder Data, atau ubah Folder Data di Pengaturan.",
     "load_error_fix_not_found": "Tentukan kembali Folder Data di Pengaturan.",
     "load_error_fix_other": "Ubah Folder Data di Pengaturan, atau coba lagi.",
     "menu_delete": "Hapus",

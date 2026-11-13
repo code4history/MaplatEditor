@@ -495,6 +495,8 @@ export interface IiifImportAPI {
 
 declare global {
   interface Window {
+    /** preload が渡す OS の種類（process.platform）。Electron の外（ブラウザだけの試験等）では無い */
+    runtimeInfo?: { platform: string };
     settings: SettingsAPI;
     maplist: MapListAPI;
     mapedit: MapEditAPI;
