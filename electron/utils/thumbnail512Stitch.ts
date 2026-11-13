@@ -20,7 +20,20 @@ const THUMB_512_LONG_SIDE = 512;
 const TILE_FILE = /^\d+\.[A-Za-z0-9]+$/;
 const NUMERIC_DIR = /^\d+$/;
 
-async function readNumericDirs(dir: string): Promise<number[]> {
+/**
+ * タイルのファイル名（{ty}.{ext}）かどうか。拡張子は限らない。
+ * .DS_Store・._0.jpg・Thumbs.db など、数字で始まらない名前はタイルとみなさない。
+ * タイルを走査する箇所はすべてこの判定を使う（判定の実装を 2 つにしない）。
+ */
+export function isTileFile(name: string): boolean {
+  return TILE_FILE.test(name);
+}
+
+/**
+ * 数字だけの名前の子フォルダ（段 {z} や列 {x}）を数で返す。フォルダが読めなければ空。
+ * 並びは readdir のまま。
+ */
+export async function readNumericDirs(dir: string): Promise<number[]> {
   try {
     return (await fs.readdir(dir)).filter((d) => NUMERIC_DIR.test(d)).map((d) => parseInt(d, 10));
   } catch {
@@ -31,7 +44,7 @@ async function readNumericDirs(dir: string): Promise<number[]> {
 async function levelHasTile(levelDir: string): Promise<boolean> {
   for (const tx of await readNumericDirs(levelDir)) {
     try {
-      if ((await fs.readdir(path.join(levelDir, `${tx}`))).some((f) => TILE_FILE.test(f))) return true;
+      if ((await fs.readdir(path.join(levelDir, `${tx}`))).some(isTileFile)) return true;
     } catch {
       // 列がファイルなどで読めないときは次の列へ
     }
@@ -76,7 +89,7 @@ export async function stitchThumbnail512(levelDir: string, dest: string): Promis
       continue;
     }
     for (const name of names) {
-      if (!TILE_FILE.test(name)) continue;
+      if (!isTileFile(name)) continue;
       const ty = parseInt(name, 10);
       tiles.push({ tx, ty, file: path.join(levelDir, `${tx}`, name) });
       maxX = Math.max(maxX, tx);

@@ -22,7 +22,13 @@ import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
 import { readImageMeta } from '../utils/thumbnail512Codec';
-import { selectThumbnail512Level, stitchThumbnail512, THUMB_512_MAX_LEVEL } from '../utils/thumbnail512Stitch';
+import {
+  isTileFile,
+  readNumericDirs,
+  selectThumbnail512Level,
+  stitchThumbnail512,
+  THUMB_512_MAX_LEVEL,
+} from '../utils/thumbnail512Stitch';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -1160,10 +1166,11 @@ class SqliteDataService {
         skipped.push(uid);
         continue;
       }
-      // zoom2/0/0.* ファイルの存在チェック
+      // zoom2/0/0.* ファイルの存在チェック。拡張子は取り込んだ画像の形式に従うので限らない
+      // （タイルのファイルかどうかは縫い合わせと同じ isTileFile で見る）
       try {
         const files = await fs.readdir(path.join(zoom2Dir, '0'));
-        if (!files.some((f) => /^0\.(jpg|jpeg|png)$/.test(f))) {
+        if (!files.some((f) => isTileFile(f) && parseInt(f, 10) === 0)) {
           skipped.push(uid);
           continue;
         }
@@ -1281,7 +1288,8 @@ class SqliteDataService {
   // M7: 既存の 512px サムネイルが破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
   // m19-t5: 512px の復号は readImageMeta を通す。Jimp は webp を decode できないため、
   // ここを Jimp.read のままにすると必ず catch へ落ちて常に false を返し、自己修復が黙って死ぬ。
-  // （zoom2 タイルの読み込みは png/jpg のままなので Jimp.read でよい）
+  // （zoom2 タイルは縫い合わせと同じく Jimp.read で読む。拡張子は isTileFile で限らない。
+  //   Jimp が読めない形式のタイルなら catch へ落ちて false＝作り直さない）
   // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
   // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
   // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
@@ -1289,15 +1297,14 @@ class SqliteDataService {
     try {
       // @ts-ignore - Jimp は ESM 動的 import
       const { Jimp } = await import('jimp');
-      const xDirs = await fs.readdir(zoom2Dir);
-      const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+      const maxX = Math.max(...await readNumericDirs(zoom2Dir));
       let maxY = 0;
       let contentW = 0;
       let contentH = 0;
       for (let tx = 0; tx <= maxX; tx++) {
         const txDir = path.join(zoom2Dir, `${tx}`);
         if (!await fs.pathExists(txDir)) continue;
-        const yFiles = (await fs.readdir(txDir)).filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f));
+        const yFiles = (await fs.readdir(txDir)).filter(isTileFile);
         for (const f of yFiles) {
           const ty = parseInt(f, 10);
           maxY = Math.max(maxY, ty);
