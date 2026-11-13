@@ -244,3 +244,18 @@ test('Wellcome: @id のサービスから実画素数を取得する', async () 
   assert.equal(result.ok, true);
   assert.deepEqual(result.imageSize, e.imageSize);
 });
+
+// Boston の Creator 行は値の配列の中に入れた配列に作者名が入る（仕様外の形）。
+// 入れ子を平らにして読むので、その作者名が書誌の行の値に入る（期待の文字列は fixture から読む）。
+test('Boston: Creator 行の入れ子の配列の作者名が書誌の値に入る', () => {
+  const e = cases.find(item => item.id === 'boston').expected;
+  const manifest = read('boston.manifest.json');
+  const row = manifest.metadata.find(item => item.label === 'Creator');
+  const nested = row.value.find(item => Array.isArray(item))[0];
+  assert.equal(typeof nested, 'string', 'fixture の入れ子の配列に作者名がある');
+  const copy = copyIiifMetadata(manifest, e.canvasId, e.lang, options);
+  assert.equal(copy.ok, true);
+  const creator = copy.copiedMetadata.find(item => item.label === 'Creator');
+  const text = typeof creator.value === 'string' ? creator.value : Object.values(creator.value)[0];
+  assert.ok(text.includes(nested), '入れ子に入っていた作者名が書誌の値に入る');
+});

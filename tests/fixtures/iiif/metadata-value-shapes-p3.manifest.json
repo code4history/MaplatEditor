@@ -1,0 +1,67 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://iiif.example.org/p3/value-shapes/manifest.json",
+  "type": "Manifest",
+  "label": {
+    "ja": ["〔試験用〕書誌の値の形の見本（版 3）"],
+    "en": ["[test] metadata value shapes (presentation 3)"]
+  },
+  "metadata": [
+    {
+      "label": { "ja": ["文字列"], "en": ["String"] },
+      "value": { "ja": ["そのままの文字列"], "en": ["Plain string"] }
+    },
+    {
+      "label": { "ja": ["作者"], "en": ["Creator"] },
+      "value": {
+        "ja": [["架空 花子（かくそ はなこ）, 1860-1930"]],
+        "en": [["Kakuso, Hanako, 1860-1930"]]
+      }
+    },
+    {
+      "label": { "none": ["平らな配列"] },
+      "value": { "none": ["一つ目", "二つ目"] }
+    },
+    {
+      "label": { "ja": ["文字列の値"] },
+      "value": "版 3 でも文字列の値"
+    },
+    {
+      "label": { "ja": ["読めない形"] },
+      "value": { "@type": "example:Unreadable" }
+    }
+  ],
+  "items": [
+    {
+      "id": "https://iiif.example.org/p3/value-shapes/canvas/c1",
+      "type": "Canvas",
+      "label": { "ja": ["1葉目"] },
+      "height": 6000,
+      "width": 6000,
+      "metadata": [
+        {
+          "label": { "ja": ["コマの言語の表の入れ子"] },
+          "value": { "ja": [["コマの", "入れ子の値"]] }
+        }
+      ],
+      "items": [
+        {
+          "type": "AnnotationPage",
+          "items": [
+            {
+              "type": "Annotation",
+              "motivation": "painting",
+              "target": "https://iiif.example.org/p3/value-shapes/canvas/c1",
+              "body": {
+                "id": "https://iiif.example.org/p3/value-shapes/image/c1.jpg",
+                "type": "Image",
+                "height": 6000,
+                "width": 6000
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

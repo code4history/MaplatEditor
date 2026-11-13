@@ -327,6 +327,7 @@
     "smoke:iiif-map-tiles": "node scripts/iiif-map-tiles-smoke.mjs",
     "smoke:iiif-metadata-copy": "node scripts/iiif-metadata-copy-smoke.mjs",
     "smoke:iiif-app-export": "node scripts/iiif-app-export-smoke.mjs",
+    "smoke:iiif-metadata-value-shapes": "node scripts/iiif-metadata-value-shapes-smoke.mjs",
     "smoke:json-duplicate-keys": "node scripts/json-duplicate-keys-smoke.mjs",
     "smoke:ipc-sender-guard": "node scripts/ipc-sender-guard-smoke.mjs",
     "smoke:read-tile-roots": "node scripts/read-tile-roots-smoke.mjs",
