@@ -43,12 +43,21 @@ function reasonOfCode(code: string): DbOpenFailureReason | null {
   return null;
 }
 
+/** ドライブを差し込むフォルダ。この直下が無いのはドライブが外れたとき */
+const MOUNT_PARENTS = new Set(['/Volumes', '/media', '/mnt', '/run/media']);
+
+function isMountParent(dir: string): boolean {
+  // Linux はユーザーごとの /media/<user>・/run/media/<user> の下に差し込む
+  return MOUNT_PARENTS.has(dir) || MOUNT_PARENTS.has(path.dirname(dir));
+}
+
 /**
- * 保存先フォルダを親へ向かってたどり、「無い」階層があれば「場所が無い」を返す。
+ * 保存先フォルダを親へ向かってたどり、ドライブが外れて無い階層があれば「場所が無い」を返す。
  * 外付けドライブが外れた /Volumes/<ドライブ名>/… は ensureDir（mkdir -p）が ENOENT ではなく
- * EACCES を返すため、code だけでは「権限が無い」と誤る。存在しない祖先の親がマウント点
- * （macOS の /Volumes 直下・Windows でドライブ直下が無い等）の外れなら必ずここに落ちる。
- * 普通の存在しないパスは ensureDir が作るため、ここまで来るのは作れなかった場合だけである。
+ * EACCES を返すため、code だけでは「権限が無い」と誤る。
+ * 在る最も深い祖先がドライブを差し込むフォルダ（/Volumes 等）のとき、またはルートまで無い
+ * （Windows でドライブそのものが無い）ときだけ「場所が無い」にする。在る祖先がふつうの
+ * フォルダなら、作れなかったのは親に書けないためなので code の判定に委ねる。
  * （symlink は解決せず、行き先の無い symlink は従来どおり code と access の判定に委ねる）
  */
 async function missingTargetReason(folder: string): Promise<DbOpenFailureReason | null> {
@@ -63,8 +72,8 @@ async function missingTargetReason(folder: string): Promise<DbOpenFailureReason 
       missingHere = true;
     }
     if (!missingHere) {
-      // current は在る。保存先フォルダ自身が無ければ「作れなかった」= 場所が無い
-      return sawMissing ? 'not-found' : null;
+      // current は在る。その下が無く、current がドライブを差し込むフォルダなら外れている
+      return sawMissing && isMountParent(current) ? 'not-found' : null;
     }
     sawMissing = true;
     const parent = path.dirname(current);
@@ -82,8 +91,11 @@ async function missingTargetReason(folder: string): Promise<DbOpenFailureReason 
 export async function classifyDbOpenFailure(error: unknown, folder: string): Promise<DbOpenFailureReason> {
   const missing = await missingTargetReason(folder);
   if (missing) return missing;
-  const direct = reasonOfCode(dbOpenFailureCode(error));
+  const code = dbOpenFailureCode(error);
+  const direct = reasonOfCode(code);
   if (direct) return direct;
+  // 壊れた DB・ロック中など、code で理由が決まっている失敗はフォルダの状態で権限へ寄せない
+  if (code !== 'SQLITE_CANTOPEN' && code !== 'unknown') return 'other';
   try {
     await access(folder, constants.R_OK | constants.W_OK);
   } catch (probeError) {

@@ -129,6 +129,30 @@ try {
         'not-found',
         'マウント点が外れたパスは場所が無い',
       );
+      assert.equal(
+        await classifyDbOpenFailure({ code: 'EACCES' }, '/Volumes/maplat-db-open-reason-missing-drive'),
+        'not-found',
+        '外れたドライブそのものも場所が無い',
+      );
+      // 書けない親フォルダの下で、まだ作られていない保存先は「権限が無い」のまま
+      const roParent = path.join(scratch, 'ro-parent');
+      await mkdir(roParent, { recursive: true });
+      await symlink(roParent, path.join(scratch, 'link-ro'));
+      await chmod(roParent, 0o555);
+      try {
+        for (const target of [
+          path.join(roParent, 'MaplatEditor'),
+          path.join(roParent, 'a', 'b'),
+          path.join(scratch, 'link-ro', 'MaplatEditor'),
+        ]) {
+          assert.equal(await classifyDbOpenFailure({ code: 'EACCES' }, target), 'permission', '書けない親の下は権限が無い: ' + path.relative(scratch, target));
+        }
+        // 壊れた DB（26）・ロック中（5）は、フォルダが書けなくても権限へ寄せない
+        assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 26 }, roParent), 'other');
+        assert.equal(await classifyDbOpenFailure({ code: 'ERR_SQLITE_ERROR', errcode: 5 }, roParent), 'other');
+      } finally {
+        await chmod(roParent, 0o755);
+      }
 
       // --- Part 1c: 実測（chmod 000 のフォルダ・存在しないパス） ---
       // SQLite は chmod 000 の中へ開けないとき OS の errno ではなく SQLITE_CANTOPEN しか返さないため、
