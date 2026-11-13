@@ -152,7 +152,7 @@ try {
         assert.ok(Math.max(thumbImg.width, thumbImg.height) <= 52,
           label + ': thumbnail.jpg の長辺は 52px 以下: ' + thumbImg.width + 'x' + thumbImg.height);
 
-        // maxZoom >= 2 のときだけ 512px サムネイルが生成される（M12-T15 §C3）
+        // 512px サムネイルは画像の大きさによらず生成される（maxZoom < 2 の小さい画像は最大ズームの段＝原寸から作る）
         const thumb512 = nodePath.join(outFolder, 'thumbnail_512.webp');
         assert.ok(await exists(thumb512), label + ': thumbnail_512.webp が実在する');
         const thumb512Img = await readImageMeta(thumb512);

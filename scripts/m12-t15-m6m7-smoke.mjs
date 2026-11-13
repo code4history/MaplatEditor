@@ -11,6 +11,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 // m19-t5: 512px は webp。寸法確認は符号化規則を持つ codec 経由で行う
 const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
+const stitchFile = path.join(projectRoot, 'electron/utils/thumbnail512Stitch.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'm12-t15-m6m7-'));
@@ -65,6 +66,7 @@ try {
       import { Jimp } from 'jimp';
       // m19-t5: 512px は webp。Jimp では decode できないため codec の readImageMeta を使う
       import { readImageMeta } from ${JSON.stringify(codecFile)};
+      import { stitchThumbnail512 } from ${JSON.stringify(stitchFile)};
 
       const dataDir = ${JSON.stringify(dataDir)};
       const { default: SettingsService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/SettingsService.ts'))});
@@ -93,11 +95,11 @@ try {
         }
       }
 
-      // M6: data_json なし（width/height を渡さない）で generateThumbnail512FromTiles を実行
+      // M6: data_json なし（width/height を渡さない）で縫い合わせ（stitchThumbnail512）を実行
       // タイル実寸からコンテンツ寸法（673x991）を導出し、348x512 を生成するはず
       const svc = SqliteDataService;
-      await svc.generateThumbnail512FromTiles(uid, dataDir, tileFolder, thumbFolder);
       const thumb512 = nodePath.join(thumbFolder, uid + '_512.webp');
+      await stitchThumbnail512(zoom2Dir, thumb512);
       const img = await readImageMeta(thumb512);
       assert.equal(img.width, 348, 'M6: 348px 幅（673*512/991）: ' + img.width);
       assert.equal(img.height, 512, 'M6: 512px 高（長辺）: ' + img.height);
