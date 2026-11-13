@@ -24,7 +24,7 @@
       @remove="(q) => emit('remove-recent', q)"
     />
 
-    <ResourceResultStatus :state="state" :total="total" :loaded="loaded" @retry="emit('retry')" />
+    <ResourceResultStatus :state="state" :total="total" :loaded="loaded" :failure="failure" @retry="emit('retry')" />
 
     <div ref="contentRef" class="resource-list__content resource-list__rows" :data-resource-content="kind">
       <slot></slot>
@@ -39,6 +39,7 @@ import ResourceListToolbar from "./ResourceListToolbar.vue";
 import ResourceResultStatus from "./ResourceResultStatus.vue";
 import RecentSearchChips from "./RecentSearchChips.vue";
 import type { ResourceListKind, ResourceListState } from "./resourceListTypes";
+import type { ResourceLoadFailure } from "./loadFailure";
 
 const props = defineProps<{
   kind: ResourceListKind;
@@ -48,6 +49,8 @@ const props = defineProps<{
   total: number | null;
   loaded: number;
   newDraft?: boolean;
+  // 保存先フォルダの DB を開けない失敗の理由（一覧の失敗表示へ渡す）
+  failure?: ResourceLoadFailure | null;
   variant?: "grid" | "master";
   // optional: kindNameKey 構築の検索 placeholder を上書きする完全なキー（toolbar へ中継）
   searchPlaceholderKey?: string;

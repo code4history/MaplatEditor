@@ -10,6 +10,7 @@
       :state="state"
       :total="total"
       :loaded="loaded"
+      :failure="failure"
       :new-draft="newDrafts.length > 0"
       :recent-searches="recentItems"
       :recent-active-query="query"
@@ -124,7 +125,7 @@ const adapter = createPoiSourceListAdapter({
     poisFormat: t("resource_list.badge_pois_format"),
   },
 });
-const { items, total, loaded, state, batchesLoaded, loadFirst, loadMore, retry, applyDeletion } =
+const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore, retry, applyDeletion } =
   useInfiniteResourceList<PoiSourceListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => i18next.language });
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);

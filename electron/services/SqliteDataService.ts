@@ -32,6 +32,7 @@ import AssetDraftService from './AssetDraftService';
 import { generateUid, isValidSlug, resolveSlugCollision, type AssetKind } from './assetIdentity';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { createResettableSingleFlight } from './ResettableSingleFlight';
+import { toDbOpenError } from '../utils/dbOpenFailure';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
 // nov26-m6-t5: 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
@@ -694,16 +695,26 @@ class SqliteDataService {
   private async initializeDb(saveFolder: string, sqliteFile: string): Promise<InitializedDb> {
     let db: DatabaseSync | null = null;
     try {
-      await fs.ensureDir(saveFolder);
-      db = new DatabaseSync(sqliteFile);
-      // 旧schema(v1: maps.uid 列なし)のDBは書き換えずに退避し、新規v2 DBを作って
-      // レガシー入力から再取込する(DBは未公開のため in-place migration は行わない)
-      if (this.hasV1Schema(db)) {
-        db.close();
-        await this.retireV1Database(sqliteFile);
+      try {
+        await fs.ensureDir(saveFolder);
         db = new DatabaseSync(sqliteFile);
+        // 旧schema(v1: maps.uid 列なし)のDBは書き換えずに退避し、新規v2 DBを作って
+        // レガシー入力から再取込する(DBは未公開のため in-place migration は行わない)
+        if (this.hasV1Schema(db)) {
+          db.close();
+          await this.retireV1Database(sqliteFile);
+          db = new DatabaseSync(sqliteFile);
+        }
+        // 読み取り専用のフォルダ（chmod 555 等）や読み取り専用の DB ファイル（chmod 444）では
+        // 開封は成功し、WAL 化で初めて失敗する（errcode 1544 = SQLITE_READONLY_DIRECTORY 等）。
+        // 「開けない」失敗として包む範囲に入れる
+        db.exec('PRAGMA journal_mode=WAL');
+      } catch (e) {
+        // 保存先フォルダの DB を開けない失敗は、理由（権限が無い／場所が無い／その他）と code
+        // だけを renderer へ渡せる形へ写像する。原文（パス入り）は main のログにだけ残す
+        console.error('[SqliteDataService] failed to open the write store:', e);
+        throw await toDbOpenError(e, saveFolder);
       }
-      db.exec('PRAGMA journal_mode=WAL');
       db.exec('PRAGMA busy_timeout=5000');
       // WAL時の標準設定: コミット毎のfsyncを削減(電源断で直近コミットが巻き戻る可能性はあるがDB破損はしない)
       db.exec('PRAGMA synchronous=NORMAL');

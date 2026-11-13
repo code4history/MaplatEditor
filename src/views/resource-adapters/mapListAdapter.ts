@@ -1,4 +1,5 @@
 import type { ResourceListAdapter, ResourceListItemViewModel } from "../../components/resource-list/resourceListTypes";
+import { isSearchFailureReply, ResourceLoadFailureError } from "../../components/resource-list/loadFailure";
 import { localizeTitle } from "../../utils/langResource";
 import {
   buildResourceDiagnosticsBadges,
@@ -21,6 +22,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
     async load({ filter, cursor, limit }) {
       const page = cursor ?? 1;
       const result = await window.search.maps({ q: filter.q, bbox: filter.bbox ?? undefined, page, pageSize: limit });
+      if (isSearchFailureReply(result)) throw new ResourceLoadFailureError(result.failure);
       const items = result.docs.map((doc: any): MapListRow => ({
         uid: String(doc.uid),
         mapID: String(doc.mapID ?? doc.slug ?? doc._id),

@@ -4,6 +4,7 @@ import type {
   ResourceListFilter,
   ResourceListState,
 } from "../components/resource-list/resourceListTypes";
+import { ResourceLoadFailureError, type ResourceLoadFailure } from "../components/resource-list/loadFailure";
 
 export interface InfiniteResourceListSources {
   filter: () => ResourceListFilter;
@@ -20,6 +21,8 @@ export interface UseInfiniteResourceList<T extends { uid: string }> {
   loaded: ComputedRef<number>;
   batchesLoaded: Ref<number>;
   state: Ref<ResourceListState>;
+  /** 保存先フォルダの DB を開けない失敗の理由。その他の失敗は null（従来どおり理由なし） */
+  failure: Ref<ResourceLoadFailure | null>;
   loadFirst: () => Promise<void>;
   loadMore: () => Promise<void>;
   retry: () => Promise<void>;
@@ -39,6 +42,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
   const total = ref<number | null>(null);
   const batchesLoaded = ref(0);
   const state = ref<ResourceListState>("idle");
+  const failure = ref<ResourceLoadFailure | null>(null);
   const loaded = computed(() => items.value.length);
 
   const nextCursor = ref<Cursor | null>(null) as Ref<Cursor | null>;
@@ -48,6 +52,9 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
   let controller: AbortController | null = null;
 
   const cursorKey = (cursor: Cursor | null): string => (cursor == null ? "@first" : JSON.stringify(cursor));
+
+  const failureOf = (error: unknown): ResourceLoadFailure | null =>
+    error instanceof ResourceLoadFailureError ? error.failure : null;
 
   const dedupeAppend = (base: T[], incoming: T[]): T[] => {
     const seen = new Set(base.map((item) => item.uid));
@@ -66,6 +73,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     controller?.abort();
     controller = new AbortController();
     state.value = "loading";
+    failure.value = null;
     loadingCursorKey = cursorKey(null);
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor: null, limit, signal: controller.signal });
@@ -76,9 +84,10 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
       consumedCursors.value = [null];
       batchesLoaded.value = 1;
       settleState();
-    } catch {
+    } catch (error) {
       if (gen !== generation) return;
       state.value = "error";
+      failure.value = failureOf(error);
     } finally {
       if (gen === generation) loadingCursorKey = null;
     }
@@ -93,6 +102,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     loadingCursorKey = key;
     const gen = generation;
     state.value = "appending";
+    failure.value = null;
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor, limit, signal: controller?.signal ?? new AbortController().signal });
       if (gen !== generation) return;
@@ -102,9 +112,10 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
       consumedCursors.value = [...consumedCursors.value, cursor];
       batchesLoaded.value += 1;
       settleState();
-    } catch {
+    } catch (error) {
       if (gen !== generation) return;
       state.value = "append-error"; // 取得済み item は保持（AC7）
+      failure.value = failureOf(error);
     } finally {
       if (gen === generation && loadingCursorKey === key) loadingCursorKey = null;
     }
@@ -164,5 +175,5 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     loadingCursorKey = null;
   }
 
-  return { items, total, loaded, batchesLoaded, state, loadFirst, loadMore, retry, restore, applyDeletion, anchorFor, dispose };
+  return { items, total, loaded, batchesLoaded, state, failure, loadFirst, loadMore, retry, restore, applyDeletion, anchorFor, dispose };
 }

@@ -1,5 +1,6 @@
 import { ipc } from './registry';
 import SqliteDataService from '../services/SqliteDataService';
+import { withDbOpenFailureReply } from '../utils/dbOpenFailure';
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from '../utils/searchSpatial';
 import { wgs84BboxToMercator } from '../utils/webMercator';
 import { resolveAppListImage, resolveBaseMapListImage, resolveBaseMapRuntimeTileUrl, resolveMapListImage512 } from '../services/resourceImageResolver';
@@ -95,7 +96,9 @@ async function attachBaseMapListExtras<T extends Record<string, any>>(
 type SearchFilter = { q?: string; bbox?: [number, number, number, number]; page: number; pageSize: number };
 
 export function registerSearchHandlers() {
-  ipc.handle('search:maps', async (_event, filter: SearchFilter) => {
+  // 一覧の読み取りは保存先フォルダの DB が開けないとまとめて失敗する。開けない失敗だけを
+  // 理由つきの応答（{ failure: { reason, code } }）へ写像し、一覧の画面で直し方まで出せるようにする
+  ipc.handle('search:maps', (_event, filter: SearchFilter) => withDbOpenFailureReply(async () => {
     const docs = await SqliteDataService.searchMaps(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'map');
@@ -103,9 +106,9 @@ export function registerSearchHandlers() {
       return attachMapListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
     return attachMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
-  });
+  }));
 
-  ipc.handle('search:apps', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:apps', (_event, filter: SearchFilter) => withDbOpenFailureReply(async () => {
     const docs = await SqliteDataService.searchApps(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'app');
@@ -113,9 +116,9 @@ export function registerSearchHandlers() {
       return attachAppListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
     return attachAppListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
-  });
+  }));
 
-  ipc.handle('search:poiSources', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:poiSources', (_event, filter: SearchFilter) => withDbOpenFailureReply(async () => {
     const docs = await SqliteDataService.searchPoiSources(filter.q ?? '');
     if (filter.bbox) {
       const extentSlugs = await SqliteDataService.searchExtent(wgs84BboxToMercator(filter.bbox), 'poi-source');
@@ -123,21 +126,21 @@ export function registerSearchHandlers() {
       return attachDiagnostics(paginate(filtered, filter.page, filter.pageSize), filter.pageSize, attachPoiSourceDiagnostics);
     }
     return attachDiagnostics(paginate(docs, filter.page, filter.pageSize), filter.pageSize, attachPoiSourceDiagnostics);
-  });
+  }));
 
-  ipc.handle('search:baseMaps', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:baseMaps', (_event, filter: SearchFilter) => withDbOpenFailureReply(async () => {
     const docs = await SqliteDataService.searchBaseMaps(filter.q ?? '');
     if (filter.bbox) {
       const filtered = filterBaseMapsByBbox(docs, filter.bbox);
       return attachBaseMapListExtras(paginate(filtered, filter.page, filter.pageSize), filter.pageSize);
     }
     return attachBaseMapListExtras(paginate(docs, filter.page, filter.pageSize), filter.pageSize);
-  });
+  }));
 
-  ipc.handle('search:imageAssets', async (_event, filter: SearchFilter) => {
+  ipc.handle('search:imageAssets', (_event, filter: SearchFilter) => withDbOpenFailureReply(async () => {
     const docs = await SqliteDataService.searchAssets(filter.q ?? '');
     return paginate(docs, filter.page, filter.pageSize);
-  });
+  }));
 
   ipc.handle('search:extent', async (_event, kind: 'map' | 'poi-source' | 'app', bbox: [number, number, number, number]) => {
     return SqliteDataService.searchExtent(bbox, kind);
