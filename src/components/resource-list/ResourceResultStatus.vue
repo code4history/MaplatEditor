@@ -39,16 +39,19 @@ const countLabel = computed(() => {
   }
   return t("resource_list.loaded_only", { loaded: props.loaded });
 });
-// 保存先フォルダの DB を開けない失敗: 理由（権限が無い／場所が無い／その他）と直し方を出す。
+// 保存先フォルダの DB を開けない失敗: 理由（権限が無い／読み取り専用の場所／場所が無い／その他）と直し方を出す。
 // code は表示しない（理由で文言を選び、code は main 側のログと試験が使う）
 const REASON_KEYS: Record<ResourceLoadFailure["reason"], string> = {
   permission: "resource_list.load_error_reason_permission",
+  "readonly-location": "resource_list.load_error_reason_readonly_location",
   "not-found": "resource_list.load_error_reason_not_found",
   other: "resource_list.load_error_reason_other",
 };
 // 「権限が無い」の直し方は OS で許可の場所が違うので、OS ごとの文言を選ぶ
 const FIX_KEYS: Record<ResourceLoadFailure["reason"], string> = {
   permission: permissionFixKey(typeof window === "undefined" ? undefined : window.runtimeInfo?.platform),
+  // 読み取り専用の場所は許可では直らないので、OS を問わずデータフォルダを変えることだけを案内する
+  "readonly-location": "resource_list.load_error_fix_readonly_location",
   "not-found": "resource_list.load_error_fix_not_found",
   other: "resource_list.load_error_fix_other",
 };

@@ -1,18 +1,28 @@
 // 保存先フォルダの DB（Write Store）を開けない失敗を、renderer へ渡せる形へ写像する。
 //
-// 理由は 3 つに分ける: 権限が無い（macOS の書類フォルダへのアクセス拒否・読み取り専用等）／
-// 場所が無い（フォルダが無い・経路上に無い）／その他。OS と SQLite が返す code（EACCES・
+// 理由は 4 つに分ける: 権限が無い（macOS の書類フォルダへのアクセス拒否・chmod で書けない
+// フォルダや DB ファイル等）／読み取り専用の場所（読み取り専用でつないだディスクイメージ・ISO・
+// ro でマウントした場所。権限を足しても書けるようにならない）／場所が無い（フォルダが無い・
+// 経路上に無い）／その他。OS と SQLite が返す code（EACCES・
 // ENOENT・SQLITE_CANTOPEN 等）を手掛かりにするが、SQLite は chmod 000 の中へ開けないときも
 // SQLITE_CANTOPEN しか返さないため、そのときは保存先フォルダの状態を見て分ける。
 // 外付けドライブが外れたときは EACCES を返すため、保存先フォルダが無いこと（マウント点の
 // 外れ）を先に見て「場所が無い」へ寄せる。
+//
+// 読み取り専用の場所は EROFS で見分ける。Node の fs.statfs はマウントの印（macOS の MNT_RDONLY・
+// Linux の ST_RDONLY）を返さない（libuv の uv_statfs_t に f_flags が無い）ため使えない。
+// 代わりに、失敗そのものの code が EROFS か、保存先フォルダへの access(W_OK) が EROFS を返すかを
+// 見る（macOS・Linux の access(2) は読み取り専用のファイルシステムで EROFS を返す）。
+// Windows の access はディレクトリの書き込みを確かめない（常に通る）ため、書き込み禁止の
+// 媒体（ERROR_WRITE_PROTECT → EROFS）で失敗そのものが EROFS のときだけ見分けられ、
+// それ以外は従来どおり「権限が無い」になる。
 //
 // renderer へは理由と code だけを渡す（redactPathsInResult.ts と同じ方針で、利用者の手元の
 // パスは message にも応答にも載せない。原文は main のログにだけ出す）。
 import { access, constants, lstat } from 'node:fs/promises';
 import path from 'node:path';
 
-export type DbOpenFailureReason = 'permission' | 'not-found' | 'other';
+export type DbOpenFailureReason = 'permission' | 'readonly-location' | 'not-found' | 'other';
 
 export interface DbOpenFailure {
   reason: DbOpenFailureReason;
@@ -20,7 +30,7 @@ export interface DbOpenFailure {
   code: string;
 }
 
-const PERMISSION_CODES = new Set(['EACCES', 'EPERM', 'EROFS', 'ETXTBSY']);
+const PERMISSION_CODES = new Set(['EACCES', 'EPERM', 'ETXTBSY']);
 const NOT_FOUND_CODES = new Set(['ENOENT', 'ENOTDIR', 'ENODEV', 'ENXIO']);
 
 /** 失敗の code を、パスを含まない記号へ正規化する。読めないときは 'unknown' */
@@ -38,6 +48,7 @@ export function dbOpenFailureCode(error: unknown): string {
 }
 
 function reasonOfCode(code: string): DbOpenFailureReason | null {
+  if (code === 'EROFS') return 'readonly-location';
   if (PERMISSION_CODES.has(code) || code === 'SQLITE_READONLY') return 'permission';
   if (NOT_FOUND_CODES.has(code)) return 'not-found';
   return null;
@@ -86,15 +97,44 @@ async function missingTargetReason(folder: string): Promise<DbOpenFailureReason 
 }
 
 /**
+ * 保存先フォルダが読み取り専用のファイルシステム上にあるか（access(W_OK) が EROFS を返すか）。
+ * 書けないのが権限のためか（EACCES）、場所そのもののためか（EROFS）を分ける。
+ * 保存先フォルダがまだ無いときは、在る最も近い祖先（フォルダを作る先）で確かめる。
+ */
+async function isReadOnlyLocation(folder: string): Promise<boolean> {
+  let current = path.resolve(folder);
+  for (;;) {
+    try {
+      await access(current, constants.W_OK);
+      return false;
+    } catch (probeError) {
+      const code = dbOpenFailureCode(probeError);
+      if (code === 'EROFS') return true;
+      const parent = path.dirname(current);
+      if (code !== 'ENOENT' || parent === current) return false;
+      current = parent;
+    }
+  }
+}
+
+/**
  * 失敗を理由へ分ける。保存先フォルダが無いときは code より先に「場所が無い」を優先し、
  * SQLITE_CANTOPEN など code だけでは決まらないときは、保存先フォルダを見て
  * （読める・書けるか、そもそも在るか）「権限が無い」「場所が無い」のどちらかに寄せる。
+ * 「権限が無い」になる失敗でも、保存先フォルダが読み取り専用のファイルシステム上なら
+ * 「読み取り専用の場所」にする（権限を足しても直らず、データフォルダを変えるしかない）。
  */
 export async function classifyDbOpenFailure(error: unknown, folder: string): Promise<DbOpenFailureReason> {
   const missing = await missingTargetReason(folder);
   if (missing) return missing;
   const code = dbOpenFailureCode(error);
   const direct = reasonOfCode(code);
+  // macOS の読み取り専用のディスクイメージの中では、まだ無いフォルダの mkdir が EROFS ではなく
+  // ENOENT を返す（実測）。「権限が無い」「場所が無い」のどちらに見えても、作る先が読み取り専用の
+  // ファイルシステム上なら「読み取り専用の場所」にする（外れたドライブは上の missing で先に返る）
+  if (direct === 'permission' || direct === 'not-found') {
+    return (await isReadOnlyLocation(folder)) ? 'readonly-location' : direct;
+  }
   if (direct) return direct;
   // 壊れた DB・ロック中など、code で理由が決まっている失敗はフォルダの状態で権限へ寄せない
   if (code !== 'SQLITE_CANTOPEN' && code !== 'unknown') return 'other';

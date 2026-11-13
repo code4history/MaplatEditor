@@ -1,4 +1,5 @@
 import type { PoiImportParseResult } from './utils/poiImportRows';
+import type { LoadFailureReason } from './components/resource-list/loadFailure';
 
 export interface SettingsAPI {
   get(key: string): Promise<any>;
@@ -521,7 +522,7 @@ declare global {
 
 /** 保存先フォルダの DB を開けない失敗の応答。理由と code だけを持ち、パスは含めない */
 interface SearchFailureReply {
-  failure: { reason: 'permission' | 'not-found' | 'other'; code: string };
+  failure: { reason: LoadFailureReason; code: string };
 }
 
 interface SearchListResult {
