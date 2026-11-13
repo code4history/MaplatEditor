@@ -10,6 +10,8 @@ $map-tool-shadow: 0 1px 4px rgba(0, 0, 0, .35);
 $map-tool-radius: 4px;
 $map-tool-ink: #212529;
 $map-tool-gap: 8px;
+// キーボードのフォーカスの枠の色。--editor-ui-focus-ring は box-shadow の値なので outline には使えない
+$map-tool-focus: var(--bs-primary, #0d6efd);
 
 // ---- 札（視点の道具・表示の切り替え・画面の道具） ----
 .map-tool {
@@ -40,7 +42,7 @@ $map-tool-gap: 8px;
   }
 
   &:focus-visible {
-    outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+    outline: 2px solid $map-tool-focus;
     outline-offset: 1px;
   }
 
@@ -153,7 +155,7 @@ $map-tool-gap: 8px;
 
     // マウスで押したときは枠を出さず、キーボードで来たときだけ枠を出す（札の中に収める）
     &:focus-visible {
-      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline: 2px solid $map-tool-focus;
       outline-offset: -2px;
     }
   }
@@ -189,7 +191,7 @@ $map-tool-gap: 8px;
     }
 
     &:focus-visible {
-      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline: 2px solid $map-tool-focus;
       outline-offset: -2px;
     }
   }
@@ -303,7 +305,7 @@ $map-tool-gap: 8px;
 
   // 入力欄は札（overflow: hidden）の中にあるので、枠を内側に描く
   &:focus-visible {
-    outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+    outline: 2px solid $map-tool-focus;
     outline-offset: -2px;
   }
 }
@@ -429,7 +431,7 @@ $map-tool-gap: 8px;
 
     // ol.css の `.ol-control button:focus`（薄い 1px の枠）より強く、札と同じ枠を出す
     &:focus-visible {
-      outline: 2px solid var(--editor-ui-focus-ring, #0d6efd);
+      outline: 2px solid $map-tool-focus;
       outline-offset: 1px;
     }
   }

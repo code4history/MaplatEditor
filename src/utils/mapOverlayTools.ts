@@ -145,8 +145,12 @@ function tracePath(context: CanvasRenderingContext2D, coords: PixelCoordinates, 
 /**
  * 縁取りの線だけを描く描画関数。当たり判定（`hitDetectionRenderer`）では何も描かない。
  * 縁取りを付けても、地物の当たり判定の幅は色の線（縁取りを付ける前と同じ幅）のままにする。
+ *
+ * OL は描画関数のスタイルを同じ zIndex の中で最後に描く（線・点の後）。そのままでは縁取りが
+ * 色の線の上に載るので、zIndex を負にして色の線（zIndex 0）より先に描く。外側の線（-2）→
+ * 白の縁取り（-1）の順にし、図形が重なっても白の縁取りが他の図形の外線に切られないようにする。
  */
-function underlayStyle(width: number, color: string, dash?: number[]): Style {
+function underlayStyle(width: number, color: string, zIndex: number, dash?: number[]): Style {
   const renderer: RenderFunction = (coords, state) => {
     const context = state.context;
     const ratio = state.pixelRatio;
@@ -162,7 +166,7 @@ function underlayStyle(width: number, color: string, dash?: number[]): Style {
     context.stroke();
     context.restore();
   };
-  return new Style({ renderer, hitDetectionRenderer: () => {} });
+  return new Style({ renderer, hitDetectionRenderer: () => {}, zIndex });
 }
 
 /**
@@ -179,8 +183,8 @@ export function haloLineStyles(
   const outline = options?.outline ?? true;
   return [
     ...(options?.fill ? [new Style({ fill: new Fill({ color: options.fill }) })] : []),
-    ...(outline ? [underlayStyle(width + HALO_WIDTH * 2 + 2, HALO_OUTER, dash)] : []),
-    underlayStyle(width + HALO_WIDTH * 2, '#ffffff', dash),
+    ...(outline ? [underlayStyle(width + HALO_WIDTH * 2 + 2, HALO_OUTER, -2, dash)] : []),
+    underlayStyle(width + HALO_WIDTH * 2, '#ffffff', -1, dash),
     new Style({ stroke: new Stroke({ color, width, ...(dash ? { lineDash: [...dash] } : {}) }) }),
   ];
 }
