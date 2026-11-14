@@ -97,7 +97,12 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
       if (event !== 'download-progress') return
       const progress = args[0] as { percent?: unknown } | undefined
       const percent = typeof progress?.percent === 'number' ? progress.percent : null
-      if (percent != null) win?.setProgressBar(Math.max(0, Math.min(1, percent / 100)))
+      if (percent != null) {
+        // Windows still verifies the installer after all download bytes arrive.
+        // Keep activity visible until downloadUpdate settles (including errors).
+        win?.setProgressBar(process.platform === 'win32' && percent >= 100
+          ? 2 : Math.max(0, Math.min(1, percent / 100)))
+      }
     })
     try {
       await UpdateService.downloadUpdate()
