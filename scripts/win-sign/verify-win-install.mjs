@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// nov26-m7-t2（§3.10・マイルストーン設計 §9.3 の機械の行）: 署名済みの x64 Setup.exe を runner に入れ、
+// 署名済みの x64 / arm64 Setup.exe をそれぞれの Windows runner に入れ、
 // 入った全 PE の署名を確かめ、アプリを起動して生きていることを確かめ、アンインストールして消えたことを確かめる。
+// Setup.exe はアプリと共通の検証で null を返すことも必須とし、所要時間を記録する。
 // build.yml の verify-win-install ジョブ（id-token を持たない）だけが実行する。依存を入れずに Node 組み込みと pwsh で動く。
 //
 //   1. Setup.exe /S を起動し終了を待つ（300 秒）
@@ -23,6 +24,7 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { SIGNATURE_TIMEOUT_MS, verifyWindowsUpdateSignature } from '../../electron/utils/windowsUpdateSignatureRuntime.mjs';
 
 const require = createRequire(import.meta.url);
 const { readPeInfo } = require('./win-sign.cjs');
@@ -140,10 +142,21 @@ export function judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signe
   return { publisherName, publisherSubject, subject: subject ?? null, failures };
 }
 
-/** electron-updater の署名確認の待ち時間（windowsExecutableCodeSignatureVerifier.js 47 行の 20 * 1000） */
-export const UPDATER_SIGNATURE_TIMEOUT_MS = 20_000;
+/** アプリと同じ 120 秒。Windows arm64 の実測 39.5 秒 / 24.7 秒を踏まえ、遅い初回起動にも余裕を持たせる。 */
+export const UPDATER_SIGNATURE_TIMEOUT_MS = SIGNATURE_TIMEOUT_MS;
 /** この検査の待ち時間。runner の初回の PowerShell は遅いことがあるので、updater より長く待ち、かかった時間を記録する */
 const SUBJECT_TIMEOUT_MS = 180_000;
+
+/** Setup.exe にアプリと同じ検証を行う。null 以外の戻り値・例外・時間切れはすべて不合格。 */
+export async function verifyInstallerUpdateSignature(file, publisherNames) {
+  const started = Date.now();
+  try {
+    const result = await verifyWindowsUpdateSignature(publisherNames, file);
+    return { ok: result === null, result, error: null, elapsedMs: Date.now() - started };
+  } catch (error) {
+    return { ok: false, error: error.message, elapsedMs: Date.now() - started };
+  }
+}
 
 /** electron-updater 6.8.10（windowsExecutableCodeSignatureVerifier.js 14・47 行）と同じコマンドで Subject を取る */
 function updaterStyleSubject(file) {
@@ -194,6 +207,20 @@ async function main(argv) {
   {
     const ymlPath = path.join(installDir, 'resources', 'app-update.yml');
     const appUpdateYml = existsSync(ymlPath) ? readFileSync(ymlPath, 'utf8') : null;
+    let publisherNames = [];
+    try {
+      publisherNames = readPublisherNames(appUpdateYml ?? '') ?? [];
+    } catch {
+      // The publisher check below also reports malformed configuration in detail.
+    }
+    // Run the application's command first, before the legacy PowerShell comparison.
+    // Both Windows architecture jobs execute this unconditionally for their Setup.exe.
+    const updaterSignature = await verifyInstallerUpdateSignature(installer, publisherNames);
+    result.steps.updaterSignature = { ...updaterSignature, arch: process.arch, timeoutMs: UPDATER_SIGNATURE_TIMEOUT_MS };
+    if (!updaterSignature.ok) {
+      failures.push(`Setup.exe の更新署名検証が不合格: ${updaterSignature.error ?? updaterSignature.result}`);
+    }
+    console.log(`Setup.exe の更新署名検証: ${updaterSignature.ok ? '合格（null）' : '不合格'}・${updaterSignature.elapsedMs} ms・${process.arch}`);
     let subject = null;
     let subjectError = null;
     let subjectElapsedMs = null;
@@ -211,7 +238,7 @@ async function main(argv) {
       } catch (e) {
         subjectElapsedMsSecond = e.elapsedMs ?? null;
       }
-      console.log(`::warning::Setup.exe の署名の読み取りに ${subjectElapsedMs} ms かかった（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms を超える・2 回目 ${subjectElapsedMsSecond ?? '-'} ms）`);
+      console.log(`::warning::Setup.exe の署名の読み取りに ${subjectElapsedMs} ms かかった（アプリの更新署名検証の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms を超える・2 回目 ${subjectElapsedMsSecond ?? '-'} ms）`);
     }
     const identity = JSON.parse(readFileSync(new URL('./signer-identity.json', import.meta.url), 'utf8'));
     const judged = judgeAppUpdatePublisher({ appUpdateYml, subject, identity, signer: opt.signer });
@@ -223,10 +250,12 @@ async function main(argv) {
       appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
         '## app-update.yml の publisherName と Setup.exe の Subject（生の文字列）', '',
         '| 項目 | 値 |', '|---|---|',
+        `| アプリと共通の Setup.exe 更新署名検証 | ${updaterSignature.ok ? '合格（null）' : cell(updaterSignature.error ?? updaterSignature.result)} |`,
+        `| 共通の更新署名検証にかかった時間 | ${cell(`${updaterSignature.elapsedMs} ms（待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms・${process.arch}）`)} |`,
         `| app-update.yml の publisherName[0] | ${cell(judged.publisherName?.[0])} |`,
         `| Setup.exe の SignerCertificate.Subject | ${cell(subject)} |`,
         `| signer-identity.json の ${opt.signer}.publisherSubject | ${cell(judged.publisherSubject)} |`,
-        `| Setup.exe の署名の読み取りにかかった時間 | ${cell(subjectElapsedMs == null ? null : `${subjectElapsedMs} ms（electron-updater の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms）${subjectElapsedMsSecond == null ? '' : `・2 回目 ${subjectElapsedMsSecond} ms`}`)} |`,
+        `| 旧コマンドの署名の読み取りにかかった時間（比較用） | ${cell(subjectElapsedMs == null ? null : `${subjectElapsedMs} ms（アプリの更新署名検証の待ち時間 ${UPDATER_SIGNATURE_TIMEOUT_MS} ms）${subjectElapsedMsSecond == null ? '' : `・2 回目 ${subjectElapsedMsSecond} ms`}`)} |`,
         `| 判定 | ${judged.failures.length === 0 && !subjectError ? '一致' : '不一致'} |`, '', '',
       ].join('\n'));
     }

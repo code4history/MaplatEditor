@@ -364,6 +364,7 @@
     "test:e2e:editor-ui-grammar": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/editor-ui-grammar.spec.ts --grep after",
     "smoke:editor-native-confirm": "node scripts/editor-native-confirm-smoke.mjs",
     "smoke:poisource-path-token": "node scripts/poisource-path-token-smoke.mjs",
+    "smoke:windows-update-signature": "node scripts/windows-update-signature-smoke.mjs",
     "smoke:imageassets-path-token": "node scripts/imageassets-path-token-smoke.mjs",
     "smoke:db-open-reason": "node scripts/db-open-reason-smoke.mjs",
     "test:e2e:db-open-reason": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/db-open-reason.spec.ts"

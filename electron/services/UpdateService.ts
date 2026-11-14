@@ -21,6 +21,7 @@ import path from 'node:path'
 import electronUpdater from 'electron-updater'
 import type { AppUpdater, UpdateCheckResult } from 'electron-updater'
 import { applyUpdaterSettings, resolveUpdateFeed } from '../utils/updateFeed'
+import { verifyWindowsUpdateSignature } from '../utils/windowsUpdateSignature'
 
 export type UpdateEventName =
   | 'checking-for-update'
@@ -47,6 +48,9 @@ export function configureUpdater(): AppUpdater {
   const updater = electronUpdater.autoUpdater
   updater.logger = console
   applyUpdaterSettings(updater)
+  if (process.platform === 'win32' && updater instanceof electronUpdater.NsisUpdater) {
+    updater.verifyUpdateCodeSignature = verifyWindowsUpdateSignature
+  }
   const feed = resolveUpdateFeed({ isPackaged: app.isPackaged, env: process.env })
   if (feed.kind === 'test') {
     // 試験用の更新元（C-5）: 開発時かつ e2e のときだけ resolveUpdateFeed が返す。
