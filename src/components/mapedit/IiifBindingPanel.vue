@@ -108,6 +108,7 @@ import { useTranslation } from 'i18next-vue';
 // @ts-ignore
 import type { IiifBindings, IiifFrom, MaplatIiifSection } from '@maplat/core/src/iiif/manifest';
 import {
+  defaultIiifRecopyPicks,
   iiifBindableKeys,
   setIiifBinding,
   type IiifRecopyPlanSuccess,
@@ -204,9 +205,7 @@ const picked = ref<string[]>([]);
 watch(
   () => props.recopy,
   (plan) => {
-    picked.value = (plan ? plan.rows : [])
-      .filter((row) => row.reason === 'iiif-changed' && row.next !== undefined && recopyKeys.has(row.key))
-      .map(rowId);
+    picked.value = defaultIiifRecopyPicks(plan ? plan.rows : []).map(rowId);
   },
 );
 
@@ -216,7 +215,7 @@ const pickedRows = computed<Array<{ key: string; lang: string }>>(() =>
     .map((row) => ({ key: row.key, lang: row.lang })),
 );
 
-function rowId(row: IiifRecopyRow): string {
+function rowId(row: { key: string; lang: string }): string {
   return row.key + '-' + row.lang;
 }
 

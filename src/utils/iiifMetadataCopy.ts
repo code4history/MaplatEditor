@@ -151,7 +151,7 @@ export function copyIiifMetadataWithBindings(
 /**
  * 写した値を地図の metadata へ入れた新しいオブジェクトを返す（元は変えない）。
  * 値が言語つきなら、その言語の値だけを入れる（地図の言語が無ければ値の最初の言語）。
- * 地図の欄が言語つきなら他の言語を残し、文字列なら置き換える。
+ * 欄への入れ方は mergeText（入力欄と同じ規則）に従う。
  */
 export function applyIiifValues(
   target: Record<string, unknown>,
@@ -162,7 +162,7 @@ export function applyIiifValues(
   for (const [key, value] of Object.entries(values)) {
     const table = textTable(value, lang);
     if (table === undefined) continue;
-    next[key] = mergeText(next[key], table, lang);
+    next[key] = mergeText(next[key], table, lang, key);
   }
   return next;
 }
@@ -176,20 +176,45 @@ function textTable(value: Localized | string, lang: string): Record<string, stri
 }
 
 /**
+ * 言語つきにせず文字列のまま持つ鍵（ライセンスの語彙）。
+ * 写す値が言語つきでも、地図の既定の言語の値（無ければ最初の値）を文字列で入れる。
+ */
+const PLAIN_TEXT_KEYS: ReadonlySet<string> = new Set(['license', 'dataLicense']);
+
+/**
  * 地図の 1 つの欄に、言語ごとの文字を入れる（元は変えない）。
- * 欄が言語つきなら他の言語を残し、文字列や未設定なら地図の言語の文字を 1 つ入れる。
+ * 規則は入力欄（LangResourceInput）と同じにする:
+ * - 欄が言語つきなら、他の言語を残して入れた言語だけを置き換える。
+ * - 入れるのが既定の言語だけで、欄が文字列か未設定なら、文字列で置き換える。
+ * - それ以外は、欄が空でない文字列なら既定の言語の値として残し、入れた言語を重ねた言語つきにする。
+ * どの場合も、空の値は落とす（言語つきにしたとき）。
+ * ライセンスの鍵は言語つきにせず、文字列で置き換える。
  */
 function mergeText(
   current: unknown,
   table: Record<string, string>,
   defaultLang: string,
+  key: string,
 ): string | Record<string, string> | undefined {
-  if (typeof current === 'object' && current !== null) {
-    return { ...(current as Record<string, string>), ...table };
+  const hasDefault = Object.prototype.hasOwnProperty.call(table, defaultLang);
+  if (PLAIN_TEXT_KEYS.has(key)) {
+    return hasDefault ? table[defaultLang] : Object.values(table)[0];
   }
-  return Object.prototype.hasOwnProperty.call(table, defaultLang)
-    ? table[defaultLang]
-    : Object.values(table)[0];
+  const isObject = typeof current === 'object' && current !== null;
+  if (!isObject && hasDefault && Object.keys(table).length === 1) {
+    return table[defaultLang];
+  }
+  const base: Record<string, unknown> = isObject
+    ? { ...(current as Record<string, unknown>) }
+    : typeof current === 'string' && current !== ''
+      ? { [defaultLang]: current }
+      : {};
+  const merged: Record<string, unknown> = { ...base, ...table };
+  return Object.fromEntries(
+    Object.entries(merged).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '',
+    ),
+  );
 }
 
 /**
@@ -438,6 +463,20 @@ export function planIiifRecopy(
 }
 
 /**
+ * 写し直しの一覧で、はじめから選んでおく行を返す。
+ * 「IIIF の側が変わった」行で新しい値があり、写す鍵の一覧にある行だけにする
+ *（人が直した行・両方の行は外しておき、手で直した値を黙って消さない）。
+ */
+export function defaultIiifRecopyPicks(
+  rows: ReadonlyArray<IiifRecopyRow>,
+): Array<{ key: string; lang: string }> {
+  const keys = new Set(iiifBindableKeys());
+  return rows
+    .filter((row) => row.reason === 'iiif-changed' && row.next !== undefined && keys.has(row.key))
+    .map((row) => ({ key: row.key, lang: row.lang }));
+}
+
+/**
  * 選んだ鍵・言語の行だけを、取り直した Manifest の値で上書きした新しい地図を返す。
  * 選ばなかった行の地図の値と copiedValues は変えない（手で直した値を黙って消さない）。
  * 1 行でも上書きしたら、copiedMetadata と copiedAt は新しい取得の値で作り直す。
@@ -474,7 +513,7 @@ export function applyIiifRecopy(
   }
   for (const key of keys) {
     const table = chosen[key];
-    next[key] = mergeText(next[key], table, lang);
+    next[key] = mergeText(next[key], table, lang, key);
     copiedValues[key] = { ...(copiedValues[key] ?? {}), ...table };
     // ライセンスの鍵は、注記の鍵も新しい値にそろえる（無ければ消す）。
     followLicenseNote(

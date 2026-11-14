@@ -31,8 +31,9 @@ allowBuilds:
 
 overrides:
   # 12 月の Core は RC まで npm に出ないため、IIIF の配信と書誌の関数、および題名の既定を Manifest にする変更（MaplatCore#165）と、
-  # metadata の値の中の入れ子の配列を平らに読む変更（MaplatCore#175）が入った commit を指す。RC の日に外す
-  "@maplat/core": "github:code4history/MaplatCore#3c6747bbaef8f8b8f9de4b04340e10014ddbeb70"
+  # metadata の値の中の入れ子の配列を平らに読む変更（MaplatCore#175）、書誌の写し直しで、前回写した後に結び付けた鍵や
+  # 増えた言語も比べる行に出す変更（MaplatCore#180）が入った commit を指す。RC の日に外す
+  "@maplat/core": "github:code4history/MaplatCore#3baaff295d74e0548716f7ce65cbec713b81f9ba"
   # @maplat/ui が引く Core は npm の版のままにする（Editor は UI の dist だけを使う。git の依存を推移で入れると
   # pnpm 11 の blockExoticSubdeps で install が止まる）
   "@maplat/ui>@maplat/core": "^1.2.0-rc.1"
