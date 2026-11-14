@@ -1,4 +1,6 @@
+import { Buffer } from 'node:buffer'
 import { execFile } from 'node:child_process'
+import process from 'node:process'
 import { win32 as path } from 'node:path'
 
 // The upstream verifier (electron-updater 6.8.10) hardcodes 20s and can fail open
