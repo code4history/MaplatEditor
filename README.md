@@ -70,8 +70,7 @@ binaries are distributed via GitHub Releases.
   **Deliver from IIIF**, the image is served from the IIIF image server and
   no tiles are generated. It is available only when, among other checks, the
   server uses https, allows CORS for `*`, and uses a supported IIIF version
-  and tiling, the image is not too large, its size matches the map record,
-  and the address is not blocked; otherwise the reason is shown. With
+  and tiling, the image is not too large, and the address is not blocked; otherwise the reason is shown. With
   **Bibliographic data only from IIIF**, you choose the image file yourself
   and tiles are generated as usual
 - On the metadata tab of a map linked to a Manifest, you choose for each
@@ -306,10 +305,10 @@ Documents otherwise.
 
 ### Thumbnails and Localization
 
-- 512px high-definition thumbnails for maps, base maps, and apps are
+- 512px high-definition thumbnails for maps and base maps are
   generated automatically on upload, and backfilled for existing data on
   first launch after upgrading. A map thumbnail whose longer side is 512px
-  or less is kept at its own size (never enlarged); base map and app
+  or less is kept at its own size (never enlarged); base map
   thumbnails, and images chosen with **Replace 512px…**, are scaled to 512px
   on the longer side even when smaller. The backfill
   covers every existing map that has tiles — in any tile format, such as

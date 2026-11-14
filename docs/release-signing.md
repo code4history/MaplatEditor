@@ -592,5 +592,5 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
   （electron-updater と同じ `powershell.exe` のコマンドで取る）を文字列で比べ、job summary に並べて出す
 - **署名者の名義を変えるとき**: 配布済みのアプリの `publisherName` は古いまま ∴ 新しい名義で署名した版への更新は旧版で拒まれる。
   名義を変える前に、旧名義と新名義の両方を `publisherName` の配列に入れた版を 1 つ出す
-- **eSigner で出すことになった場合**（Artifact Signing で署名した版が SAC に止められたとき）: 作業の取りまとめ役の指示で
+- **eSigner で出すことになった場合**（Artifact Signing で署名した版が SAC に止められたとき）: 作業者（エージェント）の判断で
   `electron-builder.config.cjs` の `publisherName` を `signerIdentity.esigner.publisherSubject` へ替える 1 行の変更を足す
