@@ -62,6 +62,7 @@ try {
         applyIiifRecopy,
         applyIiifValues,
         copyIiifForMap,
+        defaultIiifRecopyPicks,
         fetchIiifCopyReply,
         copyIiifMetadata,
         copyIiifMetadataWithBindings,
@@ -946,6 +947,129 @@ try {
           Object.keys(IIIF_BINDABLE_KEYS).filter((key) => key !== DEPRECATED_EXACT_NAME_KEY),
           'the listed keys must be the Core table without the retired key',
         );
+      });
+
+      // 欄へ入れる規則は入力欄（LangResourceInput）と同じ。是正を見分けるのは、
+      // (1) 文字列の欄に別の言語を入れると、元の文字列が既定の言語の値として残ること、
+      // (2) 値の無い欄に複数の言語を入れると、すべての言語が残ること、
+      // (3) 空の値は落ちること、(4) ライセンスの鍵は言語つきにせず文字列のままであること。
+      test('merge-follows-input-rules', async () => {
+        const fromString = applyIiifValues(
+          { title: '元の題名' },
+          { title: { en: 'New title' } },
+          'ja',
+        );
+        assert.deepEqual(
+          fromString.title,
+          { ja: '元の題名', en: 'New title' },
+          'a plain string field must be kept as the default language',
+        );
+        const fromEmpty = applyIiifValues({ description: '' }, { description: { en: 'Summary' } }, 'ja');
+        assert.deepEqual(
+          fromEmpty.description,
+          { en: 'Summary' },
+          'an empty string field must not be kept as a language value',
+        );
+        const fromObject = applyIiifValues(
+          { description: { ja: '', en: 'Old summary' } },
+          { description: { fr: 'Résumé' } },
+          'ja',
+        );
+        assert.deepEqual(
+          fromObject.description,
+          { en: 'Old summary', fr: 'Résumé' },
+          'empty language values must be dropped when merging into an object field',
+        );
+        const defaultOnly = applyIiifValues({ title: '元の題名' }, { title: { ja: '新しい題名' } }, 'ja');
+        assert.equal(defaultOnly.title, '新しい題名', 'the default language alone must stay a plain string');
+        const license = applyIiifValues({ license: 'CC BY' }, { license: { en: 'CC0' } }, 'ja');
+        assert.equal(license.license, 'CC0', 'the license must stay a plain string');
+        const dataLicense = applyIiifValues({}, { dataLicense: { en: 'PD' } }, 'ja');
+        assert.equal(dataLicense.dataLicense, 'PD', 'the data license must stay a plain string');
+      });
+
+      // 写し直しの新しい行（前回写した値に無い鍵・言語）。是正を見分けるのは、
+      // (1) 写した後に結び付けた鍵（欄が空）の行が「IIIF の側が変わった」で一覧に出て、既定で選ばれること、
+      // (2) 適用すると欄と写した時点の控えに同じ言語の値が入ること、
+      // (3) 文字列の欄に別の言語の新しい行が来ても理由は両方で、既定では選ばれないこと、
+      // (4) その行を選んで適用すると、元の文字列が既定の言語の値として残ること。
+      test('recopy-new-keys-and-languages', async () => {
+        const lang = 'ja';
+        const canvasId = minimalCanvases.canvases[0].id;
+        const licenseOnly = setIiifBinding({}, 'license', 'manifest');
+        const first = copyIiifMetadataWithBindings(minimal, { canvas: canvasId, bindings: licenseOnly }, lang, { sanitize });
+        assert.equal(first.ok, true, 'the first copy must succeed');
+        assert.equal(first.copiedValues.title, undefined, 'the title must not be copied before it is bound');
+        const reply = { ok: true, json: minimal };
+        const bindings = setIiifBinding(licenseOnly, 'title', 'manifest');
+
+        // (1)(2) 後から結び付けた鍵（欄が空）
+        const added = {
+          ...applyIiifValues({}, first.values, lang),
+          iiif: {
+            canvas: canvasId,
+            bindings,
+            copiedValues: first.copiedValues,
+            copiedMetadata: first.copiedMetadata,
+            copiedAt: first.copiedAt,
+          },
+          lang,
+        };
+        const plan = planIiifRecopy(reply, added, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        const titleRows = plan.rows.filter((row) => row.key === 'title');
+        assert.deepEqual(
+          titleRows.map((row) => [row.lang, row.reason]).sort(),
+          [['en', 'iiif-changed'], ['ja', 'iiif-changed']],
+          'a newly bound key must be listed as changed on the IIIF side',
+        );
+        const picks = defaultIiifRecopyPicks(plan.rows);
+        assert.deepEqual(
+          picks.filter((row) => row.key === 'title').map((row) => row.lang).sort(),
+          ['en', 'ja'],
+          'a newly bound key must be picked by default',
+        );
+        const applied = applyIiifRecopy(added, plan, picks, { sanitize });
+        assert.deepEqual(
+          applied.title,
+          { ja: '最小の見本図', en: 'Minimal Sample Map' },
+          'all languages must be put into the empty field',
+        );
+        assert.deepEqual(
+          Object.keys(applied.title).sort(),
+          Object.keys(applied.iiif.copiedValues.title).sort(),
+          'the field and the copied values must have the same languages',
+        );
+        assert.deepEqual(applied.iiif.copiedValues.title, plan.fresh.copiedValues.title, 'the copied values must be the new ones');
+
+        // (3)(4) 文字列の欄に、前回は無かった言語の行が来る
+        const grown = {
+          ...added,
+          title: '最小の見本図',
+          iiif: { ...added.iiif, copiedValues: { ...first.copiedValues, title: { ja: '最小の見本図' } } },
+        };
+        const grownPlan = planIiifRecopy(reply, grown, { sanitize });
+        assert.equal(grownPlan.ok, true, 'the recopy plan must succeed');
+        const enRow = grownPlan.rows.find((row) => row.key === 'title' && row.lang === 'en');
+        assert.ok(enRow, 'the new language must be listed');
+        assert.equal(enRow.reason, 'both', 'a new language over a plain string field must be both');
+        assert.equal(
+          defaultIiifRecopyPicks(grownPlan.rows).some((row) => row.key === 'title'),
+          false,
+          'a new language over a plain string field must not be picked by default',
+        );
+        const grownApplied = applyIiifRecopy(grown, grownPlan, [{ key: 'title', lang: 'en' }], { sanitize });
+        assert.deepEqual(
+          grownApplied.title,
+          { ja: '最小の見本図', en: 'Minimal Sample Map' },
+          'the plain string must stay as the default language',
+        );
+        assert.deepEqual(
+          grownApplied.iiif.copiedValues.title,
+          { ja: '最小の見本図', en: 'Minimal Sample Map' },
+          'the copied values must have the new language',
+        );
+        assert.equal(typeof grownApplied.license, 'string', 'the license must stay a plain string');
       });
 
       let failed = 0;
