@@ -2,15 +2,16 @@
 //
 // 長辺 512px 以下の画像はズーム2のタイルを持たないため、以前の補完（v2）は飛ばしていた。
 // 既存の利用者のフォルダには v2 の印が付いているので、v2 の条件を変えても補完は走らない。
-// v3 は別の印で 1 回だけ走り、「512px が無く、かつ tiles/{uid}/2 が無い地図」だけに、
-// 最大ズームの段（原寸）から 512px を作る。
+// v3 は別の印で 1 回だけ走り、「512px が無い地図」すべてに、ズーム2以下で最大の段から
+// 512px を作る。512px を持つ地図には触れない。
 //
 // 実データ不使用（mkdtemp + MAPLAT_E2E_ROOT）。画像はこの試験が作る架空のもの。
 // 次の 7 つの地図を置き、v2 の印だけが付いた状態で起動する。
 //   A: 200x150・z0 だけ・512px なし → 200x150 の 512px が作られる
 //   B: 400x300・z0 と z1・512px なし → z1（原寸）から 400x300 の 512px が作られる
 //   C: 300x200・z0 と z1・利用者が置き換えた 512px あり → 触れない（中身が変わらない）
-//   D: z2 を持つ地図・512px なし → v3 の対象外（v2 の印があるので作られない）
+//   D: 900x300・z0〜z2・512px なし → v2 は印があるので走らないが、v3 が z2 から 512x171 の 512px を作る
+//      （v2 より前に保存し、v2 の取りこぼした大きい地図も v3 が拾う）
 //   E: タイルの無い地図（画像未登録）→ 補完は止まらず、512px は作られず、警告にも出ない
 //   F: 400x300・tiles/{uid}/1 が空で z0（200x150）にはタイルがある → z0 から 200x150 の 512px が作られる
 //      （最大の段が空でも、タイルのある下の段を使う）
@@ -81,7 +82,7 @@ async function placePyramid(saveFolder: string, uid: string, source: string, max
 }
 
 test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
-  test('v2 の印だけが付いたフォルダで、小さい地図に 512px が作られ、512px を持つ地図には触れない', async () => {
+  test('v2 の印だけが付いたフォルダで、512px の無い地図（小さい地図・z2 を持つ地図）に作られ、512px を持つ地図には触れない', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-small-mining-'));
     const workDir = path.join(e2eRoot, 'work');
@@ -156,6 +157,7 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
       await expect.poll(async () => (await readImageMeta(thumbOf(uids.A))) !== null, { timeout: 60_000 }).toBe(true);
       await expect.poll(async () => (await readImageMeta(thumbOf(uids.B))) !== null, { timeout: 60_000 }).toBe(true);
       await expect.poll(async () => (await readImageMeta(thumbOf(uids.F))) !== null, { timeout: 60_000 }).toBe(true);
+      await expect.poll(async () => (await readImageMeta(thumbOf(uids.D))) !== null, { timeout: 60_000 }).toBe(true);
 
       const metaA = (await readImageMeta(thumbOf(uids.A)))!;
       const metaB = (await readImageMeta(thumbOf(uids.B)))!;
@@ -167,8 +169,11 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
 
       // C: 置き換えた 512px はそのまま
       expect((await readFile(thumbOf(uids.C))).equals(userThumbBytes), 'C の 512px は変わらない').toBe(true);
-      // D: z2 を持つ地図は v3 の対象外（v2 は印があるので走らない）
-      expect(await readImageMeta(thumbOf(uids.D)), 'D には作られない').toBeNull();
+      // D: z2 を持つ地図にも v3 が作る（v2 は印があるので走らない）
+      const metaD = (await readImageMeta(thumbOf(uids.D)))!;
+      console.log(`  D -> ${metaD.width}x${metaD.height}`);
+      expect(metaD).toEqual({ width: 512, height: 171 });
+      await expectCornerColors(thumbOf(uids.D), workDir);
       // E: タイルの無い地図には作られない（補完は止まらず、他の地図には作られている）
       expect(await readImageMeta(thumbOf(uids.E)), 'E には作られない').toBeNull();
       // F: 空の 1 を飛ばし、z0（200x150）から作られる
@@ -194,6 +199,7 @@ test.describe('起動時の 512px 補完（v3）: 小さい地図', () => {
     const warnings = JSON.stringify((JSON.parse(report) as { warnings?: unknown }).warnings ?? []);
     expect(warnings.includes(uids.E), 'E は補完の警告に出ない').toBe(false);
     expect(warnings.includes(uids.F), 'F は補完の警告に出ない').toBe(false);
+    expect(warnings.includes(uids.D), 'D は補完の警告に出ない').toBe(false);
     // G: 縫い合わせの失敗は警告に残り、補完は止まらない（上で v3 の印と A・B・F の 512px を確かめた）
     expect(warnings.includes(uids.G), 'G は補完の警告に出る').toBe(true);
   });

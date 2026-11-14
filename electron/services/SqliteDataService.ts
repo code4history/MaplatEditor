@@ -27,7 +27,6 @@ import {
   readNumericDirs,
   selectThumbnail512Level,
   stitchThumbnail512,
-  THUMB_512_MAX_LEVEL,
 } from '../utils/thumbnail512Stitch';
 import {
   createSlugReservationService,
@@ -1125,8 +1124,9 @@ class SqliteDataService {
   }
 
   // M12-T15 R3 §C2: 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
-  // v2: ズーム2タイルを持つ地図。v3: ズーム2タイルを持たない小さい地図（長辺 512px 以下）。
-  // 印は別々で、それぞれ 1 回だけ走る。v2 の印が既にある利用者のフォルダでも v3 は 1 回走る。
+  // v2: ズーム2タイルを持つ地図（壊れた 512px の作り直しも含む）。v3: 512px が無い地図すべて。
+  // 印は別々で、それぞれ 1 回だけ走る。v2 の印は既に出荷した版で付いているため、v2 の条件を
+  // 後から広げても既存の利用者のフォルダでは走らない。v3 はその取りこぼしをまとめて拾う。
   private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
     await this.mineThumbnail512FromZoom2(db);
     await this.mineThumbnail512ForSmallMaps(db);
@@ -1193,11 +1193,12 @@ class SqliteDataService {
     await this.generateThumbnail512Batch(db, THUMBNAIL_512_MINING_V2_ID, targets.map((uid) => ({ uid, level: 2 })), skipped.length);
   }
 
-  // v3: 小さい地図（長辺 512px 以下）はズーム2タイルを持たないため v2 が飛ばしていた。
-  // 取り込みは今は原寸の段から 512px を作るが、それ以前に取り込んだ地図には 512px が無い。
-  // 対象は「512px が無く、かつ使う段がズーム2より下の地図」だけ。512px を持つ地図（利用者が
-  // 置き換えたものも含む）には触れない。段は取り込みと同じ selectThumbnail512Level で選ぶ
-  // （タイルのファイルが 1 枚以上ある段のうち 2 以下で最大のもの）。最大の段が空でも下の段を使う。
+  // v3: 512px が無い地図すべてに 512px を作る。v2 の印が付いたフォルダで残っていた次の地図を拾う。
+  //   - 小さい地図（長辺 512px 以下）: ズーム2タイルを持たないため v2 が飛ばしていた
+  //   - jpg・png 以外（tif など）のタイルの地図: v2 がタイルとみなさず飛ばしていた
+  // 512px を持つ地図（利用者が置き換えたものも含む）には触れない。段は取り込みと同じ
+  // selectThumbnail512Level で選ぶ（タイルのファイルが 1 枚以上ある段のうち 2 以下で最大のもの）。
+  // 最大の段が空でも下の段を使う。タイルの無い地図は飛ばす。
   private async mineThumbnail512ForSmallMaps(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
@@ -1216,9 +1217,9 @@ class SqliteDataService {
         skippedCount++;
         continue;
       }
-      // タイルの無い地図（画像未登録など）は null。ズーム2を使う地図は v2 の対象
+      // タイルの無い地図（画像未登録など）は null
       const level = await selectThumbnail512Level(path.join(tileFolder, uid));
-      if (level === null || level >= THUMB_512_MAX_LEVEL) {
+      if (level === null) {
         skippedCount++;
         continue;
       }

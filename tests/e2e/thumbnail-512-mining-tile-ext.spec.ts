@@ -1,4 +1,4 @@
-// 起動時の 512px 補完（v2）の e2e: jpg・png 以外の拡張子のタイルを持つ地図にも 512px を作る。
+// 起動時の 512px 補完（v2・v3）の e2e: jpg・png 以外の拡張子のタイルを持つ地図にも 512px を作る。
 //
 // タイルの拡張子は取り込んだ画像の形式に従う（tif の画像なら {ty}.tif）。v2 の対象選びと
 // 壊れた 512px の判定が jpg・jpeg・png だけを見ていたため、tif の地図には 512px が作られなかった。
@@ -9,6 +9,9 @@
 //   T: 900x300・z0〜z2 が tif・512px なし・.DS_Store などが混ざる → 512x171 の 512px が作られる
 //   R: 900x300・z0〜z2 が tif・壊れた 512px（グリッド全体を縮めた 512x256）あり → 512x171 に作り直される
 //   S: tiles/{uid}/2/0 に .DS_Store・._0.jpg・Thumbs.db だけ → タイルとみなさず、作られず、警告にも出ない
+//
+// 2 つめの試験: v2 の印は既に出荷した版で付いている。v2 の印を残したまま起動しても、
+// tif の地図（z0〜z2）には v3 が 512px を作る（v2 は二度と走らないため）。
 import { expect, test, type Page } from '@playwright/test';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -21,6 +24,7 @@ import { expectCornerColors, writeCornerImage } from './helpers/cornerImage';
 import { readImageMeta, writeImageByExt } from '../../electron/utils/thumbnail512Codec';
 
 const V2_ID = '2026-07-21-thumbnail-512-mining-v2';
+const V3_ID = '2026-11-14-thumbnail-512-mining-v3';
 
 async function seedMap(page: Page, name: string, width: number, height: number): Promise<string> {
   return page.evaluate(async ({ name, width, height }) => {
@@ -79,7 +83,7 @@ async function placeStrayFiles(dir: string): Promise<void> {
   await writeFile(path.join(dir, 'Thumbs.db'), 'not a tile');
 }
 
-test.describe('起動時の 512px 補完（v2）: タイルの拡張子', () => {
+test.describe('起動時の 512px 補完（v2・v3）: タイルの拡張子', () => {
   test('tif のタイルの地図に 512px が作られ、タイル以外のファイルは拾わない', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-ext-mining-'));
@@ -156,6 +160,56 @@ test.describe('起動時の 512px 補完（v2）: タイルの拡張子', () => 
     const warnings = JSON.stringify((JSON.parse(report) as { warnings?: unknown }).warnings ?? []);
     for (const key of ['T', 'R', 'S'] as const) {
       expect(warnings.includes(uids[key]), `${key} は補完の警告に出ない`).toBe(false);
+    }
+  });
+
+  test('v2 の印が付いたフォルダでも、tif の地図（z2 まで）に 512px が作られる', async () => {
+    test.setTimeout(300_000);
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-ext-mining-v2done-'));
+    const workDir = path.join(e2eRoot, 'work');
+    await mkdir(workDir, { recursive: true });
+
+    const first = await launch(e2eRoot);
+    let saveFolder = '';
+    let uid = '';
+    try {
+      saveFolder = await first.page.evaluate(() => window.settings.get('saveFolder'));
+      uid = await seedMap(first.page, 'v2done', 900, 300);
+    } finally {
+      await quitElectronApplication(first.app);
+    }
+
+    const src = path.join(workDir, 'src.png');
+    await writeCornerImage(src, 900, 300);
+    await placePyramid(saveFolder, uid, src, 2, 'tif');
+    const thumb = path.join(saveFolder, 'tmbs', `${uid}_512.webp`);
+    expect(await readImageMeta(thumb), '起動前に 512px を持たない').toBeNull();
+
+    // 既に出荷した版で起動したフォルダの状態: v2 の印はあり、v3 の印は無い
+    const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
+    try {
+      db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(V2_ID);
+      db.prepare('DELETE FROM schema_migrations WHERE id = ?').run(V3_ID);
+    } finally {
+      db.close();
+    }
+
+    const second = await launch(e2eRoot);
+    try {
+      await expect.poll(async () => {
+        const m = await readImageMeta(thumb);
+        return m ? `${m.width}x${m.height}` : null;
+      }, { timeout: 60_000 }).toBe('512x171');
+      await expectCornerColors(thumb, workDir);
+    } finally {
+      await quitElectronApplication(second.app);
+    }
+
+    const after = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
+    try {
+      expect(after.prepare('SELECT 1 AS ok FROM schema_migrations WHERE id = ?').get(V3_ID), 'v3 の印が付く').toBeTruthy();
+    } finally {
+      after.close();
     }
   });
 });
