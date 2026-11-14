@@ -6,8 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
-// M13-T2 (AC-T2-5/SI-6): app.requestSingleInstanceLock() は Electron ネイティブ API の挙動であり
-// 実 Electron プロセスでしか検証できない。AC-T2-5 の検証には両インスタンスが「同一 userData path」を
+// 単一インスタンスのロック: app.requestSingleInstanceLock() は Electron ネイティブ API の挙動であり
+// 実 Electron プロセスでしか検証できない。この検証には両インスタンスが「同一 userData path」を
 // 共有する構成が必須(--user-data-dir を分離すると requestSingleInstanceLock() は userData path
 // 単位でロックを取るため、両者が独立してロックを取得できてしまい second-instance が発火しない)。
 //
@@ -59,7 +59,7 @@ function runSecondInstance(env: Record<string, string>, userDataDir: string): Pr
 test('second Electron process sharing the same userData path is excluded by single-instance lock', async () => {
   test.setTimeout(180_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-m13-t2-single-instance-'));
-  // AC-T2-5/§8.1: 両インスタンスで同一の userData path を明示的に共有する(m11-t7-multi の
+  // 両インスタンスで同一の userData path を明示的に共有する(複数インスタンスの試験の
   // per-instance 分離パターンとは意図的に逆。分離するとロックスコープが分かれ検証にならない)
   const sharedUserDataDir = path.join(e2eRoot, 'shared-user-data');
   await mkdir(sharedUserDataDir, { recursive: true });
@@ -94,7 +94,7 @@ test('second Electron process sharing the same userData path is excluded by sing
     });
 
     // --- instance B: instance A と同一 userData path で起動し、自分で終了するのを待つ ---
-    // タスク設計 §6.5/Info 6: B は requestSingleInstanceLock() が false を返して app.quit() するため
+    // B は requestSingleInstanceLock() が false を返して app.quit() するため
     // window を開かずに終了する。
     const result = await runSecondInstance(env, sharedUserDataDir);
     expect(
@@ -117,6 +117,12 @@ test('second Electron process sharing the same userData path is excluded by sing
     // (single-instance lock が誤って両方を道連れにしていないことの確認)
     const saveFolderStillWorks = await pageA.evaluate(() => window.settings.get('saveFolder'));
     expect(typeof saveFolderStillWorks).toBe('string');
+    // 上の確認の間に 2 回目が届いていないこと（ちょうど 1 回）
+    expect(
+      await appA!.evaluate(
+        () => (globalThis as { __maplatSecondInstanceCount?: number }).__maplatSecondInstanceCount ?? 0,
+      ),
+    ).toBe(1);
   } finally {
     if (appA) {
       await quitElectronApplication(appA).catch(() => {});
