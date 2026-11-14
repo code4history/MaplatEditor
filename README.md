@@ -41,6 +41,11 @@ binaries are distributed via GitHub Releases.
   of home position/zoom from GCPs or app sources
 - Right-click a correspondence line to insert a midpoint GCP and split the
   line, restoring a workflow from the original editor
+- The dialogs for drawing a rectangular extent (usage extent, coverage, and
+  so on) also accept the west, south, east, and north longitude/latitude
+  typed directly; the rectangle follows the values, an invalid value shows
+  the reason next to the fields, and a value outside the coverage is cropped
+  to it (with a notice)
 - App editor covers base map and POI source selection, per-source settings
   (built-in / TMS / WMTS), a coverage drawing tool, and PWA/OGP metadata
   (icons, splash image, keywords, canonical URL)
@@ -57,6 +62,34 @@ binaries are distributed via GitHub Releases.
   removed; only Title being non-empty is still required
 - The display label is written to the map's exported `map.json` as `label`
 
+### Importing from IIIF
+
+- **Import from IIIF** on the map list takes the URL of an IIIF Manifest or
+  `info.json`, lets you choose a canvas, and creates a new map in one of two
+  ways: **Deliver from IIIF** or **Bibliographic data only from IIIF**. With
+  **Deliver from IIIF**, the image is served from the IIIF image server and
+  no tiles are generated. It is available only when, among other checks, the
+  server uses https, allows CORS for `*`, and uses a supported IIIF version
+  and tiling, the image is not too large, and the address is not blocked; otherwise the reason is shown. With
+  **Bibliographic data only from IIIF**, you choose the image file yourself
+  and tiles are generated as usual
+- On the metadata tab of a map linked to a Manifest, you choose for each
+  field whether it is copied from IIIF and whether the value comes from the
+  Manifest or from the canvas, and press **Copy from IIIF**. **Compare with IIIF
+  again** fetches the Manifest again and lists the current value, the value
+  copied earlier, and the new value, labelled "Unchanged", "Edited by hand",
+  or "Changed in IIIF"; only the rows you select are overwritten, so hand
+  edits stay unless you pick them. The Manifest's and the canvas's own
+  bibliographic data are shown read-only. If copying fails — for example
+  because the image service's size no longer matches the map — nothing in
+  the map changes
+- Maps delivered from IIIF are exported without tiles (both in app ZIPs and
+  in single-map ZIPs); maps that only take their bibliographic data from
+  IIIF export their tiles as usual
+- Each map in an app has an **IIIF bibliographic table** setting that
+  decides whether the viewer shows a table of all bibliographic fields
+  (default: not shown)
+
 ### App Delivery Settings
 
 - New apps default to PWA off, tile cache off, and Marker List UI on;
@@ -66,14 +99,39 @@ binaries are distributed via GitHub Releases.
   off also turns the cache off
 - When an app references a map, the only per-app override available is the
   map's **Display label**; all other map attributes come from the map itself
+  (per-app settings such as **Exclude from offline viewing** below belong to
+  the app, not to the map)
+- Each map — and each built-in or TMS base map — in an app can be marked
+  **Exclude from offline viewing**: its tiles are not kept on the device and
+  are loaded from the provider every time, for providers that do not allow
+  bulk downloads (such as the official OpenStreetMap tiles). The mark is
+  exported as `noCache: true` on that source and can only be changed while
+  PWA and tile cache are on
+- Each app chooses the **MapLibre GL JS version** used for MapLibre base
+  maps in the preview and in the exported app: **5** (5.6.2, the default)
+  or **6** (6.16.0). Version 6 supports newer style features, but the
+  browsers that open the exported app need import maps and WebGL 2 (older
+  browsers such as Safari 16.3 do not show the map); switching to 6 asks
+  for confirmation. The editor checks each MapLibre base map's style and
+  shows the result under the Style URL in the base map editor; if an app on
+  5 uses a base map that needs 6, a warning with a **Switch to version 6**
+  button appears on the app screen and above the preview, and export asks
+  before continuing. The check never changes the version by itself
 
 ### POI Editor
 
 - Add, move, and delete points of interest (POIs) directly on the map, edit
   multilingual name/description/HTML/address/URL/icon fields, and undo/redo
   changes (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z or Y)
-- Three content modes per POI — Standard, HTML, and Web Page — plus inline
-  image references (`maplat-asset:<uid>`) that resolve to uploaded assets
+- Four content modes per POI — Standard, HTML, Web Page, and Link — plus
+  inline image references (`maplat-asset:<uid>`) that resolve to uploaded
+  assets. **Link** edits the viewer's `directgo`: clicking the POI jumps
+  straight to an http/https URL or a relative path such as a
+  `#!s:<mapID>/…` map position, optionally in a new tab (links do not open
+  in the editor's preview). Links to a `#!s:` map position work only while
+  the app's **State URL** setting is on. Outside Link mode, a `directgo`
+  that holds only whitespace or `{ href: "" }` is kept as is but shown as a
+  warning with the POI's ID
 - An Assets tab manages shared images (search, rename, reference-checked
   delete) through the same icon/asset/URL picker used for icon and image
   fields
@@ -131,7 +189,7 @@ binaries are distributed via GitHub Releases.
 - User-created base maps support optional, multilingual creation dates,
   target eras, owners/contributors, mappers, references, and descriptions
   in the collapsible "Source information (optional)" section. Saved values
-  are included in exported settings and shown in the viewer's information
+  are included in exported settings files and shown in the viewer's information
   dialog. Unset fields are omitted; built-in base maps are not editable
 - Every edit screen validates the slug (ID) automatically as you type — no
   separate "check availability" step — and renaming a map's slug now edits
@@ -178,6 +236,12 @@ binaries are distributed via GitHub Releases.
 - Only one instance of MaplatEditor runs at a time; launching a second
   instance brings the existing window to the front instead of opening a new
   one
+- If the data folder's database cannot be opened, the resource lists show
+  why — no permission, a read-only location (such as a disk image), a
+  folder that cannot be found, or another error — together with how to fix
+  it; the fix for a missing permission is worded separately for macOS,
+  Windows, and Linux. A database that opens but cannot
+  be written to is detected when it is opened, not at the first save
 
 ### Export and Import
 
@@ -193,9 +257,26 @@ Documents otherwise.
   source is referenced by a `settingFile` (`maps/<slug>.json`) rather than
   embedded inline, and any base maps the app uses get their own
   `maps/<slug>.json` written into the export alongside the maps'
-- POI sources export as GeoJSON, or as a ZIP package when they include image
-  references, and can be imported back with internal image references
-  resolved automatically
+- POI sources are exported with **Export** on the POI source screen. A
+  dialog lets you choose the format — GeoJSON, CSV, or JSON — and, for
+  GeoJSON only, whether to include images (a ZIP when there are images to
+  bundle). GeoJSON and ZIP keep every field and can be imported back as a
+  new source. Image references are resolved automatically only from a ZIP;
+  GeoJSON exported without images keeps the asset UUIDs as plain values.
+  CSV (UTF-8 with
+  BOM, for spreadsheets) keeps only the ID, name, description, address,
+  image URL, and coordinates, and tells you which fields were left out;
+  JSON is an array of POIs that keeps HTML, custom fields, and asset
+  references
+- **Import into this source…** reads a CSV or KML file into an existing POI
+  source, either by **Append** (every row becomes a new POI; an ID already
+  in use gets `-2`, `-3`, ...) or by **Overwrite** (POIs with the same ID
+  are updated and the rest are added; empty cells change nothing, and POIs
+  not in the file are kept). CSV may be UTF-8 or Shift_JIS; from KML, Point
+  placemarks are read (KMZ is not supported). The dialog previews the first
+  rows and lists rows that need attention, and one Undo reverts the whole
+  import. CSV and KML can also be imported as a new source with **Import
+  File** in the list
 - Maps export as a ZIP containing the map definition, tiles, both standard
   and 512px thumbnails, and a `pois/` directory holding one `*.geojson` file
   per POI layer together with the images they reference — POI data always
@@ -207,6 +288,16 @@ Documents otherwise.
   existing map is never overwritten — the import adds a separate map. IDs are
   unique across maps, apps, POI sources, and image assets, so the same rule
   applies to every kind of import
+- Imported ZIPs (maps and POI packages) are checked before anything is
+  extracted: a ZIP file over 2 GiB, too many entries, sizes that do not
+  match the data, or an excessive total expansion are refused. Map ZIPs
+  may hold up to 50,000 entries; POI packages up to 512 entries and
+  100 MiB in total after expansion. Also refused are ZIPs with
+  entry names that cannot be stored on every OS (Windows reserved names,
+  trailing dots or spaces, control characters, `<>:"|?*`, or names that
+  differ only in letter case or Unicode normalization). Exports keep the
+  letter case of names and number names that differ only in case
+  (`foo-2`), so such an exported ZIP can still be imported back
 - A map with unresolved ground-control-point errors cannot be previewed, but
   exporting the map itself still succeeds; an app that includes such a map,
   or that references a map missing from the database (e.g. deleted), is
@@ -214,9 +305,15 @@ Documents otherwise.
 
 ### Thumbnails and Localization
 
-- 512px high-definition thumbnails for maps, base maps, and apps are
+- 512px high-definition thumbnails for maps and base maps are
   generated automatically on upload, and backfilled for existing data on
-  first launch after upgrading
+  first launch after upgrading. A map thumbnail whose longer side is 512px
+  or less is kept at its own size (never enlarged); base map
+  thumbnails, and images chosen with **Replace 512px…**, are scaled to 512px
+  on the longer side even when smaller. The backfill
+  covers every existing map that has tiles — in any tile format, such as
+  TIFF — but no 512px thumbnail; maps that already have one, including
+  manually replaced ones, are left untouched
 - Maps, base maps, and apps also keep a 52px icon alongside the 512px
   thumbnail; both can be replaced manually (**Replace 512px…** / **Replace
   52px…**) from the Thumbnail management panel, with **Also create 52px
@@ -244,8 +341,8 @@ Documents otherwise.
 - Packaged (distributed) builds no longer show the **Development** menu in
   the application menu; it still appears when running from source or under
   E2E test automation
-- The About window's copyright notice follows ADR-0011
-  (`Copyright 2019-2026 Kohei Otsuka, Code for History / Nayuta, Inc.`) and
+- The About window shows the copyright notice shared by the Maplat
+  repositories (`Copyright 2019-2026 Kohei Otsuka, Code for History / Nayuta, Inc.`) and
   its version line is read from the running app rather than hard-coded
 
 <!-- SECTION 5: Quick Start -->
@@ -253,7 +350,7 @@ Documents otherwise.
 
 <!-- release-pinned:start -->
 > **Current release: `v1.2.0`** — This block is the only place in
-> this repository that carries a release version (ADR-0012); everything outside it is
+> this repository that carries a release version; everything outside it is
 > written against the 1.0 release.
 
 ### Download
@@ -334,8 +431,7 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
 > interrupted; startup may take longer than usual on that first run.
 
 <!-- Known Limitations: not one of the 11 template sections; added here as a
-     MaplatEditor-specific note (design decision recorded in m14-t2 task
-     design §5 #4). -->
+     MaplatEditor-specific note. -->
 ## Known Limitations
 
 - A map with unresolved ground-control-point errors cannot be previewed
@@ -351,6 +447,10 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
   and have not undergone human quality review.
 - The interface currently renders in light mode only, even when the OS is
   set to dark mode.
+- The viewer bundled with MaplatEditor (`@maplat/ui`), which is used for
+  the preview and copied into exported apps, cannot yet draw maps delivered
+  from IIIF. Such maps are not shown in the preview or in exported apps
+  until the bundled viewer is a version that supports IIIF delivery.
 
 <!-- SECTION 7 Peer Dependencies: omitted (OpenLayers is bundled as a regular dependency) -->
 
@@ -388,7 +488,7 @@ repository; the Sister repositories table below is the public substitute)*
 | Project info / features / cases | <https://www.maplat.jp/en/> | Product site |
 | Sponsor / business inquiry | <https://www.nayuta-inc.co.jp/en/> | Corporate site (Nayuta, Inc.) |
 
-> ADR-0013: Apache-licensed repositories (this one) link to both sites.
+> Apache-licensed repositories (this one) link to both sites.
 > MIT-licensed sister repos (Weiwudi / Quyuan / Chuci) carry no Nayuta link.
 
 <!-- SECTION 10: License -->
