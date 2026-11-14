@@ -57,7 +57,8 @@ const unsignedMs = Date.now() - t0
 const unsignedText = unsignedResult instanceof Error ? `reject: ${unsignedResult.message}` : String(unsignedResult)
 console.log(`(c) 署名なし: ${unsignedMs} ms → ${unsignedText}`)
 assert.notEqual(unsignedResult, null, '(c) 署名の無いファイルは合格にしないこと')
-assert.ok(unsignedResult instanceof Error || /not valid/.test(unsignedResult), '(c) 署名が無効という理由で不合格になること')
+assert.equal(typeof unsignedResult, 'string', `(c) 時間切れや起動の失敗ではなく、検証の結果として不合格になること: ${unsignedText}`)
+assert.match(unsignedResult, /not valid/, '(c) 署名が無効という理由で不合格になること')
 
 const arch = process.arch
 const summary = [
@@ -65,7 +66,7 @@ const summary = [
   '',
   `- 正しい publisher: ${ok.ms} ms（合格）`,
   `- 違う publisher: ${ng.ms} ms（不一致）`,
-  `- 署名なし: ${unsignedMs} ms（${unsignedResult instanceof Error ? '更新エラー' : '無効'}）`,
+  `- 署名なし: ${unsignedMs} ms（${unsignedText}）`,
   `- 待ちの上限: ${SIGNATURE_TIMEOUT_MS} ms`,
   '',
 ].join('\n')

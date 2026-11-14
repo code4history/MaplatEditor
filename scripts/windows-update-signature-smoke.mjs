@@ -38,7 +38,7 @@ try {
     export const dialogs = [];
     export const dialog = { showMessageBox: async (...args) => {
       const options = args.at(-1);
-      dialogs.push(options);
+      dialogs.push({ ...options, progressAtOpen: [...progressValues] });
       return { response: options.defaultId };
     } };
     export const shell = { openExternal: async () => {} };
@@ -295,6 +295,8 @@ try {
       assert.deepEqual(api.progressValues, [0.5, 2, -1]);
       assert.equal(updater.listenerCount('download-progress'), 1, 'only the permanent service listener remains');
       assert.equal(api.dialogs.at(-1).type, fail ? 'error' : 'info');
+      // The failure dialog waits for the user: the bar must already be cleared when it opens.
+      if (fail) assert.deepEqual(api.dialogs.at(-1).progressAtOpen, [0.5, 2, -1]);
       assert.equal(api.calls.length, 1);
     });
   }
