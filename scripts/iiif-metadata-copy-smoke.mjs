@@ -970,6 +970,16 @@ try {
           { en: 'Summary' },
           'an empty string field must not be kept as a language value',
         );
+        const fromObject = applyIiifValues(
+          { description: { ja: '', en: 'Old summary' } },
+          { description: { fr: 'Résumé' } },
+          'ja',
+        );
+        assert.deepEqual(
+          fromObject.description,
+          { en: 'Old summary', fr: 'Résumé' },
+          'empty language values must be dropped when merging into an object field',
+        );
         const defaultOnly = applyIiifValues({ title: '元の題名' }, { title: { ja: '新しい題名' } }, 'ja');
         assert.equal(defaultOnly.title, '新しい題名', 'the default language alone must stay a plain string');
         const license = applyIiifValues({ license: 'CC BY' }, { license: { en: 'CC0' } }, 'ja');
