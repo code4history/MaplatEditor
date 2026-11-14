@@ -17,8 +17,15 @@ import { verifyWindowsUpdateSignature, SIGNATURE_TIMEOUT_MS } from '../../electr
 
 assert.equal(process.platform, 'win32', 'Windows の runner で実行すること')
 const target = win32.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+// 本体と同じく PSModulePath を消して Windows PowerShell 5.1 を起動する（runner の既定の pwsh 7 の
+// PSModulePath を受け継ぐと Get-AuthenticodeSignature のモジュールが読めない）。パスは引用符の中で '' に逃がす。
+const env = { ...process.env }
+for (const key of Object.keys(env)) {
+  if (key.toLowerCase() === 'psmodulepath') delete env[key]
+}
+const quoted = target.replaceAll("'", "''")
 const subject = execFileSync(target, ['-NoProfile', '-NonInteractive', '-Command',
-  `(Get-AuthenticodeSignature -LiteralPath '${target}').SignerCertificate.Subject`], { encoding: 'utf8' }).trim()
+  `(Get-AuthenticodeSignature -LiteralPath '${quoted}').SignerCertificate.Subject`], { encoding: 'utf8', env }).trim()
 assert.ok(subject.includes('CN='), `subject が取れない: ${subject}`)
 
 const timed = async (label, fn) => {
@@ -40,12 +47,17 @@ const dir = mkdtempSync(join(tmpdir(), 'upd-sig-'))
 const unsigned = join(dir, 'unsigned.exe')
 writeFileSync(unsigned, 'MZ not a signed file')
 let unsignedResult
+const t0 = Date.now()
 try {
-  unsignedResult = (await timed('(c) 署名なし', () => verifyWindowsUpdateSignature([subject], unsigned))).value
+  unsignedResult = await verifyWindowsUpdateSignature([subject], unsigned)
 } catch (error) {
   unsignedResult = error
 }
+const unsignedMs = Date.now() - t0
+const unsignedText = unsignedResult instanceof Error ? `reject: ${unsignedResult.message}` : String(unsignedResult)
+console.log(`(c) 署名なし: ${unsignedMs} ms → ${unsignedText}`)
 assert.notEqual(unsignedResult, null, '(c) 署名の無いファイルは合格にしないこと')
+assert.ok(unsignedResult instanceof Error || /not valid/.test(unsignedResult), '(c) 署名が無効という理由で不合格になること')
 
 const arch = process.arch
 const summary = [
@@ -53,6 +65,7 @@ const summary = [
   '',
   `- 正しい publisher: ${ok.ms} ms（合格）`,
   `- 違う publisher: ${ng.ms} ms（不一致）`,
+  `- 署名なし: ${unsignedMs} ms（${unsignedResult instanceof Error ? '更新エラー' : '無効'}）`,
   `- 待ちの上限: ${SIGNATURE_TIMEOUT_MS} ms`,
   '',
 ].join('\n')

@@ -104,10 +104,19 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
           ? 2 : Math.max(0, Math.min(1, percent / 100)))
       }
     })
+    let progressCleared = false
+    const clearProgress = () => {
+      if (progressCleared) return
+      progressCleared = true
+      unsubscribe()
+      win?.setProgressBar(-1)
+    }
     try {
       await UpdateService.downloadUpdate()
     } catch (error) {
       console.warn('[update] download failed', error)
+      // Clear the indeterminate bar before the error dialog waits for the user.
+      clearProgress()
       await ask({
         type: 'error',
         message: updateText(lang, 'dialog.download_failed.message'),
@@ -117,8 +126,7 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
       })
       return
     } finally {
-      unsubscribe()
-      win?.setProgressBar(-1)
+      clearProgress()
     }
 
     // 閉じる経路に未保存の確認が無い（実測: main.ts の close は下書きの flush のみ）∴ 設計 §3.2 の
