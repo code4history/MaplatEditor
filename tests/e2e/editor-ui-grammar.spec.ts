@@ -48,7 +48,7 @@ for (const phase of ['before', 'after']) {
         await expect(page.getByTestId('poi-export-options').locator('[data-editor-help]')).toHaveCount(4);
         await page.getByTestId('poi-export-options').locator('[data-editor-help]').first().focus();
         await expect(page.locator('.popover.show')).toBeVisible();
-        // 表示の fade（Bootstrap の 0.15 秒）が終わってから撮る
+        // 表示が不透明になってから撮る（説明の Popover はフェードなし。念のため状態で待つ）
         await expect.poll(() => page.locator('.popover').evaluate((el) => getComputedStyle(el).opacity)).toBe('1');
         await shot('poi-export-help');
       }

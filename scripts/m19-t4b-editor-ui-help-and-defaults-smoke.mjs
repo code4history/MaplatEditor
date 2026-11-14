@@ -536,4 +536,16 @@ const NEW_APPEDIT_NOTE_KEYS = [
   console.log("  [S13/AC4] キャッシュの PWA 従属: onPwaToggle 1 レコード化 / 判定点は pwaEnabled 1 つ: PASS");
 }
 
+// ContextHelp の Popover はフェードを使わない。フェード中に部品が外れると、Bootstrap の完了処理が
+// dispose 済みのインスタンスで走り、ページに "Cannot convert undefined or null to object" が出る
+{
+  const source = await readSrc("src/components/editor-ui/ContextHelp.vue");
+  assert.match(
+    source,
+    /new Popover\(el, \{[\s\S]*?\banimation: false,[\s\S]*?\}/,
+    "ContextHelp: Popover は animation: false で作ること（フェード中の dispose で例外が出るため）",
+  );
+  console.log("  [ContextHelp] Popover はフェードなし（animation: false）: PASS");
+}
+
 console.log("m19-t4b editor UI help & defaults smoke: PASS (S1-S13)");

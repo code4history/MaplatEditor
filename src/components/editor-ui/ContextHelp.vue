@@ -39,6 +39,12 @@ onMounted(() => {
       title: props.title ?? "",
       placement: props.placement,
       trigger: "hover focus",
+      // フェードを使わない。フェード中の表示・非表示は完了処理を遷移の後へ回すが、dispose() はその
+      // 予約を取り消さない。フェード中に画面が切り替わってこの部品が外れると、完了処理が dispose 済みの
+      // インスタンス（_activeTrigger が null）で走り、Object.values(null) の例外がページに出る
+      // （"Cannot convert undefined or null to object"）。animation: false なら完了処理は
+      // show()/hide() の中で同期的に終わり、外れた後に走るものが残らない
+      animation: false,
       // customClass は Bootstrap の型定義に未収録だが実行時に有効なオプション。
       customClass: "editor-ui-help-popover",
     } as ConstructorParameters<typeof Popover>[1]);
