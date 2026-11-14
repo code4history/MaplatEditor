@@ -22,7 +22,12 @@ import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
 import { readImageMeta } from '../utils/thumbnail512Codec';
-import { selectThumbnail512Level, stitchThumbnail512, THUMB_512_MAX_LEVEL } from '../utils/thumbnail512Stitch';
+import {
+  isTileFile,
+  readNumericDirs,
+  selectThumbnail512Level,
+  stitchThumbnail512,
+} from '../utils/thumbnail512Stitch';
 import {
   createSlugReservationService,
   slugCheckResultIsAvailable,
@@ -1119,8 +1124,9 @@ class SqliteDataService {
   }
 
   // M12-T15 R3 §C2: 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
-  // v2: ズーム2タイルを持つ地図。v3: ズーム2タイルを持たない小さい地図（長辺 512px 以下）。
-  // 印は別々で、それぞれ 1 回だけ走る。v2 の印が既にある利用者のフォルダでも v3 は 1 回走る。
+  // v2: ズーム2タイルを持つ地図（壊れた 512px の作り直しも含む）。v3: 512px が無い地図すべて。
+  // 印は別々で、それぞれ 1 回だけ走る。v2 の印は既に出荷した版で付いているため、v2 の条件を
+  // 後から広げても既存の利用者のフォルダでは走らない。v3 はその取りこぼしをまとめて拾う。
   private async runThumbnail512MiningIfNeeded(db: DatabaseSync): Promise<void> {
     await this.mineThumbnail512FromZoom2(db);
     await this.mineThumbnail512ForSmallMaps(db);
@@ -1160,10 +1166,11 @@ class SqliteDataService {
         skipped.push(uid);
         continue;
       }
-      // zoom2/0/0.* ファイルの存在チェック
+      // zoom2/0/0.* ファイルの存在チェック。拡張子は取り込んだ画像の形式に従うので限らない
+      // （タイルのファイルかどうかは縫い合わせと同じ isTileFile で見る）
       try {
         const files = await fs.readdir(path.join(zoom2Dir, '0'));
-        if (!files.some((f) => /^0\.(jpg|jpeg|png)$/.test(f))) {
+        if (!files.some((f) => isTileFile(f) && parseInt(f, 10) === 0)) {
           skipped.push(uid);
           continue;
         }
@@ -1186,11 +1193,12 @@ class SqliteDataService {
     await this.generateThumbnail512Batch(db, THUMBNAIL_512_MINING_V2_ID, targets.map((uid) => ({ uid, level: 2 })), skipped.length);
   }
 
-  // v3: 小さい地図（長辺 512px 以下）はズーム2タイルを持たないため v2 が飛ばしていた。
-  // 取り込みは今は原寸の段から 512px を作るが、それ以前に取り込んだ地図には 512px が無い。
-  // 対象は「512px が無く、かつ使う段がズーム2より下の地図」だけ。512px を持つ地図（利用者が
-  // 置き換えたものも含む）には触れない。段は取り込みと同じ selectThumbnail512Level で選ぶ
-  // （タイルのファイルが 1 枚以上ある段のうち 2 以下で最大のもの）。最大の段が空でも下の段を使う。
+  // v3: 512px が無い地図すべてに 512px を作る。v2 の印が付いたフォルダで残っていた次の地図を拾う。
+  //   - 小さい地図（長辺 512px 以下）: ズーム2タイルを持たないため v2 が飛ばしていた
+  //   - jpg・png 以外（tif など）のタイルの地図: v2 がタイルとみなさず飛ばしていた
+  // 512px を持つ地図（利用者が置き換えたものも含む）には触れない。段は取り込みと同じ
+  // selectThumbnail512Level で選ぶ（タイルのファイルが 1 枚以上ある段のうち 2 以下で最大のもの）。
+  // 最大の段が空でも下の段を使う。タイルの無い地図は飛ばす。
   private async mineThumbnail512ForSmallMaps(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
@@ -1209,9 +1217,9 @@ class SqliteDataService {
         skippedCount++;
         continue;
       }
-      // タイルの無い地図（画像未登録など）は null。ズーム2を使う地図は v2 の対象
+      // タイルの無い地図（画像未登録など）は null
       const level = await selectThumbnail512Level(path.join(tileFolder, uid));
-      if (level === null || level >= THUMB_512_MAX_LEVEL) {
+      if (level === null) {
         skippedCount++;
         continue;
       }
@@ -1281,7 +1289,8 @@ class SqliteDataService {
   // M7: 既存の 512px サムネイルが破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
   // m19-t5: 512px の復号は readImageMeta を通す。Jimp は webp を decode できないため、
   // ここを Jimp.read のままにすると必ず catch へ落ちて常に false を返し、自己修復が黙って死ぬ。
-  // （zoom2 タイルの読み込みは png/jpg のままなので Jimp.read でよい）
+  // （zoom2 タイルは縫い合わせと同じく Jimp.read で読む。拡張子は isTileFile で限らない。
+  //   Jimp が読めない形式のタイルなら catch へ落ちて false＝作り直さない）
   // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
   // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
   // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
@@ -1289,15 +1298,14 @@ class SqliteDataService {
     try {
       // @ts-ignore - Jimp は ESM 動的 import
       const { Jimp } = await import('jimp');
-      const xDirs = await fs.readdir(zoom2Dir);
-      const maxX = Math.max(...xDirs.map((d) => parseInt(d, 10)).filter((n) => !isNaN(n)));
+      const maxX = Math.max(...await readNumericDirs(zoom2Dir));
       let maxY = 0;
       let contentW = 0;
       let contentH = 0;
       for (let tx = 0; tx <= maxX; tx++) {
         const txDir = path.join(zoom2Dir, `${tx}`);
         if (!await fs.pathExists(txDir)) continue;
-        const yFiles = (await fs.readdir(txDir)).filter((f) => /^\d+\.(jpg|jpeg|png)$/.test(f));
+        const yFiles = (await fs.readdir(txDir)).filter(isTileFile);
         for (const f of yFiles) {
           const ty = parseInt(f, 10);
           maxY = Math.max(maxY, ty);
