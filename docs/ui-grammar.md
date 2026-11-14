@@ -49,11 +49,11 @@
 
 | 場面 | 使う部品 | 出典 |
 |---|---|---|
-| 項目の補足説明（短文も長文も） | `ContextHelp`（`?` アイコン `bi-question-circle`。hover と focus で Popover が開く） | 【人間決定】説明の文法（Q1 アイコン）、説明の文法（Q2 長文も Popover でよい）、token と部品の設計（単一の挙動） |
+| 項目の補足説明（短文も長文も） | `ContextHelp`（`?` アイコン `bi-question-circle`。hover と focus で Popover が開く） | 【人間決定】説明の文法（アイコンで示す）、説明の文法（長文も Popover でよい）、token と部品の設計（単一の挙動） |
 | 長い概念の説明 | `ContextHelp` に `title` を付ける | 【人間決定】token と部品の設計（v3 §8） |
-| `EditorField` の項目 | `#help` slot に `<ContextHelp>` を置く（P1） | 【人間決定に基づく AI 設計】説明の文法 |
-| 生の `form-label` の項目・見出し | label や見出しの中、文言の直後に `<ContextHelp>` を置く（P2） | 【人間決定に基づく AI 設計】説明の文法、地図の配信元の追補 |
-| モーダルの全体の説明 | モーダルの題の横に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法（A22/A23） |
+| `EditorField` の項目 | `#help` slot に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法 |
+| 生の `form-label` の項目・見出し | label や見出しの中、文言の直後に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法、地図の配信元の追補 |
+| モーダルの全体の説明 | モーダルの題の横に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法（モーダル全体の説明） |
 | **ダイアログ内の選択肢の説明** | 選択肢の label の横に `<ContextHelp>` を置く | 【人間決定】2026-10-21 の文言の決定（エクスポートの小窓の「タイル」は「標準の『？』で説明」） |
 | ボタンが押せない理由 | そのボタンの右に、押せないときだけ `ContextHelp` を出す。赤字（`text-danger`）にしない | 【人間判断】地図の配信元の追補 |
 | 入力例 | placeholder に書く。placeholder には入力例しか書かない | 【人間承認の文書】Edit の文法（決定 7）、token と部品の設計 |
@@ -68,17 +68,17 @@
 
 ### 2.2 禁止の形
 
-次の形で説明文を画面に直書きしてはいけません。【人間決定】説明の文法（R1「説明の `div.form-text.small` / `p.small.text-muted` / `small.text-muted` を全て削除」）、説明の文法（AC1「form-text が存在しない（grep で 0 件）」）
+次の形で説明文を画面に直書きしてはいけません。【人間決定】説明の文法（「説明の `div.form-text.small` / `p.small.text-muted` / `small.text-muted` を全て削除」）、説明の文法（「form-text が存在しない（grep で 0 件）」）
 
 - `<div class="form-text">説明</div>`、`<p class="form-text">`
 - `<p class="small text-muted">説明</p>`、`<small class="text-muted">説明</small>`、`<div class="small text-muted">説明</div>`
 - ダイアログの選択肢の label の下に置く説明の段落（`<label><strong>名前</strong><div class="small text-muted">説明</div></label>`）
 - `EditorField` の `#help` slot に、`ContextHelp` 以外の文（`<span class="text-muted small">…</span>` など）を入れること
-- `EditorField` の `hint` prop を復活させること。【人間決定】説明の文法（Q4 で削除）
+- `EditorField` の `hint` prop を復活させること。【人間決定】説明の文法（`hint` prop の削除）
 
 ### 2.3 状態の表示は説明ではない
 
-次のものは説明ではなく状態の表示なので、直書きしてかまいません。【人間決定】説明の文法（D2「ステータス表示のまま現状維持」）
+次のものは説明ではなく状態の表示なので、直書きしてかまいません。【人間決定】説明の文法（「ステータス表示のまま現状維持」）
 
 - 件数、ID、種別、座標などのメタデータ（例: 一覧の `{{num}} 件`、行の `mapID / scope`）
 - 処理の状態（読み込み中、MCP の待ち受け状態、最後の要求の時刻など）
@@ -97,41 +97,41 @@
 
 | 種類 | 出し方 | 出典 |
 |---|---|---|
-| 項目に結び付いたエラー | 入力欄に赤枠（`is-invalid`）を付け、その直下に赤字を出す。`DiagnosticFeedback scope="field"`（`EditorField` は `diagnostics` を内蔵） | 【人間決定】説明の文法（Q3 ルール「過去決定」）、Edit の文法 |
+| 項目に結び付いたエラー | 入力欄に赤枠（`is-invalid`）を付け、その直下に赤字を出す。`DiagnosticFeedback scope="field"`（`EditorField` は `diagnostics` を内蔵） | 【人間決定】説明の文法（エラーの出し方は過去の決定のまま）、Edit の文法 |
 | 項目に結び付いた警告 | 黄色の枠・黄色の文字でよい。`DiagnosticFeedback scope="field"` の severity `warning` | 【人間決定】説明の文法 |
 | 複数の項目にまたがる不整合 | 節やタブの上部の compact summary。`DiagnosticFeedback scope="section"` と、各項目の field 診断を併記する | 【人間承認の文書】Edit の文法 |
 | 操作全般のエラー（保存・通信・一覧の取得の失敗など） | バナー。`DiagnosticFeedback scope="operation"`（保存などは `EditorActionHeader` の直下）。一覧の取得の失敗は `scope="section"` | 【人間決定】説明の文法、Edit の文法 |
-| バナーに出すもの | **操作のエラーだけ**。全項目のエラーをまとめたバナーは出さない | 【人間検証の指摘】複製と Import（v3.5 R3「全量サマリバナーを廃止し『field 診断＋バナーは操作エラーのみ』へ統一」） |
+| バナーに出すもの | **操作のエラーだけ**。全項目のエラーをまとめたバナーは出さない | 【人間検証の指摘】複製と Import（「全量サマリバナーを廃止し『field 診断＋バナーは操作エラーのみ』へ統一」） |
 | 未入力の必須項目 | 触る前から即時に出してよい（dirty や touched で隠さない） | 【人間決定】token と部品の設計（v3 (a)）、Edit の文法 |
-| severity とアイコン | info=`bi-info-circle`、success=`bi-check-circle`、warning=`bi-exclamation-triangle`（黄色の三角）、danger=`bi-exclamation-octagon` | 【人間決定】説明の文法（Q3 D7「黄色三角等許容」）。表は【AI 設計】token と部品の設計 |
+| severity とアイコン | info=`bi-info-circle`、success=`bi-check-circle`、warning=`bi-exclamation-triangle`（黄色の三角）、danger=`bi-exclamation-octagon` | 【人間決定】説明の文法（「黄色三角等許容」）。表は【AI 設計】token と部品の設計 |
 | 色 | 警告は黄、エラーは赤、情報は青。形は同じにし、強弱は token で表す | 【人間承認の文書】Edit の文法（決定 6 ほか） |
-| 項目の文言を変えたり元に戻したら | 操作のエラー（ID の重複など）を消す | 【人間検証の指摘】token と部品の設計（F4） |
+| 項目の文言を変えたり元に戻したら | 操作のエラー（ID の重複など）を消す | 【人間検証の指摘】token と部品の設計（操作のエラーを消す時機） |
 
 ### 3.2 例外として残すもの（人間が「現状維持」と決めたもの）
 
 | 対象 | 現状の形 | 出典 |
 |---|---|---|
-| BaseMapEdit / AssetEdit のリビジョン競合 | `alert alert-warning` と、ボタン 2 個（`btn-warning` の「上書き」など） | 【人間決定】説明の文法（Q5 C34/C35 現状維持、C45/C46） |
-| 参照切れの POI の警告（PoiReferenceEditor） | カードの中で `text-warning-emphasis` | 【人間決定】説明の文法（D6） |
+| BaseMapEdit / AssetEdit のリビジョン競合 | `alert alert-warning` と、ボタン 2 個（`btn-warning` の「上書き」など） | 【人間決定】説明の文法（リビジョン競合の表示は現状維持） |
+| 参照切れの POI の警告（PoiReferenceEditor） | カードの中で `text-warning-emphasis` | 【人間決定】説明の文法（参照切れの警告は現状維持） |
 | selector で追加できない理由（ResourceMasterRow） | 項目の横の `ContextHelp`。赤字にしない（従来の例外を廃止） | 【人間決定（2026-11-11、推奨どおり）】§8 U4 |
-| IconRefField の警告バッジ | 値の表示の一部 | 【人間決定】説明の文法（D8） |
+| IconRefField の警告バッジ | 値の表示の一部 | 【人間決定】説明の文法（警告バッジは値の表示の一部） |
 
 ### 3.3 禁止の形
 
 - 項目のエラーや警告を `<div class="text-danger small">`、`<span class="text-danger">`、`<p class="text-warning">` で直書きすること。【人間決定】説明の文法
 - `alert alert-danger` / `alert-warning` / `alert-success` を直書きすること（§3.2 の例外を除く）。【人間決定に基づく AI 設計】説明の文法
-- `alert()`（ブラウザの標準のもの）で失敗を知らせること。【人間決定に基づく AI 設計】説明の文法（C49/C50 を DF operation へ）
+- `alert()`（ブラウザの標準のもの）で失敗を知らせること。【人間決定に基づく AI 設計】説明の文法（ブラウザの `alert()` を `DiagnosticFeedback scope="operation"` へ）
 - 押せない理由をエラー色で出すこと。【人間判断】地図の配信元の追補
 
 ## 4. 空状態・読み込み失敗
 
 | 場面 | 使う部品 | 出典 |
 |---|---|---|
-| master-detail の詳細ペインが空 | `ResourceEmptyState`（中央にアイコンと文言） | 【人間検証の指摘】一覧行の統一（AC7 ほか） |
-| 参照選択の右ペイン（選択済みの一覧）が空 | `ResourceEmptyState`（文言は「左の一覧から〇〇を追加してください。」） | 【人間検証の指摘】一覧行の統一（HM8〜HM10 ほか） |
-| 開いた資源が見つからない（not found） | `ResourceEmptyState` と、`#actions` slot の戻るボタン | 【人間決定】説明の文法（Q5 C47/C48 ほか） |
+| master-detail の詳細ペインが空 | `ResourceEmptyState`（中央にアイコンと文言） | 【人間検証の指摘】一覧行の統一（詳細ペインの空表示） |
+| 参照選択の右ペイン（選択済みの一覧）が空 | `ResourceEmptyState`（文言は「左の一覧から〇〇を追加してください。」） | 【人間検証の指摘】一覧行の統一（参照選択の右ペインの空表示） |
+| 開いた資源が見つからない（not found） | `ResourceEmptyState` と、`#actions` slot の戻るボタン | 【人間決定】説明の文法（not found の表示） |
 | 一覧の結果の状態（読み込み中・0 件・末尾・失敗・追加の失敗） | `ResourceResultStatus`。共通の語彙（`resource_list.*`）を使う。初回の失敗は共通のエラーと再試行、追加の失敗は取得済みの項目を残して末尾に再試行を出す | 【人間承認の文書】一覧の文法 |
-| 一覧の取得の失敗（selector の候補など） | `DiagnosticFeedback scope="section"` | 【人間決定に基づく AI 設計】説明の文法（C41〜C44） |
+| 一覧の取得の失敗（selector の候補など） | `DiagnosticFeedback scope="section"` | 【人間決定に基づく AI 設計】説明の文法（一覧の取得の失敗） |
 | 節の中の小さな「該当なし」（例: 書誌の 1 群が空） | 1 行の `text-muted`。ペイン全体が空のときだけ `ResourceEmptyState` | 【人間決定（2026-11-11、推奨どおり）】§8 U7 |
 
 禁止の形: `<div class="text-muted text-center py-3">該当なし</div>` のような空表示を画面ごとに作ること。【人間検証の指摘】一覧行の統一
@@ -183,7 +183,7 @@
 |---|---|
 | 5 つの一覧の新規の入口は、白背景・平坦・青字の outline の `＋ 新規追加` に揃える（`btn-outline-primary`）。文言・見た目・DOM の位置を共通にする | 【人間決定】一覧の文法（決定 1）、一覧の部品 |
 | Import は共通の secondary slot に置き、対応する形式がある Map / POI / App だけに出す | 【人間決定】一覧の文法（決定 9） |
-| 一覧の項目の操作は `⋮` メニューに集める。右クリックと `Shift+F10` も同じメニューを開く。並びは「複製」「削除」。操作が 1 つも無い項目には `⋮` を出さない | 【人間決定】一覧の文法（決定 7・8）。空のメニューの扱いは【AI 設計】一覧の部品（D4改） |
+| 一覧の項目の操作は `⋮` メニューに集める。右クリックと `Shift+F10` も同じメニューを開く。並びは「複製」「削除」。操作が 1 つも無い項目には `⋮` を出さない | 【人間決定】一覧の文法（`⋮` メニューと並び）。空のメニューの扱いは【AI 設計】一覧の部品 |
 | ページのボタンは置かず、無限スクロールにする | 【人間決定】一覧の文法（決定 5） |
 | Slug の一意性を手で確かめるボタンは置かない | 【人間決定】Edit の文法（決定 3） |
 | 範囲の自動設定に「GCP から設定」のような専用のボタンを置かない | 【人間承認の文書】Edit の文法 |
@@ -367,14 +367,14 @@
 
 | ruleId | 検査 | 根拠 | 許可リストの例 |
 |---|---|---|---|
-| `help.form-text` | `class` に `form-text` を持つ要素 | 説明の文法 AC1（0 件） | 状態の表示（`Settings.vue` の最後の要求の時刻）は `testid` で許可 |
-| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | 説明の文法 R1 | 判断の本文（§8 U2） |
-| `help.key-outside-contexthelp` | 上の接尾辞のキーが `ContextHelp` の `text`・`title` 以外で使われる（template の全部の `t()` の呼び出しを集める） | 説明の文法 R1 | なし |
-| `help.slot-misuse` | `EditorField` の `#help` slot の中に `ContextHelp` 以外の要素がある | 説明の文法 P1 | なし |
+| `help.form-text` | `class` に `form-text` を持つ要素 | 説明の文法（form-text は 0 件） | 状態の表示（`Settings.vue` の最後の要求の時刻）は `testid` で許可 |
+| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | 説明の文法（説明の直書きの削除） | 判断の本文（§8 U2） |
+| `help.key-outside-contexthelp` | 上の接尾辞のキーが `ContextHelp` の `text`・`title` 以外で使われる（template の全部の `t()` の呼び出しを集める） | 説明の文法（説明の直書きの削除） | なし |
+| `help.slot-misuse` | `EditorField` の `#help` slot の中に `ContextHelp` 以外の要素がある | 説明の文法（`#help` slot には `ContextHelp` だけ） | なし |
 | `help.aria-label` | `ContextHelp` に `ariaLabel` が無い（型でも検出されるが、空文字も検出する） | 地図の配信元の追補 §3.5 | なし |
-| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | 説明の文法 Q3 ルール | §3.2 の例外（`PoiReferenceEditor` など） |
-| `diag.raw-alert` | `class` に `alert` を持つ要素 | 説明の文法 R3 | `BaseMapEdit` と `AssetEdit` の競合（C45/C46） |
-| `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | 説明の文法 C49/C50、複製と Import | なし |
+| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | 説明の文法（エラーの出し方） | §3.2 の例外（`PoiReferenceEditor` など） |
+| `diag.raw-alert` | `class` に `alert` を持つ要素 | 説明の文法（`alert` の直書きの廃止） | `BaseMapEdit` と `AssetEdit` の競合 |
+| `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | 説明の文法（ブラウザの標準のダイアログの廃止）、複製と Import | なし |
 | `dialog.notify-only` | `showMessageBox`（`window.dialog.showMessageBox` と自前の wrapper の `showMessageBox(...)`）の `buttons` が 1 個。`buttons` を書かないもの（Electron では OK 1 個）も 1 個とみなす。`buttons` や引数を変数で渡すなど数の分からないものも違反とし、許可リストで個別に通す（文言のキーの無い呼び出しは `args:<引数の書き方>` をキーにする） | Edit の文法 | ボタンの数が保存済みかで変わる書き出しの確認（`editor_ui.export_dirty_prompt`）と、`useRevisionedAssetSave` の wrapper の中継（§5.1） |
 | `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
 | `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | 一覧行の統一 | 節内の空表示（§8 U7） |

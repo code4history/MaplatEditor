@@ -66,14 +66,17 @@ binaries are distributed via GitHub Releases.
 
 - **Import from IIIF** on the map list takes the URL of an IIIF Manifest or
   `info.json`, lets you choose a canvas, and creates a new map in one of two
-  ways: **Deliver from IIIF** — the image is served from the IIIF image
-  server and no tiles are generated (available only when the server uses
-  https, allows CORS for `*`, and uses a supported IIIF version and tiling;
-  otherwise the reason is shown) — or **Bibliographic data only from IIIF**
-  — you choose the image file yourself and tiles are generated as usual
+  ways: **Deliver from IIIF** or **Bibliographic data only from IIIF**. With
+  **Deliver from IIIF**, the image is served from the IIIF image server and
+  no tiles are generated. It is available only when, among other checks, the
+  server uses https, allows CORS for `*`, and uses a supported IIIF version
+  and tiling, the image is not too large, its size matches the map record,
+  and the address is not blocked; otherwise the reason is shown. With
+  **Bibliographic data only from IIIF**, you choose the image file yourself
+  and tiles are generated as usual
 - On the metadata tab of a map linked to a Manifest, you choose for each
   field whether it is copied from IIIF and whether the value comes from the
-  Manifest or from the canvas, then **Copy from IIIF**. **Compare with IIIF
+  Manifest or from the canvas, and press **Copy from IIIF**. **Compare with IIIF
   again** fetches the Manifest again and lists the current value, the value
   copied earlier, and the new value, labelled "Unchanged", "Edited by hand",
   or "Changed in IIIF"; only the rows you select are overwritten, so hand
@@ -126,8 +129,10 @@ binaries are distributed via GitHub Releases.
   assets. **Link** edits the viewer's `directgo`: clicking the POI jumps
   straight to an http/https URL or a relative path such as a
   `#!s:<mapID>/…` map position, optionally in a new tab (links do not open
-  in the editor's preview). Outside Link mode, a `directgo` that holds only
-  whitespace is kept as is but shown as a warning with the POI's ID
+  in the editor's preview). Links to a `#!s:` map position work only while
+  the app's **State URL** setting is on. Outside Link mode, a `directgo`
+  that holds only whitespace or `{ href: "" }` is kept as is but shown as a
+  warning with the POI's ID
 - An Assets tab manages shared images (search, rename, reference-checked
   delete) through the same icon/asset/URL picker used for icon and image
   fields
@@ -235,7 +240,8 @@ binaries are distributed via GitHub Releases.
 - If the data folder's database cannot be opened, the resource lists show
   why — no permission, a read-only location (such as a disk image), a
   folder that cannot be found, or another error — together with how to fix
-  it, worded for macOS, Windows, or Linux. A database that opens but cannot
+  it; the fix for a missing permission is worded separately for macOS,
+  Windows, and Linux. A database that opens but cannot
   be written to is detected when it is opened, not at the first save
 
 ### Export and Import
@@ -256,7 +262,9 @@ Documents otherwise.
   dialog lets you choose the format — GeoJSON, CSV, or JSON — and, for
   GeoJSON only, whether to include images (a ZIP when there are images to
   bundle). GeoJSON and ZIP keep every field and can be imported back as a
-  new source with image references resolved automatically; CSV (UTF-8 with
+  new source. Image references are resolved automatically only from a ZIP;
+  GeoJSON exported without images keeps the asset UUIDs as plain values.
+  CSV (UTF-8 with
   BOM, for spreadsheets) keeps only the ID, name, description, address,
   image URL, and coordinates, and tells you which fields were left out;
   JSON is an array of POIs that keeps HTML, custom fields, and asset
@@ -282,8 +290,10 @@ Documents otherwise.
   unique across maps, apps, POI sources, and image assets, so the same rule
   applies to every kind of import
 - Imported ZIPs (maps and POI packages) are checked before anything is
-  extracted: files over 2 GiB, more than 50,000 entries, sizes that do not
-  match the data, or an excessive total expansion are refused, and so are
+  extracted: a ZIP file over 2 GiB, too many entries, sizes that do not
+  match the data, or an excessive total expansion are refused. Map ZIPs
+  may hold up to 50,000 entries; POI packages up to 512 entries and
+  100 MiB in total after expansion. Also refused are ZIPs with
   entry names that cannot be stored on every OS (Windows reserved names,
   trailing dots or spaces, control characters, `<>:"|?*`, or names that
   differ only in letter case or Unicode normalization). Exports keep the
@@ -298,8 +308,10 @@ Documents otherwise.
 
 - 512px high-definition thumbnails for maps, base maps, and apps are
   generated automatically on upload, and backfilled for existing data on
-  first launch after upgrading. Images whose longer side is 512px or less
-  get a thumbnail at their own size (never enlarged), and the backfill
+  first launch after upgrading. A map thumbnail whose longer side is 512px
+  or less is kept at its own size (never enlarged); base map and app
+  thumbnails, and images chosen with **Replace 512px…**, are scaled to 512px
+  on the longer side even when smaller. The backfill
   covers every existing map that has tiles — in any tile format, such as
   TIFF — but no 512px thumbnail; maps that already have one, including
   manually replaced ones, are left untouched
@@ -436,10 +448,10 @@ The Map/App/POI editors and the POI-on-map editing pane share this set.
   and have not undergone human quality review.
 - The interface currently renders in light mode only, even when the OS is
   set to dark mode.
-- The viewer bundled with MaplatEditor (`@maplat/ui` 1.2.0), which is used
-  for the preview and copied into exported apps, cannot draw maps delivered
+- The viewer bundled with MaplatEditor (`@maplat/ui`), which is used for
+  the preview and copied into exported apps, cannot yet draw maps delivered
   from IIIF. Such maps are not shown in the preview or in exported apps
-  until the bundled viewer is updated.
+  until the bundled viewer is a version that supports IIIF delivery.
 
 <!-- SECTION 7 Peer Dependencies: omitted (OpenLayers is bundled as a regular dependency) -->
 
