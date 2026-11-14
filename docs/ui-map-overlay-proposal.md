@@ -26,7 +26,7 @@
 
 ### 1.2 撮影の条件
 
-- playwright の electron（既存の e2e と同じ隔離起動 `tests/e2e/helpers/launchIsolated.ts`、フィクスチャは `tests/fixtures/m13-t5-migration-pipeline`）で、1440×900、日本語の UI で撮った。
+- playwright の electron（既存の e2e と同じ隔離起動 `tests/e2e/helpers/launchIsolated.ts`、フィクスチャは `tests/fixtures/` の中の、データフォルダの移行の検証に使うもの）で、1440×900、日本語の UI で撮った。
 - 外部のタイル（http・https の画像）はすべて手元の画像に差し替えた。実際の OSM・地理院の地図ではない。
   - 明るい地図: 既存のフィクスチャ（`tests/e2e/fixtures/fake-osm-tile.png` と `osm-tiles/`）。薄いベージュの格子。
   - 暗い地図（航空写真の代わり）: 暗い緑の斑に明るい道と灰色の屋根を描いた合成のタイル（地の色はおよそ `#34402e`）。

@@ -1,4 +1,4 @@
-# 署名付きリリースビルドの手順書（m6-t12）
+# 署名付きリリースビルドの手順書
 
 **この文書の読者**: SSL.com も Apple Developer も初めて操作する人。画面のどこを開き、何をコピーし、どこへ貼るかまで書いてある。エージェント（AI）との伴走作業を前提に、1項目ずつ進めればよい構成にしてある。
 
@@ -129,7 +129,7 @@ eSigner の署名には 2FA（ワンタイムパスワード）が必須で、CI
   未署名のアプリ本体と DLL を止めたため（2026-10-03）、全 PE へ広げた
 - もし CI の署名ステップが「hash needs to be scanned first」で失敗したら、eSigner の Malware Blocker が有効になっている。build.yml の eSigner ステップに `malware_block: 'true'` を追加するか、SSL.com 側で Malware Blocker を無効化する
 
-### B-5. TOTP の作り直し（nov26-m7-t3）
+### B-5. TOTP の作り直し
 
 `ES_TOTP_SECRET` が漏れた疑いがあるとき・控えを失ったときに行う（外部アカウントの操作なので、必要になったときに人間が行う）。
 SSL.com の公式の手順: [View and Reset eSigner QR Code or Reset PIN](https://www.ssl.com/how-to/view-reset-esigner-qr-code-reset-pin/)（2026-10-17 に確認）。
@@ -173,12 +173,12 @@ push（master / glm52 / foss4g-hiroshima）ビルドでも Mac の Developer ID 
 
 ## Part D: 署名付きビルドの実行
 
-実行は **`mode`（署名レベル）** と **`platforms`（対象）** の2軸で指定し、Windows の署名者を **`win_signer`** で選ぶ（nov26-m7-t2）。
+実行は **`mode`（署名レベル）** と **`platforms`（対象）** の2軸で指定し、Windows の署名者を **`win_signer`** で選ぶ。
 
 | mode | Mac | Win | draft Release | 課金 | 使えるバージョン |
 |---|---|---|---|---|---|
 | **`verify`**（既定・動作確認用） | 署名のみ（公証なし） | **署名なし** | 作らない | **ゼロ** | **全部**（alpha / beta も可）。ただし **master の祖先の commit だけ**（`expected_editor_sha` を省いたときは dispatch した ref の先端で確かめる） |
-| **`sign-check`**（署名の確認・nov26-m7-t2） | 署名のみ（既定 `notarize=false`）／ **署名 + 公証**（`notarize=true`） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
+| **`sign-check`**（署名の確認） | 署名のみ（既定 `notarize=false`）／ **署名 + 公証**（`notarize=true`） | **Artifact Signing で全 PE 署名** | 作らない | **定額**（月 5,000 署名の枠の中） | 全部。ただし `expected_editor_sha`・`expected_version` が必須で、**master の祖先の SHA だけ** |
 | **`full`**（完全） | 署名 + 公証 | 全 PE 署名（`win_signer`） | 作る | `artifact-signing`: **定額** / `esigner`: **eSigner 通常 6 回**（依存更新時は最大 28 回） | **rc 以降**（下記） |
 
 **`notarize`**: `false`（既定）/ `true`（`mode=sign-check` のとき macOS の公証・staple・`latest-mac.yml` 再生成・`--expect notarized` 検証まで実行する。`mode=full` はこの入力に関わらず常に公証し、`mode=verify` で `true` を渡すと `prepare` の `Guard build mode` が拒否する）
@@ -256,8 +256,8 @@ spctl -a -t open --context context:primary-signature -v "<配布物>.dmg"
 
 ## Part E: 仕様メモ（運用者向け）
 
-- **push（master / glm52 / foss4g-hiroshima）は Mac のみ Developer ID 署名（公証なし）・Win / Linux は無署名**。m6-t12 の「push は全プラットフォーム無署名」は t1（2026-08-21）で部分差し戻しした（Mac 証明書2点を `ci` にも配置 — Part C-2）。glm52 のみ Hardened Runtime なしの署名プロファイルになる（設計で受容済みの差。公証経路の無いテストビルドのため利用上の差はない）
-- Windows の署名は electron-builder のフックで行うため、latest.yml と .exe.blockmap は**署名済みのバイナリから**作られる（electron-builder はインストーラーを署名してから blockmap と latest.yml を計算する）。`scripts/m6-t12/resign-update-metadata.mjs` による再計算は冪等な安全網として残している
+- **push（master / glm52 / foss4g-hiroshima）は Mac のみ Developer ID 署名（公証なし）・Win / Linux は無署名**。最初の署名の導入時の「push は全プラットフォーム無署名」は 2026-08-21 に部分差し戻しした（Mac 証明書2点を `ci` にも配置 — Part C-2）。glm52 のみ Hardened Runtime なしの署名プロファイルになる（設計で受容済みの差。公証経路の無いテストビルドのため利用上の差はない）
+- Windows の署名は electron-builder のフックで行うため、latest.yml と .exe.blockmap は**署名済みのバイナリから**作られる（electron-builder はインストーラーを署名してから blockmap と latest.yml を計算する）。`scripts/` の下の `resign-update-metadata.mjs` による再計算は冪等な安全網として残している
 - Linux（AppImage）は署名なし（現行方針）
 - 証明書の期限が切れたら: Apple → Part A をやり直して secrets 1・2 を **`release` と `ci` の両方**で更新する（t1 で2箇所化した運用コスト）/ SSL.com → 証明書更新後、Credential ID が変わっていないか B-2 で確認
 - `ci` 側の誤登録・期限切れ後の未更新は **push ビルド（build-mac）を毎回失敗させる（意図された fail-fast — 無署名で黙って続行しない）**。復旧 = Part A で .p12 を書き出し直し → `ci` と `release` の両方へ再登録 → 失敗した run を `gh run rerun`
@@ -399,14 +399,14 @@ v1.0.0 は Setup.exe しか署名していなかったため、Windows 11 の**�
 - 取り込む前に「署名を除いた中身が署名前ファイルと一致」「Authenticode が Valid」「署名者が `scripts/win-sign/signer-identity.json` の `esigner`」を確かめる。
   1 つでも外れたら使わずに署名し直す（改ざんされた asset は取り込まれない）
 - 書き込みは `publish-win-sign-cache` ジョブ（`contents: write`・checkout も依存導入もしない）だけが行う。
-  build-win は新しく署名したものを artifact で渡すだけ（build ジョブに write を与えない — SR-t12-M-1）
-- **上げる前の検査**（nov26-m7-t4・#140 L-2）: `publish-win-sign-cache` は eSigner の退路（`mode=full`・`win_sign_path=esigner`・
+  build-win は新しく署名したものを artifact で渡すだけ（build ジョブに write を与えない — セキュリティレビューの指摘）
+- **上げる前の検査**（#140 L-2）: `publish-win-sign-cache` は eSigner の退路（`mode=full`・`win_sign_path=esigner`・
   prepare が成功）でだけ走り（Artifact Signing の経路はキャッシュを読まない・書かない — C-4）、upload の前の
   「Check cache candidates」step で候補を絞る。名前が `^[0-9a-f]{64}--[A-Za-z0-9._-]{1,200}\.signed$`（`win-sign.cjs` の
   `assetName` の形）で `..` を含まない・通常のファイル（symlink・ディレクトリでない）・64 バイト以上 64 MiB 以下・先頭が `MZ`・
   1〜64 件。1 つでも外れたら step が落ちて**何も上げない**（上げなかった分は次の eSigner の実行で署名し直す＝課金が増えるだけ）。
   outbox へ置く前の署名者の照合は `win-sign.cjs` の esigner の署名直後の `checkSigner(…, 'esigner')`（C-3）で、
-  外れたら throw して outbox へ届かない。検査の振る舞いは `scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs` が
+  外れたら throw して outbox へ届かない。検査の振る舞いは `scripts/` の下の `*-cache-publish-guard-smoke.mjs` が
   run: を抜き出して実行して確かめる
 - **この経路が 11 月に初めて走るのは eSigner の退路を使ったときで、RC 以降になりうる**（S-6）。受け入れる根拠: 検査は
   抜き出した shell を smoke で実行して確かめており、壊れても上げる前に落ちる（配布物は変わらず、キャッシュに上がらないだけ）。
@@ -426,14 +426,14 @@ Apple Silicon の Mac で Rosetta が無い場合、既定の NSIS（3.0.4.1）�
 その場合は `pnpm run dist:win -c.toolsets.nsis=1.2.1`（NSIS 3.12・arm64 ネイティブ）で代用できる
 （同梱される PE の顔ぶれは同じ。CI の Windows ランナーは既定の NSIS で作る）
 
-## Part I: Azure Artifact Signing の署名専用ジョブ（nov26-m7-t2・2026-10）
+## Part I: Azure Artifact Signing の署名専用ジョブ（2026-10）
 
 ### 何が変わったか
 
 - Windows の既定の署名者を SSL.com eSigner から **Azure Artifact Signing** に替えた（`win_signer=artifact-signing`）。
   定額（Basic・**月 5,000 署名**）で、署名ごとの課金が無い。アカウント `nayutasigning`（Japan East・エンドポイント
   `https://jpe.codesigning.azure.net`）・証明書プロファイル `maplateditor`。証明書の Subject は
-  `CN="Nayuta, Inc.", O="Nayuta, Inc.", L=Osaka-shi, S=Osaka-fu, C=JP`（nov26-m7-t1 の H-B1・run 38271126518）
+  `CN="Nayuta, Inc.", O="Nayuta, Inc.", L=Osaka-shi, S=Osaka-fu, C=JP`（2026-10 の確認の実行・run 38271126518）
 - 葉の証明書は **3 日ごとに替わる**（有効期間 3 日）。タイムスタンプ（`http://timestamp.acs.microsoft.com`）があるので、
   期限が切れても署名は有効なまま。∴ 署名者の照合は葉の thumbprint ではなく、DN の属性と上位（PCA・ルート）の thumbprint で行う
 - eSigner の経路は退路として残す（`win_signer=esigner`。`mode=full` だけ）
@@ -516,7 +516,7 @@ Artifact Signing の法人の身元確認には期限があり、切れると証
 
 署名済みのアンインストーラーへの差し替え（段 5）は、段 3 と段 5 で作ったアンインストーラーが「署名と TimeDateStamp を除いて同じ」
 ことを前提にする。決定的にする手当て: NSIS ツールセットの複写で mtime を保つ・比較で TimeDateStamp を除く。
-**判定は Windows の runner での測定（nov26-m7-t2 設計 §3.7 の一時の workflow）待ち**。不成立なら段 3〜5 を 1 つのジョブにまとめる縮退
+**判定は Windows の runner での測定（一時の workflow で測る）待ち**。不成立なら段 3〜5 を 1 つのジョブにまとめる縮退
 （C-8 の例外。残るリスクをここに書く）へ進む。なお pack-win-2 が「差し替えられなかったアンインストーラー」を赤にするので、
 不成立のまま署名済みでない成果物が出ることは無い。
 
@@ -530,7 +530,7 @@ app-builder-lib（26.17.0。26.18.1 でも同じ）は LangString のファイ�
 （`electron-builder.config.cjs` が Windows 署名の有効なビルドで入れる。上流の形が変わったら落ちる）。
 検査: `node scripts/win-sign-nsis-message-order-smoke.mjs`（実物の NsisTarget でスクリプトの順を確かめる。makensis は動かさない）。
 
-### 署名履歴の確かめ方（nov26-m7-t3）
+### 署名履歴の確かめ方
 
 **(i) GitHub の側**: Artifact Signing の経路の各 run で、署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・
 `sign-win-installer`）の **job summary に署名の記録の表**（`in`＝署名前の SHA-256・`out`＝署名後の SHA-256・`status`）が出る。
@@ -548,7 +548,7 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
 （2026-10-17 に確認。ストレージ アカウントの例では、設定から 10〜15 分後にコンテナー `insights-logs-signtransactions` に入る）。
 ストレージは Artifact Signing と別に課金される。**設定するかは人間の判断**（外部アカウントの操作。本書では手順だけを示し、設定は求めない）。
 
-### 残るリスク（nov26-m7-t3・m12 のセキュリティレビューの入力）
+### 残るリスク（セキュリティレビューの入力）
 
 - **(a) eSigner の退路の資格情報は、フックの読み込みより前に動くコードからは読める。** `ES_*` は従来どおり eSigner の本番 step の
   `env:` で渡し、`scripts/win-sign/win-sign.cjs` が**読み込み時に** `process.env` から外して閉じた変数へ移す。外した後に読み込まれる
@@ -568,17 +568,17 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
 - **(c) U-1 の縮退（段 3〜5 を 1 つのジョブ `pack-sign-win` にまとめる）を選んだ場合**、そのジョブは electron-builder の依存を入れたまま
   `id-token: write` を持つ ＝ 依存が乗っ取られると署名トークンを取られうる。2026-10-17 の時点では縮退していない（`build.yml` に
   `pack-sign-win` は無い）
-- **(d) eSigner の退路は 11 月の H-B3 では走らない**（H-B3 は Artifact Signing の経路）。nov26-m7-t2 の組み替えと nov26-m7-t3 の
+- **(d) eSigner の退路は 11 月の H-B3 では走らない**（H-B3 は Artifact Signing の経路）。Artifact Signing への組み替えと
   資格情報の閉じ込めの後の eSigner の経路は、**退路を実際に使うまで live では未走**である。確かめているのは smoke だけ
-  （`scripts/nov26-m7-t3-credential-exposure-smoke.mjs`: 偽の CodeSignTool で起動の形・子の env・ログの伏せ字を、
+  （`scripts/` の下の `*-credential-exposure-smoke.mjs`: 偽の CodeSignTool で起動の形・子の env・ログの伏せ字を、
   `scripts/ci/eval-gh-if.mjs` で eSigner の step の `if:` が `win_sign_path=esigner` のときだけ真になることを確かめる）。
   課金を伴う eSigner の実走は求めていない。退路を使う日は、最初の 1 ファイルの署名のログで CodeSignTool が資格情報を受け取れたことを見る
 - 署名専用ジョブの拒否語（`signing-job-rules.mjs`）は完全にはできない（文字列の連結・別名で組み立てた呼び出し等）。shell を pwsh に絞り、
   `&` の対象と GITHUB_ENV へ書ける名前を許可リストにしたうえでの残り。step の列の SHA-256 固定は m12 で検討する
 
-## Part J: 自動更新（electron-updater）の基盤（nov26-m7-t5・#141）
+## Part J: 自動更新（electron-updater）の基盤（#141）
 
-- アプリは `electron-updater` を持つ（`electron/services/UpdateService.ts`）。確認の起動・知らせる UI・設定の項目は nov26-m7-t6
+- アプリは `electron-updater` を持つ（`electron/services/UpdateService.ts`）。確認の起動・知らせる UI・設定の項目は別の作業で足す
 - 更新元は GitHub の `code4history/MaplatEditor` の Releases だけ（`electron-builder.config.cjs` の `publish`。ビルドは
   `--publish never` のままで、この設定は electron-builder が `resources/app-update.yml` を書くために要る）。
   `allowPrerelease: false` なので「最新のリリース」（prerelease を含まない）だけを見る ＝ RC・`win-signed-cache` を拾わない。

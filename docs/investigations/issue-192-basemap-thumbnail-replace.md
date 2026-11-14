@@ -10,8 +10,8 @@
 
 ## 規則 K（K1）の現行記述
 
-設計書 `docs/superpowers/specs/2026-08-09-m19-t2-basemap-thumbnail-512-design.md` と
-`2026-08-10-m19-t12-thumbnail-replace-persistence-parity-design.md` が定める規則 K は、
+ベースマップの 512px サムネイルの設計書と、サムネイルの置換の保存の設計書（どちらもこのリポジトリの外）
+が定める規則 K は、
 置換の書き込みキーと拡張子を `document.thumbnail` から採る（K1）。`thumbnail` が空・
 同梱画像・URL のときは自分の uid 名へ新しく作る（K2）。slug 未入力なら書かない（K0）。
 
