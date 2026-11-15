@@ -40,12 +40,13 @@ This repository has no unified `test` script. Task-scoped smoke tests live under
 
 ## Browser Engine Policy
 
-The editor runs on two kinds of engines: the Chromium bundled with Electron, and the native web views that Electrobun uses (`defaultRenderer: 'native'`: WebKit on macOS and Linux, WebView2 on Windows). Code must work on both Chromium and WebKit.
+The editor runs on two kinds of engines: the Chromium bundled with Electron, and the native web views that the experimental Electrobun runtime uses. `electrobun.config.ts` sets `defaultRenderer: 'native'` explicitly only for macOS, where the native view is WebKit; on Linux (WebKit) and Windows (WebView2) the native view comes from Electrobun's default behavior, not from this repository's configuration. Code must work on both Chromium and WebKit.
 
+- Targets are the Chromium bundled with the Electron version in `package.json` and the OS-provided native web views described above.
 - Baseline Widely available features may be used without feature detection.
 - Baseline Newly available and Limited availability features may be used only if they degrade safely on WebKit: purely visual features as-is, layout-affecting CSS behind `@supports`, behavior behind feature detection with a fallback of 20 lines or fewer.
-- Do not add polyfill dependencies.
-- When a change may behave differently on WebKit, check it with Playwright's webkit project as well.
+- Do not add polyfill dependencies. If one is unavoidable, load it with `import()` only when feature detection shows it is needed.
+- When a change may behave differently on WebKit, check it in Electrobun's native renderer (WebKit on macOS): run `pnpm build`, then `MAPLAT_ELECTROBUN_LOAD_APP=1 pnpm electrobun:dev` to load the built editor. Write in the PR how you checked it. The Playwright e2e specs run only on Chromium (Electron, or Playwright's default browser), so they do not cover WebKit.
 - Stop or replace motion when `prefers-reduced-motion: reduce` is set. Do not blanket-disable all transitions.
 - Text inputs that submit or confirm on Enter must ignore Enter while an IME is composing (`event.isComposing` or `keyCode === 229`).
 
