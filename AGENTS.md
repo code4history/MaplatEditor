@@ -28,7 +28,7 @@ When working in this repository, stay within the current task's scope. If you no
 
 `pnpm dev` starts the Vite/Electron dev environment (`predev` ensures the bundled Electron binary is present). `pnpm build` runs `vue-tsc` (type checking) followed by `vite build`. `pnpm preview` serves the built renderer locally. `pnpm electrobun:dev` / `pnpm electrobun:build` run the experimental Electrobun runtime. `pnpm dist` (and its `dist:mac`/`dist:win`/`dist:linux` variants, each with `:x64`/`:arm64`/`:universal` where applicable) build and package the desktop app via `electron-builder`.
 
-Technology stack (from `package.json`, measured 2026-07-25): `pnpm` as package manager, Electron `^39.8.5`, Vue `^3.5.32`, TypeScript `^5.9.3`, Bootstrap `^5.3.8`, Vite `^7.3.0`, with Electrobun `^1.18.1` as an additional experimental runtime.
+Technology stack (from `package.json`, measured 2026-11-15): `pnpm` as package manager, Electron `^43.8.6`, Vue `^3.5.32`, TypeScript `^6.0.3`, Bootstrap `^5.3.8`, Vite `^7.3.7`, with Electrobun `^1.18.1` as an additional experimental runtime. `package.json` is the source of truth; update this line when the versions move.
 
 ## Coding Style & Naming Conventions
 
