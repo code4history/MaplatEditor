@@ -38,6 +38,18 @@ TypeScript with `strict: true` in `tsconfig.json`. This repository has no ESLint
 
 This repository has no unified `test` script. Task-scoped smoke tests live under `scripts/` and run individually as `pnpm smoke:<task-id>` (dozens of scripts, one per implementation task, e.g. `pnpm smoke:m12-t22-data-io-dormant-preservation`). Playwright end-to-end specs live in `tests/e2e/` and run individually as `pnpm test:e2e:<task-id>` (e.g. `pnpm test:e2e:m11-t6`); most of these scripts run `scripts/ensure-electron.mjs` and `pnpm build` first. When adding a new task's tests, follow this per-task naming convention rather than introducing a shared `test` script.
 
+## Browser Engine Policy
+
+The editor runs on two kinds of engines: the Chromium bundled with Electron, and the native web views that the experimental Electrobun runtime uses. `electrobun.config.ts` sets `defaultRenderer: 'native'` explicitly only for macOS, where the native view is WebKit; on Linux (WebKit) and Windows (WebView2) the native view comes from Electrobun's default behavior, not from this repository's configuration. Code must work on both Chromium and WebKit.
+
+- Targets are the Chromium bundled with the Electron version in `package.json` and the OS-provided native web views described above.
+- Baseline Widely available features may be used without feature detection.
+- Baseline Newly available and Limited availability features may be used only if they degrade safely on WebKit: purely visual features as-is, layout-affecting CSS behind `@supports`, behavior behind feature detection with a fallback of 20 lines or fewer.
+- Do not add polyfill dependencies. If one is unavoidable, load it with `import()` only when feature detection shows it is needed.
+- When a change may behave differently on WebKit, check it in Electrobun's native renderer (WebKit on macOS): run `pnpm build`, then `MAPLAT_ELECTROBUN_LOAD_APP=1 pnpm electrobun:dev` to load the built editor. Write in the PR how you checked it. The Playwright e2e specs run only on Chromium (Electron, or Playwright's default browser), so they do not cover WebKit.
+- Stop or replace motion when `prefers-reduced-motion: reduce` is set. Do not blanket-disable all transitions.
+- Text inputs that submit or confirm on Enter must ignore Enter while an IME is composing (`event.isComposing` or `keyCode === 229`).
+
 ## UI Grammar
 
 Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/rule-0002-screenshot-followup-on-ui-change.md`).
