@@ -38,6 +38,17 @@ TypeScript with `strict: true` in `tsconfig.json`. This repository has no ESLint
 
 This repository has no unified `test` script. Task-scoped smoke tests live under `scripts/` and run individually as `pnpm smoke:<task-id>` (dozens of scripts, one per implementation task, e.g. `pnpm smoke:m12-t22-data-io-dormant-preservation`). Playwright end-to-end specs live in `tests/e2e/` and run individually as `pnpm test:e2e:<task-id>` (e.g. `pnpm test:e2e:m11-t6`); most of these scripts run `scripts/ensure-electron.mjs` and `pnpm build` first. When adding a new task's tests, follow this per-task naming convention rather than introducing a shared `test` script.
 
+## Browser Engine Policy
+
+The editor runs on two kinds of engines: the Chromium bundled with Electron, and the native web views that Electrobun uses (`defaultRenderer: 'native'`: WebKit on macOS and Linux, WebView2 on Windows). Code must work on both Chromium and WebKit.
+
+- Baseline Widely available features may be used without feature detection.
+- Baseline Newly available and Limited availability features may be used only if they degrade safely on WebKit: purely visual features as-is, layout-affecting CSS behind `@supports`, behavior behind feature detection with a fallback of 20 lines or fewer.
+- Do not add polyfill dependencies.
+- When a change may behave differently on WebKit, check it with Playwright's webkit project as well.
+- Stop or replace motion when `prefers-reduced-motion: reduce` is set. Do not blanket-disable all transitions.
+- Text inputs that submit or confirm on Enter must ignore Enter while an IME is composing (`event.isComposing` or `keyCode === 229`).
+
 ## UI Grammar
 
 Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/rule-0002-screenshot-followup-on-ui-change.md`).
