@@ -1239,6 +1239,14 @@ try {
     '画面が結び付けの一覧を自分で絞り込んでいる',
   );
   console.log('ok: retired-key-removed-in-copy-module');
+
+  // 取り込みの道も、編集画面の「写す」と同じ関数（applyIiifValues）で欄へ入れる。
+  // 写した値をそのまま地図へ代入する別の入れ方に戻すと、欄と控え（copiedValues）の言語がずれる。
+  assert.ok(
+    /applyIiifValues\(\s*\{\s*\}\s*,\s*draftPayload\.metadata/.test(mapEditSource),
+    '取り込みの道が写す側と同じ関数で欄へ入れていない',
+  );
+  console.log('ok: import-path-uses-apply-iiif-values');
 } catch (error) {
   if (error && typeof error === 'object' && 'stdout' in error && error.stdout) {
     process.stdout.write(String(error.stdout));
