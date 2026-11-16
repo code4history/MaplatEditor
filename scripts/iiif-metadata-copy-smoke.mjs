@@ -1072,6 +1072,59 @@ try {
         assert.equal(typeof grownApplied.license, 'string', 'the license must stay a plain string');
       });
 
+      // 編集画面の「写す」と取り込みの写しを揃える。是正を見分けるのは、
+      // (1) 「写す」で欄に入る言語が、写した時点の控え（copiedValues）の言語と同じであること、
+      // (2) 「写す」の直後に写し直しで比べても、どの行も「人が直した」にならないこと、
+      // (3) 「写す」で入る欄の値が、取り込みの道で入る値と同じであること
+      //    （取り込みの道は写しの値を applyIiifValues で空の地図へ入れる）。
+      test('panel-copy-puts-all-languages', async () => {
+        const lang = 'ja';
+        const canvasId = minimalCanvases.canvases[0].id;
+        const reply = { ok: true, json: minimal };
+        const imported = copyIiifMetadata(minimal, canvasId, lang, { sanitize });
+        assert.equal(imported.ok, true, 'the import copy must succeed');
+        assert.deepEqual(
+          Object.keys(imported.copiedValues.title).sort(),
+          ['en', 'ja'],
+          'the example must have more than one language',
+        );
+        const importedFields = applyIiifValues({}, imported.values, lang);
+        const blank = {
+          lang,
+          iiif: { manifest: minimal.id, canvas: canvasId, bindings: imported.bindings },
+        };
+        const copied = copyIiifForMap(reply, blank, { sanitize });
+        assert.equal(copied.ok, true, 'the panel copy must succeed');
+        const panel = applyIiifCopy(blank, copied, lang);
+        for (const [key, table] of Object.entries(panel.iiif.copiedValues)) {
+          const field = panel[key];
+          const fieldLangs = typeof field === 'string' ? [lang] : Object.keys(field ?? {});
+          assert.deepEqual(
+            fieldLangs.sort(),
+            Object.keys(table).sort(),
+            key + ': the field must have the same languages as the copied values',
+          );
+          assert.deepEqual(panel[key], importedFields[key], key + ': the panel copy must match the import');
+        }
+        const plan = planIiifRecopy(reply, panel, { sanitize });
+        assert.equal(plan.ok, true, 'the recopy plan must succeed');
+        const edited = plan.rows.filter((row) => row.reason !== 'unchanged');
+        assert.deepEqual(
+          edited.map((row) => row.key + '/' + row.lang + '/' + row.reason),
+          [],
+          'no row must be listed as changed right after the panel copy',
+        );
+
+        // 文字列の欄（既定の言語の値）がある地図でも、他の言語は欄に入り、控えと揃う。
+        const withString = { ...blank, title: '最小の見本図' };
+        const panelOverString = applyIiifCopy(withString, copied, lang);
+        assert.deepEqual(
+          panelOverString.title,
+          { ja: '最小の見本図', en: 'Minimal Sample Map' },
+          'every language must be put into a plain string field',
+        );
+      });
+
       let failed = 0;
       for (const item of tests) {
         try {
@@ -1186,6 +1239,14 @@ try {
     '画面が結び付けの一覧を自分で絞り込んでいる',
   );
   console.log('ok: retired-key-removed-in-copy-module');
+
+  // 取り込みの道も、編集画面の「写す」と同じ関数（applyIiifValues）で欄へ入れる。
+  // 写した値をそのまま地図へ代入する別の入れ方に戻すと、欄と控え（copiedValues）の言語がずれる。
+  assert.ok(
+    /applyIiifValues\(\s*\{\s*\}\s*,\s*draftPayload\.metadata/.test(mapEditSource),
+    '取り込みの道が写す側と同じ関数で欄へ入れていない',
+  );
+  console.log('ok: import-path-uses-apply-iiif-values');
 } catch (error) {
   if (error && typeof error === 'object' && 'stdout' in error && error.stdout) {
     process.stdout.write(String(error.stdout));

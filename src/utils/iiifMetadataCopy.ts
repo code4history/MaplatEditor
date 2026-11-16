@@ -150,8 +150,10 @@ export function copyIiifMetadataWithBindings(
 
 /**
  * 写した値を地図の metadata へ入れた新しいオブジェクトを返す（元は変えない）。
- * 値が言語つきなら、その言語の値だけを入れる（地図の言語が無ければ値の最初の言語）。
+ * 値が言語つきなら、すべての言語の値を入れる（写した時点の控え copiedValues と同じ言語にそろえ、
+ * 写し直しで入れていない言語が「人が直した」と出ないようにする）。
  * 欄への入れ方は mergeText（入力欄と同じ規則）に従う。
+ * 編集画面の「写す」と取り込みの写しは、どちらもこの関数で欄へ入れる。
  */
 export function applyIiifValues(
   target: Record<string, unknown>,
@@ -167,12 +169,14 @@ export function applyIiifValues(
   return next;
 }
 
-/** 写した値を「言語 → 文字」の表にする。地図の言語が無ければ値の最初の言語を使う。 */
+/**
+ * 写した値を「言語 → 文字」の表にする（すべての言語）。文字列は地図の言語の値とする。
+ * Core が copiedValues を作るのと同じ形にする。
+ */
 function textTable(value: Localized | string, lang: string): Record<string, string> | undefined {
   if (typeof value === 'string') return { [lang]: value };
-  if (Object.prototype.hasOwnProperty.call(value, lang)) return { [lang]: value[lang] };
-  const entry = Object.entries(value)[0];
-  return entry === undefined ? undefined : { [entry[0]]: entry[1] };
+  const entries = Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+  return entries.length === 0 ? undefined : Object.fromEntries(entries);
 }
 
 /**
