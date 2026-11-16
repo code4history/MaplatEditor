@@ -32,6 +32,7 @@ import IiifMetadataTable from '../components/mapedit/IiifMetadataTable.vue';
 import {
     applyIiifCopy,
     applyIiifRecopy,
+    applyIiifValues,
     copyIiifForMap,
     fetchIiifCopyReply,
     planIiifRecopy,
@@ -2482,9 +2483,11 @@ onMounted(async () => {
             // 書誌だけの道: 画像はこのあと利用者が選ぶ ∴ ここでは結び付きと書誌だけを入れる
             mapData.value.iiif = draftPayload.iiif;
           }
-          // 取り込みのときに写した書誌を、地図の metadata の同じ鍵へ入れる
+          // 取り込みのときに写した書誌を、地図の metadata の同じ鍵へ入れる。
+          // 欄への入れ方は編集画面の「写す」と同じ関数（applyIiifValues）に任せる。
           if (draftPayload?.metadata && typeof draftPayload.metadata === 'object') {
-            for (const [key, value] of Object.entries(draftPayload.metadata as Record<string, unknown>)) {
+            const applied = applyIiifValues({}, draftPayload.metadata, mapData.value.lang || 'ja');
+            for (const [key, value] of Object.entries(applied)) {
               mapData.value[key] = value;
             }
           }

@@ -75,7 +75,9 @@ binaries are distributed via GitHub Releases.
   and tiles are generated as usual
 - On the metadata tab of a map linked to a Manifest, you choose for each
   field whether it is copied from IIIF and whether the value comes from the
-  Manifest or from the canvas, and press **Copy from IIIF**. **Compare with IIIF
+  Manifest or from the canvas, and press **Copy from IIIF**. When a value has
+  more than one language, every language is put into the field, the same as
+  on import. **Compare with IIIF
   again** fetches the Manifest again and lists the current value, the value
   copied earlier, and the new value, labelled "Unchanged", "Edited by hand",
   or "Changed in IIIF"; only the rows you select are overwritten, so hand
