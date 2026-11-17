@@ -39,7 +39,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-const fixturesRoot = path.join(projectRoot, 'tests/fixtures/map-name-unification-migration-pipeline');
+const fixturesRoot = path.join(projectRoot, 'tests/fixtures/migration-pipeline');
 
 // 名称統一の one-shot migration は撤去された（0.7.0 → 1.0.0 は一気通貫で移行し、
 // 写像は書き込み側の唯一の正規化点で取込の瞬間に効く）。∴ この spec が確かめる不変条件は
