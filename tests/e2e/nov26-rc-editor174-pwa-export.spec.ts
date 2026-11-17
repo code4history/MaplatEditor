@@ -1,7 +1,7 @@
 // nov26-rc-editor174（#174）: PWA の画像を **Electron 自身の Chromium** で描く（AC9）。
 //
 //   (a) PWA 有効のアプリを実 UI から書き出すと、zip にアイコン 8・スプラッシュ 46 が
-//       正しい名前・寸法・不透明で入る（基準 = scripts/fixtures/nov26-rc-editor174-pwa-baseline.json）
+//       正しい名前・寸法・不透明で入る（基準 = scripts/fixtures/pwa-baseline.json）
 //   (b) その書き出しの間に **Chrome を起動しない**（main の child_process を横取りして、
 //       chrome / chromium の起動が 0 件であることを見る）
 //   (c) main の console.error が出ない
@@ -15,7 +15,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
 
 const APP_ID = 'nov26-rc-editor174-app';
-const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/nov26-rc-editor174-pwa-baseline.json');
+const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/pwa-baseline.json');
 
 type Baseline = {
   appIdPlaceholder: string;
