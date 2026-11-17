@@ -67,7 +67,7 @@ function grepRepo(pattern, dirs) {
     imports, [],
     `case 3: electron/ src/ に @duckdb 参照が残っている:\n${imports.join('\n')}`
   );
-  // 判定 env はコード・smoke から消えていること（ADR の記述は対象外＝outer リポジトリ）
+  // 判定 env はコード・smoke から消えていること（決定記録の記述は対象外。決定記録は親のワークスペースにある）
   const envRefs = grepRepo('MAPLAT_SEARCH_ENGINE', ['electron', 'src', 'scripts', 'tests']);
   assert.deepEqual(
     envRefs, [],
@@ -117,7 +117,7 @@ function grepRepo(pattern, dirs) {
 }
 
 // ───────────────────────────────────────────────
-// case 10: 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去が記録されている（outer リポジトリ）
+// case 10: 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去が記録されている（親のワークスペースの決定記録）
 // ───────────────────────────────────────────────
 {
   const adr = path.resolve(projectRoot, '../docs/adr/0001-sqlite-write-store-with-duckdb-search.md');
@@ -127,7 +127,7 @@ function grepRepo(pattern, dirs) {
       'case 10: 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去の追記が無い');
     console.log('  [4/8] case 10 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりの追記: PASS');
   } else {
-    console.log(`  [4/8] case 10 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まり: SKIP（outer が見えない実行位置: ${adr}）`);
+    console.log(`  [4/8] case 10 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まり: SKIP（親のワークスペースが見えない実行位置: ${adr}）`);
   }
 }
 
@@ -304,4 +304,4 @@ function findAsar() {
   console.log('  [8/8] package.json への結線: PASS');
 }
 
-console.log('\nm18-t8 packaging smoke: すべて成功');
+console.log('\npackaging smoke: すべて成功');

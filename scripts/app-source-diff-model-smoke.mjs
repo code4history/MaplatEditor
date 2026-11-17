@@ -1,5 +1,4 @@
 // スモーク: マスタ由来ソースの差分保持ストレージモデルと出力文法の刷新。
-//。
 //
 // 対象 AC: case 1(出力形) / case 2(設定ファイル) / case 3(マージ順) / case 4(マスタ欠落) / case 5(旧形移行)
 //          case 6(overlay 保全) / case 19(builtin の url) / case 21(commonOptions 禁止キー)
@@ -569,7 +568,7 @@ try {
     const anchors = new Set(
       [...editorSrc.matchAll(/(?:data|input)-testid="app-source-override-([a-zA-Z]+)"/g)].map((m) => m[1]),
     );
-    // : 解除の×は別接頭辞。override 側の抽出へ 'clear' が混入していないこと
+    // 解除の×は別接頭辞。override 側の抽出へ 'clear' が混入していないこと
     assert.equal(anchors.has('clear'), false, 'case 7: 解除の×は app-source-clear- 接頭辞で分離する');
     const declared = new Set([...APP_SOURCE_OVERRIDABLE_KEYS, ...APP_SOURCE_OWNED_KEYS]);
     assert.deepEqual(
@@ -790,7 +789,7 @@ try {
     console.log('ok: ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの列挙更新（弱照合）');
   }
 
-  console.log('\nm6-t10 app-source-diff-model smoke: すべて成功');
+  console.log('\napp-source-diff-model smoke: すべて成功');
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

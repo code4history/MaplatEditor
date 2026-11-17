@@ -266,17 +266,17 @@ try {
     // ∴ 全出現 = 共通関数内の呼び出しだけであるべき
     assert.equal(countOf(mapEdit, 'clearAlignMarkers()'), countOf(leaveBody, 'clearAlignMarkers()'),
       'case 7: マーカー消去の呼び出しが共通関数の外に重複している');
-    // キャンセルはシフト計算・上書き・永続化を行わない（HR-5.3）
+    // キャンセルはシフト計算・上書き・永続化を行わない（人間の確認で決めた条件）
     for (const forbidden of ['computeMercatorShift', 'applyShiftOverwrite', 'persistBaseMapShift']) {
       assert.equal(countOf(cancelBody, forbidden), 0,
-        'case 7(HR-5.3): キャンセルが ' + forbidden + ' に触れている');
+        'case 7: キャンセルが ' + forbidden + ' に触れている');
     }
     console.log('[6/8] case 7: 共通後始末 leaveAlignEditPhases OK');
   }
 
   // ------------------------------------------------------------ [7/8]
   // case 1（静的）: 第 2 ボタンが相ボタンの一つ左隣。
-  // HR-6: 書込 site は確定とリセットの 2 箇所だけ（persistBaseMapShift 経由）
+  // 人間の確認で永続化に決めた結果、書込 site は確定とリセットの 2 箇所だけ（persistBaseMapShift 経由）
   {
     const second = mapEdit.indexOf('mapedit-align-second-button');
     const phase = mapEdit.indexOf('mapedit-align-phase-button');
@@ -291,15 +291,15 @@ try {
     assert.ok(persistStart >= 0, 'persistBaseMapShift が定義されていない');
     const persistBody = mapEdit.slice(persistStart, mapEdit.indexOf('\nconst ', persistStart + 1));
     assert.equal(countOf(mapEdit, 'setBaseMapShiftForMapID'), countOf(persistBody, 'setBaseMapShiftForMapID'),
-      'HR-6: 書込 IPC が persistBaseMapShift の外から呼ばれている');
+      '書込 IPC が persistBaseMapShift の外から呼ばれている');
     // 定義は「const persistBaseMapShift = (…」で呼び出しトークンに一致しない ∴ 出現 = 呼び出しの数
     const persistCalls = (mapEdit.match(/persistBaseMapShift\(/g) || []).length;
     assert.equal(persistCalls, 2, // 確定 1 + リセット 1
-      'HR-6: 書込 site が確定・リセットの 2 箇所でない（実際 ' + persistCalls + ' 箇所）');
+      '書込 site が確定・リセットの 2 箇所でない（実際 ' + persistCalls + ' 箇所）');
     // 読込は loadBaseMapShifts が担い、loadBaseMapVisibility と同じ 2 箇所から呼ばれる
     const loadCalls = (mapEdit.match(/loadBaseMapShifts\(\)/g) || []).length;
-    assert.ok(loadCalls >= 2, 'HR-6: loadBaseMapShifts の呼び出しが 2 箇所未満');
-    console.log('[7/8] case 1+HR-6: 第 2 ボタン配置と読み書き site OK');
+    assert.ok(loadCalls >= 2, 'loadBaseMapShifts の呼び出しが 2 箇所未満');
+    console.log('[7/8] case 1+永続化: 第 2 ボタン配置と読み書き site OK');
   }
 
   // ------------------------------------------------------------ [8/8]

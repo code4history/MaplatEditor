@@ -180,7 +180,7 @@ try {
   console.log('  [5/7] App list/edit integration: PASS');
 
   // --- Part 6: useRegisteredMapSelector initialCatalogKey ---
-  // 旧 DesktopRegisteredMapSelector.vue は参照されていなかったので消した（PR #246 の）。composable の側だけを確かめる
+  // 旧 DesktopRegisteredMapSelector.vue は参照されていなかったので消した（PR #246）。composable の側だけを確かめる
 
   // useRegisteredMapSelector.ts に initialCatalogKey オプションがあることを確認
   const selectorSource = await readFile(

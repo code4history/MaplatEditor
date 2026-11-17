@@ -183,7 +183,7 @@ try {
         console.log('ok #11d: case 5-17 re-export preserves properties.icon');
       }
 
-      console.log('\\nM18-T5 properties migration smoke passed');
+      console.log('\\nproperties migration smoke passed');
     `,
   );
 

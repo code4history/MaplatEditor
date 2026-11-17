@@ -175,7 +175,7 @@ assert.ok(
 console.log("✅ case 6: pnpm-lock.yaml は registry 参照形式で github ref を含まない");
 passed++;
 
-// ── case 7: 既存 smoke の lock pin assert は skip ──
+// ── case 7: 既存の地図名の統一の smoke の lock pin assert は skip ──
 // 上の case 7 のとおり、lock pin の hash 検査は registry 参照へ移行したため
 // 成立しない。当該 assert を「registry 参照へ移行したため検査対象外」と明記して
 // skip する（削除ではなくコメント付き skip とし理由を残す）。

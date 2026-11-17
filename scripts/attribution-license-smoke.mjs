@@ -1,6 +1,6 @@
 // スモーク: 帰属・ライセンスの 2×2 と自由記述（表示まで）。フォールバックは含まない。
 //
-// case 1  BaseMapEditDocument / BaseMapSavePayload.tms が の5フィールドを持ち、
+// case 1  BaseMapEditDocument / BaseMapSavePayload.tms が帰属・ライセンスの 5 フィールドを持ち、
 //      fromBaseMapCatalogItem → toBaseMapSavePayload の往復で保たれる。
 // case 2  newBaseMapDocument の license / dataLicense が空文字（All right reserved を既定にしない）。
 // case 3  MAP_LANG_ATTRS が12件で licenseNote / dataLicenseNote を含み、url を含まない。
@@ -92,14 +92,14 @@ try {
   const attrMissingValidation = validateBaseMapDocument(attrMissing);
   assert.ok(
     !attrMissingValidation.valid && attrMissingValidation.errors.includes("attr-required"),
-    "M2: attr 未設定のベースマップは invalid で attr-required を含むはず。実際: " + JSON.stringify(attrMissingValidation.errors),
+    "attr 未設定のベースマップは invalid で attr-required を含むはず。実際: " + JSON.stringify(attrMissingValidation.errors),
   );
   const attrPresent = { ...attrMissing, attr: { fr: "© Exemple" } };
   assert.ok(
     validateBaseMapDocument(attrPresent).valid,
-    "M2: attr を既定言語で設定すれば valid のはず",
+    "attr を既定言語で設定すれば valid のはず",
   );
-  console.log("ok: M2 attr (地図画像帰属) is required in validateBaseMapDocument");
+  console.log("ok: attr (地図画像帰属) is required in validateBaseMapDocument");
   console.log("ok: case 2 newBaseMapDocument defaults (license/dataLicense = empty string)");
 
   // --- case 1: fromBaseMapCatalogItem → toBaseMapSavePayload の往復で5フィールドが保たれる ---

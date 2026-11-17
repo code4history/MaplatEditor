@@ -1,8 +1,8 @@
 // スモーク: 搬出/発行 strict policy 分離と export UI 回帰修正 (milestone v2.1 T1)。
 // 既存の smoke と同じ sandbox 方式 (vite SSR ビルド + electron スタブ + saveFolder/tmpFolder=一時dir) で、
-// mapedit:download-saved の strict-free 搬出 (AC-T1-1)、App save/preview/export の共通 strict guard
-// (AC-T1-2)、export の pre-dialog/post-dialog 二重判定 (AC-T1-3) を behavioral に検証する。
-// AC-T1-4 (ProgressModal 二重翻訳の是正) は MapEdit.vue のソースを静的 grep で検証する。
+// mapedit:download-saved の strict-free 搬出 (case 1)、App save/preview/export の共通 strict guard
+// (case 2)、export の pre-dialog/post-dialog 二重判定 (case 3) を behavioral に検証する。
+// case 4 (ProgressModal 二重翻訳の是正) は MapEdit.vue のソースを静的 grep で検証する。
 import { mkdtemp, rm, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -56,7 +56,7 @@ try {
         handle: (ch: string, fn: any) => handlers.set(ch, fn),
         removeHandler: (ch: string) => handlers.delete(ch),
       };
-      // AC-T1-3: showSaveDialog 呼び出し時に (globalThis as any).__beforeDialogResolve を
+      // case 3: showSaveDialog 呼び出し時に (globalThis as any).__beforeDialogResolve を
       // 一度だけ実行してから解決する。dialog 待ち中のDB変更 (strict flip) をシミュレートする
       export const dialog = {
         async showSaveDialog(_win: any, _opts: any) {
@@ -136,7 +136,7 @@ try {
         };
       }
 
-      // --- AC-T1-1: strict_error 地図でも mapedit:download-saved(mapRef) は成功する ---
+      // --- case 1: strict_error 地図でも mapedit:download-saved(mapRef) は成功する ---
       const { uid: strictMapUid } = await SqliteDataService.createMap('strict-export-map', {
         title: 'Strict Export Map',
         compiled: { strict_status: 'strict_error' },
@@ -157,9 +157,9 @@ try {
         mapJson.compiled.strict_status, 'strict_error',
         'ZIP 内の地図 JSON も strict_error compiled のまま出力されるはず (strict-free 搬出)'
       );
-      console.log('ok: AC-T1-1 strict_error map exports via mapedit:download-saved without rejection');
+      console.log('ok: case 1 strict_error map exports via mapedit:download-saved without rejection');
 
-      // AC-T1-1 (既知の限界): GCP<3・compiled 欠落の保存地図は現行 previewSource と
+      // case 1 (既知の限界): GCP<3・compiled 欠落の保存地図は現行 previewSource と
       // 同一挙動 (too_less_gcps) で 'Error' に収束する (対象外の確認事項、非回帰)
       const { uid: tooLessGcpsUid } = await SqliteDataService.createMap('too-less-gcps-map', {
         title: 'Too Less Gcps Map', gcps: [], edges: [], sub_maps: [],
@@ -173,7 +173,7 @@ try {
         result1b, 'Error',
         'GCP<3・compiled欠落の保存地図は too_less_gcps で失敗するはず (現行 previewSource と同一挙動)'
       );
-      console.log('ok: AC-T1-1 too_less_gcps saved map (compiled missing) resolves to Error (non-regression)');
+      console.log('ok: case 1 too_less_gcps saved map (compiled missing) resolves to Error (non-regression)');
 
       // download-saved は不在参照でも reject せず 'Error' に収束する
       const missingRef = '99999999-9999-4999-8999-999999999998';
@@ -182,9 +182,9 @@ try {
       };
       const result1c = await downloadSavedHandler(fakeEvent, missingRef);
       assert.equal(result1c, 'Error', '不在 mapRef の download-saved も reject せず Error に収束するはず');
-      console.log('ok: AC-T1-1 missing mapRef resolves to Error without throwing (resolve-only contract)');
+      console.log('ok: case 1 missing mapRef resolves to Error without throwing (resolve-only contract)');
 
-      // --- AC-T1-2: App save / preview / export は strict_error / missing map を共通拒否する ---
+      // --- case 2: App save / preview / export は strict_error / missing map を共通拒否する ---
 
       // (a) AppDataService.saveApp
       for (const [label, ref] of [['strict', strictMapUid], ['missing', missingRef]] as const) {
@@ -195,7 +195,7 @@ try {
         const saved = await AppDataService.saveApp({ document: doc, slug: 'guard_save_' + label });
         assert.equal(saved.result, 'Error', 'saveApp (' + label + ') は strict guard で拒否されるはず: ' + JSON.stringify(saved));
       }
-      console.log('ok: AC-T1-2(a) AppDataService.saveApp rejects strict_error and missing maplat refs');
+      console.log('ok: case 2(a) AppDataService.saveApp rejects strict_error and missing maplat refs');
 
       // (b) AppPreviewService.prepare — guard は ensureServer() (副作用) より前に reject するはず
       let ensureServerCalls = 0;
@@ -223,7 +223,7 @@ try {
       } finally {
         (AppPreviewService as any).ensureServer = originalEnsureServer;
       }
-      console.log('ok: AC-T1-2(b) AppPreviewService.prepare rejects before starting preview server side effects');
+      console.log('ok: case 2(b) AppPreviewService.prepare rejects before starting preview server side effects');
 
       // (c) AppExportService.exportApp — pre-dialog: dialog を開かずに拒否する
       for (const [label, ref] of [['strict', strictMapUid], ['missing', missingRef]] as const) {
@@ -240,9 +240,9 @@ try {
           'exportApp (' + label + ') は pre-dialog で reject し dialog を開かないはず'
         );
       }
-      console.log('ok: AC-T1-2(c) AppExportService.exportApp pre-dialog guard rejects without opening the save dialog');
+      console.log('ok: case 2(c) AppExportService.exportApp pre-dialog guard rejects without opening the save dialog');
 
-      // --- AC-T1-3: post-dialog revalidation。dialog 待ち中の strict flip を古い判定で通さない ---
+      // --- case 3: post-dialog revalidation。dialog 待ち中の strict flip を古い判定で通さない ---
       const { uid: flipMapUid } = await SqliteDataService.createMap('flip-map', {
         title: 'Flip Map', gcps: [], edges: [], sub_maps: [],
         strictMode: 'strict', vertexMode: 'plain',
@@ -267,10 +267,10 @@ try {
       const exportedFlip = await AppExportService.exportApp(fakeWin, flipDocument);
       assert.equal(
         exportedFlip.result, 'Error',
-        'post-dialog revalidation は dialog 待ち中の strict flip を検出して拒否するはず (AC-T1-3)'
+        'post-dialog revalidation は dialog 待ち中の strict flip を検出して拒否するはず (case 3)'
       );
       assert.equal(exportedFlip.message, 'appedit.preview.strict_error');
-      console.log('ok: AC-T1-3 post-dialog revalidation rejects a map that flips to strict_error during the dialog wait');
+      console.log('ok: case 3 post-dialog revalidation rejects a map that flips to strict_error during the dialog wait');
 
       console.log('strict export guard smoke passed');
       process.exit(0);
@@ -313,24 +313,24 @@ try {
     maxBuffer: 1024 * 1024 * 8,
   });
 
-  // --- AC-T1-4: export/upload/WMTS 進捗は i18n key 契約で統一され、ProgressModal の
+  // --- case 4: export/upload/WMTS 進捗は i18n key 契約で統一され、ProgressModal の
   //     missingKey を出さない。MapEdit.vue ファイル全体で modalShow(t(/modalFinish(t( が
   //     ゼロ件であることを静的 grep で検証する ---
   const mapEditSource = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
   assert.doesNotMatch(
     mapEditSource, /modalShow\(t\(/,
-    'MapEdit.vue に modalShow(t(... という二重翻訳 call site が残存している (AC-T1-4)'
+    'MapEdit.vue に modalShow(t(... という二重翻訳 call site が残存している (case 4)'
   );
   assert.doesNotMatch(
     mapEditSource, /modalFinish\(t\(/,
-    'MapEdit.vue に modalFinish(t(... という二重翻訳 call site が残存している (AC-T1-4)'
+    'MapEdit.vue に modalFinish(t(... という二重翻訳 call site が残存している (case 4)'
   );
   // 新IPC channel への切替と、renderer からの previewSource+download 2段呼び出しの消滅を確認
   // downloadSaved は第 2 引数に書き出す中身（options）を取るようになった。
   // 検査の意図（新 IPC を mapUid.value で呼ぶ）は変えず、後続の引数を許す
   assert.match(mapEditSource, /window\.mapedit\.downloadSaved\(mapUid\.value[,)]/);
   assert.doesNotMatch(mapEditSource, /window\.mapedit\.previewSource\(mapUid\.value\)/);
-  console.log('ok: AC-T1-4 MapEdit.vue has zero modalShow(t(/modalFinish(t( double-translation call sites');
+  console.log('ok: case 4 MapEdit.vue has zero modalShow(t(/modalFinish(t( double-translation call sites');
 
   console.log('strict export guard smoke passed');
 } finally {

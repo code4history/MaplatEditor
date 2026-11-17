@@ -4,7 +4,7 @@
  *
  * case 13: requiresProviderKey / PROVIDER_KEY_REQUIRED_KINDS が isProviderKind（3種）・
  *       providerGlCdn の sourceKind（2種・CDN用）と混同されない
- * : resolvePreviewKey（3段）/ resolvePublishKey（2段）
+ * resolvePreviewKey（3段）/ resolvePublishKey（2段）
  * v1.3: resolveStartFromViewerMapID の3段照合（除外ソース救済なし・旧形 slug 救済あり）
  */
 import assert from "node:assert/strict";

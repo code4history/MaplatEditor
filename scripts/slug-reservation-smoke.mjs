@@ -969,7 +969,7 @@ assert.doesNotMatch(slugField, /void reservation\.releaseIfHeld\(\)/,
 // counter-based pending (reservationPendingCount > 0) が onAvailable 中に available を抑制する
 assert.match(slugField, /reservationPendingCount/, "SlugField must use counter-based pending ()");
 assert.doesNotMatch(slugField, /onAvailablePending\b/, "SlugField must not use boolean onAvailablePending ()");
-// hasFailedRelease は state computed の release失敗検出パス内で呼ばれ、
+// hasFailedRelease() は state computed の release失敗検出パス内で呼ばれ、
 // Vue computed が再評価されることをregexで保証する。
 assert.match(slugField, /hasFailedRelease\(\)\)\s*\{[\s\S]*?return\s+['"]check-failed['"]/,
   "SlugField state computed must return 'check-failed' when hasFailedRelease() is true ()");
@@ -1120,7 +1120,7 @@ for (const loc of LOCALES) {
   const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
   assert.ok(t.editor_ui?.tabs != null, `editor_ui.tabs missing in ${loc}`);
 }
-// ja の 確定語彙
+// ja の確定語彙
 const jaI = JSON.parse(await readSrc("public/locales/ja/translation.json"));
 assert.equal(jaI.editor_ui.tabs.metadata, "メタデータ編集");
 assert.equal(jaI.editor_ui.tabs.gcps, "対応点編集");

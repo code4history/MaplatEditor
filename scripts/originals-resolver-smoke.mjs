@@ -2,19 +2,18 @@
 // 既存の smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapOriginalImageService / MapMutationQueue / MapEditService.save() / WmtsGeneratorService.generate()
 // を behavioral に検証する。
-// /準拠。
 // シナリオ:
-//   (A) normalizeOriginalExt: 優先順位/trim/大小文字/allowed set の全分岐 (AC-T2-3)
+//   (A) normalizeOriginalExt: 優先順位/trim/大小文字/allowed set の全分岐
 //   (B) resolveRuntimeOriginal: canonical extHint優先探索、
-//       legacy 0/1/2+件、extHint disambiguation (AC-T2-2)
+//       legacy 0/1/2+件、extHint disambiguation
 //   (C) classifyMigrationCandidate: 7種の判定結果 (T3 が消費する純関数の契約固定)
 //   (D) MapMutationQueue: run()/runMany() の直列化と、前段 reject が後続をブロックしないこと
-//   (E) MapEditService.save(): tmpCheck 分岐の canonical(uid キー)書込みと未対応拡張子reject (AC-T2-1)
-//   (F) MapEditService.save(): 同一 uid への2回同時発火が直列に完了すること (AC-T2-4)
-//   (G) (AC-T4-2) 適用後: canonical-only map を clone すると、複製先には legacy
-//       slug キーではなく canonical uid キーの原本が作られる（の既知差異は
-//       T4 で解消済み。改修方針どおり、本 Part を「解消の確認」へ更新）
-//   (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / 解決不能時のerr (AC-T2-2)
+//   (E) MapEditService.save(): tmpCheck 分岐の canonical(uid キー)書込みと未対応拡張子reject
+//   (F) MapEditService.save(): 同一 uid への2回同時発火が直列に完了すること
+//   (G) clone の原本複写の適用後: canonical-only map を clone すると、複製先には legacy
+//       slug キーではなく canonical uid キーの原本が作られる（レビューで指摘された既知差異は
+//       原本の rename・clone への追随で解消済み。改修方針どおり、本 Part を「解消の確認」へ更新）
+//   (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / 解決不能時のerr
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -117,7 +116,7 @@ try {
       await fs.ensureDir(originalsDir);
 
       // ============================================================
-      // (A) normalizeOriginalExt: 優先順位/trim/大小文字/allowed set (AC-T2-3)
+      // (A) normalizeOriginalExt: 優先順位/trim/大小文字/allowed set
       // ============================================================
       assert.equal(normalizeOriginalExt('jpg', 'png'), 'jpg', 'imageExtension が最優先');
       assert.equal(normalizeOriginalExt(undefined, 'png'), 'png', 'imageExtension 未指定なら imageExtention');
@@ -132,7 +131,7 @@ try {
       console.log('ok: (A) normalizeOriginalExt covers priority/trim/case/allowed-set branches');
 
       // ============================================================
-      // (B) resolveRuntimeOriginal: canonical-first / legacy fallback (AC-T2-2)
+      // (B) resolveRuntimeOriginal: canonical-first / legacy fallback
       // ============================================================
       const UID_B1 = 'b1111111-1111-4111-8111-111111111111';
       // (B-1) canonical が allowed set の優先順位 (jpg -> jpeg -> png) で見つかる
@@ -165,7 +164,7 @@ try {
       assert.equal(b4, null, 'extHint 無しでは複数 legacy 候補は ambiguous');
       console.log('ok: (B-4) resolveRuntimeOriginal: ambiguous legacy without extHint (naramachi scenario)');
 
-      // (B-5) 同じ2件に対し extHint='png' でちょうど1件確定 -> success (の肯定側)
+      // (B-5) 同じ2件に対し extHint='png' でちょうど1件確定 -> success (レビューで指摘された曖昧さの肯定側)
       const b5 = await resolveRuntimeOriginal(UID_B4, 'naramachi-like', 'png');
       assert.equal(b5?.source, 'legacy');
       assert.equal(b5?.ext, 'png', 'extHint が一致する1件だけに絞り込まれる');
@@ -179,7 +178,7 @@ try {
 
       // (B-7) 同一 slug・同一正規化ext の物理ファイルが2件 (ファイル名の末尾空白で衝突させ、
       // OSのcase-folding挙動に依存せず「同一extの複数物理ファイル」を作る) -> extHint が
-      // その ext に一致していても ambiguous (の否定側)
+      // その ext に一致していても ambiguous (レビューで指摘された曖昧さの否定側)
       const UID_B7 = 'b7777777-7777-4777-8777-777777777777';
       await fs.writeFile(path.join(originalsDir, 'b7-slug.jpg'), 'variant-1');
       await fs.writeFile(path.join(originalsDir, 'b7-slug.jpg '), 'variant-2'); // 末尾に半角スペース = 別ファイル
@@ -188,7 +187,7 @@ try {
       console.log('ok: (B-7) resolveRuntimeOriginal: same-ext multiple physical files stay ambiguous even with extHint');
 
       // (B-8) canonical variant 2件 (stale + current) + extHint -> extHint 優先で正しい方を返す
-      // (の再現シナリオ: 既存地図の画像を形式変更して再アップロードすると
+      // (実装レビューで見つかった不具合の再現シナリオ: 既存地図の画像を形式変更して再アップロードすると
       // uid.<旧ext> が残置され canonical variant が2件になる。DB の imageExtension は新ext に
       // 更新されるため、canonical 探索は固定順(jpg優先)ではなく extHint 優先で新ext を
       // 返さなければならない。マイルストーン point 1-2 準拠)
@@ -263,7 +262,7 @@ try {
       console.log('ok: (C-7) classifyMigrationCandidate: skip_source_missing');
 
       // ============================================================
-      // (D) MapMutationQueue: run()/runMany() の直列化と reject 非伝播 (AC-T2-4)
+      // (D) MapMutationQueue: run()/runMany() の直列化と reject 非伝播
       // ============================================================
       const dOrder = [];
       const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -325,7 +324,7 @@ try {
       console.log('ok: (D-3) MapMutationQueue.runMany() serializes across all involved uids');
 
       // ============================================================
-      // (E) MapEditService.save(): tmpCheck 分岐の canonical 書込み (AC-T2-1)
+      // (E) MapEditService.save(): tmpCheck 分岐の canonical 書込み
       // ============================================================
       const tmpFolder = SettingsService.get('tmpFolder');
       const tmpTileFolder = path.join(tmpFolder, 'tiles');
@@ -365,7 +364,7 @@ try {
       assert.ok(!(await fs.pathExists(legacyE1)), '新規アップロードでは legacy(slugキー) の originals ファイルは作られないはず');
       console.log('ok: (E-1) MapEditService.save(): tmpCheck writes canonical originals/<uid>.<ext> only');
 
-      // 未対応拡張子は DB write 前に reject される (AC-T2-3)
+      // 未対応拡張子は DB write 前に reject される
       const UID_E2 = 'e2222222-2222-4222-8222-222222222222';
       await prepareTmpUpload('tiff');
       const saveE2 = await MapEditService.save({
@@ -387,7 +386,7 @@ try {
       console.log('ok: (E-2) MapEditService.save(): unsupported extension rejects before any DB write');
 
       // ============================================================
-      // (F) MapEditService.save(): 同一 uid への2回同時発火が直列に完了する (AC-T2-4)
+      // (F) MapEditService.save(): 同一 uid への2回同時発火が直列に完了する
       // ============================================================
       const UID_F1 = 'f1111111-1111-4111-8111-111111111111';
       const createdF1 = await MapEditService.save({
@@ -447,8 +446,8 @@ try {
       console.log('ok: (F) MapEditService.save(): concurrent same-uid saves are serialized (physical overlap, not sequential await)');
 
       // ============================================================
-      // (G) (AC-T4-2) 適用後: canonical-only map の clone は複製先 canonical へ複写される
-      // (の既知差異は解消済み)
+      // (G) clone の原本複写の適用後: canonical-only map の clone は複製先 canonical へ複写される
+      // (レビューで指摘された既知差異は解消済み)
       // ============================================================
       const UID_G_SRC = 'aaaaaaaa-1111-4111-8111-111111111111';
       await prepareTmpUpload('jpg');
@@ -484,17 +483,17 @@ try {
       const cloneDestCanonical = path.join(originalsDir, UID_G_DEST + '.jpg');
       assert.ok(
         await fs.pathExists(cloneDestCanonical),
-        '(AC-T4-2) 適用後: 複製先の canonical(uidキー) 原本が作られるはず(の既知差異は解消済み)'
+        'clone の原本複写の適用後: 複製先の canonical(uidキー) 原本が作られるはず(レビューで指摘された既知差異は解消済み)'
       );
       assert.equal(
         await fs.readFile(cloneDestCanonical, 'utf8'),
         await fs.readFile(path.join(originalsDir, UID_G_SRC + '.jpg'), 'utf8'),
         '複製先 canonical の内容は複製元 canonical と同一のはず'
       );
-      console.log('ok: (G) MapEditService.save(): canonical-only clone now copies the resolved original to dest canonical (AC-T4-2, review v1 resolved)');
+      console.log('ok: (G) MapEditService.save(): canonical-only clone now copies the resolved original to dest canonical (review v1 resolved)');
 
       // ============================================================
-      // (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / unresolved (AC-T2-2)
+      // (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / unresolved
       // ============================================================
       // m12-t1-hotfix-1-search-thumbnails.spec.ts 等の既存 e2e と同じ実測済み gcps フィクスチャを
       // 再利用する (400x300、3点、非退化な三角形)。

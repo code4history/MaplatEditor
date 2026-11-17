@@ -300,4 +300,4 @@ if (failures.length) {
   console.error(`\n${failures.length} 件の検査が落ちた`);
   process.exit(1);
 }
-console.log('\nnov26-cache publish guard smoke: all passed');
+console.log('\ncache publish guard smoke: all passed');

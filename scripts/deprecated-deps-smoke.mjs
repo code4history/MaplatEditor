@@ -88,4 +88,4 @@ const FILE_URL_IMPORTERS = [
   console.log(`  [2/2] case 8 file-url import の不在と appScheme import 直上の @ts-ignore 不在（${checked} ファイル）: PASS`);
 }
 
-console.log('\nm6-t11 deprecated-deps smoke: すべて成功');
+console.log('\ndeprecated-deps smoke: すべて成功');

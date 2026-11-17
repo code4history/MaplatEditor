@@ -1,4 +1,4 @@
-// Phase 4 Task 1: useRevisionedAssetSave composable smoke (unit, vite lib build)
+// useRevisionedAssetSave composable smoke (unit, vite lib build)
 // maps/apps/poi_sources 共通の revision 楽観ロック保存フロー（conflict → 読み直す/上書き）を
 // fake send / fake window.dialog.showMessageBox で検証する。
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';

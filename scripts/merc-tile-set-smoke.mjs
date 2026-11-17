@@ -3,9 +3,8 @@
 // saveFolder=一時dir) で、WmtsGeneratorService.generate() の merc/{targetBaseMapUid} 出力・
 // TileJSON生成、appSourceModel の baseMapUid 導出・EDITOR_ONLY_KEYS strip、
 // AppExportService の merc 抽出・コピー・名前衝突診断、SqliteDataService の
-// deleteUserBaseMap merc タイル削除、元地図削除で merc タイルが無傷であること  を
+// deleteUserBaseMap merc タイル削除、元地図削除で merc タイルが無傷であることを
 // behavioral に検証する。
-//。
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -134,7 +133,7 @@ try {
       }
 
       // ============================================================
-      // (A) WmtsGeneratorService.generate: merc/{targetBaseMapUid} 出力 + TileJSON
+      // (A) WmtsGeneratorService.generate(): merc/{targetBaseMapUid} 出力 + TileJSON
       // ============================================================
       const SRC_MAP_UID = 'aaaaaaaa-1111-4111-8111-111111111111';
       const TARGET_UID_1 = 'bbbbbbbb-1111-4111-8111-111111111111';
@@ -203,7 +202,7 @@ try {
       console.log('ok: (B) baseMapUid はエディタ内部表現に留まり viewer 出力の双方から除去される ');
 
       // ============================================================
-      // (C) AppExportService.exportApp: merc コピー + tiles[] 差し替え
+      // (C) AppExportService.exportApp(): merc コピー + tiles[] 差し替え
       // ============================================================
       const fakeWin = { webContents: { send() {} } };
       const zipPathC = path.join(${JSON.stringify(exportDir)}, 'export-c.zip');
@@ -229,7 +228,7 @@ try {
       // (D) dirName 衝突は**構造的に到達不能**になった (case 8 の再定義)
       // ============================================================
       // 旧モデルでは dirName が「アプリへ追加した時点の slug」としてアプリ文書に凍結されていたため、
-      // 別のマスタを同じ dirName で参照する状態が作れた。 では dirName を
+      // 別のマスタを同じ dirName で参照する状態が作れた。アプリのソースを差分で持つ形への変更の後は dirName を
       // **マスタの現在 slug** から書き出しのたびに導出する。slug は asset_registry で kind 横断に
       // UNIQUE なので、異なるマスタが同じ dirName を主張することはあり得ない。
       // ∴ MERC_NAME_COLLISION_WARNING は防御的 assert として残るが発火しない。
@@ -385,7 +384,7 @@ try {
         const safety = { heapSizeLimitMB: 1000, maxDecoderHeapMB: 500, maxResolutionMP: 250, maxMemoryMB: 300 };
         const result = resolveMercDecodeOptions(pngLike, { maxMemoryUsageInMB: 10, maxResolutionInMP: 10 }, safety);
         assert.equal('errorCode' in result, false, 'G-5: 非JPEG入力はエラーにならず安全枠へフォールバックするはず');
-        assert.equal(result.maxMemoryUsageInMB, safety.maxMemoryMB, 'G-5: 非JPEGは設定キャップではなく機械の安全枠を使うはず（: PNGはoptions非参照のため無害）');
+        assert.equal(result.maxMemoryUsageInMB, safety.maxMemoryMB, 'G-5: 非JPEGは設定キャップではなく機械の安全枠を使うはず（PNGはoptions非参照のため無害）');
         assert.equal(result.maxResolutionInMP, safety.maxResolutionMP);
       }
       console.log('ok: (G-5) resolveMercDecodeOptions: 非JPEG入力は機械の安全枠へフォールバックする');
@@ -437,7 +436,7 @@ try {
       }
 
       // ============================================================
-      // (I) 実装レビュー round3 WmtsGeneratorService.generate が
+      // (I) 実装レビュー round3 WmtsGeneratorService.generate() が
       //     Jimp.fromBuffer を実際に使っていることをソーステキストで固定する。
       //     Part G は純粋関数 resolveMercDecodeOptions() のみを検証しており、呼び出し側
       //     （generate() 本体）を round2 の欠陥形 Jimp.read(imagePath) へ戻しても Part A〜G は

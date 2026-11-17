@@ -1,6 +1,5 @@
 // スモーク: AppExportService のタイルのコピーのフェーズ（copyTilesWithProgress）で、
-// 地図ごとの最終件 `(N/N)` が throttle に落ちないこと（#101）。タスク設計（outer リポジトリ
-//）・case 3。
+// 地図ごとの最終件 `(N/N)` が throttle に落ちないこと（#101）。
 //
 //   (1) 静的: copyTilesWithProgress の本体で、`done === total` の分岐が updatePhaseEnd を呼び、
 //       それ以外が update を呼ぶ（非最終件の throttle は温存する）

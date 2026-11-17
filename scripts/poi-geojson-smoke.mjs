@@ -54,7 +54,7 @@ try {
         console.log('ok: validate rejects non-FeatureCollection');
       }
 
-      // ---- validate: non-Point geometry (POI-104) ----
+      // ---- validate: non-Point geometry ----
       {
         const bad = { type: 'FeatureCollection', features: [{ type: 'Feature', id: 'p1', geometry: { type: 'LineString', coordinates: [[0,0],[1,1]] }, properties: { name: 'L' } }] };
         const issues = validateFeatureCollection(bad);
@@ -71,7 +71,7 @@ try {
         console.log('ok: validate flags out-of-range coords, accepts boundary');
       }
 
-      // ---- validate: name required (POI-107) ----
+      // ---- validate: name required ----
       {
         const issues = validateFeatureCollection(fc([feat('p1', [135, 35], { name: '', desc: 'x' })]));
         assert.ok(codesOf(issues).includes('name-required'), 'empty name: ' + JSON.stringify(issues));
@@ -87,14 +87,14 @@ try {
         console.log('ok: validate flags duplicate display id');
       }
 
-      // ---- validate: display id charset (POI-140) ----
+      // ---- validate: display id charset ----
       {
         const issues = validateFeatureCollection(fc([feat('bad#id', [135, 35], { name: 'A', desc: 'x' })]));
         assert.ok(codesOf(issues).includes('display-id-charset'), 'bad charset: ' + JSON.stringify(issues));
         console.log('ok: validate flags display id charset violation');
       }
 
-      // ---- validate: no-content warning (POI-108) source-wide ----
+      // ---- validate: no-content warning source-wide ----
       {
         const issues = validateFeatureCollection(fc([feat('p1', [135, 35], { name: 'A' }), feat('p2', [136, 36], { name: 'B' })]));
         const nc = issues.filter((i) => i.code === 'no-content');
@@ -106,7 +106,7 @@ try {
         console.log('ok: validate emits single source-wide no-content warning');
       }
 
-      // ---- validate: scale warnings (POI-121) ----
+      // ---- validate: scale warnings ----
       {
         const many = [];
         for (let i = 0; i < 1001; i++) many.push(feat('p' + i, [135, 35], { name: 'n', desc: 'd' }));
@@ -365,7 +365,7 @@ try {
         console.log('ok: validate flags non-finite (NaN/Infinity) coordinates as error');
       }
 
-      // ---- toExportForm: feature-level LangResource collapse (Important #2 / POI-135) ----
+      // ---- toExportForm: feature-level LangResource collapse ----
       {
         const editorFc = { type: 'FeatureCollection', features: [
           { type: 'Feature', id: 'p1', geometry: point(1,2), properties: { name: { ja: '名前' }, desc: { ja: '説明', en: 'desc' }, url: { en: 'http://e' }, html: { ja: '<b>x</b>' }, address: { ja: '住所' }, _maplatUid: 'u1' } },
@@ -466,7 +466,7 @@ try {
         console.log('ok: normalizeLegacyPoi coerces numeric name to "5"');
       }
 
-      // ---- fromExportForm: assigns missing display ids after uid matching (POI-141 raw Apply MAJOR fix) ----
+      // ---- fromExportForm: assigns missing display ids after uid matching (raw Apply の指摘の修正) ----
       {
         const parsed = { type: 'FeatureCollection', features: [
           { type: 'Feature', id: '', geometry: point(1,2), properties: { name: 'a' } },

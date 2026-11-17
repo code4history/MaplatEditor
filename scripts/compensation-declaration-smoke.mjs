@@ -1,8 +1,8 @@
 // 補償の申告義務（マイルストーン設計 I-4c）。
 //
 // 固定する受け入れ条件:
-//   case 5   delete の帰趨申告 — trashed / absent / retained + retainedPath + warning
-//   case 6   cleanup の残留物一覧 — 空配列＝完全補償。DB 削除側の失敗も申告される
+//   case 5   delete() の帰趨申告 — trashed / absent / retained + retainedPath + warning
+//   case 6   cleanup() の残留物一覧 — 空配列＝完全補償。DB 削除側の失敗も申告される
 //
 // 【なぜこの smoke が要るか】
 // ImageAssetService.delete() は DB 行を消した後、実体を _trash へ退避する。退避に失敗しても
@@ -177,7 +177,7 @@ try {
     }
 
     // -----------------------------------------------------------------------
-    // case 5/6-5 【本題2】cleanup が残留物一覧を返す。
+    // case 5/6-5 【本題2】cleanup() が残留物一覧を返す。
     //   現行は imageAssetService.delete(uid).catch(() => undefined) で
     //   **退避失敗も DB 削除の throw も握り潰していた**。I-4c はこれを禁じる。
     // -----------------------------------------------------------------------

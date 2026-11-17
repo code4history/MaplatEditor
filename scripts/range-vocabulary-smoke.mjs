@@ -87,7 +87,7 @@ const CONCEPT_KEYS = {
 
 // case 3 の allowlist（関係説明キー 5 件）。
 // ＋ appedit.envelope_copy_coverage は「②の名前空間にある①への操作ボタン」であり
-//    が確定表と一致すると明記した据置語のため、CONCEPT_KEYS に載せていない
+//    設計が確定表と一致すると明記した据置語のため、CONCEPT_KEYS に載せていない
 //    （設計逸脱ではなく、そもそも概念を名指すラベルではない）。
 const RELATION_ALLOWLIST = [
   "basemap.coverage_help",
@@ -173,7 +173,7 @@ const hostsFound = SRC_FILES.filter(
     && SRC_TEXT.get(rel).includes("EnvelopeEditorModal"),
 ).sort();
 assert.deepEqual(hostsFound, [...MODAL_HOSTS].sort(),
-  "MC4: EnvelopeEditorModal のホスト集合がC6 の 8 件と一致しない");
+  "MC4: EnvelopeEditorModal のホスト集合が設計の C6 の 8 件と一致しない");
 const coverageModalHosts = MODAL_HOSTS.filter(
   (rel) => SRC_TEXT.get(rel).includes("basemap.coverage_modal_"),
 );
@@ -243,7 +243,7 @@ for (const loc of LOCALES) {
   const i = sections.indexOf("resource_selector");
   assert.ok(i >= 0, `MC6-b: ${loc} に resource_selector セクションが無い`);
   assert.equal(sections[i + 1], "range_filter",
-    `MC6-b: ${loc} の range_filter は resource_selector の直後でなければならない（。`
+    `MC6-b: ${loc} の range_filter は resource_selector の直後でなければならない（`
     + `WebP 化で置いた database 編集帯から離す配置）`);
 }
 console.log("smoke MC6-b: OK（新設 9 キーが 11 言語に非空・全キー参照あり・挿入位置固定）");
@@ -293,8 +293,8 @@ const FREEZE_ALIASES = [
   { name: "envelop" + LNGLATS, files: ["src/utils/appSourceModel.ts", "scripts/app-source-model-smoke.mjs"] }, // smoke は旧キーの正規化を検査する
   { name: "coverage" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
   // e2e の fixture 定数（値を凍結名のキーへ入れて使う）。定数名は属性名にならないので tests/e2e/ の
-  // どの spec でも許す（#146 の nov26-m6-t4-app-source-editor-behavior.spec.ts も使う。
-  //）。末尾が "/" の項目はディレクトリの接頭として扱う
+  // どの spec でも許す（#146 の nov26-m6-t4-app-source-editor-behavior.spec.ts も使う）。
+  // 末尾が "/" の項目はディレクトリの接頭として扱う
   { name: "COVERAGE" + "_LNG_LATS", files: ["tests/e2e/"] },
 ];
 

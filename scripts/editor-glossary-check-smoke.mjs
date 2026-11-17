@@ -202,7 +202,7 @@ try {
     const res = evaluate({ en: 'Asset images', ja: 'アセットの画像', th: 'รูปภาพทรัพยากร' });
     check('誤検出なし: th「รูปภาพทรัพยากร」は asset を満たす', has(res, 'asset') && langFindings(res, 'asset', 'th').length === 0);
     const res2 = evaluate({ en: 'Asset images', ja: 'アセットの画像', th: 'รูปภาพ' });
-    check('M5: th「รูปภาพ」単独は asset を満たさない', langFindings(res2, 'asset', 'th').some((f) => f.kind === 'required'));
+    check('th「รูปภาพ」単独は asset を満たさない', langFindings(res2, 'asset', 'th').some((f) => f.kind === 'required'));
   }
   {
     const res = evaluate({ en: 'Map list', ja: '地図一覧', de: 'Kartenliste' });

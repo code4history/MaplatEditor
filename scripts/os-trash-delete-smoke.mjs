@@ -1,6 +1,5 @@
 // スモーク: 地図削除の originals 退避先を OS ゴミ箱 (shell.trashItem) へ移行した
 // 新契約の分岐網羅 + 独自 trash 撤去の構造 assert。
-//。
 // originals-lifecycle-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir)。
 // スタブ shell.trashItem は呼び出しを記録し、指示に応じて reject できる (テストハーネス側の
 // 既存様式であり、製品コードへの差し替え機構ではない。製品は素の `import { shell } from 'electron'`)。

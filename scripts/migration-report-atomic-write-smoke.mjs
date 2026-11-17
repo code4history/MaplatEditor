@@ -4,8 +4,7 @@
 // MigrationReportService.ts は electron 依存なしの純粋な fs I/O モジュールのため、
 // slug-reservation-smoke.mjs と同じパターンで直接 .ts import する
 // (vite SSR バンドル + electron スタブは不要)。
-// /準拠。
-// シナリオ (AC-T5-1):
+// シナリオ:
 //   (A) writeLegacyMigrationReport: 既存ファイルなし → 自分のフィールドのみで新規作成
 //   (B) writeLegacyMigrationReport: 既存の正当な report(他フィールド含む) → defensive spread
 //       してから自分のフィールドで上書き(他フィールドは保持)
@@ -105,7 +104,7 @@ try {
     const written = await readReportRaw(dir);
     assert.deepEqual(written.renamedSlugs, report.renamedSlugs, '壊れたJSONは上書き回復されるはず(abandonしない)');
     assert.deepEqual(written.warnings, report.warnings);
-    console.log('ok: (C) writeLegacyMigrationReport overwrite-recovers a corrupted existing report (AC-T5-1)');
+    console.log('ok: (C) writeLegacyMigrationReport overwrite-recovers a corrupted existing report');
   }
 
   // ============================================================

@@ -288,7 +288,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.equal(importCert.if, undefined,
     '証明書インポートステップが if: を持たない（push でも実行され Mac は常に署名を試みる）');
 
-  // : ガードは P3 スクリプト経由（判定の単一実装）
+  // ガードは P3 スクリプト経由（判定の単一実装）
   const prepSteps = wf.jobs.prepare.steps;
   assert.ok(prepSteps.some((s) => (s.run ?? '').includes('check-release-guard.mjs')),
     'case 1: prepare が check-release-guard.mjs を呼ぶ');
@@ -332,7 +332,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   );
   assert.ok(!manifestRefs, '#104: どの step も release-manifest.json を生成・参照しない');
 
-  // : 動的 environment（release 実行時のみ 'release'）
+  // 動的 environment（release 実行時のみ 'release'）
   for (const job of ['build-mac', 'build-win', 'release']) {
     const envmt = String(wf.jobs[job].environment ?? '');
     assert.ok(envmt.includes("'release'") && envmt.includes("workflow_dispatch"),
@@ -392,7 +392,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 }
 
 // ───────────────────────────────────────────────
-// case 11: GITHUB_TOKEN の最小権限（セキュリティレビュー SR-t12-M-1）
+// case 11: GITHUB_TOKEN の最小権限（セキュリティレビューの指摘）
 //
 // contents: write を必要とするのは Release を作る release ジョブだけである。
 // workflow レベルに置くとビルド3ジョブの GITHUB_TOKEN にも書き込み権限が乗り、
@@ -491,4 +491,4 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   console.log('  [7/7] case 12 Hardened Runtime 下の JIT entitlements: PASS');
 }
 
-console.log('\nm6-t12 release-workflow smoke: すべて成功');
+console.log('\nrelease-workflow smoke: すべて成功');

@@ -103,7 +103,7 @@ const feed = await import('../electron/utils/updateFeed.ts');
     // 判定 (A): channel を設定しない（設定すると electron-updater が allowDowngrade を真にする）
     assert.equal(updater.channel, null, `channel を設定していない`);
   }
-  // channel を後から設定されても allowDowngrade を偽に戻す口を持つ（。channel を使う形へ変えたときの安全網）
+  // channel を後から設定されても allowDowngrade を偽に戻す口を持つ（channel を使う形へ変えたときの安全網）
   {
     const updater = new NsisUpdater(null, fakeApp);
     updater.channel = 'arm64';

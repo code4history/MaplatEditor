@@ -28,7 +28,7 @@
  *
  * checkSigningJob(jobName, job, opts?) → string[]（違反の一覧。空なら合格）
  *   opts.requireSummary（既定: jobName !== 'probe-sign'）… 規則 11 を課すか
- * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて の PIN か）
+ * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて固定した版の PIN か）
  * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う
  */
 

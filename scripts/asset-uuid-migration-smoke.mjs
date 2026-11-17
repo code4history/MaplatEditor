@@ -1,4 +1,4 @@
-// (#109・HR-15) smoke: 既存データの画像の内部名を UUID（ベースマップは uid）へ複製で移行する。
+// (#109) smoke: 既存データの画像の内部名を UUID（ベースマップは uid）へ複製で移行する。
 // 〜・の 2・case 5〜case 10。
 //
 //   case 5  冪等: 印がある 2 回目は何も変えない・印を消した再走（F14）・途中で落ちた後の再走（F15）・保存フォルダが空（F20）
@@ -7,7 +7,7 @@
 //   case 8  読む側: resourceImageResolver と書き出しが移行の前後で同じ（スプラッシュの名前と og:image のその部分を除く）
 //   case 9  移行で書き換えた行の revision と updated_at が前後で同じ
 //   case 10 保存の入口の正規化（AppDataService.saveApp・saveUserBaseMap の付け替え F16〜F18）
-//   F13  migrate の呼び順と呼び出しの形（ソーステキスト）／印の定数の置き場
+//   F13  migrate() の呼び順と呼び出しの形（ソーステキスト）／印の定数の置き場
 //
 // harness は basemap-thumbnail-512-smoke と同型（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
 // 移行の単体（F1〜F20）は、SqliteDataService.ts の migrate() の DDL を**ソースから切り出して**流した

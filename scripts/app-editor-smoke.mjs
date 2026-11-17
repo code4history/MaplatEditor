@@ -152,7 +152,7 @@ try {
         fake_radius: 20,
         sources: [{ mapID: 'orphan_legacy_map', maptype: 'maplat', setting_file: 'maps/orphan_legacy_map.json' }],
       } });
-      assert.equal(orphanCreated.result, 'Error', '孤児 maplat 参照を持つ App の保存は拒否されるはず(AC-T1-2)');
+      assert.equal(orphanCreated.result, 'Error', '孤児 maplat 参照を持つ App の保存は拒否されるはず');
 
       // ケース2: legacy形フィールド正規化(既存意図を保存・書き換え)。legacy_map を事前に
       // 実在させてから同一形状(legacy形)のドキュメントを保存する。guardは実在地図を通過するため
@@ -221,7 +221,7 @@ try {
       await AppDataService.deleteApp(demoUid);
       assert.equal(await AppDataService.getApp(demoUid), null);
 
-      // --- 旧 Phase 8 Task 2 の poiSources 多重 stringify 復元 heal 期待値ブロックは
+      // --- 以前の poiSources 多重 stringify 復元 heal 期待値ブロックは
       // ここにあった (healAppDocumentPois の多重エスケープ「復元成功」期待)。（絶対遵守）に
       // 基づき、当該復元ロジック (bounded reparse ループ) は実装ミスの後始末として撤去され、
       // 単一実装 src/utils/appPoisFormat.ts の readAppDocumentPois（形式判定のみ・復元なし）へ
@@ -309,7 +309,7 @@ try {
     /enableMarkerList: Boolean\(httpSettings\.enableMarkerList\)/,
     'AppExportService が enableMarkerList を viewerOption に渡していない'
   );
-  // Phase 8 Task 2: POIデータタブ (真実の器は appData.pois 配列1つ。生 textarea と
+  // POIデータタブ (真実の器は appData.pois 配列1つ。生 textarea と
   // poiSources 文字列形は廃止 — 二重 stringify 破損の根治)
   assert.match(
     appEditView,
@@ -458,7 +458,7 @@ try {
     'PoiReferenceEditor.vue が poiSources.get の null (not-found 確定) で missing 判定していない'
   );
   assert.match(poiReferenceEditor, /"update:pois"/, 'PoiReferenceEditor.vue が update:pois を emit していない');
-  // Phase 8 Task 5: 地図選択タブ (AppEdit sources) と同じ2カラム設計 (ユーザー指摘 2026-07-11:
+  // 地図選択タブ (AppEdit sources) と同じ2カラム設計 (ユーザー指摘 2026-07-11:
   // 上下2段は窮屈・検索が無い)。T9 以降、PoiReferenceEditor は ResourceSelector コンポーネントにラップされ、
   // 2カラム grid / 左右 pane / ↑↓× btn-group は ResourceSelector 内で一元実装される。
   assert.match(
@@ -481,7 +481,7 @@ try {
   assert.match(resourceSelector, /class="selected-pane/, 'ResourceSelector.vue に右カラム (selected-pane) がない');
   assert.match(
     poiReferenceEditor,
-    // btn-group の先頭に「上書きを追加」（U4 行のみ）が加わり、↑ までの距離が伸びた。
+    // btn-group の先頭に「上書きを追加」（裸 URL の要素の行のみ）が加わり、↑ までの距離が伸びた。
     // 検査意図は ↑/↓/× がこの順で同じ btn-group に並ぶこと（地図選択と同配置）であり、
     // 先行ボタンの本数に依存させない
     /class="btn-group btn-group-sm flex-shrink-0"[\s\S]{0,1600}>↑<\/button>[\s\S]{0,600}>↓<\/button>[\s\S]{0,600}>×<\/button>/,
@@ -499,10 +499,10 @@ try {
   assert.match(poiReferenceEditor, /:adapter="poiSourceAdapter"/, 'POI selector が search adapter に接続されていない');
   assert.match(poiReferenceEditor, /<ResourceMasterRow[\s\S]{0,200}?variant="selector"/, 'POI selector が共通の ResourceMasterRow variant="selector" になっていない');
   // v2.0: 追加済み POI 行は selected=true（青）で表現され、disabled は readOnly のみ。
-  // isPoiSelected は asResourceListRowFromPoiSource 内で selected へ反映（HM6: added=青）
+  // isPoiSelected は asResourceListRowFromPoiSource 内で selected へ反映（added=青）
   assert.match(poiReferenceEditor, /:disabled="readOnly"/, '追加済み POI 行の disabled は readOnly のみ（added は selected で表現）');
   assert.match(poiReferenceEditor, /selected: added/, 'asResourceListRowFromPoiSource で added=selected が設定される');
-  // picker 表示中のグローバルキー抑止  と行 key の安定化  は再設計後も維持
+  // picker 表示中のグローバルキー抑止と行 key の安定化は再設計後も維持
   assert.match(poiReferenceEditor, /defineExpose\(\{ pickerOpen \}\)/, 'PoiReferenceEditor.vue が pickerOpen を expose していない');
   assert.match(poiReferenceEditor, /return `ref:\$\{uid\}#\$\{occurrence\}`/, 'PoiReferenceEditor.vue の entryKey が uid+occurrence 安定 key でない');
   // preview 起動時の warnings 表示 (export と同じ t(key) join → showMessageBox detail 形式)

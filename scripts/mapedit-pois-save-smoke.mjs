@@ -1,4 +1,4 @@
-// スモーク: MapEdit の実保存経路で map data_json の pois が永続化されること (Phase 7 Task 3, POI-137)。
+// スモーク: MapEdit の実保存経路で map data_json の pois が永続化されること。
 // 既存の smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save (histMap2Store 経由のシリアライズ) → 再読込 (request = store2HistMap 経由) を
 // behavioral に検証する。store_handler.ts の keys 配列に pois が無いと保存時に落ちる (本タスクの必須修正)。
@@ -182,7 +182,7 @@ try {
       console.log('ok: (3) maps without pois do not grow a pois key');
 
       // --- ④ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が解決され、
-      //     未解決の poiUid キーが出力に残らないこと (Phase 7 品質レビュー ) ---
+      //     未解決の poiUid キーが出力に残らないこと (品質レビューの指摘) ---
       //
       // 【地図 ZIP の書き出しの統一で解決形が変わった】以前は地図 ZIP だけが POI を
       // **インライン FC** へ展開していたが、書き出しの統一でアプリ搬出と同じ

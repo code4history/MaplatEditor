@@ -1,6 +1,6 @@
 // image asset マネージャタブ (AssetList) のソースパターン smoke。
 // Header/router 配線、window.imageAssets API の全配線、削除前 findReferences (AID-006)、
-// checkSlug + excludeUid、pickImageFile null ガード、一覧 token ガード (Phase 3 )、
+// checkSlug + excludeUid、pickImageFile null ガード、一覧 token ガード、
 // Escape ハンドラ、生 ipcRenderer 不使用 (poc-t3) を検証する
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -94,7 +94,7 @@ try {
     '廃止したimageassets:renameの登録が残っている'
   );
 
-  // 一覧 (list/search) + サムネイル (getFilePath) は Phase 6 Task 4 で AssetPicker と
+  // 一覧 (list/search) + サムネイル (getFilePath) は 後に AssetPicker と
   // 共用の composable (useAssetThumbnails) へ抽出した (挙動不変)。AssetList 固有の
   // API 配線 (add/updateMetadata/delete/findReferences/pickImageFile) は本体に残る
   const assetThumbs = await readFile(
@@ -180,8 +180,8 @@ try {
     'AssetList に pickImageFile 失敗通知 (pick_failed) がない'
   );
 
-  // 一覧読込の後着優先トークン (Phase 3 検索連打での順序逆転防止)。
-  // Phase 6 Task 4 で composable へ移設
+  // 一覧読込の後着優先トークン (検索連打での順序逆転防止)。
+  // 後に composable へ移設
   assert.match(
     assetThumbs,
     /loadToken/,
@@ -207,7 +207,7 @@ try {
     'AssetList に payload-too-large の専用分岐がない'
   );
 
-  // Escape でモーダル/コンテキストメニューを閉じる (Phase 3 )
+  // Escape でモーダル/コンテキストメニューを閉じる
   assert.match(
     assetList,
     /['"]Escape['"]/,

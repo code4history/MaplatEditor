@@ -21,7 +21,7 @@ const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) =>
   JSON.stringify(path.join(projectRoot, relativePath));
 
-// : 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
+// 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
 async function assertNotSolidColor(filePath, label) {
   // 512px は webp。Jimp は webp を decode できないため共通リーダーへ委譲する
   const img = await readImageRGBA(filePath);
@@ -38,7 +38,7 @@ async function assertNotSolidColor(filePath, label) {
   assert.ok(seen.size >= 4, `${label}: 単色プレースホルダの疑い（distinct=${seen.size}）`);
 }
 
-// : 寸法検証（assertNotSolidColor とは独立に読み直す）
+// 寸法検証（assertNotSolidColor とは独立に読み直す）
 async function assertDimensions(filePath, expected, label) {
   const img = await readImageRGBA(filePath);
   const { width, height } = img;

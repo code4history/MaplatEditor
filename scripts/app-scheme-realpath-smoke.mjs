@@ -475,10 +475,10 @@ if (missing.length) console.log(`[FAIL] 実行されなかった項目（期待 
 if (unexpected.length) console.log(`[FAIL] 期待に無い項目: ${unexpected.join(", ")}`);
 if (failed.length) console.log(`[FAIL] 失敗した項目: ${failed.join(", ")}`);
 if (missing.length || unexpected.length || failed.length) {
-  console.log(`\nnov26-smoke: NG（platform=${process.platform} 実行 ${passed.length}/${EXPECTED.length} 件・失敗 ${failed.length} 件）`);
+  console.log(`\napp-scheme realpath smoke: NG（platform=${process.platform} 実行 ${passed.length}/${EXPECTED.length} 件・失敗 ${failed.length} 件）`);
   process.exitCode = 1;
 } else {
-  console.log(`\nnov26-smoke: OK（platform=${process.platform} 実行 ${passed.length}/${EXPECTED.length} 件）`);
+  console.log(`\napp-scheme realpath smoke: OK（platform=${process.platform} 実行 ${passed.length}/${EXPECTED.length} 件）`);
 }
 
 

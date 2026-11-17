@@ -6,7 +6,7 @@
 //   case 10  budget == null（PNG）でも従来どおり取り込める
 //   case 11  decoderHeapMB > safety.maxDecoderHeapMB は jpeg_machine_limit で、デコードせずに返る
 //   case 12  その経路が outFolder に一切触れない（既存の下書きタイルが残る）
-//   case 14  未設定（空欄）で getJpegDecodeCaps が {null, null} を返す
+//   case 14  未設定（空欄）で getJpegDecodeCaps() が {null, null} を返す
 //   case 15  機械安全枠を超える手入力がクランプされる（set 経由と store 直書きの両方）
 //   case 17  megapixels > 100 で needsConfirmation: 'long_import'。この時点でデコードもタイル化も
 //         起きていない
