@@ -149,7 +149,7 @@ async function exportAndCollectWarnings(
   zipPath: string,
 ): Promise<string[]> {
   await exportTo(app, page, zipPath);
-  // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md）。ネイティブのダイアログには出ない
+  // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md §5.3）。ネイティブのダイアログには出ない
   const dialogs = [...await takeExportDialogs(app), await readOperationNotice(page)];
   expect(dialogs.length, '書き出し完了の通知が出ているはず').toBeGreaterThan(0);
   expect(await readFile(zipPath).then((data) => data.length), `${zipPath} が作られているはず`).toBeGreaterThan(0);

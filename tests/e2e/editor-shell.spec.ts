@@ -161,7 +161,7 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await appName.fill('T3 App edited');
     const saveShortcut = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
     await appName.press(saveShortcut);
-    // 保存の成功はネイティブのダイアログではなくバナーに出る（docs/ui-grammar.md）。
+    // 保存の成功はネイティブのダイアログではなくバナーに出る（docs/ui-grammar.md §5.3）。
     // ダイアログの応答待ちが無くなり保存はすぐ終わるので、Busy は書き出し（下）で確かめる
     await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'success');
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
