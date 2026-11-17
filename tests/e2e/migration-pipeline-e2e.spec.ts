@@ -17,7 +17,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-const fixturesRoot = path.join(projectRoot, 'tests/fixtures/migration-pipeline-e2e-migration-pipeline');
+const fixturesRoot = path.join(projectRoot, 'tests/fixtures/migration-pipeline');
 
 async function sha256(filePath: string): Promise<string> {
   const buf = await readFile(filePath);
