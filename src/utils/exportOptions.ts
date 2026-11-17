@@ -1,4 +1,4 @@
-// （#113）: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
+// #113: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
 //
 // main（electron/）と renderer（src/）の両方が import する唯一の窓口。
 // 既定値・正規化・目録の生成と読み取りをここに集め、二重の定義を作らない。
