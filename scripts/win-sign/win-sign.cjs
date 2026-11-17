@@ -22,7 +22,7 @@
 //   off（既定）… 何もしない。electron-builder.config.cjs はフックも beforePack も登録しない（従来どおり）
 //   record   … 署名しない。フックに渡されたファイルと「署名するはずだったか」を JSON 行で記録する（課金ゼロ）
 //   collect  … 署名しない。record と同じ判断と記録に加えて、署名するはずのファイルを WIN_SIGN_COLLECT_DIR へ
-//              `<SHA-256>.pe` の名前で複写する（nov26-m7-t2）。build.yml の署名専用ジョブ（id-token を持ち、依存を
+//              `<SHA-256>.pe` の名前で複写する。build.yml の署名専用ジョブ（id-token を持ち、依存を
 //              一切実行しない）が Artifact Signing で署名し、次の pack のジョブへ返す。キャッシュは引かない（C-4）。
 //              WIN_SIGN_SIGNED_DIR に同じ実行で署名済みの `<SHA-256>--<名前>.signed` があれば、関門（署名を除き
 //              TimeDateStamp も除いた中身の一致・証明書表・Authenticode Valid・署名者が artifact-signing）を通ったものだけ
@@ -54,7 +54,7 @@ const os = require('node:os');
 const signerIdentity = require('./signer-identity.cjs');
 
 // ───────────────────────────────────────────────
-// eSigner の資格情報の閉じ込め（nov26-m7-t3・#139 推奨 1）
+// eSigner の資格情報の閉じ込め（#139 推奨 1）
 // ───────────────────────────────────────────────
 // build.yml の eSigner の本番 step は ES_* を step の env: で渡す（electron-builder のプロセスとその子が読める）。
 // ∴ このモジュールの読み込み時に値をモジュール内の閉じた変数へ写し、process.env から外す。以後どのコードも
@@ -153,7 +153,7 @@ function strippedDigest(buf, { zeroTimeDateStamp = false } = {}) {
   return sha256(body.subarray(0, n));
 }
 
-/** 署名を除き、さらに TimeDateStamp も除いた中身のハッシュ（nov26-m7-t2・決定的にする手当て (b)）。
+/** 署名を除き、さらに TimeDateStamp も除いた中身のハッシュ（決定的にする手当て (b)）。
  *  同じ入力から 2 回作ったアンインストーラーは時刻だけが違いうるので、差し替えの照合はこれで行う。 */
 const comparableDigest = (buf) => strippedDigest(buf, { zeroTimeDateStamp: true });
 
@@ -209,7 +209,7 @@ function record(entry) {
 // 署名済みファイルのキャッシュ
 // ───────────────────────────────────────────────
 // 末尾の .signed は、Release の asset や Actions の artifact に .exe / .dll の名前で並ばないようにするため
-// （scripts/oct26-m4-t2-ci-artifact-verify.mjs は成果物中の全 .exe に版番号を要求する。配布物と見誤らせない意味もある）
+// （scripts/ci-artifact-verify.mjs は成果物中の全 .exe に版番号を要求する。配布物と見誤らせない意味もある）
 const assetName = (key, file) => `${key}--${path.basename(file).replace(/[^A-Za-z0-9._-]/g, '_')}.signed`;
 
 /** このプロセスで署名した・検証済みキャッシュを使ったキー → 署名済みファイル（record モードでは null）。
@@ -293,7 +293,7 @@ async function lookupCache(file, key, unsignedDigest) {
 // ───────────────────────────────────────────────
 function redact(text) {
   let t = String(text ?? '');
-  // 長い値から伏せる（短い値が長い値の部分文字列のとき、先に短い方を伏せると長い方の残りが出る。B41 MIN-1）
+  // 長い値から伏せる（短い値が長い値の部分文字列のとき。先に短い方を伏せると長い方の残りが出る）
   const values = Object.values(esCredentials).filter((v) => v).sort((a, b) => b.length - a.length);
   for (const v of values) t = t.split(v).join('***');
   return t;
@@ -384,7 +384,7 @@ async function runCodeSignTool(file) {
 }
 
 // ───────────────────────────────────────────────
-// 同じ実行の署名済みファイルでの差し替え（collect・nov26-m7-t2）
+// 同じ実行の署名済みファイルでの差し替え（collect）
 // ───────────────────────────────────────────────
 /**
  * WIN_SIGN_SIGNED_DIR から、このファイルの署名済みの複写を探す。名前のキーは署名前ファイルの SHA-256。

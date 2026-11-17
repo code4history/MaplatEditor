@@ -36,7 +36,7 @@ tsconfig.node.tsbuildinfo
 dist-electron/
 release/
 
-# Electrobun M2 PoC ビルド成果物
+# Electrobun PoC ビルド成果物
 build-electrobun/
 artifacts-electrobun/
 .tmp/
@@ -45,7 +45,7 @@ artifacts-electrobun/
 test-results/
 playwright-report/
 
-# CI の判定器・測り直しの報告（oct26-m4-t5。手元で ci/README.md の手順を実行したときの出力）
+# CI の判定器・測り直しの報告（手元で ci/README.md の手順を実行したときの出力）
 /smoke-report*.json
 /editor-glossary-report.json
 /editor-ui-grammar-report.json

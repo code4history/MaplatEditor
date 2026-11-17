@@ -19,7 +19,7 @@ const { assertSafeArchiveEntries, assertSafePoiPackageEntries } = await import(
 );
 
 const baseline = JSON.parse(
-  await readFile(path.join(projectRoot, 'scripts/fixtures/nov26-m6-t8-default-map-export.json'), 'utf8'),
+  await readFile(path.join(projectRoot, 'scripts/fixtures/default-map-export.json'), 'utf8'),
 );
 const source = await readFile(path.join(projectRoot, 'src/utils/poiPackage.ts'), 'utf8');
 

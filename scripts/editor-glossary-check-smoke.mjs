@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // エディタの用語集の検査（scripts/editor-glossary-check.mjs）の回帰検証。
-// 設計「MaplatEditor 全言語用語集・CI検査 タスク設計書」v1.2 §5.7 の fixture を、実データを壊さずに一時ディレクトリで確かめる。
+// 設計「MaplatEditor 全言語用語集・CI検査 タスク設計書」の fixture を、実データを壊さずに一時ディレクトリで確かめる。
 //
 // - 照合・結び付けの単体: 検査 script の evaluateKey / matchForm を、実物の正本で呼ぶ
 // - #237 型の場合 A〜E・E′・#241 相当と関門 1・2: 実物の正本と locale を一時の git リポジトリに写し、値を変えて CLI を走らせる
@@ -239,7 +239,7 @@ try {
     check('誤一致なし: de「Player」は統一前の形「layer」に当たらない', !langFindings(r4, 'layer', 'de').some((f) => f.kind === 'former'));
   }
 
-  // ───────────── #237 型（設計 §5.7 の場合 A〜E・E′・#241 相当） ─────────────
+  // ───────────── #237 型（場合 A〜E・E′・#241 相当） ─────────────
   {
     const dir = makeRepo('case-a');
     for (const l of LANGS) apply237(dir, l);

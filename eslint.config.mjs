@@ -1,4 +1,4 @@
-// ESLint の設定（nov26-m8-t4・NayutaProducts#33）。形は m8 設計の C-m8-1。Vue は eslint-plugin-vue の flat/essential
+// ESLint の設定。Vue は eslint-plugin-vue の flat/essential
 import js from "@eslint/js";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
@@ -6,10 +6,10 @@ import vue from "eslint-plugin-vue";
 import prettier from "eslint-config-prettier"; // 書式の規則は prettier に任せる。no-unexpected-multiline 等の書式の規則を off にする
 
 export default [
-  // 全体の除外は ignores だけを持つ要素に書く（C-m8-1 (b)）。src/libs は第三者の同梱物（ol-geocoder・ol-contextmenu。各 LICENSE あり）
+  // 全体の除外は ignores だけを持つ要素に書く。src/libs は第三者の同梱物（ol-geocoder・ol-contextmenu。各 LICENSE あり）
   { ignores: ["dist/**", "dist-electron/**", "release/**", "node_modules/**", "coverage/**", "src/libs/**"] },
   { linterOptions: { reportUnusedDisableDirectives: true } },
-  // recommended は独立した要素に置き、files を付けない（.vue・.js にも当てる。C-m8-1 (a)）
+  // recommended は独立した要素に置き、files を付けない（.vue・.js にも当てる）
   js.configs.recommended,
   ...vue.configs["flat/essential"],
   { files: ["**/*.{ts,tsx,mts,cts}"], languageOptions: { parser: tsParser } },

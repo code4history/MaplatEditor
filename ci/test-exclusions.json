@@ -1,9 +1,9 @@
 {
   "schema": 1,
-  "policy": "確定版（oct26-m4-t5 合流直前の master d11ac0b ＋ t5 で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
+  "policy": "確定版（合流直前の master d11ac0b ＋ t5 で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
   "smoke": [
     {
-      "name": "m2-electrobun-poc",
+      "name": "electrobun-poc",
       "kind": "excluded",
       "reason": "runner に bun が無い（Electrobun PoC）。setup-bun の SHA 固定導入は 11 月",
       "issue": "#121"
@@ -15,45 +15,45 @@
       "issue": "#121"
     },
     {
-      "name": "m1-t2-registered-map-catalog",
+      "name": "registered-map-catalog",
       "kind": "excluded",
       "reason": "非公開の前提（SaaS 正本）が単独 clone に無い（v1 B 分類・非公開）",
       "issue": "#121"
     },
     {
-      "name": "m11-t4-master-detail",
+      "name": "master-detail",
       "kind": "excluded",
-      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "reason": "親の作業場所の配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
       "issue": "#121"
     },
     {
-      "name": "m19-t8-builtin-osm-data-attr",
+      "name": "builtin-osm-data-attr",
       "kind": "excluded",
-      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "reason": "親の作業場所の配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
       "issue": "#121"
     },
     {
-      "name": "m6-t10-app-source-diff-model",
+      "name": "app-source-diff-model",
       "kind": "excluded",
-      "reason": "Maplats 配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
+      "reason": "親の作業場所の配下の前提ファイルが単独 clone に無い（v1 B 分類・非公開）",
       "issue": "#121"
     },
     {
-      "name": "m6-t10-preview-bundle-guard",
+      "name": "preview-bundle-label-merge-guard",
       "kind": "excluded",
       "reason": "../MaplatCore/dist の build 済み公開物が単独 clone に無い（v1 B 分類・公開物。MaplatCore build を CI に入れる案は 11 月）",
       "issue": "#121"
     },
     {
-      "name": "m6-t6-preview-bundle-provider-url-guard",
+      "name": "preview-bundle-provider-url-guard",
       "kind": "excluded",
       "reason": "../MaplatCore の build 済み公開物が単独 clone に無い（v1 B 分類・公開物。11 月）",
       "issue": "#121"
     },
     {
-      "name": "m1-t8-preview-bundle-sync",
+      "name": "preview-bundle-sync",
       "kind": "excluded",
-      "reason": "Maplats 配下の MaplatUI 配布物との MD5 照合で、単独 clone では比較元が無い（v1 D 分類・環境依存）",
+      "reason": "親の作業場所の配下の MaplatUI 配布物との MD5 照合で、単独 clone では比較元が無い（v1 D 分類・環境依存）",
       "issue": "#121"
     }
   ],

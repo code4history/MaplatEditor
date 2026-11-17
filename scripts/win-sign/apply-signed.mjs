@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// nov26-m7-t2: 署名専用ジョブ（Azure Artifact Signing）が返した <SHA-256>.pe を、照合してから元の場所へ戻す。
+// 署名専用ジョブ（Azure Artifact Signing）が返した <SHA-256>.pe を、照合してから元の場所へ戻す。
 //
 // 照合（1 つでも外れたら何も書かずに赤）:
 //   - 証明書表がある（署名されている）
@@ -61,7 +61,7 @@ export function applySigned({ phase, manifest, signed, signer, releaseDir, signe
   // 1 周目: 全部を照合する（1 つでも外れたら何も書かない）
   const ok = [];
   for (const m of items) {
-    // name は書き込み先（installer は --release-dir/<name>）に使う ∴ basename でなければ赤（B31 MIN-1・3 phase とも）。
+    // name は書き込み先（installer は --release-dir/<name>）に使う ∴ basename でなければ赤（3 phase とも）。
     // posix と win32 の両方の区切りで確かめる（Windows の runner では \ も区切り）
     const name = typeof m?.name === 'string' ? m.name : '';
     if (name === '' || name === '.' || name === '..' || name !== path.posix.basename(name) || name !== path.win32.basename(name)) {

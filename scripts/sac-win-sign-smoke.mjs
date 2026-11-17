@@ -2,7 +2,7 @@
  * SAC（2026-10-03）: Windows 配布物の全 PE 署名フック（scripts/win-sign/win-sign.cjs）の受け入れ検査。
  *
  * 実ビルドと実署名は CI（build.yml）でしか走らないため、ここでは課金も Windows も要らない部分を固める:
- *   [1] WIN_SIGN_MODE の解釈（既定 off・不正値は落とす・collect は nov26-m7-t2）
+ *   [1] WIN_SIGN_MODE の解釈（既定 off・不正値は落とす・collect は）
  *   [2] electron-builder.config.cjs の結線（off では従来どおり何も登録しない / record・collect・esigner ではフック・
  *       signExts・sha256 だけの署名・beforePack を登録）と、CPU 別 .node 除外パターンの展開結果
  *   [3] PE の解析と「署名を除いた中身」のハッシュ（未署名と署名済みで一致・中身が違えば不一致）
@@ -39,7 +39,7 @@ const loadFresh = (p) => {
   process.env.WIN_SIGN_MODE = 'esigner';
   assert.equal(ws.getMode(), 'esigner', '[1] esigner');
   process.env.WIN_SIGN_MODE = 'collect';
-  assert.equal(ws.getMode(), 'collect', '[1] collect（nov26-m7-t2・署名専用ジョブへ渡すために集める）');
+  assert.equal(ws.getMode(), 'collect', '[1] collect（署名専用ジョブへ渡すために集める）');
   assert.deepEqual(ws.MODES, ['off', 'record', 'collect', 'esigner'], '[1] モードは 4 つ（C-1）');
   process.env.WIN_SIGN_MODE = 'sign';
   assert.throws(() => ws.getMode(), /WIN_SIGN_MODE/, '[1] 不正値は落とす（黙って off にしない）');
@@ -146,7 +146,7 @@ function fakeSign(unsigned, magic = 0x20b) {
   assert.notEqual(ws.strippedDigest(other), ws.strippedDigest(makePe()), '[3] 中身が 1 バイト違えば不一致');
   assert.ok(ws.assetName('ab'.repeat(32), '/x/ffmpeg.dll').endsWith('--ffmpeg.dll.signed'), '[3] asset 名は .signed で終わる');
   // 署名者 CN の判定（.NET は値にカンマがあると引用符で囲む）。旧来の判定で、照合には使わない
-  // （照合は scripts/win-sign/signer-identity.cjs の checkSigner。nov26-m7-t2 の smoke が検査する）。以下は fixture
+  // （照合は scripts/win-sign/signer-identity.cjs の checkSigner。smoke が検査する）。以下は fixture
   const CN = 'NAYUTA, INC.';
   assert.ok(ws.subjectHasCn('CN="NAYUTA, INC.", O="NAYUTA, INC.", L=Osaka, C=JP', CN), '[3] 引用符ありの CN');
   assert.ok(ws.subjectHasCn('CN=NAYUTA, INC., O=NAYUTA, INC., C=JP', CN), '[3] 引用符なしの CN');

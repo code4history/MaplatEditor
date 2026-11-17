@@ -1,6 +1,6 @@
 name: Tests
 
-# oct26-m4-t5（#121）: smoke（scripts/*-smoke.mjs）と e2e（Playwright + Electron）を CI で実行する。
+# #121: smoke（scripts/*-smoke.mjs）と e2e（Playwright + Electron）を CI で実行する。
 #
 # job の合否は「判定 step」（scripts/ci/judge-test-results.mjs）の exit だけで決まる:
 #   - smoke の実行 step は continue-on-error（失敗があっても判定まで進む）
@@ -46,7 +46,7 @@ jobs:
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          # outer の scripts/m1-t1/verify-pnpm-config.mjs（AC2b）が読む形（block 形式）で書く
+          # 親の作業場所の scripts//verify-pnpm-config.mjsが読む形（block 形式）で書く
           version: 11
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -135,7 +135,7 @@ jobs:
         run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       # pnpm の side-effects cache は空ディレクトリを記録しないので、キャッシュから復元した Electron.app に .lproj が無く
-      # getLocale が en-US になる。postinstall を必ず走らせる（マージ判断 oct26-m4-t5 追補 2）
+      # getLocale が en-US になる。postinstall を必ず走らせる
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --config.side-effects-cache=false
 
@@ -144,7 +144,7 @@ jobs:
 
       # macOS runner の言語は en-US。MaplatEditor は設定が無いと app.getLocale() で UI 言語を決めるので、
       # 日本語の文言を待つ e2e が英語 UI で落ちる。Electron（com.github.Electron）の言語を ja に固定し、
-      # Playwright の前に確かめる（マージ判断 oct26-m4-t5 追補 1。app domain は全体設定より優先される）
+      # Playwright の前に確かめる（app domain は全体設定より優先される）
       - name: Set Electron locale (ja)
         run: |
           defaults write com.github.Electron AppleLanguages -array ja
@@ -153,7 +153,7 @@ jobs:
       - name: Check Electron locale
         run: ./node_modules/.bin/electron scripts/ci/electron-locale-check.cjs
 
-      # --forbid-only: spec に test.only が混入していると、一部だけ実行した報告が緑に見える（IR MIN-1）。混入時は Playwright が errors[] 付きで落ち、判定器が赤にする
+      # --forbid-only: spec に test.only が混入していると、一部だけ実行した報告が緑に見える。混入時は Playwright が errors[] 付きで落ち、判定器が赤にする
       - name: Playwright
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-report.json

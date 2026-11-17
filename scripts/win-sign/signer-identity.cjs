@@ -1,4 +1,4 @@
-// Windows の署名者の照合（nov26-m7-t2・C-3）。正本は同じディレクトリの signer-identity.json。
+// Windows の署名者の照合（C-3）。正本は同じディレクトリの signer-identity.json。
 //
 // 照合は 2 段:
 //   (1) 署名者の Subject を parseDn で属性の集合に読み、正本の当該モードの subject と**集合として一致**
@@ -147,7 +147,7 @@ const PS_AUTHENTICODE = "$ErrorActionPreference='Stop'; $files = @(Get-Content -
   + '[pscustomobject]@{ file = $_; status = [string]$s.Status; subject = if ($s.SignerCertificate) { $s.SignerCertificate.Subject } else { $null }; chain = $chain } }); '
   + 'ConvertTo-Json -InputObject $out -Compress -Depth 5';
 
-/** eSigner の資格情報（nov26-m7-t3）。pwsh の子へは渡さない */
+/** eSigner の資格情報。pwsh の子へは渡さない */
 const ES_ENV_KEYS = ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET'];
 
 /** Authenticode の検証に起動する pwsh の子の env（ES_* を外し、一覧のファイルの場所だけを足す） */

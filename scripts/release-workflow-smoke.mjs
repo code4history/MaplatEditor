@@ -1,0 +1,494 @@
+/**
+ * 署名ビルド CI/CD の受け入れ検査（設計 v1.1）
+ *
+ * case 1: build.yml が YAML として妥当 + secrets 参照が 契約表と1対1 + action の SHA ピン
+ * case 3: release ガード（P3 スクリプト）の4ケース
+ * case 4: eSigner / 公証 / Release が release=false で発火しない（ワークフロー式の静的検査）
+ * case 5: latest.yml 再計算 + blockmap 再生成（P4 スクリプト）
+ * case 6: 旧 WIN_CSC_LINK 参照が残存しない
+ * t1/case 1: 証明書インポートは if: を持たない（push でも実行 — t1・2026-08-21 で 既存の変更の dispatch 限定を撤廃）
+ * SAC（2026-10-03）: Windows は配布物の全 PE を electron-builder の署名フック（scripts/win-sign/win-sign.cjs）で
+ *   署名する。esigner-codesign action（Setup.exe 2 本だけ）は撤去し、CodeSignTool を版とハッシュで固定して取得する
+ */
+import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
+import { readFileSync, existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { createHash, randomBytes } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import yaml from 'js-yaml';
+
+const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
+const GUARD = path.join(projectRoot, 'scripts/release/check-release-guard.mjs');
+const RESIGN = path.join(projectRoot, 'scripts/release/resign-update-metadata.mjs');
+const WORKFLOW = path.join(projectRoot, '.github/workflows/build.yml');
+
+const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
+
+// ───────────────────────────────────────────────
+// case 3: リリースガード（workflow と同一実装を直接実行）
+//
+// 2軸モデル（人間決定 D6・2026-08-08）:
+//   mode=verify … Mac 署名のみ / Win 署名なし / Release 作らない → 課金ゼロ → 全バージョン許可
+//   mode=full   … Mac 署名+公証 / Win eSigner 署名 / draft Release → 課金あり → rc 以降に限定
+// 「rc 以降」の定義: prerelease 識別子が rc 始まり（alpha/beta は拒否）、
+//   または正式版（prerelease なし）で ref が master
+// ───────────────────────────────────────────────
+{
+  // #104: mode=full は exact commit SHA 宣言（EXPECTED_EDITOR_SHA 40桁 hex / EXPECTED_VERSION）を
+  // env で受け取る。smoke は run() の opts で宣言を注入する。
+  const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678'; // 40桁 hex
+  const run = (MODE, GITHUB_REF, VERSION, opts = {}) =>
+    spawnSync(process.execPath, [GUARD], {
+      env: {
+        ...process.env,
+        MODE,
+        GITHUB_REF,
+        VERSION,
+        EXPECTED_EDITOR_SHA: opts.sha ?? '',
+        EXPECTED_VERSION: opts.version ?? '',
+        WIN_SIGNER: opts.signer ?? '',
+        NOTARIZE: opts.notarize ?? '',
+      },
+      encoding: 'utf8',
+    });
+  const ok = (r, msg) => assert.equal(r.status, 0, `${msg}: ${r.stderr}${r.stdout}`);
+  const ng = (r, msg, re) => {
+    assert.equal(r.status, 1, msg);
+    if (re) assert.match(r.stderr + r.stdout, re, `${msg}（理由の説明）`);
+  };
+
+  // --- mode=full: rc 以降のみ（+ #104 宣言必須）---
+  ok(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.0' }), 'case 3(a) full + master + 正式版 → 許可');
+  ok(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-rc1', { sha: SHA, version: '1.0.0-rc1' }), 'case 3(b) full + 非master + rc → 許可');
+  ok(run('full', 'refs/heads/any/branch', '2.0.0-rc.3', { sha: SHA, version: '2.0.0-rc.3' }), 'case 3(c) full + rc.3 表記も許可');
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0', { sha: SHA, version: '1.0.0' }), 'case 3(d) full + 非master + 正式版 → 拒否', /master/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-alpha1', { sha: SHA, version: '1.0.0-alpha1' }), 'case 3(e) full + alpha → 拒否', /rc/);
+  ng(run('full', 'refs/heads/foss4g-hiroshima', '1.0.0-beta2', { sha: SHA, version: '1.0.0-beta2' }), 'case 3(f) full + beta → 拒否', /rc/);
+
+  // --- #104: mode=full の exact commit SHA 宣言（宣言欠落 / 不正 SHA / version 不一致は RED）---
+  ng(run('full', 'refs/heads/master', '1.0.0', { version: '1.0.0' }), 'case 3(j) full + expected_editor_sha 欠落 → 拒否', /expected_editor_sha/);
+  ng(run('full', 'refs/heads/master', '1.0.0', { sha: 'deadbeef', version: '1.0.0' }), 'case 3(k) full + expected_editor_sha 非 40桁 hex → 拒否', /expected_editor_sha/);
+  ng(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.1' }), 'case 3(l) full + expected_version 不一致 → 拒否', /expected_version/);
+  // exact GREEN（宣言が正しく存在し、master + 正式版 が通る）
+  ok(run('full', 'refs/heads/master', '1.0.0', { sha: SHA, version: '1.0.0' }), 'case 3(m) full + 宣言 exact（SHA + version 一致）→ 許可');
+
+  // --- mode=verify: 課金ゼロにつき全バージョン許可（#104 宣言は不要）---
+  ok(run('verify', 'refs/heads/foss4g-hiroshima', '1.0.0'), 'case 3(g) verify + 非master + 正式版 → 許可');
+  ok(run('verify', 'refs/heads/wip/anything', '0.1.0-alpha1'), 'case 3(h) verify + alpha → 許可');
+  ok(run('verify', 'refs/heads/master', '1.0.0-rc1'), 'case 3(i) verify + master + rc → 許可');
+
+  // --- mode=sign-check（Mac 署名のみ・Win は Artifact Signing・draft Release なし。定額 ∴ rc の制限なし）---
+  ok(run('sign-check', 'refs/heads/master', '1.2.0-alpha.1', { sha: SHA, version: '1.2.0-alpha.1', signer: 'artifact-signing' }),
+    'sign-check + alpha + 宣言 → 許可（rc の制限を課さない）');
+  ok(run('sign-check', 'refs/heads/foss4g-hiroshima', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing' }),
+    'sign-check + 非 master + 正式版 → 許可（配布物を作らない）');
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { version: '1.2.0', signer: 'artifact-signing' }),
+    'sign-check + expected_editor_sha 欠落 → 拒否', /expected_editor_sha/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.1', signer: 'artifact-signing' }),
+    'sign-check + expected_version 不一致 → 拒否', /expected_version/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }),
+    'sign-check + win_signer=esigner → 拒否（課金の退路を検査用途に使わない）', /esigner/);
+  // --- mode=full の win_signer（artifact-signing・esigner のどちらか。既定は artifact-signing）---
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }), 'full + esigner → 許可（J-7 の退路）');
+  ng(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'bogus' }), 'full + 不正な win_signer → 拒否', /win_signer/);
+  ng(run('nonsense', 'refs/heads/master', '1.2.0'), '未知の mode → 拒否', /mode/);
+  ok(run('', 'refs/heads/master', '1.2.0'), 'push（mode が空）→ 制約なし');
+  // --- notarize 入力の検証 ---
+  ok(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'true' }),
+    'sign-check + notarize=true → 許可');
+  ok(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'false' }),
+    'sign-check + notarize=false → 許可');
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'false' }),
+    'full + notarize=false → 許可（full は入力を無視して常に公証する）');
+  ng(run('verify', 'refs/heads/master', '1.2.0', { notarize: 'true' }),
+    'verify + notarize=true → 拒否', /notarize=true/);
+  ng(run('', 'refs/heads/master', '1.2.0', { notarize: 'true' }),
+    'push（mode 空）+ notarize=true → 拒否', /notarize=true/);
+  ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'artifact-signing', notarize: 'yes' }),
+    'sign-check + 不正な notarize 値 → 拒否', /notarize/);
+
+  console.log('  [1/7] case 3 リリースガード 22ケース（2軸モデル + #104 exact SHA 宣言 + sign-check・win_signer）: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 5: latest.yml 再計算 + blockmap 再生成
+// ───────────────────────────────────────────────
+{
+  const dir = await mkdtemp(path.join(tmpdir(), 'release-workflow-resign-'));
+  const files = ['MaplatEditor-Windows-9.9.9-x64-Setup.exe', 'MaplatEditor-Windows-9.9.9-arm64-Setup.exe'];
+  for (const f of files) {
+    // 「署名済み」相当のバイナリ（内容は任意。blockmap は内容定義チャンクなので形式不問）
+    await writeFile(path.join(dir, f), randomBytes(256 * 1024));
+    // 未署名バイナリ由来の stale blockmap（garbage で代替。再生成されるべき対象）
+    await writeFile(path.join(dir, f + '.blockmap'), Buffer.from('stale-blockmap'));
+  }
+  const staleSha = sha512b64(Buffer.from('stale'));
+  const latest = {
+    version: '9.9.9',
+    files: files.map((f) => ({ url: f, sha512: staleSha, size: 1, blockMapSize: 1 })),
+    path: files[0],
+    sha512: staleSha,
+    releaseDate: new Date(0).toISOString(),
+  };
+  await writeFile(path.join(dir, 'latest.yml'), yaml.dump(latest));
+
+  const r = spawnSync(process.execPath, [RESIGN, dir], { encoding: 'utf8' });
+  assert.equal(r.status, 0, `case 5 再計算スクリプトが成功する: ${r.stderr}\n${r.stdout}`);
+
+  const updated = yaml.load(await readFile(path.join(dir, 'latest.yml'), 'utf8'));
+  for (const f of files) {
+    const buf = readFileSync(path.join(dir, f));
+    const entry = updated.files.find((e) => e.url === f);
+    assert.ok(entry, `case 5 files エントリが保持される: ${f}`);
+    assert.equal(entry.sha512, sha512b64(buf), `case 5 sha512 が署名後バイナリと一致: ${f}`);
+    assert.equal(entry.size, buf.length, `case 5 size が一致: ${f}`);
+
+    // blockmap: 再生成済み（gzip JSON として解釈でき、stale 内容ではない）
+    const bmBuf = readFileSync(path.join(dir, f + '.blockmap'));
+    assert.notEqual(bmBuf.toString(), 'stale-blockmap', `case 5 blockmap が再生成されている: ${f}`);
+    const bm = JSON.parse(gunzipSync(bmBuf).toString());
+    assert.ok(Array.isArray(bm.files) && bm.files.length > 0, `case 5 blockmap が有効な形式: ${f}`);
+    assert.equal(entry.blockMapSize, bmBuf.length, `case 5 blockMapSize が新 blockmap と一致: ${f}`);
+  }
+  // legacy トップレベル（旧 electron-updater 互換）も更新される
+  assert.equal(updated.sha512, sha512b64(readFileSync(path.join(dir, updated.path))), 'case 5 legacy sha512 も更新');
+
+  console.log('  [2/7] case 5 latest.yml 再計算 + blockmap 再生成: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 1 / case 4 / case 6: build.yml の静的検査
+// ───────────────────────────────────────────────
+{
+  const src = await readFile(WORKFLOW, 'utf8');
+  const wf = yaml.load(src); // case 1: YAML として妥当
+
+  // case 1: secrets 参照の全数が契約表と1対1
+  const EXPECTED_SECRETS = [
+    'APPLE_CERT_BASE64', 'APPLE_CERT_PASSWORD',
+    'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID',
+    'ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET',
+    // Artifact Signing の署名専用ジョブの azure/login だけが参照する（規則は signing-job-rules.mjs）
+    'AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID',
+  ].sort();
+  const referenced = [...new Set([...src.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]))].sort();
+  assert.deepEqual(referenced, EXPECTED_SECRETS, 'case 1: secrets 参照が契約表と完全一致');
+
+  // case 1/D4: action は first-party の actions/* も含めてすべて 40桁 SHA ピン（全 workflow の検査は workflow-action-pinning-smoke.mjs）
+  const uses = [...src.matchAll(/uses:\s*([^\s#]+)/g)].map((m) => m[1]);
+  for (const u of uses) {
+    const [, ref] = u.split('@');
+    assert.match(ref ?? '', /^[0-9a-f]{40}$/, `case 1: action が SHA ピンされている: ${u}`);
+  }
+  // SAC（2026-10-03）: 署名は electron-builder のフック経由に一本化。esigner-codesign action は使わない
+  assert.ok(!uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')),
+    'SAC: esigner-codesign action（Setup.exe だけを署名）を使わない（署名はフック経由で全 PE）');
+
+  // case 4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
+  const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
+
+  // case 10: 入力が mode / platforms の2軸（+ #104 の exact SHA 宣言 expected_editor_sha / expected_version）であり、既定が課金ゼロ側であること
+  const inputs = wf.on.workflow_dispatch.inputs;
+  assert.deepEqual(
+    Object.keys(inputs).sort(),
+    ['expected_editor_sha', 'expected_version', 'mode', 'notarize', 'platforms', 'win_signer'],
+    'case 10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + 既存の変更の win_signer'
+  );
+  assert.equal(inputs.notarize.type, 'boolean', 'notarize は boolean 入力');
+  assert.equal(inputs.notarize.required, false, 'notarize は任意');
+  assert.equal(inputs.notarize.default, false, 'notarize の既定は false（公証なし）');
+  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'case 10: mode の選択肢（既存の変更で sign-check）');
+  assert.deepEqual(inputs.win_signer.options, ['artifact-signing', 'esigner'], 'win_signer の選択肢');
+  assert.equal(inputs.win_signer.default, 'artifact-signing', 'win_signer の既定は artifact-signing（定額）');
+  assert.equal(inputs.mode.default, 'verify', 'case 10: mode の既定は課金ゼロ側（verify）');
+  assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'case 10: platforms の選択肢');
+  assert.equal(inputs.platforms.default, 'all', 'case 10: platforms の既定は all');
+  assert.equal(inputs.expected_editor_sha.type, 'string', 'case 10: expected_editor_sha は string 入力');
+  assert.equal(inputs.expected_editor_sha.required, false, 'case 10: expected_editor_sha は任意（push では空でフォールバック）');
+  assert.equal(inputs.expected_version.type, 'string', 'case 10: expected_version は string 入力');
+  assert.equal(inputs.expected_version.required, false, 'case 10: expected_version は任意');
+
+  // case 10: platforms フィルタが各ビルドジョブに掛かる（push では常に全部走る）
+  for (const [job, key] of [['build-mac', 'mac'], ['build-win', 'win'], ['build-linux', 'linux']]) {
+    const cond = wf.jobs[job].if ?? '';
+    assert.match(cond, /github\.event_name != 'workflow_dispatch'/, `case 10: ${job} は push で常に走る`);
+    assert.ok(
+      cond.includes("inputs.platforms == 'all'") && cond.includes(`inputs.platforms == '${key}'`),
+      `case 10: ${job} が platforms フィルタを持つ`
+    );
+  }
+  const winSteps = wf.jobs['build-win'].steps;
+  const stepIndex = (pred, what) => {
+    const i = winSteps.findIndex(pred);
+    assert.ok(i >= 0, `SAC: build-win に ${what} がある`);
+    return i;
+  };
+  const envOf = (st) => st.env ?? {};
+  // SAC: 予行（record・課金ゼロ）→ コーデック検査 → 署名網羅の検査 → 本番署名（esigner）の順。
+  // 検査は課金の前に置く（「壊れた成果物へ課金つきの署名をしない」を引き継ぐ）
+  const rehearsalAt = stepIndex((st) => st.name === 'Build Windows', '予行ビルド（Build Windows）');
+  const rehearsal = winSteps[rehearsalAt];
+  // eSigner の経路だけ record（キャッシュを引いて課金の見込みを出す）、それ以外は collect（署名しない・集める）
+  assert.equal(envOf(rehearsal).WIN_SIGN_MODE, "${{ needs.prepare.outputs.win_sign_path == 'esigner' && 'record' || 'collect' }}",
+    'SAC: Build Windows は署名しない（eSigner の経路は record・それ以外は collect）');
+  assert.equal(rehearsal.if, undefined, 'SAC: 予行は全経路（push / verify / full）で走る');
+  const codecAt = stepIndex((st) => (st.run ?? '').includes('verify:win-payload-codec'), 'コーデック検査');
+  const coverageAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--record'), '署名網羅の検査（record）');
+  assert.equal(winSteps[coverageAt].if, undefined, 'SAC: 署名網羅の検査は全経路で走る（日常の回帰の番人）');
+  const ESIGNER_PATH = "needs.prepare.outputs.win_sign_path == 'esigner'";
+  const esignerSteps = winSteps.filter((st) => envOf(st).WIN_SIGN_MODE === 'esigner');
+  assert.equal(esignerSteps.length, 1, 'SAC: 本番署名（WIN_SIGN_MODE=esigner）のビルドは 1 ステップ');
+  const esignerAt = winSteps.indexOf(esignerSteps[0]);
+  assert.ok(rehearsalAt < codecAt && codecAt < coverageAt && coverageAt < esignerAt,
+    'SAC: 予行 → コーデック検査 → 署名網羅の検査 → 本番署名 の順（検査を課金の前に置く）');
+  const esigner = esignerSteps[0];
+  assert.ok(FULL_COND.test(esigner.if ?? ''), 'case 4: eSigner 署名は mode=full 限定（verify では Win 署名なし）');
+  assert.ok((esigner.if ?? '').includes(ESIGNER_PATH), 'eSigner 署名は win_sign_path=esigner のときだけ');
+  for (const k of ['ES_USERNAME', 'ES_PASSWORD', 'ES_CREDENTIAL_ID', 'ES_TOTP_SECRET']) {
+    assert.equal(envOf(esigner)[k], `\${{ secrets.${k} }}`, `SAC: 本番署名ステップが ${k} を env で受け取る`);
+  }
+  // secrets（ES_*）を受け取るのは本番署名ステップだけ
+  for (const st of winSteps) {
+    if (st === esigner) continue;
+    assert.ok(!JSON.stringify(st).includes('secrets.ES_'), `SAC: 本番署名以外のステップが eSigner の secrets を参照しない: ${st.name ?? st.uses}`);
+  }
+  // CodeSignTool は公式リリースから版とハッシュを固定して取得し、本番署名の前に用意する
+  const cstAt = stepIndex((st) => (st.name ?? '').includes('CodeSignTool'), 'CodeSignTool の取得');
+  const cst = winSteps[cstAt];
+  assert.ok(FULL_COND.test(cst.if ?? '') && (cst.if ?? '').includes(ESIGNER_PATH), 'SAC: CodeSignTool の取得は mode=full・eSigner の経路限定');
+  assert.match(envOf(cst).CODESIGNTOOL_URL ?? '', /^https:\/\/github\.com\/SSLcom\/CodeSignTool\/releases\/download\/v[0-9.]+\//,
+    'SAC: CodeSignTool は SSL.com の公式リリースから版を固定して取得');
+  assert.match(envOf(cst).CODESIGNTOOL_SHA256 ?? '', /^[0-9a-f]{64}$/, 'SAC: CodeSignTool の SHA-256 を固定');
+  assert.ok((cst.run ?? '').includes('Get-FileHash') && (cst.run ?? '').includes('CODESIGNTOOL_SHA256'),
+    'SAC: 取得した zip の SHA-256 を照合する');
+  assert.ok(cstAt < esignerAt, 'SAC: CodeSignTool の取得は本番署名の前');
+  // 本番署名の成果物を Authenticode で検査する
+  const acAt = stepIndex((st) => (st.run ?? '').includes('verify-win-sign-coverage.mjs') && (st.run ?? '').includes('--authenticode'), 'Authenticode の検査');
+  assert.ok(FULL_COND.test(winSteps[acAt].if ?? '') && esignerAt < acAt, 'SAC: Authenticode の検査は mode=full で本番署名の後');
+  assert.ok((winSteps[acAt].run ?? '').includes('--signer esigner'), 'eSigner の経路の Authenticode の検査は --signer esigner');
+  const resign = winSteps.find((s) => (s.run ?? '').includes('resign-update-metadata'));
+  assert.ok(resign && FULL_COND.test(resign.if ?? ''), 'case 4: metadata 再計算は mode=full 限定');
+  const macSteps = wf.jobs['build-mac'].steps;
+  const NOTARIZE_COND = /^github\.event_name == 'workflow_dispatch' && \(inputs\.mode == 'full' \|\| \(inputs\.mode == 'sign-check' && inputs\.notarize\)\)$/;
+  const notarize = macSteps.find((s) => (s.name ?? '').includes('notarization'));
+  assert.ok(notarize && NOTARIZE_COND.test(notarize.if ?? ''), 'case 4: 公証 env は mode=full または mode=sign-check && inputs.notarize 限定');
+  assert.ok(FULL_COND.test(wf.jobs.release.if ?? '') && (wf.jobs.release.if ?? '').includes("inputs.platforms == 'all'"),
+    'case 4: draft Release は mode=full かつ platforms=all 限定');
+
+  // case 6: 旧 WIN_CSC_LINK の残存なし（repo 側の全域 grep は下で実施）
+  assert.ok(!src.includes('WIN_CSC_LINK'), 'case 6: build.yml に WIN_CSC_LINK が残存しない');
+  // t1/case 1（2026-08-21・人間指示）: 証明書インポートは push でも実行する（case 6 の
+  // 「dispatch 限定」を撤廃）。Secret 未設定時のスキップはシェル内判定が担う。
+  // 旧「full 限定にしない」は if 不在 assert に包含されるため撤去した
+  const importCert = macSteps.find((s) => (s.name ?? '').includes('Apple Developer certificate'));
+  assert.ok(importCert, 't1/case 1: 証明書インポートステップが存在する');
+  assert.equal(importCert.if, undefined,
+    't1/case 1: 証明書インポートステップが if: を持たない（push でも実行され Mac は常に署名を試みる）');
+
+  // : ガードは P3 スクリプト経由（判定の単一実装）
+  const prepSteps = wf.jobs.prepare.steps;
+  assert.ok(prepSteps.some((s) => (s.run ?? '').includes('check-release-guard.mjs')),
+    'case 1: prepare が check-release-guard.mjs を呼ぶ');
+
+  // #104 / 全 checkout を ref: inputs.expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
+  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux', 'pack-win-1', 'pack-win-2', 'finalize-win', 'verify-win-install']) {
+    const checkouts = (wf.jobs[job].steps ?? []).filter((s) => (s.uses ?? '').startsWith('actions/checkout@'));
+    assert.ok(checkouts.length > 0, `#104: ${job} に checkout step がある`);
+    for (const c of checkouts) {
+      assert.equal(c.with?.ref, '${{ inputs.expected_editor_sha }}',
+        `#104: ${job} の checkout が ref: inputs.expected_editor_sha を指す`);
+    }
+  }
+
+  // #104: prepare が guard へ EXPECTED_EDITOR_SHA / EXPECTED_VERSION を env で渡す
+  const guardStep = prepSteps.find((s) => (s.run ?? '').includes('check-release-guard.mjs'));
+  assert.ok(guardStep, '#104: prepare に guard step がある');
+  const guardEnv = guardStep.env ?? {};
+  assert.equal(guardEnv.EXPECTED_EDITOR_SHA, '${{ inputs.expected_editor_sha }}', '#104: guard へ EXPECTED_EDITOR_SHA を渡す');
+  assert.equal(guardEnv.EXPECTED_VERSION, '${{ inputs.expected_version }}', '#104: guard へ EXPECTED_VERSION を渡す');
+  assert.equal(guardEnv.NOTARIZE, '${{ inputs.notarize }}', 'guard へ NOTARIZE を渡す');
+
+  // #104: prepare が git rev-parse HEAD から build-meta.json を生成し build-meta artifact として upload
+  // 祖先の確認の step も git rev-parse HEAD を持つので、build-meta.json を書く step を選ぶ
+  const metaGen = prepSteps.find((s) => (s.run ?? '').includes('git rev-parse HEAD') && (s.run ?? '').includes('build-meta.json'));
+  assert.ok(metaGen && (metaGen.run ?? '').includes('build-meta.json'),
+    '#104: prepare が git rev-parse HEAD から build-meta.json を生成');
+  const metaUpload = prepSteps.find((s) =>
+    (s.uses ?? '').startsWith('actions/upload-artifact') && String(s.with?.name) === 'build-meta');
+  assert.ok(metaUpload && String(metaUpload.with?.path).includes('build-meta.json'),
+    '#104: build-meta を artifact として upload');
+
+  // #104: release-manifest.json は生成も参照もしない（v3 撤回）。step 実体（run / name / with）を
+  // 対象とし、宣言意図を説明するコメント中の言及は「参照」に含めない。
+  const allSteps = Object.values(wf.jobs).flatMap((j) => j.steps ?? []);
+  const manifestRefs = allSteps.some((s) =>
+    (s.run ?? '').includes('release-manifest.json') ||
+    String(s.name ?? '').includes('release-manifest.json') ||
+    String(s.with?.path ?? '').includes('release-manifest.json') ||
+    String(s.with?.name ?? '').includes('release-manifest.json')
+  );
+  assert.ok(!manifestRefs, '#104: どの step も release-manifest.json を生成・参照しない');
+
+  // : 動的 environment（release 実行時のみ 'release'）
+  for (const job of ['build-mac', 'build-win', 'release']) {
+    const envmt = String(wf.jobs[job].environment ?? '');
+    assert.ok(envmt.includes("'release'") && envmt.includes("workflow_dispatch"),
+      `case 1: ${job} に動的 environment（dispatch のとき release 環境）がある`);
+  }
+
+  // P1(e): win アーティファクトに blockmap を含める
+  const upload = winSteps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact') && s.with?.name === 'win-artifacts');
+  assert.ok(String(upload.with.path).includes('*.exe.blockmap'), 'case 1: win artifacts に blockmap を含む');
+  const finUpload = wf.jobs['finalize-win'].steps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact') && s.with?.name === 'win-artifacts');
+  assert.ok(String(finUpload.with.path).includes('*-Setup.exe.blockmap'), 'finalize-win の win artifacts に blockmap を含む');
+
+  console.log('  [3/7] case 1/case 4/case 6/case 10 build.yml 静的検査: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 6: WIN_CSC_LINK / isWinSigning の repo 全域残存なし（P5）
+// ───────────────────────────────────────────────
+{
+  const config = await readFile(path.join(projectRoot, 'electron-builder.config.cjs'), 'utf8');
+  assert.ok(!config.includes('WIN_CSC_LINK'), 'case 6: electron-builder.config.cjs に WIN_CSC_LINK が残存しない');
+  assert.ok(!config.includes('isWinSigning'), 'case 6: 未使用 isWinSigning が撤去されている');
+  assert.ok(existsSync(GUARD) && existsSync(RESIGN), 'P3/P4 スクリプトが実在する');
+  console.log('  [4/7] case 6 repo 側残存なし: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 9: 公証経路が二重にならない（case 7 実走で発見した欠陥の回帰止め）
+//
+// electron-builder 24.13.3 は APPLE_ID を env に見つけると自前の notarizeIfProvided を
+// 走らせる。mac.notarize が未定義だと macPackager.js:501 の
+// `const { appBundleId, ascProvider } = options` が undefined を分解して落ちる（実測）。
+// 本プロジェクトの公証は afterSign（scripts/notarize/notarize.cjs）が担うため、
+// electron-builder 側は明示的に false で止める。両方有効だと二重公証になる。
+// ───────────────────────────────────────────────
+{
+  process.env.APPLE_ID = 'smoke@example.com';
+  process.env.APPLE_APP_SPECIFIC_PASSWORD = 'xxxx-xxxx-xxxx-xxxx';
+  process.env.APPLE_TEAM_ID = 'SMOKETEAM1';
+  const { createRequire } = await import('node:module');
+  const req = createRequire(import.meta.url);
+  const configPath = path.join(projectRoot, 'electron-builder.config.cjs');
+  delete req.cache?.[configPath];
+  const cfg = req(configPath);
+
+  assert.equal(
+    cfg.mac.notarize, false,
+    'case 9: APPLE_ID 設定時に mac.notarize が明示 false でない'
+    + '（electron-builder 自前の公証が起動し、mac.notarize 未定義のため分解エラーで落ちる）'
+  );
+  assert.equal(
+    cfg.afterSign, 'scripts/notarize/notarize.cjs',
+    'case 9: 公証は afterSign フックが担う（APPLE_ID があるとき）'
+  );
+  assert.equal(cfg.mac.hardenedRuntime, true, 'case 9: 公証時は Hardened Runtime が有効');
+  console.log('  [5/7] case 9 公証経路の単一化: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 11: GITHUB_TOKEN の最小権限（セキュリティレビュー SR-t12-M-1）
+//
+// contents: write を必要とするのは Release を作る release ジョブだけである。
+// workflow レベルに置くとビルド3ジョブの GITHUB_TOKEN にも書き込み権限が乗り、
+// checkout の既定（persist-credentials: true）が .git/config へ残したトークンを
+// 経由して、ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder の
+// プラグイン群）の汚染がそのままリポジトリ書き込みに直結する。署名パイプラインでは
+// 「次に署名される内容を書き換えられる」ことを意味するため、
+// 外部 action を SHA ピンする脅威モデルと整合させる。
+// ───────────────────────────────────────────────
+{
+  const wf = yaml.load(readFileSync(WORKFLOW, 'utf8'));
+
+  assert.equal(
+    wf.permissions?.contents, 'read',
+    'case 11: workflow レベルの permissions.contents は read（write を全ジョブへ配らない）'
+  );
+  assert.equal(
+    wf.jobs.release.permissions?.contents, 'write',
+    'case 11: contents: write は Release を作る release ジョブにのみ与える'
+  );
+  // SAC: 署名済みキャッシュの asset を足すジョブにも write が要る。ただし checkout も依存の導入もせず、
+  // リポジトリのコードを実行しない（依存ツリーの汚染が write トークンに届かない）
+  const cacheJob = wf.jobs['publish-win-sign-cache'];
+  assert.ok(cacheJob, 'SAC: publish-win-sign-cache ジョブがある');
+  assert.equal(cacheJob.permissions?.contents, 'write', 'SAC: publish-win-sign-cache は contents: write');
+  assert.match(cacheJob.if ?? '', /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/,
+    'SAC: キャッシュの書き込みは mode=full 限定');
+  for (const st of cacheJob.steps) {
+    const u = st.uses ?? '';
+    const r = st.run ?? '';
+    assert.ok(!u.startsWith('actions/checkout@') && !u.startsWith('pnpm/') && !u.startsWith('actions/setup-node'),
+      `SAC: publish-win-sign-cache はリポジトリを checkout しない・依存を入れない: ${u}`);
+    // コマンド位置の pnpm / npm / npx / node を禁じる（本文中の「.node」等の語は対象外）
+    assert.ok(!/(^|[\s;&|(])(pnpm|npm|npx|node)\s/m.test(r), 'SAC: publish-win-sign-cache はリポジトリのコードを実行しない');
+  }
+  for (const [name, job] of Object.entries(wf.jobs)) {
+    if (name === 'release' || name === 'publish-win-sign-cache') continue;
+    assert.notEqual(job.permissions?.contents, 'write', `case 11: ${name} に contents: write を与えない`);
+  }
+  // release ジョブは配布物の artifact だけを Release に載せる（署名の記録・キャッシュ候補を載せない）
+  const dl = wf.jobs.release.steps.find((st) => (st.uses ?? '').startsWith('actions/download-artifact'));
+  assert.equal(dl?.with?.pattern, '{build-meta,mac-artifacts,win-artifacts,linux-artifacts}',
+    'SAC: release は配布物の artifact だけを落とす');
+  for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
+    assert.notEqual(
+      wf.jobs[job].permissions?.contents, 'write',
+      `case 11: ${job} に contents: write を与えない`
+    );
+  }
+  // 多層防御: ビルドジョブの checkout はトークンを .git/config へ残さない
+  for (const job of ['build-mac', 'build-win', 'build-linux', 'pack-win-1', 'pack-win-2', 'finalize-win', 'verify-win-install']) {
+    const co = wf.jobs[job].steps.find((s) => (s.uses ?? '').startsWith('actions/checkout@'));
+    assert.equal(
+      co?.with?.['persist-credentials'], false,
+      `case 11: ${job} の checkout は persist-credentials: false`
+    );
+  }
+  console.log('  [6/7] case 11 GITHUB_TOKEN の最小権限: PASS');
+}
+
+// ───────────────────────────────────────────────
+// case 12: Hardened Runtime 下で V8 が起動できる entitlements（2026-08-09 の起動不能事故）
+//
+// Apple Silicon では Hardened Runtime 下の V8 が JIT 用 CodeRange を MAP_JIT で確保する。
+// これを許すのは com.apple.security.cs.allow-jit のみで、
+// allow-unsigned-executable-memory は別物であり代替にならない。欠けると **署名ビルドだけ**が
+// 起動直後に「Failed to reserve virtual memory for CodeRange」で自死し、
+// 未署名のローカルビルドでは再現しないため CI のビルド成功だけでは検出できない
+// （1.0.0-rc1 の公証済み .app で実測。同じ .app に allow-jit を足して再署名すると起動した）。
+// ───────────────────────────────────────────────
+{
+  const entPath = path.join(projectRoot, 'scripts/notarize/entitlements.mac.plist');
+  const ent = readFileSync(entPath, 'utf8');
+
+  // <key>…</key> の直後の <true/> までを1組として拾う（順序・空白に依存しない）
+  const granted = new Set(
+    [...ent.matchAll(/<key>\s*([^<]+?)\s*<\/key>\s*<true\s*\/>/g)].map((m) => m[1])
+  );
+  assert.ok(
+    granted.has('com.apple.security.cs.allow-jit'),
+    'case 12: entitlements に com.apple.security.cs.allow-jit が無い'
+      + '（Apple Silicon の署名ビルドが V8 の CodeRange 確保に失敗して起動直後に落ちる。'
+      + ' allow-unsigned-executable-memory は代替にならない）'
+  );
+
+  // 署名時のみ有効化される entitlements 経路が、上のファイルを指していること。
+  // entitlementsInherit も同じでなければヘルパー（Renderer/GPU/Plugin）に権限が渡らない
+  const cfgSrc = readFileSync(path.join(projectRoot, 'electron-builder.config.cjs'), 'utf8');
+  for (const key of ['entitlements', 'entitlementsInherit']) {
+    assert.match(
+      cfgSrc,
+      new RegExp(`${key}:\\s*'scripts/notarize/entitlements\\.mac\\.plist'`),
+      `case 12: electron-builder.config.cjs の ${key} が entitlements.mac.plist を指していない`
+    );
+  }
+  console.log('  [7/7] case 12 Hardened Runtime 下の JIT entitlements: PASS');
+}
+
+console.log('\nm6-t12 release-workflow smoke: すべて成功');

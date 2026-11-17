@@ -3,8 +3,8 @@ import type { ElectrobunConfig } from 'electrobun';
 export default {
   app: {
     name: 'MaplatEditorM2',
-    identifier: 'dev.code4history.maplat-editor.m2',
-    version: '1.0.0-rc1-m2',
+    identifier: 'dev.code4history.maplat-editor.electrobun-poc',
+    version: '1.0.0-rc1-poc',
     description: 'Maplat Editor Electrobun minimum PoC for FOSS4G desktop runtime work.',
   },
   build: {
@@ -34,7 +34,7 @@ export default {
   },
   runtime: {
     exitOnLastWindowClosed: true,
-    m2: {
+    poc: {
       viteArtifactUrl: 'views://maplat-editor/index.html',
       pocUrl: 'views://mainview/index.html',
     },

@@ -55,7 +55,7 @@ try {
   const existingFeatures = async () => normalizePoiSourceCollection(await readJson('merge-existing.json'), 'ja').features;
   const demoBytes = new Uint8Array(await readFile(path.join(fixtureDir, 'demo-merge.csv')));
 
-  // --- AC6(1)(3)(4)(5): デモ A の追記と上書き ---
+  // --- case 6(1)(3)(4)(5): デモ A の追記と上書き ---
   // 性質の検査は関数にまとめ、変異版 (下の case 10) にも同じ検査を当てる
   const checkDemo = async (impl) => {
     const existing = await existingFeatures();
@@ -107,7 +107,7 @@ try {
   assert.deepEqual(await checkDemo(planPoiMerge), []);
   console.log('  case 1 (デモ A: 追記 6 件・上書き 5 件): PASS');
 
-  // --- AC6(2): 空セルの規則の表駆動 ---
+  // --- case 6(2): 空セルの規則の表駆動 ---
   {
     // 項目 × 列あり/なし × セルが空/非空 × 既存に値あり/なし
     const fields = [
@@ -170,7 +170,7 @@ try {
     console.log(`  case 2 (空セルの規則 ${combos} 通り): PASS`);
   }
 
-  // --- AC6(6): id の枯渇 ---
+  // --- case 6(6): id の枯渇 ---
   {
     const ids = ['x', ...Array.from({ length: 99 }, (_, i) => `x-${i + 2}`)]; // x, x-2 ... x-100
     const existing = ids.map((id) => ({
@@ -187,7 +187,7 @@ try {
     console.log('  case 3 (id の枯渇): PASS');
   }
 
-  // --- AC6(7): 往復 ---
+  // --- case 6(7): 往復 ---
   {
     const source = await readJson('roundtrip-source.json');
     const internal = normalizePoiSourceCollection(source, 'ja');
@@ -254,7 +254,7 @@ try {
     console.log('  case 4 (往復と陰性対照 A〜D): PASS');
   }
 
-  // --- AC6(8): 20,000 行の合流が 1 秒以内 ---
+  // --- case 6(8): 20,000 行の合流が 1 秒以内 ---
   {
     const n = 20000;
     const existing = Array.from({ length: n }, (_, i) => ({
@@ -277,7 +277,7 @@ try {
     console.log(`  case 5 (20,000 行 ${ms.toFixed(0)} ms): PASS`);
   }
 
-  // --- AC9: 取り込みの取り消し (編集セッションの commit 1 回 = Undo 1 単位) ---
+  // --- case 9: 取り込みの取り消し (編集セッションの commit 1 回 = Undo 1 単位) ---
   {
     for (const mode of ['append', 'overwrite']) {
       const session = usePoiEditSession();

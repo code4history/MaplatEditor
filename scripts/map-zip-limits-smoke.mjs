@@ -31,7 +31,7 @@ const outDir = path.join(workDir, 'dist');
 const bundled = path.join(outDir, 'entry.mjs');
 const MARKER = 'map zip limits smoke passed';
 const baselineNames = Object.keys(JSON.parse(
-  await readFile(path.join(projectRoot, 'scripts/fixtures/nov26-m6-t8-default-map-export.json'), 'utf8'),
+  await readFile(path.join(projectRoot, 'scripts/fixtures/default-map-export.json'), 'utf8'),
 ).entries);
 
 try {

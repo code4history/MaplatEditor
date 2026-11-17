@@ -1,14 +1,14 @@
-// nov26-m7-t5（§3.2・MAJ-2）: electron-updater が更新ファイルの署名者を照らす判定の**写し**。
+// electron-updater が更新ファイルの署名者を照らす判定の**写し**。
 // 依存を入れない verify-win-install（scripts/win-sign/verify-win-install.mjs）が、配布物の app-update.yml の
 // publisherName と Setup.exe の SignerCertificate.Subject を、electron-updater と同じ判定で比べるために使う。
 //
-// 写し元（npm の公開物。版を上げたら写し直し、smoke の突き合わせ〔t5/AC1 (iv)〕で確かめる）:
+// 写し元（npm の公開物。版を上げたら写し直し、smoke の突き合わせ〔t5/case 1 (iv)〕で確かめる）:
 //   - parseDn: builder-util-runtime 9.7.0 out/rfc2253Parser.js 4〜79 行（逐語。var の書き方だけ揃えた）
 //   - 判定:    electron-updater 6.8.10 out/windowsExecutableCodeSignatureVerifier.js 70〜87 行
 //              （Subject を parseDn で読み、publisherName の各要素を parseDn で読み、属性があれば
 //               publisherName 側の全キーで値が完全一致。属性が無ければ CN と文字列で比べる）
 // キー名は正規化しない（S と ST は別のキー）。∴ publisherName は Subject の文字列を加工せずに書く。
-// 本物との突き合わせ: scripts/nov26-m7-t5-update-foundation-smoke.mjs [3]
+// 本物との突き合わせ: scripts/update-foundation-smoke.mjs [3]
 'use strict';
 
 /** builder-util-runtime 9.7.0 の parseDn の写し（RFC 2253 風の DN を Map に読む） */

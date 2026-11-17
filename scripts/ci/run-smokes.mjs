@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * oct26-m4-t5（#121）: package.json の smoke:* を全数、直列に実行して報告を書く実行器。
+ * #121: package.json の smoke:* を全数、直列に実行して報告を書く実行器。
  *
  * - 除外表 ci/test-exclusions.json の kind: excluded 以外をすべて実行する（新しい smoke は表に書かない限り自動で走る）
  * - 自身の exit は smoke の成否で決めない（常に 0）。報告を書けなかったときだけ非 0。合否は judge-test-results.mjs が決める

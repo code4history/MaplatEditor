@@ -21,7 +21,7 @@ const rpc = BrowserView.defineRPC<M2ElectrobunRPC>({
     },
     messages: {
       viewReady: ({ href }) => {
-        console.log(`[m2-electrobun] view ready: ${href}`);
+        console.log(`[poc-electrobun] view ready: ${href}`);
       },
     },
   },
@@ -33,7 +33,7 @@ const url =
     : 'views://mainview/index.html';
 
 new BrowserWindow({
-  title: 'Maplat Editor M2 Electrobun PoC',
+  title: 'Maplat Editor Electrobun PoC',
   url,
   frame: {
     x: 80,

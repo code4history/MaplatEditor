@@ -8,7 +8,7 @@
 //   2. インストール先（既定 %LOCALAPPDATA%\Programs\MaplatEditor）の全 PE（拡張子でなく MZ＋PE\0\0 で判定）の
 //      Authenticode が Valid で、署名者が signer-identity.json の --signer のモードか Microsoft
 //   3. MaplatEditor.exe --user-data-dir=<RUNNER_TEMP の下> を起動し、10 秒後にプロセスが生きていることを確かめて終了させる
-//   2b. （nov26-m7-t5・§3.6）入った resources/app-update.yml の publisherName が signer-identity.json の
+//   2b. 入った resources/app-update.yml の publisherName が signer-identity.json の
 //      --signer の publisherSubject と文字列として一致し、インストールに使った Setup.exe（＝更新のときに electron-updater が
 //      照らすファイル）の生の SignerCertificate.Subject とも文字列として一致し、electron-updater の判定の写し
 //      （updater-publisher-match.cjs の matchesPublisher）で真。Subject は electron-updater と同じコマンド
@@ -59,7 +59,7 @@ export function judgeSigners(results, signer, identity) {
 }
 
 // ───────────────────────────────────────────────
-// app-update.yml の publisherName（nov26-m7-t5・§3.6）
+// app-update.yml の publisherName
 // ───────────────────────────────────────────────
 
 /** js-yaml の dump が書く 1 つのスカラー（素・'…'・"…"）を読む。依存を入れないジョブで使うための最小の読み取り */
@@ -203,7 +203,7 @@ async function main(argv) {
   for (const r of rows) if (!r.ok) failures.push(`署名: ${path.relative(installDir, r.file)} — ${r.detail}`);
   if (pes.length === 0) failures.push('インストール先に PE が無い');
 
-  // 2b. app-update.yml の publisherName と、インストールに使った Setup.exe の生の Subject（nov26-m7-t5・§3.6）
+  // 2b. app-update.yml の publisherName と、インストールに使った Setup.exe の生の Subject
   {
     const ymlPath = path.join(installDir, 'resources', 'app-update.yml');
     const appUpdateYml = existsSync(ymlPath) ? readFileSync(ymlPath, 'utf8') : null;

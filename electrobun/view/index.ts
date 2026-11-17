@@ -25,11 +25,11 @@ const rpc = Electroview.defineRPC<M2ElectrobunRPC>({
 new Electroview({ rpc });
 
 async function runSmoke() {
-  const ping = await rpc.request.ping({ message: 'm2-electrobun-webview' });
+  const ping = await rpc.request.ping({ message: 'poc-electrobun-webview' });
   const saved = await rpc.request.storageSaveMock({
     record: {
-      mapID: 'm2-electrobun-webview',
-      title: 'M2 Electrobun WebView Map',
+      mapID: 'poc-electrobun-webview',
+      title: 'Electrobun WebView Map',
       payload: {
         source: 'webview',
       },
@@ -38,7 +38,7 @@ async function runSmoke() {
   const loaded = await rpc.request.storageReadMock({ mapID: saved.mapID });
   const file = await rpc.request.writeTextFile({
     relativePath: 'webview/rpc.txt',
-    text: 'M2 typed RPC local file access passed',
+    text: 'PoC typed RPC local file access passed',
   });
   const readBack = await rpc.request.readTextFile({ relativePath: 'webview/rpc.txt' });
   const viteArtifact = await rpc.request.statViteArtifact();

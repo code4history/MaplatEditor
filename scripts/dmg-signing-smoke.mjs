@@ -53,7 +53,7 @@ function checkWorkflow(doc) {
   for (const step of [notarize, refresh]) assert.equal(step.if, notarizeIf);
   for (const step of [notarize, refresh, verify]) assert.doesNotMatch(step.name, /notarization/);
   assert.equal(notarize.run, 'node scripts/notarize/notarize.cjs --dmg release/${{ env.VERSION }}');
-  assert.equal(refresh.run, 'node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml');
+  assert.equal(refresh.run, 'node scripts/release/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml');
   assert.equal(verify.if, verifyIf);
   assert.equal(verify.env.EXPECT, "${{ (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize)) && 'notarized' || 'signed' }}");
   assert.equal(verify.run, 'node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect "$EXPECT"');
@@ -105,7 +105,7 @@ try {
       (steps) => { steps.find((step) => step.name === names[3]).if = "env.MAC_SIGN == 'true'"; },
       (steps) => { steps.find((step) => step.name === names[3]).run = 'node scripts/notarize/verify-dmg.mjs release/${{ env.VERSION }} --expect signed'; },
       (steps) => { steps.find((step) => step.name === names[3]).env.EXPECT = 'signed'; },
-      (steps) => { steps.find((step) => step.name === names[2]).run = 'node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}'; },
+      (steps) => { steps.find((step) => step.name === names[2]).run = 'node scripts/release/resign-update-metadata.mjs release/${{ env.VERSION }}'; },
       (steps) => { steps.find((step) => /notarization/.test(step.name)).if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.mode == 'sign-check')"; },
       (steps) => { steps.find((step) => /notarization/.test(step.name)).if = "github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.notarize)"; },
     ];
@@ -121,7 +121,7 @@ try {
     const zipsBefore = latest.files.filter((entry) => entry.url.endsWith('.zip'));
     for (const entry of latest.files.filter((entry) => entry.url.endsWith('.dmg'))) { entry.sha512 = 'stale'; entry.size = 1; entry.blockMapSize = 1; }
     writeFileSync(path.join(dir, 'latest-mac.yml'), yaml.dump(latest, { lineWidth: -1 }));
-    const run = child([path.join(root, 'scripts/m6-t12/resign-update-metadata.mjs'), dir, '--ext', '.dmg', '--yml', 'latest-mac.yml']);
+    const run = child([path.join(root, 'scripts/release/resign-update-metadata.mjs'), dir, '--ext', '.dmg', '--yml', 'latest-mac.yml']);
     assert.equal(run.status, 0, run.stderr);
     const after = yaml.load(readFileSync(path.join(dir, 'latest-mac.yml'), 'utf8'));
     assert.deepEqual(after.files.filter((entry) => entry.url.endsWith('.zip')), zipsBefore);
@@ -137,7 +137,7 @@ try {
     const files = ['MaplatEditor-Windows-9.0.0-arm64-Setup.exe', 'MaplatEditor-Windows-9.0.0-x64-Setup.exe'];
     for (const file of files) writeFileSync(path.join(winDir, file), Buffer.from(`fixture:${file}\n`.repeat(500)));
     writeFileSync(path.join(winDir, 'latest.yml'), yaml.dump({ version: '9.0.0', files: files.map((url) => ({ url, sha512: 'stale', size: 1, blockMapSize: 1 })), path: files[0], sha512: 'stale', releaseDate: '2026-10-01T00:00:00.000Z' }, { lineWidth: -1 }));
-    const win = child([path.join(root, 'scripts/m6-t12/resign-update-metadata.mjs'), winDir]);
+    const win = child([path.join(root, 'scripts/release/resign-update-metadata.mjs'), winDir]);
     assert.equal(win.status, 0, win.stderr);
     assert.equal(win.stdout, windowsGolden.stdout);
     for (const [file, base64] of Object.entries(windowsGolden.files)) assert.deepEqual(readFileSync(path.join(winDir, file)), Buffer.from(base64, 'base64'), file);

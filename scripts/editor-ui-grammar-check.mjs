@@ -85,7 +85,7 @@ export function inspectSource(file, source) {
       if (cls.includes('text-center') && cls.includes('text-muted') && ownKeys.some((k) => /empty|no_|not_found|select_/.test(k))) emit('empty.ad-hoc');
       const inFooter = ancestors.some((n) => n.type === 1 && classes(n).includes('modal-footer'));
       if (node.tag === 'button' && (cls.includes('btn-secondary') || cls.includes('btn-outline-info') || (inFooter && cls.includes('btn-sm')) || (ownKeys.includes('common.cancel') && !cls.includes('btn-outline-secondary')))) emit('button.variant', cls.join(' '));
-      // 地図の上に重ねる道具のボタン（ui-map-overlay-proposal.md §4.2）。札（map-tool）を持ち、aria-label と title の両方があること
+      // 地図の上に重ねる道具のボタン（ui-map-overlay-proposal.md）。札（map-tool）を持ち、aria-label と title の両方があること
       const inMapOverlay = ancestors.some((n) => n.type === 1 && classes(n).some((c) => c === 'map-overlay-tools' || c === 'map-overlay-tools__row'));
       if (node.tag === 'button' && inMapOverlay) {
         const hasText = (name) => {
