@@ -274,7 +274,7 @@ try {
   assert.equal(packageJson.scripts.predev, 'node scripts/ensure-electron.mjs');
   assert.equal(packageJson.scripts.predist, 'node scripts/ensure-electron.mjs');
   assert.match(
-    packageJson.scripts['test:e2e:m11-t4'],
+    packageJson.scripts['test:e2e:master-detail'],
     /^node scripts\/ensure-electron\.mjs && /,
     'Electron E2E本体が起動前にバイナリ欠損を修復する',
   );

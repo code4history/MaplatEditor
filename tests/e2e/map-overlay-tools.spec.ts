@@ -1,4 +1,4 @@
-// 地図の上に重ねる部品（docs/ui-map-overlay-proposal.md §4.2 案 A）の振る舞い。
+// 地図の上に重ねる部品（docs/ui-map-overlay-proposal.md 案 A）の振る舞い。
 //
 //   1. ベースマップの名前と著作権表示（帰属）は利用者の入力・取り込んだデータから来る。
 //      OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描くので、HTML を書かれても

@@ -1,15 +1,15 @@
 /**
  * 署名の資格情報の露出を狭める（eSigner の退路・署名専用ジョブの最小化）の受け入れ検査。
  *
- *   [1] t3/case 1: win-sign.cjs が読み込み時に ES_* を process.env から外す・CodeSignTool の起動の形
+ *   [1] case 1: win-sign.cjs が読み込み時に ES_* を process.env から外す・CodeSignTool の起動の形
  *       （偽の java で引数と env を記録する）・pwsh の子の env・ログの伏せ字・Azure のクライアントシークレットを使わない
- *   [2] t3/case 2: secrets.ES_* を参照するのは eSigner の本番 step だけ・secrets.AZURE_* は署名専用ジョブの
+ *   [2] case 2: secrets.ES_* を参照するのは eSigner の本番 step だけ・secrets.AZURE_* は署名専用ジョブの
  *       azure/login だけ・署名専用ジョブの permissions は { id-token: write } だけ（signing-job-rules.mjs の規則 1・5）
  *   [3] scripts/ci/eval-gh-if.mjs の自己検査
- *   [4] t3/case 4（eSigner 側 (ii)）: build-win の eSigner の step の if: を評価で断言する
+ *   [4] case 4（eSigner 側 (ii)）: build-win の eSigner の step の if: を評価で断言する
  *   [5] 規則 11（署名の記録を job summary に表で書く）と、拒否語の穴 E1〜E4の変異の自己検査、
  *       および規則 2〜10・github.token・shell の各規則の変異の自己検査（1 か所ずつ壊して違反が出ること）
- *   [6] t3/case 3: docs/release-signing.md の残るリスク (a)〜(d)
+ *   [6] case 3: docs/release-signing.md の残るリスク (a)〜(d)
  *
  * 実行: node scripts/credential-exposure-smoke.mjs（rtk を付けない）
  */
@@ -51,7 +51,7 @@ const fakeCredentials = (prefix) => ({
 const work = mkdtempSync(path.join(tmpdir(), 'credential-exposure-'));
 
 // ───────────────────────────────────────────────
-// [1] t3/case 1
+// [1] case 1
 // ───────────────────────────────────────────────
 {
   if (process.platform === 'win32') {
@@ -160,11 +160,11 @@ const work = mkdtempSync(path.join(tmpdir(), 'credential-exposure-'));
   const NAME = ['AZURE', 'CLIENT', 'SECRET'].join('_'); // この smoke 自身が git grep に当たらないように組み立てる
   const g = spawnSync('git', ['grep', '-n', NAME], { cwd: projectRoot, encoding: 'utf8' });
   assert.equal(g.stdout.trim(), '', `[1](f) git grep -n ${NAME} が 0 件でない:\n${g.stdout}`);
-  console.log('  [1/6] t3/case 1 資格情報の閉じ込め・起動の形・伏せ字: PASS');
+  console.log('  [1/6] case 1 資格情報の閉じ込め・起動の形・伏せ字: PASS');
 }
 
 // ───────────────────────────────────────────────
-// [2] t3/case 2
+// [2] case 2
 // ───────────────────────────────────────────────
 /** step（と job）の文字列から secrets.<名前> を拾う */
 const secretNames = (v) => [...JSON.stringify(v ?? null).matchAll(/\bsecrets\s*(?:\.\s*([A-Za-z0-9_]+)|\[\s*\\?['"]([A-Za-z0-9_]+)\\?['"]\s*\])/g)].map((m) => m[1] ?? m[2]);
@@ -212,7 +212,7 @@ const ESIGNER_STEP = { job: 'build-win', name: 'Build and sign Windows (SSL.com 
   const w3 = clone(wf);
   w3.jobs['build-win'].env = { ...(w3.jobs['build-win'].env ?? {}), X: '${{ secrets.AZURE_CLIENT_ID }}' };
   assert.ok(checkSecretPlacement(w3, { esignerStep: ESIGNER_STEP, azureJobs: SIGN_JOBS }).length > 0, '[2] 自己検査: AZURE_ をジョブレベルへ配っても落ちない');
-  console.log('  [2/6] t3/case 2 secrets の置き場所・permissions: PASS');
+  console.log('  [2/6] case 2 secrets の置き場所・permissions: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -256,7 +256,7 @@ const ESIGNER_STEP = { job: 'build-win', name: 'Build and sign Windows (SSL.com 
 }
 
 // ───────────────────────────────────────────────
-// [4] t3/case 4（eSigner 側 (ii)）
+// [4] case 4（eSigner 側 (ii)）
 // ───────────────────────────────────────────────
 const ESIGNER_STEP_NAMES = [
   'Set up SSL.com CodeSignTool',
@@ -308,7 +308,7 @@ function esignerIfViolations(workflow) {
     mut(w.jobs['build-win'].steps.find((s) => s.name === 'Build and sign Windows (SSL.com eSigner)'));
     assert.ok(esignerIfViolations(w).length > 0, `[4] 自己検査: 変異「${label}」を見逃した`);
   }
-  console.log('  [4/6] t3/case 4 eSigner の step の if: の評価: PASS');
+  console.log('  [4/6] case 4 eSigner の step の if: の評価: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -438,7 +438,7 @@ function esignerIfViolations(workflow) {
 }
 
 // ───────────────────────────────────────────────
-// [6] t3/case 3: 残るリスク
+// [6] case 3: 残るリスク
 // ───────────────────────────────────────────────
 {
   const doc = readFileSync(DOC, 'utf8');
@@ -447,7 +447,7 @@ function esignerIfViolations(workflow) {
   for (const m of ['(a)', '(b)', '(c)', '(d)']) assert.ok(sec.includes(m), `[6] 残るリスクに ${m} が無い`);
   assert.match(doc, /TOTP の作り直し/, '[6] B-5「TOTP の作り直し」が無い');
   assert.match(doc, /署名履歴の確かめ方/, '[6]「署名履歴の確かめ方」が無い');
-  console.log('  [6/6] t3/case 3 文書: PASS');
+  console.log('  [6/6] case 3 文書: PASS');
 }
 
 console.log('\nnov26-credential exposure smoke: すべて成功');

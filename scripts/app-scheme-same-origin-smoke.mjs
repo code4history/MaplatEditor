@@ -1,6 +1,6 @@
 // （第 2 版）: ローカルデータの同一 origin 配信の smoke（Electron を起動しない）。
 //
-// 実画面と origin 境界は tests/e2e/oct26-m4-t2ff-app-local-cors.spec.ts が実行時に測る（AC-FF-1〜8）。
+// 実画面と origin 境界は tests/e2e/app-local-cors.spec.ts が実行時に測る（AC-FF-1〜8）。
 // 本 smoke は e2e を回さない場面でも、是正の要が外されたら落ちるように固定する:
 //   [1] URL 形: ローカルデータは renderer と同じ origin（app://bundle/__local/<abs>）で表す。旧 app://local は受理・正規化
 //   [2] resolveAppUrl: __local と旧 app://local を localRoots で判定し kind:'local' を返す（同梱物へ落とさない）

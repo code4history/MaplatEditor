@@ -36,7 +36,7 @@ import { build } from 'vite';
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const CAPTURE = process.argv.includes('--capture');
-const goldenFile = path.join(projectRoot, 'tests/fixtures/m19-t7-migration-passthrough/golden.json');
+const goldenFile = path.join(projectRoot, 'tests/fixtures/migration-passthrough/golden.json');
 
 // ---------------------------------------------------------------------------
 // 0.7.0 の入力 fixture（実データの形をそのまま写す。実測に基づく）

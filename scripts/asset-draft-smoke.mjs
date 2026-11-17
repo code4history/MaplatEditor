@@ -386,7 +386,7 @@ try {
   assert.match(settingsSource, /runtimeStoragePaths\.isolated/);
   const draftServiceSource = await readFile(path.join(projectRoot, 'electron/services/AssetDraftService.ts'), 'utf8');
   assert.match(draftServiceSource, /runtimeStoragePaths\.assetDraftStoreCwd/);
-  const e2eSource = await readFile(path.join(projectRoot, 'tests/e2e/m11-t2-draft-hot-exit.spec.ts'), 'utf8');
+  const e2eSource = await readFile(path.join(projectRoot, 'tests/e2e/draft-hot-exit.spec.ts'), 'utf8');
   assert.match(e2eSource, /MAPLAT_E2E_ROOT:\s*userDataDir/);
   assert.match(e2eSource, /window\.settings\.get\(['"]saveFolder['"]\)/);
   assert.match(e2eSource, /startsWith\(userDataDir\)/);

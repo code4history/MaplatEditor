@@ -2,12 +2,12 @@
  * （#141 決めること 2〜5）: 自動更新の基盤（形に依存しない部分）の受け入れ検査。
  *
  *   [1] 依存（electron-updater が dependencies にあり、electron-builder と同じ builder-util-runtime を引く）
- *   [2] t5/case 1 更新器の設定（updaterSettings・applyUpdaterSettings を本物の electron-updater の更新器に当てる）
- *   [3] t5/case 1 electron-builder.config.cjs の publish と publisherName（i）〜（iv）
- *   [4] t5/case 1 vite.config.ts の main の external
- *   [5] t5/case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の check の中だけ（既存の変更で 既存の変更の形へ）
- *   [6] t5/case 3 resolveUpdateFeed のマトリクスと、SettingsService・process.argv を読まないこと
- *   [7] t5/case 4 (d) Windows の x64／arm64 の更新ファイルの選び方（判定 (A)）
+ *   [2] case 1 更新器の設定（updaterSettings・applyUpdaterSettings を本物の electron-updater の更新器に当てる）
+ *   [3] case 1 electron-builder.config.cjs の publish と publisherName（i）〜（iv）
+ *   [4] case 1 vite.config.ts の main の external
+ *   [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の check の中だけ（既存の変更で 既存の変更の形へ）
+ *   [6] case 3 resolveUpdateFeed のマトリクスと、SettingsService・process.argv を読まないこと
+ *   [7] case 4 (d) Windows の x64／arm64 の更新ファイルの選び方（判定 (A)）
  *   [8] mac の zip・build.yml の artifact と注記・verify-win-install の publisherName の検査
  *   [9] MacUpdater がダウンロードの後に Squirrel を呼ぶ条件（入れた版のソースで確かめる）
  *
@@ -68,7 +68,7 @@ assert.equal(updaterRuntimeVersion, builderRuntimeVersion,
 pass(`依存（electron-updater ${updaterPkg.version}・builder-util-runtime ${updaterRuntimeVersion}）`);
 
 // ───────────────────────────────────────────────
-// [2] t5/case 1 更新器の設定
+// [2] case 1 更新器の設定
 // ───────────────────────────────────────────────
 const feed = await import('../electron/utils/updateFeed.ts');
 {
@@ -117,11 +117,11 @@ const feed = await import('../electron/utils/updateFeed.ts');
   assert.match(svc, /logger\s*=\s*console/, 'UpdateService が logger を console にしていない');
   assert.doesNotMatch(svc, /allowDowngrade\s*=\s*true/, 'UpdateService に allowDowngrade = true がある');
   assert.doesNotMatch(svc, /allowPrerelease\s*=\s*true/, 'UpdateService に allowPrerelease = true がある');
-  pass('t5/case 1 更新器の設定（本物の NsisUpdater に当てた・channel の設定の後も allowDowngrade が偽）');
+  pass('case 1 更新器の設定（本物の NsisUpdater に当てた・channel の設定の後も allowDowngrade が偽）');
 }
 
 // ───────────────────────────────────────────────
-// [3] t5/case 1 publish と publisherName（正規化前の生の値で比べる）
+// [3] case 1 publish と publisherName（正規化前の生の値で比べる）
 // ───────────────────────────────────────────────
 // electron-updater 6.8.10 out/windowsExecutableCodeSignatureVerifier.js の判定（本物の parseDn で両側を読み、
 // publisherName 側の全キーで値が完全一致）。verifySignature は powershell を起動するので判定の部分だけを同じ形で書く
@@ -225,11 +225,11 @@ const identity = JSON.parse(read('scripts/win-sign/signer-identity.json'));
     assert.equal(tb, ta, `parseDn の例外の有無が違う: ${JSON.stringify(s)}`);
     if (!ta) assert.deepEqual(b, a, `parseDn の結果が違う: ${JSON.stringify(s)}`);
   }
-  pass(`t5/case 1 publish・publisherName (i)〜(iv)（写しと本物を ${compared} 通りで突き合わせ）`);
+  pass(`case 1 publish・publisherName (i)〜(iv)（写しと本物を ${compared} 通りで突き合わせ）`);
 }
 
 // ───────────────────────────────────────────────
-// [4] t5/case 1 vite.config.ts の main の external
+// [4] case 1 vite.config.ts の main の external
 // ───────────────────────────────────────────────
 function mainExternal(src) {
   const m = src.match(/external:\s*\[([^\]]*)\]/);
@@ -249,17 +249,17 @@ function mainExternal(src) {
     // jimp/fonts: kept external with jimp so the font files are found next to the module (maps.render_region)
     const want = new Set([...base, 'electron-updater', 'jimp/fonts']);
     assert.deepEqual([...head].sort(), [...want].sort(), 'external(HEAD) が external(origin/master) ∪ {electron-updater} でない');
-    pass(`t5/case 1 vite external = origin/master ∪ {electron-updater}（${[...head].join(', ')}）`);
+    pass(`case 1 vite external = origin/master ∪ {electron-updater}（${[...head].join(', ')}）`);
   } else {
     // CI の浅い checkout には origin/master が無い。既存の変更の後の master の期待値で比べる
     const want = new Set(['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater']);
     assert.deepEqual([...head].sort(), [...want].sort(), 'external が 既存の変更の期待値と違う');
-    pass('t5/case 1 vite external（origin/master が無いので 既存の変更の期待値で比べた）');
+    pass('case 1 vite external（origin/master が無いので 既存の変更の期待値で比べた）');
   }
 }
 
 // ───────────────────────────────────────────────
-// [5] t5/case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の中だけ（既存の変更で 既存の変更の形へ広げた）
+// [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の中だけ（既存の変更で 既存の変更の形へ広げた）
 //   (1) 該当ファイルは {UpdateService.ts, UpdateController.ts} だけ
 //   (2) UpdateController.ts の中でそれらの名前が現れるのは関数 check の本文の中だけ
 //   (3) main.ts が UpdateController について呼ぶのは check({ manual: true })（メニューの click）と startAutomaticCheck( の 2 つだけ
@@ -295,11 +295,11 @@ function mainExternal(src) {
     `main.ts の UpdateController の参照が check・startAutomaticCheck の 1 回ずつでない: ${uses.join(' / ')}`);
   assert.match(main, /UpdateController\.startAutomaticCheck\(/);
   assert.match(main, /click:\s*\(\)\s*=>\s*UpdateController\.check\(\{\s*manual:\s*true\s*\}\)/, 'check({ manual: true }) がメニューの click の中でない');
-  pass('t5/case 2 checkForUpdates・downloadUpdate・quitAndInstall は UpdateService.ts と UpdateController.ts の check の中だけ・main.ts はメニューと起動の 2 か所だけ');
+  pass('case 2 checkForUpdates・downloadUpdate・quitAndInstall は UpdateService.ts と UpdateController.ts の check の中だけ・main.ts はメニューと起動の 2 か所だけ');
 }
 
 // ───────────────────────────────────────────────
-// [6] t5/case 3 resolveUpdateFeed
+// [6] case 3 resolveUpdateFeed
 // ───────────────────────────────────────────────
 {
   const { resolveUpdateFeed } = feed;
@@ -355,11 +355,11 @@ function mainExternal(src) {
   assert.doesNotMatch(read('electron/services/UpdateService.ts'), /ipcMain|webContents\.send/, 'UpdateService が IPC を持つ');
   // e2e の口は !app.isPackaged && MAPLAT_E2E_ROOT のときだけ
   assert.match(read('electron/services/UpdateService.ts'), /!app\.isPackaged\s*&&\s*process\.env\[?['.]?MAPLAT_E2E_ROOT/, 'e2e の口の条件が !app.isPackaged && MAPLAT_E2E_ROOT でない');
-  pass(`t5/case 3 resolveUpdateFeed（${cases.length + 1} 通り）・設定と引数を読まない`);
+  pass(`case 3 resolveUpdateFeed（${cases.length + 1} 通り）・設定と引数を読まない`);
 }
 
 // ───────────────────────────────────────────────
-// [7] t5/case 4 (d) Windows の arch の選び方（判定 (A): latest.yml に両 arch が載り、Provider の findFile が process.arch を見る）
+// [7] case 4 (d) Windows の arch の選び方（判定 (A): latest.yml に両 arch が載り、Provider の findFile が process.arch を見る）
 // ───────────────────────────────────────────────
 {
   const { findFile } = updaterRequire('./providers/Provider.js');
@@ -391,7 +391,7 @@ function mainExternal(src) {
   const config = require('../electron-builder.config.cjs');
   assert.match(config.win.artifactName, /\$\{arch\}/, 'win.artifactName が ${arch} を含まない（判定 (A) の前提が崩れる）');
   assert.deepEqual(config.win.target.find((t) => t.target === 'nsis')?.arch, ['x64', 'arm64']);
-  pass('t5/case 4 (d) Windows の arch の選び方（判定 (A)・本物の findFile を process.arch を差し替えて呼んだ）');
+  pass('case 4 (d) Windows の arch の選び方（判定 (A)・本物の findFile を process.arch を差し替えて呼んだ）');
 }
 
 // ───────────────────────────────────────────────
@@ -463,5 +463,5 @@ function mainExternal(src) {
   pass(`MacUpdater（${updaterPkg.version}）: ダウンロード後の Squirrel は autoInstallOnAppQuit だけで決まる`);
 }
 
-assert.ok(existsSync(path.join(projectRoot, 'tests/e2e/nov26-m7-t5-update-feed.spec.ts')), 'e2e（tests/e2e/nov26-m7-t5-update-feed.spec.ts）が無い');
+assert.ok(existsSync(path.join(projectRoot, 'tests/e2e/update-feed.spec.ts')), 'e2e（tests/e2e/update-feed.spec.ts）が無い');
 console.log('update-foundation smoke: PASS');

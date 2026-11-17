@@ -256,8 +256,8 @@ try {
     'package.json に smoke:mapedit-align-contextmenu が結線されていない',
   );
   assert.ok(
-    pkg.scripts['test:e2e:mapedit-align-m1-t1'],
-    'package.json に test:e2e:mapedit-align-m1-t1 が結線されていない',
+    pkg.scripts['test:e2e:mapedit-align-contextmenu'],
+    'package.json に test:e2e:mapedit-align-contextmenu が結線されていない',
   );
   console.log('  [6/6] case 9/case 11 i18n キー実在と結線: PASS');
 

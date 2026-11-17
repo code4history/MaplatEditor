@@ -496,7 +496,7 @@ try {
       // ============================================================
       // (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / unresolved (AC-T2-2)
       // ============================================================
-      // m12-t1-hotfix-1-search-thumbnails.spec.ts 等の既存 e2e と同じ実測済み gcps フィクスチャを
+      // search-thumbnails.spec.ts 等の既存 e2e と同じ実測済み gcps フィクスチャを
       // 再利用する (400x300、3点、非退化な三角形)。
       const wmtsGcps = [
         [[0, 0], [15550000, 4160000]],

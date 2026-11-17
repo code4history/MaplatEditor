@@ -4,7 +4,7 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 //   E3 内容の形の切替: P1〜P3 はリンクの形と推定される。各 POI で、directgo を消す切替（リンク → 他の形）の
 //      確認の窓を取り消す・確定して Undo で戻す・「新しいタブで開く」を入れて外す、の往復をしてから保存し、
 //      P1〜P3 の directgo が入力と等価のまま残ることを確かめる
-//      （リンクから他の形へ確定して切り替えると directgo は消える。これは仕様: tests/e2e/directgo-edit.spec.ts の AC4）
+//      （リンクから他の形へ確定して切り替えると directgo は消える。これは仕様: tests/e2e/directgo-edit.spec.ts の case 4）
 //   E4 生 JSON の窓:   directgo の無い P2 に生 JSON の窓で directgo を書き足し、適用・保存して確かめる
 //   続けて同じソースをアプリとして書き出し（zip の pois/*.geojson）・プレビュー（配信される pois/*.geojson）
 //   して、P1〜P3 の directgo が残ることを確かめる

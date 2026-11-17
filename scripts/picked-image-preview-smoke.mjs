@@ -11,7 +11,7 @@
 //   (g) 新 IPC の配線（runGuarded・removeHandler・ipc-guard 対象表）と CSP 不変
 //   (h) 11 言語の文言
 //
-// 実挙動は e2e（tests/e2e/nov26-editor-feat2-app-preview.spec.ts）が担う。ここは
+// 実挙動は e2e（tests/e2e/picked-image-app-preview.spec.ts）が担う。ここは
 // 「呼び忘れ・ガード抜け」を安いコストで常時検出するためのソーステキスト検査である。
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

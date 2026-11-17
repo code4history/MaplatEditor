@@ -2,20 +2,20 @@
 //。
 //
 // 対象 AC:
-//   t1/case 2  新実装の zip エントリ名の**集合**が同一入力の adm-zip 出力と一致する
+//   case 2  新実装の zip エントリ名の**集合**が同一入力の adm-zip 出力と一致する
 //           （順序は契約外 — adm-zip 0.6.0 は書き出し時に名前でソート（zipFile.js:135-146）し、
 //           新実装は入力順を保存するため、本番の未ソート DFS 入力ではエントリ順が異なる。
 //           zip 仕様上エントリ順は任意で、既存検査の getEntries 全 20 箇所に順序依存 assert は
 //           0 件（実装レビュー v1 実測）∴ 集合一致を契約とする。検査入力は本番
 //           listTileFiles と同じ**未ソート** stack DFS 順で与える）
-//   t1/case 3  (a) adm-zip で読める・展開できる (b) unzip -t OK (c) ditto -x -k OK
+//   case 3  (a) adm-zip で読める・展開できる (b) unzip -t OK (c) ditto -x -k OK
 //           (d) 展開結果が原本とバイト一致。70,000 エントリの ZIP64 経路では
 //               両方向の再帰一覧一致 + 件数 70,000 + getEntries().length===70000
 //           (e) ヘッダエンコーダ単体検査（offset=5GiB 飽和 / EOCD64 定数 / entryCount 飽和）
 //           (f) ファイル単体 ≥ 0xFFFFFFFF バイトの fail-fast
-//   t1/case 4  uncaughtException で appedit:export ガードが settle する（実結線経由。
+//   case 4  uncaughtException で appedit:export ガードが settle する（実結線経由。
 //           unhandledRejection では settle しない負検査を含む — / レビュー N-1）
-//   t1/case 6  搬出フローで進捗が (N/N) まで到達してから完了文言に切り替わる
+//   case 6  搬出フローで進捗が (N/N) まで到達してから完了文言に切り替わる
 //           （forceNext() 欠落なら throttle される規模であることを前提条件 assert）
 //
 // 既存の変更と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ）。
@@ -181,7 +181,7 @@ try {
       }
 
       // ============================================================
-      // SECTION 1: t1/case 3(e) ヘッダエンコーダ単体検査（4GB 境界の dead path 対策）
+      // SECTION 1: case 3(e) ヘッダエンコーダ単体検査（4GB 境界の dead path 対策）
       // ============================================================
       {
         const GIB5 = 5 * 1024 * 1024 * 1024; // 5 GiB
@@ -286,11 +286,11 @@ try {
           });
           assert.equal(under.length, 22, 'e4: 境界未満（0xFFFE / 0xFFFFFFFE）は EOCD のみ');
         }
-        console.log('ok: t1/case 3(e) ヘッダエンコーダ単体検査（e1/e2/e3/e4 + 非zip64）');
+        console.log('ok: case 3(e) ヘッダエンコーダ単体検査（e1/e2/e3/e4 + 非zip64）');
       }
 
       // ============================================================
-      // SECTION 2: t1/case 3(f) ファイル単体 ≥ 0xFFFFFFFF バイトの fail-fast
+      // SECTION 2: case 3(f) ファイル単体 ≥ 0xFFFFFFFF バイトの fail-fast
       // ============================================================
       {
         const dir = nodePath.join(WORK, 'failfast');
@@ -309,11 +309,11 @@ try {
         let removed = false;
         try { await stat(target); } catch { removed = true; }
         assert.ok(removed, 'case 3(f): 失敗時は書きかけの targetPath が残らないはず');
-        console.log('ok: t1/case 3(f) ファイル単体 >= 4GiB-1 バイトの fail-fast');
+        console.log('ok: case 3(f) ファイル単体 >= 4GiB-1 バイトの fail-fast');
       }
 
       // ============================================================
-      // SECTION 3: t1/case 2 + t1/case 3(a-d) 小規模合成ツリー
+      // SECTION 3: case 2 + case 3(a-d) 小規模合成ツリー
       //   確定仕様: STORE 閾値超 / 非圧縮性データ / 空ファイル / 非 ASCII 名を含む
       // ============================================================
       {
@@ -373,7 +373,7 @@ try {
         assert.deepEqual([...ourNames].sort(), [...admNames].sort(),
           'case 2: エントリ名の集合が adm-zip 出力と一致するはず');
         assert.deepEqual(ourNames, entries.map((e) => e.entryName), 'case 2: 新実装は入力順を保存するはず');
-        console.log('ok: t1/case 2 エントリ名集合の adm-zip 一致（' + ourNames.length +
+        console.log('ok: case 2 エントリ名集合の adm-zip 一致（' + ourNames.length +
           ' 件・未ソート DFS 入力・非 ASCII 名含む）');
 
         // --- 圧縮方式の分岐確認（step 2/3） ---
@@ -399,11 +399,11 @@ try {
         const dittoExtract = nodePath.join(WORK, 'small-extract-ditto');
         await execFileAsync('ditto', ['-x', '-k', ourZip, dittoExtract]);
         await assertTreeEqual(srcDir, dittoExtract, 'case 3(c)(d) ditto 展開');
-        console.log('ok: t1/case 3(a-d) 小規模合成ツリー（adm-zip/unzip -t/ditto + バイト一致）');
+        console.log('ok: case 3(a-d) 小規模合成ツリー（adm-zip/unzip -t/ditto + バイト一致）');
       }
 
       // ============================================================
-      // SECTION 4: t1/case 4 uncaughtException 時の settle 保証（実結線経由）
+      // SECTION 4: case 4 uncaughtException 時の settle 保証（実結線経由）
       //   設計レビュー v2 N-1: テスト内で自前結線せず、実モジュールの
       //   installBackendErrorForwarding() が登録した uncaughtException ハンドラ
       //   （backendErrorForwarder.ts:67 の 1 行追加）を経由して検査する。
@@ -456,11 +456,11 @@ try {
             'case 4: appedit:export ハンドラが runGuarded を経由するはず',
           );
         }
-        console.log('ok: t1/case 4 uncaughtException で settle / unhandledRejection では settle しない（実結線経由）');
+        console.log('ok: case 4 uncaughtException で settle / unhandledRejection では settle しない（実結線経由）');
       }
 
       // ============================================================
-      // SECTION 5: t1/case 6 搬出フロー検査（進捗が (N/N) まで到達してから完了文言へ）
+      // SECTION 5: case 6 搬出フロー検査（進捗が (N/N) まで到達してから完了文言へ）
       //   設計レビュー v1 M-1: forceNext の単体検査では での呼び出し欠落を
       //   検出できない ∴ 実 AppExportService.exportApp を合成アプリに対して実行する。
       //
@@ -575,7 +575,7 @@ try {
         // 生成された zip の実在とエントリ数（搬出フローの成果物として読めること）
         assert.equal(exported.outDir, zipPath);
         assert.equal(new AdmZip(zipPath).getEntries().length, N, 'case 6: zip のエントリ数 = packageFiles 数');
-        console.log('ok: t1/case 6 搬出フローで (N/N)=(' + N + '/' + N + ') 到達 → 完了文言（前提条件 (a) 成立を確認）');
+        console.log('ok: case 6 搬出フローで (N/N)=(' + N + '/' + N + ') 到達 → 完了文言（前提条件 (a) 成立を確認）');
 
         // (c) 対照実行: forceNext() を no-op にすると (N/N) send が現れない（判別力の証明）。
         //     の reporter.forceNext 呼び出しが欠落した製品コードと同じ挙動を
@@ -607,12 +607,12 @@ try {
               '本検査は forceNext() の呼び出し欠落を検出できない = 判別力喪失）: ' +
               JSON.stringify(contrastZipSends.map((r) => r.payload.progress)),
           );
-          console.log('ok: t1/case 6(c) 対照実行で (N/N) send が消えることを確認（判別力の証明）');
+          console.log('ok: case 6(c) 対照実行で (N/N) send が消えることを確認（判別力の証明）');
         }
       }
 
       // ============================================================
-      // SECTION 6: t1/case 3 ZIP64 経路（70,000 エントリ > 65,535）
+      // SECTION 6: case 3 ZIP64 経路（70,000 エントリ > 65,535）
       //   S1: ここが崩れたら停止（短縮しない）
       // ============================================================
       {
@@ -656,7 +656,7 @@ try {
         new AdmZip(zipPath).extractAllTo(admExtract, true);
         await assertTreeEqual(srcDir, admExtract, 'case 3 ZIP64 adm-zip 展開', N);
 
-        console.log('ok: t1/case 3 ZIP64 70,000 エントリ（unzip -t / ditto / adm-zip / 両方向一覧一致 / バイト一致）');
+        console.log('ok: case 3 ZIP64 70,000 エントリ（unzip -t / ditto / adm-zip / 両方向一覧一致 / バイト一致）');
       }
 
       console.log('T1 export zip writer smoke passed');

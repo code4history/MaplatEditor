@@ -384,7 +384,7 @@ try {
   const generatedBuiltins = buildBuiltinBaseMaps(catalog, legacyList);
   assert.equal(generatedBuiltins.length, 329);
   const goldenRows = parseCsv(
-    await readFile(path.join(projectRoot, "tests/fixtures/m11-t4-builtin-label-review.csv"), "utf8"),
+    await readFile(path.join(projectRoot, "tests/fixtures/builtin-label-review.csv"), "utf8"),
   );
   assert.equal(goldenRows.length, 329);
   const goldenByMapID = new Map(goldenRows.map((row) => [row.mapID, row]));

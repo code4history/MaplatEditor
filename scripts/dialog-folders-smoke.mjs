@@ -42,7 +42,7 @@ const documents = path.join(fixture, 'documents'); fs.mkdirSync(documents);
 process.env.MAPLAT_E2E_ROOT = path.join(fixture, 'runtime');
 const stub = path.join(fixture, 'electron.ts');
 fs.writeFileSync(stub, `
- const calls = globalThis.__T7_IMPORT_CALLS__ = [];
+ const calls = globalThis.__E2E_IMPORT_CALLS__ = [];
  export const app = {
   getPath(name) { calls.push(name); return name === 'documents' ? ${JSON.stringify(documents)} : ${JSON.stringify(fixture)}; },
   getName() { calls.push('getName'); return 'DialogFoldersSmoke'; }, getVersion() { return '1.0.0'; }
@@ -57,8 +57,8 @@ await build({ root, configFile: false, logLevel: 'error', resolve: { alias: [{ f
  ssr: { noExternal: ['electron-store'] }, build: { ssr: entry, outDir: path.join(fixture,'dist'), emptyOutDir: false,
   target: 'node22', rollupOptions: { output: { format: 'es', entryFileNames: 'entry.mjs' } } } });
 const { Settings, dialogDefaultPath, rememberDialogPath } = await import(pathToFileURL(path.join(fixture,'dist/entry.mjs')).href);
-assert.ok(globalThis.__T7_IMPORT_CALLS__.includes('documents'));
-assert.ok(globalThis.__T7_IMPORT_CALLS__.includes('getName'));
+assert.ok(globalThis.__E2E_IMPORT_CALLS__.includes('documents'));
+assert.ok(globalThis.__E2E_IMPORT_CALLS__.includes('getName'));
 console.log('helper呼出し前に実SettingsService importがgetPath/getNameを呼ぶと実測');
 const folders = Object.fromEntries(['import','export','image'].map(k => [k,path.join(fixture,k)]));
 for (const dir of Object.values(folders)) fs.mkdirSync(dir);

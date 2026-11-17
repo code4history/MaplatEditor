@@ -1,14 +1,14 @@
 /**
  * 署名済みキャッシュ（Release `win-signed-cache`）へ上げる前の検査の受け入れ検査（#140 L-2）。
  *
- *   [A] t4/case 1: build.yml の publish-win-sign-cache の「Check cache candidates」の run: を抜き出し、fixture の
+ *   [A] case 1: build.yml の publish-win-sign-cache の「Check cache candidates」の run: を抜き出し、fixture の
  *       outbox/ で bash に渡して実行する。正しい名前の PE は通り、名前・種類・大きさ・中身の形・件数の外れは落ちる
- *   [B] t4/case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjs（t3）で評価し、eSigner の退路の
+ *   [B] case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjs（t3）で評価し、eSigner の退路の
  *       mode=full で候補があるときだけ真になる
- *   [C] t4/case 2: win-sign.cjs の signFile で、outbox へ置く（outboxDir()）より前に checkSigner(…, 'esigner')（C-3）がある
- *   [D] t4/case 3: publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、run: のコマンド位置に
+ *   [C] case 2: win-sign.cjs の signFile で、outbox へ置く（outboxDir()）より前に checkSigner(…, 'esigner')（C-3）がある
+ *   [D] case 3: publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、run: のコマンド位置に
  *       pnpm・npm・npx・node が無い（case 11 と同じ規則が新しい step にも効く）
- *   [E] t4/case 3: 検査の正規表現が設計の固定値と同じで、win-sign.cjs の assetName の出力がその正規表現に合う
+ *   [E] case 3: 検査の正規表現が設計の固定値と同じで、win-sign.cjs の assetName の出力がその正規表現に合う
  *
  * 実行: node scripts/cache-publish-guard-smoke.mjs（rtk を付けない）
  * bash を起動するのは macOS／Linux だけ（Windows では [A] を飛ばす）。
@@ -52,7 +52,7 @@ const check = (label, fn) => {
 };
 
 // ─────────────────────────────────────────────
-// [A] t4/case 1: 抜き出して実行する
+// [A] case 1: 抜き出して実行する
 // ─────────────────────────────────────────────
 const checkStep = steps.find((st) => st.name === CHECK_STEP);
 const checkIdx = steps.indexOf(checkStep);
@@ -198,7 +198,7 @@ try { console.log(require('fs').statSync(a[3]).size); } catch (e) { console.erro
 }
 
 // ─────────────────────────────────────────────
-// [B] t4/case 3: 起動条件を評価する
+// [B] case 3: 起動条件を評価する
 // ─────────────────────────────────────────────
 check('[B] publish-win-sign-cache の if: は eSigner の退路・mode=full・候補ありのときだけ真', () => {
   const cond = String(job.if ?? '').trim();
@@ -233,7 +233,7 @@ check('[B] publish-win-sign-cache の if: は eSigner の退路・mode=full・�
 });
 
 // ─────────────────────────────────────────────
-// [C] t4/case 2: outbox へ置く前の署名者の照合
+// [C] case 2: outbox へ置く前の署名者の照合
 // ─────────────────────────────────────────────
 check("[C] signFile の esigner の分岐で、checkSigner(…, 'esigner') が outboxDir() より前にあり、外れたら throw する", () => {
   const src = readFileSync(WIN_SIGN, 'utf8');
@@ -258,7 +258,7 @@ check("[C] signFile の esigner の分岐で、checkSigner(…, 'esigner') が o
 });
 
 // ─────────────────────────────────────────────
-// [D] t4/case 3: リポジトリのコードを実行しない規則の維持
+// [D] case 3: リポジトリのコードを実行しない規則の維持
 // ─────────────────────────────────────────────
 check('[D] publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、pnpm・npm・npx・node を実行しない', () => {
   assert.ok(steps.length >= 3, 'download・検査・upload の 3 step 以上');
@@ -272,7 +272,7 @@ check('[D] publish-win-sign-cache の全 step が checkout・pnpm・setup-node �
 });
 
 // ─────────────────────────────────────────────
-// [E] t4/case 3: 検査の正規表現と assetName の命名が食い違わない
+// [E] case 3: 検査の正規表現と assetName の命名が食い違わない
 // ─────────────────────────────────────────────
 check('[E] 検査の正規表現は設計の固定値で、assetName の出力がそれに合う', () => {
   const m = runOf(checkStep).match(/^\s*re='([^']+)'\s*$/m);

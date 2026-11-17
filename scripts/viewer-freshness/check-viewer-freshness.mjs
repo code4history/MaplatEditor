@@ -48,7 +48,7 @@ const OLD_V3 = 3;
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 // A2 用の既存 GCP フィクスチャ（Editor の tests にある GCP。
-// tests/e2e/m5-t4b-import-draft-cleanup.spec.ts:49-53 の 3 点を再掲）。
+// tests/e2e/import-draft-cleanup.spec.ts:49-53 の 3 点を再掲）。
 const GCP_WH = [400, 300];
 const GCP_STRICT = 'loose';
 const GCP_VERTEX = 'plain';

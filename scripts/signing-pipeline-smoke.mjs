@@ -1,5 +1,5 @@
 /**
- * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査（t2/case 1）。
+ * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査（case 1）。
  *
  * 実署名は CI（build.yml の dispatch・承認つき）でしか走らないため、ここでは Windows も課金も要らない部分を固める:
  *   [1] 署名者の正本（scripts/win-sign/signer-identity.{json,cjs}）— case 1 (c)(d)(e)
@@ -854,8 +854,8 @@ const wfText = readFileSync(WORKFLOW, 'utf8');
 const wf = yaml.load(wfText);
 {
   const v = checkBuildWorkflow(wf);
-  assert.deepEqual(v, [], `t2/case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
-  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は m10 の PIN（t2/case 4）');
+  assert.deepEqual(v, [], `case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
+  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は m10 の PIN（case 4）');
   // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
   {
     const pinLine = 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413';

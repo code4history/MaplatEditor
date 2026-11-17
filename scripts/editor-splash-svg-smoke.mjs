@@ -26,7 +26,7 @@
 //   (e) Maplat UI はスプラッシュを <img> の src で表示する（innerHTML に中身を入れない）
 //   (f) 警告の文言が 11 言語にある
 //
-// 実挙動は e2e（tests/e2e/nov26-editor-splash-svg.spec.ts）が担う。ここは純関数と
+// 実挙動は e2e（tests/e2e/editor-splash-svg.spec.ts）が担う。ここは純関数と
 // 「呼び忘れ・経路の取り違え」を安いコストで常時検出するためのソーステキスト検査である。
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

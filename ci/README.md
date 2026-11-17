@@ -42,7 +42,7 @@ node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json   # = pn
 ./node_modules/.bin/electron scripts/ci/electron-locale-check.cjs
 
 # e2e は 3 シャードすべてを回し、シャードごとに --shard n/3 を付けて判定する
-# 手元では m12-t18-os-trash-delete.spec.ts を外す（実際の ~/.Trash に書くため。runner では実行される）。
+# 手元では os-trash-delete.spec.ts を外す（実際の ~/.Trash に書くため。runner では実行される）。
 # --grep-invert を使うときは 3 シャードすべてに同じものを付ける（シャードの割り当てがそろい、取りこぼしが出ない）
 for n in 1 2 3; do
   PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-$n.json ./node_modules/.bin/playwright test --forbid-only --shard=$n/3 --reporter=json,list \

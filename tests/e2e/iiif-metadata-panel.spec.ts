@@ -292,7 +292,7 @@ test.describe('IIIF metadata panel', () => {
       const error = page.getByTestId('iiif-recopy-error');
       await expect(error).toBeVisible({ timeout: 60_000 });
       // 代わりの手は「書誌の欄で手で直す」。取り込み直しは案内しない。
-      // 案内は失敗の表示の横の ?（ContextHelp）で出す（docs/ui-grammar.md §8 U1）。
+      // 案内は失敗の表示の横の ?（ContextHelp）で出す（docs/ui-grammar.md U1）。
       const failedHelp = page.getByTestId('iiif-recopy-failed-help');
       await expect(failedHelp).toBeVisible();
       await failedHelp.focus();

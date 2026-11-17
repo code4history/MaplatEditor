@@ -1,26 +1,26 @@
 // t1: E2E ヘッドレス化と、配布物で死んでいる経路3件の是正。
-// 設計書 docs/superpowers/specs/2026-08-22-mapeditor-e2e-headless-and-fallback-fixes-t1-design.md
+//
 //
 // 検証する受け入れ条件:
-//   AC1  E2E 実行時（MAPLAT_E2E_ROOT 付き起動）、メインウィンドウと About ウィンドウが
+//   case 1  E2E 実行時（MAPLAT_E2E_ROOT 付き起動）、メインウィンドウと About ウィンドウが
 //        isVisible() === false で生成される。paintWhenInitiallyHidden は既定 true のまま ∴
 //        非表示でも renderer は描画を続ける（screenshot 系 spec の前提を壊さない）
-//   AC4  新規地図（未保存）でベースマップ一覧が osm/gsi/gsi_ortho の3種になり、
+//   case 4  新規地図（未保存）でベースマップ一覧が osm/gsi/gsi_ortho の3種になり、
 //        /tms_list.json への要求が発生しない（HR-2・dev/配布物の挙動統一）
-//   AC5  zip インポート直後に dist/tmbs/ 宛のネットワーク要求が 0 件になる（HR-3・
+//   case 5  zip インポート直後に dist/tmbs/ 宛のネットワーク要求が 0 件になる（HR-3・
 //        MaplatCore mixin の相対仮置き fetch を options.thumbnail 注入で通さない）
 //
 // 製品起動（env 無し）での挙動不変性は main.ts の show 制御が MAPLAT_E2E_ROOT のみに
-// 分岐する構造で担保される（smoke m19-t4a が webPreferences 内容を引き続き検査）。
+// 分岐する構造で担保される（smoke 既存の変更が webPreferences 内容を引き続き検査）。
 import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
-// m20-t6 §5.2: evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
+// evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
 import { evalMain, openAboutWindow } from './helpers/electronMenu';
-// AC5 の zip インポート工程は m5-t4b が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
+// case 5 の zip インポート工程は 既存の変更が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
 import {
   openHash,
   saveFolderOf,
@@ -34,7 +34,7 @@ async function forceJapanese(page: Page): Promise<void> {
 }
 
 test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
-  test('AC1: MAPLAT_E2E_ROOT 付き起動ではメインウィンドウが isVisible()===false で生成される', async () => {
+  test('MAPLAT_E2E_ROOT 付き起動ではメインウィンドウが isVisible()===false で生成される', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac1-'));
     const { app, page } = await launch(e2eRoot);
     try {
@@ -54,13 +54,13 @@ test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
     }
   });
 
-  test('AC1: About ウィンドウも isVisible()===false で生成される', async () => {
+  test('About ウィンドウも isVisible()===false で生成される', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac1-about-'));
     const { app, page } = await launch(e2eRoot);
     try {
       await forceJapanese(page);
       // electronMenu.openAboutWindow は waitForEvent('window') + domcontentloaded 待ちのみで
-      // show を待たない ∴ 非表示ウィンドウでも検出できる（設計 §7.1.1 実測どおり）
+      // show を待たない ∴ 非表示ウィンドウでも検出できる（実測どおり）
       const aboutPage: Page = await openAboutWindow(app, 'について');
       await expect(aboutPage.locator('body')).toBeAttached();
 
@@ -76,7 +76,7 @@ test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
 });
 
 test.describe('t1 ベースマップフォールバック統一（HR-2）', () => {
-  test('AC4: 新規（未保存）エディタで /tms_list.json 要求が発生しない', async () => {
+  test('新規（未保存）エディタで /tms_list.json 要求が発生しない', async () => {
     test.setTimeout(120_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-'));
     const { app, page } = await launch(e2eRoot);
@@ -100,13 +100,13 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
     }
   });
 
-  test('AC4: POI エディタのベースマップセレクターは常時表示3種（osm/gsi/gsi_ortho）', async () => {
+  test('POI エディタのベースマップセレクターは常時表示3種（osm/gsi/gsi_ortho）', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-poi-'));
     const { app, page } = await launch(e2eRoot);
     try {
       await page.evaluate(() => window.settings.set('lang', 'ja'));
-      // POI ソースを seed し PoiEdit を開く（m11-t9 の seed パターンと同型）
+      // POI ソースを seed し PoiEdit を開く（既存の変更の seed パターンと同型）
       const poi = await page.evaluate(async () => {
         const slug = `t1-ac4-poi-${Date.now()}`;
         const created = await window.poiSources.createLocal({ slug, title: { ja: 'T1 POI', en: 'T1 POI' }, lang: 'ja' });
@@ -140,13 +140,13 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
 });
 
 test.describe('t1 インポート直後サムネイルの相対 fetch 死除去（HR-3）', () => {
-  test('AC5: zip インポート直後に dist/tmbs/ 宛のページ相対要求が発生しない', async () => {
+  test('zip インポート直後に dist/tmbs/ 宛のページ相対要求が発生しない', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac5-'));
     const { app, page } = await launch(e2eRoot);
     // 監視は全工程に先立って張る。旧実装はインポート直後の Source 初期化で
     // MaplatCore mixin が相対仮置き fetch を行い、app://bundle ページ相対の
-    // dist/tmbs/<slug>.jpg 宛要求が必ず 1 件発生していた（設計 §7.3.1 実測）
+    // dist/tmbs/<slug>.jpg 宛要求が必ず 1 件発生していた（実測）
     const pageRelativeTmbsRequests: string[] = [];
     page.on('request', (req) => {
       if (/\/dist\/tmbs\//.test(req.url())) pageRelativeTmbsRequests.push(req.url());
@@ -155,7 +155,7 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
       await stubMessageBoxAutoOk(app);
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
-      // 地図 ZIP を実 UI の搬出ボタンから作る（m5-t4b AC11-b と同じ導線）
+      // 地図 ZIP を実 UI の搬出ボタンから作る（case 11-b と同じ導線）
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
@@ -163,7 +163,7 @@ test.describe('t1 インポート直後サムネイルの相対 fetch 死除去�
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30_000 });
       await page.locator('[data-editor-action="export"]').click();
-      // nov26-m6-t8: 書き出す中身の選択の画面（既定のまま）で書き出す
+      // 書き出す中身の選択の画面（既定のまま）で書き出す
       await page.getByTestId('map-export-options-confirm').click();
       await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120_000 });
 
