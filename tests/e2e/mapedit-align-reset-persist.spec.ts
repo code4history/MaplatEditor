@@ -2,16 +2,16 @@
 // ボタンの契約（配置・ラベル・disabled・click）の正本: 同表。
 // ヘルパは / spec と同型（各 spec は自己完結の前例に従う）。
 //
-// 担当 AC（スコープ限定子つき）:
-//   case 1  バーに第 2 ボタンが在り、相ボタンの一つ左隣である（HR-5.1）
-//   case 2  P0・保持値 0,0（未登録含む）→ リセットは disabled（HR-5.2）
-//   case 3  P0・保持値 ≠ 0,0 → リセット押下で表示 0.00 / タイル表示からシフトが外れる（HR-5.2）
-//   case 4  リセットは永続行も消す（再入場後も 0）（HR-5.2 × HR-6）
-//   case 5  P1 でキャンセル → P0 復帰・保持値不変・地図面/ドロップダウン/切替の再有効化・マーカー消去（HR-5.3）
-//   case 6  P2 でキャンセル → 同上 + 表示が OSM から対象ベースマップへ戻る（HR-5.3）
-//   case 8  確定でシフトが map_base_map_shift へ即時書かれる。地図の Save は不要（HR-6）
-//   case 9  地図編集を離れて再入場で保持値が表示・タイルへ反映される（HR-6）
-//     （case 9 の反転表現の本体は spec の case 4 改訂。本 spec は確定フロー実走側から重ねて固定する）
+// 担当 AC（スコープ限定子つき。どれも人間の確認で決めた条件）:
+//   case 1  バーに第 2 ボタンが在り、相ボタンの一つ左隣である
+//   case 2  P0・保持値 0,0（未登録含む）→ リセットは disabled
+//   case 3  P0・保持値 ≠ 0,0 → リセット押下で表示 0.00 / タイル表示からシフトが外れる
+//   case 4  リセットは永続行も消す（再入場後も 0）
+//   case 5  P1 でキャンセル → P0 復帰・保持値不変・地図面/ドロップダウン/切替の再有効化・マーカー消去
+//   case 6  P2 でキャンセル → 同上 + 表示が OSM から対象ベースマップへ戻る
+//   case 8  確定でシフトが map_base_map_shift へ即時書かれる。地図の Save は不要
+//   case 9  地図編集を離れて再入場で保持値が表示・タイルへ反映される
+//     （case 9 の反転表現の本体は位置合わせモードの spec の case 4 の改訂。本 spec は確定フロー実走側から重ねて固定する）
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -276,7 +276,7 @@ test.describe('リセット／キャンセルボタンとシフト値の即時�
       // タイルにも実効値が載っている（リセット前の前提）
       const before = await alignDebug(page);
       expect(before.baseLayers.find((l) => l.mapID === other)!.mercatorXShift).toBe(120);
-      // 0,0 でなくなった ∴ リセットが押せる（HR-5.2「0,0以外ならば押せば」）
+      // 0,0 でなくなった ∴ リセットが押せる（人間の確認で決めた「0,0以外ならば押せば」）
       await expect(secondButton(page)).toBeEnabled();
 
       // case 3: リセット押下で表示 0.00 / タイル表示からシフトが外れる
@@ -287,7 +287,7 @@ test.describe('リセット／キャンセルボタンとシフト値の即時�
       const layerAfter = after.baseLayers.find((l) => l.mapID === other)!;
       expect(layerAfter.mercatorXShift).toBe(0);
       expect(layerAfter.mercatorYShift).toBe(0);
-      // 0,0 へ戻った ∴ ボタンは再び disabled（HR-5.2）
+      // 0,0 へ戻った ∴ ボタンは再び disabled
       await expect(secondButton(page)).toBeDisabled();
       // case 4 前半: 永続行が DELETE されている（実 IPC の実測）
       await expect.poll(async () => (await persistedShifts(page, uid)).length, { timeout: 10000 }).toBe(0);
@@ -320,7 +320,7 @@ test.describe('リセット／キャンセルボタンとシフト値の即時�
       // ---- case 5: P1 でキャンセル ----
       await phaseButton(page).click();
       expect((await alignDebug(page)).phase).toBe('P1');
-      // 第 2 ボタンは「キャンセル」表示になり、相ボタン（基準点未設置で disabled）と独立して押せる（HR-5.3）
+      // 第 2 ボタンは「キャンセル」表示になり、相ボタン（基準点未設置で disabled）と独立して押せる
       await expect(secondButton(page)).toHaveText('キャンセル');
       await expect(phaseButton(page)).toBeDisabled();
       await expect(secondButton(page)).toBeEnabled();

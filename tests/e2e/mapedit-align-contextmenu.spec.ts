@@ -9,7 +9,7 @@
 //   case 5  F2 のキャンセルがどちらの面からでも効く（TypeError を出さない）
 //   case 6  対応マーカー表示が F0 でのみ、対応線開始より前に出る
 //   case 7  対応マーカー表示で両面が当該 GCP の対応点を中心に表示される
-//   case 8  に無い挙動変化が無い（各セルで項目テキスト配列そのものを assert する）
+//   case 8  決めた表に無い挙動変化が無い（各セルで項目テキスト配列そのものを assert する）
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -280,7 +280,7 @@ test.describe('右クリックメニューの相別契約と折り返し', () =>
     try {
       await setupHomePosition(page);
 
-      // --- F0 × 確定済みマーカー（: 対応マーカー表示 → 対応線開始 → マーカー削除） ---
+      // --- F0 × 確定済みマーカー（対応マーカー表示 → 対応線開始 → マーカー削除） ---
       const gcp2 = (await markerCoord(page, 'illst', '2'))!;
       expect(gcp2).not.toBeNull();
       await centerOn(page, 'illst', gcp2);
@@ -422,7 +422,7 @@ test.describe('右クリックメニューの相別契約と折り返し', () =>
       await clickMenuItem(page, 'illst', 'マーカー追加');
       await expect.poll(async () => pendingNewMarkerCount(page), { timeout: 10000 }).toBe(1);
 
-      // F2 × 未確定マーカー（HR-2 の空メニュー。現行は空になっていた）
+      // F2 × 未確定マーカー（人間の確認で見つかった空メニュー。現行は空になっていた）
       const newMarker = (await markerCoord(page, 'illst', 'new'))!;
       expect(newMarker).not.toBeNull();
       await centerOn(page, 'illst', newMarker);

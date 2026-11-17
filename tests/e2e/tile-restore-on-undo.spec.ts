@@ -1,10 +1,9 @@
 // undo で地図タイルが元の地図へ戻らない不具合の回帰 E2E。
-//。
 //
 //   case 1: 既存地図 A に画像 B をアップロードした後、undo でタイル表示が A に戻り redo で B に戻る。
 //        判定は DOM 目視ではなく illstMapInfo().source の実体（OL XYZ の urls）で行う。
-//   case 2: タイル同一性キーが変わらない undo/redo（GCP 追加の undo）では exchangeTileSource が
-//        呼ばれない＝ tileSourceDebug().exchangeCount の増分が 0（a・case 2）。
+//   case 2: タイル同一性キーが変わらない undo/redo（GCP 追加の undo）では exchangeTileSource() が
+//        呼ばれない＝ tileSourceDebug().exchangeCount の増分が 0。
 //        あわせて case 1 側でタイル切替時の増分が 1 であることを確認し、カウンタ自体が
 //        動いていること（増分0が「カウンタが死んでいるだけ」ではないこと）を担保する。
 //

@@ -115,7 +115,7 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み|saved/i);
 
     await page.getByTestId(`basemap-row-${slug}`).click();
-    // case 5: 一覧行の既定サムネイルが実描画される（クリック直後、行はまだ左ペインに残る）
+    // 一覧行の既定サムネイルが実描画される（クリック直後、行はまだ左ペインに残る）
     await assertRowThumbnailRendered(page, slug);
     await expect(page.getByTestId('basemap-google-preset-group')).toBeVisible();
     await expect(page.getByTestId('basemap-google-preset-roadmap')).toHaveClass(/btn-primary/);

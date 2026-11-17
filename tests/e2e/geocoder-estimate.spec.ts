@@ -552,7 +552,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await page.getByTestId(`map-remove-basemap-${farSlug}`).click();
 
     await expect(page.getByTestId(`map-selected-basemap-${farSlug}`)).not.toBeVisible({ timeout: 10000 });
-    // t10 v2.0 の楽観更新モデルでは、左ペインの既読行は再フィルタせず残る（HM1 scroll 保持の設計）。
+    // 楽観更新モデルでは、左ペインの既読行は再フィルタせず残る（スクロール保持の設計）。
     // オフ後は左ペイン行の選択表現（.selected=青）が解除されることを検証する（行の即時非表示ではない）
     await expect(page.locator(`[data-resource-uid="${farUid}"]`)).not.toHaveClass(/selected/, { timeout: 10000 });
 

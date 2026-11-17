@@ -1,11 +1,10 @@
 // E2E: サムネイル置換の永続化セマンティクスを地図とベースマップで統一する。
-//。
 //
 //   E1 ベースマップ K1（thumbnail が tmbs/…）: 512px 置換で保存 disabled のまま・undo 非活性 -> case 1
 //   E2 ベースマップ K2（thumbnail がプリセット）: 指し先が動き保存が有効／undo で指し先は戻らない
 //      ＋ 保存 → 再オープンで残る                                                        -> case 2 / case 2-impl / case 3
 //   E3 地図管理: 512px 置換で保存 disabled のまま・undo 非活性（＝ E1 と同一の見え方）   -> case 4
-//   E4 規則 writeTarget が null のときだけ disabled＋理由。thumbnail 空でも
+//   E4 規則 writeTarget() が null のときだけ disabled＋理由。thumbnail 空でも
 //      slug があれば enabled                                                              -> case 5
 //   E5 規則 T1 の注記が両画面に同一文言で出る                                             -> case 6
 //   E6 K2（指し先がプリセット）で derive52 が checked かつ disabled                       -> case 6b
@@ -265,7 +264,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
     const { app, page } = await launch(e2eRoot);
     try {
       // (a) ベースマップ: 新規で slug 未入力 ⇒ writeTarget() の K0 が null ⇒ disabled＋理由
-      //     （iconFileKey は uid を返すようになったが、K0 は slug 未入力で null を返す）
+      //     （iconFileKey() は uid を返すようになったが、K0 は slug 未入力で null を返す）
       await openHash(page, '#/basemaps');
       await page.getByTestId('basemap-new').click();
       await page.getByTestId('basemap-kind-tms').click();

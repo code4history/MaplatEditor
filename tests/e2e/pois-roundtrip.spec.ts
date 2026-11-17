@@ -96,7 +96,7 @@ test.describe('pois 多重 stringify 復元撤去（実往復2回で深さが増
 
       // UI 面: 正常配列では POI タブに警告が出ておらず read-only にもなっていない
       // (poisUnsupported が立たない)。左ペインの poi-selector-disabled は fixture の URL
-      // 生要素 (非参照要素) による相互排他制約  でも立つため readOnly の判定には
+      // 生要素 (非参照要素) による相互排他制約でも立つため readOnly の判定には
       // 使えない。選択済みカードの削除ボタン (readOnly のみに依存、非参照要素制約の影響を受けない)
       // が有効であることで read-only でないことを確認する
       await page.locator('[role="tab"]', { hasText: 'POI選択' }).click();

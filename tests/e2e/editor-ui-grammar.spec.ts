@@ -109,7 +109,7 @@ for (const phase of ['before', 'after']) {
         await expect(page.getByTestId('settings-mcp-recommend-loopback')).toHaveAttribute('aria-label', '「クライアントへの登録」の説明');
       }
       {
-        // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246 の）
+        // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246）
         await openHash(page, '#/maplist');
         await app.evaluate(({ BrowserWindow }) => {
           const renamedSlugs = Array.from({ length: 24 }, (_, index) => ({ kind: 'map', from: `old-map-${index + 1}`, to: `old-map-${index + 1}-2` }));

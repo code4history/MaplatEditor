@@ -2,7 +2,6 @@
 // (shell.trashItem) へ入ることの end-to-end 検証。差し替え機構は使わず (人間指示 2026-07-27)、
 // 実行マシンの実ゴミ箱に使い捨てファイル (数バイト×2・一意 basename) を一時的に通過させ、
 // テスト自身が afterEach で後始末する (残骸ゼロで原状復帰)。
-//。
 //
 // プラットフォーム前提: 本 spec は process.platform === 'darwin' を前提とする
 // (ゴミ箱の物理位置 ~/.Trash は darwin 固有。本プロジェクトの開発・検証環境は macOS のみ)。
@@ -49,7 +48,7 @@ test.afterEach(async () => {
 test('地図削除で originals が本物の OS ゴミ箱に入り、live から消え、独自 trash/ は生成されない', async () => {
   test.setTimeout(240_000);
   if (process.platform !== 'darwin') {
-    throw new Error('この E2E は darwin 前提 (: ゴミ箱側 assert が ~/.Trash に依存する)');
+    throw new Error('この E2E は darwin 前提 (ゴミ箱側 assert が ~/.Trash に依存する)');
   }
 
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-os-trash-delete-os-trash-'));
