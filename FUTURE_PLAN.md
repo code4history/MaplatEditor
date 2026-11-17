@@ -34,16 +34,16 @@ _Note: This document should be updated continuously as more areas for improvemen
 - エクスポートのZIP出力オプション、および出力後の簡易ローカルサーバでの動作確認機能
 - pwa-asset-generator のダークモードスプラッシュ（appleLaunchImageDarkMode）対応
 
-## 6. 地図原本タイル化のメモリ・実行時間（既存の変更のスコープ外・実測あり）
+## 6. 地図原本タイル化のメモリ・実行時間（大きな画像の取り込みの上限の作業ではスコープ外・実測あり）
 
-**既存の変更で解消済み（2026-08-09）。**
+**タイル切り出しの高速化で解消済み（2026-08-09）。**
 
 **旧状態**: `MapUploadService.imageCutter` はタイル1枚ごとに `imageJimp.clone()` で
 **原寸ビットマップ全体を複製**してから crop/resize していた。複製はタイル数ぶん繰り返され、
 コストは `タイル数 × 原寸` ∝ 面積² だった（旧 Electron 版 `backend/src/mapupload.js:123` から
 引き継いだ形であり、移植時の劣化ではない）。
 
-**対処**: 既存の変更で `cropRegionBitmap`（原寸バッファから矩形だけを行単位で取り出す純関数）へ
+**対処**: タイル切り出しの高速化で `cropRegionBitmap`（原寸バッファから矩形だけを行単位で取り出す純関数）へ
 置き換えた。`crop` の分岐条件（`x===0 && w===width` ならバッファの view）をそのまま保つため、
 **出力タイルはバイト単位で変わらない**（`pnpm smoke:tile-cut-clone-reduction` が
 実 `imageCutter` の出力と旧経路の出力を全ファイル sha256 で突き合わせる）。
@@ -72,7 +72,7 @@ end-to-end のタイル化時間（`pnpm smoke:large-image-decode-limits` の観
 
 **注意**: 旧側の記録は実行機・実行時期が異なる（同じ 48 MP に対し本表の 41 秒と
 `scripts/large-image-decode-limits-smoke.mjs` ヘッダの約 65 秒という 1.6 倍の食い違いがある）。
-∴ 上表の end-to-end 列は**観測記録**であって合否のしきい値ではない。既存の変更の受け入れ条件は
+∴ 上表の end-to-end 列は**観測記録**であって合否のしきい値ではない。高速化の受け入れ条件は
 同一プロセス A/B の 3 指標のほうである。
 
 **残る余地**: end-to-end の残りは resize / JPEG エンコード / タイルごとの 1 ms スリープ / IPC が
@@ -80,9 +80,9 @@ end-to-end のタイル化時間（`pnpm smoke:large-image-decode-limits` の観
 **470 MP の実画像での end-to-end は未実測**である（デコードだけで約 8 分かかるため smoke に載せていない）。
 デコード時間そのものの短縮は とおり別問題として残る。
 
-### 6.1 取り込みの中断（キャンセル）導線 — 既存の変更のスコープ外
+### 6.1 取り込みの中断（キャンセル）導線 — 自動のデコード上限の作業ではスコープ外
 
-既存の変更は取り込み前に所要時間の確認プロンプトを出すようにしたが、**一度始めた取り込みを
+自動のデコード上限の作業では取り込み前に所要時間の確認プロンプトを出すようにしたが、**一度始めた取り込みを
 途中で止める導線は無い**。確認文言にも「開始すると途中で取り消せません」と明記している。
 
 進行中のタイル化を安全に止めるには、`imageCutter` のタイル生成ループへ中断点を設け、
@@ -99,11 +99,11 @@ end-to-end のタイル化時間（`pnpm smoke:large-image-decode-limits` の観
 | 110 MP baseline（合成・ほぼ平坦） | 合成 | 8.5 秒 | 0.077 |
 
 **13 倍の開きがある。** ∴ 合成フィクスチャで測った係数を実写の見積もりへ持ち込んではならない。
-既存の変更の確認プロンプトが所要時間の**分数を表示しない**のはこのためである。
+その確認プロンプトが所要時間の**分数を表示しない**のはこのためである。
 
-## 7. basemap_icons_512 の読み出し実装（既存の変更のスコープ外）
+## 7. basemap_icons_512 の読み出し実装（Google のプリセットの作業ではスコープ外）
 
-**現状**: 既存の変更で `public/basemap_icons_512/{google_roadmap,google_satellite,google_hybrid,
+**現状**: Google のプリセットの作業で `public/basemap_icons_512/{google_roadmap,google_satellite,google_hybrid,
 google_terrain,mapbox,maplibre}.png` を新規配置したが、これを読み出す詳細プレビュー UI は
 どこにも実装されていない。google/mapbox/maplibre は `builtin_base_maps.json` に登場せず
 `thumbnail512` フィールド自体を持たないため、`resolveBaseMapListImage`
@@ -125,50 +125,50 @@ UI設計より前に「そもそも335ファイル全部を512pxで持つ必要�
 **提案**: 一覧行ホバー時またはクリック時の拡大プレビュー等、512px を活かす UI を後続タスクで
 設計する。あわせて画像圧縮・配布サイズ削減の要否も同タスクで検討する。
 
-## 8. smoke に残る `@duckdb` の esbuild external 指定（既存の変更で解消済み）
+## 8. smoke に残る `@duckdb` の esbuild external 指定（進捗の報告の整理で解消済み）
 
 **解消済み（2026-09-10）。**
 
 **旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v | wc -l`
 実測。依存不在 assertion を持つ `packaging-smoke.mjs` を除く）が esbuild の `external` に
 `'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` の3要素を
-列挙していた。既存の変更で依存そのものを撤去したため、これらは**不活性な no-op** だった
+列挙していた。DuckDB の撤去で依存そのものを撤去したため、これらは**不活性な no-op** だった
 （存在しないモジュール名を external に挙げても esbuild は何もしない）。
 
 **対処**: （issue #94）で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
 `vite.config.ts:28` の同一3要素は、同配列が `pwa-asset-generator` external（#99）と共有されており、
-依存是正を行う `FUTURE_PLAN-t2` が同時に除去するのが最も安いため、本タスクでは触らず 既存の変更へ申し送った。
+依存の是正の作業で同時に除去するのが最も安いため、ここでは触らずその作業へ申し送った。
 
-## 9. merc の実行時タイル URL 導出が2実装で並立している（既存の変更のスコープ外）
+## 9. merc の実行時タイル URL 導出が2実装で並立している（メルカトルの実行時 URL の作業ではスコープ外）
 
 **現状**: merc ベースマップの実行時タイル URL（`{saveFolder}/merc/{uid}/{z}/{x}/{y}.png`）を
 組み立てる実装が **2箇所**ある。
 
 | # | 実装 | 宛先 | percent-encoding |
 |---|---|---|---|
-| a | `electron/utils/mercBaseMapTileUrl.ts` の `deriveMercBaseMapTileUrl`（既存の変更で新設） | IPC の item レベル `url_` → `MapEdit.vue` / `PoiEditMap.vue` の `mapSourceFactory` | **あり**（`file-url` を通す） |
+| a | `electron/utils/mercBaseMapTileUrl.ts` の `deriveMercBaseMapTileUrl`（メルカトルの実行時 URL の作業で新設） | IPC の item レベル `url_` → `MapEdit.vue` / `PoiEditMap.vue` の `mapSourceFactory` | **あり**（`file-url` を通す） |
 | b | `src/components/basemap/BaseMapEdit.vue:1031-1039` の `overlayTms` | `EnvelopeEditorModal.vue:131` の `new XYZ({ url: props.overlayTms.url })`（`mapSourceFactory` を経ない）と `BaseMapEdit.vue:1194` の `window.appAssets.generateTmsThumbnail(...)` | **なし**（`` `file://${dataFolderPath.value}/merc/${document.value.uid}/{z}/{x}/{y}.png` `` の文字列連結） |
 
 宛先レイアウトは a と b で**完全に同一**である。差分は percent-encoding の有無のみで、
 b は保存フォルダのパスに空白や非 ASCII を含む環境で a と別の URL を作る
-（既存の変更が地図側で排したのと同型の劣化。**実害は未検証・未報告**）。
+（URL の導出の統一で地図側から排したのと同型の劣化。**実害は未検証・未報告**）。
 
-**なぜ 既存の変更で統合しなかったか**: a の純関数は `node:path` と `file-url` に依存し、
+**なぜメルカトルの実行時 URL の作業で統合しなかったか**: a の純関数は `node:path` と `file-url` に依存し、
 renderer バンドルへは載せられない。∴ 統合するには次のいずれかが要る。
 
 - (i) 新規 IPC チャネルを設けて renderer から a を呼べるようにする
 - (ii) `BaseMapEdit` が自分の item を IPC カタログ（`basemaps:list` の `url_`）から引いて使う
 - (iii) 純関数を renderer 互換へ書き直し、main / renderer の双方から import する
 
-いずれも FOSS4G 会期直前に新しい面を足す変更であり、既存の変更の症状（GCP 編集画面での merc 無表示）
-とは**別経路**で症状の解消には不要である。また 既存の変更が新設する側は `file-url` を通すため、
+いずれも FOSS4G 会期直前に新しい面を足す変更であり、その作業の症状（GCP 編集画面での merc 無表示）
+とは**別経路**で症状の解消には不要である。またその作業で新設する側は `file-url` を通すため、
 本タスクによって既存の状態が悪化することはない（並立が残るだけである）。
 
 **提案**: 会期後に (i)〜(iii) のいずれかで統合し、あわせて b の percent-encoding 未適用を解消する。
 恒久指示「同一扱いの処理は共通実装へ寄せる」に対する**放棄ではなく延期**である
 （人間ゲート G-7）。
 
-## 10. 同梱リソースの解決が outDir 名 `dist` に偶然依存している（既存の変更のスコープ外）
+## 10. 同梱リソースの解決が outDir 名 `dist` に偶然依存している（メルカトルの実行時 URL の作業ではスコープ外）
 
 **現状**: `electron/utils/resourceAssets.ts:8` は
 `appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..')` とし、
@@ -190,7 +190,7 @@ outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
 実際に当該行をコメントアウトすると S8 が
 「thumbnailUrl の添付が維持されること: null」で赤くなることを実測済みである。
 
-**なぜ 既存の変更で直さなかったか**: 既存 smoke は現に緑であり、本タスクの責務外である。
+**なぜメルカトルの実行時 URL の作業で直さなかったか**: 既存 smoke は現に緑であり、本タスクの責務外である。
 会期直前に無関係な面（56本規模の smoke 群の harness）を増やさない判断を採った。
 
 **提案**: 会期後に (a) `resourceAssets.ts` の探索を outDir 名に依存しない形へ改める、または
