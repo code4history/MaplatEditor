@@ -131,7 +131,7 @@ const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore
 const viewModels = computed<ResourceListItemViewModel[]>(() => items.value.map((item) => adapter.toViewModel(item, i18next.language)));
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("poi-source");
-// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+// recent-search-chips: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
   items: recentItems,
   error: recentError,
@@ -156,14 +156,14 @@ function firstVisibleUid(): string | null {
 
 watch([query, bbox], () => loadFirst(), { immediate: false });
 
-// --- Create: 遅延作成（M11-T10b）。行は作らずエディタの未作成モードを開く ---
-// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く（他4種と同じ文法）
+// --- Create: 遅延作成。行は作らずエディタの未作成モードを開く ---
+// 既存の新規下書きがあれば引き継いで開く（他4種と同じ文法）
 function onCreate(): void {
   const pending = latestNewDraft.value;
   void router.push(pending ? `/poisources/new?draftUid=${pending.assetUid}` : "/poisources/new");
 }
 
-// --- Import: 遅延作成（M11-T10b）。file picker と importFile はエディタの未作成モードが自動起動する ---
+// --- Import: 遅延作成。file picker と importFile はエディタの未作成モードが自動起動する ---
 function onImport(): void {
   void router.push("/poisources/new?import=1");
 }
@@ -214,7 +214,7 @@ onBeforeUnmount(() => {
 });
 
 onBeforeRouteLeave((_to, _from, next) => {
-  // nov26-editor-feat1: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
+  // recent-search-chips: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
   flushRecent();
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: 0 });
   next();

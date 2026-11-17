@@ -1,7 +1,7 @@
-// M12-T10: MapEdit ベースマップ選択（2 ペイン）の左ペイン用 adapter。
+// MapEdit ベースマップ選択（2 ペイン）の左ペイン用 adapter。
 // baseMapVisibilityList（IPC で取得済みの in-memory 全件）を ResourceListAdapter として包み、
 // ResourceSelectorList + ResourceMasterRow へ供給する。load は q/bbox filter を適用、cursor は未使用。
-// M12-T10 v2.0: 検索 haystack を全言語値化（Min2 吸収）、metadata からスラッグ重複除去（HM7）、
+// v2.0: 検索 haystack を全言語値化（Min2 吸収）、metadata からスラッグ重複除去（HM7）、
 // added 判定で selected=true（HM6: 追加済み=青）
 import type { ResourceListAdapter, ResourceListItemViewModel, Wgs84Bbox } from "../../components/resource-list/resourceListTypes";
 import type { BaseMapVisibilityItem } from "../../../electron/services/SqliteDataService";
@@ -33,7 +33,7 @@ function coverageIntersects(coverageLngLats: [number, number][] | null | undefin
   return bboxIntersects([minLng, minLat, maxLng, maxLat], bbox);
 }
 
-// M12-T10 v2.0 Min2: 検索 haystack を全言語値化（旧 MapEdit.vue:2466-2472 baseMapSearchHaystack と同仕様に復元）
+// v2.0 Min2: 検索 haystack を全言語値化（旧 MapEdit.vue:2466-2472 baseMapSearchHaystack と同仕様に復元）
 function searchHaystack(item: BaseMapVisibilityItem): string {
   const title = item.data?.title;
   const titleValues = typeof title === "object" && title !== null ? Object.values(title) : [title];

@@ -1,5 +1,5 @@
 // MIRROR of MaplatEditorSaaS/packages/shared/src/contracts/registered-map-selector.ts
-// 正本に変更があれば、smoke script (m1-t2-registered-map-catalog-smoke.mjs)
+// 正本に変更があれば、smoke script (registered-map-catalog-smoke.mjs)
 // の shape assertion が検知する
 
 export type RegisteredMapCatalogKey = string;

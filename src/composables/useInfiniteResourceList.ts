@@ -77,7 +77,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     loadingCursorKey = cursorKey(null);
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor: null, limit, signal: controller.signal });
-      if (gen !== generation) return; // 古い応答は破棄（AC6）
+      if (gen !== generation) return; // 古い応答は破棄
       items.value = dedupeAppend([], batch.items);
       total.value = batch.total;
       nextCursor.value = batch.nextCursor;
@@ -98,7 +98,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     if (nextCursor.value == null) return;
     const cursor = nextCursor.value;
     const key = cursorKey(cursor);
-    if (loadingCursorKey === key) return; // 同一cursor多重取得禁止（AC6）
+    if (loadingCursorKey === key) return; // 同一cursor多重取得禁止
     loadingCursorKey = key;
     const gen = generation;
     state.value = "appending";
@@ -106,7 +106,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor, limit, signal: controller?.signal ?? new AbortController().signal });
       if (gen !== generation) return;
-      items.value = dedupeAppend(items.value, batch.items); // UID dedupe（AC6）
+      items.value = dedupeAppend(items.value, batch.items); // UID dedupe
       if (batch.total != null) total.value = batch.total;
       nextCursor.value = batch.nextCursor;
       consumedCursors.value = [...consumedCursors.value, cursor];
@@ -114,7 +114,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
       settleState();
     } catch (error) {
       if (gen !== generation) return;
-      state.value = "append-error"; // 取得済み item は保持（AC7）
+      state.value = "append-error"; // 取得済み item は保持
       failure.value = failureOf(error);
     } finally {
       if (gen === generation && loadingCursorKey === key) loadingCursorKey = null;

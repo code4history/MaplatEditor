@@ -40,7 +40,7 @@ export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdap
     toViewModel(item): ResourceListItemViewModel {
       return {
         uid: item.uid,
-        slug: item.mapID, // AC9: Map に Slug（=mapID）を表示
+        slug: item.mapID, // Map に Slug（=mapID）を表示
         title: item.title || item.mapID,
         thumbnailUrl: item.image,
         metadata: [],

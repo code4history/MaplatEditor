@@ -2,7 +2,7 @@
   <div class="resource-selector-list d-flex flex-column h-100 min-h-0">
     <div class="source-pane-toolbar pb-2">
       <input :value="query" type="search" class="form-control form-control-sm" :placeholder="placeholder" :data-testid="inputTestid" @input="emit('update:query', ($event.target as HTMLInputElement).value)">
-      <!-- M12-T10 v2.0 HM3: #range-filter slot が提供された場合はそれを使い、spatial-toggle は出さない（排他） -->
+      <!-- v2.0 HM3: #range-filter slot が提供された場合はそれを使い、spatial-toggle は出さない（排他） -->
       <slot name="range-filter" v-if="hasRangeFilterSlot"></slot>
       <button v-else-if="spatialContext && spatialContext.labelKey" type="button" class="btn btn-outline-secondary btn-sm mt-2 w-100" data-testid="selector-spatial-toggle" @click="emit('toggle-spatial-context')">
         {{ spatialContext.enabled
@@ -62,12 +62,12 @@ onBeforeUnmount(() => {
   dispose();
 });
 
-// M12-T10 v2.0: host 側から reload を呼べるように expose
+// v2.0: host 側から reload を呼べるように expose
 defineExpose({ reload: loadFirst });
 </script>
 
 <style scoped>
-/* M12-T10 v2.0: 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
+/* v2.0: 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
    scoped CSS での行間隔・行見た目定義は全廃。 */
 .min-h-0 { min-height: 0; }
 </style>

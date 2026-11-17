@@ -1,7 +1,7 @@
 /**
  * POI-139 icon 参照文法 resolver（純関数 + registry）。
  *
- * `icon` / `selectedIcon` の値は次の3形式のいずれか（43-poi-editor-spec.md §7 が正本）:
+ * `icon` / `selectedIcon` の値は次の3形式のいずれか（43-poi-editor-spec.md が正本）:
  *   1. Icon set 参照 `{setId}:{iconId}` — setId は登録済み icon set の小文字英数 ID（`[a-z][a-z0-9-]*`）。
  *   2. Asset UID — UUID（コロンを含まない）。Assets タブの image asset を参照。
  *   3. URL — `://` を含む絶対 URL、`data:`、または相対パス。
@@ -27,7 +27,7 @@ export type IconRef =
 // UUID_PATTERN と同じ形（renderer からは import できないため値を揃えてここに再定義する）。
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// setId として許容する文字種（仕様 §7）。
+// setId として許容する文字種（仕様）。
 const SET_ID_PATTERN = /^[a-z][a-z0-9-]*$/;
 
 // setId として予約禁止の scheme（URL 判別より先に「setId 予約」として弾く）。
@@ -126,7 +126,7 @@ export function parseIconRef(value: string): IconRef {
       return { kind: "url", url: value };
     }
 
-    // `scheme://...` 形の絶対 URL は setId 判定より先に url と判別する（仕様 §7 の判別順序:
+    // `scheme://...` 形の絶対 URL は setId 判定より先に url と判別する（仕様 判別順序:
     // URL パターン → 登録済み setId → UUID）。`ftp://`/`s3://` のような予約外 scheme でも
     // `//` を伴う絶対 URL 形は setId 参照とみなさない。
     if (rest.startsWith("//")) {

@@ -31,7 +31,7 @@ const props = defineProps<{ state: ResourceListState; total: number | null; load
 const emit = defineEmits<{ retry: [] }>();
 
 const { t } = useTranslation();
-// 件数表示の統一ルール(2026-07-20 人間指示 M12-T7/F6):
+// 件数表示の統一ルール(2026-07-20 人間指示 /F6):
 //   total 判明 → 常に「全N件」（無限scroll のため部分表示の M件は出さない） / total 不明 → 「M件表示中」
 const countLabel = computed(() => {
   if (props.total != null) {

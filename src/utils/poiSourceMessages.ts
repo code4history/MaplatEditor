@@ -18,7 +18,7 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "scale-byte-size": "poisource.errors.scale_byte_size",
   "unsupported-scheme": "poisource.errors.unsupported_scheme",
   "payload-too-large": "poisource.errors.payload_too_large",
-  // M11-T9: Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
+  // Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
   "content-mode-url-format": "poisource.errors.content_mode_url_format",
   "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
   // directgo（リンクの形）の値が不正（href が無い・拒否される URL・blank が真偽値でない）
@@ -70,7 +70,7 @@ export const ERROR_CODE_KEYS: Record<PoiSourceErrorCode, string> = {
   "not-found": "poisource.errors.not_found",
   "invalid-request": "poisource.errors.invalid",
   internal: "poisource.errors.internal",
-  // nov26-m6-t3 (#98・#116): ZIP の取り込みの失敗は固定文（adm-zip の原文を出さない）
+  // ZIP の取り込みの失敗は固定文（adm-zip の原文を出さない）
   "zip-too-large": "poisource.errors.zip_too_large",
   "zip-corrupt": "poisource.errors.zip_corrupt",
   "zip-too-many-entries": "poisource.errors.zip_too_many_entries",

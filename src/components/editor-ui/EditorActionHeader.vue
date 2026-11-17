@@ -12,7 +12,7 @@
         <i class="bi bi-chevron-left" aria-hidden="true"></i>
         {{ t("editor_ui.back") }}
       </button>
-      <!-- M11-T10: タイトル空のフォールバックは全エディタ共通でここに一元化(slug 代用はしない) -->
+      <!-- タイトル空のフォールバックは全エディタ共通でここに一元化(slug 代用はしない) -->
       <strong class="text-truncate">{{ title || t("editor_ui.untitled") }}</strong>
       <span
         class="small text-nowrap"

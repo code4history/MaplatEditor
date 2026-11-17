@@ -1,5 +1,5 @@
 <template>
-  <!-- 地図ペイン (Phase 4 Task 6, 仕様 §3.3 POI-132)。ベースマップの切り替えは地図右上の札 -->
+  <!-- 地図ペイン (Phase 4 Task 6, 仕様 POI-132)。ベースマップの切り替えは地図右上の札 -->
   <div class="w-100 h-100 position-relative">
     <div id="poiEditMap" class="w-100 h-100"></div>
     <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
@@ -8,11 +8,11 @@
 </template>
 
 <script setup lang="ts">
-// PoiEdit の地図ペイン (Phase 4 Task 6, 仕様 §3.3/§4)。
+// PoiEdit の地図ペイン (Phase 4 Task 6, 仕様 )。
 // MapEdit の確立済みパターン (MaplatMap ラッパ / setupBaseMaps / ol-contextmenu /
 // 標準ピン Icon / forEachFeatureAtPixel 選択) を単一マップへ移植する。
 // 点マーカーのドラッグ移動は marker vector source への OL Modify + Snap で新規に配線し、
-// modifyend 1 回 = session.moveFeature 1 commit (=1 Undo、仕様 §5) とする。
+// modifyend 1 回 = session.moveFeature 1 commit (=1 Undo、仕様 ) とする。
 // base map の切替は Undo 対象外 (編集内容ではない)。
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
@@ -91,7 +91,7 @@ const pinStyle = (selected: boolean): Style => {
   return pinStyles[key];
 };
 
-// --- 設定アイコンの反映 (Phase 8 Task 1, 仕様 §7 の icon 参照文法) ---
+// --- 設定アイコンの反映 (Phase 8 Task 1, 仕様 の icon 参照文法) ---
 // feature の properties.icon / (選択中は) properties.selectedIcon を parseIconRef で解決して
 // OL Icon の src に使う。解決できない場合 (未設定 / 未登録 setId / 不明 asset / asset 解決中)
 // は上の標準ピンへフォールバックする。
@@ -154,7 +154,7 @@ const iconRefToSrc = (
   return null; // 解決中 or 解決失敗 (null キャッシュ)
 };
 
-// --- icon 画像の読み込み失敗フォールバック (Phase 8 品質レビュー MAJOR-3) ---
+// --- icon 画像の読み込み失敗フォールバック (Phase 8 品質) ---
 // url/asset 由来の icon src (previewUrl 以外) は 404 や破損ファイルの可能性があり、
 // OL の Icon はロード失敗時に例外を投げず単に描画されないだけなので、放置すると
 // 「アイコン指定はあるのに地図上に何も見えない」状態になってしまう。requestAssetSrc と
@@ -449,7 +449,7 @@ const fitInitialView = (): void => {
 
 // --- base map (表示の切り替え。utils/overlayBaseMaps に寄せる) ---
 // POI ソースは地図単位の表示設定を持たないため、一覧は Always-Visible な base map
-// (仕様 §3.3 POI-132) とする。切り替えは MapEdit・小窓と同じ部品 (ol-layerswitcher) で、
+// (仕様 POI-132) とする。切り替えは MapEdit・小窓と同じ部品 (ol-layerswitcher) で、
 // 今の選択の名前を札に出し、クリックで開く。
 const setupBaseMaps = async (): Promise<void> => {
   if (!map) return;
@@ -498,7 +498,7 @@ onMounted(async () => {
   map.addControl(contextmenu);
   map.on("click", onMapClick);
 
-  // §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  // : ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
   baseMapSwitcher = createBaseMapSwitcher({
     tipLabel: t("mapedit.control_basemap"),
     labelOf: currentBaseMapLabel,
@@ -512,7 +512,7 @@ onMounted(async () => {
   modify = new Modify({
     source: markerSource,
     hitDetection: map.getLayer("marker"),
-    // §5-7: 取っ手をピンの色（青）にそろえ、縁取りを付ける
+    // : 取っ手をピンの色（青）にそろえ、縁取りを付ける
     style: editSketchStyleFunction("#0099ff"),
   });
   modify.on("modifystart", onModifyStart);
@@ -543,7 +543,7 @@ onMounted(async () => {
   });
   map.addControl(geocoder);
 
-  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  // 地図の上に重ねる部品を 配置へ並べる（左上の一列・右下の帰属表示）
   layoutMapOverlayControls(
     document.getElementById("poiEditMap"),
     document.querySelector('[data-testid="map-overlay-tools-poi"]'),

@@ -1,7 +1,6 @@
 // 一覧トップの検索条件の記憶（直近の検索条件）— 永続化を担う唯一の場所。
 //
-// 設計: .nayuta/2026-10-21-nov26-editor-feat1-design.md（v1.0）§4.2・§4.3・§4.5
-// 設計レビュー NOV26-DR-EDITOR-FEATURES-0456 の指示:
+// 設計レビュー 既存の変更の指示:
 //   2. 800 ms の記録予約は compositionstart〜compositionend（isComposing）の間はしない
 //      （日本語の変換中の文字を記録しない）
 //
@@ -151,7 +150,7 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
       return;
     }
     // 先頭がすでに同じ条件なら予約しない（タグを押した後の画面の更新で同じ条件を書き直さない・
-    // 【NOV26-IR-EDITOR-FEAT1-0463】の「違えた点 6」の余計な書き込み）
+    // の「違えた点 6」の余計な書き込み）
     const head = items.value[0];
     if (head && sameSearchKey(head.q, q)) {
       clearTimer();
@@ -183,7 +182,7 @@ export function useRecentSearches(kind: ResourceListKind): UseRecentSearches {
   }
 
   async function remove(q: string): Promise<void> {
-    // 【NOV26-IR-EDITOR-FEAT1-0463 MAJOR-1】同じ条件の記録が予約中なら取り消す（タグを押した直後や入力の
+    // 同じ条件の記録が予約中なら取り消す（タグを押した直後や入力の
     // 直後に × を押すと、800 ms 後の予約が消した履歴を戻していた）
     if (pending !== null && sameSearchKey(pending, q)) {
       clearTimer();

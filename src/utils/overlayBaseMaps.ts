@@ -59,7 +59,7 @@ export async function createOverlayBaseMaps(
           source = await mapSourceFactory(
             {
               mapID: tms.mapID || 'custom',
-              // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
+              // merc は url が空で保存される。実行時専用の url_ があればそれを使う
               // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
               url: tms.url_ || tms.url,
               attr: tms.attr,
@@ -79,7 +79,7 @@ export async function createOverlayBaseMaps(
       }
       if (!source) return null;
       const meta = resolveBaseMapLayerMetadata(tms, lang);
-      // §5-8: 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
+      // : 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
       // 帰属表示とレイヤ名（title）はどちらも innerHTML で描かれるので escape して渡す
       source.setAttributions?.(textAttributions(meta.attr));
       return new TileLayer({

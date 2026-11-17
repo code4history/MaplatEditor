@@ -12,7 +12,7 @@ const routes = [
     component: MapList
   },
   {
-    path: '/mapedit', // map uid is passed as query param (?uid=xxx) (ADR-0007)
+    path: '/mapedit', // map uid is passed as query param (?uid=xxx) (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
     name: 'MapEdit',
     component: () => import('../views/MapEdit.vue')
   },
@@ -47,7 +47,7 @@ const routes = [
     component: () => import('../views/AssetList.vue')
   },
   {
-    path: '/poisources/:sourceId', // POI source uid (ADR-0007)
+    path: '/poisources/:sourceId', // POI source uid (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
     name: 'PoiEdit',
     component: () => import('../views/PoiEdit.vue')
   }

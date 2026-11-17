@@ -41,16 +41,16 @@ const EDITOR_ONLY_KEYS = new Set([
   "previewDisabledReason",
   "_id",
   "status",
-  // uid正準の内部参照/表示用slugはEditor管理 (ADR-0007)。Viewer出力のmapIDは
+  // uid正準の内部参照/表示用slugはEditor管理 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。Viewer出力のmapIDは
   // composeViewerSourceが解決済みslug(または埋め込みid)で明示的に出力する
   "mapUid",
   "mapSlug",
-  // 種別軸（m6-t1）。エディタ識別子であり viewer が読むのは maptype。
+  // 種別軸。エディタ識別子であり viewer が読むのは maptype。
   // 出力からの除去は compose 境界の単一責任（normalize は内部形として data.kind を保持する）。
   "kind",
-  // m6-t7: TileJSON 取り込み出自 URL。エディタ専用メタデータ（出自の記録のみ。再取得機能は m6 では作らない）。
+  // TileJSON 取り込み出自 URL。エディタ専用メタデータ（出自の記録のみ。再取得機能は では作らない）。
   "tileJsonSourceUrl",
-  // m6-t8: merc 選択時に付与するベースマップ UID。書き出し時の merc/{uid} 解決専用（§3.7）。
+  // merc 選択時に付与するベースマップ UID。書き出し時の merc/{uid} 解決専用。
   // normalizeAppSource/composeViewerSource いずれの分岐にも影響しないため kind のような退避は不要。
   "baseMapUid",
 ]);
@@ -119,20 +119,20 @@ export function stripEditorKeys(data: Record<string, unknown>): Record<string, u
 }
 
 // ---------------------------------------------------------------------------
-// m6-t10: 差分保持ストレージモデル（ADR-0018）と出力文法（ADR-0017）
+// 差分保持ストレージモデル（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）と出力文法（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）
 // ---------------------------------------------------------------------------
 
-// 上書き可能フィールドの宣言テーブル（m19 §4.4 で 1.0.0 まで凍結）。
-// 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」(ADR-0018)。
-// AppSourceEditor.vue の data-testid="app-source-override-<key>" と AC7 で機械照合する。
+// 上書き可能フィールドの宣言テーブル（で 1.0.0 まで凍結）。
+// 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」(ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり)。
+// AppSourceEditor.vue の data-testid="app-source-override-<key>" と で機械照合する。
 //
-// m19-t3: title / attr / dataAttr / license / dataLicense / licenseNote / dataLicenseNote /
+// title / attr / dataAttr / license / dataLicense / licenseNote / dataLicenseNote /
 // minZoom / maxZoom / thumbnail の 10 個を廃止した。いずれもベースマップマスタが正本であり、
 // アプリごとに持たせるとマスタ側の訂正（とくにライセンス表記）が既存アプリへ届かなくなる。
 export const APP_SOURCE_OVERRIDABLE_KEYS = ["label"] as const;
 
 // マスタに対応物が無く、常にアプリ所有のもの（マスタとの比較を行わない点だけが異なる）。
-// envelopeLngLats は ADR-0004 の利用範囲、mercator シフトは overlay 専用の位置合わせ。
+// envelopeLngLats は 存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まりの利用範囲、mercator シフトは overlay 専用の位置合わせ。
 export const APP_SOURCE_OWNED_KEYS = [
   "envelopeLngLats",
   "mercatorXShift",
@@ -142,7 +142,7 @@ export const APP_SOURCE_OWNED_KEYS = [
 // MaplatCore の sourcesLoader が全ソースへ Object.assign する commonOptions のキー
 // （index.ts:364-374）。オブジェクトリテラルのため値が undefined でも own key として
 // 実体化し、settingFile 経路（source_ex.ts:188）で設定ファイル側の同名キーを潰す。
-// ∴ 設定ファイルへは出力しない（設計 §3.5.3・AC21）。
+// ∴ 設定ファイルへは出力しない。
 export const COMMON_OPTION_KEYS = [
   "homePos",
   "defZoom",
@@ -155,7 +155,7 @@ export const COMMON_OPTION_KEYS = [
   "maplibreMap",
 ] as const;
 
-// 言語別フィールド（交換形を保つ。ADR-0005）。BASE_MAP_LANG_ATTRS は label を含まないため足す。
+// 言語別フィールド（交換形を保つ。多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり）。BASE_MAP_LANG_ATTRS は label を含まないため足す。
 const LANG_OBJECT_KEYS: readonly string[] = [...BASE_MAP_LANG_ATTRS, ...BASE_MAP_META_LANG_ATTRS, "label"];
 
 const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
@@ -163,14 +163,14 @@ const OVERRIDABLE_KEY_SET = new Set<string>(APP_SOURCE_OVERRIDABLE_KEYS);
 const OWNED_KEY_SET = new Set<string>(APP_SOURCE_OWNED_KEYS);
 
 // 差分保持形（overrides）として**保存済み**の値のうち、読み込み時に受け入れるキー。
-// label は歴史的にトップレベルへ保存するため（設計 §3.1）overrides 側からは除く。
-// **列挙を手で書かない**: 宣言テーブルから導出することで、テーブルと濾過が乖離しない（ADR-0018）。
+// label は歴史的にトップレベルへ保存するためoverrides 側からは除く。
+// **列挙を手で書かない**: 宣言テーブルから導出することで、テーブルと濾過が乖離しない（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）。
 //
-// m19-t3: 宣言テーブルの縮小は migrateLegacyData（旧「data 全コピー」形の移行）にしか効かず、
-// m6-t10 期に差分保持形として保存された廃止キーは丸ごとコピーされて viewer まで届いてしまう。
+// 宣言テーブルの縮小は migrateLegacyData（旧「data 全コピー」形の移行）にしか効かず、
+// 期に差分保持形として保存された廃止キーは丸ごとコピーされて viewer まで届いてしまう。
 // ∴ 読み込み経路（normalizeAppSource は製品の 6 経路すべてが通る）で 1 枚濾す。
 // これは「捨てる」濾過であり、廃止キーを別キーへ移す・既定値を合成する・マスタ値で埋める
-// といった「救う」分岐は 1 つも持たない（sp-0007）。
+// といった「救う」分岐は 1 つも持たない。
 const PERSISTED_OVERRIDE_KEY_SET = new Set<string>(
   [...APP_SOURCE_OVERRIDABLE_KEYS, ...APP_SOURCE_OWNED_KEYS].filter(key => key !== "label"),
 );
@@ -186,9 +186,9 @@ function pickPersistedOverrides(raw: unknown): Record<string, any> {
 const SETTING_FILE_EXCLUDED_KEYS = new Set<string>([
   ...EDITOR_ONLY_KEYS,
   ...COMMON_OPTION_KEYS,
-  // ADR-0004: 存在範囲はエディタ専用メタデータ。Viewer へ渡すと Weiwudi の対象範囲が暴発する
+  // 存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まり: 存在範囲はエディタ専用メタデータ。Viewer へ渡すと Weiwudi の対象範囲が暴発する
   "coverageLngLats",
-  // m6-t8: 生成元地図の出自メモ（エディタ専用）
+  // 生成元地図の出自メモ（エディタ専用）
   "sourceMapUid",
   // エディタ内部の builtin 識別子
   "builtinId",
@@ -196,18 +196,18 @@ const SETTING_FILE_EXCLUDED_KEYS = new Set<string>([
 
 export interface AppSource {
   sourceType: SourceKind;
-  // 地図参照 (ADR-0007):
+  // 地図参照 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり):
   // - maplat: 登録地図の Asset UID (旧保存形は slug。読込時に main 側で uid へ解決される)
   // - builtin/tms: ベースマップの slug。表示・startFrom 照合に使う
   mapUid: string;
-  // m6-t10: ベースマップマスタへの安定参照（ADR-0018）。slug 改名に耐える。
+  // ベースマップマスタへの安定参照（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）。slug 改名に耐える。
   // 旧保存形は持たないため、resolveAppSource が slug 経由で解決して補う。
   baseMapUid?: string;
   role: SourceRole;
   startFrom?: boolean;
   // 上書き分のみ。未上書きならキーごと不在（歴史的にトップレベルにあるため位置は動かさない）
   label?: Record<string, string>;
-  // m6-t10: アプリ側の上書き差分のみ。マスタ値は持たない（ADR-0018）
+  // アプリ側の上書き差分のみ。マスタ値は持たない（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）
   overrides?: Record<string, any>;
   // 書誌の表の出し方。マスタ（地図）に対応物が無いアプリ所有の設定なのでトップレベルに置く
   // （overrides の差分の器には入れない）。未設定は Viewer の既定（"hidden"）を意味する。
@@ -220,12 +220,12 @@ export interface AppSource {
   title?: string; // Editor表示専用(出力しない)
   mapSlug?: string; // maplatのみ: Editor表示用slug(読込時に解決。Viewer出力しない)
   // 旧保存形（data にマスタ全コピー）を読んだときの生値。resolveAppSource が
-  // マスタと突き合わせて overrides へ翻訳する（設計 §3.7）。保存時には残さない。
+  // マスタと突き合わせて overrides へ翻訳する。保存時には残さない。
   legacyData?: Record<string, any>;
 }
 
 // ---------------------------------------------------------------------------
-// マスタ解決（設計 §3.4）
+// マスタ解決
 // ---------------------------------------------------------------------------
 
 export interface BaseMapMasterLike {
@@ -266,7 +266,7 @@ export type ResolvedAppSource =
   | { ok: true; source: AppSource; master: BaseMapMasterLike; merged: Record<string, any> }
   | { ok: false; source: AppSource; reason: "master-missing" };
 
-// 言語別フィールドの同値判定（ADR-0005 の交換形のゆれを吸収する）。
+// 言語別フィールドの同値判定（多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの交換形のゆれを吸収する）。
 // プレーン文字列と {lang: text} を同じ土俵へ載せてから比較する。
 function langEquals(a: unknown, b: unknown, defaultLang: string): boolean {
   const na = normalizeLangResource(a as LangResource | undefined, defaultLang);
@@ -283,14 +283,14 @@ function valueEquals(key: string, a: unknown, b: unknown, defaultLang: string): 
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-// 旧保存形（data にマスタ全コピー）→ 新形（overrides + label）への翻訳（設計 §3.7）。
+// 旧保存形（data にマスタ全コピー）→ 新形（overrides + label）への翻訳。
 // - 操作子の無いキーは捨てる（以後マスタから読む）
 // - 操作子のあるキーはマスタの現在値と比較し、異なるときだけ上書きとして温存する
 // - アプリ所有キーは無条件で温存する
 //
-// m19-t3: 宣言テーブルが `label` 1 個へ縮んだ結果、本関数の実効的な意味は
+// 宣言テーブルが `label` 1 個へ縮んだ結果、本関数の実効的な意味は
 // 「アプリ所有 3 キーだけを温存し、他はすべて捨てる」になった。判定は宣言テーブルから
-// 導かれるものであり、キー列挙を手で書き直してはならない（ADR-0018 の規則の実装）。
+// 導かれるものであり、キー列挙を手で書き直してはならない（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの規則の実装）。
 function migrateLegacyData(
   source: AppSource,
   master: BaseMapMasterLike,
@@ -310,7 +310,7 @@ function migrateLegacyData(
     overrides[key] = value;
   }
 
-  // label は歴史的にトップレベルにあるため別扱い（保存位置は動かさない・設計 §3.1）
+  // label は歴史的にトップレベルにあるため別扱い（保存位置は動かさない）
   let label: typeof source.label;
   const legacyLabel = source.label ?? legacy.label;
   if (legacyLabel === undefined || langEquals(legacyLabel, master.data.label, defaultLang)) {
@@ -355,11 +355,11 @@ export interface MercSourceRef {
   dirName: string;
 }
 
-// merc ソースの抽出。ディスク上のタイルは merc/{baseMapUid} にある(ADR-0016)ため、
+// merc ソースの抽出。ディスク上のタイルは merc/{baseMapUid} にある(メルカトルタイルは元の地図ではなく出力先のベースマップ自身の uid が持つ決まり)ため、
 // 書き出し(AppExportService)とプレビュー配信(AppPreviewService)の両方が
 // dirName→baseMapUid の対応を必要とする。同一ロジックを重複させないよう一箇所へ共有する。
-// m6-t10: 差分保持モデルでは kind も url もアプリ側に無いため、マスタから引く。
-// dirName はマスタの現在 slug（旧形の「選択時点 slug」との乖離が構造的に消える。設計 §3.5.4）。
+// 差分保持モデルでは kind も url もアプリ側に無いため、マスタから引く。
+// dirName はマスタの現在 slug（旧形の「選択時点 slug」との乖離が構造的に消える）。
 export function extractMercSourceRefs(
   sources: readonly AppSource[],
   lookup: BaseMapMasterLookup,
@@ -379,7 +379,7 @@ export function extractMercSourceRefs(
   return entries;
 }
 
-// m6-t10: マスタの全コピーをやめ、参照＋空 overrides を返す（ADR-0018）。
+// マスタの全コピーをやめ、参照＋空 overrides を返す（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）。
 // 第2引数の appDefaultLang は Editor 表示用 title の解決にのみ使う（保存値には入らない）。
 export function createAppSourceFromBaseMap(
   master: BaseMapMasterLike,
@@ -417,7 +417,7 @@ export function compactLangObject(
   if (typeof value === "string") return value.trim() ? value : undefined;
   const entries = Object.entries(value).filter(([, text]) => typeof text === "string" && text.trim() !== "");
   if (entries.length === 0) return undefined;
-  // デフォルト言語のみの場合はプレーン文字列に畳み込む(交換形、ADR-0005)
+  // デフォルト言語のみの場合はプレーン文字列に畳み込む(交換形、多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)
   if (defaultLang && entries.length === 1 && entries[0][0] === defaultLang) {
     return entries[0][1];
   }
@@ -447,9 +447,9 @@ function pickLabel(
 
 // 任意の保存形(レガシー文字列 / 旧AppEdit形(mapID) / 差分保持形) → AppSource
 //
-// m6-t10: 差分保持形（`overrides` を持つ）は無変換で受け、旧形（`data` にマスタ全コピー）は
+// 差分保持形（`overrides` を持つ）は無変換で受け、旧形（`data` にマスタ全コピー）は
 // `legacyData` として温存する。マスタとの突き合わせによる翻訳は resolveAppSource が行う
-// （本関数は純粋関数のままとし、マスタ比較は行わない。設計 §3.4 / §3.7）。
+// （本関数は純粋関数のままとし。マスタ比較は行わない）。
 export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
   if (typeof raw === "string") {
     if (isViewerBuiltin(raw)) {
@@ -472,7 +472,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       mapUid: String(raw.mapUid || raw.mapID || ""),
       role: raw.role === "overlay" ? "overlay" : kind === "maplat" ? "maplat" : "base",
       startFrom: Boolean(raw.startFrom),
-      // m19-t3: 廃止した上書きキーの残存値はここで捨てる（sp-0007・設計 §5.2）
+      // 廃止した上書きキーの残存値はここで捨てる
       overrides: pickPersistedOverrides(raw.overrides),
     };
     if (typeof raw.baseMapUid === "string") out.baseMapUid = raw.baseMapUid;
@@ -496,16 +496,16 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     rawData = rawData.legacyData;
     nested = true;
   }
-  // m6-t10: kind の「strip 前退避 → data へ再付着」（m6-t1）は不要になった。
+  // kind の「strip 前退避 → data へ再付着」は不要になった。
   // 差分保持モデルでは kind は overrides に入らず、必要な箇所はマスタから引く。
   // baseMapUid は EDITOR_ONLY_KEYS に入るため strip 後には存在しない。トップレベルの
-  // 正規キーへ昇格させるため、ここで strip 前に退避する（設計 §3.7）。
+  // 正規キーへ昇格させるため、ここで strip 前に退避する。
   const rawBaseMapUid = raw?.baseMapUid ?? rawData?.baseMapUid;
   const data = stripEditorKeys(normalizeRuntimeKeys({ ...(rawData || {}) })) as Record<string, any>;
   // #85: トップレベルの noCache は pickNoCache で拾う。data の無い旧形では rawData が raw 自身なので、
   // legacyData に残すとトップレベルの値が翻訳の入力（上書きの候補）に混ざる。
   delete data.noCache;
-  // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (ADR-0007)
+  // 新形は mapUid、旧保存形は mapID(slug) を参照キーとして受容する (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   const mapRef = raw?.mapUid || raw?.mapID || data.mapID || "";
   const builtinRef = typeof data.builtinId === "string" ? data.builtinId : "";
   // 入れ子を降りたときだけ、レイヤの区分は最上位に保存された role を先に効かせる
@@ -548,7 +548,7 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
       role: "base",
       startFrom: Boolean(raw?.startFrom),
       label: pickLabel(raw, data, defaultLang),
-      // m6-t10: 旧形の全コピーは legacyData として温存し、resolveAppSource が翻訳する
+      // 旧形の全コピーは legacyData として温存し、resolveAppSource が翻訳する
       legacyData: data,
       ...(typeof rawBaseMapUid === "string" ? { baseMapUid: rawBaseMapUid } : {}),
       title: typeof raw?.title === "string" ? raw.title : undefined,
@@ -567,8 +567,8 @@ export function normalizeAppSource(raw: any, defaultLang = "ja"): AppSource {
     role,
     startFrom: Boolean(raw?.startFrom),
     label,
-    // m6-t10: 旧形の全コピーは legacyData として温存し、resolveAppSource が
-    // マスタと突き合わせて overrides へ翻訳する（設計 §3.7）。
+    // 旧形の全コピーは legacyData として温存し、resolveAppSource が
+    // マスタと突き合わせて overrides へ翻訳する。
     // 旧来ここで行っていた kind / baseMapUid の「strip 前退避 → data へ再付着」は
     // 不要になった（overrides に kind は入らず、baseMapUid はトップレベルへ昇格する）。
     legacyData: data,
@@ -586,13 +586,13 @@ function pruneEmpty(data: Record<string, unknown>): Record<string, unknown> {
 
 // AppSource → Viewer出力(アプリJSON sources要素)
 //
-// m6-t10 (ADR-0017): エディタの正式出力は全ソース共通で
+// エディタの正式出力は全ソース共通で
 //   { mapID, settingFile: "maps/<slug>.json", …上書き分のみ }
 // になった。builtin の文字列出力とインライン全定義は廃止した（Viewer は後方互換で読む）。
 // maplat だけは従来どおり（もともと settingFile 参照であり本タスクの対象外）。
 //
 // maplatMapID: maplatソースのViewer向けmapID(=slug)。uid参照の呼び出し側が
-// uid→slug解決して渡す (ADR-0007: viewer互換)。未指定時はmapUid値をそのまま使う
+// uid→slug解決して渡す (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: viewer互換)。未指定時はmapUid値をそのまま使う
 // lookup: ベースマップマスタの解決器。ベースマップ由来ソースでは必須
 export function composeViewerSource(
   source: AppSource,
@@ -620,13 +620,13 @@ export function composeViewerSource(
     return out;
   }
 
-  // ベースマップ由来ソース（builtin / tms）: ID 参照 + 上書き分のみ（ADR-0017）。
+  // ベースマップ由来ソース（builtin / tms）: ID 参照 + 上書き分のみ（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）。
   // **maptype は出さない**。出すと MaplatCore の source_ex.ts:126 が先に成立し、
   // settingFile が読まれずインライン経路へ落ちる。
   const resolved = options.lookup ? resolveAppSource(source, options.lookup) : null;
   if (options.lookup && (!resolved || !resolved.ok)) {
     // マスタ欠落。呼び出し側（Export / Preview）が事前に除外する契約だが、
-    // 万一到達した場合は参照だけを出して壊れた出力を作らない（設計 §3.6）。
+    // 万一到達した場合は参照だけを出して壊れた出力を作らない。
     return { mapID: source.mapUid };
   }
   const master = resolved && resolved.ok ? resolved.master : null;
@@ -641,7 +641,7 @@ export function composeViewerSource(
   };
 
   // 上書き分を載せる。言語別フィールドは MaplatCore のマージがキー単位の全置換であるため、
-  // マスタ値とマージした完全な言語オブジェクトを出す（設計 §3.5.5）。
+  // マスタ値とマージした完全な言語オブジェクトを出す。
   const overrides: Record<string, any> = { ...(source.overrides || {}) };
   if (source.label !== undefined) overrides.label = source.label;
   for (const [key, value] of Object.entries(overrides)) {
@@ -653,7 +653,7 @@ export function composeViewerSource(
       };
       // 畳み込みの基準は**アプリ文書の既定言語**（options.lang）である。
       // マスタの lang へフォールバックしてはならない — アプリ JSON の交換形の平文は
-      // 「アプリ文書の既定言語の値」を意味するため（設定ファイル側の基準とは別物。§3.5.5）。
+      // 「アプリ文書の既定言語の値」を意味するため（設定ファイル側の基準とは別物。）。
       const compact = compactLangObject(merged, options.lang);
       if (compact !== undefined) out[key] = compact;
       continue;
@@ -665,7 +665,7 @@ export function composeViewerSource(
   return out;
 }
 
-// マスタ → 設定ファイル `maps/<slug>.json` の中身（設計 §3.5）。
+// マスタ → 設定ファイル `maps/<slug>.json` の中身。
 // パッケージごとに生成する導出物であり、アプリ間で共有されない。∴ role を焼き込んでよい。
 // 第3引数は**意図的に未使用**である。設定ファイルの内容はアプリの表示言語に依存してはならない
 // （同じマスタを別言語のアプリから参照しても設定ファイルの意味が変わらないこと）。
@@ -685,7 +685,7 @@ export function composeBaseMapSettingFile(
   }
   delete data.mapID;
 
-  // 言語別フィールドは ADR-0005 の交換形へ畳む（言語の解決は viewer 側 ui.translate が行う）。
+  // 言語別フィールドは 多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの交換形へ畳む（言語の解決は viewer 側 ui.translate が行う）。
   // 畳み込みの基準は**この設定ファイル自身の既定言語**（= マスタの lang。data.lang として同梱される）
   // であり、アプリの表示言語ではない。options.lang は将来の拡張用に受けるが基準には使わない。
   for (const key of LANG_OBJECT_KEYS) {
@@ -698,14 +698,14 @@ export function composeBaseMapSettingFile(
     else data[key] = compact;
   }
 
-  // §3.5.1: 上から順に評価し、最初に成立した行を採る（provider は role より優先）
+  // : 上から順に評価し、最初に成立した行を採る（provider は role より優先）
   const maptype = isProviderKind(kind)
     ? String(masterData.maptype ?? "base")
     : role === "overlay"
       ? "overlay"
       : "base";
 
-  // §3.5.4: kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
+  // : kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
   // provider は url を出さない（source_ex.ts:221-224 が削除するため）。
   if (isProviderKind(kind)) {
     delete data.url;

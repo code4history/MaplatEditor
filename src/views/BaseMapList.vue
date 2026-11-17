@@ -49,7 +49,7 @@
         @draft-state="onDraftState"
       />
       <div v-else-if="notFound" class="h-100">
-        <!-- M12-T11 (R3/C48): alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
+        <!-- alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
         <ResourceEmptyState icon-class="bi bi-map" :message="t('basemap.master_detail.not_found')">
           <template #actions>
             <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
@@ -73,7 +73,7 @@
       @close="rangeFilterOpen = false"
     />
 
-    <!-- M11-T10: 共通削除確認 dialog -->
+    <!-- 共通削除確認 dialog -->
     <DeleteConfirmDialog
       :visible="deletion.dialog.visible" :title="deletion.dialog.title"
       :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
@@ -115,7 +115,7 @@ const {
 } = useBboxRangeFilter({ route, router });
 const { select, selectDuplicate, clearSelection, selectSavedAfterReload } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("base-map");
-// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+// recent-search-chips: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
   items: recentItems,
   error: recentError,
@@ -142,7 +142,7 @@ const selectedItem = computed(() => items.value.find((item) => item.uid === sele
 const notFound = computed(() => !!selectedUid.value && !isNew.value && !loading.value && !selectedItem.value);
 
 // F8: Edit 側の live な下書き状態を List バッジへ即時反映する（store の永続化遅延を待たない）。
-// 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する（Major-1対応）。
+// 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する。
 // store 未反映の live 状態（persist throttle 中の編集など）は回収せず優先し続ける。
 const liveDraftOverrides = ref<Map<string, boolean>>(new Map());
 const effectiveDraftUids = computed(() => {
@@ -180,7 +180,7 @@ function updateSearchQuery(value: string): void {
   recordRecent(value);
   void updateFilters({ q: value.trim() ? value : null });
 }
-// チップの適用: 選択中の uid を保ったまま q だけ書き換える（設計 §4.6 / AC9）
+// チップの適用: 選択中の uid を保ったまま q だけ書き換える
 function onApplyRecent(q: string): void {
   void applyRecent(q);
   void updateFilters({ q });
@@ -233,11 +233,11 @@ async function reloadEditor(): Promise<void> {
 let draftRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 function refreshDraftsSoon(): void {
   if (draftRefreshTimer) clearTimeout(draftRefreshTimer);
-  // persist 遅延(2000ms)より後に読む。900ms では store 反映前に空振りする（Major-1対応）。
+  // persist 遅延(2000ms)より後に読む。900ms では store 反映前に空振りする。
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-// M11-T10: 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）
+// 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）
 const deletion = useResourceDelete({
   confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
   onDelete: async (uid) => {
@@ -255,7 +255,7 @@ async function requestDeleteBaseMap(item: BaseMapCatalogItem): Promise<void> {
   await deletion.request({ uid: item.uid, title: localizeTitle(item.data.title as any, activeLang.value) || item.mapID });
 }
 
-// M11-T10 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
+// 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
 const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
 const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
 const duplicateSourceItem = computed(() =>

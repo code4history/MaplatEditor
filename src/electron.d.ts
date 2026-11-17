@@ -15,7 +15,7 @@ export interface MapListAPI {
 export interface AssetDraftsAPI {
     put(draft: import('./types/assetDraft').AssetDraftEnvelope): Promise<void>;
     get(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string): Promise<import('./types/assetDraft').AssetDraftEnvelope | null>;
-    // M12-T20 (§5.1): keepStaging=true は envelope のみ削除し staging 物理削除を行わない
+    // keepStaging=true は envelope のみ削除し staging 物理削除を行わない
     // (dirty→clean 遷移専用。残渣は起動時孤児 GC が回収)
     remove(kind: import('./types/assetDraft').AssetDraftKind, assetUid: string, opts?: { keepStaging?: boolean }): Promise<void>;
     list(kind?: import('./types/assetDraft').AssetDraftKind): Promise<import('./types/assetDraft').AssetDraftSummary[]>;
@@ -28,17 +28,17 @@ export interface AppListAPI {
     onRefresh(listener: () => void): () => void;
 }
 
-// uid正準のアプリ保存要求/結果 (ADR-0007)。uid無指定は新規作成
+// uid正準のアプリ保存要求/結果 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。uid無指定は新規作成
 export interface AppSavePayload {
     document: any;
     uid?: string;
     slug: string;
     expectedRevision?: number;
-    // 新規作成の明示合図 (M11-T7/D11改)。true=create経路(uid採用)
+    // 新規作成の明示合図 (/D11改)。true=create経路(uid採用)
     create?: boolean;
 }
 
-// nov26-m6-t5 §4.3: imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。画面は文書へ反映する
+// imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。画面は文書へ反映する
 export type AppSaveResult =
     | { result: 'Success'; uid: string; slug: string; revision: number; imageRefs?: { splash?: string; iconSource?: string } }
     | { result: 'Exist' }
@@ -50,8 +50,8 @@ export interface AppEditAPI {
     save(payload: AppSavePayload): Promise<AppSaveResult>;
     preparePreview(document: any): Promise<{ url: string; port: number; warnings: string[] }>;
     stopPreview(): Promise<void>;
-    // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
-    // nov26-m6-t8（#113）: 第 3 引数 options.includeTiles（省略時は含める）
+    // overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+    // #113: 第 3 引数 options.includeTiles（省略時は含める）
     export(document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: Partial<import('./utils/exportOptions').AppExportOptions>): Promise<{ result: "Success" | "Canceled" | "Error"; outDir?: string; warnings: string[]; message?: string }>;
 }
 
@@ -83,7 +83,7 @@ export interface AppEventsAPI {
     onMigrationReport(listener: (report: any) => void): () => void;
 }
 
-// uid正準の保存要求/結果 (ADR-0007)
+// uid正準の保存要求/結果 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
 export interface MapSavePayload {
     mapObject: any;
     tins: any[];
@@ -91,13 +91,13 @@ export interface MapSavePayload {
     slug?: string;
     expectedRevision?: number;
     copyFromUid?: string;
-    // 新規作成の明示合図 (M11-T7/D11改)。true=create経路(uid採用)
+    // 新規作成の明示合図 (/D11改)。true=create経路(uid採用)
     create?: boolean;
-    // UID維持改名の残作業引き継ぎ (M11-T7/D5改)。Map専用
+    // UID維持改名の残作業引き継ぎ (/D5改)。Map専用
     renameFromSlug?: string;
 }
 
-// slug 予約 API (M11-T7/§7.2)
+// slug 予約 API (/)
 export type SlugReservationResult =
     | { result: 'ok' }
     | { result: 'conflict' }
@@ -111,15 +111,15 @@ export interface SlugReservationApi {
 }
 
 export type MapSaveResult =
-    // url (M12-T17): 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
+    // url : 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
     // 恒久タイルURL({z}/{x}/{y}.ext パターンのテンプレート文字列)。既存地図の通常更新・clone・
     // rename 経路(tmpCheckが偽)では省略(undefined)。electron/adapters/StorageAdapter.ts の
-    // 正本定義と同期すること(手動同期ミラー、M12-T17 設計レビュー v1 Major1)
+    // 正本定義と同期すること(手動同期ミラー、設計レビュー v1 Major1)
     | { result: 'Success'; uid: string; slug: string; revision: number; url?: string }
     | { result: 'Exist' }
     // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
     // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)。
-    // errorKey は additive (M13-T2 §5.3/§7): DBに未到達の reject (例: originals 未対応拡張子)
+    // errorKey は additive: DBに未到達の reject (例: originals 未対応拡張子)
     // では uid/slug/revision を伴わず errorKey のみを返す
     | { result: 'Error'; uid?: string; slug?: string; revision?: number; errorKey?: string }
     | { error: 'revision-conflict'; current: number };
@@ -128,7 +128,7 @@ export interface AssetsAPI {
     checkSlug(payload: { slug: string; excludeUid?: string }): Promise<boolean>;
 }
 
-// POI ソース (ADR-0007): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
+// POI ソース (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
 // main 側で内部形へ正規化される)。fc は editor 内部形 FeatureCollection (_maplatUid 入り)
 export interface PoiSourceListRow {
     uid: string;
@@ -179,7 +179,7 @@ export type PoiSourceErrorCode =
     | 'not-found'
     | 'invalid-request'
     | 'internal'
-    // nov26-m6-t3 (#98・#116): ZIP の取り込み（2 GiB 超・壊れた ZIP）。message を持たない
+    // ZIP の取り込み（2 GiB 超・壊れた ZIP）。message を持たない
     | 'zip-too-large'
     | 'zip-corrupt'
     // 件数か中央ディレクトリの大きさが上限を超えた ZIP。message を持たない
@@ -229,8 +229,8 @@ export interface PoiSourceReference {
 export interface PoiSourcesAPI {
     list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
     get(uid: string): Promise<PoiSourceDetailResult | null>;
-    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる。
-    // fc 指定時は内容入りの単一作成 (M11-T10b 遅延作成の保存経路)。prepare 検証で error あれば Invalid 拒否
+    // uid = renderer 事前採番 preset (D11改/): slug 予約の帰属と行 uid を一致させる。
+    // fc 指定時は内容入りの単一作成 (遅延作成の保存経路)。prepare 検証で error あれば Invalid 拒否
     createLocal(input: { slug: string; title: any; lang?: string; uid?: string; fc?: unknown }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
     // token は pickImportFile が返したもの。選んでいない・期限切れの token は Error{code:'invalid-request'}
@@ -251,7 +251,7 @@ export interface PoiSourcesAPI {
     pickImportFile(): Promise<{ token: string; fileName: string } | null>;
 }
 
-// 画像アセット (ADR-0007): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
+// 画像アセット (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uid正準 + slug契約。title は LangResource (内部形/交換形どちらも受容し
 // main 側で内部形へ正規化される)。バイト実体は main 側の {saveFolder}/assets/{uid}.{ext} に持ち、
 // renderer には file:// URL (getFilePath) またはメタデータ行のみが渡る
 export interface ImageAssetRow {
@@ -290,7 +290,7 @@ export interface ImageAssetReferencesResult {
 
 // feat2: 指定直後の一次画像（保存前のプレビュー）。
 // **token 方式**: token は main が選択ダイアログで選ばれたファイルにだけ発行する。
-// renderer はパスを渡せない（任意ファイル読み出しの口を作らない。設計書 §8）。
+// renderer はパスを渡せない（任意ファイル読み出しの口を作らない）。
 export type PickedSourceErrorCode =
     | 'unknown-token' | 'expired' | 'unsupported' | 'too-large' | 'not-found' | 'internal';
 
@@ -299,7 +299,7 @@ export type ReadPickedSourceResult =
     | { ok: false; code: PickedSourceErrorCode; byteSize?: number };
 
 export interface ImageAssetsAPI {
-    // uid = renderer 事前採番 preset (D11改/M11-T7): slug 予約の帰属と行 uid を一致させる
+    // uid = renderer 事前採番 preset (D11改/): slug 予約の帰属と行 uid を一致させる
     // 読み元は token（pickImageFile が返したもの）か duplicateFrom（複製元アセットの uid）。
     // 選んでいない・期限切れの token は Error{code:'invalid-request'}、実体の無い複製元は Error{code:'not-found'}
     add(input: { slug: string; title: any; lang: string; sourceName: string; token?: string; duplicateFrom?: string; uid?: string }): Promise<ImageAssetSaveResult>;
@@ -318,7 +318,7 @@ export interface ImageAssetsAPI {
 }
 
 export interface AppAssetsAPI {
-    // m19-t2: ext は省略可能（既定 'jpg' = 地図の uid 規約）。返値の path / path52 は kind 依存で、
+    // ext は省略可能（既定 'jpg' = 地図の uid 規約）。返値の path / path52 は kind 依存で、
     // path は「kind が指す側の所在」である（kind='512' では 512px）。52px の所在は
     // kind==='52' ? path : path52 でのみ求める（`path52 ?? path` は 512px を掴むため禁止）。
     // copy512From: 52px 単独置換のとき、512px を引き継ぐ元の 52px パス（issue #192）
@@ -339,28 +339,28 @@ export interface AppAssetsAPI {
     fileUrl(relPath: string): Promise<string | null>;
 }
 
-// uid正準のベースマップ保存要求 (ADR-0007)。uid無指定は新規作成。
-// create=true (§7.2b/D11改) は新規作成の明示合図(uid=事前採番preset)
+// uid正準のベースマップ保存要求 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。uid無指定は新規作成。
+// create=true (b/D11改) は新規作成の明示合図(uid=事前採番preset)
 export interface BaseMapSavePayload {
     uid?: string;
     slug: string;
-    // 種別軸（m6-t1）。renderer 側は src/utils/baseMapEditorDocument.ts の BaseMapSavePayload で
+    // 種別軸。renderer 側は src/utils/baseMapEditorDocument.ts の BaseMapSavePayload で
     // tms.kind: BaseMapKind を保持。main は素通しで data_json に書くため、ここは kind 明示の最小差分
-    // （{ kind?: string } & Record<string, unknown>）で契約を文書化する（m11-t7:574 の 400 文字窓を維持）。
+    // （{ kind?: string } & Record<string, unknown>）で契約を文書化する（574 の 400 文字窓を維持）。
     tms: { kind?: string } & Record<string, unknown>;
     expectedRevision?: number;
     create?: boolean;
 }
 
 export type BaseMapSaveResult =
-    // m19-t2: thumbnail は永続化された実効値。新規作成では backend が 52px/512px を
+    // thumbnail は永続化された実効値。新規作成では backend が 52px/512px を
     // uid 名へ付け替えるため payload の値と異なりうる（renderer は返値側を採ること）
     | { result: 'Success'; uid: string; revision: number; thumbnail?: string }
     | { result: 'Exist' }
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
     | { error: 'revision-conflict'; current: number };
 
-// m6-t7: TileJsonImportService.ts の型を electron.d.ts 側で複製する（既存の BaseMapsAPI 等と
+// TileJsonImportService.ts の型を electron.d.ts 側で複製する（既存の BaseMapsAPI 等と
 // 同じく main プロセス側の型を import せず独自定義する慣例に合わせる）
 export type TileJsonImportResult =
     | { ok: true; fields: TileJsonMappedFields; sourceUrl: string }
@@ -387,13 +387,13 @@ export interface TileJsonMappedFields {
 }
 
 export interface BaseMapsAPI {
-    // m22-t1: url_ は merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され、
+    // url_ は merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され、
     // 永続化されない（merc かつ導出可能なときのみ own key として存在する）
     list(): Promise<Array<{ uid: string; mapID: string; scope: "builtin" | "user"; data: any; revision: number; thumbnailUrl?: string | null; url_?: string; alwaysVisible: boolean; alwaysLocked: boolean }>>;
     saveUser(payload: BaseMapSavePayload): Promise<BaseMapSaveResult>;
     deleteUser(baseMapUid: string): Promise<void>;
     setAlways(baseMapUid: string, always: boolean): Promise<void>;
-    // m6-t7: tms 編集画面の「TileJSON から読み込む」ボタン用
+    // tms 編集画面の「TileJSON から読み込む」ボタン用
     importTileJson(url: string): Promise<TileJsonImportResult>;
     // MapLibre のベースマップの style が MapLibre GL JS の 5 系で動くかの判定（取得は main）
     checkMaplibreStyle(url: string): Promise<import("./utils/maplibreStyleSupport").MaplibreStyleSupportResult>;
@@ -402,29 +402,29 @@ export interface BaseMapsAPI {
 export interface MapEditAPI {
     request(uidOrMapID: string): Promise<any>;
     previewSource(uidOrMapID: string): Promise<any>;
-    // ベースマップ表示設定はuid正準 (ADR-0007)。mapRefは保存済み地図=uid、未保存地図=slug
+    // ベースマップ表示設定はuid正準 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。mapRefは保存済み地図=uid、未保存地図=slug
     getTmsListOfMapID(mapRef: string): Promise<any>;
     getBaseMapVisibilityOfMapID(mapRef: string): Promise<any>;
     setBaseMapVisibilityForMapID(mapRef: string, baseMapUid: string, enabled: boolean): Promise<void>;
-    // m1-t4 (HR-6): 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準）
+    // 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準）
     getBaseMapShiftsOfMapID(mapRef: string): Promise<Array<{ baseMapUid: string; mapID: string; x: number; y: number }>>;
     setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void>;
     updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
-    // M13-T1 (§2.2): 保存済み地図専用のstrict-free搬出
-    // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
+    // 保存済み地図専用のstrict-free搬出
+    // #113: options は書き出す中身（省略時は既定＝現行と同じ中身）
     downloadSaved(mapRef: string, options?: Partial<import('./utils/exportOptions').MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'>;
-    // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+    // 休眠パネル専用（削除禁止・あとで再編予定）
     uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
-    // M12-T20 (§5.1): 復元時ガード用の staging 実在照会
+    // 復元時ガード用の staging 実在照会
     stagingStatus(url_: string, uid?: string): Promise<{ alive: boolean; savedTilesExist: boolean }>;
     getWmtsFolder(): Promise<any>;
     onProgress(listener: (progress: any) => void): () => void;
 }
 
-// m6-t8 §3.4: 生成される TileJSON 3.0.0 文書の renderer 側型
+// 生成される TileJSON 3.0.0 文書の renderer 側型
 export interface MercTileJsonDocument {
     tilejson: '3.0.0';
     tiles: [string];
@@ -433,7 +433,7 @@ export interface MercTileJsonDocument {
     bounds: [number, number, number, number];
 }
 
-// m6-t8: メルカトルタイル生成。従来 (window as any).wmtsGen として呼ばれていたが型付けする
+// メルカトルタイル生成。従来 (window as any).wmtsGen として呼ばれていたが型付けする
 export interface WmtsGenAPI {
     generate(
         uid: string,

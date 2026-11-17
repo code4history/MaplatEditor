@@ -1,7 +1,7 @@
-// export 出力の POI 外部ファイル名（`pois/<base>.geojson` の base）を決める純関数（M4-T2 §5.2）。
+// export 出力の POI 外部ファイル名（`pois/<base>.geojson` の base）を決める純関数。
 //
 // なぜ出力側で sanitize が要るか: ファイル名の基底は POI ソースの slug だけでなく、
-// **生 FC / ラッパー内 FC の `id` / `properties.id`** からも来る（M4-T2 設計 §5.2 の E2 / E5）。
+// **生 FC / ラッパー内 FC の `id` / `properties.id`** からも来る（E2 / E5）。
 // POI ソースの slug は SqliteDataService.registerAsset:1691 が isValidSlug（= SLUG_PATTERN,
 // electron/services/assetIdentity.ts:13）で弾くので安全だが、**FC の id は利用者が raw JSON
 // ペインで自由に書ける値で、この検査を一切通らない**。

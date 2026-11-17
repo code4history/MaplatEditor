@@ -105,7 +105,7 @@ const adapter = createAppListAdapter({
 const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" });
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("app");
-// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+// recent-search-chips: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
   items: recentItems,
   error: recentError,
@@ -127,7 +127,7 @@ function updateQuery(value: string): void { recordRecent(value); void router.rep
 function onApplyRecent(q: string): void { void applyRecent(q); updateQuery(q); }
 // チップの ×: 履歴から 1 件だけ消す（入力欄の値と現在の検索結果は変えない）
 function onRemoveRecent(q: string): void { void removeRecent(q); }
-// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+// 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
 function createNewApp(): void {
   const pending = latestNewDraft.value;
   void router.push(pending ? `/appedit?draftUid=${pending.assetUid}` : "/appedit");
@@ -139,7 +139,7 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   await deletion.request(vm);
 }
 
-// M11-T10: 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
+// 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
 const deletion = useResourceDelete({
   confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
   onDelete: async (uid) => {

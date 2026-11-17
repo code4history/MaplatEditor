@@ -24,12 +24,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'nov26-m6-t5-migration-'));
-const entryFile = path.join(workDir, 'nov26-m6-t5-migration-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-migration-migration-'));
+const entryFile = path.join(workDir, 'asset-uuid-migration-migration-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'nov26-m6-t5-migration-smoke.mjs');
+const bundledFile = path.join(outDir, 'asset-uuid-migration-migration-smoke.mjs');
 
 const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
 const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
@@ -47,7 +47,7 @@ const sqliteSrc = await readFile(sqlitePath, 'utf8');
   // 印の定数は SqliteDataService.ts の行頭の const（既存の変更の case 5(c) が数える形）
   const constLines = sqliteSrc.split('\n').filter((l) => /^const ASSET_UUID_NAMES_V1_ID = /.test(l));
   assert.deepEqual(constLines, [`const ASSET_UUID_NAMES_V1_ID = '${MARKER_ID}';`],
-    'T5-R2-MIN-1: 印の定数は SqliteDataService.ts の行頭の const（export しない）');
+    '印の定数は SqliteDataService.ts の行頭の const（export しない）');
   // F13: migrate() の中で、取込（runLegacyMigrationIfNeeded）→ 原本の移行（runColdBoot）→ 本移行 の順。
   // 本移行は this. のメソッドでなく try/catch の中のモジュールの関数（case 5(b) の段に数えない）
   const start = sqliteSrc.indexOf('  private async migrate(db: DatabaseSync)');
@@ -60,12 +60,12 @@ const sqliteSrc = await readFile(sqlitePath, 'utf8');
   const callMatch = callRe.exec(body);
   assert.ok(iLegacy > 0 && iOriginals > iLegacy, 'F13: 取込 → 原本の移行 の順が保たれている');
   assert.ok(callMatch, 'F13: 本移行はモジュールの関数として 6 字下げ（try の中）で呼ばれ、印の定数を引数で渡す');
-  assert.ok(callMatch.index > iOriginals, 'F13/R3-MIN-1: 本移行は原本の移行（runColdBoot）の後');
+  assert.ok(callMatch.index > iOriginals, 'F13/本移行は原本の移行（runColdBoot）の後');
   const before = body.slice(0, callMatch.index).split('\n').slice(-3).join('\n');
   assert.match(before, /try \{/, 'F13: 本移行の呼び出しは try/catch の中');
   assert.match(body, /本段は 0\.7\.0 の取込行を 1\.0\.0 の形へ直す段ではない（取込の中間段ではない）/, 'F13: 取込の中間段ではないことの注記がある');
   assert.equal(/this\.runAssetUuidNames/.test(body), false, 'F13: this. のメソッドにしない');
-  console.log('ok: F13 呼び順（取込 → 原本 → 本移行）・try/catch・印の定数は行頭 const（T5-R2-MIN-1）');
+  console.log('ok: F13 呼び順（取込 → 原本 → 本移行）・try/catch・印の定数は行頭 const');
 }
 const ddl = {};
 for (const table of ['schema_migrations', 'apps', 'base_maps']) {
@@ -256,7 +256,7 @@ await writeFile(
       const before = rowsOf(db);
       const filesBefore = await folderSnapshot(dir);
       const r1 = await runAssetUuidNamesColdBoot(db, dir, MARKER_ID);
-      assert.ok(hasMarker(db), 'AC5: 1 回目の後に印がある');
+      assert.ok(hasMarker(db), 'case 5: 1 回目の後に印がある');
 
       // --- F1・F2 ---
       const a1 = appData(db, A1);
@@ -273,19 +273,19 @@ await writeFile(
       // --- F4（UUID の形でない共有は全員を複製）---
       const s3 = appData(db, A3).appSettings.splash; const s4 = appData(db, A4).appSettings.splash;
       assert.match(s3, UUID_SPLASH); assert.match(s4, UUID_SPLASH);
-      assert.notEqual(s3, s4, 'F4/AC6(c): 共有は参照ごとに別名');
+      assert.notEqual(s3, s4, 'F4/case 6(c): 共有は参照ごとに別名');
       assert.deepEqual([...outcomeOf(r1, A3, 'splash'), ...outcomeOf(r1, A4, 'splash')], ['shared_split', 'shared_split']);
       // --- F5（UUID の形の共有: uid の昇順で最初はそのまま、それ以外は複製）---
       assert.equal(appData(db, A5).appSettings.splash, SHARED_UUID, 'F5: 最初の参照は UUID の形のまま');
       const s6 = appData(db, A6).appSettings.splash;
-      assert.match(s6, UUID_SPLASH); assert.notEqual(s6, SHARED_UUID, 'F5/AC6(c): 2 つ目は新しい UUID へ複製');
+      assert.match(s6, UUID_SPLASH); assert.notEqual(s6, SHARED_UUID, 'F5/case 6(c): 2 つ目は新しい UUID へ複製');
       assert.deepEqual(outcomeOf(r1, A5, 'splash'), ['already_uuid']);
       assert.deepEqual(outcomeOf(r1, A6, 'splash'), ['shared_split']);
       // --- F10・F11（外を指す）---
       assert.equal(appData(db, A7).appSettings.splash, '../outside.png', 'F10: 参照は変わらない');
       assert.equal(appData(db, A7).manifestSettings.iconSource, 'img/link.png', 'F11: 参照は変わらない');
-      assert.deepEqual(outcomeOf(r1, A7, 'splash'), ['outside_folder'], 'F10/AC6(g)');
-      assert.deepEqual(outcomeOf(r1, A7, 'iconSource'), ['outside_folder'], 'F11/AC6(g)');
+      assert.deepEqual(outcomeOf(r1, A7, 'splash'), ['outside_folder'], 'F10/case 6(g)');
+      assert.deepEqual(outcomeOf(r1, A7, 'iconSource'), ['outside_folder'], 'F11/case 6(g)');
       // --- F19（拡張子）---
       const a8 = appData(db, A8);
       assert.match(a8.appSettings.splash, new RegExp('^' + UUID + '\\\\.jpg$'), 'F19: 地図.JPG -> {u}.jpg');
@@ -296,7 +296,7 @@ await writeFile(
       assert.equal(appData(db, A9).manifestSettings.iconSource, 'pwa/gone.png');
       // --- F6・F7（ベースマップ）---
       assert.equal(baseData(db, B1).thumbnail, thumb52PathFor(B1, 'png'), 'F6: thumbnail は uid 名');
-      assert.ok(await exists(nodePath.join(dir, thumb512PathFor(thumb52PathFor(B1, 'png')))), 'F6/AC6(e): 512px も uid 名で在る');
+      assert.ok(await exists(nodePath.join(dir, thumb512PathFor(thumb52PathFor(B1, 'png')))), 'F6/case 6(e): 512px も uid 名で在る');
       assert.equal(baseData(db, B2).thumbnail, thumb52PathFor(B2, 'jpg'), 'F7: 拡張子を保って uid 名');
       assert.equal(await exists(nodePath.join(dir, thumb512PathFor(thumb52PathFor(B2, 'jpg')))), false, 'F7: 512px は作らない');
       assert.equal(baseData(db, B3).thumbnail, 'basemap_icons/osm.png', '同梱の参照は対象外');
@@ -306,24 +306,24 @@ await writeFile(
       // --- case 6(a) 旧ファイルが残る ---
       for (const entry of filesBefore) {
         const rel = entry.slice(0, entry.lastIndexOf(':'));
-        assert.ok(await exists(nodePath.join(dir, rel)), 'AC6(a): 旧ファイルが残る: ' + rel);
+        assert.ok(await exists(nodePath.join(dir, rel)), 'case 6(a): 旧ファイルが残る: ' + rel);
       }
       // --- case 6(b)・case 7: 書き換えた参照は 1.1.0 の解決式で実在 ---
       for (const uid of [A1, A2, A3, A4, A5, A6, A8]) {
         const d = appData(db, uid);
-        if (d.appSettings?.splash) assert.ok(await exists(resolve110.splash(dir, d.appSettings.splash)), 'AC7: splash ' + uid);
+        if (d.appSettings?.splash) assert.ok(await exists(resolve110.splash(dir, d.appSettings.splash)), 'case 7: splash ' + uid);
         const icon = d.manifestSettings?.iconSource || d.httpSettings?.iconSource;
-        if (icon) assert.ok(await exists(resolve110.iconSource(dir, icon)), 'AC7: iconSource ' + uid);
+        if (icon) assert.ok(await exists(resolve110.iconSource(dir, icon)), 'case 7: iconSource ' + uid);
       }
       for (const uid of [B1, B2]) {
-        assert.ok(await exists(resolve110.thumbnail(dir, baseData(db, uid).thumbnail)), 'AC7: thumbnail ' + uid);
+        assert.ok(await exists(resolve110.thumbnail(dir, baseData(db, uid).thumbnail)), 'case 7: thumbnail ' + uid);
       }
-      assert.ok(await exists(resolve110.thumbnail512(dir, baseData(db, B1).thumbnail)), 'AC7: 512px（B1）');
+      assert.ok(await exists(resolve110.thumbnail512(dir, baseData(db, B1).thumbnail)), 'case 7: 512px（B1）');
       // --- case 9: revision と updated_at が同じ ---
       const after = rowsOf(db);
       for (const key of ['apps', 'base']) {
         assert.deepEqual(after[key].map((r) => [r.uid, r.revision, r.updated_at]), before[key].map((r) => [r.uid, r.revision, r.updated_at]),
-          'AC9: ' + key + ' の revision と updated_at が前後で同じ');
+          'case 9: ' + key + ' の revision と updated_at が前後で同じ');
       }
       // --- 報告 ---
       const report = JSON.parse(await fs.readFile(nodePath.join(dir, 'migration-report-v2.json'), 'utf8'));
@@ -334,14 +334,14 @@ await writeFile(
       }
       assert.equal(rep.summary.outside_folder, 2); assert.equal(rep.summary.shared_split, 3);
       assert.deepEqual(report.renamedSlugs, [], '報告: 既存の top-level を保つ（additive）');
-      console.log('ok: F1〜F7・F10・F11・F19・AC6(a)(b)(c)(e)(g)・AC7・AC9・報告');
+      console.log('ok: F1〜F7・F10・F11・F19・case 6(a)(b)(c)(e)(g)・case 7・case 9・報告');
 
       // --- case 5: 印がある 2 回目は何も変えない ---
       const rowsAfter1 = rowsOf(db); const filesAfter1 = await folderSnapshot(dir);
       const r2 = await runAssetUuidNamesColdBoot(db, dir, MARKER_ID);
-      assert.equal(r2.skipped, 'marker', 'AC5: 2 回目は印で飛ばす');
-      assert.deepEqual(rowsOf(db), rowsAfter1, 'AC5: 2 回目の前後で DB が同じ');
-      assert.deepEqual(await folderSnapshot(dir), filesAfter1, 'AC5: 2 回目の前後でフォルダが同じ');
+      assert.equal(r2.skipped, 'marker', 'case 5: 2 回目は印で飛ばす');
+      assert.deepEqual(rowsOf(db), rowsAfter1, 'case 5: 2 回目の前後で DB が同じ');
+      assert.deepEqual(await folderSnapshot(dir), filesAfter1, 'case 5: 2 回目の前後でフォルダが同じ');
       // --- F14: 印を消して再走 ---
       db.prepare('DELETE FROM schema_migrations WHERE id = ?').run(MARKER_ID);
       const r3 = await runAssetUuidNamesColdBoot(db, dir, MARKER_ID);
@@ -352,9 +352,9 @@ await writeFile(
         const expected = ['migrated', 'shared_split', 'already_uuid'].includes(e.outcome) ? 'already_uuid' : e.outcome;
         assert.equal(again.outcome, expected, 'F14: ' + e.uid + '/' + e.kind + ' は ' + expected);
       }
-      assert.deepEqual(rowsOf(db), rowsAfter1, 'F14/AC6(c): data_json が 1 回目の後と同じ（共有は 2 回目で不変）');
+      assert.deepEqual(rowsOf(db), rowsAfter1, 'F14/case 6(c): data_json が 1 回目の後と同じ（共有は 2 回目で不変）');
       assert.deepEqual(await folderSnapshot(dir), filesAfter1, 'F14: 新しい複製ができない');
-      console.log('ok: AC5 印がある 2 回目は不変・F14 印を消した再走でも不変');
+      console.log('ok: case 5 印がある 2 回目は不変・F14 印を消した再走でも不変');
       db.close();
     }
 
@@ -373,19 +373,19 @@ await writeFile(
       insertBase(db, B2, { thumbnail: 'tmbs/f9.png' });
       const r = await runAssetUuidNamesColdBoot(db, dir, MARKER_ID);
       // F8
-      assert.equal(baseData(db, B1).thumbnail, 'tmbs/f8.png', 'F8/AC6(d): 参照は変わらない');
+      assert.equal(baseData(db, B1).thumbnail, 'tmbs/f8.png', 'F8/case 6(d): 参照は変わらない');
       assert.deepEqual(outcomeOf(r, B1, 'thumbnail'), ['copy_failed']);
       assert.equal(await exists(nodePath.join(dir, thumb52PathFor(B1, 'png'))), false, 'F8: 52px の複製は起きない');
       assert.equal((await fs.readFile(f8new512)).toString(), 'OTHER 512', 'F8: 先にあった別内容のファイルに触れない');
       // F9
-      assert.equal(baseData(db, B2).thumbnail, 'tmbs/f9.png', 'F9/AC6(d): 参照は変わらない');
+      assert.equal(baseData(db, B2).thumbnail, 'tmbs/f9.png', 'F9/case 6(d): 参照は変わらない');
       assert.deepEqual(outcomeOf(r, B2, 'thumbnail'), ['copy_failed']);
       assert.equal(await exists(nodePath.join(dir, thumb512PathFor(thumb52PathFor(B2, 'png')))), false, 'F9: この件で作った new512 は消す');
       assert.equal((await fs.readFile(f9new52)).toString(), 'OTHER 52', 'F9: 先に置いた別内容のファイルは残る');
       for (const rel of ['tmbs/f8.png', thumb512PathFor('tmbs/f8.png'), 'tmbs/f9.png', thumb512PathFor('tmbs/f9.png')]) {
         assert.ok(await exists(nodePath.join(dir, rel)), 'F8/F9: 旧ファイルが残る ' + rel);
       }
-      console.log('ok: F8・F9 複製の失敗は参照を変えず copy_failed・消すのはこの件で作った new512 だけ（AC6(d)）');
+      console.log('ok: F8・F9 複製の失敗は参照を変えず copy_failed・消すのはこの件で作った new512 だけ');
       db.close();
     }
 
@@ -408,14 +408,14 @@ await writeFile(
         },
       });
       const a1 = appData(db, A1);
-      assert.equal(a1.appName, 'edited', 'F12/AC6(f): 別キーの編集が失われない');
+      assert.equal(a1.appName, 'edited', 'F12/case 6(f): 別キーの編集が失われない');
       assert.match(a1.appSettings.splash, UUID_SPLASH, 'F12: 同じキーが旧値のままなら書き換える');
-      assert.equal(appData(db, A2).appSettings.splash, 'renamed-by-user.png', 'F12/AC6(f): 同じキーを変えられた行は書き換えない');
+      assert.equal(appData(db, A2).appSettings.splash, 'renamed-by-user.png', 'F12/case 6(f): 同じキーを変えられた行は書き換えない');
       assert.deepEqual(outcomeOf(r, A2, 'splash'), ['cas_mismatch']);
-      assert.equal(baseData(db, B1).thumbnail, 'tmbs/changed-by-user.png', 'F12/IR-T5-MIN-1: ベースマップも、thumbnail を変えられた行は書き換えない');
-      assert.deepEqual(outcomeOf(r, B1, 'thumbnail'), ['cas_mismatch'], 'F12/IR-T5-MIN-1: ベースマップの cas_mismatch');
+      assert.equal(baseData(db, B1).thumbnail, 'tmbs/changed-by-user.png', 'F12/ベースマップも、thumbnail を変えられた行は書き換えない');
+      assert.deepEqual(outcomeOf(r, B1, 'thumbnail'), ['cas_mismatch'], 'F12/ベースマップの cas_mismatch');
       assert.ok(await exists(nodePath.join(dir, 'tmbs/cas-bm.png')), 'F12: 旧ファイルは残る');
-      console.log('ok: F12 比較と交換（AC6(f)。アプリとベースマップ）');
+      console.log('ok: F12 比較と交換（アプリとベースマップ）');
       db.close();
     }
 
@@ -507,7 +507,7 @@ await writeFile(
       await png('img/旧スプラッシュ.png', 64, 48, 0x336699ff);
       await png('pwa/ac8_icon.png', 512, 512, 0x993366ff);
       const doc = {
-        appID: 'ac8-app', title: { ja: 'AC8' }, appName: { ja: 'AC8' }, lang: 'ja', sources: [],
+        appID: 'ac8-app', title: { ja: 'case 8' }, appName: { ja: 'case 8' }, lang: 'ja', sources: [],
         appSettings: { splash: '旧スプラッシュ.png' }, httpSettings: { pwaManifest: false }, manifestSettings: { iconSource: 'pwa/ac8_icon.png' },
       };
       const { uid } = await SqliteDataService.createApp('ac8-app', doc);
@@ -517,24 +517,24 @@ await writeFile(
         const zipPath = nodePath.join(workDir, name + '.zip');
         (globalThis as any).__nextDialogResult = { canceled: false, filePath: zipPath };
         const r = await AppExportService.exportApp(fakeWin, { ...current, appID: 'ac8-app' });
-        assert.equal(r.result, 'Success', 'AC8: 書き出しが成功する ' + JSON.stringify(r));
+        assert.equal(r.result, 'Success', 'case 8: 書き出しが成功する ' + JSON.stringify(r));
         const entries = new AdmZip(zipPath).getEntries().filter((e) => !e.isDirectory);
         return { splash: current.appSettings.splash, entries: new Map(entries.map((e) => [e.entryName, e.getData()])) };
       };
       const before = await exportZip('ac8-before');
       const listBefore = await resolveAppListImage(await SqliteDataService.findAppByRef(uid));
       const listBeforeSplash = await resolveAppListImage(await SqliteDataService.findAppByRef(splashOnly.uid));
-      assert.ok(listBefore && listBeforeSplash, 'AC8: 移行前に一覧の画像が出る');
+      assert.ok(listBefore && listBeforeSplash, 'case 8: 移行前に一覧の画像が出る');
 
       db.prepare('DELETE FROM schema_migrations WHERE id = ?').run(MARKER_ID);
       await runAssetUuidNamesColdBoot(db, svcDir, MARKER_ID);
       const migrated = await SqliteDataService.findAppByRef(uid);
-      assert.match(migrated.appSettings.splash, UUID_SPLASH, 'AC8: 移行で splash が UUID 名');
-      assert.match(migrated.manifestSettings.iconSource, UUID_ICON, 'AC8: 移行で iconSource が UUID 名');
+      assert.match(migrated.appSettings.splash, UUID_SPLASH, 'case 8: 移行で splash が UUID 名');
+      assert.match(migrated.manifestSettings.iconSource, UUID_ICON, 'case 8: 移行で iconSource が UUID 名');
       const listAfter = await resolveAppListImage(migrated);
       const listAfterSplash = await resolveAppListImage(await SqliteDataService.findAppByRef(splashOnly.uid));
-      assert.ok(listAfter && listAfter.includes(migrated.manifestSettings.iconSource.split('/')[1]), 'AC8: 一覧の画像（アイコン）が新しい名前で出る');
-      assert.ok(listAfterSplash && /[0-9a-f-]{36}\\.png/.test(listAfterSplash), 'AC8: 一覧の画像（スプラッシュ）が新しい名前で出る');
+      assert.ok(listAfter && listAfter.includes(migrated.manifestSettings.iconSource.split('/')[1]), 'case 8: 一覧の画像（アイコン）が新しい名前で出る');
+      assert.ok(listAfterSplash && /[0-9a-f-]{36}\\.png/.test(listAfterSplash), 'case 8: 一覧の画像（スプラッシュ）が新しい名前で出る');
 
       const after = await exportZip('ac8-after');
       // スプラッシュの名前（とそれを含む app JSON の splash・og:image）だけを同じ記号に置いてから比べる
@@ -545,10 +545,10 @@ await writeFile(
         return [key, createHash('sha256').update(text).digest('hex')];
       }));
       const cb = canon(before); const ca = canon(after);
-      assert.deepEqual([...ca.keys()].sort(), [...cb.keys()].sort(), 'AC8: 書き出し物のエントリの一覧が同じ（スプラッシュの名前を除く）');
+      assert.deepEqual([...ca.keys()].sort(), [...cb.keys()].sort(), 'case 8: 書き出し物のエントリの一覧が同じ（スプラッシュの名前を除く）');
       const diff = [...cb.keys()].filter((k) => cb.get(k) !== ca.get(k));
-      assert.deepEqual(diff, [], 'AC8: 各エントリの SHA-256 が同じ（スプラッシュの名前と og:image のその部分を除く）');
-      console.log('ok: AC8 一覧の画像と書き出し物が移行の前後で同じ（' + cb.size + ' エントリ）');
+      assert.deepEqual(diff, [], 'case 8: 各エントリの SHA-256 が同じ（スプラッシュの名前と og:image のその部分を除く）');
+      console.log('ok: case 8 一覧の画像と書き出し物が移行の前後で同じ（' + cb.size + ' エントリ）');
     }
 
     // ---------- case 10: アプリの保存の入口の正規化 ----------
@@ -558,35 +558,35 @@ await writeFile(
       const imgCount = async () => (await fs.readdir(nodePath.join(svcDir, 'img'))).length;
       const pwaCount = async () => (await fs.readdir(nodePath.join(svcDir, 'pwa'))).length;
       const document = {
-        appID: 'ac10-app', appName: { ja: 'AC10' }, lang: 'ja', sources: [],
+        appID: 'ac10-app', appName: { ja: 'case 10' }, lang: 'ja', sources: [],
         appSettings: { splash: '保存前.png' }, httpSettings: {}, manifestSettings: { iconSource: 'pwa/save_icon.png' },
       };
       const saved = await AppDataService.saveApp({ document, slug: 'ac10-app' });
-      assert.equal(saved.result, 'Success', 'AC10: 保存できる ' + JSON.stringify(saved));
-      assert.ok(saved.imageRefs, 'AC10: 戻り値に imageRefs がある');
-      assert.match(saved.imageRefs.splash, UUID_SPLASH, 'AC10: imageRefs.splash が UUID 名');
-      assert.match(saved.imageRefs.iconSource, UUID_ICON, 'AC10: imageRefs.iconSource が UUID 名');
+      assert.equal(saved.result, 'Success', 'case 10: 保存できる ' + JSON.stringify(saved));
+      assert.ok(saved.imageRefs, 'case 10: 戻り値に imageRefs がある');
+      assert.match(saved.imageRefs.splash, UUID_SPLASH, 'case 10: imageRefs.splash が UUID 名');
+      assert.match(saved.imageRefs.iconSource, UUID_ICON, 'case 10: imageRefs.iconSource が UUID 名');
       const row = await SqliteDataService.findAppByRef(saved.uid);
-      assert.equal(row.appSettings.splash, saved.imageRefs.splash, 'AC10: DB の参照が UUID 名');
+      assert.equal(row.appSettings.splash, saved.imageRefs.splash, 'case 10: DB の参照が UUID 名');
       assert.equal(row.manifestSettings.iconSource, saved.imageRefs.iconSource);
-      assert.ok(await exists(nodePath.join(svcDir, 'img', '保存前.png')), 'AC10: 旧ファイルが残る');
-      assert.equal(document.appSettings.splash, '保存前.png', 'AC10: 呼び出し元の文書を書き換えない');
+      assert.ok(await exists(nodePath.join(svcDir, 'img', '保存前.png')), 'case 10: 旧ファイルが残る');
+      assert.equal(document.appSettings.splash, '保存前.png', 'case 10: 呼び出し元の文書を書き換えない');
       // 2 回目の保存（画面が imageRefs を反映した文書）で新しい複製が増えない
       const [nImg, nPwa] = [await imgCount(), await pwaCount()];
       const reflected = { ...document, appSettings: { splash: saved.imageRefs.splash }, manifestSettings: { iconSource: saved.imageRefs.iconSource } };
       const again = await AppDataService.saveApp({ document: reflected, uid: saved.uid, slug: 'ac10-app', expectedRevision: saved.revision });
       assert.equal(again.result, 'Success');
-      assert.equal(again.imageRefs, undefined, 'AC10: UUID 名の文書では imageRefs を返さない');
-      assert.deepEqual([await imgCount(), await pwaCount()], [nImg, nPwa], 'AC10: 2 回目の保存で新しい複製が増えない');
+      assert.equal(again.imageRefs, undefined, 'case 10: UUID 名の文書では imageRefs を返さない');
+      assert.deepEqual([await imgCount(), await pwaCount()], [nImg, nPwa], 'case 10: 2 回目の保存で新しい複製が増えない');
       // 複製元が保存フォルダに無い文書は旧名のまま保存（警告）
       const warns = [];
       const origWarn = console.warn; console.warn = (...a) => { warns.push(a.join(' ')); };
       const missing = await AppDataService.saveApp({ document: { ...document, appID: 'ac10-missing', appSettings: { splash: 'elsewhere.png' }, manifestSettings: {} }, slug: 'ac10-missing' });
       console.warn = origWarn;
       assert.equal(missing.result, 'Success');
-      assert.equal((await SqliteDataService.findAppByRef(missing.uid)).appSettings.splash, 'elsewhere.png', 'AC10: 複製元が無ければ旧名のまま');
-      assert.ok(warns.some((w) => w.includes('elsewhere.png')), 'AC10: 警告が出る');
-      console.log('ok: AC10 アプリの保存の入口の正規化（imageRefs・2 回目で複製が増えない・複製元が無ければ旧名）');
+      assert.equal((await SqliteDataService.findAppByRef(missing.uid)).appSettings.splash, 'elsewhere.png', 'case 10: 複製元が無ければ旧名のまま');
+      assert.ok(warns.some((w) => w.includes('elsewhere.png')), 'case 10: 警告が出る');
+      console.log('ok: case 10 アプリの保存の入口の正規化（imageRefs・2 回目で複製が増えない・複製元が無ければ旧名）');
     }
 
     // ---------- case 10: ベースマップの付け替え（F16〜F18・対が無い）----------
@@ -655,10 +655,10 @@ await writeFile(
       const r19 = await SqliteDataService.saveUserBaseMap({ uid: U19, slug: 'f19-bm', tms: baseTms('tmbs/f19.png') });
       assert.equal(r19.thumbnail, 'tmbs/f19.png', '対が無い: 戻り値は旧名');
       assert.equal(baseData(db, U19).thumbnail, 'tmbs/f19.png', '対が無い: 付け替わらない');
-      console.log('ok: AC10 ベースマップの付け替え（F16・F16b・F17 は旧名のまま・F18 は uid 名・対が無ければ旧名）');
+      console.log('ok: case 10 ベースマップの付け替え（F16・F16b・F17 は旧名のまま・F18 は uid 名・対が無ければ旧名）');
     }
 
-    console.log('nov26-m6-t5 asset uuid migration smoke: ALL PASS');
+    console.log('asset uuid migration smoke: ALL PASS');
   `,
 );
 
@@ -678,7 +678,7 @@ await build({
     target: 'node22',
     rollupOptions: {
       external: ['@jsquash/webp', 'pwa-asset-generator'],
-      output: { entryFileNames: 'nov26-m6-t5-migration-smoke.mjs', format: 'es' },
+      output: { entryFileNames: 'asset-uuid-migration-migration-smoke.mjs', format: 'es' },
     },
   },
 });
@@ -690,4 +690,4 @@ const { stdout, stderr } = await execFileAsync(process.execPath, [bundledFile], 
 });
 process.stdout.write(stdout);
 if (stderr) process.stderr.write(stderr);
-console.log('nov26-m6-t5 asset uuid migration smoke: 静的検査も含め ALL PASS');
+console.log('asset uuid migration smoke: 静的検査も含め ALL PASS');

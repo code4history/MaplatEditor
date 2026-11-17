@@ -1,4 +1,4 @@
-/* Application Shell token 正本（M11-T5）。ここが --editor-ui-* の唯一の定義箇所。
+/* Application Shell token 正本。ここが --editor-ui-* の唯一の定義箇所。
    Bootstrap 変数を参照できるものは var(--bs-*) へ委譲し二重定義を避ける。
    取込点は main.scss 冒頭の import のみ（main.ts には追加しない）。 */
 :root {

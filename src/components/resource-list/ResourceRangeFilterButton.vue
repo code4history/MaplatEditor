@@ -1,5 +1,5 @@
 <template>
-  <!-- M12-T10 v2.0 HM3: 範囲コントロール共有コンポーネント。
+  <!-- v2.0 HM3: 範囲コントロール共有コンポーネント。
        ResourceSelectorList の toolbar（検索ボックス直下）に配置。
        state: 'none' | 'auto' | 'manual'。manual 時は clear ボタンを横に表示。
        旧「地域指定」ボタン行・spatial-toggle に代わる唯一の範囲コントロール正本。 -->

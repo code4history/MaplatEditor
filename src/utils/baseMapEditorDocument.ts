@@ -13,7 +13,7 @@ export interface BaseMapCatalogItemLike {
   scope: "builtin" | "user";
   revision: number;
   data: Record<string, unknown>;
-  // m22-t1: merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され永続化されない。
+  // merc の実行時専用タイルURL。IPC 返却時にのみ item レベルへ付与され永続化されない。
   // BaseMapCatalogItem は本型を extends するため、宣言はここ1箇所で両者に効く。
   url_?: string;
 }
@@ -24,11 +24,11 @@ export interface BaseMapCatalogItem extends BaseMapCatalogItemLike {
   alwaysLocked: boolean;
 }
 
-// 種別軸（m6-t1）。ビューア（MaplatCore source_ex.ts）の maptype 語彙に対応するエディタ側識別子。
-// "tms" は従来のタイルURL地図（既定）。provider（google/mapbox/maplibre）は m6-t4/t5、merc は m6-t8 が担当。
+// 種別軸。ビューア（MaplatCore source_ex.ts）の maptype 語彙に対応するエディタ側識別子。
+// "tms" は従来のタイルURL地図（既定）。provider（google/mapbox/maplibre）と merc はあとから加えた種別。
 export type BaseMapKind = "tms" | "google" | "mapbox" | "maplibre" | "merc";
 
-// Google プリセット値（m6-t4）。kind === "google" のときのみ意味を持つ。
+// Google プリセット値。kind === "google" のときのみ意味を持つ。
 export type GoogleMapType = "google_roadmap" | "google_satellite" | "google_hybrid" | "google_terrain";
 
 export interface BaseMapEditDocument extends Partial<Record<BaseMapMetaLangKey, Record<string, string>>> {
@@ -39,8 +39,8 @@ export interface BaseMapEditDocument extends Partial<Record<BaseMapMetaLangKey, 
   title: Record<string, string>;
   label: Record<string, string>;
   attr: Record<string, string>;
-  // m6-t2: ベースマップの 2×2 (dataAttr / license / dataLicense) と自由記述2欄 (licenseNote / dataLicenseNote)。
-  // license / dataLicense の既定は空文字 (§4.1)。他は多言語オブジェクト (内部形)。
+  // ベースマップの 2×2 (dataAttr / license / dataLicense) と自由記述2欄 (licenseNote / dataLicenseNote)。
+  // license / dataLicense の既定は空文字。他は多言語オブジェクト (内部形)。
   dataAttr: Record<string, string>;
   license: string;
   dataLicense: string;
@@ -51,29 +51,29 @@ export interface BaseMapEditDocument extends Partial<Record<BaseMapMetaLangKey, 
   maxZoom: number | null;
   thumbnail: string;
   coverageLngLats: [number, number][] | null;
-  // m6-t7: TileJSON URL からの取り込みで埋まった場合の出自 URL。null = 未取り込み（手動作成/tiles編集）。
-  // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts §3.3）。再取得機能は m6 では作らない。
+  // TileJSON URL からの取り込みで埋まった場合の出自 URL。null = 未取り込み（手動作成/tiles編集）。
+  // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts）。再取得機能は では作らない。
   tileJsonSourceUrl: string | null;
-  // m6-t8: merc マスタが生成元とした地図の UID。参照整合性は課さない出自メモ（AC11）。
-  // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts §3.7）。
+  // merc マスタが生成元とした地図の UID。参照整合性は課さない出自メモ。
+  // EDITOR_ONLY_KEYS 経由で viewer 出力からは除去される（appSourceModel.ts）。
   sourceMapUid: string | null;
-  // 種別軸（m6-t1）。null = 未選択（新規作成直後のみ）。data に保持し AppSource.sourceType 軸は拡張しない。
+  // 種別軸。null = 未選択（新規作成直後のみ）。data に保持し AppSource.sourceType 軸は拡張しない。
   kind: BaseMapKind | null;
-  // Google プリセット値（m6-t4）。kind === "google" のときのみ非 null。
+  // Google プリセット値。kind === "google" のときのみ非 null。
   maptype: GoogleMapType | null;
-  // m6-t5: mapbox / maplibre の style URL（他 kind では null）
+  // mapbox / maplibre の style URL（他 kind では null）
   style: string | null;
 }
 
 export interface BaseMapValidation {
   valid: boolean;
   errors: Array<
-    | "kind-required" // 新設（m6-t1）。kind 未選択（null）
-    | "provider-incomplete" // 新設（m6-t1）。t4/t5 で google=maptype-required・mapbox/maplibre=style 系へ置換済み（型互換のため残置）
-    | "maptype-required" // 新設（m6-t4）。kind === "google" で maptype 未選択
-    | "style-required" // m6-t5: mapbox/maplibre で style 空
-    | "style-mapbox-scheme-forbidden" // m6-t5: maplibre で mapbox://
-    | "style-url-invalid" // m6-t5: 許可外 URL
+    | "kind-required" // 新設。kind 未選択（null）
+    | "provider-incomplete" // 新設。t4/t5 で google=maptype-required・mapbox/maplibre=style 系へ置換済み（型互換のため残置）
+    | "maptype-required" // 新設。kind === "google" で maptype 未選択
+    | "style-required" // mapbox/maplibre で style 空
+    | "style-mapbox-scheme-forbidden" // maplibre で mapbox:
+    | "style-url-invalid" // 許可外 URL
     | "slug-required"
     | "slug-invalid"
     | "title-required"
@@ -90,10 +90,10 @@ export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
   expectedRevision?: number;
-  // 新規作成の明示合図 (M11-T7/§7.2b)。true=uid を事前採番 preset として採用
+  // 新規作成の明示合図 (/b)。true=uid を事前採番 preset として採用
   create?: boolean;
   tms: Partial<Record<BaseMapMetaLangKey, Record<string, string>>> & {
-    // 種別軸（m6-t1）。保存時は document.kind ?? "tms" で必ず既知5値のいずれか。
+    // 種別軸。保存時は document.kind ?? "tms" で必ず既知5値のいずれか。
     kind: BaseMapKind;
     lang: LangCode;
     title: Record<string, string>;
@@ -109,11 +109,11 @@ export interface BaseMapSavePayload {
     maxZoom: number | null;
     thumbnail: string;
     coverageLngLats: [number, number][] | null;
-    // m6-t7: TileJSON 取り込み出自 URL。無条件出力（coverageLngLats と同型。EDITOR_ONLY_KEYS で strip）
+    // TileJSON 取り込み出自 URL。無条件出力（coverageLngLats と同型。EDITOR_ONLY_KEYS で strip）
     tileJsonSourceUrl: string | null;
-    // m6-t8: merc 生成元地図の UID。無条件出力（tileJsonSourceUrl と同型。EDITOR_ONLY_KEYS で strip）
+    // merc 生成元地図の UID。無条件出力（tileJsonSourceUrl と同型。EDITOR_ONLY_KEYS で strip）
     sourceMapUid: string | null;
-    // m6-t4: kind === "google" のときのみ出力 / m6-t5: mapbox/maplibre のとき viewer 向け maptype + style
+    // kind === "google" のときのみ出力 / mapbox/maplibre のとき viewer 向け maptype + style
     maptype?: string;
     style?: string;
   };
@@ -122,9 +122,9 @@ export interface BaseMapSavePayload {
 const nullableNumber = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
-// kind の読み込み時正規化（ADR-0005 と同型）。既知5値のみ保持し、
+// kind の読み込み時正規化（多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりと同型）。既知5値のみ保持し、
 // 欠落・未知値・型不一致は "tms" へ落とす（前方互換: 将来の kind を古いビルドが開いても壊れない）。
-// m6-t4: BaseMapEdit の登録済み判定でも使うため export する。
+// BaseMapEdit の登録済み判定でも使うため export する。
 export const normalizeKind = (value: unknown): BaseMapKind =>
   value === "tms" || value === "google" || value === "mapbox" || value === "maplibre" || value === "merc"
     ? value
@@ -145,14 +145,14 @@ export const normalizeGoogleMaptype = (
   return GOOGLE_MAPTYPES.includes(value as GoogleMapType) ? (value as GoogleMapType) : null;
 };
 
-// m6-t5 v1.3: provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
+// v1.3: provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
 // appSourceModel の maptype 判定など、同一扱いは本述語へ一元化する（恒久指示）
 export const PROVIDER_BASE_MAP_KINDS = ["google", "mapbox", "maplibre"] as const;
 export function isProviderKind(value: unknown): boolean {
   return (PROVIDER_BASE_MAP_KINDS as readonly unknown[]).includes(value);
 }
 
-// m6-t6: 「キー(API キー/アクセストークン)が要る」種別の原子述語（google/mapbox の2種）。
+// 「キー(API キー/アクセストークン)が要る」種別の原子述語（google/mapbox の2種）。
 // isProviderKind（3種・provider 判定）とも providerGlCdn.ts の sourceKind（GL CDN 要否・
 // mapbox/maplibre の2種）とも異なる第3の述語であり、意図的に別定義とする（maplibre は
 // スタイル自体にキーを含められるため GL は要るがエディタ管理のキーは要らない）
@@ -161,7 +161,7 @@ export function requiresProviderKey(value: unknown): boolean {
   return (PROVIDER_KEY_REQUIRED_KINDS as readonly unknown[]).includes(value);
 }
 
-// m6-t5 v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
+// v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
 // 欠落時は maptype（viewer 軸）を見る（旧保存形の保険）
 export function isProviderBaseMapData(
   data: { kind?: unknown; maptype?: unknown } | null | undefined,
@@ -169,7 +169,7 @@ export function isProviderBaseMapData(
   return isProviderKind(data?.kind ?? data?.maptype);
 }
 
-// nov26-editor-feat3: provider 種別を 1 値として切り出す。エディタ背景へ通すのは google だけ
+// google-editor-basemap: provider 種別を 1 値として切り出す。エディタ背景へ通すのは google だけ
 // （mapbox/maplibre は従来どおり除外）という条件分岐を、文字列比較の散在ではなく本述語へ寄せる。
 // 判定規則は isProviderBaseMapData と同一（kind 優先・maptype フォールバック）
 export type ProviderBaseMapKind = "google" | "mapbox" | "maplibre";
@@ -189,8 +189,8 @@ export function baseMapProviderKindOf(
   return null;
 }
 
-// nov26-editor-feat3: 編集用ベースマップの選択肢に google を出してよいか。
-// 条件は「種別 google」かつ「エディタ用 Google Maps API キーが解決できる」の AND（設計 §4.1/§4.3）。
+// google-editor-basemap: 編集用ベースマップの選択肢に google を出してよいか。
+// 条件は「種別 google」かつ「エディタ用 Google Maps API キーが解決できる」の AND。
 // キーが無いときは出さない（呼び出し側が理由を注記する）。
 // maptype は ol/source/Google が解釈できる google_* のみ通す。旧保存形（kind が無く
 // maptype が google_*）も normalizeGoogleMaptype の kind フォールバックで受ける
@@ -204,7 +204,7 @@ export function isGoogleEditorBasemap(
   return normalizeGoogleMaptype(data?.maptype, "google") !== null;
 }
 
-// nov26-editor-feat3（設計レビュー 2026-10-21 MINOR c）: ol/source/Google の language / region の
+// google-editor-basemap（設計レビュー 2026-10-21 MINOR c）: ol/source/Google の language / region の
 // 既定値は en-US / US。エディタの表示言語（currentLang）を渡す。region は CLDR の地域識別子で
 // あり言語コードだけからは決まらないため、Intl.Locale.maximize()（likely subtags）で導く。
 // 表を手で持たないのは、対応言語が増えたときに表だけが取り残されるのを避けるため。
@@ -221,9 +221,9 @@ export function googleTileLocaleOf(lang: unknown): { language: string; region: s
   return { language, region };
 }
 
-// m22-t1: ベースマップ IPC の item から、レイヤ生成に使う data 複製を作る。
+// ベースマップ IPC の item から、レイヤ生成に使う data 複製を作る。
 //
-// なぜ必要か（設計書 §3.4）: 実行時専用の url_ は item レベルに来る（永続層 data_json も
+// なぜ必要か: 実行時専用の url_ は item レベルに来る（永続層 data_json も
 // IPC が返す item.data も持たない）が、renderer はレイヤ生成のとき item を捨てて data の
 // 配列を組む。∴ 載せ替えが要る。同型の2箇所（MapEdit.vue の enabledBaseMapData /
 // PoiEditMap.vue の baseMapList 構築）を本ヘルパーへ寄せる（挙動を似せるのではなく同一実装）。
@@ -234,8 +234,8 @@ export function googleTileLocaleOf(lang: unknown): { language: string; region: s
 // MapEdit 側が型エラーになる。
 //
 // 行うのは**キーの移し替えだけ**であり、URL の組み立てではない（導出ロジックは main の
-// 単一関数に閉じる。m5-t3 が排したのは「同じ導出が複数箇所に散る」ことである）。
-// url_ が無ければ返り値にも載せない（IPC 側と同じ own key 規律。設計書 §3.3 (3)）。
+// 単一関数に閉じる。既存の変更が排したのは「同じ導出が複数箇所に散る」ことである）。
+// url_ が無ければ返り値にも載せない（IPC 側と同じ own key 規律。(3)）。
 // 返り値は新しいオブジェクトであり、引数の item.data を破壊しない。
 export function toBaseMapLayerData(
   item: { data?: any; url_?: string },
@@ -243,13 +243,13 @@ export function toBaseMapLayerData(
   return { ...(item?.data ?? {}), ...(item?.url_ ? { url_: item.url_ } : {}) };
 }
 
-/** m6-t5: mapbox:// または mapbox: スキーム */
+/** mapbox:// または mapbox: スキーム */
 export function isMapboxScheme(style: string): boolean {
   const s = style.trim().toLowerCase();
   return s.startsWith("mapbox://") || s.startsWith("mapbox:");
 }
 
-/** m6-t5: kind に応じた style URL 許可 */
+/** kind に応じた style URL 許可 */
 export function isAllowedStyleUrl(style: string, kind: "mapbox" | "maplibre"): boolean {
   const s = style.trim();
   if (!s) return false;
@@ -293,7 +293,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
   const defaultLang = (typeof data.lang === "string" && data.lang ? data.lang : item.scope === "builtin" ? "en" : "ja") as LangCode;
   const title = normalizeLangResource(data.title as LangResource | undefined, defaultLang);
   const label = normalizeLangResource(data.label as LangResource | undefined, defaultLang);
-  // m6-t2: BASE_MAP_LANG_ATTRS のうち title を除く4件 (attr/dataAttr/licenseNote/dataLicenseNote) を
+  // BASE_MAP_LANG_ATTRS のうち title を除く4件 (attr/dataAttr/licenseNote/dataLicenseNote) を
   // 共通ループで内部形へ正規化する。label は上で特別扱い済み。
   const lang: Record<string, Record<string, string>> = {};
   for (const attr of BASE_MAP_LANG_ATTRS) {
@@ -305,7 +305,7 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     const value = normalizeLangResource(data[key] as LangResource | undefined, defaultLang);
     if (Object.keys(value).length) metadata[key] = value;
   }
-  // license / dataLicense は ASCII 語彙の単一文字列。非文字列は空文字へ落とす (§4.1)
+  // license / dataLicense は ASCII 語彙の単一文字列。非文字列は空文字へ落とす
   const license = typeof data.license === "string" ? data.license : "";
   const dataLicense = typeof data.dataLicense === "string" ? data.dataLicense : "";
   const kind = normalizeKind(data.kind);
@@ -346,7 +346,7 @@ export function newBaseMapDocument(uid: string, lang: LangCode): BaseMapEditDocu
     label: {},
     attr: {},
     dataAttr: {},
-    // m6-t2: license / dataLicense の既定は空文字 (§4.1)。All right reserved を既定にしない。
+    // license / dataLicense の既定は空文字。All right reserved を既定にしない。
     license: "",
     dataLicense: "",
     licenseNote: {},
@@ -371,10 +371,10 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   if (kind === null) {
     errors.push("kind-required");
   } else if (kind === "google") {
-    // m6-t4: Google の必須項目は maptype（4プリセットから選択）。
+    // Google の必須項目は maptype（4プリセットから選択）。
     if (!document.maptype) errors.push("maptype-required");
   } else if (kind === "mapbox" || kind === "maplibre") {
-    // m6-t5: style 必須。maplibre は mapbox:// 禁止・https のみ。
+    // style 必須。maplibre は mapbox:// 禁止・https のみ。
     const style = (document.style ?? "").trim();
     if (!style) {
       errors.push("style-required");
@@ -387,10 +387,10 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   if (!document.slug.trim()) errors.push("slug-required");
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
-  // m6-t2 (レビュー M2): 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
-  // kind に関わらず attr は必須（m6-t1 の kind チェックとは独立）
+  // 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
+  // kind に関わらず attr は必須（既存の変更の kind チェックとは独立）
   if (!document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
-  // url 必須は kind === "tms" のみ（merc は m6-t8 が導出、provider は不要。現行の tms 挙動と完全一致）
+  // url 必須は kind === "tms" のみ（merc は 既存の変更が導出、provider は不要。現行の tms 挙動と完全一致）
   if (kind === "tms") {
     if (!document.url.trim()) errors.push("url-required");
     else if (!(document.url.includes("{z}") && document.url.includes("{x}") && (document.url.includes("{y}") || document.url.includes("{-y}")))) {
@@ -425,14 +425,14 @@ export function toBaseMapSavePayload(
     ...(revision === null ? {} : { expectedRevision: revision }),
     tms: {
       ...metadata,
-      // 種別軸（m6-t1）。null は保存時 "tms" へ正規化（save は kind-required で null 到達を阻止済み）。
+      // 種別軸。null は保存時 "tms" へ正規化（save は kind-required で null 到達を阻止済み）。
       // saveUserBaseMap が { ...tms, mapID: slug } を data_json に書くため、ここに載せれば永続化される。
       kind: document.kind ?? "tms",
       lang: document.defaultLang,
       title: { ...document.title },
       label: hasExplicitLabel ? { ...document.label } : { ...document.title },
       attr: { ...document.attr },
-      // m6-t2: 5フィールドを常に出力する (空でも出す。attr と同じ形)
+      // 5フィールドを常に出力する (空でも出す。attr と同じ形)
       dataAttr: { ...document.dataAttr },
       license: document.license,
       dataLicense: document.dataLicense,
@@ -445,9 +445,9 @@ export function toBaseMapSavePayload(
       coverageLngLats: document.coverageLngLats?.map(([lng, lat]) => [lng, lat]) ?? null,
       tileJsonSourceUrl: document.tileJsonSourceUrl,
       sourceMapUid: document.sourceMapUid,
-      // m6-t4: kind === "google" のときのみ maptype を出力
+      // kind === "google" のときのみ maptype を出力
       ...(document.kind === "google" && document.maptype ? { maptype: document.maptype } : {}),
-      // m6-t5: mapbox/maplibre は viewer 向け maptype + style を data に載せる（AC23-b: 単一 spread）
+      // mapbox/maplibre は viewer 向け maptype + style を data に載せる（-b: 単一 spread）
       ...(document.kind === "mapbox" || document.kind === "maplibre"
         ? { maptype: document.kind, style: document.style ?? "" }
         : {}),
@@ -474,7 +474,7 @@ export function resolveBaseMapRuntimeText(
   );
 }
 
-// ベースマップ文書の言語別フィールドを、言語解決済みのテキスト値へ展開する汎用関数 (m6-t2)。
+// ベースマップ文書の言語別フィールドを、言語解決済みのテキスト値へ展開する汎用関数。
 // BASE_MAP_LANG_ATTRS の各キーを resolveBaseMapRuntimeText で解決して返す。
 export function resolveBaseMapLangTexts(
   data: Record<string, unknown>,
@@ -490,7 +490,7 @@ export function resolveBaseMapLangTexts(
 
 // resolveBaseMapLayerMetadata は resolveBaseMapLangTexts の薄いラッパー。
 // 戻り値は従来どおり { title: string; attr: string } の2キーちょうど
-// (m11-t4-master-detail-smoke.mjs:280 の deepEqual がこの形を見張る)。
+// (master-detail-smoke.mjs:280 の deepEqual がこの形を見張る)。
 export function resolveBaseMapLayerMetadata(
   data: { title?: LangResource; attr?: LangResource; lang?: string; defaultLang?: string },
   activeLang: string,

@@ -83,7 +83,7 @@
               </div>
             </div>
 
-            <!-- M5-T6: JPEG デコード上限（大きな地図画像が取り込めないときに引き上げる） -->
+            <!-- JPEG デコード上限（大きな地図画像が取り込めないときに引き上げる） -->
             <div class="row mb-3 align-items-center">
               <label for="jpegDecodeMaxMemoryMB" class="col-sm-3 col-form-label text-end">{{
                 t("settings.jpeg_decode_max_memory")
@@ -126,7 +126,7 @@
               </div>
             </div>
 
-            <!-- nov26-m7-t6 (#141): 起動時の更新の確認。既定はオン。オフでもメニューの「更新を確認…」は使える -->
+            <!-- 起動時の更新の確認。既定はオン。オフでもメニューの「更新を確認…」は使える -->
             <div class="row mb-3 align-items-center">
               <label
                 for="updateCheckEnabled"
@@ -178,7 +178,7 @@
           </form>
         </div>
 
-        <!-- Base Map Settings Tab (m6-t6: API キーの3段構成) -->
+        <!-- Base Map Settings Tab (API キーの3段構成) -->
         <div
           class="tab-pane fade"
           :class="{ 'show active': activeTab === 'basemap' }"
@@ -401,7 +401,7 @@
                 >
                   <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_mcp_remote") }}
                 </button>
-                <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md §2.1） -->
+                <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md） -->
                 <ContextHelp class="align-self-center" :text="t('settings.mcp_recommend_loopback')" :ariaLabel="t('editor_ui.help_about', { name: t('settings.mcp_client_registration') })" data-testid="settings-mcp-recommend-loopback" />
               </div>
               <div v-if="mcp.copied || mcp.copyFailed" class="col-sm-9 offset-sm-3 mt-2">
@@ -440,7 +440,7 @@ import type { McpStatus } from "../electron";
 // Links are shown as text: the editor window does not open external pages.
 const MCP_DOCS_URL = "https://github.com/code4history/MaplatEditor/blob/master/docs/mcp.md";
 
-// nov26-m6-t4（#26）: vue/multi-word-component-names。ファイル名・route は変えない
+// #26: vue/multi-word-component-names。ファイル名・route は変えない
 defineOptions({ name: "SettingsView" });
 
 const { t, i18next } = useTranslation();
@@ -523,7 +523,7 @@ onUnmounted(() => {
   if (copiedTimer) clearTimeout(copiedTimer);
 });
 
-// m6-t6: ベースマップタブの4キー（エディタ用×2 + 既定公開用×2）。onMounted/saveSettings で
+// ベースマップタブの4キー（エディタ用×2 + 既定公開用×2）。onMounted/saveSettings で
 // ループ処理するための一覧（R9 の既存パターンと同型）
 const BASEMAP_KEY_FIELDS = [
   "editorGoogleApiKey",
@@ -533,7 +533,7 @@ const BASEMAP_KEY_FIELDS = [
 ] as const;
 
 // State for form values
-// M5-T8: JPEG デコードのキャップは既定が「自動」。UI では**空文字**が自動を表す
+// JPEG デコードのキャップは既定が「自動」。UI では**空文字**が自動を表す
 // （`v-model.number` は空欄で '' を返すため、number 型では自動を表現できない。
 //  ∴ 文字列で持ち、保存時に null へ写像する）
 const state = reactive<{
@@ -581,8 +581,8 @@ const original = reactive<{
   defaultPublishMapboxToken: "",
 });
 
-// m6-t6 (§3.3): エディタ用キーと既定公開用キーが非空かつ同一値の場合の警告
-// （マイルストーン §2.2「エディタ用キーを公開用キーとして流用するトグルは作らない。
+// エディタ用キーと既定公開用キーが非空かつ同一値の場合の警告
+// （マイルストーン 「エディタ用キーを公開用キーとして流用するトグルは作らない。
 // 同一値の場合は警告を出す」）
 const sameKeyWarning = computed(() => ({
   google:
@@ -623,18 +623,18 @@ onMounted(async () => {
       state.saveFolder = saveFolder;
       original.saveFolder = saveFolder;
     }
-    // M5-T6/M5-T8: 値の正規化は main 側（SettingsService）に閉じているので、ここでは受け取るだけ。
+    // 値の正規化は main 側（SettingsService）に閉じているので、ここでは受け取るだけ。
     // null（自動）は空欄として表示する
     for (const key of ["jpegDecodeMaxMemoryMB", "jpegDecodeMaxResolutionMP"] as const) {
       const value = await window.settings.get(key);
       state[key] = capToField(value);
       original[key] = state[key];
     }
-    // nov26-m7-t6: 起動時の更新の確認（main 側の get が正規化する。未設定は true）
+    // 起動時の更新の確認（main 側の get が正規化する。未設定は true）
     const updateCheck = await window.settings.get("updateCheckEnabled");
     state.updateCheckEnabled = updateCheck !== false;
     original.updateCheckEnabled = state.updateCheckEnabled;
-    // m6-t6: ベースマップタブの4キー（未設定時は window.settings.get が undefined を返す）
+    // ベースマップタブの4キー（未設定時は window.settings.get が undefined を返す）
     for (const key of BASEMAP_KEY_FIELDS) {
       const value = await window.settings.get(key);
       state[key] = typeof value === "string" ? value : "";
@@ -670,7 +670,7 @@ const resetSettings = async () => {
 };
 
 const saveSettings = async () => {
-    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
     clearOperationNotice();
     // 保存フォルダは main が拒否することがある（ネットワーク上のフォルダなど）。
     // 途中まで保存しないよう最初に送り、失敗したら利用者に伝えて止める
@@ -685,7 +685,7 @@ const saveSettings = async () => {
         return;
     }
     await window.settings.set("lang", state.lang);
-    // M5-T8: 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
+    // 空欄は「自動」= null として送る（main 側の normalizeJpegDecodeCap が受ける）
     await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
     await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);
     await window.settings.set("updateCheckEnabled", state.updateCheckEnabled);
@@ -694,7 +694,7 @@ const saveSettings = async () => {
     }
 
     // Update original to match new saved state.
-    // M5-T6/M5-T8: 正規化後の値を読み直す（下限で丸められた場合・**機械安全枠の上限で
+    // 正規化後の値を読み直す（下限で丸められた場合・**機械安全枠の上限で
     // 切り下げられた場合**に画面と保存値がずれないように）
     original.lang = state.lang;
     original.saveFolder = state.saveFolder;
@@ -703,12 +703,12 @@ const saveSettings = async () => {
       state[key] = capToField(saved);
       original[key] = state[key];
     }
-    // nov26-m7-t6: jpeg の 2 キーと同じく、正規化後の値を読み直して state と original の両方へ入れる
+    // jpeg の 2 キーと同じく、正規化後の値を読み直して state と original の両方へ入れる
     // （明示の false だけが「切る」なので、保存値と画面を揃え、保存後に dirty を閉じる）
     const savedUpdateCheck = await window.settings.get("updateCheckEnabled");
     state.updateCheckEnabled = savedUpdateCheck !== false;
     original.updateCheckEnabled = state.updateCheckEnabled;
-    // m6-t6: ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
+    // ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
     for (const key of BASEMAP_KEY_FIELDS) {
       original[key] = state[key];
     }

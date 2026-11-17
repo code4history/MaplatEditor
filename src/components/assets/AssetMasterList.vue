@@ -15,7 +15,7 @@
         @compositionstart="emit('composition-start')"
         @compositionend="emit('composition-end')"
       >
-      <!-- nov26-editor-feat1 §4.7: チップ行は検索入力の直下 -->
+      <!-- recent-search-chips : チップ行は検索入力の直下 -->
       <RecentSearchChips
         :entries="recentSearches ?? []"
         :active-query="recentActiveQuery"
@@ -28,7 +28,7 @@
 
     <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="asset-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("assetlist.loading") }}</div>
-      <!-- M12-T11 (R3/C44): alert 直書きから DF section へ -->
+      <!-- alert 直書きから DF section へ -->
       <DiagnosticFeedback v-else-if="error" scope="section" :items="[{ key: 'assets-load', severity: 'danger', message: error }]" />
       <ResourceResultStatus v-else-if="items.length === 0 && newDrafts.length === 0" state="empty" :total="0" :loaded="0" />
       <template v-else>
@@ -76,7 +76,7 @@ const props = defineProps<{
   activeLang: string;
   draftUids: Set<string>;
   draftSummaries: AssetDraftSummary[];
-  // nov26-editor-feat1: 直近の検索条件（新しい順）と現在の検索語
+  // recent-search-chips: 直近の検索条件（新しい順）と現在の検索語
   recentSearches?: ReadonlyArray<{ q: string }>;
   recentActiveQuery?: string;
   recentError?: string | null;
@@ -87,7 +87,7 @@ const emit = defineEmits<{
   "commit:query": [value: string];
   "composition-start": [];
   "composition-end": [];
-  // nov26-editor-feat1: チップの適用・削除
+  // recent-search-chips: チップの適用・削除
   "apply-recent": [q: string];
   "remove-recent": [q: string];
   "loaded": [items: ImageAssetRow[]];
@@ -113,7 +113,7 @@ const adapter = createAssetListAdapter({
 });
 const vmOf = (asset: ImageAssetRow) => adapter.toViewModel(asset, props.activeLang);
 
-// M12-T10 v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+// v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
 // draft は hasDraft=true・badges で draft ラベルを表示。title は新規ドラフトのラベル。
 function draftViewModel(draft: AssetDraftSummary) {
   return {

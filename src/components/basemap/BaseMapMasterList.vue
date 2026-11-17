@@ -16,7 +16,7 @@
         @compositionstart="emit('composition-start')"
         @compositionend="emit('composition-end')"
       >
-      <!-- nov26-editor-feat1 §4.7: チップ行は検索入力の直下、範囲ボタン行の上 -->
+      <!-- recent-search-chips : チップ行は検索入力の直下、範囲ボタン行の上 -->
       <RecentSearchChips
         :entries="recentSearches ?? []"
         :active-query="recentActiveQuery"
@@ -44,7 +44,7 @@
 
     <div ref="scrollElement" class="resource-list__rows flex-grow-1 overflow-auto" data-testid="basemap-list-scroll" @scroll.passive="emit('scroll', scrollElement)">
       <div v-if="loading" class="text-muted text-center py-4">{{ t("basemap.loading") }}</div>
-      <!-- M12-T11 (R3/C43): alert 直書きから DF section へ -->
+      <!-- alert 直書きから DF section へ -->
       <DiagnosticFeedback v-else-if="error" scope="section" :items="[{ key: 'basemaps-load', severity: 'danger', message: error }]" />
       <template v-else>
         <div v-if="newDrafts.length">
@@ -136,7 +136,7 @@ const props = defineProps<{
   draftSummaries: AssetDraftSummary[];
   loading: boolean;
   error: string;
-  // nov26-editor-feat1: 直近の検索条件（新しい順）と現在の検索語
+  // recent-search-chips: 直近の検索条件（新しい順）と現在の検索語
   recentSearches?: ReadonlyArray<{ q: string }>;
   recentActiveQuery?: string;
   recentError?: string | null;
@@ -148,7 +148,7 @@ const emit = defineEmits<{
   "commit:query": [value: string];
   "composition-start": [];
   "composition-end": [];
-  // nov26-editor-feat1: チップの適用・削除
+  // recent-search-chips: チップの適用・削除
   "apply-recent": [q: string];
   "remove-recent": [q: string];
   "open-range-filter": [];
@@ -178,7 +178,7 @@ const adapter = createBaseMapListAdapter({
 });
 const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activeLang);
 
-// M12-T10 v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+// v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
 function draftViewModel(draft: AssetDraftSummary) {
   return {
     uid: draft.assetUid,
@@ -193,7 +193,7 @@ function draftViewModel(draft: AssetDraftSummary) {
   };
 }
 
-// 可視 trash を廃し、削除は ResourceActionMenu の `削除`（user のみ）から。builtin は actions 空で ⋮ 非表示（AC17）。
+// 可視 trash を廃し、削除は ResourceActionMenu の `削除`（user のみ）から。builtin は actions 空で ⋮ 非表示。
 function onRowAction(key: string, item: BaseMapCatalogItem): void {
   if (key === "delete") emit("delete", item);
   if (key === "duplicate") emit("duplicate", item);
@@ -205,5 +205,5 @@ defineExpose({ scrollElement });
 <style scoped>
 .base-map-master-list { min-width: 18rem; }
 .min-w-0 { min-width: 0; }
-/* M12-T10 v2.0: details 内の builtin row 群も .resource-list__rows クラスで gap 管理（scoped は廃止） */
+/* v2.0: details 内の builtin row 群も .resource-list__rows クラスで gap 管理（scoped は廃止） */
 </style>

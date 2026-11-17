@@ -3,7 +3,7 @@
 // 矩形(bbox)のみ扱う。非矩形の既存値はbboxに近似して表示する。
 // coverageLngLats(地図の存在範囲)は薄青、appCoverageLngLats(アプリ対象範囲)は薄緑で表示。
 // 描画はどちらの境界にもスナップし、確定値は存在範囲の内側に自動クロップされる
-// (アプリ対象範囲は目安であり、はみ出し可)(ADR-0004)。
+// (アプリ対象範囲は目安であり、はみ出し可)(存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まり)。
 import { onBeforeUnmount, onMounted, ref, watch, computed } from "vue";
 import { useTranslation } from "i18next-vue";
 import Map from "ol/Map";
@@ -65,7 +65,7 @@ const emit = defineEmits<{
 
 const { t } = useTranslation();
 
-// M12-T11 (R1/A22): モーダル冒頭のヘルプ p.small.text-muted は廃止し、
+// モーダル冒頭のヘルプ p.small.text-muted は廃止し、
 // タイトル横の ContextHelp (i) ボタン Popover へ文言を移す。動的切替ロジックは従来どおり
 const helpText = computed(() =>
   t(props.helpKey || (props.coverageLngLats || props.appCoverageLngLats ? "appedit.envelope_modal_help_with_coverage" : "appedit.envelope_modal_help")),
@@ -75,7 +75,7 @@ let map: Map | null = null;
 let draw: Draw | null = null;
 // onMounted の await の間に小窓が閉じられたら、閉じた後に Map を作らない
 let disposed = false;
-// §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
+// : 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
 const baseMapList = ref<OverlayBaseMapItem[]>([]);
 const currentBaseMapID = ref("osm");
 let baseMapSwitcher: BaseMapSwitcher | null = null;
@@ -95,7 +95,7 @@ const coordInvalid = ref<Record<CoordField, boolean>>({ west: false, south: fals
 const cropNotice = ref(false);
 
 const isGuide = ref(false);
-// §5-6: 4 色の線はいずれも縁取りを付ける（§4.2）。編集中の図形（赤の範囲）は白 1.5px の halo と
+// : 4 色の線はいずれも縁取りを付ける。編集中の図形（赤の範囲）は白 1.5px の halo と
 // 濃い灰の細線、参考の図形（絞り込み範囲（自動）・存在範囲・アプリ対象範囲）は白の halo だけ
 const boxStyle = haloLineStyles("#dc3545", 2, { fill: "rgba(220, 53, 69, 0.08)", dash: [6, 6] });
 
@@ -198,7 +198,7 @@ onMounted(async () => {
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
-    // §5-3: 小窓も MapEdit・POI と同じ部品の名前を使う
+    // : 小窓も MapEdit・POI と同じ部品の名前を使う
     controls: mapOverlayControlDefaults({
       zoomIn: t("mapedit.control_zoom_in"),
       zoomOut: t("mapedit.control_zoom_out"),
@@ -206,7 +206,7 @@ onMounted(async () => {
     }),
   });
 
-  // §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  // : ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
   baseMapSwitcher = createBaseMapSwitcher({
     tipLabel: t("mapedit.control_basemap"),
     labelOf: currentBaseMapLabel,
@@ -244,7 +244,7 @@ onMounted(async () => {
     source: vectorSource,
     type: "Circle",
     geometryFunction: createBox(),
-    // §5-7: 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
+    // : 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
     style: editSketchStyleFunction("#dc3545"),
   });
   draw.on("drawstart", () => {
@@ -293,7 +293,7 @@ onMounted(async () => {
   });
   map.addControl(geocoder);
 
-  // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+  // 地図の上に重ねる部品を 配置へ並べる（左上の一列・右下の帰属表示）
   layoutMapOverlayControls(mapElement.value, mapElement.value?.querySelector('.map-overlay-tools'), { searchAddress: t("mapedit.control_search_address") });
 
   // モーダル挿入直後はレイアウト確定前でOpenLayersがサイズ0を掴むことがあるため、
@@ -439,7 +439,7 @@ if (typeof window !== "undefined" && (window as any).isE2E) {
           <div ref="mapElement" class="envelope-map">
             <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
             <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
-            <!-- §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
+            <!-- : 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
                  名前は画面の他の場所の語にそろえる（赤は呼び出し元が渡す・橙は絞り込み範囲（自動）の札と同じ・
                  青は存在範囲・緑はアプリ対象範囲） -->
             <div class="map-overlay-legend" data-testid="envelope-map-legend">

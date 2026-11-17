@@ -31,7 +31,7 @@ export function createAppListAdapter(deps: AppListAdapterDeps): ResourceListAdap
     toViewModel(item): ResourceListItemViewModel {
       return {
         uid: item.uid,
-        slug: item.appID, // AC9: App に Slug（=appID）
+        slug: item.appID, // App に Slug（=appID）
         title: item.title || item.appID,
         thumbnailUrl: item.image,
         metadata: [],

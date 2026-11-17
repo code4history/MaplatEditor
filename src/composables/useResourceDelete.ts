@@ -1,4 +1,4 @@
-// M11-T10: 共通削除 flow composable（5資産種の一覧で共用）。
+// 共通削除 flow composable（5資産種の一覧で共用）。
 // 確認 dialog の状態・参照一覧の取得・削除実行・失敗診断を一元化する。
 import { reactive, ref } from "vue";
 

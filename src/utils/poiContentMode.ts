@@ -149,7 +149,7 @@ export function collectImageAssetUids(image: unknown): Set<string> {
 }
 
 // FeatureCollection の全 features の properties.html から Asset Reference UID を収集。
-// 走査対象は properties.html のみ（設計 §93、desc/address/url は走査しない）。
+// 走査対象は properties.html のみ（desc/address/url は走査しない）。
 export function collectAssetRefsInFc(fc: unknown): Set<string> {
   const uids = new Set<string>();
   if (!fc || typeof fc !== 'object' || Array.isArray(fc)) return uids;

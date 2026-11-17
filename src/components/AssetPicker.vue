@@ -1,5 +1,5 @@
 <template>
-  <!-- icon / image 参照の選択モーダル (Phase 6 Task 4、仕様 §7: picker は icon / image で共用)。
+  <!-- icon / image 参照の選択モーダル (Phase 6 Task 4、仕様 : picker は icon / image で共用)。
        emit する値は POI-139 の参照文法文字列 (iconset → `{setId}:{iconId}` / asset → uid /
        URL → 入力値そのまま)。呼び出し側が既存の確定経路 (onIconChange / image 行) に流す -->
   <div data-testid="asset-picker-dialog" v-if="visible" class="modal show d-block asset-picker" tabindex="-1" @click.self="onCancel">
@@ -78,7 +78,7 @@
             <div v-if="assets.loading.value" class="text-muted text-center py-3">
               {{ t("assetlist.loading") }}
             </div>
-            <!-- M12-T11 (R3/C41): alert 直書きから DF section へ -->
+            <!-- alert 直書きから DF section へ -->
             <DiagnosticFeedback v-else-if="assets.error.value" scope="section" :items="[{ key: 'assets-load', severity: 'danger', message: assets.error.value }]" />
             <ResourceResultStatus v-else-if="assets.items.value.length === 0" state="empty" :total="0" :loaded="0" />
             <div v-else class="d-flex flex-wrap gap-2 asset-grid">

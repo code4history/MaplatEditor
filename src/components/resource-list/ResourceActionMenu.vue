@@ -61,7 +61,7 @@ async function openAt(x: number, y: number): Promise<void> {
   document.addEventListener("click", onOutside, true);
   document.addEventListener("keydown", onGlobalKeydown, true);
   await nextTick();
-  // menu幅・高さを測定し、viewport境界内へclampする(Major 1修正)
+  // menu幅・高さを測定し、viewport境界内へclampする(修正)
   const menu = menuRef.value;
   if (menu) {
     const menuRect = menu.getBoundingClientRect();

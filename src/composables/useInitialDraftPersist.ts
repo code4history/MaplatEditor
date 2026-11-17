@@ -1,4 +1,4 @@
-// AC6 (M11-T7/§5.1 S3): 新規 asset の slug 予約成功時に初期 draft を即時保存し、
+// 新規 asset の slug 予約成功時に初期 draft を即時保存し、
 // reservation と draft_uid のGC保護リンケージを確立する。
 // 既存 draft lifecycle は debounce(2s) で遅延するが、予約成功時点で即時 flush することで
 // 予約が lease 失効後も GC (D4 draft保護) によって保持される。

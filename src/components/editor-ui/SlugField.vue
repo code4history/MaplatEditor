@@ -36,7 +36,7 @@ const props = withDefaults(defineProps<{
   draftUid?: string;
   originalSlug?: string;
   disabled?: boolean;
-  // M11-T10: 必須入力。空欄を field 診断(danger)で示す(サマリバナー廃止に伴う field 診断一元化)
+  // 必須入力。空欄を field 診断(danger)で示す(サマリバナー廃止に伴う field 診断一元化)
   required?: boolean;
   // 既存 E2E 互換の data-testid 透過(LangResourceInput の input-testid と同型)
   inputTestid?: string;
@@ -66,11 +66,11 @@ const reservation = useSlugReservation({
 
 const reservationState = ref<SlugFieldState | null>(null);
 // Counter-based pending tracking: reservationPendingCount > 0 iff any operation is in flight.
-// 旧 request の finally が新 request の pending を解除しない(Major-C)。
+// 旧 request の finally が新 request の pending を解除しない。
 const reservationPendingCount = ref(0);
 const state = computed<SlugFieldState>(() => {
   if (reservationPendingCount.value > 0) return 'idle';
-  // release失敗検出: reactive ref なので Vue computed が再評価される(Major-D)。
+  // release失敗検出: reactive ref なので Vue computed が再評価される。
   if (reservationState.value === null && availability.fieldState.value === 'available'
       && slugRef.value.trim() === props.originalSlug && reservation.hasFailedRelease()) {
     return 'check-failed';
@@ -95,7 +95,7 @@ watch([slugRef, () => props.originalSlug], async ([slug]) => {
 }, { flush: 'sync' });
 
 // Counter-based pending: increment on onAvailable start, decrement on finish.
-// 旧 request の finally が新 request の pending を解除しない(Major-C)。
+// 旧 request の finally が新 request の pending を解除しない。
 let onAvailableToken = 0;
 let lastEmittedState: SlugFieldState | null = null;
 watch(availability.fieldState, async (s) => {
@@ -155,7 +155,7 @@ async function confirmForSave(): Promise<boolean> {
   return result?.ok ?? false;
 }
 
-// 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する(D6改/AC15)。
+// 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する(D6改/)。
 // promote 消化済み・未予約時は no-op。
 async function release(): Promise<void> {
   await reservation.releaseIfHeld();

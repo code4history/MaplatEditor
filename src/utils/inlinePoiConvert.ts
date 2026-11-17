@@ -1,9 +1,9 @@
-// M3-T6: inline POI (pois 配列の非参照 object 要素) の GeoJSON 変換 (設計 §5.4)。
+// inline POI (pois 配列の非参照 object 要素) の GeoJSON 変換。
 // renderer 完結・document 不変更 (非破壊・可逆)。変換が触ってよいのは slugReservations と
 // assetDrafts.put のみで、pois 配列・Undo 履歴は一切変更しない (update:pois を発火しない)。
 // 正規化は既存共用純関数 (normalizePoiSourceCollection + validateFeatureCollection) の再利用のみ。
 //
-// 層構造注記 (設計 v1.0 レビュー Info-3 — 据え置き): composables/useResourceDuplicate からの
+// 層構造注記 (設計 v1.0 レビュー — 据え置き): composables/useResourceDuplicate からの
 // import は utils→composables の逆行だが、reserveSequencedSlug は window API を使う plain async
 // 関数で composable 性 (setup 依存・リアクティブ state) を持たず動作上の問題はない。
 // (a) 複製 wrapper と (b) 本変換が同一の tryReserve 実装を共有する骨格を優先する。
@@ -36,7 +36,7 @@ export function convertInlineEntries(input: unknown, lang: LangCode): InlineConv
   return { fc, issues, hasError: issues.some((issue) => issue.level === "error") };
 }
 
-// ドラフト title の決定 (設計 §5.4 手順4, POI-114 整合):
+// ドラフト title の決定 (手順4, POI-114 整合):
 // 生 FC 要素 = FC.name (非空時) → 無ければホストタイトル / 変換群 (配列) = ホストタイトル
 export function resolveConvertTitle(input: unknown, hostTitle: LangResource | undefined): LangResource {
   if (input && typeof input === "object" && !Array.isArray(input)) {
@@ -62,9 +62,9 @@ export type InlineConvertResult =
   | { ok: true; slug: string; uid: string }
   | { ok: false; reason: InlineConvertFailureReason };
 
-// 変換フロー本体 (設計 §5.4 処理列)。順序は複製フローと同じ「slug を先に確保してから成果物を作る」
-// 文法 (予約 → 検証。v1.0 レビュー Info-4 据え置き)。失敗系はすべて予約を解放し、document・
-// 既存ドラフトを変更しない (AC6-10)。
+// 変換フロー本体 (処理列)。順序は複製フローと同じ「slug を先に確保してから成果物を作る」
+// 文法 (予約 → 検証。v1.0 レビュー 据え置き)。失敗系はすべて予約を解放し、document・
+// 既存ドラフトを変更しない。
 export async function convertInlineEntriesToDraft(args: {
   /** 生 FC 要素そのもの、または変換群 (旧オブジェクト+生 Feature) を並べた配列 */
   input: unknown;

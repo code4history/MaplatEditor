@@ -15,7 +15,7 @@ import {
 } from "./editorLanguages";
 import { estimateContentMode } from "./poiContentMode";
 
-// POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
+// POI editor の default 言語 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
 // defaultLang 引数でこの既定を上書きできる。raw ペイン (PoiRawPane) の Apply 側正規化も
 // 同じ既定を共有するため export する。
@@ -32,12 +32,12 @@ export function resolvePoiSourceLanguage(
   return resolveEditorLanguage(candidate);
 }
 
-// ADR-0005 の LangResource を適用する feature property (POI-135)。viewer が translate() を
+// 多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり の LangResource を適用する feature property (POI-135)。viewer が translate() を
 // 通すフィールド。image / icon は LangResource ではないので対象外。
 const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 
 // 旧POIオブジェクト形式 (normalizeLegacyPoi の旧オブジェクト分岐) で properties から除外するキー。
-// 座標系5キーは geometry.coordinates へ、id は Feature.id へ移すため除外する (M3-T5)。
+// 座標系5キーは geometry.coordinates へ、id は Feature.id へ移すため除外する。
 const LEGACY_EXCLUDED_KEYS = new Set<string>([
   "lnglat",
   "lng",
@@ -167,7 +167,7 @@ function internalizeLangFields(
 }
 
 // props 内の LangResource フィールドを交換形へ collapse する (in-place)。
-// default 言語のみ→string / 複数言語→object / 空→フィールド削除 (ADR-0005)。
+// default 言語のみ→string / 複数言語→object / 空→フィールド削除 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
 function externalizeLangFields(
   props: Record<string, unknown>,
   defaultLang: string,
@@ -366,7 +366,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 
     if (hasContent(props)) anyContent = true;
 
-    // --- Content Mode 検証 (M11-T9) ---
+    // --- Content Mode 検証  ---
     const mode = props._maplatContentMode;
     if (mode === 'html') {
       // html mode で html が空 → warning
@@ -436,7 +436,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 // 旧POIオブジェクト形式 (glossary) → 内部形 Feature へ正規化。
 // coordinates: lnglat があればそのまま、無ければ [lng||longitude, lat||latitude]。
 // 座標キー(lnglat/lng/lat/longitude/latitude)と id 以外の全キーを properties へ透過する
-// (M3-T5: 旧 whitelist を撤廃し FC 経路と同形化。parity 正本 = MaplatCore normalizePoi)。
+// (旧 whitelist を撤廃し FC 経路と同形化。parity 正本 = MaplatCore normalizePoi)。
 // _maplat* プレフィックスは fromExportForm と同じ規律で剥がし、再採番に委ねる (identity spoofing 防止)。
 // display id / _maplatUid は採番しない (ensureDisplayIds/ensureFeatureUids の担当)。
 // ただし既に id を持つ旧オブジェクトはその id を維持する。
@@ -614,7 +614,7 @@ export function roundCoord(n: number): number {
 }
 
 // editor 内部形 → export/raw 表示形。_maplat* property を剥離し、FC.id=slug / FC.name=title 交換形
-// (ADR-0005 collapse)。roundCoordinates:true の時のみ座標を 7 桁丸め (POI-143, package export 経路限定)。
+// (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりのcollapse)。roundCoordinates:true の時のみ座標を 7 桁丸め (POI-143, package export 経路限定)。
 // raw ペイン表示は roundCoordinates:false で呼ぶこと (丸めた表示を Apply で書き戻すと Write Store
 // 内の座標が静かに劣化するため)。
 export function toExportForm(
@@ -650,9 +650,9 @@ export function toExportForm(
     };
   });
 
-  // layer metadata（icon/selectedIcon/hide/poiTemplate 等、§2.3）は FC.properties
-  // の直下へ書く（m18-t5 正本位置。viewer は FC.properties を cluster へ展開する）。
-  // FC.id（slug）/ FC.name（title）/ FC.lang は例外でトップレベルのまま（§5.4）。
+  // layer metadata（icon/selectedIcon/hide/poiTemplate 等）は FC.properties
+  // の直下へ書く（正本位置。viewer は FC.properties を cluster へ展開する）。
+  // FC.id（slug）/ FC.name（title）/ FC.lang は例外でトップレベルのまま。
   const out: Record<string, unknown> = {
     type: "FeatureCollection",
     id: slug,
@@ -723,7 +723,7 @@ export function fromExportForm(
       if (isInternalProp(key)) delete props[key];
     }
 
-    // 交換形 (string) / 内部形 (object) 双方を受容し内部形へ正規化 (ADR-0005, POI-135)。
+    // 交換形 (string) / 内部形 (object) 双方を受容し内部形へ正規化 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり , POI-135)。
     internalizeLangFields(props, defaultLang);
 
     const prev = id !== "" ? prevByDisplayId.get(id) : undefined;

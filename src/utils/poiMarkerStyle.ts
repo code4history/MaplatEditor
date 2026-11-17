@@ -54,7 +54,7 @@ export function resolveDisplayIcon(
 /**
  * E2E 検証用: icon ペア解決 + 表示 icon 決定 + source 帰属を1呼び出しで返す。
  * Playwright spec が Node 側で直接 import して使用する（window 公開なし・テストフック混入なし）。
- * source は properties.icon の有無で決定する（v1.4 Major-1 修正）。
+ * source は properties.icon の有無で決定する（v1.4 修正）。
  */
 export function resolveIconPairForTest(
   properties: Record<string, unknown> | undefined,

@@ -64,7 +64,7 @@ const helpAriaLabel = computed(() => {
   return name ? t("editor_ui.unavailable_reason", { name }) : t("editor_ui.unavailable_reason_unnamed");
 });
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
-// M12-T10 v2.0: .active → .selected rename（Bootstrap 競合回避）。
+// v2.0: .active → .selected rename（Bootstrap 競合回避）。
 // selector variant では added（selected=true）を青で表示（HM6）。disabled は追加不可。
 // 優先順位: selected（added）が最優先（追加済みかつ previewDisabled の場合、追加済みが意味を持つ）
 const rowClass = computed(() => {
@@ -84,6 +84,6 @@ function onContextMenu(event: MouseEvent): void {
 </script>
 
 <style scoped>
-/* M12-T10 v2.0: 行の見た目は resource-list.scss（global 正本）へ集約。scoped CSS は全廃（C1 対応） */
+/* v2.0: 行の見た目は resource-list.scss（global 正本）へ集約。scoped CSS は全廃（C1 対応） */
 .min-w-0 { min-width: 0; }
 </style>

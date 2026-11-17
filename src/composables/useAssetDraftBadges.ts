@@ -7,7 +7,7 @@ export function useAssetDraftBadges(kind: AssetDraftKind) {
   const draftSummaries = shallowRef<AssetDraftSummary[]>([]);
   // 新規(未保存)下書き。baseRevision===null が「保存済み行に紐づかない下書き」の共通判定
   const newDrafts = computed(() => draftSummaries.value.filter((draft) => draft.baseRevision === null));
-  // M11-T10 (人間検証R4): 「新規追加」は既存の新規下書きがあればそれを引き継ぐ(全一覧共通)
+  // 「新規追加」は既存の新規下書きがあればそれを引き継ぐ(全一覧共通)
   const latestNewDraft = computed(() => newDrafts.value.at(-1) ?? null);
 
   const refreshDrafts = async () => {
@@ -20,7 +20,7 @@ export function useAssetDraftBadges(kind: AssetDraftKind) {
 
   // 新規(未保存)下書きの削除（Map/App の grid 一覧で共用）。保存済み行は存在しないため
   // draft store のみ消すが、下書きが GC 保護していた slug 予約も解放する
-  // (M11-T10: 解放しないと lease 更新で -copy 採番がセッション中ずっと占有され続ける)。
+  // (解放しないと lease 更新で -copy 採番がセッション中ずっと占有され続ける)。
   const removeNewDraft = async (draft: AssetDraftSummary): Promise<void> => {
     const name = draft.label ?? draft.slug ?? i18next.t('editor_ui.draft_badge');
     const { response } = await (window as any).dialog.showMessageBox({

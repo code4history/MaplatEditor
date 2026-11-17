@@ -10,10 +10,10 @@ export type SlugAvailabilityState =
   | 'taken'
   | 'unavailable';
 
-// §7.1 の 6 値状態語彙 (M11-T7/D1)。SlugField はこの語彙で状態を表示する。
+// の 6 値状態語彙 (/D1)。SlugField はこの語彙で状態を表示する。
 // 内部の SlugAvailabilityState を写像する: taken→reserved-by-other(registry既存 or
 // 他者予約の双方を包含)、unavailable→check-failed、format不正→invalid-format。
-// 既存の 5 値 state は後方互換のため温存する(m11-t1 の state machine テスト等)。
+// 既存の 5 値 state は後方互換のため温存する(既存の変更の state machine テスト等)。
 export type SlugFieldState =
   | 'idle'
   | 'checking'
@@ -37,7 +37,7 @@ interface UseSlugAvailabilityOptions {
 }
 
 // slug 可用性(registry AND 予約合成)の単発照会。SlugField 外の候補探索(クローン時の
-// 空き slug 提案等)もこの sanctioned wrapper を経由する(AC17: 生 checkSlug を UI に散らさない)。
+// 空き slug 提案等)もこの sanctioned wrapper を経由する(生 checkSlug を UI に散らさない)。
 export const checkSlugAvailability = (input: SlugCheckInput): Promise<boolean> =>
   window.slugReservations.check(input).then((result) => result === 'available');
 

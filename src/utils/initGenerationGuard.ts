@@ -1,4 +1,4 @@
-// M12-T2: POI 未作成初期化の generation guard 完結（T10b 残課題）。
+// POI 未作成初期化の generation guard 完結（T10b 残課題）。
 // 世代 token（isCurrent）を非同期境界の前後で確認し、stale な初期化・import が
 // 新しい session を上書きするのを防ぐ。PoiEdit.vue の duplicateFrom 元消失経路と
 // importAutoRun が使う、UI/Vue 非依存の純粋関数群。

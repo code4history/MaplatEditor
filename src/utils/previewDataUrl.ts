@@ -4,7 +4,7 @@
  * なぜ `data:` か:
  *   CSP（`electron/utils/appScheme.ts` の RENDERER_CSP）の `img-src` は `data:` を許可済みだが
  *   `blob:` を許可していない。`URL.createObjectURL` の URL は `<img>` で表示できないため、
- *   CSP を書き換えずに済む `data:` URL を使う（設計書 §3.5 / §4.2）。
+ *   CSP を書き換えずに済む `data:` URL を使う。
  *
  * なぜ Blob + FileReader でなく直接 base64 か:
  *   変換は「バイト列 → data URL」の 1 手だけであり、Blob を挟むと (a) 20 MB のコピーが

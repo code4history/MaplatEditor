@@ -45,7 +45,7 @@
       </button>
     </div>
 
-    <!-- 参照 picker (仕様 §7)。選択値は既存の確定経路 (commit → update:modelValue) に流す
+    <!-- 参照 picker (仕様 )。選択値は既存の確定経路 (commit → update:modelValue) に流す
          = 呼び出し側で 1 commit (Undo 粒度不変) -->
     <AssetPicker
       mode="icon"
@@ -103,7 +103,7 @@ const clear = (): void => {
   commit("");
 };
 
-// --- 解釈表示 (Phase 6 Task 4、仕様 §7) ---
+// --- 解釈表示 (Phase 6 Task 4、仕様 ) ---
 // 入力バッファを parseIconRef で判別し、iconset は registry の previewUrl サムネ +
 // `setId:iconId` (未登録 setId は警告 badge — URL とはみなさない)、asset は imageAssets.get
 // で slug/title を解決表示 (未存在は警告)、URL は短縮表示 (CSS truncate) する。
@@ -184,7 +184,7 @@ const onPickerSelect = (value: string): void => {
   commit(value);
 };
 
-// picker 表示中かどうか (Phase 6 品質レビュー MAJOR-2): 呼び出し側 (PoiAttributeForm) が
+// picker 表示中かどうか (Phase 6 品質): 呼び出し側 (PoiAttributeForm) が
 // グローバルキー (undo/redo/Delete/menu:undo/redo) の抑止判定に集約する
 defineExpose({ pickerOpen: pickerVisible });
 </script>

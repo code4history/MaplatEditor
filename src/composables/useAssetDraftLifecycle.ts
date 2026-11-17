@@ -18,7 +18,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
   const core = createAssetDraftLifecycleCore({
     api: {
       put: (draft) => window.assetDrafts.put(draft),
-      // M12-T20 (§5.1): keepStaging opts を IPC までそのまま透過する
+      // keepStaging opts を IPC までそのまま透過する
       remove: (kind, assetUid, opts) => window.assetDrafts.remove(kind, assetUid, opts),
       flushSync: (draft) => window.assetDrafts.flushSync(draft),
     },
@@ -46,7 +46,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     configureCore(assetUid, revision);
     const draft = await window.assetDrafts.get(options.kind, assetUid) as AssetDraftEnvelope<T> | null;
     const decision = decideDraftRestore(draft, revision);
-    // M11-T10b（実装レビュー Minor）: get の await 中に遷移が起きた場合、古い session への
+    // （実装レビュー Minor）: get の await 中に遷移が起きた場合、古い session への
     // 復元適用・conflict 提示を shouldApply ガードで抑止する（省略時は従来どおり適用）
     const mayApply = opts?.shouldApply?.() ?? true;
     if (decision === 'auto-apply' && draft && mayApply) await applyDraft(draft);
@@ -67,7 +67,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     await applyDraft(draft);
   };
 
-  // nov26-m6-t1 (#117 E3): 明示破棄の後は、エディタの履歴が dirty のままでも forced に
+  // 明示破棄の後は、エディタの履歴が dirty のままでも forced に
   // dirty へ戻さない（破棄の後に slug の予約成功・hot exit 等の flush が来ると下書きを書き戻していた）。
   // 利用者が次に編集すれば watcher 経由の schedule(true) で破棄済みの印が解ける
   const forcePersist = () => !core.isDiscarded() && (options.shouldPersist?.() ?? false);
@@ -88,7 +88,7 @@ export function useAssetDraftLifecycle<T>(options: UseAssetDraftLifecycleOptions
     conflictDraft.value = null;
   };
 
-  // M11-T10b（実装レビュー Major）: 保存成功後に identity を保存済み行へ再構成する。
+  // （実装レビュー Major）: 保存成功後に identity を保存済み行へ再構成する。
   // open() と違い draft store の restore 判定を行わない（保存直後に古い下書きが残っていても
   // conflict dialog を出さない）。baseRevision を保存 revision へ進めることで、
   // 追加編集の下書きが「保存済み行の下書き」として扱われ、新規カード化・復元 conflict を防ぐ。

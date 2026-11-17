@@ -5,7 +5,7 @@ import { useTranslation } from 'i18next-vue';
 import SlugField from '../editor-ui/SlugField.vue';
 import EditorField from '../editor-ui/EditorField.vue';
 
-// m6-t8 §3.8: 既存 merc マスタが1件以上あるときのみ開く（0件は呼び出し側が黙って新規作成する）。
+// 既存 merc マスタが1件以上あるときのみ開く（0件は呼び出し側が黙って新規作成する）。
 // ExportKeyPromptModal.vue と同型の Vue モーダル（値をどこにも保存せず emit で親へ渡すのみ）。
 export interface MercExistingEntry {
   uid: string;
