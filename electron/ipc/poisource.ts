@@ -42,7 +42,7 @@ function toImportInput(input: unknown) {
   };
 }
 
-// POI ソース IPC (Phase 2 Task 3, ADR-0007)。channel prefix は poisource:* を維持しつつ
+// POI ソース IPC (Phase 2 Task 3, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
 export function registerPoisourceHandlers() {
   ipc.handle('poisource:list', (_, request) => poiSourceService.list(request));

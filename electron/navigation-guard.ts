@@ -1,4 +1,4 @@
-// oct26-m16-t2（セキュリティレビュー C の F-C1）: BrowserWindow の遷移ガード。
+// （セキュリティレビュー C の F-C1）: BrowserWindow の遷移ガード。
 //
 // main window は preload（IPC 88 チャネル）を持つ。main frame が外部ページへ遷移すると preload は遷移先にも
 // 読み込まれ、第三者のページが IPC を握る。プレビュー iframe 内の POI の `<a target="_top">` はユーザー操作の

@@ -1,4 +1,4 @@
-// M12-T1-HOTFIX-1: 一覧/selector 用の image URL 解決の共有層。
+// 一覧/selector 用の image URL 解決の共有層。
 // MapDataService（maplist.request）と AppDataService（applist.request）が持っていた
 // 画像解決ロジックを search layer 経路（search:maps/search:apps）へ共通化する。
 // 表示用 URL を返し、解決不可は null（呼び出し側は no_image fallback へ）。
@@ -11,17 +11,17 @@ import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resourceAssetFileUrl, isUnderFolder } from '../utils/resourceAssets';
 // #105: saveFolder 配下の表示用 URL は file:// から app://local へ移行する
 import { localFileUrl } from '../utils/appScheme';
-// m22-t1: merc ベースマップの実行時タイル URL 導出（I/O 不要の純関数）
+// merc ベースマップの実行時タイル URL 導出（I/O 不要の純関数）
 import { deriveMercBaseMapTileUrl } from '../utils/mercBaseMapTileUrl';
-// m19-t5: 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
+// 512px の所在は派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 
-// m1-t7 (Minor-3): tiles/{fileKey}/0/0/0.{jpg,jpeg,png} を saveFolder 配下に封じ込めたうえで
+// tiles/{fileKey}/0/0/0.{jpg,jpeg,png} を saveFolder 配下に封じ込めたうえで
 // file:// URL として解決する共通ヘルパ。
 //
 // この処理はもともと resolveMapListImage の tiles fallback と resolveMapTileByRef に
-// 同じものが2つ写しで存在し、前者にだけ追加された M12-T13 の封じ込めが後者へ伝播せず、
-// Cycle 1 包括セキュリティレビュー Minor-3 として顕在化した。挙動を似せて2箇所を直すのではなく
+// 同じものが2つ写しで存在し、前者にだけ追加された 既存の変更の封じ込めが後者へ伝播せず、
+// 以前の版の包括セキュリティとして顕在化した。挙動を似せて2箇所を直すのではなく
 // 単一実装へ畳んで、写しが再発しない形にしている。
 //
 // 封じ込めはディレクトリ（FS 読み取り前）と最終ファイルパスの二段で行う。前者は saveFolder 外の
@@ -50,7 +50,7 @@ export async function resolveTileZeroFileUrl(
 }
 
 // 地図一覧の画像: 正式サムネイル tmbs/{fileKey}.jpg → 無ければ tiles/{fileKey}/0/0/0.* fallback。
-// fileKey は uid 優先（ADR-0007。uid 欠落時は旧 slug パスへフォールバック）。
+// fileKey は uid 優先（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり。uid 欠落時は旧 slug パスへフォールバック）。
 // MapDataService.requestMaps の :58-79 と同一ロジックを共有化したもの（挙動不変）。
 export async function resolveMapListImage(doc: {
   uid?: string;
@@ -65,12 +65,12 @@ export async function resolveMapListImage(doc: {
   if (!fileKey) return null;
   const uiThumbnail = path.join(uiThumbnailFolder, `${fileKey}.jpg`);
   if (await fs.pathExists(uiThumbnail)) {
-    // sec-1 (M12-T13): fileKey が slug 由来で '..' を含む場合、path.join は正規化されて
+    // sec-1 : fileKey が slug 由来で '..' を含む場合、path.join は正規化されて
     // saveFolder 外を指しうる。返却前に saveFolder 配下であることを確認し、外なら null へ落とす。
     if (!isUnderFolder(uiThumbnail, saveFolder)) return null;
     return localFileUrl(uiThumbnail);
   }
-  // sec-1 (M12-T13) の tiles fallback 封じ込めは m1-t7 で共通ヘルパへ移した
+  // sec-1  の tiles fallback 封じ込めは 既存の変更で共通ヘルパへ移した
   return resolveTileZeroFileUrl(saveFolder, fileKey);
 }
 
@@ -89,11 +89,11 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
   }
   const sources = (Array.isArray(doc.sources) ? doc.sources : [])
     .map((raw: any) => normalizeAppSource(raw, doc.lang || 'ja'));
-  // startFromは新形=uid、旧保存形=slugのどちらもあり得る (ADR-0007)
+  // startFromは新形=uid、旧保存形=slugのどちらもあり得る (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   const startFromID = doc.startFrom || doc.start_from || sources.find((source: any) => source.startFrom)?.mapUid;
   const startSource = sources.find((source: any) => source.mapUid === startFromID || source.mapSlug === startFromID);
   if (startSource?.sourceType === 'maplat') {
-    // M12-T15 (R7): favicon 未設定のアプリは、startFrom の地図の 512px サムネイルを優先解決する
+    // favicon 未設定のアプリは、startFrom の地図の 512px サムネイルを優先解決する
     // （地図タイル fallback の前に 512px サムネイルを試す）
     const mapDoc = await SqliteDataService.findMapByRef(startSource.mapUid);
     if (mapDoc) {
@@ -106,7 +106,7 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
 }
 
 // startFrom 地図の 0/0/0 タイル解決。
-// m1-t7 (Minor-3): 旧実装はここで tiles パスを自前に組み立てており、M12-T13 が
+// 旧実装はここで tiles パスを自前に組み立てており、既存の変更が
 // resolveMapListImage 側へ入れた saveFolder 封じ込めが適用されていなかった。
 // 同一操作である resolveTileZeroFileUrl へ委譲して封じ込めを一元化する。
 // あわせて、抽出元として AppDataService 側の同等関数を指していた旧コメントを外した
@@ -117,11 +117,11 @@ async function resolveMapTileByRef(mapRef: string): Promise<string | null> {
   return resolveTileZeroFileUrl(SettingsService.get('saveFolder'), mapDoc.uid);
 }
 
-// M12-T15 (R6): 地図一覧の高精細サムネイル解決。
+// 地図一覧の高精細サムネイル解決。
 // 512px（thumb512PathFor が導く唯一のパス。あれば）→ resolveMapListImage（52px → tile fallback）の順で解決する。
 // 512px は MapList grid card（200px 表示）の高精細化に使う。
-// m19-t5: 旧形式（jpg/png）を探し直す fallback は持たない。既存データは起動時 migration が
-// 正規形へ移す（sp-0006: 読み込み側に二重分岐を作らない）。
+// 旧形式（jpg/png）を探し直す fallback は持たない。既存データは起動時 migration が
+// 正規形へ移す（読み込み側に二重分岐を作らない）。
 export async function resolveMapListImage512(doc: {
   uid?: string;
   mapID?: string;
@@ -134,7 +134,7 @@ export async function resolveMapListImage512(doc: {
   if (rel512) {
     const thumb512 = path.join(saveFolder, rel512);
     if (await fs.pathExists(thumb512)) {
-      // M12-T13 と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
+      // 既存の変更と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
       if (!isUnderFolder(thumb512, saveFolder)) return null;
       return localFileUrl(thumb512);
     }
@@ -154,7 +154,7 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
     thumbnailUrl = resourceAssetFileUrl(thumbnail);
   } else if (thumbnail) {
     const thumbPath = path.resolve(path.join(saveFolder, thumbnail));
-    // sec-2 (M12-T13): 旧実装は startsWith(path.resolve(saveFolder)) だったが末尾 path.sep が無く、
+    // sec-2 : 旧実装は startsWith(path.resolve(saveFolder)) だったが末尾 path.sep が無く、
     // 兄弟ディレクトリ（{saveFolder}-x）が prefix 一致で通過していた。isUnderFolder で厳密化。
     if (isUnderFolder(thumbPath, saveFolder) && fs.existsSync(thumbPath)) {
       thumbnailUrl = localFileUrl(thumbPath);
@@ -163,7 +163,7 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
   if (!thumbnailUrl) {
     const mapID = item.mapID || item.slug;
     const legacyPath = path.join(saveFolder, 'tmbs', `${mapID}_menu.jpg`);
-    // sec-2 (M12-T13): legacyPath も mapID に '..' が含まれれば脱出しうるため、同じく isUnderFolder で封じ込め（多層化）。
+    // sec-2 : legacyPath も mapID に '..' が含まれれば脱出しうるため、同じく isUnderFolder で封じ込め（多層化）。
     if (isUnderFolder(legacyPath, saveFolder) && fs.existsSync(legacyPath)) {
       thumbnailUrl = localFileUrl(legacyPath);
     }
@@ -171,16 +171,16 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
   return thumbnailUrl;
 }
 
-// m22-t1: merc ベースマップの実行時専用タイル URL（url_）を解決する。
+// merc ベースマップの実行時専用タイル URL（url_）を解決する。
 // resolveBaseMapListImage と同じ形（item を受け、saveFolder を SettingsService から読み、
 // 実行時専用の値を返す）であり、3つの IPC ハンドラ
 // （mapedit:get-base-map-visibility / basemaps:list / search:baseMaps）が本関数を共有する。
 // 挙動を似せるのではなく同一実装へ寄せる（恒久指示）。
 //
 // 引数型は resolveBaseMapListImage（{ mapID?, slug?, data? }）を流用しない。
-// 本関数は uid（ADR-0007 の正準キー。merc の実体ディレクトリ名）を必要とする。
+// 本関数は uid（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの正準キー。merc の実体ディレクトリ名）を必要とする。
 // 解決できない場合は undefined を返す。呼び出し側は url_ キーごと省くこと
-// （空文字を立てると mapSourceFactory の誤補完へ黙って戻る。設計書 §3.2 / §3.3 (3)）。
+// （空文字を立てると mapSourceFactory の誤補完へ黙って戻る。）。
 export function resolveBaseMapRuntimeTileUrl(item: { uid?: string; data?: any }): string | undefined {
   const saveFolder = SettingsService.get('saveFolder');
   return deriveMercBaseMapTileUrl(item?.data, item?.uid, saveFolder);

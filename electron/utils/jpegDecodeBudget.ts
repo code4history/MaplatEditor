@@ -1,7 +1,7 @@
 /**
  * jpegDecodeBudget.ts
  *
- * M5-T6: JPEG の SOF ヘッダから、jpeg-js がデコード時に要求する**会計量**を予測する。
+ * JPEG の SOF ヘッダから、jpeg-js がデコード時に要求する**会計量**を予測する。
  *
  * なぜ必要か:
  *   jpeg-js は上限を超えると `maxMemoryUsageInMB limit exceeded by at least N MB` を投げるが、
@@ -10,28 +10,28 @@
  *   落ちる。∴ エラー由来の数値を推奨値にすると、利用者は数分かかるデコードを何度も繰り返す。
  *   ヘッダから決定論的に総量を出せば、一度で通る値を提示でき、デコード前に判定もできる。
  *
- * 会計モデル（設計 §3.8。実画像の計装で検証済み）:
+ * 会計モデル（実画像の計装で検証済み）:
  *   必要バイト数 = Σ_i (5 × px_i) + w × h × (N + 4)
  *     px_i = w × h × (h_i · v_i) / (h_max · v_max)   ← 成分 i の実サンプル数
  *     N    = 成分数
  *   実効値: 4:4:4 = 22 B/px、4:2:2 = 17 B/px、4:2:0 = 14.5 B/px
  *   検証: 25552×18400 / 4:4:4 → 9864.3 MB（計装が示した最終累計と完全一致）
  *
- * 単位（取り違え注意・設計 §3.8）:
+ * 単位（取り違え注意）:
  *   MB = 2^20 バイト（jpeg-js の会計と同じ）
  *   MP = 1e6 ピクセルの**十進**（jpeg-js の maxResolutionInMP と同じ意味論）
  *
  * 依存: 無し。electron / electron-store を参照しない（素の Node から使える）。
  */
 
-/** 成分あたりの中間バッファ係数（§3.8 の式の 5） */
+/** 成分あたりの中間バッファ係数（式の 5） */
 const BYTES_PER_SAMPLE_PER_COMPONENT = 5;
-/** 出力側の係数（RGBA 4 + getData 相当。§3.8 の式の N + 4 のうち 4） */
+/** 出力側の係数（RGBA 4 + getData 相当。式の N + 4 のうち 4） */
 const OUTPUT_BYTES_PER_PIXEL_BASE = 4;
-/** MCU 端数の上振れを吸収するマージン。**メモリ側にだけ乗せる**（§5.3 の表） */
+/** MCU 端数の上振れを吸収するマージン。**メモリ側にだけ乗せる**（表） */
 const MEMORY_MARGIN_RATIO = 1.03;
 /**
- * M5-T8: 係数ブロック1個（`Int32Array(64)`）が要求する **V8 ヒープ**のバイト数。
+ * 係数ブロック1個（`Int32Array(64)`）が要求する **V8 ヒープ**のバイト数。
  *
  * jpeg-js は成分ブロックを `Int32Array(64)` の **JS オブジェクトとして** 数百万個確保する
  * （`decoder.js:595-613`）。`maxMemoryUsageInMB` の会計はバッキングストアの 256 B しか
@@ -39,7 +39,7 @@ const MEMORY_MARGIN_RATIO = 1.03;
  * ∴ 会計ガードを通過しても V8 が先に尽き、**catch できないプロセス強制終了**になる領域が
  * 存在する。それを事前に判定するための係数。
  *
- * 実測（実 Electron main / Electron 39.8.10 / arm64。m5-t8 設計 §3.1(a)）:
+ * 実測（実 Electron main。Electron 39.8.10。arm64）:
  *   20 MP → 122.4 B/block ・ 50 MP → 119.6 ・ 110 MP → 118.6
  * 安全側へ 120 を採る。
  */
@@ -61,16 +61,16 @@ export interface JpegDecodeBudget {
     /**
      * 設定を勧める値。ceil(megapixels)。**マージンを乗せない** —
      * 解像度ガードは SOF の実寸（scanLines × samplesPerLine）を直接比較しており
-     * MCU 切り上げの影響を受けないため、不確かさが無い（設計 §5.3）。
+     * MCU 切り上げの影響を受けないため、不確かさが無い。
      */
     recommendedResolutionMP: number;
     /**
-     * M5-T8: jpeg-js が確保する係数ブロックの総数。`decoder.js:593-601` と**同じ式**で
+     * jpeg-js が確保する係数ブロックの総数。`decoder.js:593-601` と**同じ式**で
      * 算出する（近似ではない）。診断と回帰テストのために露出する。
      */
     decoderBlocks: number;
     /**
-     * M5-T8: 上記ブロックが要求する **V8 ヒープ量（MiB = 2^20 バイト・切り上げ）**。
+     * 上記ブロックが要求する **V8 ヒープ量（MiB = 2^20 バイト・切り上げ）**。
      * `requiredMemoryMB`（jpeg-js の会計・MB = 2^20）とは**別の量**であり、
      * 会計に含まれない。超過は例外ではなく**アプリの強制終了**として現れる。
      */
@@ -189,7 +189,7 @@ export function estimateJpegDecodeBudget(buffer: Buffer): JpegDecodeBudget | nul
     const requiredMemoryMB = Math.ceil((componentBytes + outputBytes) / 1024 / 1024);
     const megapixels = pixels / 1e6;
 
-    // M5-T8: 係数ブロック数は jpeg-js の prepareComponents（decoder.js:593-601）と同じ式で出す。
+    // 係数ブロック数は jpeg-js の prepareComponents（decoder.js:593-601）と同じ式で出す。
     // MCU 単位への切り上げが2段（画素→MCU、MCU→成分ブロック）入るため、
     // 「画素数 ÷ 64」の近似では端数が合わない。
     const mcusPerLine = Math.ceil(width / 8 / maxHorizontal);

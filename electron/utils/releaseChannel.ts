@@ -1,8 +1,8 @@
-// m19-t4a (§6 / §7.3): 配布物の版とパッケージ状態から「RC 版以降」を判定する純関数群。
+// 配布物の版とパッケージ状態から「RC 版以降」を判定する純関数群。
 //
 // electron を import しない（smoke から node --experimental-strip-types で直接 import
 // できることが前提。既存前例: electron/services/slugReservationKind.ts を
-// scripts/m11-t7-slug-reservation-smoke.mjs が直接 import している）。
+// scripts/slug-reservation-smoke.mjs が直接 import している）。
 //
 // 「RC 版以降」は配布物の版を指す。開発実行（isPackaged=false）は常に開発メニューを出す
 // （reload / toggleDevTools のアクセラレータを失うと開発体験を損なうため。設計書 H-1）。
@@ -21,7 +21,7 @@ function prereleaseIdentifier(version: string): string | null {
  *     "0.7.0" -> false / "1.0.0-dev.3" -> false / "1.0.0-alpha.1" -> false / "1.0.0-beta.2" -> false
  *
  * 0.x 系（メジャー未達）は SemVer 上プレリリース識別子を持たなくても「RC 版以降」ではない
- * （"0.7.0" は正式リリースの体裁だが 1.0.0 未満のため除外する。§6 の契約表の唯一の非自明ケース）。
+ * （"0.7.0" は正式リリースの体裁だが 1.0.0 未満のため除外する。契約表の唯一の非自明ケース）。
  */
 export function isRcOrLater(version: string): boolean {
   const major = Number.parseInt(version, 10);

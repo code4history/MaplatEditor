@@ -15,8 +15,8 @@ export function registerAppAssetHandlers() {
     return await runGuarded('appassets:upload-pwa-icon', () => AppAssetService.uploadPwaIcon(win, appID));
   });
 
-  // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（512px/52px 独立 + 512px→52px 流用）
-  // m19-t2: ext を透過（省略時は 'jpg' = 地図の既定）。チャネル名は変えない
+  // Maplat地図サムネイルの置換アップロード（512px/52px 独立 + 512px→52px 流用）
+  // ext を透過（省略時は 'jpg' = 地図の既定）。チャネル名は変えない
   // issue #192: copy512From を透過（52px 単独置換で 512px を引き継ぐ元。省略時は従来どおり）
   ipc.handle(
     'appassets:replace-map-thumbnail',

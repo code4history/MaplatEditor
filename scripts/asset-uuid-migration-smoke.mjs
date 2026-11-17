@@ -63,7 +63,7 @@ const sqliteSrc = await readFile(sqlitePath, 'utf8');
   assert.ok(callMatch.index > iOriginals, 'F13/R3-MIN-1: 本移行は原本の移行（runColdBoot）の後');
   const before = body.slice(0, callMatch.index).split('\n').slice(-3).join('\n');
   assert.match(before, /try \{/, 'F13: 本移行の呼び出しは try/catch の中');
-  assert.match(body, /nov26-m6-t5 §4\.2『m19-t7 との関係』/, 'F13: 取込の中間段ではないことの注記がある');
+  assert.match(body, /本段は 0\.7\.0 の取込行を 1\.0\.0 の形へ直す段ではない（取込の中間段ではない）/, 'F13: 取込の中間段ではないことの注記がある');
   assert.equal(/this\.runAssetUuidNames/.test(body), false, 'F13: this. のメソッドにしない');
   console.log('ok: F13 呼び順（取込 → 原本 → 本移行）・try/catch・印の定数は行頭 const（T5-R2-MIN-1）');
 }

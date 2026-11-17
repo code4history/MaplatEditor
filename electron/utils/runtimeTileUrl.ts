@@ -1,6 +1,6 @@
-// ランタイム専用タイルURL（url_）の導出（m5-t3）。
+// ランタイム専用タイルURL（url_）の導出。
 //
-// なぜ切り出したか（設計書 §2.1 / §3.1）:
+// なぜ切り出したか:
 //   同じ導出が MapEditService.normalizeRequestData と DataUploadService.extractZip の2箇所にあり、
 //   互いに異なる挙動をしていた。DataUploadService 側は
 //     - json.url を完全に無視する（利用者が指定した交換形のタイルURLを踏み倒す）
@@ -14,7 +14,7 @@
 // 何を含み、何を含まないか:
 //   含む   = url_ の決定そのもの（json.url 優先 → 内部タイルからの組み立て）
 //   含まない = whReady ガードと store2HistMap の呼び出し。これらは呼び出し側の関心事であり、
-//              混ぜると extractZip の { mapData, tins } 契約を意図せず変えてしまう（設計書 §2.6）
+//              混ぜると extractZip の { mapData, tins } 契約を意図せず変えてしまう
 import path from 'node:path';
 import fs from 'fs-extra';
 // #105: ランタイムタイル URL は file:// から app://local へ移行する
@@ -34,7 +34,7 @@ export async function deriveRuntimeTileUrl(
   json: { url?: string } | null | undefined,
   thumbFolder: string,
 ): Promise<string | undefined> {
-  // MIN-2 是正: 交換形 url に旧 file:// が残っている既存地図は、webSecurity:true 下で表示不可に
+  // 是正: 交換形 url に旧 file:// が残っている既存地図は、webSecurity:true 下で表示不可に
   // なるため、file:// のタイル URL テンプレートを app://local へ補正して返す（http/https や
   // 認識できない独自形式は migrateLegacyFileUrl がそのまま返す）。
   if (json?.url) return migrateLegacyFileUrl(json.url);

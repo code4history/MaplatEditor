@@ -11,17 +11,17 @@ interface AppSettings {
   saveFolder: string;
   lastDialogFolders?: RememberedDialogFolders;
   /**
-   * M5-T8: JPEG デコードの会計メモリ**キャップ**（MB = 2^20 バイト）。`null` = 自動。
-   * M5-T6 では「デコーダへそのまま渡す運用値」だったが、m5-t8 で画像ごとの自動決定へ移り、
+   * JPEG デコードの会計メモリ**キャップ**（MB = 2^20 バイト）。`null` = 自動。
+   * 既存の変更では「デコーダへそのまま渡す運用値」だったが、既存の変更で画像ごとの自動決定へ移り、
    * この設定は「自動決定値がこれを超えたら弾く」上限の意味になった。
    */
   jpegDecodeMaxMemoryMB: number | null;
-  /** M5-T8: JPEG デコードの解像度**キャップ**（MP = 1e6 ピクセルの十進）。`null` = 自動 */
+  /** JPEG デコードの解像度**キャップ**（MP = 1e6 ピクセルの十進）。`null` = 自動 */
   jpegDecodeMaxResolutionMP: number | null;
-  /** nov26-m7-t6: 起動時に更新を確認する（既定オン）。オフでもメニューの「更新を確認…」は使える */
+  /** 起動時に更新を確認する（既定オン）。オフでもメニューの「更新を確認…」は使える */
   updateCheckEnabled: boolean;
   /**
-   * nov26-editor-feat1: 一覧トップの直近の検索条件（`{ [kind]: { q, at }[] }`）。
+   * recent-search-chips: 一覧トップの直近の検索条件（`{ [kind]: { q, at }[] }`）。
    * **型のためだけに足す**（`[key: string]: any` があるため実行時の追加作業は無い）。
    * 正規化は renderer 側の 1 か所（src/utils/recentSearches.ts）で行い、main は値を持ち運ぶだけ。
    */
@@ -30,11 +30,11 @@ interface AppSettings {
 }
 
 /**
- * M5-T8: JPEG デコードキャップの下限。
+ * JPEG デコードキャップの下限。
  *
- * 既定は**「自動」（`null`）**である。M5-T6 の既定 8192 / 800 は撤去した — 実測トリガの
+ * 既定は**「自動」（`null`）**である。既存の変更の既定 8192 / 800 は撤去した — 実測トリガの
  * 画像（470 MP・会計 9865 MB）が 8192 では通らず、利用者に設定を触らせる前提自体が
- * 誤りだったためである。いまは画像ごとにヘッダから必要量を導出して渡す（設計 §5.3）。
+ * 誤りだったためである。いまは画像ごとにヘッダから必要量を導出して渡す。
  *
  * 下限は jpeg-js の既定値。これを下回るキャップは防御を弱めるだけなので受け付けない
  * （ガードの出自は decompression bomb 対策 CVE-2020-8175）。
@@ -42,7 +42,7 @@ interface AppSettings {
  * **上限は機械安全枠（`resolveDecodeSafety()`）である**（人間指示 2026-08-03:
  * 「自動かつ、入れさせる場合も上限値を設けてください」）。これを超える値を許すと、
  * jpeg-js の会計ガードは通るのに V8 ヒープが尽きて**アプリが強制終了する**帯
- * （設計 §3.6）へ利用者が自分で足を踏み入れられてしまう。
+ * へ利用者が自分で足を踏み入れられてしまう。
  */
 const JPEG_DECODE_MAX_MEMORY_MB_MIN = 512;
 const JPEG_DECODE_MAX_RESOLUTION_MP_MIN = 100;
@@ -79,12 +79,12 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 
 // lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し
 // (非対応言語は en へフォールバック)、その結果を設定として永続化する。
-// 一方 M5-T6 の JPEG デコード上限は「初回から効いている値」であるべきなので既定を持たせる
+// 一方 既存の変更の JPEG デコード上限は「初回から効いている値」であるべきなので既定を持たせる
 // (lang の設計意図とは別種)
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
   lastDialogFolders: {},
-  // M5-T8: 既定は「自動」。利用者が数値を入れたときだけキャップとして働く
+  // 既定は「自動」。利用者が数値を入れたときだけキャップとして働く
   jpegDecodeMaxMemoryMB: null,
   jpegDecodeMaxResolutionMP: null,
   updateCheckEnabled: true,
@@ -189,11 +189,11 @@ class SettingsService extends EventEmitter {
   }
 
   /**
-   * M5-T8: JPEG デコードの**キャップ**。**設定値の読み出し口はここ1つだけ**にする。
+   * JPEG デコードの**キャップ**。**設定値の読み出し口はここ1つだけ**にする。
    * 呼び出し側が `get('jpegDecodeMaxMemoryMB')` を直接読むと正規化が抜けるため作らない。
    *
    * `null` は**自動**（キャップなし）を意味する。運用値そのものではない点に注意
-   * （M5-T6 の `getJpegDecodeLimits` は運用値を返していた。**意味が変わったので改名した** —
+   * （既存の変更の `getJpegDecodeLimits` は運用値を返していた。**意味が変わったので改名した** —
    * 同名のまま意味だけ変えると、旧義で読む人を誤らせる）。
    */
   public getJpegDecodeCaps(): { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null } {
@@ -214,13 +214,13 @@ class SettingsService extends EventEmitter {
 
   public set(key: string, value: any): void {
     const oldValue = this.store.get(key);
-    // M5-T8: 書き込み側でも同じ正規化を通し、UI から不正値・過大値が保存されること自体を防ぐ
+    // 書き込み側でも同じ正規化を通し、UI から不正値・過大値が保存されること自体を防ぐ
     if (key === 'jpegDecodeMaxMemoryMB') {
       value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_MEMORY_MB_MIN, resolveDecodeSafety().maxMemoryMB);
     } else if (key === 'jpegDecodeMaxResolutionMP') {
       value = normalizeJpegDecodeCap(value, JPEG_DECODE_MAX_RESOLUTION_MP_MIN, resolveDecodeSafety().maxResolutionMP);
     } else if (key === 'updateCheckEnabled') {
-      // nov26-m7-t6: 明示の false（と文字列の 'false'）だけを「切る」に正規化する
+      // 明示の false（と文字列の 'false'）だけを「切る」に正規化する
       value = normalizeUpdateCheckEnabled(value);
     }
     this.store.set(key, value);
@@ -252,7 +252,7 @@ class SettingsService extends EventEmitter {
     return this.saveFolderGate.consume(value);
   }
 
-  // ベースマップ系API (ADR-0007): 引数はuid正準。
+  // ベースマップ系API (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): 引数はuid正準。
   // 参照引数(mapRef/baseMapRef)はUUID形状=uid優先・それ以外slugフォールバックで解決される
 
   public async getTmsListOfMapID(mapRef: string): Promise<any[]> {
@@ -270,7 +270,7 @@ class SettingsService extends EventEmitter {
     await SqliteDataService.setBaseMapVisibilityForMapID(mapRef, baseMapRef, enabled);
   }
 
-  // m1-t4 (HR-6): ベースマップ位置合わせのシフト値（編集環境ストア）。visibility と同じ passthrough
+  // ベースマップ位置合わせのシフト値（編集環境ストア）。visibility と同じ passthrough
   public async getBaseMapShiftsOfMapID(mapRef: string): Promise<any[]> {
     const { default: SqliteDataService } = await import('./SqliteDataService');
     return SqliteDataService.getBaseMapShiftsOfMapID(mapRef);
@@ -289,7 +289,7 @@ class SettingsService extends EventEmitter {
   public async saveUserBaseMap(
     payload: { uid?: string; slug: string; tms: any; expectedRevision?: number },
   ): Promise<
-    // m19-t2: thumbnail は永続化された実効値（新規作成では uid 名へ付け替わる）
+    // thumbnail は永続化された実効値（新規作成では uid 名へ付け替わる）
     | { result: 'Success'; uid: string; revision: number; thumbnail?: string }
     | { result: 'Exist' }
     | { result: 'Error'; code: 'not-found' | 'invalid-request' | 'internal'; message?: string }
@@ -305,7 +305,7 @@ class SettingsService extends EventEmitter {
       }
       const message = error instanceof Error ? error.message : String(error);
       if (message.startsWith('Slug already in use')) return { result: 'Exist' };
-      // slug 予約 promote conflict(M11-T7/AC4)も duplicate として operation 診断へ写像する
+      // slug 予約 promote conflictも duplicate として operation 診断へ写像する
       if ((error as { kind?: string })?.kind === 'slug-reservation-conflict') return { result: 'Exist' };
       if (message === 'slug is required') return { result: 'Error', code: 'invalid-request', message };
       if (message.startsWith('Unknown user base map:')) return { result: 'Error', code: 'not-found', message };

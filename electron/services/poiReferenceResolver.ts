@@ -1,10 +1,10 @@
-// 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層 (Phase 7, 43 §2.4/§7/§8)。
+// 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層 (Phase 7, 43 )。
 // document.pois / map data_json の pois 配列内の { poiUid, cachedTitle?, icon?, selectedIcon?, title?, hide? } 要素を
 // PoiSourceService.exportForm の export 形 FeatureCollection へ置換する。
 // 生要素 (URL 文字列 / FC 埋め込み) は無加工で透過し (座標も丸めない)、
 // 見つからない/読めない poiUid は要素を落として 'appedit.warn_missing_poi_source' を1回だけ載せる。
 // 呼び込み点は 5 箇所: AppPreviewService の app JSON / map JSON、AppExportService の app JSON / map JSON、
-// mapDownloadZip.ts の composeDownloadMapJson (M13-T1: mapedit.ts から移設。旧 mapedit:download の
+// mapDownloadZip.ts の composeDownloadMapJson (mapedit.ts から移設。旧 mapedit:download の
 // composeDownloadMapJson を指していた記述を実体へ追随)。
 // warnings は静的 i18n キー (AppEdit 側の t(key) 表示と互換、パラメタ補間なし)。
 //
@@ -103,7 +103,7 @@ async function resolveIconValue(value: unknown, names: PackageImageNames): Promi
   if (ref.kind === 'url') return null;
   if (ref.kind === 'iconset') {
     const set = listIconSets().find((entry) => entry.setId === ref.setId);
-    // 未登録 setId / 未知 iconId は URL とみなさず unresolved (仕様 §7)
+    // 未登録 setId / 未知 iconId は URL とみなさず unresolved (仕様 )
     if (!set || !set.iconIds.includes(ref.iconId)) return { kind: 'unresolved' };
     const relPath = set.previewUrl(ref.iconId);
     const src = iconSetFilePath(relPath);
@@ -195,7 +195,7 @@ async function resolveIconRefsInFc(entry: unknown, sink: IconResolutionSink): Pr
 
   let out: Record<string, unknown> | null = await resolveIconProps(fc, sink); // FC トップレベル（過去形式・維持）
 
-  // m18-t5: FC.properties（layer metadata の正本位置）の icon 参照解決
+  // FC.properties（layer metadata の正本位置）の icon 参照解決
   const existingProps = fc.properties;
   if (existingProps && typeof existingProps === 'object' && !Array.isArray(existingProps)) {
     const changedProps = await resolveIconProps(existingProps as Record<string, unknown>, sink);
@@ -243,7 +243,7 @@ export async function resolvePoiFeatureCollection(
 
 // {poiUid} 参照要素なら uid を返す。poiUid 以外のキー (cachedTitle 等) は解決時に無視する。
 // uid は UUID 形状 (StorageAdapter.UUID_PATTERN と同形、大小文字非区別) のみ参照として扱う
-// (M4)。UUID 形でない poiUid は将来拡張の手書き形かもしれないため生要素として透過し、
+//。UUID 形でない poiUid は将来拡張の手書き形かもしれないため生要素として透過し、
 // missing 警告の対象にもしない (安全側)。この判定は SqliteDataService.findPoiSourceReferences
 // の走査対象 (UUID のみ) と対称 — 非 UUID 値はそもそも逆参照検索にも引っかからないため。
 function poiUidOf(entry: unknown): string | null {
@@ -271,9 +271,9 @@ export function hasSharedPoiUid(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
-// 参照要素の icon/selectedIcon/hide 上書き (Phase 8, POI-112 最小形 + m18-t5 hide) を解決後 FC の
+// 参照要素の icon/selectedIcon/hide 上書き (Phase 8, POI-112 最小形 + hide) を解決後 FC の
 // FC.properties 配下 (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
-// あっても参照側の上書きが勝つ。hide は true のみ有効（§5.3 セマンティクス）。
+// あっても参照側の上書きが勝つ。hide は true のみ有効（セマンティクス）。
 // ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
 // 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する。
 // title 上書き (GUI 検証 D1): 参照要素の title (LangResource) が非空なら、toExportForm が
@@ -294,7 +294,7 @@ function applyReferenceIconOverrides(
     if (!props) props = { ...existingProps };
     props[key] = value;
   }
-  // m18-t5: hide === true のみ有効（§5.3 セマンティクス）
+  // hide === true のみ有効（セマンティクス）
   if (entry.hide === true) {
     if (!props) props = { ...existingProps };
     props.hide = true;
@@ -314,7 +314,7 @@ function applyReferenceIconOverrides(
 
 // pois 配列内の {poiUid} 要素のみ export 形 FC に置換。生要素は透過 (icon 参照解決を除き無加工)。
 // missing は要素落ち + 警告キー1回。非配列入力は空配列扱い (呼び出し側で配列時のみ呼ぶこと)。
-// 参照要素の icon/selectedIcon/hide 上書きは解決後 FC の FC.properties 配下へ適用 (Phase 8, POI-112 最小形 + m18-t5)。
+// 参照要素の icon/selectedIcon/hide 上書きは解決後 FC の FC.properties 配下へ適用 (Phase 8, POI-112 最小形 + )。
 // 置換後の FC (解決済み・生 FC の双方) の icon 参照文法を imgs/... へ解決し、
 // 実体コピー要求を files として返す (POI-117)。同一参照の重複コピーは dest キーで畳む
 export async function resolvePoisArray(
@@ -344,11 +344,11 @@ export async function resolvePoisArray(
     }
   }
   if (missing) mergeWarnings(warnings, ['appedit.warn_missing_poi_source']);
-  // M3-T6 §5.7 (AC6-7): 解決後配列が FC と非 FC object の混在なら警告 (viewer P2a/P2b の解釈分裂 =
+  // 解決後配列が FC と非 FC object の混在なら警告 (viewer P2a/P2b の解釈分裂 =
   // 確実に壊れる形)。判定は「解決後」に対して行う (参照要素は FC に置換済みのため、旧オブジェクト +
   // 参照の混在が確実に検出される)。文字列要素は数えない — URL が FC を返す正当構成 (P2a) への
-  // 恒常偽陽性を避ける (§8.1 の出口側判定)。自動変換は行わない。
-  // v1.2 §5.10: 判定を共有述語 (poisLayerStructure) へ載せ替え — UI のレイヤ判別と同一実装
+  // 恒常偽陽性を避ける (出口側判定)。自動変換は行わない。
+  // : 判定を共有述語 (poisLayerStructure) へ載せ替え — UI のレイヤ判別と同一実装
   // (旧ローカル実装と論理同値: fc = isPlainObject && type==='FeatureCollection' /
   //  object = isPlainObject && type!=='FeatureCollection' / 配列・文字列・数値は非カウント)。挙動不変
   if (hasMixedPoisShapes(out.map(poisEntryShape))) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
@@ -356,7 +356,7 @@ export async function resolvePoisArray(
 }
 
 // ============================================================================
-// POI の外部ファイル化 (M4-T2)
+// POI の外部ファイル化
 // ============================================================================
 // 本来の仕様は「POI はすべて外部ファイルに置き、設定は URL で参照する」であり、上書き仕様
 // ({layer, hide, title, icon, selectedIcon}) は外部ファイルを書き換えずに属性だけ差し替える
@@ -365,7 +365,7 @@ export async function resolvePoisArray(
 //
 // resolvePoisArray は変更しない。資源診断 (ResourceDiagnosticsService.diagnosePois) が
 // 「解決後の FC そのもの」を走査して icon/asset の欠損を検出しており、参照形を返すと
-// 何も検査できなくなるため (設計 §2.4)。∴ 外部化は本関数群として独立に足す。
+// 何も検査できなくなるため。∴ 外部化は本関数群として独立に足す。
 
 /** 外部ファイルとして書き出す POI 実体。dest は出力ルート相対 posix パス */
 export interface PoiDocument {
@@ -400,8 +400,8 @@ export interface ExternalizedPois {
   warnings: string[];
 }
 
-// M4-T4: ラッパー判別 isPoiLayerRef は src/utils/poisLayerStructure へ移設した（挙動同一）。
-// renderer の PoiReferenceEditor も同じ実装を使う — 判別が2箇所にあると t5 の viewer 修正時に
+// ラッパー判別 isPoiLayerRef は src/utils/poisLayerStructure へ移設した（挙動同一）。
+// renderer の PoiReferenceEditor も同じ実装を使う — 判別が2箇所にあると 既存の変更の viewer 修正時に
 // 片方だけ追随する事故が起きるため（恒久指示「同一扱い処理は共通実装へ徹底」）。
 
 // E2 判定用の局所ヘルパ（形状分類は poisLayerStructure が正本だが、ここは型ガードが要る）
@@ -432,7 +432,7 @@ async function emitPoiDocument(
 }
 
 // 参照側オブジェクト (ラッパー) を組み立てる。上書きは **FC へ焼き込まず** ここへ載せる
-// (これが上書き仕様の存在意義。M4-T2 G2)。
+// (これが上書き仕様の存在意義。G2)。
 // 有効値の判定は applyReferenceIconOverrides と同一 — hide は true のみ、title は
 // compactLangResource が undefined を返さない場合のみ、icon/selectedIcon は非空 string のみ。
 //
@@ -468,7 +468,7 @@ async function buildPoiLayerRef(
 }
 
 /**
- * pois 配列を「外部ファイル + URL 参照 (+ 上書き属性)」の形へ変換する (M4-T2 §5.2 の正本表)。
+ * pois 配列を「外部ファイル + URL 参照 (+ 上書き属性)」の形へ変換する (正本表)。
  *
  * | 入力要素                       | 出力要素                                | 外部ファイル |
  * |--------------------------------|-----------------------------------------|--------------|
@@ -482,7 +482,7 @@ async function buildPoiLayerRef(
  *
  * E3 の理由: 裸 URL 文字列は配列要素位置で現行 viewer が誤判定する (normalizeLayers は全要素を
  * fetch で中身へ置換してから先頭要素でモード判定するため)。{layer:URL} へ包めば fetch 前に
- * 判別されるので出力側だけで回避できる。viewer 側の堅牢化 (m4-t5) はこれとは独立に残る。
+ * 判別されるので出力側だけで回避できる。viewer 側の堅牢化  はこれとは独立に残る。
  */
 export async function externalizePoisArray(
   pois: unknown,
@@ -495,7 +495,7 @@ export async function externalizePoisArray(
     return { pois: [], files: [], documents: [...ctx.documents.values()], warnings };
   }
   const out: unknown[] = [];
-  // 混在警告 (M3-T6 §5.7) の判定は resolvePoisArray と同じ「解決後」基準を維持する。
+  // 混在警告  の判定は resolvePoisArray と同じ「解決後」基準を維持する。
   // 入力配列で判定すると {poiUid} が 'object' に数えられ、参照 + 生 FC という正常構成が
   // 恒常的に偽陽性になる。∴ 各要素が resolvePoisArray でどの shape になったかを記録する。
   const resolvedShapes: ReturnType<typeof poisEntryShape>[] = [];
@@ -513,7 +513,7 @@ export async function externalizePoisArray(
         const emitted = await emitPoiDocument(fc, poisLayerKeyOf(fc) ?? uid, ctx, sink);
         if (emitted === null) {
           // 連番枯渇 (同一基底名 100 件超)。黙って落とさずインライン透過へ倒す。
-          // 利用者向け警告キーは新設しない (§5.5) — main プロセスのログで可視化する
+          // 利用者向け警告キーは新設しない — main プロセスのログで可視化する
           console.warn('[poiReferenceResolver] POI file name candidates exhausted; kept inline:', uid);
           out.push(await resolveIconRefsInFc(fc, sink));
           resolvedShapes.push(poisEntryShape(fc));
@@ -574,11 +574,11 @@ export async function externalizePoisArray(
 
 // icon 実体コピー要求の重複なし合流 (dest キーで畳む — 複数 pois 配列/複数 map をまたぐ集約用)
 /**
- * M5-T4B: 交換形 map JSON の POI を読み、ctx で外部化して **書き戻す**。
+ * 交換形 map JSON の POI を読み、ctx で外部化して **書き戻す**。
  *
  * **地図 ZIP 搬出（mapDownloadZip）とアプリ搬出（AppExportService）が共有する唯一の実装**である。
  * 従来この4行は両者に別々に書かれており、map 側だけ `Array.isArray` の生判定だったため
- * 単独形の地図で POI が未処理のまま素通りしていた（m4-t4 が app 側だけ是正した欠陥）。
+ * 単独形の地図で POI が未処理のまま素通りしていた（既存の変更が app 側だけ是正した欠陥）。
  * 読み出しと外部化を1本にすることで、同種のずれが構造的に起きないようにする
  * （恒久指示「同一扱い処理は共通実装へ徹底」）。
  *
@@ -603,7 +603,7 @@ export async function externalizeMapDocumentPois(
 }
 
 /**
- * M5-T4B: POI 実体（`pois/<name>.geojson`）の書き出し。
+ * POI 実体（`pois/<name>.geojson`）の書き出し。
  *
  * **地図 ZIP 搬出とアプリ搬出が共有する唯一の実装**である。
  * 従来この書き出しは両者に別々に書かれており、次の2点がずれていた
@@ -631,7 +631,7 @@ export async function writePoiDocuments(
   for (const doc of documents) {
     // dest は externalizePoisArray が sanitize 済みだが、書き出し直前にも境界を再検査する
     // (iconSetFilePath と同じ多重防御)。名前の基底には利用者が raw JSON で書ける
-    // 生 FC の id が含まれ、DB 側の slug 検査を通らないため — M4-T2 §2.3 / §5.2
+    // 生 FC の id が含まれ、DB 側の slug 検査を通らないため —
     const target = path.resolve(rootDir, ...doc.dest.split('/'));
     if (target !== poisRoot && !target.startsWith(poisRoot + path.sep)) {
       throw new Error(`POI document escaped the output directory: ${doc.dest}`);
@@ -658,10 +658,10 @@ export function mergeWarnings(target: string[], added: string[]): void {
 // 二重参照警告キー (POI-142)。静的キー制約のため slug は含めない ({key,params} 化は UI 統一タスクで)
 export const DUPLICATE_POI_REFERENCE_WARNING = 'appedit.warn_duplicate_poi_reference';
 
-// Asset Reference 欠落警告キー (M11-T9)。
+// Asset Reference 欠落警告キー。
 export const MISSING_ASSET_REF_WARNING = 'appedit.warn_missing_asset_ref';
 
-// --- Asset Reference URI (maplat-asset:<UID>) 解決 (M11-T9) ---
+// --- Asset Reference URI (maplat-asset:<UID>) 解決  ---
 
 const ASSET_REF_RE = /maplat-asset:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
 
@@ -700,7 +700,7 @@ function replaceAssetRefsInLangValue(
 }
 
 // FC 内の全 features の properties.html（LangResource 全言語値）から maplat-asset:<UID> を
-// replaceFn で置換する (copy-on-write)。走査対象は html のみ（設計 §93）。
+// replaceFn で置換する (copy-on-write)。走査対象は html のみ。
 function resolveAssetRefsInFc(
   entry: unknown,
   replaceFn: (uid: string) => string,

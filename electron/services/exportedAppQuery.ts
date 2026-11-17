@@ -1,4 +1,4 @@
-// 書き出したアプリの index.html が URL のクエリから受け付けるキーと値の形（nov26-m6-t11）。
+// 書き出したアプリの index.html が URL のクエリから受け付けるキーと値の形。
 // 受け付けるのは lang・overlay・appid だけ。他のキー・形の合わない値は無視し、書き出した設定のまま起動する。
 
 /** apps/<appid>.json のパスに入る。字種は Editor の slug（SLUG_PATTERN）と同じ。/ . % を通さない */

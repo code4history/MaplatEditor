@@ -1,4 +1,4 @@
-// nov26-m7-t5（#141）: 自動更新の更新元と更新器の設定を決める純関数。electron を import しない
+// #141: 自動更新の更新元と更新器の設定を決める純関数。electron を import しない
 // （smoke が node で直接読む。前例: appScheme.ts・releaseChannel.ts）。
 //
 // 更新元（C-5）: 製品（app.isPackaged が真）は常に GitHub（electron-builder.config.cjs の publish から
@@ -44,7 +44,7 @@ export function resolveUpdateFeed(input: { isPackaged: boolean; env: Record<stri
   return options == null ? GITHUB : { kind: 'test', options };
 }
 
-/** 更新器に当てる値（t5/AC1）。呼ぶたびに新しいオブジェクトを返す */
+/** 更新器に当てる値（t5/）。呼ぶたびに新しいオブジェクトを返す */
 export function updaterSettings() {
   return {
     autoDownload: false,
@@ -60,9 +60,9 @@ export type UpdaterSettings = ReturnType<typeof updaterSettings>;
 /**
  * updaterSettings() を更新器に当てる。
  * Windows の x64／arm64 は latest.yml に両方の Setup.exe が名前に arch を含んで載り、electron-updater の
- * findFile が process.arch で選ぶ（§3.5 の判定 (A)）ので channel は使わない。
+ * findFile が process.arch で選ぶ（判定 (A)）ので channel は使わない。
  * electron-updater は channel を設定すると allowDowngrade を真にするので、channel を使う形へ変えても
- * channel の設定の後にこれを呼べば allowDowngrade は偽に戻る（§3.4）。
+ * channel の設定の後にこれを呼べば allowDowngrade は偽に戻る。
  */
 export function applyUpdaterSettings(updater: UpdaterSettings): void {
   Object.assign(updater, updaterSettings());
@@ -73,7 +73,7 @@ const STARTUP_DELAY_MS = 15000;
 const DELAY_PATTERN = /^\d{1,5}$/;
 
 /**
- * nov26-m7-t6: 起動の後、更新を確かめるまでの待ち時間（ミリ秒）。既定 15000。
+ * 起動の後、更新を確かめるまでの待ち時間（ミリ秒）。既定 15000。
  * e2e のときだけ（isPackaged が偽かつ MAPLAT_E2E_ROOT が空でない）MAPLAT_E2E_UPDATE_DELAY_MS（0〜60000 の整数）を使う。
  * 製品は env を読まない（resolveUpdateFeed と同じ形）。
  */

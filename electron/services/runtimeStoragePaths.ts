@@ -5,7 +5,7 @@ export type RuntimeStoragePaths = {
   saveFolder: string;
   settingsStoreCwd: string | undefined;
   assetDraftStoreCwd: string | undefined;
-  // M12-T20 (§5.1): 下書きタイルの永続 staging 領域のルート。
+  // 下書きタイルの永続 staging 領域のルート。
   // isolated (E2E): <MAPLAT_E2E_ROOT>/draft-tiles / 非 isolated: 呼び出し側が
   // app.getPath('userData')/draft-tiles を既定値として渡す
   draftTileRoot: string;

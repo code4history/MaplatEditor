@@ -19,15 +19,15 @@ import { ProgressReporter } from '../utils/ProgressReporter';
 import SettingsService from './SettingsService';
 import { estimateJpegDecodeBudget, type JpegDecodeBudget } from '../utils/jpegDecodeBudget';
 import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
-// m19-t5: 512px 中間ファイルの名前は派生規約と同じ場所で導き、符号化は宛先拡張子だけで決める
-// 唯一の実装へ委譲する（タスク設計 v1.0 §4.1 / §4.2）。
+// 512px 中間ファイルの名前は派生規約と同じ場所で導き、符号化は宛先拡張子だけで決める
+// 唯一の実装へ委譲する。
 import { THUMB_512_TMP_BASENAME } from '../../src/utils/thumbnailPaths';
 import { writeImageByExt } from '../utils/thumbnail512Codec';
 import { selectThumbnail512Level, stitchThumbnail512 } from '../utils/thumbnail512Stitch';
 import { tileLevelSize, tileMaxZoom } from '../utils/tilePyramid';
 
 /**
- * M5-T6: 画像取り込みの結果契約（設計 §6.1 が唯一の記述）。
+ * 画像取り込みの結果契約（が唯一の記述）。
  *
  * 失敗時、予測由来の項目は `prediction` にまとめて**全部入りか無しか**にする。
  * 個々を省略可にすると「requiredMemoryMB はあるが recommendedMemoryMB は無い」という
@@ -37,13 +37,13 @@ export type MapUploadResult =
     | { width: number; height: number; url: string; imageExtension: string }
     | { err: 'Canceled' }
     /**
-     * M5-T8: 取り込み前の確認要求。`err` を持たない点が分岐鍵である
-     * （renderer は `needsConfirmation` を最優先で見る。設計 §6.2）。
+     * 取り込み前の確認要求。`err` を持たない点が分岐鍵である
+     * （renderer は `needsConfirmation` を最優先で見る）。
      * **選択したファイルパスは載せない** — renderer へ渡さず main 側で保持する。
      */
     | { needsConfirmation: 'long_import'; megapixels: number }
     /**
-     * M5-T8: この機械では構造的に扱えない（V8 ヒープが尽きて強制終了する）。
+     * この機械では構造的に扱えない（V8 ヒープが尽きて強制終了する）。
      * 確認プロンプトを出さずハードブロックする（人間指示 2026-08-03）。
      */
     | {
@@ -63,20 +63,20 @@ export type MapUploadResult =
           configuredMP: number;
           prediction?: { megapixels: number; recommendedResolutionMP: number };
       }
-    /** M5-T8: `confirmed: true` で来たが、main 側に対応する選択が保持されていない */
+    /** `confirmed: true` で来たが、main 側に対応する選択が保持されていない */
     | { err: string; errorCode: 'stale_confirmation' }
     | { err: string; errorCode: 'unknown' };
 
 /**
- * M5-T8: 確認プロンプトを出す画素数の閾値（十進 MP）。
+ * 確認プロンプトを出す画素数の閾値（十進 MP）。
  *
- * タイル化の実測は m19-t6（タイル生成ループの原寸クローン除去）以後で
- * 48 MP ≒ 29.7 秒 / 110 MP ≒ 57.1 秒（m5-t6 smoke）、`t ∝ MP^0.79` で 100 MP は約 53 秒。
+ * タイル化の実測は （タイル生成ループの原寸クローン除去）以後で
+ * 48 MP ≒ 29.7 秒 / 110 MP ≒ 57.1 秒（smoke）、`t ∝ MP^0.79` で 100 MP は約 53 秒。
  * ∴ この閾値を支える根拠はタイル化からデコードへ移った。デコード時間は内容依存で、
- * 実写スキャンは約 1.00 s/MP（470 MP で 469 秒。FUTURE_PLAN §6.2）であるため、
+ * 実写スキャンは約 1.00 s/MP（470 MP で 469 秒。FUTURE_PLAN）であるため、
  * 100 MP の実写ではデコード約 100 秒 + タイル化約 53 秒 ≒ 2.5 分となり、
  * ここから先は進捗バーだけでは足りない。根拠が移っただけで閾値を動かす材料は無いので、
- * m19-t6 の高速化後も 100 のまま据え置く。
+ * 既存の変更の高速化後も 100 のまま据え置く。
  * これ未満は従来どおり無確認で進む（確認の出しすぎは無視されるだけで害になる）。
  */
 export const LONG_IMPORT_THRESHOLD_MP = 100;
@@ -90,7 +90,7 @@ function classifyDecodeError(error: unknown): 'jpeg_memory_limit' | 'jpeg_resolu
 }
 
 /**
- * m19-t6: 原寸ビットマップの矩形領域だけを取り出す（原寸全体を複製しない）。
+ * 原寸ビットマップの矩形領域だけを取り出す（原寸全体を複製しない）。
  *
  * 返り値は Jimp v1 の `image.clone().crop({x,y,w,h}).bitmap` と **バイト単位で同一**である。
  * - `crop` は行優先で矩形を写すだけ（@jimp/plugin-crop + @jimp/utils の scan）なので、
@@ -287,7 +287,7 @@ function preflightJpegDecode(
  *
  * @param win       - プログレス通知先 BrowserWindow
  * @param srcFile   - アップロード元画像ファイルパス
- * @param outFolder - 下書き staging dir（M12-T20 §6.1: 必ず共通バリデータ
+ * @param outFolder - 下書き staging dir（必ず共通バリデータ
  *                    resolveDraftTileDir で解決済みのパスを handler から受け取る。
  *                    imageCutter 自身はパスを組み立てない — assetUid='..' 等での
  *                    親領域クリア事故の構造的排除）
@@ -299,7 +299,7 @@ export async function imageCutter(
     outFolder: string,
     options: { confirmed?: boolean } = {}
 ): Promise<MapUploadResult> {
-    // M5-T8: 事前判定に使う材料を先に揃える。
+    // 事前判定に使う材料を先に揃える。
     //   caps   = 利用者が明示したキャップ（null = 自動）
     //   safety = この機械が構造的に耐えられる量（V8 heap_size_limit から実行時算出）
     const caps = SettingsService.getJpegDecodeCaps();
@@ -319,7 +319,7 @@ export async function imageCutter(
 
         sourceBuffer = await fs.readFile(srcFile);
 
-        // M5-T6 (§5.4) / M5-T8 (§5.0): デコードもタイル化も始める前に判定する。
+        // () /: デコードもタイル化も始める前に判定する。
         // ここで戻る経路は **outFolder のクリアに到達しない**ため、既存の下書きタイルを壊さない
         // （この順序が不変条件）。予測できない入力（PNG 等）は安全枠で続ける。
         const preflight = preflightJpegDecode(sourceBuffer, caps, safety, { unknownFormat: 'machineSafety' });
@@ -346,8 +346,8 @@ export async function imageCutter(
     }
 
     try {
-        // M12-T20 (§6.1): 自 dir のみをクリアして書く（旧実装の tmpFolder/tiles 全消しを置換。
-        // 単一スロット衝突の解消）。削除プリミティブは fs.remove（symlink 非追従。§6.1 の契約
+        // 自 dir のみをクリアして書く（旧実装の tmpFolder/tiles 全消しを置換。
+        // 単一スロット衝突の解消）。削除プリミティブは fs.remove（symlink 非追従。契約
         // — fs.emptyDir 等リンク先へ降りるプリミティブは使わない）
         try {
             await fs.stat(outFolder);
@@ -358,22 +358,22 @@ export async function imageCutter(
         await fs.ensureDir(outFolder);
 
         // 旧実装: Jimp で画像読み込み、幅・高さ・最大ズーム計算
-        // M5-T6: ここが原寸デコード地点であり、大容量原本が jpeg-js のガードで落ちていた箇所。
+        // ここが原寸デコード地点であり、大容量原本が jpeg-js のガードで落ちていた箇所。
         // Jimp.read はローカルファイルパスと Buffer の経路で第2引数 options を捨て、
         // URL 経路だけが fromBuffer へ渡す（@jimp/core の read 実装）。
         // ∴ Jimp.read(srcFile, options) では設定が届かないため fromBuffer を直接呼ぶ。
         // PNG 入力時は image/jpeg の options が参照されないため無害
         // （@jimp/js-png の DecodePngOptions にメモリ・解像度の上限は無い）。
-        // M5-T6: 上限は設定値から取る（既定 8192 / 800）。読み出し口は
+        // 上限は設定値から取る（既定 8192 / 800）。読み出し口は
         // SettingsService.getJpegDecodeLimits の1つだけ（正規化がそこに閉じている）。
-        // M5-T8: 渡す値は §5.3 の表のとおり画像ごとに自動決定した値である（設定の運用値ではない）。
+        // 渡す値は 表のとおり画像ごとに自動決定した値である（設定の運用値ではない）。
         const imageJimp = await Jimp.fromBuffer(sourceBuffer, {
             'image/jpeg': {
                 maxMemoryUsageInMB: effectiveMemoryMB,
                 maxResolutionInMP: effectiveResolutionMP,
             },
         });
-        // m19-t6: デコード後、圧縮元バッファは以降どこからも読まれない
+        // デコード後、圧縮元バッファは以降どこからも読まれない
         // （original.<ext> のコピーは fs.copy が srcFile から直接行う）。
         // タイル化は数分続くため、ここで参照を落として解放できるようにする。
         // 型を `Buffer | null` に変えず空バッファを代入するのは、188 行の宣言と非 null 前提を保ち、
@@ -421,7 +421,7 @@ export async function imageCutter(
         // タイル生成ループ
         for (let i = 0; i < tasks.length; i++) {
             const task = tasks[i];
-            // m19-t6: 旧実装は imageJimp.clone() で原寸 RGBA 全体を毎回複製していた
+            // 旧実装は imageJimp.clone で原寸 RGBA 全体を毎回複製していた
             // （旧 Electron 版 backend/src/mapupload.js:123 から引き継いだ形）。
             // cropRegionBitmap は clone().crop({x,y,w,h}) と同一の bitmap を、コピー無し／
             // 矩形ぶんのコピーだけで返す。resize 以降は一切変えていない。
@@ -443,7 +443,7 @@ export async function imageCutter(
         const thumbTo = path.resolve(outFolder, 'thumbnail.jpg');
         await makeThumbnail(thumbFrom, thumbTo);
 
-        // M12-T15 R3: タイルから長辺512pxサムネイル生成。
+        // R3: タイルから長辺512pxサムネイル生成。
         // 長辺 512px 以下の画像（maxZoom < 2）も原寸のまま作る（以前はここで飛ばしていた）
         // 段の選び方と縫い合わせは起動時の補完と同じ関数（タイルの実寸から大きさを出す）
         const thumb512Level = await selectThumbnail512Level(outFolder);
@@ -459,7 +459,7 @@ export async function imageCutter(
         return { width, height, url, imageExtension: toExtKey };
 
     } catch (err) {
-        // M5-T6 (§5.4): 事前判定を通り抜けたのにガードへ当たった場合の保険。
+        // 事前判定を通り抜けたのにガードへ当たった場合の保険。
         // 予測が立っていれば prediction を丸ごと添え、無ければキーごと省く
         // （個々のフィールドに undefined を入れて部分的な payload を作らない）。
         const message = err instanceof Error ? err.message : String(err);
@@ -468,7 +468,7 @@ export async function imageCutter(
             return {
                 err: message,
                 errorCode,
-                // M5-T8: 実際にデコーダへ渡した値を返す（キャップではない）。
+                // 実際にデコーダへ渡した値を返す（キャップではない）。
                 // 事前判定を通り抜けてなおガードに当たった、という意味だからである
                 configuredMB: effectiveMemoryMB,
                 ...(budget
@@ -515,9 +515,9 @@ export async function selectMapImage(
 /**
  * 旧実装 MapUpload.showMapSelectDialog() 相当（選択 → タイル化を一息で行う合成）。
  *
- * M5-T8: 確認往復を挟む本番経路は `electron/ipc/mapupload.ts` が
+ * 確認往復を挟む本番経路は `electron/ipc/mapupload.ts` が
  * `selectMapImage` と `imageCutter` を個別に呼ぶ（選択の保持が必要なため）。
- * 本関数は**確認を挟まない直接経路**として残す。既存の smoke（m12-t15 / m5-t6）が
+ * 本関数は**確認を挟まない直接経路**として残す。既存の smokeが
  * この窓口を使っており、それらは確認を必要としない。
  * 100 MP を超える画像を確認なしで通したい場合は `options.confirmed` を渡す。
  */
@@ -532,7 +532,7 @@ export async function showMapSelectDialog(
         return { err: 'Canceled' };
     }
 
-    // M12-T20: stagingDir は IPC handler が resolveDraftTileDir で解決済み（§6.1）
+    // stagingDir は IPC handler が resolveDraftTileDir で解決済み
     return await imageCutter(win, filePath, stagingDir, options);
 }
 

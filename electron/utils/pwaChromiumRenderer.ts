@@ -1,13 +1,13 @@
 // PWA 画像（アイコン 8 枚・スプラッシュ 46 枚）を **Electron 自身の Chromium** で描く。
 //
-// 背景（#174 / nov26-rc-editor174 設計書 v3）:
+// 背景（#174 / 設計書 v3）:
 //   従来は Chrome を起動する生成ライブラリに描かせていた。同ライブラリは利用者の Chrome を
 //   既定プロファイルで起動し、他アプリのバンドルを走査し、無ければブラウザをダウンロードしていた。
 //   macOS の App Data 保護に当たり「データアクセスがブロックされました」の通知と生成失敗が起きていた。
 //   ここでは画面外（offscreen）の非表示ウィンドウ 1 枚に一時ファイルの HTML を読み込ませ、
 //   サイズごとに寸法を当てて capturePage で撮る。Chrome を探さず・起動せず・外へも出ない。
 //
-// 落とし穴（実測に基づく。設計書 v3 §4.2）:
+// 落とし穴（実測に基づく）:
 //   - 画面より大きいウィンドウは offscreen:true でしか作れない（offscreen:false は 2048x796 に切られた）
 //   - requestAnimationFrame 1 回待ちでは前の寸法の描画を撮る → 2 回待つ
 //   - リサイズ直後の capturePage は UnknownVizError を投げることがある → リトライする
@@ -189,7 +189,7 @@ async function drawSpec(
       break;
     } catch (error) {
       lastError = error;
-      // 【NOV26-IR-EDITOR174-0453 MIN-1】再試行するのはリサイズ直後の一時的な失敗（UnknownVizError 等）だけ。
+      // 再試行するのはリサイズ直後の一時的な失敗（UnknownVizError 等）だけ。
       // 応答が無いまま時間切れになったら、40 回×60 秒固まらないよう、すぐ退避（jimp）へ落とす
       if (error instanceof Error && error.message.startsWith('pwa-render-timeout:')) break;
       await delay(CAPTURE_RETRY_DELAY_MS);
@@ -224,7 +224,7 @@ function createRenderWindow(width: number, height: number): electron.BrowserWind
       partition: PWA_RENDER_PARTITION,
     },
   });
-  // 【NOV26-IR-EDITOR174-0453 MIN-2】描画用のウィンドウは、遷移・新しいウィンドウ・権限要求をすべて断る
+  // 描画用のウィンドウは、遷移・新しいウィンドウ・権限要求をすべて断る
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
@@ -249,7 +249,7 @@ async function loadShell(
  * 1 回の呼び出しで非表示ウィンドウを 1 枚だけ作り、`finally` で必ず壊す。
  * 描けない場合は throw する（呼び出し側が従来の jimp 退避へ落とす）。
  *
- * NOV26-IM-PWA-ICON-SOURCE-0481: 起動画面（apple-splash）も **アイコン元画像** から描く。
+ * 起動画面（apple-splash）も **アイコン元画像** から描く。
  * スプラッシュ画像（`appSettings.splash`）は Maplat がモーダルで出すスプラッシュと og:image にだけ使う。
  * 描き方は従来ライブラリの起動画面の既定（背景色の上に中央寄せ・余白は背景色）と同じで、
  * 既存の `pwaImageBox` / `pwaZoomFor` をそのまま使う。
@@ -309,7 +309,7 @@ export async function renderPwaAssets(args: {
 }
 
 /**
- * 画像 1 枚を PNG に描く（nov26-editor-splash-svg #462。SVG のスプラッシュから SNS カード画像を作る）。
+ * 画像 1 枚を PNG に描く（editor-splash-svg #462。SVG のスプラッシュから SNS カード画像を作る）。
  * PWA と同じ非表示ウィンドウ・同じシェル（背景色）を使い、`<img>` へ contain で中央寄せする。
  * **`<img>` なので SVG の中の script も外部参照も動かない**（描けない場合は throw する）。
  */

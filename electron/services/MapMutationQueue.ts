@@ -1,13 +1,13 @@
-// M13-T2: 同一 map(uid) への save/rename/clone/delete/migration mutation を直列化する薄いキュー。
-// マイルストーン設計 §4.4 契約: run()/runMany() は exclusive queue だけを提供する
+// 同一 map(uid) への save/rename/clone/delete/migration mutation を直列化する薄いキュー。
+// マイルストーン契約: run()/runMany は exclusive queue だけを提供する
 // (read/export/WMTS はキューに入れない)。
 //
-// タスク設計レビュー v1 Minor 1: run()/runMany() は呼び出し元の戻り値型
+// タスクrun()/runMany は呼び出し元の戻り値型
 // (例: MapEditService.save() の Promise<MapSaveResult>) を型安全に伝播できるよう
-// <T> でジェネリック化する (マイルストーン §4.4 契約の additive 精緻化。呼び出し側の
+// <T> でジェネリック化する (マイルストーン 契約の additive 精緻化。呼び出し側の
 // 直列化保証はそのまま)。
 //
-// レビュー v6 Minor 1: dev の HMR で本モジュールが再評価されると module-local な
+// dev の HMR で本モジュールが再評価されると module-local な
 // Map インスタンスは再生成され、直列化保証が HMR 境界をまたいで破れる。globalThis に
 // 保持することで dev の HMR 再評価をまたいで同一 Map を共有する。
 class MapMutationQueue {
@@ -42,7 +42,7 @@ class MapMutationQueue {
      * 矛盾なく直列化される」という契約 (AC-T2-4) を、呼び出し順序に依らず満たす。
      */
     async runMany<T>(mapUids: string[], _purpose: string, fn: () => Promise<T>): Promise<T> {
-        // stable sorted order (マイルストーン §4.4): 呼び出し順に依らず同じ uid 集合なら
+        // stable sorted order (マイルストーン ): 呼び出し順に依らず同じ uid 集合なら
         // 同じ順序でキューの現在の tail を捕捉する (デッドロック回避には無関係だが、
         // ログ・診断上の再現性のために固定する)
         const sorted = [...new Set(mapUids)].sort();

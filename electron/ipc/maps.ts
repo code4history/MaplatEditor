@@ -8,7 +8,7 @@ export function registerMapHandlers() {
     return await readFacade.listMaps({ query, page, pageSize });
   });
 
-  // uid正準の削除 (ADR-0007)
+  // uid正準の削除 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   ipc.handle('maplist:delete', async (_event, uid: string, condition: string, page: number) => {
     await StorageAdapter.deleteMap(uid);
     return await StorageAdapter.listMaps({ query: condition, page });

@@ -1,13 +1,13 @@
-// POI ソースの domain layer (Phase 2 Task 3, ADR-0007)。正本は Write Store (maplat.sqlite) の
+// POI ソースの domain layer (Phase 2 Task 3, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。正本は Write Store (maplat.sqlite) の
 // poi_sources テーブルで、本サービスは SqliteDataService の CRUD に GeoJSON 純ロジック
-// (src/utils/poiGeoJson.ts) と LangResource 正規化 (ADR-0005) を被せる薄い層。
+// (src/utils/poiGeoJson.ts) と LangResource 正規化 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり) を被せる薄い層。
 // 旧実装 (electron-store poi-sources.json + poi-sources/{uuid}/source.geojson) はゼロベース置換
 // され、旧ファイルは読みも消しもしない (ディスク残置)。
 //
 // remote ソース (mode='remote') は read-only。fetch 結果のスナップショットを data_json に
-// 永続 cache する — 43 §2.1 の「session memory cache」からの意図的逸脱で、POI-118 の
+// 永続 cache する — 43 「session memory cache」からの意図的逸脱で、POI-118 の
 // 「network failure 時は cache で degraded 表示」を再起動を跨いで満たす上位互換
-// (計画書 outer リポジトリ docs/superpowers/plans/2026-07-09-poi-editor-phase2-poi-backend.md
+// (計画書 outer リポジトリ
 //  設計コントラクト参照)。
 // fetch payload には POI-121 の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
 import { readFile, stat } from 'node:fs/promises';
@@ -42,7 +42,7 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { guardedFetch } from './remoteFetchGuard';
 import { classifyZipReadError } from '../utils/zipImportGuard';
 
-// POI editor の default 言語 (ADR-0005 既定、poiGeoJson.ts と一致)
+// POI editor の default 言語 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの既定、poiGeoJson.ts と一致)
 const DEFAULT_LANG = 'ja';
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -50,16 +50,16 @@ const FETCH_TIMEOUT_MS = 10_000;
 const REMOTE_WARN_BYTES = 5 * 1024 * 1024; // 5 MiB 超 → warning
 const REMOTE_MAX_BYTES = 50 * 1024 * 1024; // 50 MiB 超 → 登録拒否
 
-// M5-T4 (I-4c): cleanup() が返す残留物を main プロセスのログへ可視化する。
+// cleanup が返す残留物を main プロセスのログへ可視化する。
 // POI 単体 import の戻り値形（PoiSourceSaveResult）は **変えない** — 残留の利用者向け表示は
-// m5-t4 の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
-// 地図 ZIP import 側は DataUploadService が residue を戻り値へ載せる（§6.3.2）。
+// 既存の変更の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
+// 地図 ZIP import 側は DataUploadService が residue を戻り値へ載せる。
 function logCompensationResidue(stage: string, residue: CompensationResidue[]): void {
   if (residue.length === 0) return;
   console.warn(`[PoiSourceService] 補償に到達できなかった残留物があります (${stage}):`, residue);
 }
 
-// M5-T4: managed POI 文書の表示名。**空文字にしない** — createSource は title を必須と
+// managed POI 文書の表示名。**空文字にしない** — createSource は title を必須と
 // しないが、辿れる名前を残さないと利用者が POI 管理 UI で識別できなくなる。
 // 順序: FC の properties.title → FC 直下の title → dest の <name>。
 function deriveManagedPoiTitle(fc: unknown, name: string): unknown {
@@ -119,7 +119,7 @@ export type PoiSourceErrorCode =
   | 'not-found'
   | 'invalid-request'
   | 'internal'
-  // nov26-m6-t3 (#98・#116): ZIP の取り込みで、2 GiB 超（zip-too-large）と
+  // ZIP の取り込みで、2 GiB 超（zip-too-large）と
   // 壊れた ZIP（adm-zip・zlib の読み取りの例外・重複名。zip-corrupt）。message を付けない
   | 'zip-too-large'
   | 'zip-corrupt'
@@ -154,7 +154,7 @@ export class PoiSourceService {
   private readonly remoteMaxBytes: number;
   private readonly fetchTimeoutMs: number;
 
-  // options はテスト用の閾値注入 (m9-t3 smoke)。実運用は既定値
+  // options はテスト用の閾値注入 (smoke)。実運用は既定値
   constructor(options?: { remoteWarnBytes?: number; remoteMaxBytes?: number; fetchTimeoutMs?: number }) {
     this.remoteWarnBytes = options?.remoteWarnBytes ?? REMOTE_WARN_BYTES;
     this.remoteMaxBytes = options?.remoteMaxBytes ?? REMOTE_MAX_BYTES;
@@ -174,14 +174,14 @@ export class PoiSourceService {
     }
     const normalizedCollection = normalizePoiSourceCollection(input, fallbackLang);
     const withUids = normalizedCollection.features;
-    // 仕様 §2.3: layer metadata (icon/selectedIcon/hide は編集対象 POI-111、
+    // 仕様 : layer metadata (icon/selectedIcon/hide は編集対象 POI-111、
     // poiTemplate/iconTemplate/poiStyle は UI 無しで round-trip 保持、未知キーも POI-007 系
     // テンプレートの将来拡張のため保持) を save/importFile/registerRemote/refreshRemote/
     // cloneToLocal の全経路 (すべてここを通る) で保持する。ただし FC.id / FC.name は
-    // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、§2.3) ため
+    // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、) ため
     // ここで削除する — これにより data_json が uid/slug/revision を含まない不変条件
-    // (ADR-0007) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
-    // m18-t5: layer metadata の正本位置は FC.properties 直下（過去形式として FC トップレベルも受容）。
+    // (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
+    // layer metadata の正本位置は FC.properties 直下（過去形式として FC トップレベルも受容）。
     // FC.properties を優先で layerMeta へ重ねる。
     const { type: _type, features: _features, id: _id, name: _name, lang: _lang, properties: _props, ...layerMeta } = isFc
       ? (input as Record<string, unknown>)
@@ -236,7 +236,7 @@ export class PoiSourceService {
     if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
       return { result: 'Exist' };
     }
-    // slug 予約 promote conflict(M11-T7/AC4)も duplicate として operation 診断へ写像する
+    // slug 予約 promote conflictも duplicate として operation 診断へ写像する
     if (e?.kind === 'slug-reservation-conflict') {
       return { result: 'Exist' };
     }
@@ -255,7 +255,7 @@ export class PoiSourceService {
   ): Promise<PoiSourceSaveResult> {
     const trimmed = String(slug ?? '').trim();
     if (!trimmed) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    // preset uid (D11改/M11-T7): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
+    // preset uid (D11改/): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
     // 一致させ promote を成立させる。UUID 形状のみ受理(registry 汚染防止)
     if (presetUid != null && !UUID_PATTERN.test(presetUid)) {
       return { result: 'Error', code: 'invalid-request', message: 'uid must be a UUID' };
@@ -277,10 +277,10 @@ export class PoiSourceService {
 
   // fetch → POI-121 サイズガード → JSON parse → 内部形化+検証。
   // 戻り値: 登録/更新に使える snapshot、または失敗を表す PoiSourceSaveResult
-  // m6-t7: scheme 検証・タイムアウト・ストリームサイズガードは remoteFetchGuard.ts の
+  // scheme 検証・タイムアウト・ストリームサイズガードは remoteFetchGuard.ts の
   // guardedFetch へ抽出済み（TileJsonImportService と共用）。写像は下記のとおりで、
   // 外部挙動（failure の形・エラーコード）は抽出前と完全に不変
-  // （docs/superpowers/specs/2026-08-06-m6-t7-tilejson-import-design.md §3.1 の写像表）。
+  // （の写像表）。
   private async fetchSnapshot(
     url: string,
     fallbackLang: string = DEFAULT_LANG,
@@ -299,7 +299,7 @@ export class PoiSourceService {
     const byteSize = Buffer.byteLength(fetched.text, 'utf8');
     if (byteSize > this.remoteMaxBytes) {
       // guardedFetch のストリーミングガードで既に補足されるはずの経路だが、既存コードの
-      // 二重チェックをそのまま保持する（除去は m6-t7 のスコープ外）
+      // 二重チェックをそのまま保持する（除去は 既存の変更のスコープ外）
       return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'payload-too-large' }] } };
     }
     let parsed: unknown;
@@ -347,7 +347,7 @@ export class PoiSourceService {
     };
   }
 
-  // uid正準 + slug フォールバック (SqliteDataService.findPoiSourceByRef, ADR-0007)
+  // uid正準 + slug フォールバック (SqliteDataService.findPoiSourceByRef, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   async get(ref: string): Promise<PoiSourceDetail | null> {
     const record = await SqliteDataService.findPoiSourceByRef(ref);
     return record ? this.detail(record) : null;
@@ -371,7 +371,7 @@ export class PoiSourceService {
     }
   }
 
-  // M11-T10b: fc 指定時は内容入りの単一書き込み作成（遅延作成の保存経路）。
+  // fc 指定時は内容入りの単一書き込み作成（遅延作成の保存経路）。
   // prepare で正規化+検証し、error issue があれば Invalid 拒否（中途の空行を残さない）。
   // fc 省略時は従来どおり空 FC で作成（後方互換）。
   async createLocal(input: { slug: string; title: LangResource; lang?: string; uid?: string; fc?: unknown }): Promise<PoiSourceSaveResult> {
@@ -426,13 +426,13 @@ export class PoiSourceService {
     }
   }
 
-  // M5-T5: import 衝突の自動採番は共有 API resolveImportSlug (importSlugResolver.ts) が正本。
+  // import 衝突の自動採番は共有 API resolveImportSlug (importSlugResolver.ts) が正本。
   // 以前はここに private 実装を持っていたが、地図 ZIP import と画像 asset import が
   // それぞれ別の規則を持っていたため、import 方針を1箇所へ移設した。
 
   // .geojson/.json を読み、FeatureCollection または 旧POIオブジェクト形式を内部形化して
   // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)。
-  // slug 同名衝突は 'Exist' 停止ではなく自動採番 (M3-T6。枯渇/レース時のみ 'Exist')
+  // slug 同名衝突は 'Exist' 停止ではなく自動採番 (枯渇/レース時のみ 'Exist')
   async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
     if (ext === '.zip') {
@@ -457,7 +457,7 @@ export class PoiSourceService {
         return result;
       } catch (e: any) {
         if (preparedImport) logCompensationResidue('importFile/throw', await preparedImport.cleanup());
-        // nov26-m6-t3 (#98・#116): 大きすぎる ZIP・壊れた ZIP は利用者向けのコードへ写し、
+        // 大きすぎる ZIP・壊れた ZIP は利用者向けのコードへ写し、
         // 原文（adm-zip の `{0}` やパスを含みうる）は message に載せない（PoiEdit は
         // invalid-request の message をそのまま出すため）。原文はログへだけ出す
         const zipError = classifyZipReadError(e);
@@ -527,7 +527,7 @@ export class PoiSourceService {
   }
 
   /**
-   * M5-T4: 地図 ZIP 同梱の managed POI 文書から `poi_sources` 行を1つ作る。
+   * 地図 ZIP 同梱の managed POI 文書から `poi_sources` 行を1つ作る。
    *
    * `PoiPackageService.importManagedPoiDocuments` が返すのは **正本化した FC まで**であり、
    * `poiUid` を得るには行と slug registry の作成が要る。それを行う `createSource` は private
@@ -557,7 +557,7 @@ export class PoiSourceService {
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
 
     // slug は POI import の既存解決をそのまま使う（base, base-2 … の空き探索）。
-    // 地図 slug とは別系統であり、地図側の衝突解決は m5-t5 の責務である。
+    // 地図 slug とは別系統であり、地図側の衝突解決は 既存の変更の責務である。
     const resolvedSlug = await resolveImportSlug(name);
     if (resolvedSlug === null) return { result: 'Exist' };
 
@@ -594,7 +594,7 @@ export class PoiSourceService {
       try {
         imported = await importPoiZip(filePath);
       } catch (e) {
-        // nov26-m6-t3 (#116): 言語の判定は補助である。大きすぎる ZIP・壊れた ZIP は投げずに既定の言語を返し、
+        // 言語の判定は補助である。大きすぎる ZIP・壊れた ZIP は投げずに既定の言語を返し、
         // 続く importFile が同じ例外を利用者向けのコード（zip-too-large・zip-corrupt）で返す。
         // それ以外の例外は従来どおり投げる
         if (!classifyZipReadError(e)) throw e;
@@ -604,7 +604,7 @@ export class PoiSourceService {
       try {
         return resolvePoiSourceLanguage((imported.fc as PoiEditorFC).lang, fallbackLang || SettingsService.get('lang'));
       } finally {
-        // M5-T4: ここは **一時展開物の後始末** であり失敗補償ではない。戻り値型の変更には
+        // ここは **一時展開物の後始末** であり失敗補償ではない。戻り値型の変更には
         // 追随するが、**部分ロールバックの伝播対象ではない**（正常系でも走る読み取り専用経路）。
         // この区別を実装で潰さないこと。
         logCompensationResidue('detectImportLanguage/finally', await imported.cleanup());

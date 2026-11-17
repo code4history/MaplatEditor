@@ -1,10 +1,10 @@
-// nov26-m7-t6（#141 決めること 1・6）: 自動更新の形。
+// （#141 決めること 1・6）: 自動更新の形。
 //   起動の少し後に 1 回だけ確かめ、新しい正式版があれば main のネイティブのダイアログで知らせる。
 //   ダウンロードは「更新する」を選んだときだけ、入れ替えは「今すぐ再起動して更新」を選んだときだけ。
 //   Linux（AppImage）は知らせて Release のページを開くだけ（ダウンロードの経路を持たない）。
 //   起動時の確認は設定 updateCheckEnabled（既定オン）で切れる。
 //
-// renderer の UI・新しい IPC・preload の口は作らない（C-6・t6/AC7）。文言は updateMessages.ts、
+// renderer の UI・新しい IPC・preload の口は作らない（C-6・t6/）。文言は updateMessages.ts、
 // 方針（どの OS で何をするか）は updatePolicy.ts の 1 か所。更新器の操作は UpdateService だけが持つ。
 import { app, BrowserWindow, dialog, shell, type MessageBoxOptions } from 'electron'
 import SettingsService from './SettingsService'
@@ -129,7 +129,7 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
       clearProgress()
     }
 
-    // 閉じる経路に未保存の確認が無い（実測: main.ts の close は下書きの flush のみ）∴ 設計 §3.2 の
+    // 閉じる経路に未保存の確認が無い（実測: main.ts の close は下書きの flush のみ）∴
     // 代替に従い、詳細に「保存していない変更は失われる」を出し、既定を「後で」にする
     const restart = await ask({
       type: 'info',
@@ -143,7 +143,7 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
     installing = true
     UpdateService.quitAndInstall()
   } catch (error) {
-    // 自動の確認で起動のたびに失敗のダイアログを出さない（設計 §3.2）
+    // 自動の確認で起動のたびに失敗のダイアログを出さない
     console.warn('[update] check failed', error)
     if (manual) {
       const detail = error instanceof Error ? error.message.split('\n')[0] : String(error)
@@ -162,8 +162,8 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
 }
 
 /**
- * 起動の少し後に 1 回だけ確かめる。設定がオフなら要求を出さない（t6/AC1 (iv)）。
- * 定期の確認はしない（設計 §3.2）。
+ * 起動の少し後に 1 回だけ確かめる。設定がオフなら要求を出さない（t6/(iv)）。
+ * 定期の確認はしない。
  */
 export function startAutomaticCheck(getWindow: () => BrowserWindow | null): void {
   mainWindow = getWindow
@@ -180,7 +180,7 @@ export function startAutomaticCheck(getWindow: () => BrowserWindow | null): void
 let errorListenerInstalled = false
 
 /**
- * 更新器の error の扱い（MIN-9）。Squirrel の error は入れ替え（UpdateService の入れ替えの関数）の後にしか来ない。
+ * 更新器の error の扱い。Squirrel の error は入れ替え（UpdateService の入れ替えの関数）の後にしか来ない。
  * それより前の error（確認・ダウンロードの Promise の reject と二重に来るもの）は console.warn だけ。
  * 購読は更新の機能を初めて使うときに 1 回だけ張る（import しただけで更新器を作らない）。
  * 購読は UpdateService の口 1 本だけにする（electron の autoUpdater と二重に張ると、同じ error で

@@ -10,18 +10,18 @@ export function registerAppHandlers() {
     return await AppDataService.requestApps(query, page, pageSize);
   });
 
-  // 削除はuid正準 (ADR-0007)
+  // 削除はuid正準 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   ipc.handle('applist:delete', async (_event, uid: string, condition: string, page: number) => {
     await AppDataService.deleteApp(uid);
     return await AppDataService.requestApps(condition, page);
   });
 
-  // uid正準の読み出し (ADR-0007)。旧経路への保険としてslugでも解決される
+  // uid正準の読み出し (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。旧経路への保険としてslugでも解決される
   ipc.handle('appedit:request', async (_event, uidOrSlug: string) => {
     return await AppDataService.getApp(uidOrSlug);
   });
 
-  // payload: { document, uid?, slug, expectedRevision? } (ADR-0007)
+  // payload: { document, uid?, slug, expectedRevision? } (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
   ipc.handle('appedit:save', async (_event, payload: any) => {
     try {
       const result = await AppDataService.saveApp(payload);
@@ -37,10 +37,10 @@ export function registerAppHandlers() {
     }
   });
 
-  // m6-t6 (§3.2): overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
-  // t1 (§4.5): runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
+  // overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
+  // t1: runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
   // （reply was never sent の構造的防壁。適用範囲は appedit:export のみ — blast radius を広げない）
-  // nov26-m6-t8（#113）: 第 3 引数 options.includeTiles（省略時は含める）
+  // #113: 第 3 引数 options.includeTiles（省略時は含める）
   ipc.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: { includeTiles?: boolean }) => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
     try {
@@ -61,7 +61,7 @@ export function registerAppHandlers() {
     }
   });
 
-  // M1-T6 (d-2): プレビュータブから離れる / AppEdit を離脱する際にサーバを止める。
+  // プレビュータブから離れる / AppEdit を離脱する際にサーバを止める。
   // 従来は停止経路が無く、macOS ではウィンドウを閉じてもポートを掴んだまま常駐していた
   ipc.handle('appedit:stop-preview', async () => {
     try {

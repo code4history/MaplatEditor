@@ -11,6 +11,6 @@ export default new ServiceBackedStorageAdapter({
   readMapForEdit: (uidOrMapID) => MapEditService.request(uidOrMapID),
   readMapForPreview: (uidOrMapID) => MapEditService.requestPreviewSource(uidOrMapID),
   saveMapForEdit: (request) => MapEditService.save(request),
-  // slugの可用性判定はasset_registry横断(map/app/base_map全kind)で一意性を見る (ADR-0007)
+  // slugの可用性判定はasset_registry横断(map/app/base_map全kind)で一意性を見る (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   isSlugAvailable: (slug, excludeUid) => SqliteDataService.isSlugAvailable(slug, excludeUid),
 });

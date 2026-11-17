@@ -4,10 +4,10 @@ import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { resolveAppListImage } from './resourceImageResolver';
 import MapPurposeService from './MapPurposeService';
 import SettingsService from './SettingsService';
-// nov26-m6-t5 §4.3: 保存の入口で画像の参照を UUID 名へ寄せる（移行と同じ規則）
+// 保存の入口で画像の参照を UUID 名へ寄せる（移行と同じ規則）
 import { normalizeAppImageRefs } from './assetImageRefs';
 
-// uid正準の保存要求/結果 (ADR-0007)。uid無指定は新規作成。
+// uid正準の保存要求/結果 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。uid無指定は新規作成。
 // expectedRevision は楽観ロック(不一致で revision-conflict を返す)
 export interface AppSaveRequest {
   document: any;
@@ -18,7 +18,7 @@ export interface AppSaveRequest {
   create?: boolean;
 }
 
-// nov26-m6-t5 §4.3: imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。
+// imageRefs は保存の入口で UUID 名へ寄せた画像の参照（寄せたキーだけ）。
 // 画面はこれを文書へ反映する（返さないと画面が旧名を持ち続け、保存のたびに新しい複製ができる）
 export type AppSaveResult =
   | { result: 'Success'; uid: string; slug: string; revision: number; imageRefs?: { splash?: string; iconSource?: string } }
@@ -36,7 +36,7 @@ class AppDataService {
   }
 
   // アプリの代表ビジュアル: アイコン → スプラッシュ → startFromがMaplat地図なら0/0/0タイル → null(NO IMAGE)
-  // M12-T1-HOTFIX-1: ロジック本体は共有 resolver（resourceImageResolver.resolveAppListImage）へ
+  // ロジック本体は共有 resolver（resourceImageResolver.resolveAppListImage）へ
   // 一元化（優先順位は従来どおり。search:apps 経路と同一実装）
   private async resolveAppImage(doc: any): Promise<string | null> {
     return resolveAppListImage(doc);
@@ -48,7 +48,7 @@ class AppDataService {
       const appID = doc.appID || doc._id;
       const lang = doc.lang || 'ja';
       return {
-        uid: doc.uid, // 一覧からの遷移・削除はuid正準 (ADR-0007)
+        uid: doc.uid, // 一覧からの遷移・削除はuid正準 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
         appID,
         title: this.getLocalizedTitle(doc.title || doc.appName, lang, appID),
         description: this.getLocalizedTitle(doc.description, lang, ''),
@@ -58,7 +58,7 @@ class AppDataService {
     return { ...rawResult, docs };
   }
 
-  // uid正準の読み出し (ADR-0007)。旧経路への保険としてslugフォールバックを残す
+  // uid正準の読み出し (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。旧経路への保険としてslugフォールバックを残す
   async getApp(uidOrSlug: string): Promise<any | null> {
     const doc = await SqliteDataService.findAppByRef(uidOrSlug);
     if (!doc) return null;
@@ -67,7 +67,7 @@ class AppDataService {
   }
 
   // 旧保存形のmaplatソース参照(mapID=slug)を読込時にuidへ解決し、表示用slugを補完する
-  // (ADR-0007)。孤児参照(該当地図なし)はそのまま残す(プレビュー時にエラーとして顕在化)。
+  // (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。孤児参照(該当地図なし)はそのまま残す(プレビュー時にエラーとして顕在化)。
   // 保存はレンダラが解決済みの新形(mapUid)で行うため、次回保存から新形で永続化される
   private async resolveMaplatSourceRefs(doc: any): Promise<void> {
     if (!Array.isArray(doc.sources)) return;
@@ -87,7 +87,7 @@ class AppDataService {
     }
   }
 
-  // uid正準の保存 (ADR-0007): uidなし=新規作成、uidあり=revision楽観ロック付きupsert。
+  // uid正準の保存 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uidなし=新規作成、uidあり=revision楽観ロック付きupsert。
   // slug衝突(グローバルnamespace)は 'Exist'、他ウィンドウ先行更新は revision-conflict
   async saveApp(request: AppSaveRequest): Promise<AppSaveResult> {
     const { document: requestedDocument } = request;
@@ -95,12 +95,12 @@ class AppDataService {
     const slug = String(request.slug || '').trim();
     if (!slug) return { result: 'Error' };
     try {
-      // M13-T1 (§2.7): strict_error / missing map を含む maplat 参照は保存自体を拒否する
+      // strict_error / missing map を含む maplat 参照は保存自体を拒否する
       // (AC-T1-2)。DB書き込み分岐より前・try ブロック先頭で判定する
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(requestedDocument), 'app-save'
       );
-      // nov26-m6-t5 §4.3 (R2-MIN-1): 移行前の下書き・1.1.x で入れ直した画像を拾う。UUID の形でない参照の
+      // 移行前の下書き・1.1.x で入れ直した画像を拾う。UUID の形でない参照の
       // 複製元が保存フォルダの中に実在すれば新しい UUID 名へ複製して置き換える（旧ファイルは消さない）。
       // 複製元が無い・外を指すものは旧名のまま保存し警告する。他のアプリの参照は変えない
       const { document, imageRefs } = await normalizeAppImageRefs(
@@ -137,7 +137,7 @@ class AppDataService {
       if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
         return { result: 'Exist' };
       }
-      // slug 予約 promote conflict(M11-T7/AC4)も duplicate として写像する
+      // slug 予約 promote conflictも duplicate として写像する
       if (e?.kind === 'slug-reservation-conflict') {
         return { result: 'Exist' };
       }

@@ -1,6 +1,6 @@
-// Slug Reservation Service (M11-T7)。
+// Slug Reservation Service。
 // 複数 MaplatEditor instance 間で slug を予約・移動・解放・昇格する機構。
-// 予約帰属の正本は asset_uid（§7.2/D2改）。draft_uid は GC の draft 存在判定専用、
+// 予約帰属の正本は asset_uid（/D2改）。draft_uid は GC の draft 存在判定専用、
 // instance_id は lease 管理専用で、いずれも所有判定には使わない。
 // electron の app/ipcMain には依存させず、DB 接続・instanceId・now を注入で受ける
 // 純関数ファクトリ（createSlugReservationService）にする。これにより service unit が
@@ -128,7 +128,7 @@ export function createSlugReservationService(deps: Deps) {
 
     check(p: { slug: string; excludeUid?: string }): SlugCheckResult {
       // registryを先に判定する。予約表にも異常な重複行がある場合でも、永続資産の
-      // occupied状態を公開契約の taken として優先する（§7.2/D2）。
+      // occupied状態を公開契約の taken として優先する（/D2）。
       const owner = registryOwner(p.slug);
       if (owner != null && owner !== p.excludeUid) return 'taken';
       const row = db.prepare(

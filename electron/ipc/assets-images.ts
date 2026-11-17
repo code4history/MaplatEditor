@@ -24,11 +24,11 @@ import { UUID_PATTERN } from '../adapters/StorageAdapter';
 const pickedPaths = createPickedPathStore();
 
 // token → パスを引き当て、拡張子 allowlist とサイズ上限を通ったものだけバイト列を返す。
-// renderer からパス文字列を受け取る口は作らない（任意ファイル読み出しの禁止。設計書 §8）。
+// renderer からパス文字列を受け取る口は作らない（任意ファイル読み出しの禁止）。
 async function readPickedSource(token: string) {
   const resolved = pickedPaths.resolve(token);
   if (!resolved.ok) return { ok: false as const, code: resolved.code };
-  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-2】選ばれたパスがリンクでも、リンク先の実体で拡張子を判定する
+  // 選ばれたパスがリンクでも、リンク先の実体で拡張子を判定する
   let filePath: string;
   try {
     filePath = await realpath(resolved.filePath);
@@ -39,7 +39,7 @@ async function readPickedSource(token: string) {
   const ext = path.extname(filePath).slice(1);
   const mime = mimeForPreviewExt(ext);
   if (!mime) return { ok: false as const, code: 'unsupported' as const };
-  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-1】stat と読み出しの間の伸び・差し替えに備え、開いた fd で
+  // stat と読み出しの間の伸び・差し替えに備え、開いた fd で
   // 種類と大きさを確かめ、上限＋1 バイトまでしか読まない（上限を超えて読んだら表示しない）
   let handle: Awaited<ReturnType<typeof open>> | null = null;
   try {
@@ -107,7 +107,7 @@ async function toAddInput(input: unknown) {
   };
 }
 
-// 画像アセット IPC (Phase 2 Task 4, ADR-0007)。channel prefix は imageassets:* を使う
+// 画像アセット IPC (Phase 2 Task 4, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は imageassets:* を使う
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
   // 読み元は token（選んだファイル）か duplicateFrom（複製元の uid）だけ。解決しなければファイルを開かずに返す。
@@ -130,7 +130,7 @@ export function registerImageAssetHandlers() {
     runGuarded('imageassets:update-metadata', () => imageAssetService.updateMetadata(uid, input)));
   ipc.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
   ipc.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
-  // 逆参照 (削除確認フローが使う。43 §7 の AID-006 と同型)
+  // 逆参照 (削除確認フローが使う。43 の AID-006 と同型)
   ipc.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
   // インポート用ファイル選択 (poisource:pickImportFile と同型。token とファイル名を返す)。SVG / webp は Jimp でデコードできず
   // add が invalid-request で拒否するため、フィルタから外す(選ばせても必ず失敗する形式を

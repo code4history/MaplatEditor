@@ -34,9 +34,9 @@ export interface IiifSection {
 
 export interface HistMapStore {
   title: LangResource;
-  // m19-t1: 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。m6-t2 の licenseNote /
-  //  m10-t3 の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
+  // 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。既存の変更の licenseNote /
+  //  既存の変更の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
   //  なった」のではなく「器そのものが最初から無く一度も保存されたことがない」)
   label: LangResource;
   attr: LangResource;
@@ -49,15 +49,15 @@ export interface HistMapStore {
   era: LangResource;
   license: string;
   dataLicense: string;
-  // m6-t2: ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。m10-t3 の pois と同じ穴)
+  // ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。既存の変更の pois と同じ穴)
   licenseNote: LangResource;
   dataLicenseNote: LangResource;
   contributor: LangResource;
   mapper: LangResource;
   reference: string;
   description: LangResource;
-  // M5-T2 (不変条件 I-1): url は利用者が指定する交換形のタイルURLテンプレート（単一文字列）であり、
+  // url は利用者が指定する交換形のタイルURLテンプレート（単一文字列）であり、
   // 多言語リソースではない。LangResource だったのは MaplatCore 側の i18n 分離時に
   // メタデータの型を一括拡張した際の巻き添えで、それがこの写しにも及んでいた
   url: string;

@@ -1,12 +1,12 @@
 // t1: Node 標準 zlib のみで実装するストリーミング ZIP 書き出し（ZIP64 対応・依存追加なし）。
 //
-// 背景（設計書 §1・§4.3）: adm-zip は zip 全体を「原本 + 圧縮後 + 連結後」の 3 重でメモリに
+// 背景: adm-zip は zip 全体を「原本 + 圧縮後 + 連結後」の 3 重でメモリに
 // 保持するため、2.14 GiB のアプリ搬出では最後の Buffer.alloc(totalSize) が RangeError で失敗し、
 // しかもその例外が zlib の非同期継続から投げられるため誰にも捕まらず IPC が孤児化していた。
 // 本実装は 1 エントリずつ読み・圧縮し・書き捨てるため、ピークメモリは
 // O(最大エントリのサイズ) + O(エントリ数 × 約 100B) に収まる。
 //
-// 出力互換性（設計書 §4.3.4）: エントリ名は '/' 区切り・ディレクトリエントリを作らない・
+// 出力互換性: エントリ名は '/' 区切り・ディレクトリエントリを作らない・
 // UTF-8 名前（general purpose flag 0x0800）— いずれも既存 adm-zip 出力と同一。
 // ZIP64 の飽和規則・EOCD64 定数は adm-zip 0.6.0 の headers/mainHeader.js と同一規則。
 import fs from 'fs-extra';
@@ -30,7 +30,7 @@ export type ZipWriteOptions = {
   storeThresholdBytes?: number;
 };
 
-// t1/AC3(b) の単体検査のために export する central directory レコード型（設計書 §4.3.1）
+// t1/の単体検査のために export する central directory レコード型
 export type CentralRecord = {
   entryName: string;
   crc: number;
@@ -47,7 +47,7 @@ const LIMIT_16 = 0xffff;
 const DEFAULT_STORE_THRESHOLD = 8 * 1024 * 1024;
 
 /**
- * oct26-m4-t1 (#103 MIN-2): 書出側エントリ名の自己防衛。
+ * 書出側エントリ名の自己防衛。
  * 読取側 `src/utils/poiPackage.ts` の `assertSafeArchiveEntries`（L31-53）の書出側相当を
  * 単独の判定関数として持つ（責務は「書出側で危険なエントリ名を埋め込まない」）。
  * 拒否する名前: 空文字 / `\` を含む / `/` で始まる / ドライブ文字（`/^[A-Za-z]:/`）/
@@ -66,7 +66,7 @@ function assertSafeWriteEntryName(entryName: string): void {
   }
 }
 
-// st.mtime から DOS 日時へ。1980 未満は 1980-01-01 00:00:00 に丸める（設計書 §4.3.2 step 4）
+// st.mtime から DOS 日時へ。1980 未満は 1980-01-01 00:00:00 に丸める（step 4）
 function toDosDateTime(mtime: Date): { dosTime: number; dosDate: number } {
   const d = mtime.getFullYear() < 1980 ? new Date(1980, 0, 1, 0, 0, 0) : mtime;
   const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
@@ -77,7 +77,7 @@ function toDosDateTime(mtime: Date): { dosTime: number; dosDate: number } {
 /**
  * Central directory header 1 件分のバイト列（zip64 拡張フィールドの付与を含む）。
  *
- * zip64 拡張（0x0001）の規則（設計書 §4.3.2 step 8。読み手は順序前提で解析するため確定仕様）:
+ * zip64 拡張（0x0001）の規則（step 8。読み手は順序前提で解析するため確定仕様）:
  * - 値が 0xFFFFFFFF 以上のフィールドは 32bit 側を 0xFFFFFFFF に飽和させ、64bit 真値を拡張へ入れる
  * - 拡張には**飽和したフィールドのみ**を uncompressedSize → compressedSize → localHeaderOffset の
  *   固定順で並べる（diskStart は常に 0 ∴ 飽和しない）
@@ -132,11 +132,11 @@ export function encodeCentralDirectoryHeader(rec: CentralRecord): Buffer {
 /**
  * EOCD（必要なら Zip64 EOCD record + locator を前置）のバイト列。
  *
- * 設計書 §4.3.2 step 10 の確定値:
+ * step 10 の確定値:
  * - needZip64 = entryCount >= 0xFFFF || centralDirSize >= 0xFFFFFFFF || centralDirOffset >= 0xFFFFFFFF
  *   （APPNOTE 4.4.21/4.4.22/4.4.24: 値がちょうど 0xFFFF / 0xFFFFFFFF のときも当該フィールドでは
  *   表現できず zip64 が必須 ∴ `>=`。encodeCentralDirectoryHeader の飽和判定とも同じ規則。
- *   adm-zip 0.6.0 mainHeader.js は `>` だがこれは APPNOTE からの逸脱 ∴ 追随しない — 実装レビュー v1 MIN-1）
+ *   adm-zip 0.6.0 mainHeader.js は `>` だがこれは APPNOTE からの逸脱 ∴ 追随しない — 実装レビュー v1）
  * - Zip64 EOCD record の size フィールド = 44（= レコード総長 56 − 12）
  * - Zip64 EOCD record の version made by / version needed = 45
  * - Zip64 EOCD locator の total number of disks = 1
@@ -182,7 +182,7 @@ export function encodeEndRecords(params: {
   return Buffer.concat([zip64, eocd]);
 }
 
-// Local file header（30 バイト + 名前）。設計書 §4.3.2 step 4:
+// Local file header（30 バイト + 名前）。step 4:
 // versionNeeded 20 固定（fail-fast により local 側の zip64 は発生しない）、flags 0x0800、
 // サイズは事前確定 ∴ data descriptor（bit 3）は使わない、extra は常に 0
 function encodeLocalFileHeader(rec: CentralRecord): Buffer {
@@ -207,7 +207,7 @@ function encodeLocalFileHeader(rec: CentralRecord): Buffer {
  * entries を targetPath へ 1 本の zip として**逐次**書き出す。
  * ピークメモリは O(最大エントリのサイズ) + O(エントリ数 × 約 100B)。
  * 失敗時は必ず reject し、実際に開けた targetPath（書きかけ）を削除する。
- * 'wx' で開けなかった既存ファイル・symlink は削除しない（実装レビュー MAJ-1）。
+ * 'wx' で開けなかった既存ファイル・symlink は削除しない。
  */
 export async function writeZipStreaming(
   targetPath: string,
@@ -215,11 +215,11 @@ export async function writeZipStreaming(
   options?: ZipWriteOptions,
 ): Promise<void> {
   const storeThreshold = options?.storeThresholdBytes ?? DEFAULT_STORE_THRESHOLD;
-  // oct26-m4-t1 (#103 MIN-2): エントリ名の書出側自己防衛。危険名はストリームを開く前に throw する
+  // エントリ名の書出側自己防衛。危険名はストリームを開く前に throw する
   for (const entry of entries) {
     assertSafeWriteEntryName(entry.entryName);
   }
-  // oct26-m4-t1 (#103 MIN-1): 既存ファイルを黙って上書きせず EEXIST で開けない 'wx' にする。
+  // 既存ファイルを黙って上書きせず EEXIST で開けない 'wx' にする。
   // 呼び出し元は一時 staging パスへ書き、成功後に fs.move するため既存ファイルとの衝突は起こらない
   const out = createWriteStream(targetPath, { flags: 'wx' });
   let streamError: Error | null = null;
@@ -228,7 +228,7 @@ export async function writeZipStreaming(
   });
   let offset = 0;
 
-  // stream.write() の戻り値が false のときは 'drain' を待つ（背圧を守る。設計書 §4.3.2）
+  // stream.write の戻り値が false のときは 'drain' を待つ（背圧を守る）
   const write = async (buf: Buffer): Promise<void> => {
     if (streamError) throw streamError;
     const ok = out.write(buf);
@@ -258,7 +258,7 @@ export async function writeZipStreaming(
     for (let i = 0; i < entries.length; i++) {
       const { entryName, localPath } = entries[i];
       const st = await fs.stat(localPath);
-      // 設計書 §4.3.2 step 1: local header 側の zip64（両サイズ 8B 必須規則）を実装しないための
+      // step 1: local header 側の zip64（両サイズ 8B 必須規則）を実装しないための
       // fail-fast。実データの最大ファイルは MB 級（レビュー I-2 実測）∴ 実害なし
       if (st.size >= LIMIT_32) {
         throw new Error(
@@ -270,7 +270,7 @@ export async function writeZipStreaming(
       const localHeaderOffset = offset;
 
       if (st.size > storeThreshold) {
-        // STORE ストリーム経路（設計書 §4.3.2 step 2）: CRC を先に確定させるため 2 パス読み出し。
+        // STORE ストリーム経路（step 2）: CRC を先に確定させるため 2 パス読み出し。
         // このコストは「稀な巨大ファイル」専用であることで許容する
         let crc = 0;
         for await (const chunk of createReadStream(localPath)) {
@@ -301,7 +301,7 @@ export async function writeZipStreaming(
         }
         centralRecords.push(rec);
       } else {
-        // 既定経路（設計書 §4.3.2 step 3）: 読み込み → CRC → deflateRaw。
+        // 既定経路（step 3）: 読み込み → CRC → deflateRaw。
         // 圧縮で膨らむ場合（圧縮済みタイル PNG/JPEG 等）は STORE へフォールバックする
         const raw = await fs.readFile(localPath);
         const crc = zlib.crc32(raw);
@@ -322,7 +322,7 @@ export async function writeZipStreaming(
         await write(payload);
         centralRecords.push(rec);
       }
-      // この await が同時にイベントループの譲りにもなる（設計書 §4.3.2 step 7）
+      // この await が同時にイベントループの譲りにもなる（step 7）
       if (options?.onEntry) await options.onEntry(i, entries.length);
     }
 
@@ -343,9 +343,9 @@ export async function writeZipStreaming(
     if (streamError) throw streamError;
   } catch (e) {
     out.destroy();
-    // 失敗時は書きかけの targetPath を残さない（設計書 §4.3.1 の契約）。
+    // 失敗時は書きかけの targetPath を残さない（契約）。
     // ただし 'wx' で開けなかった既存ファイル・symlink（streamError.code === 'EEXIST'）は
-    // 削除しない（実装レビュー MAJ-1）。'wx' の EEXIST は「対象パスが既に存在した」ことの
+    // 削除しない。'wx' の EEXIST は「対象パスが既に存在した」ことの
     // 唯一の信号であり、それを消すとデータ消失になる。open が成功した場合や fail-fast 等の
     // 自前 throw（streamError が null）は従来どおり書きかけを削除する。
     if ((streamError as (Error & { code?: string }) | null)?.code !== 'EEXIST') {

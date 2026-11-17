@@ -16,8 +16,8 @@ const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
-// m6-t8: TileJSON 3.0.0 出力の型（tiles は生成時点で自己参照の相対パス1本。
-// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える。設計 §3.4）
+// TileJSON 3.0.0 出力の型（tiles は生成時点で自己参照の相対パス1本。
+// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える。）
 export interface TileJsonDocument {
     tilejson: '3.0.0';
     tiles: [string];
@@ -26,7 +26,7 @@ export interface TileJsonDocument {
     bounds: [number, number, number, number];
 }
 
-// m6-t8 §3.4: タイル範囲（最大ズームでの west/east/north/south タイル index）から
+// タイル範囲（最大ズームでの west/east/north/south タイル index）から
 // TileJSON の bounds（経緯度 [west, south, east, north]）を導出する。
 // メルカトル座標への変換は既存 mercatorBboxToWgs84（electron/utils/webMercator.ts）を
 // そのまま再利用し、新規の逆変換ロジックは書かない（design review M-1）。
@@ -46,7 +46,7 @@ export function computeMercTileBounds(
     return mercatorBboxToWgs84([mercXWest, mercYSouth, mercXEast, mercYNorth]);
 }
 
-// m6-t8 §3.4: merc/{targetBaseMapUid}/tilejson.json として書き出す TileJSON 文書を組み立てる
+// merc/{targetBaseMapUid}/tilejson.json として書き出す TileJSON 文書を組み立てる
 export function buildMercTileJson(
     tileXw: number,
     tileXe: number,
@@ -87,7 +87,7 @@ export interface MercDecodeOptions {
 /**
  * バッファの SOF ヘッダから jpeg-js の会計要求量を予測し、機械の安全キャップ・設定キャップと
  * 突き合わせて Jimp.fromBuffer へ渡す実効値を決定する（純粋関数・実デコード不要）。
- * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害。§3.8）。
+ * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害。）。
  */
 export function resolveMercDecodeOptions(
     buffer: Buffer,
@@ -126,11 +126,10 @@ export function resolveMercDecodeOptions(
     return { maxMemoryUsageInMB: budget.recommendedMemoryMB, maxResolutionInMP: budget.recommendedResolutionMP };
 }
 
-// M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit.vueの
-// 新規「メルカトルタイル」タブから到達可能になった（M12-T22が転用予定としていた
-// M4-(2)に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
-// translation.json）は削除しない（§3.4参照）。
-// 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
+// 本クラスへのUI導線は一度撤去されていたが、その後 MapEdit.vueの
+// 新規「メルカトルタイル」タブから到達可能になった（以前から転用を予定していた
+// 地図からのタイル生成に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
+// translation.json）は削除しない（参照）。
 class WmtsGeneratorService {
     private get folders() {
         const saveFolder = SettingsService.get('saveFolder') as string;
@@ -157,17 +156,17 @@ class WmtsGeneratorService {
 
             extKey = extKey || 'jpg';
             const { mercFolder } = this.folders;
-            // M13-T2 (§5.4): originals の runtime read は canonical(uid キー)-first、
+            // originals の runtime read は canonical(uid キー)-first、
             // canonical 不在時のみ一意な legacy(slug キー) fallback で解決する
             const resolved = await resolveRuntimeOriginal(uid, mapID, extKey);
             if (!resolved) {
-                // タスク設計レビュー v1 Minor 6: strict_error キーの流用をやめ、専用の非 i18n
+                // タスクstrict_error キーの流用をやめ、専用の非 i18n
                 // 診断文字列を確定する。renderer 側 wmtsGenerate() は arg.err を
-                // console.error するだけで、表示は既存の汎用 merc.error_generation（m6-t8）
+                // console.error するだけで、表示は既存の汎用 merc.error_generation
                 return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };
             }
             const imagePath = resolved.path;
-            // m6-t8 (ADR-0016): タイルの所有者は元地図ではなく出力先ベースマップの UID
+            // タイルの所有者は元地図ではなく出力先ベースマップの UID
             const tileRoot  = path.join(mercFolder, targetBaseMapUid);
 
             // 実装レビュー M-2: デコードもタイル化も始める前に判定する（MapUploadService.imageCutter
@@ -238,8 +237,8 @@ class WmtsGeneratorService {
 
             // --- プログレス ---
             // 実装レビュー M-1: 進捗イベントのテキストキーは modalProgress() 経由でモーダル本文を
-            // 上書きするため、ADR-0015（UIから "WMTS" を排除）に従い merc.* を使う
-            // （呼び出し元は m6-t8 の新規 merc タブのみ。wmtsgenerate.generating_tile は
+            // 上書きするため、公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり（UIから "WMTS" を排除）に従い merc.* を使う
+            // （呼び出し元は 既存の変更の新規 merc タブのみ。wmtsgenerate.generating_tile は
             // もう参照されない）
             const reporter = new ProgressReporter(
                 'mapedit:taskProgress',
@@ -271,7 +270,7 @@ class WmtsGeneratorService {
                 reporter.update(i + 1);
             }
 
-            // m6-t8 §3.4: 生成時点で tilejson.json を書く（tiles は自己参照の相対パス。
+            // 生成時点で tilejson.json を書く（tiles は自己参照の相対パス。
             // 書き出し時のディレクトリ名はまだ定まっていないため、後で AppExportService 側が差し替える）
             const tileJson = buildMercTileJson(tileXw, tileXe, tileYn, tileYs, minZoom, maxZoom);
             await fs.outputJson(path.join(tileRoot, 'tilejson.json'), tileJson);

@@ -7,7 +7,7 @@ import recursiveFs from 'recursive-fs';
 import SettingsService from '../services/SettingsService';
 import * as storeHandler from './store_handler';
 import { compactIiifCopiedMetadata, compactMapLangFields } from '../../src/utils/langResource';
-// m19-t5: 読み込み元（uid キー）と ZIP 内の出力名（slug 名）の双方を派生規約の単一モジュールから導く
+// 読み込み元（uid キー）と ZIP 内の出力名（slug 名）の双方を派生規約の単一モジュールから導く
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { ProgressReporter } from './ProgressReporter';
 // IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
@@ -29,14 +29,14 @@ import {
   type MapExportOptions,
 } from '../../src/utils/exportOptions';
 
-// download 用の交換形 map JSON を組み立てる (M2)。histMap2Store + 言語畳み込みの後、
+// download 用の交換形 map JSON を組み立てる。histMap2Store + 言語畳み込みの後、
 // pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
 // (AppExportService/AppPreviewService と同じ viewer 互換の扱いに統一)。
-// icon 参照文法も同時に imgs/... へ解決され (POI-117, M1)、実体コピー要求 files を返す
+// icon 参照文法も同時に imgs/... へ解決され (POI-117, )、実体コピー要求 files を返す
 // (呼び出し側が ZIP の imgs/... へ同梱する)。
 // mapedit:download / mapedit:download-saved の戻り値は 'Success'|'Canceled'|'Error' の文字列契約を保つため、
 // warnings はここでは返すのみに留め、呼び出し側で console.warn するか判断させる
-// (M13-T1: mapedit.ts:65-82 からそのまま移設。ロジック変更なし)
+// (mapedit.ts:65-82 からそのまま移設。ロジック変更なし)
 export async function composeDownloadMapJson(
   mapObject: any, tins: any[]
 ): Promise<{ compiled: any; warnings: string[]; files: IconFile[]; documents: PoiDocument[] }> {
@@ -45,7 +45,7 @@ export async function composeDownloadMapJson(
   const compiled = compactIiifCopiedMetadata(
     compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins)),
   );
-  // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
+  // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   delete (compiled as any).uid;
   delete (compiled as any).slug;
   delete (compiled as any).revision;
@@ -53,7 +53,7 @@ export async function composeDownloadMapJson(
   let files: IconFile[] = [];
   let documents: PoiDocument[] = [];
 
-  // M5-T4B: POI の読み出しを **app 搬出と同じ readAppDocumentPois へ寄せる**。
+  // POI の読み出しを **app 搬出と同じ readAppDocumentPois へ寄せる**。
   //
   // 従来はここが `Array.isArray((compiled as any).pois)` の生判定だった。∴ 単独形
   // (レイヤ1つを配列に包まず直接置く形) の地図では if 節に入らず、pois が
@@ -63,11 +63,11 @@ export async function composeDownloadMapJson(
   //       ∴ 利用者から見て POI が失われる
   //   (2) icon / maplat-asset: の実体が manifest へ集まらず ZIP に同梱されない
   //
-  // m4-t4 は同じ欠陥を **app 側でだけ** 是正した (AppExportService の該当コメントが
+  // 既存の変更は同じ欠陥を **app 側でだけ** 是正した (AppExportService の該当コメントが
   // 「map 側だけ生判定だったため単独形の地図で POI が丸ごと落ちていた・実データ3件が該当」
   // と記録している)。その是正が地図 ZIP 側に及んでいなかったのを本タスクで揃える
   // (恒久指示「同一扱い処理は共通実装へ徹底」)。
-  // M5-T4B: 解決を resolvePoisArray (インライン FC 化) から共通 API へ移す。
+  // 解決を resolvePoisArray (インライン FC 化) から共通 API へ移す。
   // externalizeMapDocumentPois は **アプリ搬出と共有する唯一の実装**であり、
   // 読み出し (readAppDocumentPois) と外部化 (externalizePoisArray) を1本に束ねる。
   // ctx の寿命は **搬出1回＝地図1枚**である (app 搬出は app + 全 map で1つを共有する。
@@ -83,7 +83,7 @@ export async function composeDownloadMapJson(
 }
 
 // mapedit.ts:171-227 (旧 mapedit:download ハンドラ本体) から compose 呼び出し以降を統合。
-// compose を内部で呼ぶため mapObject/tins を受け取る (M13-T1: §2.6)。
+// compose を内部で呼ぶため mapObject/tins を受け取る。
 // tmpFolder/saveFolder/tileFolder/thumbFolder の解決は SettingsService を使用する (既存と同一)
 export async function buildAndWriteMapZip(
   win: BrowserWindow,
@@ -92,7 +92,7 @@ export async function buildAndWriteMapZip(
   slug: string,
   fileKey: string,
   targetFilePath: string,
-  // nov26-m6-t8（#113）: 書き出す中身。省略時は既定（現行と同じ: タイルと JSON。原画像なし）
+  // #113: 書き出す中身。省略時は既定（現行と同じ: タイルと JSON。原画像なし）
   options: MapExportOptions = DEFAULT_MAP_EXPORT_OPTIONS,
 ): Promise<void> {
   const tmpFolder = SettingsService.get('tmpFolder') as string;
@@ -102,9 +102,9 @@ export async function buildAndWriteMapZip(
 
   // histMap2Store で store 形式に変換してから JSON 保存。
   // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
-  // プレーン文字列に畳み込む (ADR-0005)。pois 内の {poiUid} 参照は export 形 FC へ
-  // 解決する (viewer 互換, M2)。renderer には warnings を表示する経路が未配線のため
-  // console.warn で可視化するに留める (判断根拠は Phase 7 品質レビュー M2 参照)
+  // プレーン文字列に畳み込む (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。pois 内の {poiUid} 参照は export 形 FC へ
+  // 解決する (viewer 互換, )。renderer には warnings を表示する経路が未配線のため
+  // console.warn で可視化するに留める (判断根拠は Phase 7 品質レビュー 参照)
   const { compiled, warnings, files, documents } = await composeDownloadMapJson(mapObject, tins);
   if (warnings.length > 0) {
     console.warn('[mapDownloadZip] POI reference warnings:', warnings);
@@ -113,7 +113,7 @@ export async function buildAndWriteMapZip(
   await fs.ensureDir(tmpFolder);
   await fs.writeFile(tmpFile, JSON.stringify(compiled));
 
-  // M5-T4B: 外部化した POI 実体 (pois/<name>.geojson) を一時領域へ書き出す。
+  // 外部化した POI 実体 (pois/<name>.geojson) を一時領域へ書き出す。
   // map JSON の pois が指す dest と 1:1 で対応する ∴ ここを書かないと
   // **参照だけがあって実体が無い ZIP** になる。
   //
@@ -126,7 +126,7 @@ export async function buildAndWriteMapZip(
   await fs.remove(poiStageDir).catch(() => undefined);
   const poiTmpFiles = await writePoiDocuments(poiStageDir, documents);
 
-  // nov26-m6-t8（#113・タスク設計 §3.1）: 区分ごとに積む。
+  // （#113）: 区分ごとに積む。
   //   json      = maps/{slug}.json・pois/*.geojson・imgs/…
   //   tiles     = tmbs/{slug}.jpg・512px・tiles/{slug}/…
   //   originals = originals/{slug}.{ext}
@@ -136,8 +136,8 @@ export async function buildAndWriteMapZip(
     [path.join(thumbFolder, `${fileKey}.jpg`), 'tmbs', `${slug}.jpg`],
   ];
 
-  // M5-T4B: 512px サムネイル (M12-T15 (G) で app 搬出には入っていたが地図 ZIP には無かった)。
-  // 読み込みは uid キー、ZIP 内は slug 名 (ADR-0007)。
+  // 512px サムネイル ((G) で app 搬出には入っていたが地図 ZIP には無かった)。
+  // 読み込みは uid キー、ZIP 内は slug 名 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
   // **旧 ZIP 互換のため実体が無い場合は黙って省略する** — targets は下の addLocalFile が
   // fs.existsSync で存在確認するため、ここへ積むだけで不在時は自動的にスキップされる
   // (通常サムネイル・タイルと同じ扱い)。
@@ -145,7 +145,7 @@ export async function buildAndWriteMapZip(
   const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'))!;
   tileTargets.push([path.join(saveFolder, src512), path.posix.dirname(out512), path.posix.basename(out512)]);
 
-  // M5-T4B: 外部化した POI 実体を pois/<name>.geojson として同梱する
+  // 外部化した POI 実体を pois/<name>.geojson として同梱する
   for (let i = 0; i < documents.length; i++) {
     jsonTargets.push([poiTmpFiles[i], 'pois', path.posix.basename(documents[i].dest)]);
   }
@@ -177,7 +177,7 @@ export async function buildAndWriteMapZip(
     } catch (_e) { /* タイルなし */ }
   }
 
-  // 原画像（選んだときだけ）。内部は uid キー、ZIP 内は slug 名（ADR-0007）。実体が無ければ黙って省く
+  // 原画像（選んだときだけ）。内部は uid キー、ZIP 内は slug 名（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり）。実体が無ければ黙って省く
   const originalTargets: [string, string, string][] = [];
   if (options.originals) {
     const original = await resolveRuntimeOriginal(
@@ -196,9 +196,9 @@ export async function buildAndWriteMapZip(
   if (options.tiles) targets.push(...tileFileTargets);
   targets.push(...originalTargets);
 
-  // 目録（T8-MIN-1）: **実際に積んだ**区分を書く。tiles は tiles/{slug}/… が 1 件以上あり、
-  // かつ tmbs/{slug}.jpg が実在するときだけ true（申し送り T8-R2-MIN-1）。
-  // contents が既定と同じなら目録を入れない ∴ 既定の書き出し物は現行とバイト単位で同じ中身になる（AC2）
+  // 目録: **実際に積んだ**区分を書く。tiles は tiles/{slug}/… が 1 件以上あり、
+  // かつ tmbs/{slug}.jpg が実在するときだけ true（申し送り）。
+  // contents が既定と同じなら目録を入れない ∴ 既定の書き出し物は現行とバイト単位で同じ中身になる
   const exists = (target: [string, string, string]) => fs.existsSync(target[0]);
   const contents: MapExportOptions = {
     tiles: options.tiles && !iiifDelivery && tileFileTargets.some(exists) && exists(tileTargets[0]),
@@ -212,7 +212,7 @@ export async function buildAndWriteMapZip(
     targets.push([manifestFile, '', EXPORT_MANIFEST_NAME]);
   }
 
-  // oct26-m4-t1 (#98 残経路1・#102): 全メモリ方式の zip 書き出しを writeZipStreaming へ寄せる。
+  // 全メモリ方式の zip 書き出しを writeZipStreaming へ寄せる。
   // targets（[localPath, zipDir, zipName]）を、実在ファイルだけ ZipSourceEntry へ写像する
   // （fs.existsSync スキップは従来と同じ）。エントリ名は [zipDir, zipName] を '/' で繋ぐ
   // （AppExportService の前例と同一規則。zipDir が空のときは zipName のみ）。
@@ -233,7 +233,7 @@ export async function buildAndWriteMapZip(
   reporter.update(0);
 
   const zipFilePath = path.join(tmpFolder, `${slug}.zip`);
-  // oct26-m4-t1（設計レビュー MIN-2）: staging パスは slug 由来の決定的パス。'wx' 化後は
+  // staging パスは slug 由来の決定的パス。'wx' 化後は
   // 残留ファイルがあると EEXIST で地図 DL が失敗し得るため、書き出し前に非存在を保証する
   // （poiStageDir の先行削除と同じ既存慣行。成功時は fs.move が staging を移動して消える）。
   await fs.remove(zipFilePath).catch(() => undefined);
@@ -244,7 +244,7 @@ export async function buildAndWriteMapZip(
 
   await fs.remove(tmpFile);
   if (manifestFile) await fs.remove(manifestFile).catch(() => undefined);
-  // M5-T4B: 外部化 POI の一時領域も後始末する
+  // 外部化 POI の一時領域も後始末する
   await fs.remove(poiStageDir).catch(() => undefined);
   await fs.move(zipFilePath, targetFilePath, { overwrite: true });
 }

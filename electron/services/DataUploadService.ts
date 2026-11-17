@@ -39,19 +39,19 @@ import {
 import { normalizeOriginalExt } from './MapOriginalImageService';
 import { isAllowedDeliveryUrl } from '../../src/utils/ipClassify';
 
-// m19-t5 (§8.3): 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
+// 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
 // **これは読み込み側の fallback 分岐ではない。** 受け取った交換ファイルを 1 件だけ拾い、
 // thumb512PathFor が返す唯一のパス（正規形）へ**書き直す**ための、書き込み側の正規化である
-// （sp-0006: 正規化は書き込み側へ・二重状態を作らない）。
-// 旧 ZIP（0.7.0 期〜M12-T15 期）は 512px を JPEG で同梱しており、正規形で来るとは限らない。
+// （正規化は書き込み側へ・二重状態を作らない）。
+// 旧 ZIP（0.7.0 期〜期）は 512px を JPEG で同梱しており、正規形で来るとは限らない。
 const THUMB_512_IMPORT_EXT_CANDIDATES = [THUMB_512_EXT ?? 'jpg', 'jpg', 'jpeg', 'png'];
 
-// oct26-m4-t1 (#98 item 3): 読取側の 2 GiB 上限。adm-zip は 2 GiB 超の zip を読めない
-// （ERR_FS_FILE_TOO_LARGE を実測）。定数と判定は nov26-m6-t3 で electron/utils/zipImportGuard.ts へ
+// 読取側の 2 GiB 上限。adm-zip は 2 GiB 超の zip を読めない
+// （ERR_FS_FILE_TOO_LARGE を実測）。定数と判定は 既存の変更で electron/utils/zipImportGuard.ts へ
 // 移した（POI 単体の取り込み〔PoiPackageService.importPoiZip〕も同じ上限を使う）。
 
-// M5-T4B (実装レビュー Major-1): restore 失敗経路で先に走った補償の残留を、
+// restore 失敗経路で先に走った補償の残留を、
 // throw する Error へ添えて外側へ運ぶための添え札。
 // 例外の identity（型・message・stack）は保つ ∴ 既存の失敗契約は変わらない。
 const RESIDUE_ON_ERROR = Symbol.for('maplat.compensationResidue');
@@ -69,7 +69,7 @@ function detachResidue(error: unknown): CompensationResidue[] {
     return Array.isArray(carried) ? (carried as CompensationResidue[]) : [];
 }
 
-// M5-T4B: 逆変換の入口は **map JSON の pois 配列** である。
+// 逆変換の入口は **map JSON の pois 配列** である。
 // ZIP のファイル一覧を起点にしてはならない — ファイル一覧は実体の供給元にすぎず、
 // 順序・上書き属性・重複参照・透過要素の情報は **すべて map JSON の pois にしかない**。
 const MANAGED_POI_DEST = /^pois\/[^/]+\.geojson$/i;
@@ -112,9 +112,9 @@ class DataUploadService {
     }
 
     /**
-     * M5-T4B: map JSON が参照する managed POI を editor 正本形へ復元する。
+     * map JSON が参照する managed POI を editor 正本形へ復元する。
      *
-     * **入口は map JSON の pois 配列**（§5.2）。ZIP のファイル一覧は実体の供給元にすぎない。
+     * **入口は map JSON の pois 配列**。ZIP のファイル一覧は実体の供給元にすぎない。
      * 配列の順序と要素数を保存し、管理下 entry だけを { poiUid, …上書き } へ戻す。
      * 上書き属性は wrapper 側に載せたままにする（FC へ焼き込まない）。
      *
@@ -176,7 +176,7 @@ class DataUploadService {
             // ここで失敗した場合、asset と作成済み source を巻き戻してから投げ直す。
             // map 行はまだ無いので補償対象は2つだけである。
             //
-            // M5-T4B (実装レビュー Major-1): **内側の residue を捨てない**。
+            // **内側の residue を捨てない**。
             // 従来は戻り値を捨てて rethrow しており、外側 catch では restored が null のため
             // 拾い直せず、この経路で asset が retained になっても poi_sources の削除に失敗しても
             // 「残留なし」として申告されていた（I-4c 違反）。
@@ -197,7 +197,7 @@ class DataUploadService {
     }
 
     /**
-     * M5-T4B: 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（I-4c）。
+     * 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（I-4c）。
      * 順序: 配置済みファイル → map 行 → poi_sources → asset
      */
     private async compensate(handle: {
@@ -209,7 +209,7 @@ class DataUploadService {
         const residue: CompensationResidue[] = [];
 
         // 1) 配置済みの tile・通常/512px サムネイル（新規 UID 配下のみ）
-        //    M5-T4B (実装レビュー Major-1): 削除できなければ **残留として申告する**。
+        //    削除できなければ **残留として申告する**。
         //    console.warn だけだと、タイル数百 MB が live path に残ったまま
         //    「完全に巻き戻した」と申告されてしまう（I-4c 違反）
         for (const p of handle.placedPaths ?? []) {
@@ -256,7 +256,7 @@ class DataUploadService {
         const { tileFolder, uiThumbnailFolder, tmpFolder } = this.folders;
         const dataTmpFolder = path.join(tmpFolder, 'zip');
 
-        // M5-T4B: 補償ハンドル。作成に成功したものだけを積み、失敗時に逆順で巻き戻す
+        // 補償ハンドル。作成に成功したものだけを積み、失敗時に逆順で巻き戻す
         const placedPaths: string[] = [];
         let mapUid: string | undefined;
         let restored: {
@@ -270,14 +270,14 @@ class DataUploadService {
             await fs.remove(dataTmpFolder);
             await fs.ensureDir(dataTmpFolder);
 
-            // oct26-m4-t1 (#98 item 3・#102 読取側): 読取側 2 GiB 上限の fail-fast ガード。
+            // 読取側 2 GiB 上限の fail-fast ガード。
             // new AdmZip より前にサイズ検査し、ERR_FS_FILE_TOO_LARGE ではなく決定的で
             // ユーザー可視なエラーへ写像する（既存 catch が { err: message } へ写像するため、
             // 孤児化や不可視の失敗にならない）。> 2 GiB の地図 ZIP を実際に import できる
             // 完全ストリーミング読取は依存追加を要する機能追加で、脆弱性是正のタスクでは扱わない
-            // （oct26-m5-t16 設計 §10 で範囲外と記録し、oct26-m8-t1 の棚卸しへ回した）。
+            // （既存の変更で範囲外と記録し、既存の変更の棚卸しへ回した）。
             const zipSize = (await fs.stat(zipFile)).size;
-            // nov26-m6-t3 (#98): 比較の式はこの文字列のまま残す（oct26-m4-t1 の smoke がソースで探す）。
+            // 比較の式はこの文字列のまま残す（smoke がソースで探す）。
             // 投げる例外は ZipImportError('too-large') ∴ 外側の catch が利用者向けのコード 'TooLarge' へ写す
             if (zipSize > ZIP_IMPORT_MAX_BYTES) {
                 throw new ZipImportError(
@@ -293,7 +293,7 @@ class DataUploadService {
             await assertZipImportable(zipFile, 'Map package');
             const zip = new AdmZip(zipFile);
 
-            // M5-T4 (§6.2.7b): 安全検証は **extractAllTo の前** に、**全 entry へ**、
+            // 安全検証は **extractAllTo の前** に、**全 entry へ**、
             // **無条件で** 走らせる。
             //
             // extractAllTo は全 entry を無検証のままファイルシステムへ書くため、
@@ -306,7 +306,7 @@ class DataUploadService {
             // 契約として保証されたものではない）。呼び出し側で明示的に検証する。
             //
             // ここで throw しても **まだ何も書いていない** ため、補償は不要である
-            // （完全ロールバック。§6.3.2 の residue は付かない）。
+            // （完全ロールバック。の residue は付かない）。
             const entryInfos = zipEntryInfos(zip, 'map package');
             assertArchiveStructure(entryInfos, zipSize, 'map package');
             assertSafeArchiveEntries(entryInfos, 'map package');
@@ -314,7 +314,7 @@ class DataUploadService {
 
             zip.extractAllTo(dataTmpFolder, true);
 
-            // nov26-m6-t8（T8-MIN-1）: 目録を先に読む。無ければ既定の中身（タイルと JSON）とみなす。
+            // 目録を先に読む。無ければ既定の中身（タイルと JSON）とみなす。
             // 壊れた目録・未知の version は「目録なし」と同じに扱わず 'Corrupt'（途中で切れた・別物の zip）
             let contents: MapExportOptions = { ...DEFAULT_MAP_EXPORT_OPTIONS };
             const manifestPath = path.join(dataTmpFolder, EXPORT_MANIFEST_NAME);
@@ -336,7 +336,7 @@ class DataUploadService {
             const tmbTmpFolder  = path.join(dataTmpFolder, 'tmbs');
             const originalTmpFolder = path.join(dataTmpFolder, 'originals');
 
-            // nov26-m6-t8: maps/ が無い・空なら決定的な 'NoJson'（従来は ENOENT 等の原文が出ていた）
+            // maps/ が無い・空なら決定的な 'NoJson'（従来は ENOENT 等の原文が出ていた）
             const mapFiles = fs.existsSync(mapTmpFolder)
                 ? (await fs.readdir(mapTmpFolder)).filter((name) => name.toLowerCase().endsWith('.json'))
                 : [];
@@ -360,10 +360,10 @@ class DataUploadService {
             const tilePath  = path.join(tileTmpFolder, mapID);
             const tmbPath   = path.join(tmbTmpFolder, `${mapID}.jpg`);
 
-            // --- バリデーション (slugはグローバル一意: ADR-0007) ---
-            // M5-T5: 同名 slug は 'Exist' で拒否せず自動解決するため、ここでの slug 検査は
+            // --- バリデーション (slugはグローバル一意: 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) ---
+            // 同名 slug は 'Exist' で拒否せず自動解決するため、ここでの slug 検査は
             // 無くなった。構造的な欠落 (タイル・サムネイル) だけを先に弾く。
-            // nov26-m6-t8: 目録が「タイルを入れなかった」と言うときだけ欠けを許す。
+            // 目録が「タイルを入れなかった」と言うときだけ欠けを許す。
             // 目録の無い zip（既定・旧い版の書き出し物）の欠けは従来どおり壊れた書き出し物として止める
             const hasTiles = fs.existsSync(tilePath);
             const hasTmb = fs.existsSync(tmbPath);
@@ -393,7 +393,7 @@ class DataUploadService {
                 delete (mapData as any).imageExtention;
             }
 
-            // --- M5-T4B: 準備 — 外部 POI を editor 正本形へ復元する ---
+            // --- 準備 — 外部 POI を editor 正本形へ復元する ---
             // **map を保存する前**に行う。保存後だと、復元に失敗したとき既に map 行が
             // 出来ており補償対象が増える。復元が失敗した場合は restoreManagedPois が
             // 自前で asset / source を巻き戻して throw する（map 行はまだ無い）
@@ -409,33 +409,33 @@ class DataUploadService {
                 (mapData as any).pois = restored.pois;
             }
 
-            // --- M5-T5: 地図 slug の解決 ---
+            // --- 地図 slug の解決 ---
             // 同名 slug を 'Exist' で拒否せず、POI import と同じ空き slug 解決へ揃える
             // (base, base-2 … base-100)。規則は共有 API resolveImportSlug が正本。
             //
             // 【解決は restoreManagedPois の **後** で行う】
-            // slug は asset 種別を跨いで一意 (ADR-0007) であり、POI 復元は同じ import の中で
+            // slug は asset 種別を跨いで一意 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) であり、POI 復元は同じ import の中で
             // poi_sources の slug を消費する。復元より前に解決すると、その結果は復元が
             // 走った時点で古くなり、createMap が自分自身の import に負ける。
             // 解決は **書込の直前** に置くのが唯一正しい位置である。
             //
             // 【slug の3系統を混同しない】
             //   読み出し (ZIP 内)   = 元 slug   … ZIP の中身は搬出時の名前のまま
-            //   内部格納             = uid       … ADR-0007。既に slug 非依存
+            //   内部格納             = uid       … 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり。既に slug 非依存
             //   DB / 返却 / 再搬出名 = 解決後 slug … 一意性の正本
             // 読みを解決後 slug にすると衝突時に NoTile/NoTmb へ化ける (ZIP にその名前は無い)。
             const resolvedSlug = await resolveImportSlug(mapID);
             if (resolvedSlug === null) throw 'Exist'; // base-100 まで枯渇
 
             // --- raw mapData をそのまま新規作成 (uidが採番される) ---
-            // M5-T4B: pois は復元済みの内部形（{poiUid, …上書き}）で永続化される
-            // M5-T5: slug は解決後の値。data_json 側は normalizeMapDocument が mapID を
-            // 落とすため、slug の正本は行の slug 列だけになる (ADR-0007)。
+            // pois は復元済みの内部形（{poiUid, …上書き}）で永続化される
+            // slug は解決後の値。data_json 側は normalizeMapDocument が mapID を
+            // 落とすため、slug の正本は行の slug 列だけになる (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
             let uid: string;
             try {
               ({ uid } = await SqliteDataService.createMap(resolvedSlug, mapData));
             } catch (e: any) {
-              // M5-T5 §5.4: 解決後 slug が createMap 到達までに先取りされた (レース)。
+              // 解決後 slug が createMap 到達までに先取りされた (レース)。
               // 意味は枯渇と同じ「この slug では取り込めない」∴ 'Exist' へ写像し、
               // renderer の既存分岐へ載せる (再試行すれば次の候補で成功する)。
               //
@@ -451,11 +451,11 @@ class DataUploadService {
             }
             mapUid = uid;
 
-            // 内部ファイル(tiles/tmbs)はuidキーに置く (ADR-0007)。zip内はslug名
+            // 内部ファイル(tiles/tmbs)はuidキーに置く (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。zip内はslug名
             const tileToPath = path.join(tileFolder, uid);
             const tmbToPath  = path.join(uiThumbnailFolder, `${uid}.jpg`);
 
-            // タイルとサムネイルを移動（nov26-m6-t8: 目録が外したものは無いまま登録する）
+            // タイルとサムネイルを移動（目録が外したものは無いまま登録する）
             if (hasTiles) {
                 await fs.remove(tileToPath);
                 await fs.move(tilePath, tileToPath);
@@ -467,7 +467,7 @@ class DataUploadService {
                 placedPaths.push(tmbToPath);
             }
 
-            // nov26-m6-t8: 原画像は originals/<新しい uid>.<ext> へ置く（ADR-0007: 内部は uid・zip 内は slug）
+            // 原画像は originals/<新しい uid>.<ext> へ置く（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: 内部は uid・zip 内は slug）
             if (originalFrom) {
                 const originalToPath = path.join(SettingsService.get('saveFolder') as string, 'originals', `${uid}.${originalFrom.ext}`);
                 await fs.ensureDir(path.dirname(originalToPath));
@@ -476,8 +476,8 @@ class DataUploadService {
                 placedPaths.push(originalToPath);
             }
 
-            // M5-T4B: 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う。
-            // m19-t5 (§8.3): 入力の拡張子は交換形式の世代によって異なるため候補から 1 件だけ拾い、
+            // 512px サムネイル。**旧 ZIP 互換のため入力に無い場合は保存対象なし**として扱う。
+            // 入力の拡張子は交換形式の世代によって異なるため候補から 1 件だけ拾い、
             // 正規形（thumb512PathFor が返す唯一のパス）へ置く。正規形以外で来たものは transcode する
             // （＝受け取った時点で正規化し、以後は読み込み側に分岐を残さない）。
             const tmb512ToRel = thumb512PathFor(thumb52PathFor(uid, 'jpg'));
@@ -503,21 +503,21 @@ class DataUploadService {
 
             // --- 原版の normalizeRequestData 相当 ---
             // store2HistMap で store 形式 → histMap 形式に変換。
-            // M5-T3: byCompiled=true は MapEditService.request と同じ値。renderer は import 経路でも
+            // byCompiled=true は MapEditService.request と同じ値。renderer は import 経路でも
             // 通常読み込み経路でも tins の各要素を Tin.setCompiled() へ渡すため、生 Compiled 形が要る
             // （byCompiled=false が返す Transform インスタンスは IPC の structured clone で
             // プロトタイプを失い、own-property も Compiled の形ではない）。
             // compiled を持たない層は createTinFromGcpsAsync が常に文字列 sentinel を返すため
             // byCompiled の影響を受けない
             const [histMap, tins] = await storeHandler.store2HistMap(mapData as any, true);
-            // M5-T5: 返却する mapID は **解決後 slug**（DB の slug と一致させる）。
+            // 返却する mapID は **解決後 slug**（DB の slug と一致させる）。
             // ZIP 内の読み出しに使った元 slug (mapID) とは別物である。
             (histMap as any).mapID  = resolvedSlug;
             (histMap as any).uid = uid;
             (histMap as any).revision = 1;
             (histMap as any).status = 'Update';
 
-            // M5-T3: url_ の導出は共通実装 deriveRuntimeTileUrl() が正本
+            // url_ の導出は共通実装 deriveRuntimeTileUrl が正本
             // （MapEditService.normalizeRequestData と同一。二重実装の一本化）
             const url_ = await deriveRuntimeTileUrl(mapData, path.join(tileToPath, '0', '0'));
             if (url_) (histMap as any).url_ = url_;
@@ -525,10 +525,10 @@ class DataUploadService {
             return { mapData: histMap, tins };
         } catch (err: any) {
             console.error('[DataUploadService] extractZip error', err);
-            // nov26-m6-t3 (#98・#116): 大きすぎる ZIP と壊れた ZIP（adm-zip・zlib の読み取りの例外）は
+            // 大きすぎる ZIP と壊れた ZIP（adm-zip・zlib の読み取りの例外）は
             // 利用者向けのコードへ写す（MapEdit が固定文の i18n を出す）。原文は上の console.error だけ。
-            // 重複名（duplicate-entry）は写さない（設計 §3.1 は too-large・corrupt の 2 つだけ。
-            // m5-t4 の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
+            // 重複名（duplicate-entry）は写さない（は too-large・corrupt の 2 つだけ。
+            // 既存の変更の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
             const zipError = classifyZipReadError(err);
             // 件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries（「2 GiB を超える」とは別の文言）
@@ -541,7 +541,7 @@ class DataUploadService {
                     ? 'Corrupt'
                     : typeof err === 'string' ? err : (err.message || 'Unknown');
 
-            // M5-T4B (I-4c): 補償し、**到達できなかったものを残留として申告する**。
+            // 補償し、**到達できなかったものを残留として申告する**。
             // 補償が全て到達した場合のみ従来どおり { err } を返す。
             // 残留が1件でもあれば residue を付ける ∴ 呼び出し側は 'residue' in result で
             // 部分ロールバックを判定できる。renderer の既存 arg.err 分岐は追加フィールドの

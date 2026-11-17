@@ -1,11 +1,11 @@
-// nov26-m6-t5 (#109・HR-15): 画像の内部名を UUID に統一するための共有部品。
+// 画像の内部名を UUID に統一するための共有部品。
 //
 // 起動時の移行（AssetUuidNamesMigrationService）と保存の入口の正規化（AppDataService.saveApp）が
 // 同じ規則で「UUID の形か」「保存フォルダの中か」「複製して確かめる」を判定するため、ここに集める。
-// 命名の契約はタスク設計 `2026-10-11-nov26-m6-t5-task-design.md` §2 が唯一の定義:
+// 命名の契約はタスク設計 `2026-10-11-assetImageRefs-task-design.md` が唯一の定義:
 //   スプラッシュ        : appSettings.splash = `{uuid}.{ext}`（置き場 img/。値はファイル名だけ）
 //   PWA アイコンの元画像 : manifestSettings.iconSource（または旧配置 httpSettings.iconSource）= `pwa/{uuid}.{ext}`
-//   ベースマップのアイコン: thumbnail = thumb52PathFor(uid, ext)（ADR-0007。自分の uid を使う）
+//   ベースマップのアイコン: thumbnail = thumb52PathFor(uid, ext)（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり。自分の uid を使う）
 //
 // SqliteDataService を import しない（移行は SqliteDataService.migrate() から一方向に呼ばれる）。
 import { randomUUID, createHash } from 'node:crypto';
@@ -14,15 +14,15 @@ import path from 'path';
 import fs from 'fs-extra';
 
 const UUID_BODY = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
-/** スプラッシュの「UUID の形」（§2）。値はファイル名だけ */
+/** スプラッシュの「UUID の形」。値はファイル名だけ */
 export const UUID_SPLASH_NAME = new RegExp(`^${UUID_BODY}\\.[a-z0-9]{1,5}$`);
-/** PWA アイコンの元画像の「UUID の形」（§2）。saveFolder 相対 */
+/** PWA アイコンの元画像の「UUID の形」。saveFolder 相対 */
 export const UUID_ICON_SOURCE = new RegExp(`^pwa/${UUID_BODY}\\.[a-z0-9]{1,5}$`);
-/** 移行・正規化で保つ拡張子の形（§4.2 の 5） */
+/** 移行・正規化で保つ拡張子の形（の 5） */
 const SAFE_EXT = /^[a-z0-9]{1,5}$/;
 
 export type AppImageKey = 'splash' | 'iconSource';
-/** 文書の中で値を持つ場所（読んだキーそのものを書き換える。§4.2 の 1） */
+/** 文書の中で値を持つ場所（読んだキーそのものを書き換える。の 1） */
 export type AppImageField = 'appSettings.splash' | 'manifestSettings.iconSource' | 'httpSettings.iconSource';
 
 export interface AppImageRef {
@@ -39,7 +39,7 @@ export function isUuidIconSource(value: string): boolean {
   return UUID_ICON_SOURCE.test(value);
 }
 
-/** 旧名の拡張子を小文字にしたもの。§4.2 の 5 の形に合わなければ null（= unsupported_form） */
+/** 旧名の拡張子を小文字にしたもの。の 5 の形に合わなければ null（= unsupported_form） */
 export function lowerExtOf(name: string): string | null {
   const ext = path.posix.extname(name).slice(1).toLowerCase();
   return SAFE_EXT.test(ext) ? ext : null;
@@ -105,7 +105,7 @@ export type SourceCheck =
   | { ok: false; outcome: 'outside_folder' | 'source_missing'; detail: string };
 
 /**
- * 安全の判定（§4.2 の 2）: `..`・絶対パス・`\` を含む参照は扱わない。実在するなら realpath が
+ * 安全の判定（の 2）: `..`・絶対パス・`\` を含む参照は扱わない。実在するなら realpath が
  * saveFolder の realpath の下にあること（symlink で外を指すものを弾く）。
  */
 export async function checkSource(saveFolder: string, rel: string): Promise<SourceCheck> {
@@ -154,7 +154,7 @@ export type CopyResult =
   | { ok: false; detail: string };
 
 /**
- * 複製して確かめる（§4.2 の 5）。旧ファイルは消さない。
+ * 複製して確かめる（の 5）。旧ファイルは消さない。
  * - 複製先が既にあり内容が同じ（大きさと SHA-256）なら、作ったものとみなさず済んだとして進む（created=false）
  * - 内容が違えば失敗（既にあったファイルには触れない）
  * - 複製した後、存在と大きさが複製元と同じでなければ、この呼び出しで作ったファイルだけを消して失敗
@@ -189,7 +189,7 @@ export interface AppImageRefsNormalization {
 }
 
 /**
- * 保存の入口の正規化（§4.3）。UUID の形でない画像の参照が saveFolder の中に実在すれば、
+ * 保存の入口の正規化。UUID の形でない画像の参照が saveFolder の中に実在すれば、
  * 新しい UUID 名へ複製して文書の値を置き換える。複製元が無い・外を指すものは旧名のまま（警告）。
  * 他のアプリと共有している名前でも、この文書の参照だけを寄せる（他の行は変えない）。
  */
