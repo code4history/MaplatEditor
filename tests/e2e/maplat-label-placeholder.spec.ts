@@ -69,7 +69,7 @@ async function seed(page: Page, suffix: string) {
   }, suffix);
 }
 
-test('（#108）: Maplat 地図のラベル欄に地図の label がプレースホルダとして出る', async () => {
+test('Maplat 地図のラベル欄に地図の label がプレースホルダとして出る（#108）', async () => {
   test.setTimeout(180_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-maplat-label-placeholder-ph-'));
   const { app, page } = await launch(e2eRoot);
