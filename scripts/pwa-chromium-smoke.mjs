@@ -1,4 +1,4 @@
-// （code4history/MaplatEditor#174）スモーク（実 Electron）:
+// code4history/MaplatEditor#174 のスモーク（実 Electron）:
 // PWA 画像（アイコン 8・スプラッシュ 46）を **Electron 自身の Chromium** で描く実装を、
 // 実際の書き出し経路（AppExportService.exportApp）で検証する。
 //

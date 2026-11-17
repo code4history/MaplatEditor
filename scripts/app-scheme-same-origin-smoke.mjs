@@ -1,4 +1,4 @@
-// （第 2 版）: ローカルデータの同一 origin 配信の smoke（Electron を起動しない）。
+// 第 2 版: ローカルデータの同一 origin 配信の smoke（Electron を起動しない）。
 //
 // 実画面と origin 境界は tests/e2e/app-local-cors.spec.ts が実行時に測る（AC-FF-1〜8）。
 // 本 smoke は e2e を回さない場面でも、是正の要が外されたら落ちるように固定する:
