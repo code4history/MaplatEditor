@@ -68,7 +68,7 @@ export type ImageAssetDeleteResult = {
   warning?: { stage: 'trash'; message: string };
 };
 
-// 一覧/取得行: バイト実体を含まない (43 )
+// 一覧/取得行: バイト実体を含まない
 export interface ImageAssetSummary {
   uid: string;
   slug: string;

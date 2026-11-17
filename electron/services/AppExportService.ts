@@ -556,7 +556,7 @@ class AppExportService {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
         // 512px サムネイルも package に同梱する（読み込みは uid キー、出力は slug 名）。
-        // 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり 整合）
+        // 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりと整合）
         const src512 = thumb512PathFor(thumb52PathFor(mapDoc.uid, 'jpg'));
         const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'));
         if (src512 && out512) {
