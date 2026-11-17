@@ -52,7 +52,7 @@ const { t } = useTranslation();
 
 interface Props {
   visible: boolean;
-  /** i18nキーのみ (AC-T1-4)。翻訳済み文字列を渡してはならない —
+  /** i18nキーのみ。翻訳済み文字列を渡してはならない —
    *  ここで t(props.text) を通すため、呼び出し側が既に翻訳した文字列を渡すと二重翻訳になる */
   text: string;
   /** i18n の補間パラメータ（{{key}} に流し込む値）。

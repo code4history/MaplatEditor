@@ -72,7 +72,7 @@
    hover は薄い背景変化、selected は #0d6efd 枠 + 青淡背景。
    ResourceMasterRow の scoped CSS は全廃し、この global 正本のみで描画する（C1 対応）。
    Bootstrap list-group-item 由来の border/角丸潰しを排除するため、root class から list-group-item 系を除去済み。 */
-/* v2.0 Min1: 共通プロパティ（background/border/radius/transition）のみ共有。
+/* 共通プロパティ（background/border/radius/transition）のみ共有。
    padding/flex/gap/cursor は .resource-master-row のみに指定（grid card は独自レイアウト） */
 .resource-grid-card,
 .resource-master-row {
@@ -95,7 +95,7 @@
   background: var(--bs-tertiary-bg);
 }
 
-/* 選択状態の統一（v2.0 HM6）: master-detail の詳細表示中 と selector の追加済み が同一の .selected（青）。
+/* 選択状態の統一: master-detail の詳細表示中 と selector の追加済み が同一の .selected（青）。
    旧 .active は Bootstrap .list-group-item.active と競合するため .selected へ rename。
    grid card は内側 router-link の :has で検出（従来どおり）。 */
 .resource-master-row.selected {
@@ -116,7 +116,7 @@
   background: rgba(13, 110, 253, 0.06);
 }
 
-/* selector variant の追加不可表示（previewDisabled 等）。disabled は selected より優先しない（HM6: selected 優先） */
+/* selector variant の追加不可表示（previewDisabled 等）。disabled は selected より優先しない（selected 優先） */
 .resource-master-row.disabled {
   opacity: 0.58;
   cursor: not-allowed;
@@ -142,7 +142,7 @@
   color: var(--bs-secondary-color);
 }
 
-/* selector variant: 追加不可理由（text-danger で常時表示、§設計 4 HM4） */
+/* selector variant: 追加不可理由（text-danger で常時表示） */
 .resource-master-row__reason {
   font-size: var(--editor-ui-font-size-sm);
 }

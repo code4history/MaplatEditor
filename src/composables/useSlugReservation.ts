@@ -247,7 +247,7 @@ export function useSlugReservation(opts: {
     // slug変更: 常にacquire()でDB ownershipを再確立する。
     // stale held → release + 新 reserve/claim。DB上の他者予約 → reserved-by-other。
     // DB上の自己予約(再試行時) → 冪等claim。DB上の予約なし → 新規reserve。
-    // acquire の前にDB checkを行い、他者予約を検出したら即座にreturnする。
+    // acquire() の前にDB checkを行い、他者予約を検出したら即座にreturnする。
     // acquire() はstale heldを解放する際、DB上の他者予約も巻き込んで消す場合があるため。
     releaseFailed.value = false;
     releasePending.value = false;

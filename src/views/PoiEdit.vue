@@ -166,7 +166,7 @@
         </div>
       </div>
 
-      <!-- 診断領域 (内容があるときのみ表示)。の DiagnosticFeedback 文法
+      <!-- 診断領域 (内容があるときのみ表示)。共通の DiagnosticFeedback 文法
            (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
         v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarningItems.length || missingAssetWarningItems.length"
@@ -1256,7 +1256,7 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
   if (key === "s") {
@@ -1283,7 +1283,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 // 選択中 feature の Delete キー削除。ReadOnly では無効。
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   if (saveHandle.saving.value || exporting.value || cloning.value) return; // Busy中は編集操作を抑止
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
@@ -1297,7 +1297,7 @@ const onDeleteKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
   // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
   if (isEditableElement(document.activeElement)) return;

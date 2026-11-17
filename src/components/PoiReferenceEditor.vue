@@ -67,7 +67,7 @@
         :class="layerMode === 'multi' ? undefined : 'poiref-layer-pane border rounded p-2 mb-2'"
         :data-testid="layerMode === 'multi' ? undefined : 'poiref-layer-pane'"
       >
-        <!-- 単層レイヤペインのヘッダ: レイヤ変換 (配列全体をまとめて 1 FC = 1 ドラフト — ) -->
+        <!-- 単層レイヤペインのヘッダ: レイヤ変換 (配列全体をまとめて 1 FC = 1 ドラフト) -->
         <div v-if="layerMode !== 'multi' && hostSlug" class="d-flex align-items-center gap-1 mb-2">
           <button
             type="button"
@@ -84,7 +84,7 @@
           />
         </div>
         <!-- 混在警告 (単層・indeterminate = ペイン上部)。表示可否は共有述語 isMixedLayer のみで
-             決まる (mode ゲートなし — v1.3。判定は resolver 警告と同一実装 ) -->
+             決まる (mode ゲートなし。判定は resolver 警告と同一実装) -->
         <div
           v-if="layerMode !== 'multi' && isMixedLayer"
           class="small text-warning-emphasis mb-2"
@@ -333,7 +333,7 @@ const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.so
 const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
 
 // v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
-// HM6: 追加済み（isPoiSelected）=selected=true（青）。readOnly は disabled。
+// 追加済み（isPoiSelected）=selected=true（青）。readOnly は disabled。
 function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListItemViewModel {
   const added = isPoiSelected(item.uid);
   return {
@@ -356,7 +356,7 @@ function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListIte
 const hasNonReferenceEntries = computed(() => entries.value.some((entry) => poiUidOf(entry) === null));
 
 // 項目数 (生 FC = features 数 / 旧オブジェクト・生 Feature・非 UUID poiUid = 1 /
-// URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため。v1.1 )
+// URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため)
 function entryItemCount(entry: unknown): number | null {
   if (poiUidOf(entry) !== null) return null;
   // 上書きレイヤの項目数は参照先の中身。URL 参照は静的には数えられないので非表示
@@ -472,8 +472,8 @@ function applyConvertResult(result: InlineConvertResult): void {
   convertFeedback.value = { severity: "warning", message: t(key) };
 }
 
-// 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆。)。
-// 単層モードのレイヤ変換: input = メンバー全件 (= entries そのもの — 変換可能条件により
+// 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆)。
+// 単層モードのレイヤ変換: input = メンバー全件 (= entries そのもの — 単層モードの変換可能条件により
 // 全メンバーが旧オブジェクト / 生 Feature に限定済みで、v1.1 の対象フィルタは不要になった)
 async function convertGroup(): Promise<void> {
   if (!props.hostSlug || props.readOnly || converting.value) return;

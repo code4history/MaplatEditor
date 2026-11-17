@@ -1245,7 +1245,7 @@ watch(
 // その IPC 自体も呼び出し元が 0 件だったため撤去した（名前を決められる口を残さない）。
 // TileJSON URL からの tms マスタ取り込み。attribution/name はプレーン文字列
 // (多言語非対応) のため document.defaultLang のスロットにのみ書き込む（他言語スロットは変更しない）。
-// 実装レビュー M-1: selectGooglePreset（:602-617、「1 commit = 1 undo」）と同型に、
+// 実装レビューの指摘: selectGooglePreset（:602-617、「1 commit = 1 undo」）と同型に、
 // 変更後の文書を1回組み立てて commit() を1回だけ呼ぶ（updateField の多重呼び出しは undo が
 // フィールド数だけ積まれてしまうため使わない）。
 async function importTileJson(): Promise<void> {
@@ -1287,7 +1287,7 @@ async function generateIcon(): Promise<void> {
   try {
     const result = await window.appAssets.generateTmsThumbnail(iconFileKey(), clone(overlayTms.value), clone(document.value.coverageLngLats));
     if (result.err || !result.path) { error.value = t("basemap.errors.icon_generate_failed"); return; }
-    // キャッシュバスターは ?v={nonce} へ一本化する（旧 ?t=Date.now を廃止）。
+    // キャッシュバスターは ?v={nonce} へ一本化する（旧 ?t=Date.now() を廃止）。
     // 生成は 512px も同時に作るため、512px プレビューの再解決も要る（下の refreshThumbnails）
     thumbnailUrl.value = result.fileUrl ?? null;
     // 生成もファイルを即時に書く資源操作である。同一カード内で置換と異なる

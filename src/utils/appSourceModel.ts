@@ -122,9 +122,9 @@ export function stripEditorKeys(data: Record<string, unknown>): Record<string, u
 // 差分保持ストレージモデル（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）と出力文法（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）
 // ---------------------------------------------------------------------------
 
-// 上書き可能フィールドの宣言テーブル（で 1.0.0 まで凍結）。
+// 上書き可能フィールドの宣言テーブル（1.0.0 まで凍結）。
 // 規則: 「アプリソース編集フォームに操作子があるとき、かつそのときに限り上書き可能」(ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり)。
-// AppSourceEditor.vue の data-testid="app-source-override-<key>" と で機械照合する。
+// AppSourceEditor.vue の data-testid="app-source-override-<key>" と smoke で機械照合する。
 //
 // title / attr / dataAttr / license / dataLicense / licenseNote / dataLicenseNote /
 // minZoom / maxZoom / thumbnail の 10 個を廃止した。いずれもベースマップマスタが正本であり、

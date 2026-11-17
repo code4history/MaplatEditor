@@ -54,8 +54,8 @@ export interface UseHistorySuppressionOptions {
  * 順序を保った和集合（先着順・重複排除）。prev が null なら next の複製を返す。
  *
  * デバウンス窓は複数の書き込みを1スナップショットへ畳むため、origin は「上書き」ではなく
- * 「合成」でなければならない。窓内に W 由来の書き込みが1つでも混ざった事実を失わない
- *。純粋関数として単体 export し smoke で検証する。
+ * 「合成」でなければならない。窓内に W 由来の書き込みが1つでも混ざった事実を失わない。
+ * 純粋関数として単体 export し smoke で検証する。
  */
 export function mergeOrigin(prev: string[] | null, next: string[]): string[] {
     if (prev === null) return [...next];

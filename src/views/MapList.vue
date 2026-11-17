@@ -232,7 +232,7 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
 
 let unsubscribe: (() => void) | null = null;
 onMounted(() => {
-  // refresh イベントは restoreOrLoad 中に発行される可能性があるため、
+  // refresh イベントは restoreOrLoad() 中に発行される可能性があるため、
   // リスナー登録を先に行い、イベントを取りこぼさないようにする。
   unsubscribe = window.maplist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
   void (async () => {
