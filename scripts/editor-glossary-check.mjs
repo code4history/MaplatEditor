@@ -267,7 +267,7 @@ export function loadCanonical(root) {
 
 /**
  * 正本の意味の整合。schema で書けないものだけ。
- * 例外・additionalBindings のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（: 正本だけの PR で
+ * 例外・additionalBindings のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（正本だけの PR で
  * 新しいキーの例外を先に足し、後の locale の PR でキーを足す）
  */
 export function validateSemantics(glossary, exceptions, keys, pending = []) {

@@ -10,10 +10,10 @@
 // はすべて偽。allowPrerelease が偽なので GitHub の更新元は「最新のリリース」（prerelease を含まない）だけを見る
 // ＝ RC と win-signed-cache を拾わない。allowDowngrade が偽なので古い版へは戻さない。
 //
-// macOS（electron-updater 6.8.10 で確かめた）: autoInstallOnAppQuit が偽なので、downloadUpdate の後に
+// macOS（electron-updater 6.8.10 で確かめた）: autoInstallOnAppQuit が偽なので、downloadUpdate() の後に
 // Squirrel.Mac（nativeUpdater.checkForUpdates）は動かない（MacUpdater.js 220〜227 行）。Squirrel が取得と入れ替えを
 // 始めるのは quitAndInstall() の中（同 240〜257 行）∴ Squirrel の error（同 18〜21 行で autoUpdater の error に流れる）は
-// quitAndInstall の後にしか出ない。更新のお知らせの処理は downloadUpdate の reject と quitAndInstall の後の error を分けて扱う。
+// quitAndInstall() の後にしか出ない。更新のお知らせの処理は downloadUpdate() の reject と quitAndInstall の後の error を分けて扱う。
 import { app } from 'electron'
 import path from 'node:path'
 // electron-updater は CJS で、autoUpdater は getter（初回の参照で更新器を作る）。ESM の名前つき import では

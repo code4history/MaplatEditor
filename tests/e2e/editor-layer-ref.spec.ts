@@ -1,6 +1,5 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // Editor が URLレイヤ・上書きレイヤを読み書きできるようにする — E2E
-//。
 //
 // 検証範囲:
 //   case 2: 上書きレイヤ行に viewer-fatal 注記（poiref-key-missing）が出ない
@@ -119,8 +118,8 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
     const slug = `editor-layer-ref-wrapper-${Date.now()}`;
 
     try {
-      // t2/t3 が出力する形そのもの: 先頭が生 FC、2件目が上書きレイヤ。
-      // 以前はこの配列で「複層モード index>=1 の key 欠落」= viewer 全損の誤警告が出ていた
+      // 上書きレイヤの書き出しが出力する形そのもの: 先頭が生 FC、2件目が上書きレイヤ。
+      // 警告の是正の前はこの配列で「複層モード index>=1 の key 欠落」= viewer 全損の誤警告が出ていた
       const fc = {
         type: 'FeatureCollection', id: 'layer-a', lang: 'ja',
         features: [{

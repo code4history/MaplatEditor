@@ -1,7 +1,6 @@
 // slug originals -> UUID originals の one-shot migration/report。
-// /準拠。
 //
-// 実測制約: migrate(db) の実行は「getDb の初期化 Promise がまだ resolve していない」
+// 実測制約: migrate(db) の実行は「getDb() の初期化 Promise がまだ resolve していない」
 // 区間の内部で起きる。したがって migrate(db) の中から SqliteDataService.getDb()(またはそれを
 // 内部で呼ぶ readAllMaps() 等の任意のメソッド)を呼ぶと、ResettableSingleFlight.get() が
 // 同一 key の進行中 Promise をそのまま await して返すため、自分自身の完了を待つ自己デッドロック
@@ -64,7 +63,7 @@ function getGlobalInFlight(): { promise: Promise<MigrationRunResult> | null } {
 // ディスク満杯・権限・OneDrive ファイルロック(既存コード内に実在既知の環境)等で失敗し得る。
 // per-map 処理全体を try/catch し、失敗は 'copy_failed' outcome の entry として記録して
 // 次の map の処理を継続する(既存 one-shot 群 runThumbnail512MiningIfNeeded の
-// 「個別失敗を warnings へ蓄積して継続」方針への整合。参照)。
+// 「個別失敗を warnings へ蓄積して継続」方針への整合)。
 async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<MigrationRunResult> {
     const saveFolder = SettingsService.get('saveFolder') as string;
     const originalFolder = path.join(saveFolder, 'originals');
@@ -102,7 +101,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
     // 「送るべきか」を判定すると二重 classify になり無駄な I/O が増えるため、queue クロージャ内の
     // 実処理結果(entry.outcome が 'migrated'/'copy_failed' = classify が copyable と判定して
     // 実際に copy を試みたことを意味する)を単一パスでそのまま進捗トリガーに使う。
-    // 最初の copy 試行を検知した時点で 0% を送り、以降は行進捗を送る(の
+    // 最初の copy 試行を検知した時点で 0% を送り、以降は行進捗を送る(設計の
     // 「copyable 1件以上のときだけ送る」契約は同値だが、事前スキャンなしで満たせる)。
     let progressStarted = false;
 
@@ -154,7 +153,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
         summary[entry.outcome] = (summary[entry.outcome] ?? 0) + 1;
         if (entry.outcome === 'skip_ambiguous_legacy' || entry.outcome === 'skip_target_conflict' || entry.outcome === 'copy_failed') {
             // 人間が後で手動解決できるよう、識別可能な形で残す(端末ログ + report entries の両方。
-            // とおり top-level warnings へは積まない=起動毎の再通知/モーダル再表示を避ける)
+            // 設計どおり top-level warnings へは積まない=起動毎の再通知/モーダル再表示を避ける)
             console.warn(`[OriginalsMigrationService] ${entry.outcome}: uid=${entry.uid} slug=${entry.slug} ${entry.detail ?? ''}`);
         }
         if (entry.outcome === 'migrated' || entry.outcome === 'copy_failed') {
@@ -172,7 +171,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
     const result: MigrationRunResult = { mode, summary: summary as Record<Exclude<MigrationCandidateKind, 'copyable'> | 'migrated' | 'copy_failed', number>, entries };
 
     // 手順7: report を additive merge + atomic write する(unconditional。)。
-    // mergeAndWriteReport 自体の失敗は関数内部で catch され migration を失敗させない
+    // mergeAndWriteReport() 自体の失敗は関数内部で catch され migration を失敗させない
     await mergeAndWriteReport(saveFolder, {
         designVersion: '2.0',
         lastRunAt: new Date().toISOString(),

@@ -1,7 +1,7 @@
 // preview viewer bundle 同期後のサニタイズされた POI 描画の E2E 検証
 //
 // case 5: 実プレビューで viewer が動作し、POI の HTML が無害化された状態で
-//      描画されること（t3/t4/t5 の是正がプレビューへ届いていることの
+//      描画されること（POI の HTML の無害化の是正がプレビューへ届いていることの
 //      動作面の到達確認）
 //
 // 判定項目:
@@ -76,7 +76,7 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
     const POI_FEATURE_ID = 'preview-sanitized-viewer-sanitized-target';
 
     try {
-      // 1. POI ソース作成。html に onerror 付きの img を直接埋め込む（t4/t5 の是正対象）
+      // 1. POI ソース作成。html に onerror 付きの img を直接埋め込む（無害化の是正の対象）
       const poiUid = await page.evaluate(async ({ slug, featureId }: any) => {
         const created = await window.poiSources.createLocal({ slug, title: { ja: 'サニタイズ確認用' }, lang: 'ja' });
         if (!created || created.result !== 'Success') throw new Error(`poi create failed: ${JSON.stringify(created)}`);

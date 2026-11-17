@@ -85,7 +85,7 @@ let forceQuit = false
 
 // 同一 userData profile からの複数 Electron process による
 // DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
-// 【既知の限界】 app.requestSingleInstanceLock は userData path 単位の
+// 【既知の限界】 app.requestSingleInstanceLock() は userData path 単位の
 // ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
 // クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
 // ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
@@ -230,7 +230,7 @@ let mcpController: McpController | null = null
 import { clearAllIiifDrafts } from './services/iiifImportService'
 
 
-// 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual を呼ぶ
+// 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
 import SqliteDataService from './services/SqliteDataService'
 import { runManual } from './services/OriginalsMigrationService'
 
@@ -635,7 +635,7 @@ function setupMenu() {
                 await dialog.showMessageBox(options);
               }
             } catch (e: any) {
-              // v1.1: runManual 自体は per-map failure を吸収するが、
+              // v1.1: runManual() 自体は per-map failure を吸収するが、
               // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
               console.error('[main] manual originals migration failed', e);
               const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };

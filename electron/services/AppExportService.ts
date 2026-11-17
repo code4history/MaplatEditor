@@ -705,7 +705,7 @@ class AppExportService {
       const initialTotal = totalTileFiles * 2 + maplatSources.length + 4;
       reporter.extendTotal(packageFiles.length - totalTileFiles);
       const finalTotal = initialTotal + (packageFiles.length - totalTileFiles);
-      // t1: adm-zip の全メモリ方式（原本+圧縮後+連結後の 3 重保持。2.14 GiB で
+      // 以前の adm-zip の全メモリ方式（原本+圧縮後+連結後の 3 重保持。2.14 GiB で
       // Buffer.alloc が RangeError）を、Node 標準 zlib のみのストリーミング書き出しへ差し替える。
       // 進捗の刻み方・文言・finalTotal-1 上限・staging → move は従来のまま保つ
       let zipped = 0;

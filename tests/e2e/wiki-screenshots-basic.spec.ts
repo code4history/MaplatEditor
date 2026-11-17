@@ -1,10 +1,9 @@
 // Wiki（MaplatEditor.wiki）掲載用スクリーンショット取得スクリプト（S1〜S4）。
 // 機能テストではなく、Wiki 用の静的画像資産を決定的に生成する補助スクリプトが目的
-//。
 // assertion は「実ユーザーデータ非接触ガード」（launch() 内蔵）と各画面の到達確認に限定する。
 //
 // launch() は shell-tokens.spec.ts が導入したヘルパーを env（MAPLAT_E2E_ROOT・
-// --user-data-dir）含め丸ごと import して再利用する（。env の付け忘れを
+// --user-data-dir）含め丸ごと import して再利用する（env の付け忘れを
 // 構造的に防ぐため）。スペック間 import は Playwright が
 // 禁止するパターンで `playwright test`（引数なし・全体実行）の collection を破壊する
 // ため、launch() は tests/e2e/helpers/launchIsolated.ts へ抽出し、両スペックが
@@ -12,7 +11,7 @@
 //
 // フィクスチャは tests/fixtures/migration-pipeline/ 配下の実データ由来コピー
 // （takabatake_kozu1/2、人間承認済み・権利クリア確認済み）を再利用する
-// （tests/e2e/migration-pipeline-e2e.spec.ts が先例。準拠）。
+// （tests/e2e/migration-pipeline-e2e.spec.ts が先例）。
 //
 // 【v1.2.2 設計変更】S5（MapEdit の Data IO タブ）は実 UI から到達不能な dead code と
 // 判明したため撮影対象から除外し、4枚（S1〜S4）構成とした。地図の Export ボタンは

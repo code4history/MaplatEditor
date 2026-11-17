@@ -22,7 +22,7 @@ export const UUID_ICON_SOURCE = new RegExp(`^pwa/${UUID_BODY}\\.[a-z0-9]{1,5}$`)
 const SAFE_EXT = /^[a-z0-9]{1,5}$/;
 
 export type AppImageKey = 'splash' | 'iconSource';
-/** 文書の中で値を持つ場所（読んだキーそのものを書き換える。の 1） */
+/** 文書の中で値を持つ場所（読んだキーそのものを書き換える） */
 export type AppImageField = 'appSettings.splash' | 'manifestSettings.iconSource' | 'httpSettings.iconSource';
 
 export interface AppImageRef {
@@ -39,7 +39,7 @@ export function isUuidIconSource(value: string): boolean {
   return UUID_ICON_SOURCE.test(value);
 }
 
-/** 旧名の拡張子を小文字にしたもの。の 5 の形に合わなければ null（= unsupported_form） */
+/** 旧名の拡張子を小文字にしたもの。旧名の形に合わなければ null（= unsupported_form） */
 export function lowerExtOf(name: string): string | null {
   const ext = path.posix.extname(name).slice(1).toLowerCase();
   return SAFE_EXT.test(ext) ? ext : null;

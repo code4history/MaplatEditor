@@ -450,4 +450,4 @@ function esignerIfViolations(workflow) {
   console.log('  [6/6] case 3 文書: PASS');
 }
 
-console.log('\nnov26-credential exposure smoke: すべて成功');
+console.log('\ncredential exposure smoke: すべて成功');

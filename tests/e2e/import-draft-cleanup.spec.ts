@@ -1,9 +1,9 @@
 // （人間検証 2026-08-03 で発見）: 地図 ZIP の取込が身寄りのない下書きを残さないこと。
 //
 // 【欠陥】MapList の「インポート」は /mapedit?new=1&import=1 へ遷移し、**新規地図エディタを
-// ホスト**にして取込を走らせる（case 11）。新規エディタは mount 時に newMapUid を採番し、
-// useInitialDraftPersist が slug 予約の成立時点で初期下書きを即時保存する（case 6。
-// 予約を GC から守るための仕組み）。取込が成功すると adoptLoaded でサーバ採番の別 uid を
+// ホスト**にして取込を走らせる（一覧の取り込みボタンの導線）。新規エディタは mount 時に newMapUid を採番し、
+// useInitialDraftPersist が slug 予約の成立時点で初期下書きを即時保存する
+//（予約を GC から守るための仕組み）。取込が成功すると adoptLoaded でサーバ採番の別 uid を
 // 正本に引き取るが、**newMapUid で書かれた下書きは誰も消さない** ∴ 取り込んだ地図とは別に
 // 下書きが1件残る。
 //

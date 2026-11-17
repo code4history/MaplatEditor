@@ -97,7 +97,7 @@ test.describe('preview 表示後の「一覧へ」復帰', () => {
       await seedUserBaseMap(page, baseMapSlug);
       const seeded = await seedAppAndOpenList(page);
 
-      // 手順2: #/applist へ bbox クエリを付与（case 4 と同文法）
+      // 手順2: #/applist へ bbox クエリを付与（一覧の bbox クエリと同文法）
       await page.evaluate(() => {
         const hash = location.hash.split('?')[0];
         location.hash = `${hash}?bbox=139.5,35.5,139.9,35.9`;

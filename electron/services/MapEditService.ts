@@ -170,7 +170,7 @@ class MapEditService {
             return [json];
         }
 
-        // url_ の導出は共通実装 deriveRuntimeTileUrl が正本。
+        // url_ の導出は共通実装 deriveRuntimeTileUrl() が正本。
         // DataUploadService.extractZip も同じ関数を呼ぶ（二重実装の一本化）。
         // whReady ガード（上）と store2HistMap（下）は呼び出し側の関心事として据え置く
         url_ = await deriveRuntimeTileUrl(json, thumbFolder);
@@ -279,7 +279,7 @@ class MapEditService {
             let savedRevision: number;
             let copySourceUid: string | null = null;
             let copySourceSlug: string | null = null;
-            // clone 分岐で複製元原本を resolveRuntimeOriginal で解決するために
+            // clone 分岐で複製元原本を resolveRuntimeOriginal() で解決するために
             // 複製元の DB 上の imageExtension/imageExtention を extHint として保持する
             let copySourceImageExtension: string | undefined;
             let renamedFromSlug: string | null = null;

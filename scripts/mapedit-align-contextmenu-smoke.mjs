@@ -36,7 +36,7 @@ try {
   assert.doesNotMatch(
     ctxGrids,
     /white-space:\s*nowrap/,
-    '_grids.scss に white-space: nowrap が残っている（折り返さない直接原因・HR-1）',
+    '_grids.scss に white-space: nowrap が残っている（折り返さない直接原因）',
   );
   assert.match(
     ctxGrids,
@@ -129,7 +129,7 @@ try {
   assert.equal(
     countOf(f2Branch, 'contextmenu.push('),
     1,
-    'F2 の枝が 1 項目以外を push している（: F2 はフィーチャ種別を問わず 1 項目）',
+    'F2 の枝が 1 項目以外を push している（F2 はフィーチャ種別を問わず 1 項目）',
   );
   assert.match(
     f2Branch,
@@ -185,7 +185,7 @@ try {
   console.log('  [3/6] case 5a 面非依存の共通実装 1 本: PASS');
 
   // ---------------------------------------------------------------- [4/6]
-  // case 6 / case 7 / HR-3: 対応マーカー表示
+  // case 6 / case 7 / 人間の確認で足した条件: 対応マーカー表示
   assert.equal(
     countOf(mapEdit, 'mapedit.context_correspond_marker'),
     1,

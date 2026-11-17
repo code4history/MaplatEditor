@@ -107,5 +107,5 @@ console.log("⏭️  case 6: lock pin assert は skip（registry 参照へ移行
 // 削除ではなくコメント付き skip とし、理由を残す。
 console.log("⏭️  case 7: lock pin assert は skip（registry 参照へ移行済み。実測値: 旧 pin 84c09697/新 pin 9b97eb5 は出現ゼロ）");
 
-console.log(`\n結果: ${passed}/${total} AC パス（case 6/case 7 は t2 移行により skip）`);
+console.log(`\n結果: ${passed}/${total} AC パス（case 6/case 7 は後の移行により skip）`);
 console.log("case 3（既存 E2E 回帰）は smoke 範囲外 — 別途実行してください");

@@ -1,12 +1,10 @@
 // 0.7.0 → 1.0.0 マイグレーションの一気通貫化（中間スキーマ非通過）スモーク。
 //
-//。
-//
 // 本 smoke が証明すること:
 //   case 1 0.7.0 の neDB 入力から取り込んだ地図行が、**取込トランザクション直後の時点で既に**
 //        凍結形（廃止属性なし・title/label が辞書形）である
 //   case 2 同じ時点で、ユーザーベースマップ行が lang / label を持つ
-//   case 3 0.7.0 fixture から migrate を 1 回走らせた結果が、変更前実装の結果と一致する
+//   case 3 0.7.0 fixture から migrate() を 1 回走らせた結果が、変更前実装の結果と一致する
 //        （ゴールデン。ビルトイン行も比較対象に含める = 設計レビュー v1 MNR-2）
 //   case 4 0.7.0 取込後の schema_migrations に残る marker が保持 5 件だけである
 //        （= 中間段を 1 つも通っていないことの直接の機械証明。3 件目は asset UUID 名の移行の
@@ -19,7 +17,7 @@
 //   sendMigrationProgress('database.archiving_legacy_files') を送る。本 smoke は electron の
 //   BrowserWindow スタブに観測窓を挿し、その通知を受けた瞬間に **別コネクション**で
 //   sqlite を読む。∴ 後段が 1 つも走っていない時点の行そのものを見ている
-//   （中断・失敗時に中間形の行が DB に残らないこと = 直接検証）。
+//   （中断・失敗時に中間形の行が DB に残らないことの直接検証）。
 //
 // 使い方:
 //   node scripts/migration-passthrough-smoke.mjs            検証（既定）
@@ -158,7 +156,7 @@ if (!CAPTURE) {
   assert.deepEqual(residue, [], `case 5(a): 削除した段の残骸がコード行に残っている:\n${residue.join('\n')}`);
   console.log('ok: case 5(a) 削除した段のシンボル / marker リテラルはコード行に 0 件');
 
-  // (b) migrate が呼ぶ段が 5 本ちょうど（削減目標）
+  // (b) migrate() が呼ぶ段が 5 本ちょうど（削減目標）
   const stageLines = sqliteLines.filter((l) => /^ {4}(await )?this\.(apply|migrate|run|sweep)/.test(l));
   const stageNames = stageLines.map((l) => l.trim().replace(/^await /, '').replace(/^this\./, '').replace(/\(.*$/, ''));
   assert.deepEqual(
@@ -185,7 +183,7 @@ if (!CAPTURE) {
   console.log(`ok: case 5(c) marker 定数は 5 本（${markerConsts.map((l) => l.split(' ')[1]).join(' / ')}）`);
 
   // (d) 写像の呼び出し点は adoptDeprecatedMapNames の 1 箇所だけ、かつ読み込み側から呼ばない
-  //     （case 18 の後継。新しい不変条件へ書き換えたもの =）
+  //     （地図名の統一の移行の検査の後継。新しい不変条件へ書き換えたもの）
   const adoptHits = sqliteLines
     .map((line, i) => ({ no: i + 1, line }))
     .filter(({ line }) => line.includes('adoptDeprecatedMapNames') && !isCommentLine(line));

@@ -315,7 +315,7 @@ try {
     mapID: "osm", settingFile: "maps/osm.json",
   });
 
-  // case 16: composeViewerSource が license を運ぶのは sourceType=tms の 326件。
+  // composeViewerSource が license を運ぶのは sourceType=tms の 326件。
   // VIEWER_BUILTIN (osm/gsi/gsi_ortho) は文字列 ID のみ返すのでここでは対象外。
   const tmsBuiltinMaster = {
     mapID: "gsi_gazo1",

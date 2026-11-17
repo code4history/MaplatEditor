@@ -1,8 +1,8 @@
 // 同一 map(uid) への save/rename/clone/delete/migration mutation を直列化する薄いキュー。
-// 契約: run()/runMany は exclusive queue だけを提供する
+// 契約: run()/runMany() は exclusive queue だけを提供する
 // (read/export/WMTS はキューに入れない)。
 //
-// run()/runMany は呼び出し元の戻り値型
+// run()/runMany() は呼び出し元の戻り値型
 // (例: MapEditService.save() の Promise<MapSaveResult>) を型安全に伝播できるよう
 // <T> でジェネリック化する (マイルストーン 契約の additive 精緻化。呼び出し側の
 // 直列化保証はそのまま)。
@@ -42,7 +42,7 @@ class MapMutationQueue {
      * 矛盾なく直列化される」という契約を、呼び出し順序に依らず満たす。
      */
     async runMany<T>(mapUids: string[], _purpose: string, fn: () => Promise<T>): Promise<T> {
-        // stable sorted order (マイルストーン ): 呼び出し順に依らず同じ uid 集合なら
+        // stable sorted order: 呼び出し順に依らず同じ uid 集合なら
         // 同じ順序でキューの現在の tail を捕捉する (デッドロック回避には無関係だが、
         // ログ・診断上の再現性のために固定する)
         const sorted = [...new Set(mapUids)].sort();

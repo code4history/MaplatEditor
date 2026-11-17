@@ -13,7 +13,7 @@
 //        のみ後始末で削除し、'wx' で開けなかった既存ファイル・symlink は削除しないこと
 //
 // 実行方法: node scripts/zip-residual-smoke.mjs（pnpm run は使わない。
-//   outer lock 汚染回避。app-source-diff-model-smoke と同じ vite SSR ビルド + electron/electron-store スタブ方式）。
+//   親のワークスペースの lock の汚染回避。app-source-diff-model-smoke と同じ vite SSR ビルド + electron/electron-store スタブ方式）。
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';

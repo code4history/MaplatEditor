@@ -167,7 +167,7 @@ try {
     await writeFile(path.join(fixtureDirOuter, c.file), rawZip(c.entries));
   }
   await writeFile(path.join(fixtureDirOuter, 'safe.zip'), rawZip(MAP_SKELETON));
-  // adm-zip 0.6.1 で重複名の拒否が getEntries の中へ移ったことに対する追加 fixture
+  // adm-zip 0.6.1 で重複名の拒否が getEntries() の中へ移ったことに対する追加 fixture
   //   evil-duplicate-2.zip   同じプロセスで読む 2 件目の重複名（0.6.1 の例外文言は entry 名が古くなる）
   //   evil-poi-duplicate.zip POI パッケージ側の重複名
   //   bad-cen.zip            central directory の署名を壊した ZIP（重複名以外の adm-zip の例外）

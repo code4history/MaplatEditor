@@ -495,7 +495,7 @@ try {
       console.log('ok: (C) exportApp externalizes pois into pois/*.geojson');
 
       // ============================================================
-      // Part D: 単独形の文書が export に出る (case 16)
+      // Part D: 単独形の文書が export に出る
       // ------------------------------------------------------------
       // editor-layer-ref の変更で readAppDocumentPois が単独形（レイヤ1つを配列に包まず直接置く形）を
       // supported にしたことの **副次効果**。export / preview / 診断はいずれも
@@ -540,7 +540,7 @@ try {
           [{ layer: 'https://example.com/solo-pois.geojson' }],
           'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（上の E3）',
         );
-        console.log('ok: (D) single-layer-form documents now reach the export output (case 16)');
+        console.log('ok: (D) single-layer-form documents now reach the export output');
       }
 
       console.log('export pois externalization smoke passed');

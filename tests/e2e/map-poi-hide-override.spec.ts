@@ -1,6 +1,5 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 地図管理 > POI 編集の hide 上書き UI — E2E
-//。
 //
 // 検証範囲（case 1-1/2/3/4/7/8/9/10）:
 //   1. 参照要素カードに hide チェックボックスが出る / 2. 非参照要素には出ない

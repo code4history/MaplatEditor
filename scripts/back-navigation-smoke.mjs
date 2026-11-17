@@ -1,6 +1,6 @@
-// 構造 smoke: goBack の router.back()/history.go 撤去 + 共通ヘルパ
+// 構造 smoke: goBack の router.back()/history.go() 撤去 + 共通ヘルパ
 // navigateBackToList への3画面（AppEdit/MapEdit/PoiEdit）統一を機械的に検証する
-//。pois-write-shape-smoke.mjs Part C（countOccurrences =
+// pois-write-shape-smoke.mjs Part C（countOccurrences =
 // content.includes によるコメント込み生文字列一致）と同文法。
 //
 // 設計レビュー v1.0 の解消（v1.1）: この生一致方式は変更しない。新規ヘルパ

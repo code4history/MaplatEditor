@@ -287,7 +287,7 @@ try {
       }
 
       // ===== case 6: 保存ダイアログのキャンセルで 'Canceled' を返し、出力先ファイルを作らない =====
-      // 既存 smoke は AC-T1-1 の3ケースとも canceled:false を注入しており、この分岐は未検証だった
+      // 既存の 3 ケースとも canceled:false を注入しており、この分岐は未検証だった
       {
         const canceledTarget = path.join(exportDir, 'should-not-exist.zip');
         (globalThis as any).__nextSaveDialog = { canceled: true, filePath: canceledTarget };

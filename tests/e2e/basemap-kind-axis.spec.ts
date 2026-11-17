@@ -111,7 +111,7 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     await expect(page.getByTestId('basemap-title')).toHaveValue('種別テスト');
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 
-    // case 7 / case 19: mapbox 選択で style 欄が出る。空 style では保存不可（provider-incomplete は出ない）
+    // case 7: mapbox 選択で style 欄が出る。空 style では保存不可（provider-incomplete は出ない）
     await page.getByTestId('basemap-new').click();
     await page.getByTestId('basemap-kind-mapbox').click();
     await expect(page.getByTestId('basemap-style-url')).toBeVisible();
@@ -122,7 +122,7 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     if (await page.getByTestId('basemap-attr').count()) {
       await fillAndCommit(page.getByTestId('basemap-attr'), 'Attribution');
     }
-    // case 23-d: style 不足の証明を field レベルで可視化（is-invalid）。section 診断は case 23-a で撤去済み
+    // style 不足の証明を field レベルで可視化（is-invalid）。section 診断は撤去済み
     await expect(page.getByTestId('basemap-style-url')).toHaveClass(/is-invalid/);
     await expect(page.getByTestId('editor-save')).toBeDisabled();
 

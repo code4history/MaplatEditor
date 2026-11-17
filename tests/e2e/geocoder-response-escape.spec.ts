@@ -1,5 +1,4 @@
 // ジオコーダ応答（Nominatim の display_name）が innerHTML へ生で流れる欠陥の回帰 E2E。
-//。
 //
 //   case 1: display_name に HTML（<img src=x onerror=…>）が含まれても要素として解釈されず、
 //        テキストとして表示される

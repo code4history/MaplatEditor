@@ -1,5 +1,4 @@
 // スモーク: 書き出しとプレビューの新しい出力文法（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）。
-//。
 //
 // 対象 AC:
 //   case 8  書き出しパッケージに maps/<slug>.json がベースマップ分だけ増え、
@@ -127,7 +126,7 @@ try {
         },
       });
 
-      // 実装レビュー前の自己発見退行（case 16 の E2E が捕捉）:
+      // 実装レビュー前の自己発見退行（Mapbox と MapLibre の切り替えの E2E が捕捉）:
       // 差分保持モデルでは viewer 要素が maptype/kind を持たないため、GL CDN の要否を
       // 合成後の要素からは判定できない。マスタから判定する経路を機能で固定する
       const MAPLIBRE_UID = 'dddddddd-4444-4444-8444-dddddddddddd';
@@ -318,7 +317,7 @@ try {
           html.indexOf('maplibre-gl') < html.indexOf('assets/ol.js'),
           'GL: CDN タグは ol.js より前に入るはず',
         );
-        console.log('ok: GL CDN 判定がマスタ経由（case 16 の退行止め・プレビューと書き出しの両方）');
+        console.log('ok: GL CDN 判定がマスタ経由（Mapbox と MapLibre の切り替えの退行止め・プレビューと書き出しの両方）');
       }
 
       console.log('export/preview smoke passed');

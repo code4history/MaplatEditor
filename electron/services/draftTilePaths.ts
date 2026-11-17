@@ -19,7 +19,7 @@ import { app } from 'electron';
 import { localFileUrl, appUrlToLocalPath, normalizeLegacyTileUrl } from '../utils/appScheme';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
-/** 非 isolated 環境での staging ルート既定値（: userData/draft-tiles） */
+/** 非 isolated 環境での staging ルート既定値（userData/draft-tiles） */
 export function defaultDraftTileRoot(): string {
   return path.join(app.getPath('userData'), 'draft-tiles');
 }

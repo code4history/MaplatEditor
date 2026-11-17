@@ -121,7 +121,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
 
       // 実 UI の取込導線: MapList の「インポート」ボタン → /mapedit?new=1&import=1 へ遷移し、
       // MapEdit の mount 後に importMap() が自動起動してファイル選択ダイアログを開く
-      // （case 11 が用意した経路。ImportSlot = [data-resource-import]）
+      // （一覧の取り込みボタンの経路。ImportSlot = [data-resource-import]）
       await openHash(page, '#/maplist');
       const importButton = page.locator('[data-resource-import]');
       await expect(importButton).toBeVisible({ timeout: 30000 });

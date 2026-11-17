@@ -2,7 +2,7 @@
 //
 // 出自: tests/e2e/settings-and-about.spec.ts:26-39 の evalMain()。
 // wiki-screenshots-extra の Wiki 用スクリーンショット spec が About ウィンドウの自動撮影で同じロジックを
-// 必要としたため、複製せずここへ抽出した（。恒久指示「同一扱い処理は
+// 必要としたため、複製せずここへ抽出した（恒久指示「同一扱い処理は
 // 共通実装へ徹底」。Playwright はスペック間 import を禁止する ∴ 置き場は helpers/ 配下。
 // launchIsolated.ts / electronLifecycle.ts に続く 3 本目の共有ヘルパー）。
 import type { ElectronApplication, Page } from '@playwright/test';
