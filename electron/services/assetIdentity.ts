@@ -26,7 +26,7 @@ export function generateUid(): string {
  * `base`, `base-2`, `base-3` … と上限・長さ切詰は `src/utils/slugSequence.ts` が正本であり、
  * import (importSlugResolver) / 複製 "-copy" / inline POI 変換 "-poi" と共有する。
  * **生成部が必ず "-" で始まる**ことにより、利用者が付けた名前と衝突回避で生成した名前が
- * 区別できる (既存の変更の不変条件)。旧実装の `base_2` はこの区別を壊していた —
+ * 区別できる (slug の衝突の扱いの不変条件)。旧実装の `base_2` はこの区別を壊していた —
  * ビルトインカタログ自身が `gsi_ort_USA10` のような下線入り ID を持つためである。
  *
  * 【ここが持つのは移行固有の方針2点だけ】

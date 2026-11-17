@@ -252,7 +252,7 @@ class MapEditService {
 
         // 保存前実在ガード — 移動元が保存開始時点で既に消えている場合、
         // DB に一切触れる前に明示 Error を返す（「DB 行だけコミットされ画像喪失」の根絶。
-        // 既存の変更の未対応拡張子 precheck と同型・同位置）
+        // 原本の解決の未対応拡張子 precheck と同型・同位置）
         if (tmpCheck || stagingCheck) {
             const moveSourceFolder = stagingCheck ? stagingDir! : tmpTileFolder;
             if (!(await fs.pathExists(moveSourceFolder))) {
@@ -363,7 +363,7 @@ class MapEditService {
             }
 
             const newTile = path.join(tileFolder, savedUid);
-            // legacy(slug キー)の原本パス。renamedFromSlug 分岐専用(既存の変更で copySourceUid 分岐は resolveRuntimeOriginal 経由の canonical 複写へ移行し、本変数を参照しなくなった)
+            // legacy(slug キー)の原本パス。renamedFromSlug 分岐専用(原本のライフサイクルの扱いで copySourceUid 分岐は resolveRuntimeOriginal 経由の canonical 複写へ移行し、本変数を参照しなくなった)
             const newOriginal = path.join(originalFolder, `${slug}.${imageExtension}`);
             const newThumbnail = path.join(thumbFolder, `${savedUid}.jpg`);
 

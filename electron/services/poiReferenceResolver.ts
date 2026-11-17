@@ -401,7 +401,7 @@ export interface ExternalizedPois {
 }
 
 // ラッパー判別 isPoiLayerRef は src/utils/poisLayerStructure へ移設した（挙動同一）。
-// renderer の PoiReferenceEditor も同じ実装を使う — 判別が2箇所にあると 既存の変更の viewer 修正時に
+// renderer の PoiReferenceEditor も同じ実装を使う — 判別が2箇所にあると viewer の修正時に
 // 片方だけ追随する事故が起きるため（恒久指示「同一扱い処理は共通実装へ徹底」）。
 
 // E2 判定用の局所ヘルパ（形状分類は poisLayerStructure が正本だが、ここは型ガードが要る）
@@ -578,7 +578,7 @@ export async function externalizePoisArray(
  *
  * **地図 ZIP 搬出（mapDownloadZip）とアプリ搬出（AppExportService）が共有する唯一の実装**である。
  * 従来この4行は両者に別々に書かれており、map 側だけ `Array.isArray` の生判定だったため
- * 単独形の地図で POI が未処理のまま素通りしていた（既存の変更が app 側だけ是正した欠陥）。
+ * 単独形の地図で POI が未処理のまま素通りしていた（上書きレイヤの対応で app 側だけ是正した欠陥）。
  * 読み出しと外部化を1本にすることで、同種のずれが構造的に起きないようにする
  * （恒久指示「同一扱い処理は共通実装へ徹底」）。
  *
