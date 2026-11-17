@@ -2,11 +2,11 @@
 
 説明・エラー・空状態・ダイアログ・ボタンを、どの部品でどう出すかの決まりです。新しい画面や部品を作る前に読んでください。タスクの設計書を書くときも、この文書に合わせます。この文書に反する設計書を書く場合は、先にこの文書を変えます。
 
-- 2026-11-13 §6.2 の地図の行を「地図の上の部品は ui-map-overlay-proposal.md §4.2」に書き換え、§9.2 に `map.tool-button` の検査を足した（地図の上の UI の実装に伴う）。
-- 2026-11-13 §6.3 の推定ボタンの注記の出典を【AI 設計】から人間決定（白背景の上と地図の上は形が違ってよい）に改めた。地図の上の UI の棚卸しと決まりは [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md)（案 A。人間決定）。
-- 2026-11-13 §6.3 の例を「キャンセル」に替え、名前が似た別の操作は置き場所の役割で形が決まる旨を追加（AppEdit の「推定」を副次の操作の形にしたため）。出典なしの追加のため【AI 設計】。§7.5 の該当の行を直した。
-- 2026-11-12 読み上げ名の「項目名が空」の扱い（§2.1）を追加。出典なしの追加のため【AI 設計】。
-- 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は §8。
+- 2026-11-13 地図の行を「地図の上の部品は ui-map-overlay-proposal.md 」に書き換え、に `map.tool-button` の検査を足した（地図の上の UI の実装に伴う）。
+- 2026-11-13 推定ボタンの注記の出典を【AI 設計】から人間決定（白背景の上と地図の上は形が違ってよい）に改めた。地図の上の UI の棚卸しと決まり は [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md)（案 A。人間決定）。
+- 2026-11-13 例を「キャンセル」に替え、名前が似た別の操作は置き場所の役割で形が決まる旨を追加（AppEdit の「推定」を副次の操作の形にしたため）。出典なしの追加のため【AI 設計】。該当の行を直した。
+- 2026-11-12 読み上げ名の「項目名が空」の扱いを追加。出典なしの追加のため【AI 設計】。
+- 2026-11-11 U1〜U7 と U3 の通知の扱いを人間が推奨どおりに決定。注記: 「違和感があれば改めて指摘する」。決定の記録は。
 - 2026-11-11 初版。過去のタスク設計書に散らばっていた人間の決定を 1 本に集めた。
 - 言葉の決まり（どの語を使うか）は [docs/i18n/editor-glossary.md](i18n/editor-glossary.md) と AGENTS.md の「UI Wording & Glossary」にある。この文書は「どの部品で出すか」を扱う。
 
@@ -41,7 +41,7 @@
 1. **同じ見た目なら同じ挙動にする。** 同じ `?` アイコンが場所によって違う開き方をしてはいけない。【人間決定】token と部品の設計（v3 (b) ほか）、Edit の文法
 2. **画面ごとの scoped CSS で、共通部品に似せた見た目を作らない。** 行・選択の表し方・空状態・範囲の操作は、共通部品を使い回す。【人間決定】一覧行の統一（「最重要原則（人間再提示）」）
 3. **見た目は `--editor-ui-*` token で決める。** 大きな pastel のバナー、画面固有の暗い赤枠、大きすぎる margin を新しく作らない。【人間承認の文書】Edit の文法、token と部品の設計
-4. **部品はドメインのサービスを直接呼ばない。** adapter を挟む。【人間承認の文書】Edit の文法、一覧の文法 §6.1
+4. **部品はドメインのサービスを直接呼ばない。** adapter を挟む。【人間承認の文書】Edit の文法、一覧の文法 
 
 ## 2. 説明（補足説明・ヘルプ）
 
@@ -50,7 +50,7 @@
 | 場面 | 使う部品 | 出典 |
 |---|---|---|
 | 項目の補足説明（短文も長文も） | `ContextHelp`（`?` アイコン `bi-question-circle`。hover と focus で Popover が開く） | 【人間決定】説明の文法（アイコンで示す）、説明の文法（長文も Popover でよい）、token と部品の設計（単一の挙動） |
-| 長い概念の説明 | `ContextHelp` に `title` を付ける | 【人間決定】token と部品の設計（v3 §8） |
+| 長い概念の説明 | `ContextHelp` に `title` を付ける | 【人間決定】token と部品の設計 |
 | `EditorField` の項目 | `#help` slot に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法 |
 | 生の `form-label` の項目・見出し | label や見出しの中、文言の直後に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法、地図の配信元の追補 |
 | モーダルの全体の説明 | モーダルの題の横に `<ContextHelp>` を置く | 【人間決定に基づく AI 設計】説明の文法（モーダル全体の説明） |
@@ -86,7 +86,7 @@
 
 ### 2.4 常設の注意書き
 
-取り消せない操作・ファイルサイズ・個人情報などの注意は、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に表示します。説明は `ContextHelp` に入れます。`EditorField.hint` や説明の直書きは復活させません。【人間決定（2026-11-11、推奨どおり）】§8 U1
+取り消せない操作・ファイルサイズ・個人情報などの注意は、`DiagnosticFeedback scope="field"` の warning（黄色の三角）で常に表示します。説明は `ContextHelp` に入れます。`EditorField.hint` や説明の直書きは復活させません。【人間決定（2026-11-11、推奨どおり）】U1
 
 - 選んだときだけ効く注意は、選んだときに出す（例: 書き出しの「オリジナル画像」にチェックすると、ファイルが大きくなり写真の付帯情報を含むことがあるという warning が出る。「そのまま入れます」という説明は `ContextHelp`）。1 つの文言に説明と注意が混ざっていたら、キーを分ける。【AI 設計】
 - 2026-11-11 に `ContextHelp` の説明 68 件を全数見て、ファイルサイズ・個人情報・取り消せないことの注意が入っていたのは上の 1 件だけだった。`settings.editor_api_key_notice`（公開用とは別のキーを発行する）は鍵の扱いの説明で、この 3 つには当たらないので `ContextHelp` に残した。【AI 設計】
@@ -113,13 +113,13 @@
 |---|---|---|
 | BaseMapEdit / AssetEdit のリビジョン競合 | `alert alert-warning` と、ボタン 2 個（`btn-warning` の「上書き」など） | 【人間決定】説明の文法（リビジョン競合の表示は現状維持） |
 | 参照切れの POI の警告（PoiReferenceEditor） | カードの中で `text-warning-emphasis` | 【人間決定】説明の文法（参照切れの警告は現状維持） |
-| selector で追加できない理由（ResourceMasterRow） | 項目の横の `ContextHelp`。赤字にしない（従来の例外を廃止） | 【人間決定（2026-11-11、推奨どおり）】§8 U4 |
+| selector で追加できない理由（ResourceMasterRow） | 項目の横の `ContextHelp`。赤字にしない（従来の例外を廃止） | 【人間決定（2026-11-11、推奨どおり）】U4 |
 | IconRefField の警告バッジ | 値の表示の一部 | 【人間決定】説明の文法（警告バッジは値の表示の一部） |
 
 ### 3.3 禁止の形
 
 - 項目のエラーや警告を `<div class="text-danger small">`、`<span class="text-danger">`、`<p class="text-warning">` で直書きすること。【人間決定】説明の文法
-- `alert alert-danger` / `alert-warning` / `alert-success` を直書きすること（§3.2 の例外を除く）。【人間決定に基づく AI 設計】説明の文法
+- `alert alert-danger` / `alert-warning` / `alert-success` を直書きすること（例外を除く）。【人間決定に基づく AI 設計】説明の文法
 - `alert()`（ブラウザの標準のもの）で失敗を知らせること。【人間決定に基づく AI 設計】説明の文法（ブラウザの `alert()` を `DiagnosticFeedback scope="operation"` へ）
 - 押せない理由をエラー色で出すこと。【人間判断】地図の配信元の追補
 
@@ -132,7 +132,7 @@
 | 開いた資源が見つからない（not found） | `ResourceEmptyState` と、`#actions` slot の戻るボタン | 【人間決定】説明の文法（not found の表示） |
 | 一覧の結果の状態（読み込み中・0 件・末尾・失敗・追加の失敗） | `ResourceResultStatus`。共通の語彙（`resource_list.*`）を使う。初回の失敗は共通のエラーと再試行、追加の失敗は取得済みの項目を残して末尾に再試行を出す | 【人間承認の文書】一覧の文法 |
 | 一覧の取得の失敗（selector の候補など） | `DiagnosticFeedback scope="section"` | 【人間決定に基づく AI 設計】説明の文法（一覧の取得の失敗） |
-| 節の中の小さな「該当なし」（例: 書誌の 1 群が空） | 1 行の `text-muted`。ペイン全体が空のときだけ `ResourceEmptyState` | 【人間決定（2026-11-11、推奨どおり）】§8 U7 |
+| 節の中の小さな「該当なし」（例: 書誌の 1 群が空） | 1 行の `text-muted`。ペイン全体が空のときだけ `ResourceEmptyState` | 【人間決定（2026-11-11、推奨どおり）】U7 |
 
 禁止の形: `<div class="text-muted text-center py-3">該当なし</div>` のような空表示を画面ごとに作ること。【人間検証の指摘】一覧行の統一
 
@@ -143,9 +143,9 @@
 | 決まり | 出典 |
 |---|---|
 | ダイアログは**破壊的な操作と、利用者に判断させるとき**だけに使う | 【人間承認の文書】Edit の文法 |
-| 破壊的な操作の確認は残し、入力・選択が無い確認はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】§8 U3（説明の文法の確認自体を残す決定を継承） |
+| 破壊的な操作の確認は残し、入力・選択が無い確認はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】U3（説明の文法の確認自体を残す決定を継承） |
 | 未保存の確認ダイアログ（保存・閉じるとき）は置かない。下書きを自動で保持し、復元する | 【人間承認】旧版との機能の対応の監査 |
-| 削除の確認は `DeleteConfirmDialog`（`useResourceDelete` の request・confirm・cancel）の共通の入口を使い、確認自体はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】§8 U3 |
+| 削除の確認は `DeleteConfirmDialog`（`useResourceDelete` の request・confirm・cancel）の共通の入口を使い、確認自体はネイティブに揃える | 【人間決定（2026-11-11、推奨どおり）】U3 |
 | `confirm()`（ブラウザの標準のもの）を使わない | 【AI 設計】複製と Import |
 | 複製は即時に保存せず、新しい下書きとして開く（確認ダイアログを挟まない） | 【人間決定】一覧の文法（決定 8） |
 | エクスポートは「ボタン → 確認ダイアログ（中身を選ぶ）→ 実施」の順にする | 【AI 設計】Editor のコミット e8c8722（アプリのエクスポートの確認ダイアログ） |
@@ -156,13 +156,13 @@
 |---|---|---|
 | 選択肢（ラジオ・チェック）の説明 | label の横に `ContextHelp`。label の下に段落を置かない | 【人間決定】2026-10-21 の文言の決定（「タイル」は標準の「？」で説明） |
 | モーダル全体の補足説明 | 題の横に `ContextHelp` | 【人間決定に基づく AI 設計】説明の文法 |
-| ダイアログの本文（何を判断させるか。例: 「この地図から生成済みのタイルセットが見つかりました。更新するものを選ぶか…」） | 本文の 1 段落は直書きしてよい。選択肢の説明は `ContextHelp` | 【人間決定（2026-11-11、推奨どおり）】§8 U2 |
-| 押せない理由（例: 何も選んでいないと「エクスポート」が押せない） | ボタンの横に `ContextHelp`。赤字にしない | 【人間決定（2026-11-11、推奨どおり）】§8 U4（地図の配信元の追補に統一） |
-| 入力の検証エラー | §3 と同じ（field / section の `DiagnosticFeedback`） | 【人間決定】説明の文法 |
+| ダイアログの本文（何を判断させるか。例: 「この地図から生成済みのタイルセットが見つかりました。更新するものを選ぶか…」） | 本文の 1 段落は直書きしてよい。選択肢の説明は `ContextHelp` | 【人間決定（2026-11-11、推奨どおり）】U2 |
+| 押せない理由（例: 何も選んでいないと「エクスポート」が押せない） | ボタンの横に `ContextHelp`。赤字にしない | 【人間決定（2026-11-11、推奨どおり）】U4（地図の配信元の追補に統一） |
+| 入力の検証エラー | と同じ（field / section の `DiagnosticFeedback`） | 【人間決定】説明の文法 |
 
 ### 5.3 ネイティブのダイアログとアプリ内のモーダル
 
-確認は Electron の `window.dialog.showMessageBox` に揃えます。アプリ内のモーダルは入力や選択がある場合だけに使います。通知だけのダイアログは成功・失敗とも `DiagnosticFeedback scope="operation"` に移します。【人間決定（2026-11-11、推奨どおり）】§8 U3・U3 付随
+確認は Electron の `window.dialog.showMessageBox` に揃えます。アプリ内のモーダルは入力や選択がある場合だけに使います。通知だけのダイアログは成功・失敗とも `DiagnosticFeedback scope="operation"` に移します。【人間決定（2026-11-11、推奨どおり）】U3・U3 付随
 
 実装の形【AI 設計】:
 
@@ -193,7 +193,7 @@
 
 ### 6.2 役割ごとの使い分け
 
-次の表に揃えます。ダイアログのボタンは通常の大きさとし、`btn-sm` を使いません。【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
+次の表に揃えます。ダイアログのボタンは通常の大きさとし、`btn-sm` を使いません。【人間決定（2026-11-11、推奨どおり）】U5・U6
 
 | 役割 | class | 今の主な使用例 |
 |---|---|---|
@@ -202,27 +202,27 @@
 | 取り消し・戻る・副次の操作 | `btn btn-outline-secondary` | 多くのダイアログの「キャンセル」 |
 | 値を消す（範囲・ホーム位置のクリア、行の削除） | `btn btn-outline-danger`（ダイアログでは左端 `me-auto`） | `EnvelopeEditorModal`、`HomePositionEditorModal` |
 | 入口の操作（新規追加・追加・選択） | `btn btn-outline-primary` | `＋ 新規追加`（人間決定）ほか |
-| 地図の上に重ねる道具（ボタン・表示の切り替え・情報） | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2 の白い札（`map-tool`）。地図の上の部品はこの文書の他の行ではなく §4.2 に従う | MapEdit の推定・ホーム位置のボタン |
+| 地図の上に重ねる道具（ボタン・表示の切り替え・情報） | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) 白い札（`map-tool`）。地図の上の部品はこの文書の他の行ではなく に従う | MapEdit の推定・ホーム位置のボタン |
 | ダイアログのボタンの並び | 左から「（値のクリア）」「キャンセル」「主な操作」 | ほぼ全部のダイアログ |
 
 ### 6.3 禁止の形
 
-【人間決定（2026-11-11、推奨どおり）】§8 U5・U6
+【人間決定（2026-11-11、推奨どおり）】U5・U6
 
 - 同じ操作に違う見た目を使うこと（例: 同じ「キャンセル」が、あるダイアログでは `btn-outline-secondary`、別のダイアログでは `btn-secondary`）。
-  - 名前が似ていても別の操作なら、形は置き場所の役割（§6.2）で決まる。MapEdit の「推定」（GCP からホーム位置を推定する、地図の上に重ねる道具）は地図の道具の形、AppEdit の「推定」（地図の範囲からホーム位置を推定する、入力欄の横のボタン）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。【人間決定（2026-11-13）】白背景の上と地図の上は形が違ってよい。地図の上の UI 同士の決まりは [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) の案 A（【人間決定（2026-11-13）】）
+  - 名前が似ていても別の操作なら、形は置き場所の役割で決まる。MapEdit の「推定」（GCP からホーム位置を推定する、地図の上に重ねる道具）は地図の道具の形、AppEdit の「推定」（地図の範囲からホーム位置を推定する、入力欄の横のボタン）は隣の「地図で指定」と同じ副次の操作の形（`btn btn-sm btn-outline-secondary`）にする。【人間決定（2026-11-13）】白背景の上と地図の上は形が違ってよい。地図の上の UI 同士の決まり は [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) の案 A（【人間決定（2026-11-13）】）
 - ダイアログの「キャンセル」に `btn-secondary`（塗り）を使うこと。
 
 ## 7. 違反の棚卸し（2026-11-11、origin/master 7893dc4）
 
-`src/` を grep と目視で調べました。`DesktopRegisteredMapSelector.vue` は参照されていない古いコードなので数えていません（token と部品の設計で対象外と記録済み）。このファイルは 2026-11-11 のレビュー（Minor 7）で消しました。
+`src/` を grep と目視で調べました。`DesktopRegisteredMapSelector.vue` は参照されていない古いコードなので数えていません（token と部品の設計で対象外と記録済み）。このファイルは 2026-11-11 のレビューで消しました。
 
-> **2026-11-11 に直しました。** この節の違反は、§8 の決定どおりに直しました。直さずに残したものは、出典つきで許可リスト `docs/ui-grammar.allowlist.json` に入れています（§9）。表は直す前の記録として残します。
+> **2026-11-11 に直しました。** この節の違反は、決定どおりに直しました。直さずに残したものは、出典つきで許可リスト `docs/ui-grammar.allowlist.json` に入れています。表は直す前の記録として残します。
 > 表と違う直し方をしたもの: 7.1 の #19「接続の手順」は説明ではなく URL の項目名なので、`ContextHelp` に入れず、他の項目と同じく左の列の項目名にしました。同じ行の #14（127.0.0.1 で登録する注意）は、コピーのボタンの横の `ContextHelp` にしました。
 
 ### 7.1 説明の直書き
 
-**A. 決まりに反する（§2.2）: 14 件・7 ファイル**
+**A. 決まりに反する: 14 件・7 ファイル**
 
 | # | 場所 | 形 | キー |
 |---|---|---|---|
@@ -262,7 +262,7 @@
 
 > 依頼の時点では「form-text 等が 13 ファイルで約 21 件」と見積もられていました。この表は、状態の表示（C）を除き、form-text 以外の段落と `#help` slot の誤用（15）を加えたため、数が違います。
 
-### 7.2 エラー・警告の直書き（§3.3）: 12 件
+### 7.2 エラー・警告の直書き: 12 件
 
 | # | 場所 | 形 | 本来の形 |
 |---|---|---|---|
@@ -281,7 +281,7 @@
 
 参考（成功の通知）: `src/views/Settings.vue:429` はコピーの成功を `form-text` で出しています。
 
-違反ではないもの（§3.2 の例外と共通部品）: `src/components/basemap/BaseMapEdit.vue:36`、`src/components/assets/AssetEdit.vue:35`、`src/components/PoiReferenceEditor.vue:90,122,129,136`、`src/components/resource-list/ResourceMasterRow.vue:24`、`src/components/resource-list/ResourceResultStatus.vue:12`、`src/components/resource-list/DeleteConfirmDialog.vue:20`。
+違反ではないもの（例外と共通部品）: `src/components/basemap/BaseMapEdit.vue:36`、`src/components/assets/AssetEdit.vue:35`、`src/components/PoiReferenceEditor.vue:90,122,129,136`、`src/components/resource-list/ResourceMasterRow.vue:24`、`src/components/resource-list/ResourceResultStatus.vue:12`、`src/components/resource-list/DeleteConfirmDialog.vue:20`。
 
 ### 7.3 ダイアログ
 
@@ -292,7 +292,7 @@
 | `showMessageBox` の確認（ボタン 2 個以上。今は決まりの範囲内。方式は U3） | 22 | `src/components/assets/AssetEdit.vue:541,586`、`src/components/basemap/BaseMapEdit.vue:963,999`、`src/composables/useRevisionedAssetSave.ts:95,108`、`src/views/AppEdit.vue:502,534,1097,1110,1133`、`src/views/MapEdit.vue:4035,4069,4162,4273,4286,4342,4525,4798`、`src/views/PoiEdit.vue:650,670,986` |
 | 画面に直書きしたアプリ内モーダル（共通の枠の部品が無い） | 3 | `src/views/PoiEdit.vue:254`、`src/views/MapEdit.vue:4857`、`src/views/AppEdit.vue:1953`（エクスポートの 3 つの小窓。中身はほぼ同じ） |
 
-### 7.4 空状態（§4）
+### 7.4 空状態
 
 | 場所 | 中身 | 判定 |
 |---|---|---|
@@ -323,7 +323,7 @@
 | `btn-danger` | 2 |
 | `btn-outline-info` | 1 |
 
-§6.2 の決定から外れるもの:
+決定から外れるもの:
 
 | 場所 | 形 | 決定との差 |
 |---|---|---|
@@ -348,7 +348,7 @@
 | U3 | (a) 確認はネイティブに統一。アプリ内モーダルは入力・選択がある場合だけ |
 | U3 付随 | (1) 通知だけの 22 件は成功・失敗とも `DiagnosticFeedback scope="operation"` に移す |
 | U4 | (a) 押せない・選べない理由はすべて `ContextHelp`。赤字にしない |
-| U5 | (a) §6.2 のボタンの役割と class を採用 |
+| U5 | (a) ボタンの役割と class を採用 |
 | U6 | (a) ダイアログのボタンは通常の大きさに統一 |
 | U7 | (a) ペイン全体が空なら `ResourceEmptyState`。節の中の空は 1 行の `text-muted` |
 
@@ -368,18 +368,18 @@
 | ruleId | 検査 | 根拠 | 許可リストの例 |
 |---|---|---|---|
 | `help.form-text` | `class` に `form-text` を持つ要素 | 説明の文法（form-text は 0 件） | 状態の表示（`Settings.vue` の最後の要求の時刻）は `testid` で許可 |
-| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | 説明の文法（説明の直書きの削除） | 判断の本文（§8 U2） |
+| `help.muted-text` | `small` や `text-muted` を持つ要素の中身が `t('…')` だけで、キーが `_help`・`_note`・`_desc`・`_hint`・`_examples`・`_notice`・`_description` で終わる | 説明の文法（説明の直書きの削除） | 判断の本文（U2） |
 | `help.key-outside-contexthelp` | 上の接尾辞のキーが `ContextHelp` の `text`・`title` 以外で使われる（template の全部の `t()` の呼び出しを集める） | 説明の文法（説明の直書きの削除） | なし |
 | `help.slot-misuse` | `EditorField` の `#help` slot の中に `ContextHelp` 以外の要素がある | 説明の文法（`#help` slot には `ContextHelp` だけ） | なし |
-| `help.aria-label` | `ContextHelp` に `ariaLabel` が無い（型でも検出されるが、空文字も検出する） | 地図の配信元の追補 §3.5 | なし |
-| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | 説明の文法（エラーの出し方） | §3.2 の例外（`PoiReferenceEditor` など） |
+| `help.aria-label` | `ContextHelp` に `ariaLabel` が無い（型でも検出されるが、空文字も検出する） | 地図の配信元の追補 | なし |
+| `diag.inline-text` | `text-danger`・`text-warning` の要素の中身が文言（`*` の必須マークや `ResourceActionMenu` の破壊的な項目の色は除く） | 説明の文法（エラーの出し方） | 例外（`PoiReferenceEditor` など） |
 | `diag.raw-alert` | `class` に `alert` を持つ要素 | 説明の文法（`alert` の直書きの廃止） | `BaseMapEdit` と `AssetEdit` の競合 |
 | `dialog.native-browser` | `confirm(`・`alert(`・`prompt(` の呼び出し（`.vue` と `.ts`） | 説明の文法（ブラウザの標準のダイアログの廃止）、複製と Import | なし |
-| `dialog.notify-only` | `showMessageBox`（`window.dialog.showMessageBox` と自前の wrapper の `showMessageBox(...)`）の `buttons` が 1 個。`buttons` を書かないもの（Electron では OK 1 個）も 1 個とみなす。`buttons` や引数を変数で渡すなど数の分からないものも違反とし、許可リストで個別に通す（文言のキーの無い呼び出しは `args:<引数の書き方>` をキーにする） | Edit の文法 | ボタンの数が保存済みかで変わる書き出しの確認（`editor_ui.export_dirty_prompt`）と、`useRevisionedAssetSave` の wrapper の中継（§5.1） |
-| `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | §1.2・§5.3 | 入力・選択を伴う既存の部品を個別に許可 |
-| `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | 一覧行の統一 | 節内の空表示（§8 U7） |
-| `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | §8 U5・U6 | — |
-| `map.tool-button` | 地図の上に重ねる道具のボタン（`map-overlay-tools` の中の `button`）に `map-tool` が無い、または `aria-label` か `title` が無い | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) §4.2（案 A） | — |
+| `dialog.notify-only` | `showMessageBox`（`window.dialog.showMessageBox` と自前の wrapper の `showMessageBox(...)`）の `buttons` が 1 個。`buttons` を書かないもの（Electron では OK 1 個）も 1 個とみなす。`buttons` や引数を変数で渡すなど数の分からないものも違反とし、許可リストで個別に通す（文言のキーの無い呼び出しは `args:<引数の書き方>` をキーにする） | Edit の文法 | ボタンの数が保存済みかで変わる書き出しの確認（`editor_ui.export_dirty_prompt`）と、`useRevisionedAssetSave` の wrapper の中継 |
+| `dialog.ad-hoc-modal` | 共通の部品以外で `class="modal …"` を直書きする | ・| 入力・選択を伴う既存の部品を個別に許可 |
+| `empty.ad-hoc` | `text-center` と `text-muted` を持つ要素の中身が、キーに `empty`・`no_`・`not_found`・`select_` を含む `t()` だけ | 一覧行の統一 | 節内の空表示（U7） |
+| `button.variant` | 役割の分からない `btn-*` の組み合わせ（例: ダイアログの footer のキャンセルが `btn-secondary`） | U5・U6 | — |
+| `map.tool-button` | 地図の上に重ねる道具のボタン（`map-overlay-tools` の中の `button`）に `map-tool` が無い、または `aria-label` か `title` が無い | [ui-map-overlay-proposal.md](ui-map-overlay-proposal.md) （案 A） | — |
 
 ### 9.3 検査できないこと（レビューで見る）
 
@@ -393,10 +393,10 @@
 - CI: `scripts/ci/run-smokes.mjs` は `package.json` の `smoke:*` を全数実行するので、`smoke:editor-ui-grammar` と `smoke:editor-ui-grammar-fixtures` は足すだけで CI に載る（済み）
 - 検査の報告 `editor-ui-grammar-report.json` を CI の artifact に上げる（済み。`.github/workflows/test.yml` の smoke ジョブの Upload UI grammar report。同 workflow は用語集の検査の正本側なので、locale を変える PR と一緒には変えない（用語集の関門 1。AGENTS.md「UI Wording & Glossary」））
 - AGENTS.md の「UI Grammar」の節からこの文書へ案内する。用語集の節と並べる（済み）
-- タスク設計書の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（外側のリポジトリの nayuta-designer スキル。このリポジトリの外なので未着手）
+- 設計の雛形に「この画面の説明・エラー・空状態・ダイアログ・ボタンは ui-grammar.md のどの行に従うか」の欄を足す（このリポジトリの外の道具なので未着手）
 
 ## 10. この文書を変えるとき
 
 - 人間が決めたことを書き足すときは、**出典（ファイル:行）**を付ける。出典が無いものは【提案・未決】と書く。
-- 人間が決めたら、本文の規則と §8 の決定記録を更新する。
-- 決まりを変えたら §7 の棚卸しと §9 の検査の案も合わせて直す。
+- 人間が決めたら、本文の規則と 決定記録を更新する。
+- 決まりを変えたら 棚卸しと 検査の案も合わせて直す。

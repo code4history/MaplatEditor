@@ -3,7 +3,7 @@
 This document outlines potential future enhancements, features, and UI/UX improvements identified during the modernization of MaplatEditor to MaplatEditor-next.
 
 ## 1. Map-Specific Base Map Configuration UI
-**Status**: Implemented (m11-t4 / m12-t10). The MapEdit "Select Base Maps" tab lets users
+**Status**: Implemented . The MapEdit "Select Base Maps" tab lets users
 toggle which base maps are visible/available for the currently edited historical map
 (`setBaseMapVisibilityForMapID`), backed by the SQLite `base_maps` table rather than
 manual `tmsList.[mapID].json` editing. Legacy `tmsList.*.json` files are still read for
@@ -34,18 +34,18 @@ _Note: This document should be updated continuously as more areas for improvemen
 - エクスポートのZIP出力オプション、および出力後の簡易ローカルサーバでの動作確認機能
 - pwa-asset-generator のダークモードスプラッシュ（appleLaunchImageDarkMode）対応
 
-## 6. 地図原本タイル化のメモリ・実行時間（m5-t6 のスコープ外・実測あり）
+## 6. 地図原本タイル化のメモリ・実行時間（既存の変更のスコープ外・実測あり）
 
-**m19-t6 で解消済み（2026-08-09）。**
+**既存の変更で解消済み（2026-08-09）。**
 
 **旧状態**: `MapUploadService.imageCutter` はタイル1枚ごとに `imageJimp.clone()` で
 **原寸ビットマップ全体を複製**してから crop/resize していた。複製はタイル数ぶん繰り返され、
 コストは `タイル数 × 原寸` ∝ 面積² だった（旧 Electron 版 `backend/src/mapupload.js:123` から
 引き継いだ形であり、移植時の劣化ではない）。
 
-**対処**: m19-t6 で `cropRegionBitmap`（原寸バッファから矩形だけを行単位で取り出す純関数）へ
+**対処**: 既存の変更で `cropRegionBitmap`（原寸バッファから矩形だけを行単位で取り出す純関数）へ
 置き換えた。`crop` の分岐条件（`x===0 && w===width` ならバッファの view）をそのまま保つため、
-**出力タイルはバイト単位で変わらない**（`pnpm smoke:m19-t6-tile-cut-clone-reduction` が
+**出力タイルはバイト単位で変わらない**（`pnpm smoke:tile-cut-clone-reduction` が
 実 `imageCutter` の出力と旧経路の出力を全ファイル sha256 で突き合わせる）。
 あわせて、デコード後に不要となる圧縮元バッファの参照を落とすようにした。
 
@@ -63,33 +63,33 @@ _Note: This document should be updated continuously as more areas for improvemen
 と幅が出る。∴ この行の絶対値を基準に使ってはならない。合否は smoke が毎回再計測する比
 （しきい値 5 倍）で決まる。下 2 行は会計値であり実行間で決定的で、設計時実測とも完全一致する。
 
-end-to-end のタイル化時間（`pnpm smoke:m5-t6-large-image-decode-limits` の観測値）:
+end-to-end のタイル化時間（`pnpm smoke:large-image-decode-limits` の観測値）:
 
-| 原本 | 原寸 RGBA | タイル総数 | タイル化時間（m5-t6 時点の記録） | タイル化時間（m19-t6 後の実測） |
+| 原本 | 原寸 RGBA | タイル総数 | タイル化時間（時点の記録） | タイル化時間（後の実測） |
 |---|---|---|---|---|
 | 8000×6000（48 MP） | 約 183 MiB | 1025 | 41 秒 | **29.7 秒** |
 | 11000×10000（110 MP） | 約 420 MiB | 2314 | 155 秒 | **57.1 秒** |
 
 **注意**: 旧側の記録は実行機・実行時期が異なる（同じ 48 MP に対し本表の 41 秒と
-`scripts/m5-t6-large-image-decode-limits-smoke.mjs` ヘッダの約 65 秒という 1.6 倍の食い違いがある）。
-∴ 上表の end-to-end 列は**観測記録**であって合否のしきい値ではない。m19-t6 の受け入れ条件は
+`scripts/large-image-decode-limits-smoke.mjs` ヘッダの約 65 秒という 1.6 倍の食い違いがある）。
+∴ 上表の end-to-end 列は**観測記録**であって合否のしきい値ではない。既存の変更の受け入れ条件は
 同一プロセス A/B の 3 指標のほうである。
 
 **残る余地**: end-to-end の残りは resize / JPEG エンコード / タイルごとの 1 ms スリープ / IPC が
 占める。抽出は面積²で効いていたため画素数が増えるほど比が大きくなるはずだが、
 **470 MP の実画像での end-to-end は未実測**である（デコードだけで約 8 分かかるため smoke に載せていない）。
-デコード時間そのものの短縮は §6.2 のとおり別問題として残る。
+デコード時間そのものの短縮は とおり別問題として残る。
 
-### 6.1 取り込みの中断（キャンセル）導線 — m5-t8 のスコープ外
+### 6.1 取り込みの中断（キャンセル）導線 — 既存の変更のスコープ外
 
-m5-t8 は取り込み前に所要時間の確認プロンプトを出すようにしたが、**一度始めた取り込みを
+既存の変更は取り込み前に所要時間の確認プロンプトを出すようにしたが、**一度始めた取り込みを
 途中で止める導線は無い**。確認文言にも「開始すると途中で取り消せません」と明記している。
 
 進行中のタイル化を安全に止めるには、`imageCutter` のタイル生成ループへ中断点を設け、
 中断時の staging dir の後始末（部分的に書かれたタイルの扱い）を決める必要がある。
-フロー構造の変更を伴うため m5-t8 では扱わず、高速化（m16）と同じ機会に検討する。
+フロー構造の変更を伴うため今回は扱わず、高速化と同じ機会に検討する。
 
-### 6.2 デコード所要時間は内容依存（m5-t8 の実測）
+### 6.2 デコード所要時間は内容依存
 
 上表のタイル化時間は合成した平坦画像のものであり、**デコード時間のほうは内容に強く依存する**。
 
@@ -99,11 +99,11 @@ m5-t8 は取り込み前に所要時間の確認プロンプトを出すよう�
 | 110 MP baseline（合成・ほぼ平坦） | 合成 | 8.5 秒 | 0.077 |
 
 **13 倍の開きがある。** ∴ 合成フィクスチャで測った係数を実写の見積もりへ持ち込んではならない。
-m5-t8 の確認プロンプトが所要時間の**分数を表示しない**のはこのためである。
+既存の変更の確認プロンプトが所要時間の**分数を表示しない**のはこのためである。
 
-## 7. basemap_icons_512 の読み出し実装（m6-t4a のスコープ外）
+## 7. basemap_icons_512 の読み出し実装（既存の変更のスコープ外）
 
-**現状**: m6-t4a で `public/basemap_icons_512/{google_roadmap,google_satellite,google_hybrid,
+**現状**: 既存の変更で `public/basemap_icons_512/{google_roadmap,google_satellite,google_hybrid,
 google_terrain,mapbox,maplibre}.png` を新規配置したが、これを読み出す詳細プレビュー UI は
 どこにも実装されていない。google/mapbox/maplibre は `builtin_base_maps.json` に登場せず
 `thumbnail512` フィールド自体を持たないため、`resolveBaseMapListImage`
@@ -125,50 +125,50 @@ UI設計より前に「そもそも335ファイル全部を512pxで持つ必要�
 **提案**: 一覧行ホバー時またはクリック時の拡大プレビュー等、512px を活かす UI を後続タスクで
 設計する。あわせて画像圧縮・配布サイズ削減の要否も同タスクで検討する。
 
-## 8. smoke に残る `@duckdb` の esbuild external 指定（oct26-m4-t3 で解消済み）
+## 8. smoke に残る `@duckdb` の esbuild external 指定（既存の変更で解消済み）
 
-**解消済み（2026-09-10, oct26-m4-t3）。**
+**解消済み（2026-09-10）。**
 
-**旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v m18-t8 | wc -l`
-実測。依存不在 assertion を持つ `m18-t8-packaging-smoke.mjs` を除く）が esbuild の `external` に
+**旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v | wc -l`
+実測。依存不在 assertion を持つ `packaging-smoke.mjs` を除く）が esbuild の `external` に
 `'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` の3要素を
-列挙していた。m18-t8 で依存そのものを撤去したため、これらは**不活性な no-op** だった
+列挙していた。既存の変更で依存そのものを撤去したため、これらは**不活性な no-op** だった
 （存在しないモジュール名を external に挙げても esbuild は何もしない）。
 
-**対処**: oct26-m4-t3（issue #94）で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
+**対処**: （issue #94）で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
 `vite.config.ts:28` の同一3要素は、同配列が `pwa-asset-generator` external（#99）と共有されており、
-依存是正を行う `oct26-m5-t2` が同時に除去するのが最も安いため、本タスクでは触らず m5-t2 へ申し送った。
+依存是正を行う `FUTURE_PLAN-t2` が同時に除去するのが最も安いため、本タスクでは触らず 既存の変更へ申し送った。
 
-## 9. merc の実行時タイル URL 導出が2実装で並立している（m22-t1 のスコープ外）
+## 9. merc の実行時タイル URL 導出が2実装で並立している（既存の変更のスコープ外）
 
 **現状**: merc ベースマップの実行時タイル URL（`{saveFolder}/merc/{uid}/{z}/{x}/{y}.png`）を
 組み立てる実装が **2箇所**ある。
 
 | # | 実装 | 宛先 | percent-encoding |
 |---|---|---|---|
-| a | `electron/utils/mercBaseMapTileUrl.ts` の `deriveMercBaseMapTileUrl`（m22-t1 で新設） | IPC の item レベル `url_` → `MapEdit.vue` / `PoiEditMap.vue` の `mapSourceFactory` | **あり**（`file-url` を通す） |
-| b | `src/components/basemap/BaseMapEdit.vue:1031-1039` の `overlayTms`（m6-t8 §3.10） | `EnvelopeEditorModal.vue:131` の `new XYZ({ url: props.overlayTms.url })`（`mapSourceFactory` を経ない）と `BaseMapEdit.vue:1194` の `window.appAssets.generateTmsThumbnail(...)` | **なし**（`` `file://${dataFolderPath.value}/merc/${document.value.uid}/{z}/{x}/{y}.png` `` の文字列連結） |
+| a | `electron/utils/mercBaseMapTileUrl.ts` の `deriveMercBaseMapTileUrl`（既存の変更で新設） | IPC の item レベル `url_` → `MapEdit.vue` / `PoiEditMap.vue` の `mapSourceFactory` | **あり**（`file-url` を通す） |
+| b | `src/components/basemap/BaseMapEdit.vue:1031-1039` の `overlayTms` | `EnvelopeEditorModal.vue:131` の `new XYZ({ url: props.overlayTms.url })`（`mapSourceFactory` を経ない）と `BaseMapEdit.vue:1194` の `window.appAssets.generateTmsThumbnail(...)` | **なし**（`` `file://${dataFolderPath.value}/merc/${document.value.uid}/{z}/{x}/{y}.png` `` の文字列連結） |
 
 宛先レイアウトは a と b で**完全に同一**である。差分は percent-encoding の有無のみで、
 b は保存フォルダのパスに空白や非 ASCII を含む環境で a と別の URL を作る
-（m5-t3 が地図側で排したのと同型の劣化。**実害は未検証・未報告**）。
+（既存の変更が地図側で排したのと同型の劣化。**実害は未検証・未報告**）。
 
-**なぜ m22-t1 で統合しなかったか**: a の純関数は `node:path` と `file-url` に依存し、
+**なぜ 既存の変更で統合しなかったか**: a の純関数は `node:path` と `file-url` に依存し、
 renderer バンドルへは載せられない。∴ 統合するには次のいずれかが要る。
 
 - (i) 新規 IPC チャネルを設けて renderer から a を呼べるようにする
 - (ii) `BaseMapEdit` が自分の item を IPC カタログ（`basemaps:list` の `url_`）から引いて使う
 - (iii) 純関数を renderer 互換へ書き直し、main / renderer の双方から import する
 
-いずれも FOSS4G 会期直前に新しい面を足す変更であり、m22-t1 の症状（GCP 編集画面での merc 無表示）
-とは**別経路**で症状の解消には不要である。また m22-t1 が新設する側は `file-url` を通すため、
+いずれも FOSS4G 会期直前に新しい面を足す変更であり、既存の変更の症状（GCP 編集画面での merc 無表示）
+とは**別経路**で症状の解消には不要である。また 既存の変更が新設する側は `file-url` を通すため、
 本タスクによって既存の状態が悪化することはない（並立が残るだけである）。
 
 **提案**: 会期後に (i)〜(iii) のいずれかで統合し、あわせて b の percent-encoding 未適用を解消する。
 恒久指示「同一扱いの処理は共通実装へ寄せる」に対する**放棄ではなく延期**である
-（m22-t1 設計書 §3.6・人間ゲート G-7）。
+（人間ゲート G-7）。
 
-## 10. 同梱リソースの解決が outDir 名 `dist` に偶然依存している（m22-t1 のスコープ外）
+## 10. 同梱リソースの解決が outDir 名 `dist` に偶然依存している（既存の変更のスコープ外）
 
 **現状**: `electron/utils/resourceAssets.ts:8` は
 `appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..')` とし、
@@ -181,23 +181,23 @@ vite の ssr build は outDir 名にかかわらず `publicDir` を複製する�
 2通りで空ビルドし、いずれにも `basemap_icons/` が複製されることを実測）。
 ∴ 依存しているのは**複製の有無ではなく outDir の名前**である。
 
-**現に乗っている既存 smoke**: 少なくとも `scripts/m12-t1-hotfix-1-search-thumbnails-smoke.mjs:27` が
+**現に乗っている既存 smoke**: 少なくとも `scripts/search-thumbnails-smoke.mjs:27` が
 outDir を `workDir/'dist'` にしており、この偶然に乗って `thumbnailUrl` の解決が成立している。
 outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
 
-**m22-t1 の smoke がどう回避したか**: 同 smoke は harness を2種類同居させる都合で outDir が
+**smoke がどう回避したか**: 同 smoke は harness を2種類同居させる都合で outDir が
 2つある（`dist-ipc` / `dist-lib`）∴ 名前の偶然に乗れない。そこで `APP_ROOT` を明示的に設定している。
 実際に当該行をコメントアウトすると S8 が
 「thumbnailUrl の添付が維持されること: null」で赤くなることを実測済みである。
 
-**なぜ m22-t1 で直さなかったか**: 既存 smoke は現に緑であり、本タスクの責務外である。
+**なぜ 既存の変更で直さなかったか**: 既存 smoke は現に緑であり、本タスクの責務外である。
 会期直前に無関係な面（56本規模の smoke 群の harness）を増やさない判断を採った。
 
 **提案**: 会期後に (a) `resourceAssets.ts` の探索を outDir 名に依存しない形へ改める、または
 (b) 既存 smoke 群が `APP_ROOT` を明示するよう揃える、のいずれかで偶然依存を解消する。
 放置しても現状は壊れないが、outDir 名の変更という**無関係な変更**が遠くの smoke を赤くする。
 
-## 11. PWA 画像生成の旧依存（pwa-asset-generator 系）を 12 月に撤去する（nov26-rc-editor174）
+## 11. PWA 画像生成の旧依存（pwa-asset-generator 系）を 12 月に撤去する
 
 **現状**: #174 で PWA の画像（アイコン 8・スプラッシュ 46）は **Electron 自身の Chromium**
 （`electron/utils/pwaChromiumRenderer.ts` の非表示 offscreen ウィンドウ）で描くようになった。
@@ -207,9 +207,9 @@ outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
 RC（11 月）の回帰面を増やさないためである。
 
 **12 月の作業**: `pwa-asset-generator` を `dependencies` から外し、上記の連動箇所を掃除する。
-`pwa-asset-generator` の純関数に依存しているのは **smoke だけ**（`scripts/nov26-rc-editor174-pwa-assets-smoke.mjs`
-が基準ファイルとライブラリ生出力を突き合わせるブロックと、AC7 の端末寸法表の同一性検査）。撤去時に
-その 2 ブロックを消せば、基準ファイル `scripts/fixtures/nov26-rc-editor174-pwa-baseline.json` は
+`pwa-asset-generator` の純関数に依存しているのは **smoke だけ**（`scripts/pwa-assets-smoke.mjs`
+が基準ファイルとライブラリ生出力を突き合わせるブロックと、の端末寸法表の同一性検査）。撤去時に
+その 2 ブロックを消せば、基準ファイル `scripts/fixtures/pwa-baseline.json` は
 そのまま期待値として使える。端末寸法表の再生成器 `scripts/generate-pwa-splash-devices.mjs` も同時に撤去する。
 
 **速度（実測 2026-10-21・この開発機）**: 54 枚で 512px 元画像 4.2 秒 / 4000px 写真 4.7 秒

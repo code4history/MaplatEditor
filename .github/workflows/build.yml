@@ -29,7 +29,7 @@ on:
   #     「Mac だけ焼き直す」（mac + full）が eSigner を再課金せずにできる
   #
   #   push（master / glm52 / foss4g-hiroshima）: Mac は Developer ID 署名のみ（公証なし・課金ゼロ）、
-  #     Win / Linux は署名しない。Mac 証明書2 secrets は environment `ci` にも置く（t1・2026-08-21。
+  #     Win / Linux は署名しない。Mac 証明書2 secrets は environment `ci` にも置く（2026-08-21。
   #     dispatch 忘れによる未署名配布事故を受けた人間指示で、既存の変更の「push では署名しない」を部分差し戻し）。
   #     公証・eSigner・Release 作成は従来どおり `release`（Required reviewers 保護）の dispatch 限定
   push:
@@ -206,7 +206,7 @@ jobs:
     timeout-minutes: 120
     # 公証・eSigner 用 secrets は environment `release`（Required reviewers）。
     # Mac 証明書2件（APPLE_CERT_BASE64 / APPLE_CERT_PASSWORD）は push でも署名するため
-    # `ci` にも置く（t1・2026-08-21）。`ci` にはこの2件以外を置かない（docs/release-signing.md Part C）
+    # `ci` にも置く（2026-08-21）。`ci` にはこの2件以外を置かない（docs/release-signing.md Part C）
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
@@ -246,7 +246,7 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: node scripts/viewer-freshness/check-viewer-freshness.mjs
 
-      # Developer ID 証明書のインポート（push / dispatch とも実行。Mac は常に署名を試みる — t1・2026-08-21）
+      # Developer ID 証明書のインポート（push / dispatch とも実行。Mac は常に署名を試みる — 2026-08-21）
       # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
       # Secret 未設定（APPLE_CERT_BASE64 が空）の場合はシェル内でスキップし、無署名の DMG になる
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する

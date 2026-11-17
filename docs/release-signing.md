@@ -212,7 +212,7 @@ Developer ID 署名だけで、Windows は署名しない）。merge の前の�
    - dispatch 実行では mode に関わらず environment `release` を使う（Mac 署名に証明書が要るため）
    - `win_signer=artifact-signing` では、続いて署名専用ジョブ 3 つ（`sign-win-payload`・`sign-win-uninstaller`・`sign-win-installer`）が
      **1 つずつ承認待ちになる**（1 回の実行で承認は最大 4 回）。承認の前に run の表示名（`dispatch mode=… signer=… sha=… ver=…`）が
-     自分の起動と一致することを確かめる（outer の承認スクリプトは表示名を照合してから承認する）
+     自分の起動と一致することを確かめる（親の作業場所の承認スクリプトは表示名を照合してから承認する）
    - `run-name`（`dispatch mode={0} signer={1} sha={2} ver={3}`）には `notarize` を含めない（承認スクリプトの完全一致照合を維持するため）。したがって、**同じ SHA で `notarize=false` と `notarize=true` の `mode=sign-check` を同時に未完了で走らせないこと**（一致する未完了の run が 2 本以上あると承認スクリプトは安全のため停止する）
 4. 完了後の確認:
    - **Artifacts**: mac-artifacts（.dmg / .dmg.blockmap / .zip / .zip.blockmap / latest-mac.yml。zip は自動更新〔Squirrel.Mac〕用・Part J）、win-artifacts（Setup.exe / .exe.blockmap / latest.yml）、linux-artifacts（.AppImage / latest-linux.yml）
@@ -406,7 +406,7 @@ v1.0.0 は Setup.exe しか署名していなかったため、Windows 11 の**�
   `assetName` の形）で `..` を含まない・通常のファイル（symlink・ディレクトリでない）・64 バイト以上 64 MiB 以下・先頭が `MZ`・
   1〜64 件。1 つでも外れたら step が落ちて**何も上げない**（上げなかった分は次の eSigner の実行で署名し直す＝課金が増えるだけ）。
   outbox へ置く前の署名者の照合は `win-sign.cjs` の esigner の署名直後の `checkSigner(…, 'esigner')` で、
-  外れたら throw して outbox へ届かない。検査の振る舞いは `scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs` が
+  外れたら throw して outbox へ届かない。検査の振る舞いは `scripts/cache-publish-guard-smoke.mjs` が
   run: を抜き出して実行して確かめる
 - **この経路が 11 月に初めて走るのは eSigner の退路を使ったときで、RC 以降になりうる**。受け入れる根拠: 検査は
   抜き出した shell を smoke で実行して確かめており、壊れても上げる前に落ちる（配布物は変わらず、キャッシュに上がらないだけ）。
@@ -570,7 +570,7 @@ gh run view <run の ID> -R code4history/MaplatEditor --json jobs --jq '.jobs[] 
   `pack-sign-win` は無い）
 - **(d) eSigner の退路は 11 月の Windows の署名付きビルドでは走らない**（そのビルドは Artifact Signing の経路）。Artifact Signing への組み替えと
   資格情報の閉じ込めの後の eSigner の経路は、**退路を実際に使うまで live では未走**である。確かめているのは smoke だけ
-  （`scripts/nov26-m7-t3-credential-exposure-smoke.mjs`: 偽の CodeSignTool で起動の形・子の env・ログの伏せ字を、
+  （`scripts/credential-exposure-smoke.mjs`: 偽の CodeSignTool で起動の形・子の env・ログの伏せ字を、
   `scripts/ci/eval-gh-if.mjs` で eSigner の step の `if:` が `win_sign_path=esigner` のときだけ真になることを確かめる）。
   課金を伴う eSigner の実走は求めていない。退路を使う日は、最初の 1 ファイルの署名のログで CodeSignTool が資格情報を受け取れたことを見る
 - 署名専用ジョブの拒否語（`signing-job-rules.mjs`）は完全にはできない（文字列の連結・別名で組み立てた呼び出し等）。shell を pwsh に絞り、

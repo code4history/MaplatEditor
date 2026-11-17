@@ -59,7 +59,7 @@
     "rule": "dialog.ad-hoc-modal",
     "file": "src/components/ProgressModal.vue",
     "testid": "operation-progress-dialog",
-    "reason": "実行中の進捗と終了の表示を担う共通部品。入力・選択は無いが通知ではなく、実行中は閉じられない進捗の表示なので、アプリ内のモーダルのまま残す（§5.3 の【AI 設計】の行）。",
+    "reason": "実行中の進捗と終了の表示を担う共通部品。入力・選択は無いが通知ではなく、実行中は閉じられない進捗の表示なので、アプリ内のモーダルのまま残す（【AI 設計】の行）。",
     "source": "docs/ui-grammar.md#53-ネイティブのダイアログとアプリ内のモーダル"
   },
   {

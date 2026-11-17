@@ -32,11 +32,11 @@ Technology stack (from `package.json`, measured 2026-11-15): `pnpm` as package m
 
 ## Coding Style & Naming Conventions
 
-TypeScript with `strict: true` in `tsconfig.json`. This repository has no ESLint configuration file and no `lint` script; do not assume ESLint is available. Type checking is handled by `vue-tsc` as part of `pnpm build`; the Electrobun-specific surface has its own check via `pnpm typecheck:m2-electrobun` (`tsc -p tsconfig.electrobun.json --noEmit`). Match the existing Vue 3 `<script setup>` composition-API style used throughout `src/components/` and `src/composables/`.
+TypeScript with `strict: true` in `tsconfig.json`. This repository has no ESLint configuration file and no `lint` script; do not assume ESLint is available. Type checking is handled by `vue-tsc` as part of `pnpm build`; the Electrobun-specific surface has its own check via `pnpm typecheck:electrobun-poc` (`tsc -p tsconfig.electrobun.json --noEmit`). Match the existing Vue 3 `<script setup>` composition-API style used throughout `src/components/` and `src/composables/`.
 
 ## Testing Guidelines
 
-This repository has no unified `test` script. Task-scoped smoke tests live under `scripts/` and run individually as `pnpm smoke:<task-id>` (dozens of scripts, one per implementation task, e.g. `pnpm smoke:m12-t22-data-io-dormant-preservation`). Playwright end-to-end specs live in `tests/e2e/` and run individually as `pnpm test:e2e:<task-id>` (e.g. `pnpm test:e2e:m11-t6`); most of these scripts run `scripts/ensure-electron.mjs` and `pnpm build` first. When adding a new task's tests, follow this per-task naming convention rather than introducing a shared `test` script.
+This repository has no unified `test` script. Smoke tests live under `scripts/` and run individually as `pnpm smoke:<name>`, where the name says what the smoke checks (e.g. `pnpm smoke:data-io-dormant-preservation`); `node scripts/ci/run-smokes.mjs` runs all of them. Playwright end-to-end specs live in `tests/e2e/` and run individually as `pnpm test:e2e:<name>` (e.g. `pnpm test:e2e:list-primitives`); most of these scripts run `scripts/ensure-electron.mjs` and `pnpm build` first. When adding tests, name the script and file after what they check rather than introducing a shared `test` script.
 
 ## Browser Engine Policy
 
@@ -52,7 +52,7 @@ The editor runs on two kinds of engines: the Chromium bundled with Electron, and
 
 ## UI Grammar
 
-Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/rule-0002-screenshot-followup-on-ui-change.md`).
+Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/AGENTS-screenshot-followup-on-ui-change.md`).
 
 ## UI Wording & Glossary
 
@@ -102,7 +102,7 @@ Each violation is printed as `<lang> <key> <concept> <ruleId> <hit> → <preferr
 
 ## Commit & Pull Request Guidelines
 
-Commits in this repository are predominantly task-ID-prefixed (e.g. `m12-t22:`, `m14-t3:`, `m13-t2:`), reflecting this project's internal task tracking; occasional Conventional-Commit-style fallbacks appear (`fix(smoke):`) for changes outside a tracked task. Keep commits scoped to one concern. Pull requests should describe the affected editor behavior, list which smoke/e2e scripts were run, and confirm `pnpm build` (which includes type checking) succeeds locally before requesting review.
+Use Conventional-Commit-style messages (e.g. `fix(smoke):`, `chore(scripts):`) that describe the change itself; do not put internal tracking identifiers in commit messages, comments, file names or test titles. Keep commits scoped to one concern. Pull requests should describe the affected editor behavior, list which smoke/e2e scripts were run, and confirm `pnpm build` (which includes type checking) succeeds locally before requesting review.
 
 ## Release & Configuration Tips
 
