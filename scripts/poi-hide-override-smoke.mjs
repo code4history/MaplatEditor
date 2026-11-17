@@ -1,6 +1,5 @@
 // 地図管理 > POI 編集の hide 上書き UI
 //
-//。
 // PoiReferenceEditor.vue は SFC のため純関数の直接 import ができない（既存の POI 系 smoke も同方式）。
 // ソーステキスト read + 構造 assert で、UI 配置・2状態の書き込み契約・readOnly・i18n を検証する。
 import { readFile } from 'node:fs/promises';

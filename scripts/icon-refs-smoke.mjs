@@ -115,7 +115,7 @@ try {
   );
   assert.equal(formatIconRef(parseIconRef('maki:bank')), 'maki:bank');
 
-  // 13. listIconSets に builtin があり icons 7種 (Phase 8 Task 4: ビューア整合)。
+  // 13. listIconSets に builtin があり icons 7種 (ビューア整合)。
   //     defaultpin/defaultpin-selected はビューアの png、色5種 (blue/red/green/yellow/gray)
   //     は SVG のボーナストラック。previewUrl は per-icon ext で png/svg 混在に追随する
   const sets = listIconSets();
@@ -154,7 +154,7 @@ try {
   assert.equal(builtin.previewUrl('defaultpin-blue'), 'icons/builtin/defaultpin-blue.svg');
   assert.equal(builtin.previewUrl('defaultpin-red'), 'icons/builtin/defaultpin-red.svg');
 
-  // 14. title は i18n キー (titleKey) を持つ (Phase 6 品質ハードコード英語
+  // 14. title は i18n キー (titleKey) を持つ (品質の確認でハードコード英語
   // "Builtin" ではなく poiedit.picker.set_builtin キーを呼び出し側の t() で解決する)
   assert.equal(builtin.titleKey, 'poiedit.picker.set_builtin');
   assert.equal(typeof builtin.title, 'undefined', 'title は titleKey に置き換わり残っていないはず');

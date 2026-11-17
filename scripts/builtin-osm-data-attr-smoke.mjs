@@ -1,7 +1,5 @@
 // スモーク: ビルトイン OSM 1件のデータ帰属（dataAttr）是正。
 //
-//。
-//
 // case 1  VIEWER_BUILTIN_LICENSES.osm に dataAttr（attr と同一構造・同一値）が追加されている
 //      （生成関数の出力から逆検証する）。
 // case 2  applyProviderFields の dataAttr 転写分岐が GSI/NARO 系 provider には影響しない

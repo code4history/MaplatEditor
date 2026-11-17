@@ -1,5 +1,4 @@
 // スモーク: ストリーミング ZIP 書き出し（electron/utils/zipWriter.ts）と搬出経路の検査。
-//。
 //
 // 対象 AC:
 //   case 2  新実装の zip エントリ名の**集合**が同一入力の adm-zip 出力と一致する
@@ -20,9 +19,9 @@
 //
 // app-source-diff-model-smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ）。
 // 環境変数:
-//   T1_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の mkdtemp）
-//   T1_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用）
-//   T1_SMOKE_KEEP_BUILD=1 : vite ビルド出力（.tmp-smoke 配下）も残す（デバッグ用）
+//   EXPORT_ZIP_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の mkdtemp）
+//   EXPORT_ZIP_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用）
+//   EXPORT_ZIP_SMOKE_KEEP_BUILD=1 : vite ビルド出力（.tmp-smoke 配下）も残す（デバッグ用）
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
@@ -33,15 +32,15 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const buildRoot = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-build-'));
-// データ作業域（合成ツリー・zip・展開結果）は T1_SMOKE_WORKDIR で外へ出せる（証跡の残置用）
+// データ作業域（合成ツリー・zip・展開結果）は EXPORT_ZIP_SMOKE_WORKDIR で外へ出せる（証跡の残置用）
 let workDir;
-if (process.env.T1_SMOKE_WORKDIR) {
-  workDir = path.resolve(process.env.T1_SMOKE_WORKDIR);
+if (process.env.EXPORT_ZIP_SMOKE_WORKDIR) {
+  workDir = path.resolve(process.env.EXPORT_ZIP_SMOKE_WORKDIR);
   await mkdir(workDir, { recursive: true });
 } else {
   workDir = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-'));
 }
-const keepWorkDir = process.env.T1_SMOKE_KEEP === '1';
+const keepWorkDir = process.env.EXPORT_ZIP_SMOKE_KEEP === '1';
 const entryFile = path.join(buildRoot, 'export-zip-writer-smoke.ts');
 const electronStubFile = path.join(buildRoot, 'electron-stub.ts');
 const electronStoreStubFile = path.join(buildRoot, 'electron-store-stub.ts');
@@ -117,7 +116,7 @@ try {
       import { open, readFile, writeFile as fsWriteFile, mkdir as fsMkdir, readdir, stat } from 'node:fs/promises';
       import AdmZip from 'adm-zip';
 
-      // SECTION の case 4 検査が installBackendErrorForwarding を呼ぶと process に
+      // SECTION の case 4 検査が installBackendErrorForwarding() を呼ぶと process に
       // unhandledRejection ハンドラが載り、以降のセクションで top-level await が reject しても
       // Node の既定（exit 1）が抑止されて **exit 0 のまま黙って終了する**（本スモーク開発中に実測）。
       // ∴ 本体を main() に包み、失敗を明示的に exit 1 へ変換する。成功マーカーの出力も必須とし、
@@ -461,7 +460,7 @@ try {
 
       // ============================================================
       // SECTION 5: case 6 搬出フロー検査（進捗が (N/N) まで到達してから完了文言へ）
-      //   設計レビュー v1 M-1: forceNext の単体検査では での呼び出し欠落を
+      //   設計レビューの指摘: forceNext() の単体検査では搬出フローでの呼び出し欠落を
       //   検出できない ∴ 実 AppExportService.exportApp を合成アプリに対して実行する。
       //
       //   caller throttle（AppExportService の
@@ -480,7 +479,7 @@ try {
       //       （= forceNext() 無しなら 1% throttle に落とされる規模）を assert
       //   (b) (N/N) の zipping send の実在を assert
       //   (c) 対照実行（レビュー是正案 1）: ProgressReporter.prototype.forceNext を no-op に
-      //       した実行では (N/N) send が**現れない**ことを assert（= 本検査が の
+      //       した実行では (N/N) send が**現れない**ことを assert（= 本検査が搬出フローでの
       //       forceNext() 呼び出し欠落を実際に検出できるという判別力の証明。fixture 縮退や
       //       throttle constant の変更で判別力が消えた場合はここが fail する）
       //
@@ -501,7 +500,7 @@ try {
         const { ProgressReporter } = await import(${JSON.stringify(progressReporterPath)});
         await SqliteDataService.getDb();
 
-        const { uid: mapUid } = await SqliteDataService.createMap('t1map', { title: { ja: 't1地図' } });
+        const { uid: mapUid } = await SqliteDataService.createMap('zipmap', { title: { ja: '書き出し地図' } });
         assert.ok(mapUid, '地図 fixture の作成');
         // tiles: 85 ファイル（上の規模検算のとおり N=102 に合わせる）
         const TILES = 85;
@@ -515,7 +514,7 @@ try {
         const doc = {
           appID: 't1_ac6_app', title: { ja: 'T1' }, lang: 'ja',
           sources: [{ sourceType: 'maplat', mapUid, role: 'maplat', startFrom: true,
-            data: { mapID: 't1map', maptype: 'maplat', noload: true } }],
+            data: { mapID: 'zipmap', maptype: 'maplat', noload: true } }],
           appSettings: {}, httpSettings: {},
         };
 
@@ -578,7 +577,7 @@ try {
         console.log('ok: case 6 搬出フローで (N/N)=(' + N + '/' + N + ') 到達 → 完了文言（前提条件 (a) 成立を確認）');
 
         // (c) 対照実行: forceNext() を no-op にすると (N/N) send が現れない（判別力の証明）。
-        //     の reporter.forceNext 呼び出しが欠落した製品コードと同じ挙動を
+        //     搬出フローの reporter.forceNext() 呼び出しが欠落した製品コードと同じ挙動を
         //     prototype 差し替えで再現する。Date.now 凍結も同一条件
         {
           const contrastSends: { channel: string; payload: any }[] = [];
@@ -723,7 +722,7 @@ try {
     throw new Error('t1 smoke: 成功マーカーが出力されていない（子プロセスが途中終了した可能性）');
   }
 } finally {
-  if (process.env.T1_SMOKE_KEEP_BUILD !== "1") await rm(buildRoot, { recursive: true, force: true });
+  if (process.env.EXPORT_ZIP_SMOKE_KEEP_BUILD !== "1") await rm(buildRoot, { recursive: true, force: true });
   if (keepWorkDir) {
     console.log(`T1 smoke workdir kept: ${workDir}`);
   } else {

@@ -1,5 +1,4 @@
-// スモーク: adm-zip の使い方の恒久の断言（#102・#98）。タスク設計（outer リポジトリ
-//）・case 6。
+// スモーク: adm-zip の使い方の恒久の断言（#102・#98）。
 //
 //   (a) electron/ に adm-zip の非同期の読み取り API（getDataAsync・extractAllToAsync・readFileAsync・
 //       readAsTextAsync）の呼び出しが 0 件。非同期版の inflater（createInflateRaw）は error リスナを

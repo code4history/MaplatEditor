@@ -101,9 +101,9 @@ try {
       const thumb512 = nodePath.join(thumbFolder, uid + '_512.webp');
       await stitchThumbnail512(zoom2Dir, thumb512);
       const img = await readImageMeta(thumb512);
-      assert.equal(img.width, 348, 'M6: 348px 幅（673*512/991）: ' + img.width);
-      assert.equal(img.height, 512, 'M6: 512px 高（長辺）: ' + img.height);
-      console.log('ok: M6 端タイル付き 3x4 グリッド + data_json なしで 348x512 を正しく生成');
+      assert.equal(img.width, 348, '348px 幅（673*512/991）: ' + img.width);
+      assert.equal(img.height, 512, '512px 高（長辺）: ' + img.height);
+      console.log('ok: 端タイル付き 3x4 グリッド + data_json なしで 348x512 を正しく生成');
 
       // 破損シグネチャ（全グリッド 768x1024 を長辺512に縮小した 384x512）を検出
       const brokenFile = nodePath.join(${JSON.stringify(workDir)}, 'broken.jpg');
@@ -111,22 +111,22 @@ try {
       brokenCanvas.resize({ w: 384, h: 512 });
       await brokenCanvas.write(brokenFile);
       const brokenResult = await svc.isBrokenThumbnail512(brokenFile, zoom2Dir);
-      assert.equal(brokenResult, true, 'M7: 破損シグネチャ（384x512 全グリッド縮小）を検出');
-      console.log('ok: M7 破損シグネチャ（384x512）を検出');
+      assert.equal(brokenResult, true, '破損シグネチャ（384x512 全グリッド縮小）を検出');
+      console.log('ok: 破損シグネチャ（384x512）を検出');
 
       // 正規生成（348x512、コンテンツ境界で crop 済み）は破損とみなさない
       const correctResult = await svc.isBrokenThumbnail512(thumb512, zoom2Dir);
-      assert.equal(correctResult, false, 'M7: 正規生成（348x512）は破損とみなさない');
-      console.log('ok: M7 正規生成は破損とみなさない');
+      assert.equal(correctResult, false, '正規生成（348x512）は破損とみなさない');
+      console.log('ok: 正規生成は破損とみなさない');
 
       // ユーザー置換（512x512、破損シグネチャと寸法が異なる）は巻き込まない
       const userFile = nodePath.join(${JSON.stringify(workDir)}, 'user.jpg');
       await new Jimp({ width: 512, height: 512, color: 0x00ff00ff }).write(userFile);
       const userResult = await svc.isBrokenThumbnail512(userFile, zoom2Dir);
-      assert.equal(userResult, false, 'M7: ユーザー置換（512x512）は巻き込まない');
-      console.log('ok: M7 ユーザー置換は巻き込まない');
+      assert.equal(userResult, false, 'ユーザー置換（512x512）は巻き込まない');
+      console.log('ok: ユーザー置換は巻き込まない');
 
-      console.log('M6/M7 smoke: ALL PASS');
+      console.log('tile content size and corruption smoke: ALL PASS');
     `,
   );
 

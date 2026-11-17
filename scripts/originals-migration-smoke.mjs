@@ -2,20 +2,19 @@
 // originals-resolver-smoke と同じ sandbox 方式 (vite SSR ビルド + electron スタブ + saveFolder=一時dir) で
 // OriginalsMigrationService.runColdBoot/runManual と MigrationReportService.mergeAndWriteReport を
 // behavioral に検証する。runColdBoot/runManual は db: DatabaseSync を直接受け取る設計
-// (: getDb 再入禁止) のため、SqliteDataService/getDb は経由せず node:sqlite の
+// (getDb() の再入禁止) のため、SqliteDataService/getDb は経由せず node:sqlite の
 // DatabaseSync に直接 maps テーブルを作って fixture rows を投入する。
-// /準拠。
 // シナリオ:
-//   (B) 7種の MigrationCandidateKind が report entries へ反映される (AC-T3-3)。
-//       このうち copyable → migrated のケースで AC-T3-1 (source 不変) / AC-T3-2
+//   (B) 7種の MigrationCandidateKind が report entries へ反映される。
+//       このうち copyable → migrated のケースで source 不変と原子的な複写
 //       (temp copy -> fsync -> atomic rename, .m13-tmp 空) も同時に検証する。
-//   (C) crash 後の残留 temp cleanup と再実行の正しさ (AC-T3-4)
-//   (D) 既存 report フィールド (renamedSlugs/renamedFiles/warnings) の不変性 (AC-T3-5)
-//   (E) 並走 run の single-flight 相乗り。rows あり/0件の両方 (AC-T3-6、回帰防止)
-//   (F) runManual() が mode:'manual' を report に記録する (AC-T3-7)
-//   (G) 単一 map の copy 失敗 (source がディレクトリ) が他 map の処理を止めない (AC-T3-8)
+//   (C) crash 後の残留 temp cleanup と再実行の正しさ
+//   (D) 既存 report フィールド (renamedSlugs/renamedFiles/warnings) の不変性
+//   (E) 並走 run の single-flight 相乗り。rows あり/0件の両方 (回帰防止)
+//   (F) runManual() が mode:'manual' を report に記録する
+//   (G) 単一 map の copy 失敗 (source がディレクトリ) が他 map の処理を止めない
 //   (H) 進捗通知: copyable >= 1 のときだけ database.migrating_originals が送出される
-//       (の実装時吸収 — の runInternal への配線確認)
+//       (設計レビューの指摘を実装時に取り込んだもの — runInternal への配線確認)
 import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -114,8 +113,8 @@ try {
       }
 
       // ============================================================
-      // (B) 7種の MigrationCandidateKind が report entries へ反映される (AC-T3-3)。
-      // copyable -> migrated のケースで AC-T3-1 (source不変) / AC-T3-2 (temp/atomic rename) も検証する。
+      // (B) 7種の MigrationCandidateKind が report entries へ反映される。
+      // copyable -> migrated のケースで source 不変と原子的な複写 (temp/atomic rename) も検証する。
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-outcomes'))};
@@ -144,7 +143,7 @@ try {
         // copyable -> migrated: legacy source 1件のみ
         await fs.writeFile(path.join(originalsDir, 'copyable-slug.jpg'), 'copyable-source-bytes');
 
-        // 実装時吸収 (t3 ): 全 outcome ケースについて、
+        // 実装レビューの指摘の取り込み: 全 outcome ケースについて、
         // legacy source ファイルが存在するものは migration 実行前後で byte 内容と mtime が
         // 不変であることを assert する (記載の全件比較。既存の copyable ケースの
         // 比較ロジックを他ケースへも適用する)。source ファイルが存在しない outcome
@@ -185,29 +184,29 @@ try {
         assert.equal(result.summary['skip_unsupported_extension'], 1);
         assert.equal(result.summary['skip_source_missing'], 1);
         assert.equal(result.summary['migrated'], 1);
-        console.log('ok: (B) all 7 MigrationCandidateKind outcomes reflected in report entries/summary (AC-T3-3)');
+        console.log('ok: (B) all 7 MigrationCandidateKind outcomes reflected in report entries/summary');
 
-        // AC-T3-1: source は1byteも変更されない
+        // source は1byteも変更されない
         const sourceAfter = await fs.readFile(path.join(originalsDir, 'copyable-slug.jpg'), 'utf8');
-        assert.equal(sourceAfter, 'copyable-source-bytes', 'source は migration 後も不変のはず (AC-T3-1)');
+        assert.equal(sourceAfter, 'copyable-source-bytes', 'source は migration 後も不変のはず');
 
-        // 実装時吸収 (t3 ): 全 outcome ケースの source snapshot
+        // 実装レビューの指摘の取り込み: 全 outcome ケースの source snapshot
         // (byte 内容 + mtime) が migration 前後で不変であることを確認する
         for (const file of sourceSnapshotFiles) {
           const p = path.join(originalsDir, file);
           const before = sourceSnapshotsBefore[file];
           const afterContent = await fs.readFile(p);
           const afterStat = await fs.stat(p);
-          assert.ok(before.content.equals(afterContent), \`source \${file} の byte 内容は migration 後も不変のはず (AC-T3-1, 全outcome共通)\`);
-          assert.equal(afterStat.mtimeMs, before.mtimeMs, \`source \${file} の mtime は migration 後も不変のはず (AC-T3-1, 全outcome共通)\`);
+          assert.ok(before.content.equals(afterContent), \`source \${file} の byte 内容は migration 後も不変のはず (全outcome共通)\`);
+          assert.equal(afterStat.mtimeMs, before.mtimeMs, \`source \${file} の mtime は migration 後も不変のはず (全outcome共通)\`);
         }
-        console.log('ok: (B-snapshot) all outcome cases with a legacy source file keep byte content + mtime unchanged (AC-T3-1, t3 review absorbed)');
-        // AC-T3-2: target が source と同内容で作られ、.m13-tmp が空になっている
+        console.log('ok: (B-snapshot) all outcome cases with a legacy source file keep byte content + mtime unchanged (review follow-up)');
+        // target が source と同内容で作られ、.m13-tmp が空になっている
         const targetAfter = await fs.readFile(path.join(originalsDir, 'uid-copyable.jpg'), 'utf8');
-        assert.equal(targetAfter, 'copyable-source-bytes', 'target は source と同内容のはず (AC-T3-2)');
+        assert.equal(targetAfter, 'copyable-source-bytes', 'target は source と同内容のはず');
         const tmpEntries = await fs.readdir(path.join(originalsDir, '.m13-tmp')).catch(() => []);
-        assert.deepEqual(tmpEntries, [], '.m13-tmp は migration 後に空であるはず (AC-T3-2)');
-        console.log('ok: (B-copyable) AC-T3-1 (source unchanged) / AC-T3-2 (atomic copy, .m13-tmp clean)');
+        assert.deepEqual(tmpEntries, [], '.m13-tmp は migration 後に空であるはず');
+        console.log('ok: (B-copyable) source unchanged / atomic copy, .m13-tmp clean');
 
         // report ファイルにも originalsUuidMigration が書かれている
         const report = await readReport(dataDir);
@@ -218,7 +217,7 @@ try {
       }
 
       // ============================================================
-      // (C) crash 後の残留 temp cleanup と再実行の正しさ (AC-T3-4)
+      // (C) crash 後の残留 temp cleanup と再実行の正しさ
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-crash'))};
@@ -242,14 +241,14 @@ try {
         const result = await runColdBoot(db);
 
         assert.equal(result.entries[0].outcome, 'migrated', 'crash後の再実行でも正規の migration 結果が得られるはず');
-        assert.ok(!(await fs.pathExists(staleTemp)), '残留 *.m13tmp は cleanup で削除されるはず (AC-T3-4)');
+        assert.ok(!(await fs.pathExists(staleTemp)), '残留 *.m13tmp は cleanup で削除されるはず');
         assert.ok(await fs.pathExists(unrelatedFile), '*.m13tmp で終わらないファイルは cleanup 対象外のはず');
         assert.ok(await fs.pathExists(path.join(originalsDir, 'uid-crash.jpg')), '正規の migration は cleanup と両立するはず');
-        console.log('ok: (C) stale *.m13tmp cleanup does not interfere with correct migration (AC-T3-4)');
+        console.log('ok: (C) stale *.m13tmp cleanup does not interfere with correct migration');
       }
 
       // ============================================================
-      // (D) 既存 report フィールド (renamedSlugs/renamedFiles/warnings) の不変性 (AC-T3-5)
+      // (D) 既存 report フィールド (renamedSlugs/renamedFiles/warnings) の不変性
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-report-preserve'))};
@@ -271,15 +270,15 @@ try {
         await runColdBoot(db);
 
         const reportAfter = await readReport(dataDir);
-        assert.deepEqual(reportAfter.renamedSlugs, legacyReport.renamedSlugs, 'renamedSlugs は不変のはず (AC-T3-5)');
-        assert.deepEqual(reportAfter.renamedFiles, legacyReport.renamedFiles, 'renamedFiles は不変のはず (AC-T3-5)');
-        assert.deepEqual(reportAfter.warnings, legacyReport.warnings, 'warnings は不変のはず (AC-T3-5、T3はwarningsへ積まない )');
+        assert.deepEqual(reportAfter.renamedSlugs, legacyReport.renamedSlugs, 'renamedSlugs は不変のはず');
+        assert.deepEqual(reportAfter.renamedFiles, legacyReport.renamedFiles, 'renamedFiles は不変のはず');
+        assert.deepEqual(reportAfter.warnings, legacyReport.warnings, 'warnings は不変のはず (原本の移行は warnings へ積まない)');
         assert.ok(reportAfter.originalsUuidMigration, 'originalsUuidMigration は additive に追加されるはず');
-        console.log('ok: (D) legacy report fields (renamedSlugs/renamedFiles/warnings) untouched by additive merge (AC-T3-5)');
+        console.log('ok: (D) legacy report fields (renamedSlugs/renamedFiles/warnings) untouched by additive merge');
       }
 
       // ============================================================
-      // (E) 並走 run の single-flight 相乗り (AC-T3-6、回帰防止で0件パスも検証)
+      // (E) 並走 run の single-flight 相乗り (回帰防止で0件パスも検証)
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-singleflight'))};
@@ -293,7 +292,7 @@ try {
         ];
         const dbA = makeMapsDb(rows);
         const [resultA, resultB] = await Promise.all([runColdBoot(dbA), runColdBoot(dbA)]);
-        assert.equal(resultA, resultB, '並走 runColdBoot は同一の in-flight 結果に相乗りするはず (AC-T3-6)');
+        assert.equal(resultA, resultB, '並走 runColdBoot は同一の in-flight 結果に相乗りするはず');
         console.log('ok: (E-1) concurrent runColdBoot calls with rows share the same in-flight result');
 
         // 0件パスも single-flight を経由する (回帰防止)
@@ -308,7 +307,7 @@ try {
       }
 
       // ============================================================
-      // (F) runManual() が mode:'manual' を report に記録する (AC-T3-7)
+      // (F) runManual() が mode:'manual' を report に記録する
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-manual-mode'))};
@@ -324,12 +323,12 @@ try {
         const result = await runManual(db);
         assert.equal(result.mode, 'manual');
         const report = await readReport(dataDir);
-        assert.equal(report.originalsUuidMigration.mode, 'manual', 'report にも mode:manual が記録されるはず (AC-T3-7)');
-        console.log('ok: (F) runManual() records mode:manual in both return value and report (AC-T3-7)');
+        assert.equal(report.originalsUuidMigration.mode, 'manual', 'report にも mode:manual が記録されるはず');
+        console.log('ok: (F) runManual() records mode:manual in both return value and report');
       }
 
       // ============================================================
-      // (G) 単一 map の copy 失敗が他 map の処理を止めない (AC-T3-8)
+      // (G) 単一 map の copy 失敗が他 map の処理を止めない
       // ============================================================
       {
         const dataDir = ${JSON.stringify(path.join(workDir, 'data-per-map-failure'))};
@@ -355,21 +354,21 @@ try {
         const result = await runColdBoot(db);
 
         const byUid = Object.fromEntries(result.entries.map((e) => [e.uid, e]));
-        assert.equal(byUid['uid-dirsource'].outcome, 'copy_failed', '失敗した map は copy_failed として記録されるはず (AC-T3-8)');
+        assert.equal(byUid['uid-dirsource'].outcome, 'copy_failed', '失敗した map は copy_failed として記録されるはず');
         assert.ok(byUid['uid-dirsource'].detail && byUid['uid-dirsource'].detail.length > 0, 'copy_failed entry は detail にエラーメッセージを含むはず');
         assert.ok(
           !(await fs.pathExists(path.join(originalsDir, 'uid-dirsource.jpg'))),
           'copy 失敗時は target が作られないはず'
         );
-        assert.equal(byUid['uid-ok'].outcome, 'migrated', '他 map は正常に migrated として処理が継続するはず (AC-T3-8)');
-        assert.equal(byUid['uid-missing2'].outcome, 'skip_source_missing', '他 map は正常に skip_* として処理が継続するはず (AC-T3-8)');
+        assert.equal(byUid['uid-ok'].outcome, 'migrated', '他 map は正常に migrated として処理が継続するはず');
+        assert.equal(byUid['uid-missing2'].outcome, 'skip_source_missing', '他 map は正常に skip_* として処理が継続するはず');
         assert.ok(await fs.pathExists(path.join(originalsDir, 'uid-ok.jpg')), '正常な map の migration 自体は完遂するはず');
-        console.log('ok: (G) single map copy failure (copy_failed outcome) does not block other maps or throw (AC-T3-8)');
+        console.log('ok: (G) single map copy failure (copy_failed outcome) does not block other maps or throw');
       }
 
       // ============================================================
       // (H) 進捗通知: copyable >= 1 のときだけ database.migrating_originals が送出される
-      // (の実装時吸収)
+      // (設計レビューの指摘を実装時に取り込んだもの)
       // ============================================================
       {
         // (H-1) copyable 0件 -> 送出されない

@@ -73,7 +73,7 @@ on:
         options: [artifact-signing, esigner]
 
 # GITHUB_TOKEN は既定を read に絞り、contents: write は Release を作る release ジョブへ
-# job 単位で与える（セキュリティレビュー SR-t12-M-1・2026-08-08）。
+# job 単位で与える（セキュリティレビューの指摘・2026-08-08）。
 # workflow レベルに write を置くとビルド3ジョブのトークンにも書き込み権限が乗り、
 # checkout が .git/config へ残したトークン（既定 persist-credentials: true）を経由して、
 # ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder のプラグイン群）の汚染が
@@ -213,7 +213,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}
@@ -347,7 +347,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}
@@ -556,7 +556,7 @@ jobs:
           if-no-files-found: ignore
 
       # 新しく署名したキャッシュ対象（DLL・elevate.exe・.node・NSIS プラグイン）を、書き込み権限のある
-      # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（SR-t12-M-1）
+      # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（セキュリティレビューの指摘）
       # always(): 署名の途中でビルドが失敗しても、それまでに署名できたファイルは保管する（課金の取り直しを防ぐ。
       # 1.1.0-rc.2 の run 37125230712 で .node の署名失敗により 15 本の署名済みファイルを失った）
       - name: Count signed-file cache candidates
@@ -581,7 +581,7 @@ jobs:
   # 署名済みファイルのキャッシュを Release `win-signed-cache` の asset へ足す（mode=full のみ）
   #
   # 書き込み（asset の追加）には contents: write が要る。build-win に write を与えると、ビルド時に走る
-  # 依存ツリーの汚染がリポジトリ書き込みに直結する（SR-t12-M-1）ため、書き込みはこの専用ジョブに限る。
+  # 依存ツリーの汚染がリポジトリ書き込みに直結する（セキュリティレビューの指摘）ため、書き込みはこの専用ジョブに限る。
   # このジョブは checkout も依存の導入もせず、リポジトリのコードを 1 行も実行しない（gh CLI だけ）。
   # 取り込む側（scripts/win-sign/win-sign.cjs）は、asset を使う前に「署名を除いた中身が署名前ファイルと一致」
   # 「Authenticode が Valid」「署名者が signer-identity.json の esigner」を確かめるので、ここで改ざんされても取り込まれない。
@@ -591,7 +591,7 @@ jobs:
     needs: [prepare, build-win]
     # build-win が失敗しても、署名できた分は保管する（取り込み側が中身と署名を検証するので安全）
     # キャッシュを書くのは eSigner の退路だけ（C-4: Artifact Signing の経路はキャッシュを読まない・書かない）。
-    # always を持つので prepare の成功も要る
+    # always() を持つので prepare の成功も要る
     if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != '' && needs.prepare.result == 'success' && needs.prepare.outputs.win_sign_path == 'esigner'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1574,7 +1574,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}

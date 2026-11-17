@@ -374,7 +374,7 @@ assert.match(poi, /#secondary/, "Import must move to secondary slot");
 assert.match(poi, /onImport/, "Import handler must remain (no functional change)");
 // 作成モーダル解体時に、無効化フラグ (D13, false 固定) ごと remote 登録 UI を撤去。
 // backend 契約 (poisource:registerRemote IPC) の存続は smoke が確認する
-assert.doesNotMatch(poi, /registerRemote/, "remote registration UI must stay removed (T10; IPC surface covered by )");
+assert.doesNotMatch(poi, /registerRemote/, "remote registration UI must stay removed (T10; IPC surface covered by the POI source contract smoke)");
 // 削除の参照チェック（findReferences）は維持
 assert.match(poi, /findReferences/, "delete must keep reference check");
 console.log("smoke Part 7: OK");

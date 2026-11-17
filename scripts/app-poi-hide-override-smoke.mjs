@@ -1,6 +1,5 @@
 // アプリ管理 > POI 編集の hide 上書き UI（AppEdit 側の配線検証）
 //
-//。
 // t1 smoke が共用コンポーネント PoiReferenceEditor.vue の実装を検証済み。
 // 本 smoke は AppEdit.vue 側の配線存在を独立に確認する。
 import { readFile } from 'node:fs/promises';
@@ -30,7 +29,7 @@ assert.match(
 console.log('  [1/4] case 2-1 AppEdit が PoiReferenceEditor を使用 + update:pois 配線: PASS');
 
 // --- [2/4] case 2-5: onPoisChange が配列を appData.pois へ代入し recordHistory を呼ぶ ---
-// 本体に書き込みガードと空時のキー削除が入り、200文字窓では recordHistory が
+// 本体に書き込みガードと空時のキー削除が入り、200文字窓では recordHistory() が
 // 窓外へ出るため窓を広げた（検査意図は不変。窓長の調整ではなく本体構成に合わせた更新）。
 const onPoisChangeIdx = appEdit.indexOf('function onPoisChange');
 assert.ok(onPoisChangeIdx > 0, 'onPoisChange 関数が定義されている');

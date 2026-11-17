@@ -149,7 +149,7 @@ try {
   assert.match(mapEdit, /historyStack\.value\.save\s*\(\)/, 'Save success must record a history checkpoint');
   assert.match(mapEdit, /onMainProcessMessage/, 'MapEdit.vue must handle Electron menu undo/redo messages');
 
-  // Phase 4 Task 2: 保存フローは useRevisionedAssetSave へ移行済み。
+  // 保存フローは useRevisionedAssetSave へ移行済み。
   // 成功時の画面固有処理は applySuccess クロージャ (reloadFromStore オプションの直前) に残る
   const saveSuccessBlock = mapEdit.match(/applySuccess:\s*async[\s\S]*?reloadFromStore:/)?.[0] ?? '';
   assert.ok(saveSuccessBlock, 'MapEdit.vue save success branch (applySuccess closure) could not be located');
@@ -168,7 +168,7 @@ try {
 
   console.log('  [3/4] Undo/Redo UI and shortcut wiring: PASS');
 
-  // Phase 8 Task 2: MapEdit の POIデータタブ (settings タブの POI カードから移設)。
+  // MapEdit の POIデータタブ (settings タブの POI カードから移設)。
   // 器は mapData.pois 配列で、順番変更/上書き/解除/追加は共通部品 PoiReferenceEditor が
   // update:pois (配列ごと差し替え) で返す。書き込みは mapData の deep-watch が履歴を拾う
   // (明示 recordHistory 不要 = undo/redo 対象)
@@ -186,7 +186,7 @@ try {
   const poisTab = mapEdit.match(/v-show="activeTab === 'pois'"[\s\S]*?<\/div>/)?.[0] ?? '';
   assert.ok(poisTab, 'MapEdit.vue pois tab block could not be located');
   assert.match(poisTab, /<PoiReferenceEditor/, 'MapEdit.vue must mount PoiReferenceEditor in the pois tab');
-  // Phase 8 Task 5: 右カラム見出しは Map 用 (「この地図のPOIデータ一覧」) を渡す
+  // 右カラム見出しは Map 用 (「この地図のPOIデータ一覧」) を渡す
   assert.match(
     poisTab,
     /heading-key="poiref\.selected_list_map"/,

@@ -6,7 +6,7 @@
 //   (2) 本命: updatePhaseEnd() 経由でフェーズ最終件の (N/N) send が現れること。
 //   (3) 判別力対照: ProgressReporter.prototype.forceNext を no-op 化すると (N/N) send が現れないこと
 //       （= 本検査が forceNext 経路の欠落を実際に検出できることの証明）。
-//   (4) parity + update 単体の throttle は不変（整数%が進まない通常 update は依然落とされる）ことと、
+//   (4) parity + update() 単体の throttle は不変（整数%が進まない通常 update は依然落とされる）ことと、
 //       AppExportService の呼び出し側が「最終件 updatePhaseEnd / 非最終件 update」の二枝で、
 //       非最終件の throttle を温存していること（ソース assert）。
 // 作業ディレクトリは mkdtemp で作ったまま残置する（破壊的操作 gate に従い rm しない。git 非追跡）。

@@ -1,7 +1,6 @@
 // スモーク: 新規アップロード地図のタイル化直後にタイルが表示されない回帰の修正。
 // originals-resolver-smoke・originals-lifecycle-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save() の tmpCheck 分岐が返す MapSaveResult.url を behavioral に検証する。
-// /準拠。
 // シナリオ:
 //   Part A: MapSaveResult 型定義 (StorageAdapter.ts / src/electron.d.ts) に url?: string が
 //           同期して追加されていること (設計レビュー v1 Major1 の恒久回帰防止)

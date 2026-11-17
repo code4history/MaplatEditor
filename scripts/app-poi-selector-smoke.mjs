@@ -31,7 +31,7 @@ try {
     'AppList に POI selector が残っている'
   );
 
-  // Phase 8 Task 2: AppEdit の POI UI は POIデータタブの PoiReferenceEditor に集約
+  // AppEdit の POI UI は POIデータタブの PoiReferenceEditor に集約
   // (PoiSourceSelector は PoiReferenceEditor が追加用に内蔵する)
   assert.match(
     appEdit,
@@ -63,7 +63,7 @@ try {
     'AppList.vue が新規 AppEdit へ遷移しない'
   );
 
-  // AppEdit は metadata/sources/pois/preview タブ構成であること (Phase 8 で POIデータタブ追加)
+  // AppEdit は metadata/sources/pois/preview タブ構成であること (POIデータタブを追加済み)
   assert.match(
     appEdit,
     /activeTab\s*=\s*ref<"metadata"\s*\|\s*"sources"\s*\|\s*"pois"\s*\|\s*"preview">/,

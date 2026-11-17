@@ -242,11 +242,11 @@ for (const installer of installers) {
 
 if (violationCount > 0) {
   console.error(
-    `\nm19-t13 G2: 許可されていないコーデックのエントリが ${violationCount} 件ある。`
+    `\nG2: 許可されていないコーデックのエントリが ${violationCount} 件ある。`
     + '\n  nsis7z はこれを黙って落とす。インストールは成功したように見えてアプリが存在しない。'
     + '\n  対処: electron-builder の版が 26.15.6 以上か、上流が NSIS に BCJ を選んでいるかを確認すること'
     + '（BCJ2 が出たら上流の固定が効いていない。上流 #9988）'
   );
   process.exit(1);
 }
-console.log(`\nm19-t13 G2: ${installers.length} 本のインストーラすべてが許可コーデックのみ: PASS`);
+console.log(`\nG2: ${installers.length} 本のインストーラすべてが許可コーデックのみ: PASS`);

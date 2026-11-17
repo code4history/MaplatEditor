@@ -27,7 +27,7 @@
 //
 // なぜ case 2 が必要か: electron/utils/store_handler.ts の keys 配列と HistMapStore の
 // フィールドの両方に label を足さないと、MapEditService.save (histMap2Store) で保存した
-// 瞬間に data_json から消える。licenseNote  / pois  に続く 3 度目の同型欠落
+// 瞬間に data_json から消える。licenseNote / pois に続く 3 度目の同型欠落
 // であり、同じ harness (map-license-note-roundtrip-smoke.mjs) を踏襲する。
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -88,7 +88,7 @@ assert.deepEqual(
 console.log('ok: case 1a 除外 2 ファイル以外の src/electron に廃止属性の言及なし');
 
 // case 1b: SqliteDataService.ts 側は「行頭コメント行」を除けば 0 行。
-// (設計レビュー v2 case 1b の正規表現は行末コメントを除外しないため、
+// (設計レビューの指摘: case 1b の正規表現は行末コメントを除外しないため、
 //  説明コメントは行頭コメント行にのみ置く)
 const sqliteText = await readSource('electron/services/SqliteDataService.ts');
 const ac1bOffenders = sqliteText
