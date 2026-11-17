@@ -12,7 +12,7 @@
 //        原画像入りは originals/<新しい uid>.<ext> に置かれる
 //   (e)  アプリの書き出しで includeTiles:false のとき tiles/・merc/ のタイルの実体が無く、
 //        app JSON と maps/*.json の中身（タイルの URL を含む）は includeTiles:true と同じ。進捗は 100% を超えない
-//   (f)  11 言語に 9 キーがある（ui-grammar でオリジナル画像の説明と注意を分けた）
+//   (f)  11 言語に 9 キーがある（ui-grammar §2.4 でオリジナル画像の説明と注意を分けた）
 //
 // 基準（b）の作り方: 変更前の master で `node scripts/export-options-smoke.mjs --write-baseline` を走らせ、
 // scripts/fixtures/default-map-export.json に保存した（このファイルを手で書き換えない）。
@@ -442,7 +442,7 @@ try {
     }
 
     // ===================================================================
-    // (f) 11 言語に 9 キー（ui-grammar でオリジナル画像の説明と注意を分けた。書き出しの文言の見直しでタイルの説明 export_option_tiles_help を追加。
+    // (f) 11 言語に 9 キー（ui-grammar §2.4 でオリジナル画像の説明と注意を分けた。書き出しの文言の見直しでタイルの説明 export_option_tiles_help を追加。
     //     アプリの書き出しが小窓へ移り、appedit.export_exclude_tiles は無くなった）
     // ===================================================================
     {

@@ -406,7 +406,7 @@ await writeFile(
       assert.ok(names.includes('tmbs/' + SLUG + '_512.webp'),
         'S5/case 9: 512px も slug 名で同梱される（uid 名のコピー元から解決。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 B の是正）: '
           + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
-      assert.equal(names.includes('tmbs/' + UID + '_512.webp'), false, 'S5: uid 名は出力へ漏れない（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり export 契約）');
+      assert.equal(names.includes('tmbs/' + UID + '_512.webp'), false, 'S5: uid 名は出力へ漏れない（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの export 契約）');
       console.log('ok: S5 ベースマップ 512px の package 同梱（uid → slug 解決）');
     }
 
