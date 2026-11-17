@@ -1,4 +1,4 @@
-// (#117 E3) smoke: 下書きの明示破棄の後に、下書きの記録が書き戻されないこと。
+// #117 E3 の smoke: 下書きの明示破棄の後に、下書きの記録が書き戻されないこと。
 //
 // draft-tile-durability の e2e で見えた間欠失敗の原因（製品の競合）の再発防止。破棄（discard）が envelope を消した後に、
 // 編集画面が閉じる前の flush（slug の予約成功で useInitialDraftPersist が呼ぶ・エディタの履歴は dirty の

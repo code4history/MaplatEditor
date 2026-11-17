@@ -1,4 +1,4 @@
-// (#110・B) smoke: 書き出し物のスプラッシュは slug 名 `img/{appID}_splash.{ext}`。
+// #110・B の smoke: 書き出し物のスプラッシュは slug 名 `img/{appID}_splash.{ext}`。
 // （書き出し物の行）・・case 12。
 //
 //   書き出した zip のスプラッシュ・app JSON の splash・og:image に内部名（UUID）が出ず、`{appID}_splash.{ext}` である。

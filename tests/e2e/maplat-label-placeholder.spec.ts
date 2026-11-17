@@ -1,4 +1,4 @@
-// （code4history/MaplatEditor#108）: Maplat 地図のソースのラベル欄に、地図側の label を
+// code4history/MaplatEditor#108: Maplat 地図のソースのラベル欄に、地図側の label を
 // プレースホルダとして出す。
 //
 // 直す前は AppEdit の masterDataOf が maplat で null を返し、AppSourceEditor の maplat 分岐の

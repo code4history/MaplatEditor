@@ -1,4 +1,4 @@
-// （code4history/MaplatEditor#174）スモーク（Electron を使わない部分）:
+// code4history/MaplatEditor#174 のスモーク（Electron を使わない部分）:
 // PWA 画像生成を「Electron 自身の Chromium」で描く実装の、純関数・基準・文言・封じ込めを検証する。
 //
 // 固定する受け入れ条件:
