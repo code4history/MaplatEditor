@@ -6,7 +6,7 @@
  * case 4: eSigner / 公証 / Release が release=false で発火しない（ワークフロー式の静的検査）
  * case 5: latest.yml 再計算 + blockmap 再生成（P4 スクリプト）
  * case 6: 旧 WIN_CSC_LINK 参照が残存しない
- * t1/case 1: 証明書インポートは if: を持たない（push でも実行 — 2026-08-21 に以前の dispatch 限定を撤廃）
+ * case 1: 証明書インポートは if: を持たない（push でも実行 — 2026-08-21 に以前の dispatch 限定を撤廃）
  * SAC（2026-10-03）: Windows は配布物の全 PE を electron-builder の署名フック（scripts/win-sign/win-sign.cjs）で
  *   署名する。esigner-codesign action（Setup.exe 2 本だけ）は撤去し、CodeSignTool を版とハッシュで固定して取得する
  */
@@ -280,13 +280,13 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 
   // case 6: 旧 WIN_CSC_LINK の残存なし（repo 側の全域 grep は下で実施）
   assert.ok(!src.includes('WIN_CSC_LINK'), 'case 6: build.yml に WIN_CSC_LINK が残存しない');
-  // t1/case 1（2026-08-21・人間指示）: 証明書インポートは push でも実行する（case 6 の
+  // case 1（2026-08-21・人間指示）: 証明書インポートは push でも実行する（case 6 の
   // 「dispatch 限定」を撤廃）。Secret 未設定時のスキップはシェル内判定が担う。
   // 旧「full 限定にしない」は if 不在 assert に包含されるため撤去した
   const importCert = macSteps.find((s) => (s.name ?? '').includes('Apple Developer certificate'));
-  assert.ok(importCert, 't1/case 1: 証明書インポートステップが存在する');
+  assert.ok(importCert, 'case 1: 証明書インポートステップが存在する');
   assert.equal(importCert.if, undefined,
-    't1/case 1: 証明書インポートステップが if: を持たない（push でも実行され Mac は常に署名を試みる）');
+    'case 1: 証明書インポートステップが if: を持たない（push でも実行され Mac は常に署名を試みる）');
 
   // : ガードは P3 スクリプト経由（判定の単一実装）
   const prepSteps = wf.jobs.prepare.steps;

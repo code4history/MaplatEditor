@@ -2,15 +2,15 @@
  * （#141 決めること 1・6）: 自動更新の形（知らせる → 同意で更新 → 設定で切れる・Linux は Releases を開くだけ）
  * の受け入れ検査。が正本）。
  *
- *   [1] t6/case 3 updateActionFor（表のとおり。Linux は open-releases、win32 は windowsNotifyOnly のときだけ）
- *   [2] t6/case 3 releasePageUrl は固定の接頭辞だけ（版の文字列を URL に混ぜない）
- *   [3] t6/case 3 UpdateController の open-releases の分岐からダウンロード・入れ替えへ届かない
- *   [4] t6/case 3 updateCheckEnabled の正規化・resolveStartupDelayMs（製品では env を読まない）
- *   [5] t6/case 3 defaultSettings のキーの集合 ＝ 基点の集合 ∪ {updateCheckEnabled}
+ *   [1] case 3 updateActionFor（表のとおり。Linux は open-releases、win32 は windowsNotifyOnly のときだけ）
+ *   [2] case 3 releasePageUrl は固定の接頭辞だけ（版の文字列を URL に混ぜない）
+ *   [3] case 3 UpdateController の open-releases の分岐からダウンロード・入れ替えへ届かない
+ *   [4] case 3 updateCheckEnabled の正規化・resolveStartupDelayMs（製品では env を読まない）
+ *   [5] case 3 defaultSettings のキーの集合 ＝ 基点の集合 ∪ {updateCheckEnabled}
  *       基点は origin/master → 設計が名指しした d77eb63 → その既知の 4 キー（浅い checkout 用）の順に解決する
- *   [6] t6/case 4 updateMessages の全キーが 11 言語にあり、差し込みの {…} が保たれ、無い言語は en
- *   [7] t6/case 4 Settings.vue の項目と翻訳 11 ファイルの 2 キー
- *   [8] t6/case 7 新しい IPC（app-update:）・preload の口が無い。更新の UI は main のダイアログ
+ *   [6] case 4 updateMessages の全キーが 11 言語にあり、差し込みの {…} が保たれ、無い言語は en
+ *   [7] case 4 Settings.vue の項目と翻訳 11 ファイルの 2 キー
+ *   [8] case 7 新しい IPC（app-update:）・preload の口が無い。更新の UI は main のダイアログ
  *   [9] main.ts の結線（メニューの About の後・起動の後・macOS の入れ替えで隠さない）
  *
  * 実行: node --experimental-strip-types scripts/update-ux-smoke.mjs（rtk を付けない）
@@ -71,7 +71,7 @@ function blockFrom(src, start) {
   for (const [platform, windowsNotifyOnly, expected] of cases) {
     assert.equal(updateActionFor(platform, { windowsNotifyOnly }), expected, `updateActionFor(${platform}, ${windowsNotifyOnly})`);
   }
-  pass(`t6/case 3 updateActionFor（${cases.length} 通り・表）・WINDOWS_NOTIFY_ONLY=false`);
+  pass(`case 3 updateActionFor（${cases.length} 通り・表）・WINDOWS_NOTIFY_ONLY=false`);
 }
 
 // ───────────────────────────────────────────────
@@ -86,7 +86,7 @@ function blockFrom(src, start) {
   const bad = ['../x', '9.0.0-rc.1', 'javascript:alert(1)', '9.0.0/../../evil', '9.0.0?x=1', '', ' 9.0.0', '9.0.0 ', 'v9.0.0', '9.0', '9.0.0.0', '９.０.０'];
   for (const v of bad) assert.equal(releasePageUrl(v), LATEST, `releasePageUrl(${JSON.stringify(v)}) が latest でない`);
   for (const v of [undefined, null, 9, {}, []]) assert.equal(releasePageUrl(v), LATEST, `releasePageUrl(${String(v)}) が latest でない`);
-  pass(`t6/case 3 releasePageUrl（${bad.length + 5} 通り）は固定の接頭辞だけ`);
+  pass(`case 3 releasePageUrl（${bad.length + 5} 通り）は固定の接頭辞だけ`);
 }
 
 // ───────────────────────────────────────────────
@@ -110,7 +110,7 @@ function blockFrom(src, start) {
     assert.ok(!beforeBranch.includes(name), `open-releases の判定より前に ${name} がある`);
   }
   assert.match(src, /updateActionFor\(\s*process\.platform\s*,\s*\{\s*windowsNotifyOnly:\s*WINDOWS_NOTIFY_ONLY\s*\}\s*\)/, 'action を updateActionFor(process.platform, { windowsNotifyOnly: WINDOWS_NOTIFY_ONLY }) で決めていない');
-  pass('t6/case 3 open-releases の分岐からダウンロード・入れ替えへ届かない');
+  pass('case 3 open-releases の分岐からダウンロード・入れ替えへ届かない');
 }
 
 // ───────────────────────────────────────────────
@@ -159,7 +159,7 @@ function blockFrom(src, start) {
   const spy = new Proxy({}, { get() { touched = true; return undefined; }, has() { touched = true; return false; } });
   assert.equal(resolveStartupDelayMs({ isPackaged: true, env: spy }), 15000);
   assert.equal(touched, false, 'isPackaged: true なのに env を読んだ');
-  pass(`t6/case 3 updateCheckEnabled の正規化・resolveStartupDelayMs（${cases.length + 1} 通り・製品では env を読まない）`);
+  pass(`case 3 updateCheckEnabled の正規化・resolveStartupDelayMs（${cases.length + 1} 通り・製品では env を読まない）`);
 }
 
 // ───────────────────────────────────────────────
@@ -216,7 +216,7 @@ function blockFrom(src, start) {
   for (const [k, v] of base) assert.equal(head.get(k), v, `defaultSettings.${k} の字面が ${baseLabel} と違う`);
   assert.equal(head.get('updateCheckEnabled'), 'true', 'defaultSettings.updateCheckEnabled が true でない');
   assert.equal(head.get('lastDialogFolders'), '{}', 'ダイアログのフォルダの記憶の lastDialogFolders: {} が残っていない');
-  pass(`t6/case 3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
+  pass(`case 3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
 }
 
 // ───────────────────────────────────────────────
@@ -249,7 +249,7 @@ function blockFrom(src, start) {
   assert.equal(updateText('en', 'dialog.up_to_date.message', { version: '{version}' }).includes('{version}'), true);
   assert.equal(updateText('en', 'dialog.up_to_date.message', { version: '9.0.0' }).includes('{version}'), false);
   assert.doesNotMatch(read('electron/services/updateMessages.ts'), /from\s+['"]electron['"]/);
-  pass(`t6/case 4 updateMessages（${UPDATE_MESSAGE_KEYS.length} キー × ${LANGS.length} 言語）`);
+  pass(`case 4 updateMessages（${UPDATE_MESSAGE_KEYS.length} キー × ${LANGS.length} 言語）`);
 }
 
 // ───────────────────────────────────────────────
@@ -282,11 +282,11 @@ function blockFrom(src, start) {
       assert.ok(json.settings[k].trim() !== '', `${lang}: settings.${k} が空`);
     }
   }
-  pass('t6/case 4 Settings.vue の項目・翻訳 11 ファイルの settings.update_check(_desc)');
+  pass('case 4 Settings.vue の項目・翻訳 11 ファイルの settings.update_check(_desc)');
 }
 
 // ───────────────────────────────────────────────
-// [8] 新しい IPC・preload の口が無い（t6/case 7）・ダイアログは main から
+// [8] 新しい IPC・preload の口が無い（case 7）・ダイアログは main から
 // ───────────────────────────────────────────────
 {
   const r = git('grep', '--untracked', '-n', 'app-update:', '--', 'electron', 'src');
@@ -305,7 +305,7 @@ function blockFrom(src, start) {
   const off = autoBody.search(/if\s*\(\s*!isUpdateCheckEnabled\(\)\s*\)\s*return/);
   const timer = autoBody.search(/setTimeout\(/);
   assert.ok(off >= 0 && timer > off, 'startAutomaticCheck が設定のオフを setTimeout より先に見ていない');
-  pass('t6/case 7 app-update: の IPC・preload の口なし・ダイアログは main・開く URL は releasePageUrl だけ');
+  pass('case 7 app-update: の IPC・preload の口なし・ダイアログは main・開く URL は releasePageUrl だけ');
 }
 
 // ───────────────────────────────────────────────
