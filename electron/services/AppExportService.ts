@@ -281,7 +281,7 @@ async function copyFromPackage(src: string, dest: string): Promise<void> {
 
 type ExportResult = {
   result: 'Success' | 'Canceled' | 'Error';
-  // Success 時はユーザーが選んだ zip ファイルのパス (Phase 8 Task 6 で zip 出力へ統一)
+  // Success 時はユーザーが選んだ zip ファイルのパス (zip 出力へ統一済み)
   outDir?: string;
   warnings: string[];
   message?: string;
@@ -301,7 +301,7 @@ class AppExportService {
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
 
     // pre-dialog revalidation。strict_error / missing map を含む maplat 参照は
-    // dialog を開く前に拒否する (AC-T1-2)
+    // dialog を開く前に拒否する
     try {
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(document), 'app-export'
@@ -310,7 +310,7 @@ class AppExportService {
       return { result: 'Error', warnings, message: e?.message || 'appedit.preview.strict_error' };
     }
 
-    // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ (Phase 8 Task 6)。
+    // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ。
     // 上書き確認は showSaveDialog のネイティブ確認に任せる(旧フォルダ出力の独自確認は廃止)
     const picked = await dialog.showSaveDialog(win, {
       defaultPath: dialogDefaultPath('export', `${appID}.zip`),
@@ -330,7 +330,7 @@ class AppExportService {
     // 鍵が2段（アプリ単位→設定ページ既定公開用）+ オンザフライでも解決できない
     // provider ソースは、この時点で除外する。sources は以後（maplatSources・composeAppJson・
     // サムネイルコピー・renderIndexHtml の overlay/CDN/startFrom）すべての起点になる単一の
-    // const のため、ここ1箇所を差し替えるだけで全導出に反映される（R21・設計レビュー）
+    // const のため、ここ1箇所を差し替えるだけで全導出に反映される（設計レビュー）
     // ベースマップマスタの解決器。プレビュー側と同一実装を共有する
     const baseMapLookup = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
     const sources: AppSource[] = (document.sources || [])
@@ -392,7 +392,7 @@ class AppExportService {
 
     try {
       // post-dialog revalidation。dialog 待ち中の strict flip / delete を
-      // pre-dialog の古い判定のまま通さないよう再判定する (AC-T1-3)。outDir/tmpZipPath は
+      // pre-dialog の古い判定のまま通さないよう再判定する。outDir/tmpZipPath は
       // 失敗時も finally で確実に削除される
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(document), 'app-export'
@@ -434,7 +434,7 @@ class AppExportService {
 
       // 進捗: タイルファイル単位 + 地図ごとの残り作業(JSON書き出し/tmbコピー) + 固定ステップ(アセット/PWA/HTML)
       //       + zip 追加単位(=パッケージ内全ファイル数)。zip 単位はパッケージ完成まで確定しないため、
-      //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する (Phase 8 Task 6)
+      //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する
       // minPercentDelta:0 でタイルコピー中も1%刻みで送信されるようにする(呼び出し側で200ms/100件throttle済み)
       reporter = new ProgressReporter(
         'app:taskProgress',
@@ -472,7 +472,7 @@ class AppExportService {
         baseMapSettingFiles.set(master.mapID, settingFile);
       }
 
-      // POI icon 参照解決 (POI-117) の実体コピー要求。app/map の全解決結果を dest キーで畳んで
+      // POI icon 参照解決の実体コピー要求。app/map の全解決結果を dest キーで畳んで
       // 最後に outDir/imgs/... へまとめてコピーする
       const iconFiles = new Map<string, IconFile>();
 
@@ -489,7 +489,7 @@ class AppExportService {
       // アプリ搬出だけ 4-space だったのを揃える
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 2 });
 
-      // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
+      // 二重参照検出: app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
       const appPoiUids = collectPoiUids(readAppDocumentPois(document).pois);
       let duplicateReference = false;
 
@@ -508,7 +508,7 @@ class AppExportService {
         delete (mapJson as any).uid;
         delete (mapJson as any).slug;
         delete (mapJson as any).revision;
-        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過、Phase 7)
+        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過)
         // 生の Array.isArray ではなく共通の readAppDocumentPois を通す。app 側 (:263,:510)
         // が既にこの関数で読んでいるのに map 側だけ生判定だったため、**単独形 (レイヤ1つを配列に
         // 包まず直接置く形) の地図では POI が export から丸ごと落ちていた**。実データ maps の
@@ -534,7 +534,7 @@ class AppExportService {
         // **地図 JSON は搬出種別を問わず minify** する（地図 ZIP と同じ扱い）。
         // 地図データは容量が大きくなりやすく、整形の空白がそのまま配布サイズに乗る。
         //
-        // マイルストーン設計 I-5 は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
+        // 当初の設計は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
         // minify」と**パッケージ単位**で書かれていたため、アプリ ZIP に入る地図 JSON まで
         // pretty のままになっていた。人間の指示は 再設計時から一貫して
         // 「地図 JSON は minify」という**内容種別単位**であり、こちらが正しい（2026-08-03 訂正）。
@@ -556,7 +556,7 @@ class AppExportService {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
         // 512px サムネイルも package に同梱する（読み込みは uid キー、出力は slug 名）。
-        // 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり 整合）
+        // 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりと整合）
         const src512 = thumb512PathFor(thumb52PathFor(mapDoc.uid, 'jpg'));
         const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'));
         if (src512 && out512) {
@@ -642,7 +642,7 @@ class AppExportService {
         }
       }
 
-      // 3b) POI icon 実体 (POI-117): 解決済み参照が指す imgs/... へコピー。
+      // 3b) POI icon 実体: 解決済み参照が指す imgs/... へコピー。
       //     解決時 (resolveIconValue) に存在確認済みだが、レース等で消えていたら警告に落とす
       for (const file of iconFiles.values()) {
         if (fs.existsSync(file.src)) {
@@ -696,7 +696,7 @@ class AppExportService {
       progressState.step++;
       reporter.update(progressState.step);
 
-      // 8) 一時パッケージを zip 化して保存先へ書き出す (Phase 8 Task 6)。
+      // 8) 一時パッケージを zip 化して保存先へ書き出す。
       //    addLocalFolder 一括ではバーが止まるため、ファイル単位で zip へ追加しながら
       //    タイルコピーと同じ 200ms/100件 throttle で進捗を報告する
       const packageFiles = await listTileFiles(outDir);
@@ -1138,7 +1138,7 @@ class AppExportService {
       // maplat/overlay だけのエクスポートでは backTo が null になり初期化時に落ちるため抑止する。
       overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
-      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI 検証 D3
+      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI の検証で決めた
       enableMarkerList: Boolean(httpSettings.enableMarkerList),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),

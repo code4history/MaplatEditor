@@ -45,7 +45,7 @@
       </button>
     </div>
 
-    <!-- 参照 picker (仕様 )。選択値は既存の確定経路 (commit → update:modelValue) に流す
+    <!-- 参照 picker。選択値は既存の確定経路 (commit → update:modelValue) に流す
          = 呼び出し側で 1 commit (Undo 粒度不変) -->
     <AssetPicker
       mode="icon"
@@ -57,10 +57,10 @@
 </template>
 
 <script setup lang="ts">
-// icon 参照 1 欄の共通部品 (Phase 8 Task 2 で PoiAttributeForm から挙動不変で抽出)。
+// icon 参照 1 欄の共通部品 (PoiAttributeForm から挙動不変で抽出)。
 // 現在値の解釈表示 (parseIconRef → iconset はサムネ + setId:iconId、asset は slug/title
 // 解決表示、URL は短縮表示。未登録 setId / 未存在 asset は警告 badge) + AssetPicker
-// (mode:'icon') + クリア + 参照文法 (POI-139) の手入力を提供する。
+// (mode:'icon') + クリア + 参照文法 の手入力を提供する。
 // 確定粒度は呼び出し側の責務: change/選択/クリアのたびに update:modelValue を emit し、
 // PoiAttributeForm は onIconChange (session 1 commit)、PoiReferenceEditor は pois 配列差し替え
 // につなぐ。modelValue (committed 値) の変化でローカル入力バッファを再初期化する。
@@ -103,7 +103,7 @@ const clear = (): void => {
   commit("");
 };
 
-// --- 解釈表示 (Phase 6 Task 4、仕様 ) ---
+// --- 解釈表示 ---
 // 入力バッファを parseIconRef で判別し、iconset は registry の previewUrl サムネ +
 // `setId:iconId` (未登録 setId は警告 badge — URL とはみなさない)、asset は imageAssets.get
 // で slug/title を解決表示 (未存在は警告)、URL は短縮表示 (CSS truncate) する。
@@ -184,7 +184,7 @@ const onPickerSelect = (value: string): void => {
   commit(value);
 };
 
-// picker 表示中かどうか (Phase 6 品質): 呼び出し側 (PoiAttributeForm) が
+// picker 表示中かどうか (品質の確認での追加): 呼び出し側 (PoiAttributeForm) が
 // グローバルキー (undo/redo/Delete/menu:undo/redo) の抑止判定に集約する
 defineExpose({ pickerOpen: pickerVisible });
 </script>

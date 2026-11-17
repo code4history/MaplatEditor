@@ -1,6 +1,6 @@
 // PWA 画像（アイコン 8 枚・スプラッシュ 46 枚）の**仕様と作図の寸法**を決める純関数群。
 //
-// 背景（#174 / 設計書 v3）:
+// 背景（#174）:
 //   これまでは Chrome を起動する生成ライブラリに作らせていた。同ライブラリは画像を 1 枚も
 //   書く前に Chrome を探して起動する（利用者の既定プロファイル・他アプリのバンドル走査・
 //   ブラウザ実体のダウンロード）。macOS の App Data 保護に当たり、
@@ -240,7 +240,7 @@ export function pwaImageBox(spec: { width: number; height: number }): PwaContain
 }
 
 /**
- * 画面より大きいウィンドウが作れない環境での縮小倍率（S2）。
+ * 画面より大きいウィンドウが作れない環境での縮小倍率。
  * 撮れる最大寸法 (availWidth, availHeight) に収まるよう、スペックごとに 1 以下の倍率を返す。
  */
 export function pwaZoomFor(
@@ -302,7 +302,7 @@ export function pwaFrameMarkerMatches(pixel: ArrayLike<number>, seq: number): bo
 
 /**
  * 1 枚ぶんの寸法を当てて「新しい内容が描かれた」ところまで待つ JS。
- * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため（E4）。
+ * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため。
  * それでも撮影元が前のフレームのことがあるので、marker を渡したときは同じ JS で目印の色と大きさも変える
  * （撮る側が目印を見て、届くまで待つ。pwaFrameMarkerColor を参照）。目印は元画像を読み終えた後（settle）で変える。
  * sourceUrl を渡したときだけ元画像を読み直し、読めなければ reject する（呼び出し側が退避を判断する）。

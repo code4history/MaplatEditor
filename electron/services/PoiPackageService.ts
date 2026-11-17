@@ -42,7 +42,7 @@ export type PoiExportInspection = {
 // （配置済みファイル → map 行 → poi_sources → asset）。以前の補償は POI 単体パッケージだけを
 // 見ていたため asset / poiSource の2枝しか持たず、地図 ZIP 経路で足りていなかった。
 // 残り2枝が無いと、タイル数百 MB の残留や孤児 map 行が
-// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。I-4c 違反である。
+// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。「補償は成功したことにできない」に反する。
 // union への追加は後方互換（既存の消費者はログ出力のみ）。
 export type CompensationResidue =
   | { kind: 'asset'; assetUid: string; retainedPath?: string; dbError?: string }
@@ -196,7 +196,7 @@ async function sameStoredBytes(slug: string, bytes: Buffer): Promise<string | nu
 //   - 候補列が base-2（正本の base-2 と偶然一致していた）
 //   - **上限が無く、候補が尽きると無限ループする**（例外も進捗も出ず import が固まる）
 //   - 長さ切詰が無く SLUG_MAX 超過を作り得た
-// という状態だった。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり で slug は種別を跨いで一意 ∴ 採番規則を分けてはならない。
+// という状態だった。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりで slug は種別を跨いで一意 ∴ 採番規則を分けてはならない。
 //
 // 戻り値が string | null になる点が旧実装との差である。枯渇（null）は **新しい失敗契約を
 // 作らず**、呼び出し側の既存 throw 経路へ載せる（補償と residue は従来どおり働く）。
@@ -388,7 +388,7 @@ export async function importManagedPoiDocuments(
     }
     return { documents, createdAssetUids, cleanup, warnings };
   } catch (error) {
-    // 途中失敗の補償。**残留は握り潰さずログへ出す**（I-4c: 補償は成功したことにできない）。
+    // 途中失敗の補償。**残留は握り潰さずログへ出す**（補償は成功したことにできない）。
     // 本 API は throw で失敗を伝えるため戻り値に residue を載せられない。地図 ZIP 経路では
     // 呼び出し側（DataUploadService）が自前の cleanup で residue を集約する。
     const residue = await cleanup();

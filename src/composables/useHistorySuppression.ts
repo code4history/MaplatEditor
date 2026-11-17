@@ -13,7 +13,7 @@
 // smoke で振る舞い検証できるようにするためと、「タイマーと origin を同時に生成・同時に破棄する」
 // 不変条件（INV-1/INV-2）を1ファイルに閉じ込めるためである。
 //
-// なお本 composable は案B（MapEdit 履歴を参照実装と同型の明示 push へ転換。）の完了時に
+// なお本 composable は案B（MapEdit 履歴を参照実装と同型の明示 push へ転換）の完了時に
 // MapEdit から除去される想定の足場である。
 
 import { ref, nextTick, type Ref } from 'vue';

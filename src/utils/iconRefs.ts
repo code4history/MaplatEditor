@@ -1,5 +1,5 @@
 /**
- * POI-139 icon 参照文法 resolver（純関数 + registry）。
+ * icon 参照文法 resolver（純関数 + registry）。
  *
  * `icon` / `selectedIcon` の値は次の3形式のいずれか（43-poi-editor-spec.md が正本）:
  *   1. Icon set 参照 `{setId}:{iconId}` — setId は登録済み icon set の小文字英数 ID（`[a-z][a-z0-9-]*`）。
@@ -11,7 +11,7 @@
  * 未登録の setId のコロン形式は { kind: "iconset" } として返し isRegisteredIconSet(setId) = false
  * となる（URL とはみなさない）。呼び出し側（PoiAttributeForm 等）がこれを「未解決 icon set」警告として扱う。
  *
- * builtin icon set の実体は `public/icons/builtin/*.{png,svg}`（POI-126 の version 管理準拠：
+ * builtin icon set の実体は `public/icons/builtin/*.{png,svg}`（version 管理の取り決めに準拠：
  * icons は追加のみ・既存 id の意味を変えない）。
  * 例外: `defaultpin` のみ 2026-07-11 のユーザー決定「ビルトインをビューア標準ピンに整合させる」
  * に基づき、旧・青 SVG から MaplatCore/parts/defaultpin.png（ビューア標準の青バルーン）へ
@@ -56,11 +56,11 @@ export interface IconSetDef {
   icons: IconEntry[];
   /** icons から導出した id 一覧（既存呼び出し側の存在チェック用に維持） */
   iconIds: string[];
-  /** エディタ内プレビュー URL（picker サムネ・badge 用）。export 解決（POI-117）は Phase 7 */
+  /** エディタ内プレビュー URL（picker サムネ・badge 用）。export での解決は main 側 */
   previewUrl(iconId: string): string;
 }
 
-// builtin セットの構成（Phase 8 Task 4, ユーザー決定 2026-07-11「ビューア標準に整合」）:
+// builtin セットの構成（ユーザーの決定 2026-07-11「ビューア標準に整合」）:
 //   defaultpin          = ビューア標準の青バルーン (MaplatCore/parts/defaultpin.png のコピー)
 //   defaultpin-selected = ビューアの選択中ピン (MaplatCore/parts/defaultpin_selected.png のコピー)
 //   defaultpin-blue     = 旧 defaultpin の青 SVG を温存 (アート選択肢を失わないボーナストラック)

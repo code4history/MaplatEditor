@@ -107,7 +107,7 @@ async function toAddInput(input: unknown) {
   };
 }
 
-// 画像アセット IPC (Phase 2 Task 4, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は imageassets:* を使う
+// 画像アセット IPC (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は imageassets:* を使う
 // (asset:checkSlug の asset:* 名前空間とは衝突しない)。結果 union は poisource:* と同形の慣習
 export function registerImageAssetHandlers() {
   // 読み元は token（選んだファイル）か duplicateFrom（複製元の uid）だけ。解決しなければファイルを開かずに返す。
@@ -130,7 +130,7 @@ export function registerImageAssetHandlers() {
     runGuarded('imageassets:update-metadata', () => imageAssetService.updateMetadata(uid, input)));
   ipc.handle('imageassets:delete', (_, uid) => imageAssetService.delete(uid));
   ipc.handle('imageassets:getFilePath', (_, ref) => imageAssetService.getFilePath(ref));
-  // 逆参照 (削除確認フローが使う。43 の AID-006 と同型)
+  // 逆参照 (削除確認フローが使う。POI ソースの参照走査と同型)
   ipc.handle('imageassets:findReferences', (_, ref) => imageAssetService.findReferences(ref));
   // インポート用ファイル選択 (poisource:pickImportFile と同型。token とファイル名を返す)。SVG / webp は Jimp でデコードできず
   // add が invalid-request で拒否するため、フィルタから外す(選ばせても必ず失敗する形式を

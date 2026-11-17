@@ -36,14 +36,14 @@ let map: Map | null = null;
 let disposed = false;
 const vectorSource = new VectorSource();
 const currentPosition = ref<[number, number] | null>(null);
-// : 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
+// ui-map-overlay-proposal §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
 const baseMapList = ref<OverlayBaseMapItem[]>([]);
 const currentBaseMapID = ref("osm");
 let baseMapSwitcher: BaseMapSwitcher | null = null;
 const currentBaseMapLabel = (): string =>
   baseMapList.value.find((item) => item.mapID === currentBaseMapID.value)?.label ?? "";
 
-// : ホーム位置の点は不透明にし、白 1.5px の halo と濃い灰の細線を重ねる
+// ui-map-overlay-proposal §5-7: ホーム位置の点は不透明にし、白 1.5px の halo と濃い灰の細線を重ねる
 const markerStyle = haloPointStyles("#dc3545", 8, { strokeColor: "#dc3545", strokeWidth: 2 });
 
 function renderMarker(position: [number, number] | null) {
@@ -85,7 +85,7 @@ onMounted(async () => {
       center: initialCenter ? fromLonLat(initialCenter) : [0, 0],
       zoom: initialCenter ? 13 : 2,
     }),
-    // : 小窓も MapEdit・POI と同じ部品の名前を使う
+    // ui-map-overlay-proposal §5-3: 小窓も MapEdit・POI と同じ部品の名前を使う
     controls: mapOverlayControlDefaults({
       zoomIn: t("mapedit.control_zoom_in"),
       zoomOut: t("mapedit.control_zoom_out"),
@@ -93,7 +93,7 @@ onMounted(async () => {
     }),
   });
 
-  // : ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  // ui-map-overlay-proposal §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
   baseMapSwitcher = createBaseMapSwitcher({
     tipLabel: t("mapedit.control_basemap"),
     labelOf: currentBaseMapLabel,

@@ -274,7 +274,7 @@ test.describe('editor-splash-svg: og:image を描けないとき', () => {
         const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
         return g.__splashSvgMessages ?? [];
       });
-      // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md）
+      // 書き出しの結果は画面上部のバナーに出る（docs/ui-grammar.md §5.3）
       const messages = [...nativeMessages, await readOperationNotice(page)];
       const ogWarnings = messages
         .flatMap((m) => String(m.detail ?? '').split('\n'))

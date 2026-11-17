@@ -401,7 +401,7 @@
                 >
                   <i class="bi bi-clipboard me-1"></i>{{ t("settings.mcp_copy_mcp_remote") }}
                 </button>
-                <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md） -->
+                <!-- 登録の URL の注意は、コピーするコマンドの横の ? で出す（docs/ui-grammar.md §2.1） -->
                 <ContextHelp class="align-self-center" :text="t('settings.mcp_recommend_loopback')" :ariaLabel="t('editor_ui.help_about', { name: t('settings.mcp_client_registration') })" data-testid="settings-mcp-recommend-loopback" />
               </div>
               <div v-if="mcp.copied || mcp.copyFailed" class="col-sm-9 offset-sm-3 mt-2">
@@ -670,7 +670,7 @@ const resetSettings = async () => {
 };
 
 const saveSettings = async () => {
-    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     // 保存フォルダは main が拒否することがある（ネットワーク上のフォルダなど）。
     // 途中まで保存しないよう最初に送り、失敗したら利用者に伝えて止める

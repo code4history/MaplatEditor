@@ -146,7 +146,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     /new URLSearchParams\(location\.search\)/.test(aboutJs),
     "public/about.js must read the received values via new URLSearchParams(location.search) (受信形式)",
   );
-  console.log("  [5/6] about.html: process.versions除去 / バージョン最新化 / 特許に関わる本体系は Apache 2.0 とし、著作権表示を併記する決まり 著作権 / query受信: PASS");
+  console.log("  [5/6] about.html: process.versions除去 / バージョン最新化 / 特許に関わる本体系は Apache 2.0 とし、著作権表示を併記する決まりの著作権 / query受信: PASS");
 }
 
 // --- case 1 / case 2 / case 3 の smoke 側: Settings.vue と 11 言語 translation.json ---
@@ -168,7 +168,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
 
   // case 3: ContextHelp タグ数が 2 → 3、form-text の jpeg_decode_desc が 0 件
   // 設定画面の「起動時に更新を確認する」の説明に ContextHelp を 1 つ足した ∴ 3 → 4
-  // UI 文法（docs/ui-grammar.md #14）: MCP の「127.0.0.1 で登録する」注意を ContextHelp へ ∴ 5
+  // UI 文法（docs/ui-grammar.md §7.1 #14）: MCP の「127.0.0.1 で登録する」注意を ContextHelp へ ∴ 5
   const contextHelpCount = (settingsVue.match(/<ContextHelp/g) || []).length;
   assert.equal(contextHelpCount, 5, `src/views/Settings.vue must have 5 <ContextHelp> tags (C1 case 3 + + UI grammar: got ${contextHelpCount})`);
   assert.ok(

@@ -11,8 +11,8 @@ export interface AppListRow { uid: string; appID: string; title: string; image: 
 
 export interface AppListAdapterDeps { hasDraft: (uid: string) => boolean; selectedUid: () => string | null; diagnosticsLabels?: DiagnosticsBadgeLabels }
 
-// page式 applist backend を cursor(=ページ番号) へ内部包装する（D1）。
-// 件数表示統一(2026-07-16 人間指示、旧D8改を更新): backend が total を返すようになったため実値を通す。
+// page式 applist backend を cursor(=ページ番号) へ内部包装する。
+// 件数表示統一(2026-07-16 人間指示、以前の取り決めを更新): backend が total を返すようになったため実値を通す。
 export function createAppListAdapter(deps: AppListAdapterDeps): ResourceListAdapter<AppListRow, number> {
   return {
     async load({ filter, cursor, limit }) {

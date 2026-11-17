@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-// 通知だけのものは、ネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md）。
+// 通知だけのものは、ネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md §5.3）。
 // 1 行目が message、2 行目からが detail（1 行 1 件）。
 
 /** 出ているバナーを閉じる（前の操作の通知を次の操作の結果と取り違えないため） */

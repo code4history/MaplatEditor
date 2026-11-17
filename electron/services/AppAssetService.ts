@@ -73,7 +73,7 @@ class AppAssetService {
   // 非ビルトインTMSのサムネイルのアップロード: アセットの UUID 名への移行でメソッドを IPC ごと撤去した。
   // （この行は smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
   // src からの呼び出しが 0 件で、名前（mapID）を呼び出し元が決められる口だけが残っていたため
-  // （画像の内部名は UUID／uid に統一する。）。置換は replaceMapThumbnail が担う。
+  // （画像の内部名は UUID／uid に統一する）。置換は replaceMapThumbnail が担う。
 
   // Maplat地図サムネイルの置換アップロード（リソース管理）。
   // 512px/52px を独立して置き換えられる。512px アップロード時に「52px も作成する」で 52px を流用生成できる。
@@ -201,7 +201,7 @@ class AppAssetService {
       // overwrite: false — UUID 名なので衝突しないが、万一あっても既存の画像を上書きしない
       await fs.copy(file, dest, { overwrite: false, errorOnExist: true });
     } else {
-      // 拡張子の形に合わない名前（の 5 の外）は png へ変換して書く。この経路は必ず Jimp を通っている
+      // 拡張子の形（assetImageRefs.ts の ASSET_EXT_FORMS）に合わない名前は png へ変換して書く。この経路は必ず Jimp を通っている
       await image!.write(dest as `${string}.${string}`);
     }
     return { splash: fileName, fileUrl: this.toFileUrl(dest) };

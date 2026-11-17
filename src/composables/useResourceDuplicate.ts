@@ -16,7 +16,7 @@ export interface ReservedCopySlug {
 }
 
 // 新 UID を採番し、base+suffix → base+suffix+"2".."100" の順で空き slug を予約する。
-// 予約帰属は asset_uid=uid（D2改）。全候補枯渇時は null。
+// 予約帰属は asset_uid=uid。全候補枯渇時は null。
 // (a) 複製 "-copy" (reserveCopySlug) と (b) inline POI 変換 "-poi" (inlinePoiConvert) が
 // 同一の tryReserve 実装 (slugReservations.check → reserve) を共有する。
 export async function reserveSequencedSlug(

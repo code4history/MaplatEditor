@@ -100,7 +100,7 @@ test('hot exit restores drafts, shows badge, resolves revision conflicts, and fl
       },
     });
   }, seeded);
-  // 競合の確認はネイティブのダイアログ（docs/ui-grammar.md）。「下書きを適用」を選ぶ
+  // 競合の確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）。「下書きを適用」を選ぶ
   const conflict = await captureNativeConfirmation(runtime.app);
   await openApp(runtime.page, seeded.uid);
   const conflictPrompt = await conflict.wait();

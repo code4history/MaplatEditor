@@ -24,12 +24,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-migration-migration-'));
-const entryFile = path.join(workDir, 'asset-uuid-migration-migration-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-migration-'));
+const entryFile = path.join(workDir, 'asset-uuid-migration-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'asset-uuid-migration-migration-smoke.mjs');
+const bundledFile = path.join(outDir, 'asset-uuid-migration-smoke.mjs');
 
 const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');
 const sqlitePath = path.join(projectRoot, 'electron/services/SqliteDataService.ts');
@@ -678,7 +678,7 @@ await build({
     target: 'node22',
     rollupOptions: {
       external: ['@jsquash/webp', 'pwa-asset-generator'],
-      output: { entryFileNames: 'asset-uuid-migration-migration-smoke.mjs', format: 'es' },
+      output: { entryFileNames: 'asset-uuid-migration-smoke.mjs', format: 'es' },
     },
   },
 });

@@ -6,7 +6,7 @@
 // 地図の 3 つの中身の割り当て:
 //   json      = maps/{slug}.json・pois/*.geojson・imgs/…（地図の設定と、それが参照する POI・アイコン）
 //   tiles     = tiles/{slug}/…・tmbs/{slug}.jpg・512px のサムネイル（サムネイルはタイルから作るもの）
-//   originals = originals/{slug}.{ext}（原画像。既定では入れない＝OD-exportOptions-DEFAULT）
+//   originals = originals/{slug}.{ext}（原画像。既定では入れない）
 
 export interface MapExportOptions {
   tiles: boolean;

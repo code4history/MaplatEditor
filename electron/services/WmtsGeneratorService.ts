@@ -17,7 +17,7 @@ const TIN_V2_OPTIONS = { useV2Algorithm: true };
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
 // TileJSON 3.0.0 出力の型（tiles は生成時点で自己参照の相対パス1本。
-// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える。）
+// 書き出し時に AppExportService 側でディレクトリ名入りへ差し替える）
 export interface TileJsonDocument {
     tilejson: '3.0.0';
     tiles: [string];
@@ -87,7 +87,7 @@ export interface MercDecodeOptions {
 /**
  * バッファの SOF ヘッダから jpeg-js の会計要求量を予測し、機械の安全キャップ・設定キャップと
  * 突き合わせて Jimp.fromBuffer へ渡す実効値を決定する（純粋関数・実デコード不要）。
- * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害。）。
+ * JPEG でない/SOF を解析できない場合は機械の安全枠をそのまま使う（PNG は無害）。
  */
 export function resolveMercDecodeOptions(
     buffer: Buffer,
@@ -160,7 +160,7 @@ class WmtsGeneratorService {
             // canonical 不在時のみ一意な legacy(slug キー) fallback で解決する
             const resolved = await resolveRuntimeOriginal(uid, mapID, extKey);
             if (!resolved) {
-                // タスクstrict_error キーの流用をやめ、専用の非 i18n
+                // strict_error キーの流用をやめ、専用の非 i18n
                 // 診断文字列を確定する。renderer 側 wmtsGenerate() は arg.err を
                 // console.error するだけで、表示は既存の汎用 merc.error_generation
                 return { hash, err: new Error(`originals.unresolved: failed to resolve runtime original for uid=${uid} slug=${mapID}`) };

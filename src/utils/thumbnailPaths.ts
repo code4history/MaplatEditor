@@ -5,7 +5,7 @@
 //   512px の所在は thumb512PathFor(thumbnail) からのみ導く。
 //   512px パスを thumbnail 側へ書き戻すと (a) 二重適用で `_512_512` になり、
 //   (b) 書き出しの uuid 一致（AppExportService の /^tmbs\/([0-9a-f-]{36})\.…$/）から外れて
-//   viewer 向け出力に uid 名が漏れる（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり の export 契約違反）。
+//   viewer 向け出力に uid 名が漏れる（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの export 契約違反）。
 //
 // 本モジュールは副作用なし・Node 依存なしの純関数のみを持つ。
 // main（electron/）と renderer（src/）の双方から同一実体を import するため、

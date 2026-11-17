@@ -160,7 +160,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 //   変更後: MapEdit 18 (+1 merc) / AppEdit 13 (+2 説明・他情報 +8 HTTP トグル) / BaseMapEdit 10 (+7)
 //   MapEdit 19（エクスポートする中身の「タイル」の説明 +1）
 //   アプリの「MapLibre GL JS の版」の説明 +1 ∴ AppEdit 15
-//   UI 文法（docs/ui-grammar.md）: MapEdit +3（オリジナル画像・押せない理由・写し直しの失敗）∴ 22、
+//   UI 文法（docs/ui-grammar.md §7）: MapEdit +3（オリジナル画像・押せない理由・写し直しの失敗）∴ 22、
 //   BaseMapEdit +1（MapLibre の style）∴ 11
 // ---------------------------------------------------------------------------
 {
@@ -177,7 +177,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   // エクスポートする中身の「タイル」の説明で +1 ∴ 54
   // アプリの書き出しの小窓の「タイル」の説明で +1 ∴ 55
   // アプリの「MapLibre GL JS の版」の説明で +1 ∴ 56
-  // UI 文法（docs/ui-grammar.md）で説明の直書きを ContextHelp へ移した +17 ∴ 73
+  // UI 文法（docs/ui-grammar.md §7）で説明の直書きを ContextHelp へ移した +17 ∴ 73
   //   （PoiEdit 4・MapEdit 3・PoiAttributeForm 2・PoiMergeImportDialog 2・IiifBindingPanel 2・
   //     BaseMapEdit 1・Settings 1・MercTileSetModal 1・ResourceMasterRow 1）
   // #85: ソースの欄の「オフライン表示から外す」の説明で +1 ∴ 74（AppSourceEditor）

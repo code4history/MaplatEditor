@@ -5,7 +5,7 @@ import type {
 } from "./resourceListTypes";
 
 // view model の capability（actions）を UI 用の ResourceListAction[] へ写像する。
-// i18n key の付与は primitive 層のこの関数だけが行い、adapter へ i18n 知識を漏らさない（D10）。
+// i18n key の付与は primitive 層のこの関数だけが行い、adapter へ i18n 知識を漏らさない。
 export function buildResourceListActions(
   _kind: ResourceListKind,
   viewModel: ResourceListItemViewModel,

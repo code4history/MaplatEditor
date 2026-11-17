@@ -70,7 +70,7 @@ for (const phase of ['before', 'after']) {
       await page.locator('[data-editor-action="export"]').click();
       await expect(page.getByTestId('map-export-options')).toBeVisible();
       if (phase === 'after') {
-        // POI のソースを保存した通知は、地図の編集画面へ移ったら消えている（ui-grammar）
+        // POI のソースを保存した通知は、地図の編集画面へ移ったら消えている（ui-grammar §5.3）
         await expect(page.getByTestId('operation-notice')).toHaveCount(0);
         await expect(page.getByTestId('map-export-option-originals-help').locator('i.bi-question-circle')).toHaveCount(1);
         // ファイルサイズ・写真の付帯情報の注意は ? に入れず、オリジナル画像を選んだときに黄色の警告で出す
@@ -144,7 +144,7 @@ for (const phase of ['before', 'after']) {
       }
       {
         // AppEdit の「推定」ボタン: 入力欄の横の副次の操作なので、隣の「地図で指定」と同じ形（class）にする。
-        // btn-light shadow-sm は地図に重ねる道具用（ui-grammar）
+        // btn-light shadow-sm は地図に重ねる道具用（ui-grammar §6.2）
         const appUid = await page.evaluate(async () => {
           const slug = `grammar-app-${Date.now()}`;
           const r = await window.appedit.save({

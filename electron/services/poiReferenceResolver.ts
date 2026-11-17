@@ -1,4 +1,4 @@
-// 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層 (Phase 7, 43 )。
+// 登録 POI ソース参照 ({poiUid}) と icon 参照文法の main 側解決層。
 // document.pois / map data_json の pois 配列内の { poiUid, cachedTitle?, icon?, selectedIcon?, title?, hide? } 要素を
 // PoiSourceService.exportForm の export 形 FeatureCollection へ置換する。
 // 生要素 (URL 文字列 / FC 埋め込み) は無加工で透過し (座標も丸めない)、
@@ -8,7 +8,7 @@
 // composeDownloadMapJson を指していた記述を実体へ追随)。
 // warnings は静的 i18n キー (AppEdit 側の t(key) 表示と互換、パラメタ補間なし)。
 //
-// icon 参照文法の解決 (POI-117): pois 配列内の FC (解決済み・生 FC の双方) の layer metadata
+// icon 参照文法の解決: pois 配列内の FC (解決済み・生 FC の双方) の layer metadata
 // (FC.properties 配下の icon/selectedIcon — 過去形式として FC トップレベルも維持) と
 // 全 feature properties の icon/selectedIcon を走査し、
 //   - icon set 参照 ({setId}:{iconId}, 登録済み) → 'imgs/icons/{setId}/{iconId}.{ext}' + 実体コピー要求
@@ -252,7 +252,7 @@ function poiUidOf(entry: unknown): string | null {
   return typeof uid === 'string' && UUID_PATTERN.test(uid) ? uid : null;
 }
 
-// 二重参照検出 (POI-142) 用: pois 配列内の参照 uid 集合。非配列入力は空集合
+// 二重参照検出 用: pois 配列内の参照 uid 集合。非配列入力は空集合
 export function collectPoiUids(pois: unknown): Set<string> {
   const uids = new Set<string>();
   if (!Array.isArray(pois)) return uids;
@@ -271,12 +271,12 @@ export function hasSharedPoiUid(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
-// 参照要素の icon/selectedIcon/hide 上書き (Phase 8, POI-112 最小形 + hide) を解決後 FC の
+// 参照要素の icon/selectedIcon/hide 上書き (最小形 + hide) を解決後 FC の
 // FC.properties 配下 (layer metadata) へ適用する。string かつ非空の値のみ有効で、ソース側 FC に元々 icon が
 // あっても参照側の上書きが勝つ。hide は true のみ有効（セマンティクス）。
 // ここでは参照文法のまま載せ、後段の resolveIconRefsInFc が
 // 通常の icon 解決 (imgs/ 書き換え + 実体コピー要求 + unresolved 警告) を等しく適用する。
-// title 上書き (GUI 検証 D1): 参照要素の title (LangResource) が非空なら、toExportForm が
+// title 上書き (GUI の検証): 参照要素の title (LangResource) が非空なら、toExportForm が
 // FC.name に書くのと同じ交換形 (compactLangResource collapse、defaultLang=DEFAULT_LANG) で
 // 解決後 FC の name をソース側より優先で上書きする。空 (空文字/空 object/未定義) は上書きなし
 function applyReferenceIconOverrides(
@@ -314,9 +314,9 @@ function applyReferenceIconOverrides(
 
 // pois 配列内の {poiUid} 要素のみ export 形 FC に置換。生要素は透過 (icon 参照解決を除き無加工)。
 // missing は要素落ち + 警告キー1回。非配列入力は空配列扱い (呼び出し側で配列時のみ呼ぶこと)。
-// 参照要素の icon/selectedIcon/hide 上書きは解決後 FC の FC.properties 配下へ適用 (Phase 8, POI-112 最小形 + )。
+// 参照要素の icon/selectedIcon/hide 上書きは解決後 FC の FC.properties 配下へ適用 (最小形)。
 // 置換後の FC (解決済み・生 FC の双方) の icon 参照文法を imgs/... へ解決し、
-// 実体コピー要求を files として返す (POI-117)。同一参照の重複コピーは dest キーで畳む
+// 実体コピー要求を files として返す。同一参照の重複コピーは dest キーで畳む
 export async function resolvePoisArray(
   pois: unknown,
   options: { exportForm?: (uid: string) => Promise<unknown | null> } = {},
@@ -348,7 +348,7 @@ export async function resolvePoisArray(
   // 確実に壊れる形)。判定は「解決後」に対して行う (参照要素は FC に置換済みのため、旧オブジェクト +
   // 参照の混在が確実に検出される)。文字列要素は数えない — URL が FC を返す正当構成 (P2a) への
   // 恒常偽陽性を避ける (出口側判定)。自動変換は行わない。
-  // : 判定を共有述語 (poisLayerStructure) へ載せ替え — UI のレイヤ判別と同一実装
+  // 判定を共有述語 (poisLayerStructure) へ載せ替え — UI のレイヤ判別と同一実装
   // (旧ローカル実装と論理同値: fc = isPlainObject && type==='FeatureCollection' /
   //  object = isPlainObject && type!=='FeatureCollection' / 配列・文字列・数値は非カウント)。挙動不変
   if (hasMixedPoisShapes(out.map(poisEntryShape))) mergeWarnings(warnings, ['appedit.warn_mixed_pois']);
@@ -432,7 +432,7 @@ async function emitPoiDocument(
 }
 
 // 参照側オブジェクト (ラッパー) を組み立てる。上書きは **FC へ焼き込まず** ここへ載せる
-// (これが上書き仕様の存在意義。G2)。
+// (これが上書き仕様の存在意義)。
 // 有効値の判定は applyReferenceIconOverrides と同一 — hide は true のみ、title は
 // compactLangResource が undefined を返さない場合のみ、icon/selectedIcon は非空 string のみ。
 //
@@ -655,7 +655,7 @@ export function mergeWarnings(target: string[], added: string[]): void {
   }
 }
 
-// 二重参照警告キー (POI-142)。静的キー制約のため slug は含めない ({key,params} 化は UI 統一タスクで)
+// 二重参照警告キー。静的キー制約のため slug は含めない ({key,params} 化は UI 統一タスクで)
 export const DUPLICATE_POI_REFERENCE_WARNING = 'appedit.warn_duplicate_poi_reference';
 
 // Asset Reference 欠落警告キー。

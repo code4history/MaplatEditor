@@ -126,7 +126,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     else if (state.value === "append-error") await loadMore();
   }
 
-  // D9: 削除成功後、UID を除去し最終取得済み cursor を再取得して繰上りズレを dedupe 回収する。
+  // 削除成功後、UID を除去し最終取得済み cursor を再取得して繰上りズレを dedupe 回収する。
   // 再取得 batch には削除済み uid が（backend 反映遅延等で）残り得るため除外する。
   // client-side batch 系（master）は host 側が loadFirst で再スライスするため本メソッドを使わない。
   async function applyDeletion(uid: string): Promise<void> {
@@ -156,7 +156,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     }
   }
 
-  // P6/D12: Back 復元。保存 batch 数まで loadFirst→loadMore を再生する。
+  // P6/Back 復元。保存 batch 数まで loadFirst→loadMore を再生する。
   async function restore(targetBatches: number): Promise<void> {
     await loadFirst();
     let guard = 0;

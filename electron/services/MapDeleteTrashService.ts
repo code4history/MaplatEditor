@@ -37,7 +37,7 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
     const doc = await SqliteDataService.findMapByRef(uidOrMapID);
     const fileKey = doc?.uid || uidOrMapID;
     // 実装レビュー v1 で確定した MapDataService.deleteMap() の意図的 no-op ガードを踏襲する
-    // (、originals/ の dotfile 誤削除防止)
+    // (originals/ の dotfile 誤削除防止)
     if (!fileKey) return;
 
     return MapMutationQueue.run(fileKey, 'map-delete', async () => {
@@ -45,7 +45,7 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
         const slug = doc?.slug || uidOrMapID;
 
         // 削除対象の解決はファイルを動かさない読み取りのみ (resolveDeletionTargets)。
-        // trashItem は常に絶対パスのみを受け取る契約 (: 相対パスは cwd 基準で
+        // trashItem は常に絶対パスのみを受け取る契約 (相対パスは cwd 基準で
         // 解決されるため禁止。resolveDeletionTargets は絶対パスを返す)
         const trashTargets: string[] = [];
         if (doc) {

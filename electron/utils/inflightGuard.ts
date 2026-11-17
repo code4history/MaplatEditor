@@ -11,7 +11,7 @@
 type Rejector = (err: unknown) => void;
 const inflight = new Set<Rejector>();
 
-/** backendErrorForwarder の uncaughtException ハンドラ(:67)からのみ呼ばれる（unhandledRejection には結線しない — 設計判断） */
+/** backendErrorForwarder の uncaughtException ハンドラ(:67)からのみ呼ばれる（unhandledRejection には結線しない設計判断） */
 export function failAllInflight(err: unknown): void {
   for (const reject of [...inflight]) {
     inflight.delete(reject);

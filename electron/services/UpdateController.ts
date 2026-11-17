@@ -4,7 +4,7 @@
 //   Linux（AppImage）は知らせて Release のページを開くだけ（ダウンロードの経路を持たない）。
 //   起動時の確認は設定 updateCheckEnabled（既定オン）で切れる。
 //
-// renderer の UI・新しい IPC・preload の口は作らない（C-6・t6/）。文言は updateMessages.ts、
+// renderer の UI・新しい IPC・preload の口は作らない。文言は updateMessages.ts、
 // 方針（どの OS で何をするか）は updatePolicy.ts の 1 か所。更新器の操作は UpdateService だけが持つ。
 import { app, BrowserWindow, dialog, shell, type MessageBoxOptions } from 'electron'
 import SettingsService from './SettingsService'

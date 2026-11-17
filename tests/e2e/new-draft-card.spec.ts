@@ -54,7 +54,7 @@ test('new-app draft card shows label/slug and can be deleted from the list', asy
   await expect(card.locator('.resource-item__slug')).toHaveText('apptest');
   await expect(card.locator('.badge')).toHaveText('下書き');
 
-  // 操作メニューから「下書きを削除」できる（確認はネイティブのダイアログ。docs/ui-grammar.md）
+  // 操作メニューから「下書きを削除」できる（確認はネイティブのダイアログ。docs/ui-grammar.md §5.3）
   const confirmation = await captureNativeConfirmation(app);
   await card.getByRole('button', { name: '操作メニュー' }).click();
   await page.getByRole('menuitem', { name: '下書きを削除' }).click();

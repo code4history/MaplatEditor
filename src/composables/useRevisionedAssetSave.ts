@@ -1,6 +1,6 @@
 import { ref, type Ref } from "vue";
 
-// maps/apps/poi_sources 共通の revision 楽観ロック保存フロー (Phase 4 Task 1, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
+// maps/apps/poi_sources 共通の revision 楽観ロック保存フロー (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // MapEdit.vue / AppEdit.vue の performSave（conflict → 読み直す/上書き、部分成功 Error{revision}
 // の引き継ぎ）を挙動不変で共通化する。画面固有の処理（status 更新・router.replace・
 // ダイアログ表示等）は send / applySuccess / onFailure クロージャに残す。
@@ -33,7 +33,7 @@ export interface RevisionedAssetSaveOptions<TResult extends RevisionedSaveResult
    * reload = common.reload / overwrite = common.overwrite（conflict ダイアログのボタンラベル。
    * 現行 MapEdit/AppEdit のボタン順 [読み直す, 上書き]・cancelId:0 を踏襲するために必要） */
   messages: { conflict: string; discard: string; reload: string; overwrite: string };
-  /** 保存を始めるとき（再入防止を通った直後）に呼ぶ。画面は前の操作の通知を消す（ui-grammar） */
+  /** 保存を始めるとき（再入防止を通った直後）に呼ぶ。画面は前の操作の通知を消す（ui-grammar §5.3） */
   onStart?: () => void;
 }
 

@@ -1,6 +1,6 @@
 <template>
-  <!-- icon / image 参照の選択モーダル (Phase 6 Task 4、仕様 : picker は icon / image で共用)。
-       emit する値は POI-139 の参照文法文字列 (iconset → `{setId}:{iconId}` / asset → uid /
+  <!-- icon / image 参照の選択モーダル (picker は icon / image で共用)。
+       emit する値は参照文法の文字列 (iconset → `{setId}:{iconId}` / asset → uid /
        URL → 入力値そのまま)。呼び出し側が既存の確定経路 (onIconChange / image 行) に流す -->
   <div data-testid="asset-picker-dialog" v-if="visible" class="modal show d-block asset-picker" tabindex="-1" @click.self="onCancel">
     <div class="modal-dialog modal-lg">

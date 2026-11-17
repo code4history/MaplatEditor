@@ -10,7 +10,7 @@
       {{ t("poisource.loading") }}
     </div>
 
-    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 (/operation 診断) -->
+    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 (operation 診断) -->
     <div v-else-if="loadError" class="p-4">
       <DiagnosticFeedback
         scope="operation"
@@ -189,16 +189,16 @@
              フォームはエラー値も commit するため保存前に理由をライブ可視化する) -->
         <DiagnosticFeedback v-if="saveIssueItems.length" scope="section" :items="saveIssueItems" />
         <DiagnosticFeedback v-if="liveErrorItems.length" scope="section" :items="liveErrorItems" />
-        <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
+        <!-- 無コンテンツ警告 / 規模警告 -->
         <DiagnosticFeedback v-if="liveWarningItems.length" scope="section" :items="liveWarningItems" />
         <!-- Asset Reference 欠落警告（欠落UIDがある場合のみ表示） -->
         <DiagnosticFeedback v-if="missingAssetWarningItems.length" scope="section" :items="missingAssetWarningItems" />
       </div>
 
-      <!-- 地図ペイン (主役、仕様 ) + 右カラム: 属性フォーム (Task 7) の下に
+      <!-- 地図ペイン (主役) + 右カラム: 属性フォーム (Task 7) の下に
            feature 一覧 (Task 8) の上下分割。一覧は残り高さで flex (min-height 確保) -->
       <div class="flex-grow-1 d-flex overflow-hidden">
-        <!-- 中央カラム: 地図 (主役) + 下部の折りたたみ raw GeoJSON ペイン (POI-136)。
+        <!-- 中央カラム: 地図 (主役) + 下部の折りたたみ raw GeoJSON ペイン。
              raw ペインは v-show で mount を維持 (閉→開でローカル編集を失わない)。
              閉時の表示再生成停止は PoiRawPane が :visible で自律制御する -->
         <div class="flex-grow-1 d-flex flex-column overflow-hidden">
@@ -351,7 +351,7 @@
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import OperationNotice from "../components/editor-ui/OperationNotice.vue";
 import { useOperationNotice } from "../composables/useOperationNotice";
-// POI エディタ (Phase 4 Task 5-8, 仕様 43 )。
+// POI エディタ 。
 // 地図ペインは PoiEditMap (base map selector + マーカー + contextmenu 追加/削除 +
 // Modify ドラッグ移動 + クリック選択)。右カラムは属性フォーム (PoiAttributeForm) +
 // feature 一覧 (PoiFeatureList: フィルタ + 自前 windowing + 選択同期)。
@@ -470,7 +470,7 @@ const mapSession: PoiEditSession = {
   },
 };
 
-// raw GeoJSON ペイン (POI-136) の開閉。開閉で地図高さが変わるため OL へ updateSize を通知する
+// raw GeoJSON ペイン の開閉。開閉で地図高さが変わるため OL へ updateSize を通知する
 const rawPaneOpen = ref(false);
 function toggleRawPane(): void {
   rawPaneOpen.value = !rawPaneOpen.value;
@@ -543,7 +543,7 @@ let pendingSave: {
 } | null = null;
 let poiSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
-  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar）
+  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
   onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     // saveSource が pendingSave を設定した後にしか到達しない
@@ -597,12 +597,12 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
     // 通した場合のみ: 保存中に editState が差し替わっていたら (raw pane Apply 等の新編集)、
     // ここで上書きすると乖離した slug を表示してしまうため editState.slug watch の追随に
-    // 委ねる (Phase 5 品質レビュー MINOR)
+    // 委ねる (品質レビューの指摘)
     if (editState.value === pendingSave!.capturedState) {
       slugInput.value = result.slug;
     }
     // path param 正準 (/poisources/:sourceId): uid 変化時のみ追随 (履歴は汚さない)
-    // 通知より先に遷移を済ませる: path が変わる遷移は通知を消すため（ui-grammar）
+    // 通知より先に遷移を済ませる: path が変わる遷移は通知を消すため（ui-grammar §5.3）
     if (route.params.sourceId !== result.uid) {
       await router.replace({ path: `/poisources/${result.uid}` });
     }
@@ -792,7 +792,7 @@ const liveErrorItems = computed<DiagnosticItem[]>(() =>
     message: issueMessage(issue, t),
   })),
 );
-// warning レベル: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB) /
+// warning レベル: 無コンテンツ / 規模 (>1000 features or serialize >5MB) /
 // directgo が空白だけ・{ href: "" }（POI ごと。どの POI かが分かるよう issueMessage で ID を前に付ける）
 const liveWarningItems = computed<DiagnosticItem[]>(() => {
   const issues = liveIssues.value;
@@ -835,7 +835,7 @@ async function load(sourceId: string): Promise<void> {
     }
     saveHandle.adoptLoaded({ uid: detail.uid, slug: detail.slug, revision: detail.revision });
     readOnly.value = detail.readOnly;
-    // fc は Phase 2 get 経由で _maplatUid 付与済みの内部形
+    // fc は get 経由で _maplatUid 付与済みの内部形
     session.load({
       lang: resolveEditorLanguage(detail.lang || i18next.language),
       slug: detail.slug,
@@ -880,7 +880,7 @@ watch(
   },
 );
 
-// --- title / slug (どちらも session.commit 経由 = 1 Undo 単位、仕様 ) ---
+// --- title / slug (どちらも session.commit 経由 = 1 Undo 単位) ---
 function onTitleUpdate(value: string | Record<string, string> | undefined): void {
   if (readOnly.value) return;
   session.commit((draft) => {
@@ -967,7 +967,7 @@ async function saveSource(): Promise<boolean> {
     saveError.value = slugError.value;
     return false;
   }
-  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断(D7)
+  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
     saveError.value = t("poisource.errors.slug_taken");
@@ -1051,7 +1051,7 @@ function csvOmittedNotice(omitted: PoiExportOmitted): string {
 async function exportSavedSource(): Promise<boolean> {
   const uid = saveHandle.uid.value;
   if (!uid) return false;
-  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
   clearOperationNotice();
   const options = await askPoiExportOptions();
   if (!options) return false; // 選択の画面で取り消した
@@ -1129,7 +1129,7 @@ async function openMergeImport(): Promise<void> {
   if (!state) return;
   mergeImportBusy.value = true;
   mergeResultMessage.value = "";
-  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
   clearOperationNotice();
   const generation = loadGeneration;
   try {
@@ -1177,7 +1177,7 @@ async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
   mapPane.value?.fitInitialView();
 }
 
-// --- ReadOnly (remote) → ローカル複製 (Phase 3 cloneToLocal) して新 uid へ遷移 ---
+// --- ReadOnly (remote) → ローカル複製 (cloneToLocal) して新 uid へ遷移 ---
 async function cloneSourceToLocal(): Promise<void> {
   if (cloning.value) return;
   const uid = saveHandle.uid.value;
@@ -1221,7 +1221,7 @@ function onListSelect(uid: string): void {
   mapPane.value?.panTo(uid);
 }
 
-// 一覧の「新規作成」= 地図中央に配置 + フォームフォーカス (仕様 )。
+// 一覧の「新規作成」= 地図中央に配置 + フォームフォーカス。
 // 必ず mapSession (wrapper) の addFeature を使う (生 session では name フォーカスが飛ばない)
 function createPoiAtMapCenter(): void {
   if (readOnly.value) return;
@@ -1256,7 +1256,7 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
   if (key === "s") {
@@ -1280,10 +1280,10 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
   }
 };
 
-// 選択中 feature の Delete キー削除 (仕様 )。ReadOnly では無効。
+// 選択中 feature の Delete キー削除。ReadOnly では無効。
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
   if (saveHandle.saving.value || exporting.value || cloning.value) return; // Busy中は編集操作を抑止
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
@@ -1297,7 +1297,7 @@ const onDeleteKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質+ )
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加。+ )
   // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
   // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
   if (isEditableElement(document.activeElement)) return;
@@ -1499,7 +1499,7 @@ onBeforeUnmount(() => {
   width: 340px;
 }
 
-/* フォーム優先の固定分配 (Phase 8 Task 1): 旧 flex: 0 1 auto + min-height: 0 は
+/* フォーム優先の固定分配: 旧 flex: 0 1 auto + min-height: 0 は
    大量 feature 時に一覧 (flex-grow) がフォームを 0 まで押し潰していた。
    フォームは内容高さ基準で伸び、最大 55% で内部スクロール (overflow-auto は template 側)。
    一覧は残り高さを取り、min-height でフォームが大きくても常に操作可能を保証する */
@@ -1513,7 +1513,7 @@ onBeforeUnmount(() => {
   min-height: 160px;
 }
 
-/* raw GeoJSON ペイン (POI-136): 開時は地図の下に ~40% (地図が主役の比率維持) */
+/* raw GeoJSON ペイン: 開時は地図の下に ~40% (地図が主役の比率維持) */
 .poi-raw-pane {
   height: 40%;
   flex-shrink: 0;

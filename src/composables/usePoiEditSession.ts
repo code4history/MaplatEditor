@@ -1,4 +1,4 @@
-// POI エディタの編集セッション composable (Phase 4 Task 4)。
+// POI エディタの編集セッション composable。
 // 仕様 : UndoStack<PoiEditState> を流用し、明示 commit のみが 1 Undo 単位として push する
 // (MapEdit のデバウンス deep-watch 方式は使わない)。snapshot は slug/title/features/layerMeta を
 // 含むセッション全体で、未変更 feature オブジェクトは snapshot 間で共有する (structural sharing)。

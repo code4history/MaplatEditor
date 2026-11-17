@@ -1,6 +1,6 @@
 // PWA 画像（アイコン 8 枚・スプラッシュ 46 枚）を **Electron 自身の Chromium** で描く。
 //
-// 背景（#174 / 設計書 v3）:
+// 背景（#174）:
 //   従来は Chrome を起動する生成ライブラリに描かせていた。同ライブラリは利用者の Chrome を
 //   既定プロファイルで起動し、他アプリのバンドルを走査し、無ければブラウザをダウンロードしていた。
 //   macOS の App Data 保護に当たり「データアクセスがブロックされました」の通知と生成失敗が起きていた。
@@ -148,7 +148,7 @@ async function waitForFrame(win: electron.BrowserWindow, state: RenderState, seq
 
 /**
  * 1 枚描いて書き出す。
- * zoom は「画面より大きいウィンドウが作れない環境」での縮小（S2）。1 のときは等倍。
+ * zoom は「画面より大きいウィンドウが作れない環境」での縮小。1 のときは等倍。
  */
 async function drawSpec(
   win: electron.BrowserWindow,
@@ -278,7 +278,7 @@ export async function renderPwaAssets(args: {
     const availWidth = Math.max(1, Math.min(maxWidth, contentWidth));
     const availHeight = Math.max(1, Math.min(maxHeight, contentHeight - PWA_FRAME_MARKER_BAND_PX));
     if (availWidth < maxWidth || availHeight < maxHeight) {
-      // S2: 画面の制約で要求どおりの大きさのウィンドウが作れない。縮めて撮り、縮尺を戻す
+      // 画面の制約で要求どおりの大きさのウィンドウが作れない。縮めて撮り、縮尺を戻す
       console.warn(
         `[PwaChromiumRenderer] window clamped to ${contentWidth}x${contentHeight}; shrinking captures (quality reduced)`,
       );

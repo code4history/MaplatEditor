@@ -75,7 +75,7 @@ let map: Map | null = null;
 let draw: Draw | null = null;
 // onMounted の await の間に小窓が閉じられたら、閉じた後に Map を作らない
 let disposed = false;
-// : 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
+// ui-map-overlay-proposal §5-5: 小窓にもベースマップの切り替えを置く（明るい OSM だけでは古地図の範囲を合わせにくい場合に備える）
 const baseMapList = ref<OverlayBaseMapItem[]>([]);
 const currentBaseMapID = ref("osm");
 let baseMapSwitcher: BaseMapSwitcher | null = null;
@@ -95,7 +95,7 @@ const coordInvalid = ref<Record<CoordField, boolean>>({ west: false, south: fals
 const cropNotice = ref(false);
 
 const isGuide = ref(false);
-// : 4 色の線はいずれも縁取りを付ける。編集中の図形（赤の範囲）は白 1.5px の halo と
+// ui-map-overlay-proposal §5-6: 4 色の線はいずれも縁取りを付ける（§4.2）。編集中の図形（赤の範囲）は白 1.5px の halo と
 // 濃い灰の細線、参考の図形（絞り込み範囲（自動）・存在範囲・アプリ対象範囲）は白の halo だけ
 const boxStyle = haloLineStyles("#dc3545", 2, { fill: "rgba(220, 53, 69, 0.08)", dash: [6, 6] });
 
@@ -198,7 +198,7 @@ onMounted(async () => {
       new VectorLayer({ source: vectorSource, style: boxStyle }),
     ],
     view: new View({ center: [0, 0], zoom: 2 }),
-    // : 小窓も MapEdit・POI と同じ部品の名前を使う
+    // ui-map-overlay-proposal §5-3: 小窓も MapEdit・POI と同じ部品の名前を使う
     controls: mapOverlayControlDefaults({
       zoomIn: t("mapedit.control_zoom_in"),
       zoomOut: t("mapedit.control_zoom_out"),
@@ -206,7 +206,7 @@ onMounted(async () => {
     }),
   });
 
-  // : ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
+  // ui-map-overlay-proposal §5-4: ベースマップの切り替え（右上。今の選択の名前を札に出し、クリックで開く）
   baseMapSwitcher = createBaseMapSwitcher({
     tipLabel: t("mapedit.control_basemap"),
     labelOf: currentBaseMapLabel,
@@ -244,7 +244,7 @@ onMounted(async () => {
     source: vectorSource,
     type: "Circle",
     geometryFunction: createBox(),
-    // : 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
+    // ui-map-overlay-proposal §5-7: 描画中の線を編集中の図形の色にそろえ、縁取りを付ける
     style: editSketchStyleFunction("#dc3545"),
   });
   draw.on("drawstart", () => {
@@ -439,7 +439,7 @@ if (typeof window !== "undefined" && (window as any).isE2E) {
           <div ref="mapElement" class="envelope-map">
             <!-- 地図の上の道具の余白（帰属表示は layoutMapOverlayControls がここへ置く） -->
             <div class="map-overlay-tools" data-testid="map-overlay-tools-envelope"></div>
-            <!-- : 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
+            <!-- ui-map-overlay-proposal §5-6: 凡例（左下）。地図に出ている色の見本と名前だけを並べる。
                  名前は画面の他の場所の語にそろえる（赤は呼び出し元が渡す・橙は絞り込み範囲（自動）の札と同じ・
                  青は存在範囲・緑はアプリ対象範囲） -->
             <div class="map-overlay-legend" data-testid="envelope-map-legend">

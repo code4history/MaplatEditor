@@ -93,7 +93,7 @@ function onKeydown(event: KeyboardEvent, tab: EditorTabItem): void {
 </script>
 
 <style scoped>
-/* 狭幅では折り返さず横 overflow スクロールにする() */
+/* 狭幅では折り返さず横 overflow スクロールにする */
 .editor-ui-tabs {
   flex-wrap: nowrap;
   overflow-x: auto;

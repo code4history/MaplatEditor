@@ -18,7 +18,7 @@ export interface PoiSourceAdapterDeps {
   pageSize?: number;
 }
 
-// page式 poiSources.list backend を cursor(=page) 包装。total は実値を通す（D8改）。
+// page式 poiSources.list backend を cursor(=page) 包装。total は実値を通す。
 export function createPoiSourceListAdapter(deps: PoiSourceAdapterDeps): ResourceListAdapter<PoiSourceListRow, number> {
   const pageSize = deps.pageSize ?? 20;
   return {

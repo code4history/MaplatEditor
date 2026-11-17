@@ -1,9 +1,9 @@
-// POI ソース参照 UI の共有純関数 (Phase 7-8, 43 )。
+// POI ソース参照 UI の共有純関数 。
 // PoiReferenceEditor (AppEdit の appData.pois / MapEdit の mapData.pois の両方から利用) で
 // ResourceSelectorList の選択状態と永続形 pois 配列を往復させる。
 // 永続形の参照要素は { poiUid: "<uid>", cachedTitle?, icon?, selectedIcon?, title? }
-// (main 側 poiReferenceResolver と同一規約。icon/selectedIcon は参照単位の上書き (POI-112 最小形)、
-// title は参照単位のタイトル上書き (LangResource, GUI 検証 D1))。
+// (main 側 poiReferenceResolver と同一規約。icon/selectedIcon は参照単位の上書き、
+// title は参照単位のタイトル上書き (LangResource。GUI の検証で決めた)。
 // 生要素 (URL 文字列 / FC 埋め込み) は位置ごと透過する。
 import type { SelectedPoiSourceRef } from "../services/registeredPoiSourceCatalog";
 
@@ -57,7 +57,7 @@ export function extractPoiRefs(pois: unknown[]): SelectedPoiSourceRef[] {
 
 // selector の選択変更を pois 配列へ反映した新配列を返す。既存参照は元の相対順を保ち、
 // 新規選択は末尾へ追加。生要素 (URL/FC) は位置ごと不変で透過する。
-// 選択維持の参照要素は icon/selectedIcon 等の追加キー (Phase 8 の参照単位上書き) を温存する
+// 選択維持の参照要素は icon/selectedIcon 等の追加キー (参照単位の上書き) を温存する
 // (poiUid/cachedTitle 以外を落とさない — 元 entry を base に spread で再構築)
 export function applyPoiSelection(pois: unknown[], selected: SelectedPoiSourceRef[]): unknown[] {
   const selectedByUid = new Map(selected.map((item) => [item.sourceId, item]));

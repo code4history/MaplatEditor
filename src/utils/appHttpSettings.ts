@@ -29,7 +29,7 @@ export function defaultAppHttpSettings(): AppHttpSettings {
     pwaManifest: true,
     overlay: true,
     enableHideMarker: true,
-    // マーカー一覧 UI (viewer の enableMarkerList、GUI 検証 D3)。viewer 既定 (無効) に合わせて
+    // マーカー一覧 UI (viewer の enableMarkerList、GUI の検証で決めた)。viewer 既定 (無効) に合わせて
     // false 既定 — 既存アプリ (キーなし保存形) の preview/export 出力を変えないため
     enableMarkerList: false,
     enableBorder: true,

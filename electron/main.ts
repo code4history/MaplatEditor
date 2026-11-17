@@ -68,7 +68,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ])
 
-// HR-1 (t1 ): E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
+// E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
 // フォーカス奪取を防ぐ）。判別は既存フック MAPLAT_E2E_ROOT をそのまま使う
 // （preload.ts の isE2E / services 各所と同一の env。新しい env を導入しない）。
 // paintWhenInitiallyHidden は既定 true のまま ∴ renderer は通常どおり描画され
@@ -85,7 +85,7 @@ let forceQuit = false
 
 // 同一 userData profile からの複数 Electron process による
 // DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
-// 【既知の限界()】 app.requestSingleInstanceLock は userData path 単位の
+// 【既知の限界】 app.requestSingleInstanceLock は userData path 単位の
 // ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
 // クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
 // ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
@@ -114,7 +114,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 640,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    // HR-1 (t1 ): E2E 実行時のみ生成時に表示しない（webPreferences ブロックの外。
+    // E2E 実行時のみ生成時に表示しない（webPreferences ブロックの外。
     // smoke が webPreferences 内容を assert するためブロック内へ入れない）
     show: !isE2EMainProcess,
     webPreferences: {
@@ -241,7 +241,7 @@ import { draftTileRoot, resolveDraftTileDir } from './services/draftTilePaths'
 
 // 下書きタイル staging 領域 (<draftTileRoot>/*) のうち、対応する
 // draft envelope が存在しない孤児 dir を起動時に回収する。ウィンドウ生成前に完了させるため、
-// save と並行して走ることは構造的にない（の TOCTOU 受容論拠の前提）。
+// save と並行して走ることは構造的にない（TOCTOU を受け入れる根拠の前提）。
 // 削除パスの構築も共通バリデータ resolveDraftTileDir 経由に統一し、解決不能なエントリは
 // 削除せず warn に留める（誤削除より孤児残置を選ぶ — 表）
 async function gcOrphanDraftTiles(): Promise<void> {
@@ -531,7 +531,7 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
-    // HR-1 (t1 ): メインウィンドウと同一の方針（webPreferences ブロックの外）
+    // メインウィンドウと同一の方針（webPreferences ブロックの外）
     show: !isE2EMainProcess,
     webPreferences: {
       // nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
