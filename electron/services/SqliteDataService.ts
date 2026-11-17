@@ -41,7 +41,7 @@ import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { toDbOpenError } from '../utils/dbOpenFailure';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
-// 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate の注記を参照）
+// 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
 import { runAssetUuidNamesColdBoot } from './AssetUuidNamesMigrationService';
 import { runMaplibreVersionColdBoot } from './MaplibreVersionMigrationService';
 import { copyVerified, sameContent } from './assetImageRefs';
@@ -579,7 +579,7 @@ function normalizeMapDocument(document: any): any {
 //
 // ビルトインは対象外: シードが書く builtin_base_maps.json は全件が lang / label / 辞書形 title を
 // 既に持つ(実測 329/329)ため本関数は no-op であり、かつシードは毎起動で data_json を書き直すので
-// 撤去した段の効果は元々一時的だった。前提は smoke の が機械固定する
+// 撤去した段の効果は元々一時的だった。前提は移行の一気通貫化の smoke が機械固定する
 function normalizeLegacyBaseMapDocument(document: any, options: { scope: 'user' | 'builtin' }): any {
   const data = { ...document };
   const lang = typeof data.lang === 'string' && data.lang ? data.lang : options.scope === 'builtin' ? 'en' : 'ja';
@@ -1010,7 +1010,7 @@ class SqliteDataService {
     // slug originals -> UUID originals の one-shot migration/report。
     // v1.1: runColdBoot(db) 呼び出し全体を try/catch で防御する。
     // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
-    // 記録し継続する設計だが、それでも予期しない例外(db.prepare 自体の失敗等、DB破損に
+    // 記録し継続する設計だが、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
     // 近い異常系)が漏れ出す可能性をゼロにはできないため、ここでも二重に防御する。
     // migrate() はいかなる場合も originals migration の失敗によって失敗してはならない
     // (= getDb() のアプリ起動をブロックしてはならない)契約とする。
@@ -1122,7 +1122,7 @@ class SqliteDataService {
     ).run();
   }
 
-  // 512px サムネイル起動時マイニング（migrate から見て 1 段）。
+  // 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
   // v2: ズーム2タイルを持つ地図（壊れた 512px の作り直しも含む）。v3: 512px が無い地図すべて。
   // 印は別々で、それぞれ 1 回だけ走る。v2 の印は既に出荷した版で付いているため、v2 の条件を
   // 後から広げても既存の利用者のフォルダでは走らない。v3 はその取りこぼしをまとめて拾う。
@@ -1275,7 +1275,7 @@ class SqliteDataService {
     // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）。
     // atomic write（temp+fsync+rename）primitive へ差し替え。既存の
     // readJson+writeJson 直接呼び出しを廃止（marker 記録・warnings.length>0 の判定条件・
-    // 個別失敗の継続方針は無変更。の abandon ポリシーに従い、既存 report が壊れて
+    // 個別失敗の継続方針は無変更。壊れた report を直さない方針に従い、既存 report が壊れて
     // いれば追記自体を諦める）
     if (warnings.length > 0) {
       await appendMigrationWarnings(saveFolder, warnings);

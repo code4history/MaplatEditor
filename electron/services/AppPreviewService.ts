@@ -147,7 +147,7 @@ class AppPreviewService {
     );
     await this.ensureServer(Number(document.httpSettings?.previewPort || 0) || undefined);
     await this.purgePreviewStorage();
-    // token は Date.now 由来だとエントロピーが実質ミリ秒時刻のみで、
+    // token は Date.now() 由来だとエントロピーが実質ミリ秒時刻のみで、
     // appID の列挙 + 起動時刻の推測で当てられた。randomUUID の 122bit を足す。
     // appID 接頭辞は URL 形状とログの可読性のために残す
     const token = `${sanitizeId(document.appID || 'preview')}-${randomUUID()}`;

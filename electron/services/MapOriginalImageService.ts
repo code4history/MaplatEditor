@@ -4,7 +4,6 @@ import SettingsService from './SettingsService';
 
 // originals/ 配下の原本ファイルを UUID(uid) キーで正準に読み書きするための
 // 拡張子正規化 + canonical-first / legacy fallback resolver。
-// /準拠。
 
 export type OriginalExt = 'jpg' | 'jpeg' | 'png';
 const ALLOWED_EXTS: readonly OriginalExt[] = ['jpg', 'jpeg', 'png'];
@@ -260,7 +259,7 @@ export interface DeletionTargets {
 /**
  * delete 専用: trash へ move してよい対象だけを返す。
  * - canonical: uid は永続的に一意なので、originals/<uid>.<ext> に該当する全 ext variant を返す
- *   (ambiguity 判定不要、参照)
+ *   (ambiguity 判定不要)
  * - legacy: scanLegacyCandidates() の候補が「ちょうど1件」の場合だけそれを legacyPath として返す
  *   (classifyMigrationCandidate と同じ厳格判定。extHint による緩和は行わない —
  *   delete は migration と同様に「誤った方を消してしまう」リスクを避けるため慎重な基準を保つ)。

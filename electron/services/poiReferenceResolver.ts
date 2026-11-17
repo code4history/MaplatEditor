@@ -103,7 +103,7 @@ async function resolveIconValue(value: unknown, names: PackageImageNames): Promi
   if (ref.kind === 'url') return null;
   if (ref.kind === 'iconset') {
     const set = listIconSets().find((entry) => entry.setId === ref.setId);
-    // 未登録 setId / 未知 iconId は URL とみなさず unresolved (仕様 )
+    // 未登録 setId / 未知 iconId は URL とみなさず unresolved
     if (!set || !set.iconIds.includes(ref.iconId)) return { kind: 'unresolved' };
     const relPath = set.previewUrl(ref.iconId);
     const src = iconSetFilePath(relPath);
@@ -242,8 +242,8 @@ export async function resolvePoiFeatureCollection(
 }
 
 // {poiUid} 参照要素なら uid を返す。poiUid 以外のキー (cachedTitle 等) は解決時に無視する。
-// uid は UUID 形状 (StorageAdapter.UUID_PATTERN と同形、大小文字非区別) のみ参照として扱う
-//。UUID 形でない poiUid は将来拡張の手書き形かもしれないため生要素として透過し、
+// uid は UUID 形状 (StorageAdapter.UUID_PATTERN と同形、大小文字非区別) のみ参照として扱う。
+// UUID 形でない poiUid は将来拡張の手書き形かもしれないため生要素として透過し、
 // missing 警告の対象にもしない (安全側)。この判定は SqliteDataService.findPoiSourceReferences
 // の走査対象 (UUID のみ) と対称 — 非 UUID 値はそもそも逆参照検索にも引っかからないため。
 function poiUidOf(entry: unknown): string | null {
@@ -495,7 +495,7 @@ export async function externalizePoisArray(
     return { pois: [], files: [], documents: [...ctx.documents.values()], warnings };
   }
   const out: unknown[] = [];
-  // 混在警告  の判定は resolvePoisArray と同じ「解決後」基準を維持する。
+  // 混在警告の判定は resolvePoisArray と同じ「解決後」基準を維持する。
   // 入力配列で判定すると {poiUid} が 'object' に数えられ、参照 + 生 FC という正常構成が
   // 恒常的に偽陽性になる。∴ 各要素が resolvePoisArray でどの shape になったかを記録する。
   const resolvedShapes: ReturnType<typeof poisEntryShape>[] = [];

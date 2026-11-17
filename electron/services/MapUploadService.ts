@@ -421,7 +421,7 @@ export async function imageCutter(
         // タイル生成ループ
         for (let i = 0; i < tasks.length; i++) {
             const task = tasks[i];
-            // 旧実装は imageJimp.clone で原寸 RGBA 全体を毎回複製していた
+            // 旧実装は imageJimp.clone() で原寸 RGBA 全体を毎回複製していた
             // （旧 Electron 版 backend/src/mapupload.js:123 から引き継いだ形）。
             // cropRegionBitmap は clone().crop({x,y,w,h}) と同一の bitmap を、コピー無し／
             // 矩形ぶんのコピーだけで返す。resize 以降は一切変えていない。

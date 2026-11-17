@@ -17,7 +17,7 @@ const store = new Store<Record<string, unknown>>(
 
 // draft 削除の main 側チョークポイント。map kind の envelope 削除に
 // 同期して staging dir (<draftTileRoot>/<assetUid>) を回収する。
-// - パスは必ず共通バリデータ resolveDraftTileDir で解決（。null なら削除を skip して
+// - パスは必ず共通バリデータ resolveDraftTileDir で解決（null なら削除を skip して
 //   warn — envelope 削除自体は完遂し、残渣は次回起動時孤児 GC の対象）
 // - 削除プリミティブは fs.remove（symlink 非追従。契約 — リンク先へ降りない）
 export default new AssetDraftStore(store, {

@@ -1,11 +1,9 @@
 // slug originals -> UUID originals の one-shot migration/report。
 // 既存 migration-report-v2.json (renamedSlugs/renamedFiles/warnings) の top-level フィールドは
 // 一切変更せず、originalsUuidMigration フィールドだけを additive merge する。
-//。
 // 低レベル atomic write primitive (readReportSafe/writeReportAtomic) をここから
 // 切り出し、legacy migration (writeLegacyMigrationReport) / thumbnail-512 mining
 // (appendMigrationWarnings) からも再利用する。公開シグネチャ・観測可能な挙動は無変更。
-//。
 import path from 'path';
 import fs from 'fs-extra';
 import { promises as fsPromises } from 'fs';
@@ -49,7 +47,7 @@ const LEGACY_DEFAULTS: LegacyReportShape = { renamedSlugs: [], renamedFiles: [],
 //     (前者は既存 top-level field を保護する additive merger、後者は既存 warnings 配列への
 //     追記が前提のため、既存内容が読めなければ追記自体が成立しない)
 //   - writeLegacyMigrationReport は上書き回復
-//     (one-shot の legacy report が恒久的に失われることを防ぐため。参照)
+//     (one-shot の legacy report が恒久的に失われることを防ぐため)
 async function readReportSafe(saveFolder: string): Promise<Record<string, any> | null> {
     const reportPath = path.join(saveFolder, REPORT_FILE);
     if (!(await fs.pathExists(reportPath))) return { ...LEGACY_DEFAULTS };

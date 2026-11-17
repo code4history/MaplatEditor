@@ -38,7 +38,7 @@ export function registerAppHandlers() {
   });
 
   // overrideKeys はオンザフライ入力（保存しない）。省略時は現行どおり
-  // t1: runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
+  // runGuarded でメインプロセスの uncaughtException 時にも必ず settle させる
   // （reply was never sent の構造的防壁。適用範囲は appedit:export のみ — blast radius を広げない）
   // #113: 第 3 引数 options.includeTiles（省略時は含める）
   ipc.handle('appedit:export', async (event, document: any, overrideKeys?: { googleApiKey?: string; mapboxToken?: string }, options?: { includeTiles?: boolean }) => {
