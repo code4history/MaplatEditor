@@ -1,4 +1,4 @@
-// （#141 決めること 1・6）case 1・case 2: 自動更新の形（知らせる → 同意で更新 → 設定で切れる）を、
+// #141 決めること 1・6。case 1・case 2: 自動更新の形（知らせる → 同意で更新 → 設定で切れる）を、
 // spec の中に立てた模擬の更新元（node:http・127.0.0.1。e2e と同じ GitHub 形）と、実 main の UpdateController で確かめる。
 // 知らせる UI は main のネイティブのダイアログ（dialog.showMessageBox）なので、app.evaluate で差し替えて
 // 「出たダイアログ」を記録し、押すボタンを決める（UpdateController は dialog をプロパティとして引く）。
