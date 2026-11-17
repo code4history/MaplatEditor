@@ -364,7 +364,7 @@ function mainExternal(src) {
 {
   const { findFile } = updaterRequire('./providers/Provider.js');
   assert.equal(typeof findFile, 'function', 'electron-updater の Provider に findFile が無い');
-  // v1.1.0 の Release の latest.yml の形（2026-10-17 に gh release download で測った。の 1）
+  // v1.1.0 の Release の latest.yml の形（2026-10-17 に gh release download で測った）
   const ver = '1.1.0';
   const base = new URL(`https://github.com/code4history/MaplatEditor/releases/download/v${ver}/`);
   const files = [
@@ -449,7 +449,7 @@ function mainExternal(src) {
 {
   const mac = readFileSync(updaterRequire.resolve('./MacUpdater.js'), 'utf8');
   const app = readFileSync(updaterRequire.resolve('./AppUpdater.js'), 'utf8');
-  assert.ok(!/autoInstallEvent/.test(mac) && !/autoInstallEvent/.test(app), `electron-updater ${updaterPkg.version} に autoInstallEvent がある（の 5 の判定をやり直す）`);
+  assert.ok(!/autoInstallEvent/.test(mac) && !/autoInstallEvent/.test(app), `electron-updater ${updaterPkg.version} に autoInstallEvent がある（Windows の更新ファイルの選び方の判定をやり直す）`);
   // (a) ダウンロードの後の nativeUpdater.checkForUpdates() は if (this.autoInstallOnAppQuit) の中だけ
   const lines = mac.split('\n');
   const calls = lines.map((l, i) => [i, l]).filter(([, l]) => l.includes('nativeUpdater.checkForUpdates()'));
