@@ -115,7 +115,7 @@ const hook = {
   }),
 };
 
-test('case 4 (a)(b)(c): 正式版だけを拾い・壊れた zip を拒み・古い版では更新なし', async () => {
+test('正式版だけを拾い・壊れた zip を拒み・古い版では更新なし', async () => {
   test.setTimeout(180_000);
   const fixtureRoot = path.join(projectRoot, '.tmp-smoke');
   await mkdir(fixtureRoot, { recursive: true });
@@ -174,7 +174,7 @@ test('case 4 (a)(b)(c): 正式版だけを拾い・壊れた zip を拒み・古
   }
 });
 
-test('case 3: 更新元の指定が 127.0.0.1 以外なら注入されない（製品の更新元のまま・確認は開発時なので行わない）', async () => {
+test('更新元の指定が 127.0.0.1 以外なら注入されない（製品の更新元のまま・確認は開発時なので行わない）', async () => {
   test.setTimeout(120_000);
   const fixtureRoot = path.join(projectRoot, '.tmp-smoke');
   await mkdir(fixtureRoot, { recursive: true });

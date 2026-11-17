@@ -284,7 +284,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     markHistorySaved();
     await draftLifecycle.markSaved();
     // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を
-    // 保存済み行の (uid, revision) へ再構成する（PoiEdit.vue 既存の変更と同パターン）。
+    // 保存済み行の (uid, revision) へ再構成する（PoiEdit.vue と同パターン）。
     // これを怠ると旧 draftUid でドラフトが取り残され、正式データと同一 slug のドラフトが並ぶ。
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
@@ -1206,7 +1206,7 @@ async function resolveExportOverrideKeys(
 
 // editor-appexport-dialog（人間決定「ボタン => 確認ダイアログ => 実施、と、地図のエクスポートと
 // 揃えてもらえないですか？」）: アプリの書き出しも地図の書き出しと同じく小窓で中身を選んでから実施する。
-// 開くたびに既定（タイルを含める）へ戻し、選んだ内容を覚えない（既存の変更の HR-19 と同じ扱い）。
+// 開くたびに既定（タイルを含める）へ戻し、選んだ内容を覚えない（地図の書き出しの選択肢と同じ扱い）。
 // 地図側の askMapExportOptions / mapExportOptions / closeMapExportOptions（src/views/MapEdit.vue）と同型。
 const appExportOptionsVisible = ref(false);
 const appExportOptions = ref<{ includeTiles: boolean }>({ includeTiles: true });

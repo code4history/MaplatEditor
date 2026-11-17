@@ -1,7 +1,7 @@
 // スモーク: 地図削除の originals 退避先を OS ゴミ箱 (shell.trashItem) へ移行した
 // 新契約の分岐網羅 + 独自 trash 撤去の構造 assert。
 //。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir)。
+// originals-lifecycle-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir)。
 // スタブ shell.trashItem は呼び出しを記録し、指示に応じて reject できる (テストハーネス側の
 // 既存様式であり、製品コードへの差し替え機構ではない。製品は素の `import { shell } from 'electron'`)。
 // シナリオ:
@@ -63,7 +63,7 @@ function matchesNeedle(content, needle) {
 // 撤去した独自 trash 機構の残骸（bd3be75 で消えた `path.join(saveFolder, 'trash', 'maps')` 等）を検出する
 // needle: `'trash'`／`"trash"` の literal のうち、`stage:` の値（型の `stage?: 'trash'` を含む）でないもの。
 // 旧 needle `'trash'` は ImageAssetService の `stage: 'trash'`（画像アセット
-// 削除の警告の段階名・既存の変更の別機構）に当たる偽陽性だったため、その形だけを除いた。
+// 削除の警告の段階名・取り込みの補償の別機構）に当たる偽陽性だったため、その形だけを除いた。
 // パス構築の式に限る形（`path.join(…)` の正規表現）は、第 1 引数に入れ子の呼び出しを持つ形
 // （`path.join(SettingsService.get('saveFolder') as string, 'trash')`）や名前付き import の
 // `join(…, 'trash')` を取りこぼすため採らない。
@@ -391,7 +391,7 @@ try {
   assert.equal(
     existsSync(reconcileServicePath),
     false,
-    'electron/services/MapTrashReconcileService.ts が撤去されていない (起動時 reconcile は 既存の変更で廃止)'
+    'electron/services/MapTrashReconcileService.ts が撤去されていない (起動時 reconcile は OS のゴミ箱への委譲で廃止)'
   );
 
   // 自己検査 (T1-1): 狭めた needle が撤去対象の復活には今も当たり、別機構には当たらないこと

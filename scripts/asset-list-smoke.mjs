@@ -214,7 +214,7 @@ try {
     'AssetList に Escape ハンドラがない'
   );
 
-  // サムネイルは遅延読込 + 欠損/壊れた画像のフォールバック（既存の変更で ResourceMasterRow の
+  // サムネイルは遅延読込 + 欠損/壊れた画像のフォールバック（ResourceMasterRow の
   // placeholder + @error 復帰へ移行。noImage PNG からアイコン placeholder へ変更）
   assert.match(
     assetList,

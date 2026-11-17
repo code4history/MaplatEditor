@@ -25,14 +25,14 @@ test.describe('Search Coverage & Backfill E2E Tests', () => {
 
     // この spec は元々「索引トリガを全 DROP して行を捏造し、再起動時の一度きり
     // backfill（marker '2026-07-16-app-fts-rtree-backfill'）が索引を張り直す」ことを検証していた。
-    // その backfill は 既存の変更で撤去した。
+    // その backfill は移行の一気通貫化で撤去した。
     //   索引の器（FTS / RTree テーブル）は CREATE ... IF NOT EXISTS で**再起動しても中身が残る**。
     //   毎起動 DROP & CREATE されるのはトリガ定義だけであり、行の索引化は投入時にトリガが行う。
     //   0.7.0 → 1.0.0 の初回起動では backfill が走る時点でまだ 1 行も無い（取込は後段）ので
     //   構造的に 0 件であり、公開版に同梱する意味が無かった。「トリガ導入以前に書かれた行」は
     //   未公開の SQLite ストア内部にしか存在し得ない。
     // ∴ 検証対象を「トリガが張った索引が再起動を越えて全文検索・空間検索に効く」ことへ移した。
-    //   併せて seed を **公開 API だけ** で行う形へ揃えた（既存の変更の T12-4 と同じ処方。
+    //   併せて seed を **公開 API だけ** で行う形へ揃えた（geocoder-estimate と同じ処方。
     //   索引トリガは main プロセスで登録した SQL 関数を呼ぶため、外部コネクションからの
     //   直書きでは発火させられない＝直書き seed は索引を伴わない、という構造的な制約もある）。
 
@@ -79,7 +79,7 @@ test.describe('Search Coverage & Backfill E2E Tests', () => {
         edges: [],
         sub_maps: [],
         // 'loose': strict だと compiled が strict_error になり後続の appedit.save が拒否される
-        // （既存の変更の実測 2026-08-02。bbox は strict / loose で同一）
+        // （geocoder-estimate の実測 2026-08-02。bbox は strict / loose で同一）
         strictMode: 'loose', vertexMode: 'plain', status: 'New',
       };
       const seededMap = await window.mapedit.save({ slug: mapSlug, mapObject, tins: [] });
@@ -95,7 +95,7 @@ test.describe('Search Coverage & Backfill E2E Tests', () => {
       if (!poc || poc.result !== 'Success') throw new Error(`compiled map save failed: ${JSON.stringify(poc)}`);
 
       // アプリ（自動カバレッジ。範囲属性を明示せず maps_rtree から導出させる）
-      // ※ここで範囲属性名を literal で書かないこと。既存の変更の MC5 が凍結属性名の
+      // ※ここで範囲属性名を literal で書かないこと。range-vocabulary-smoke の MC5 が凍結属性名の
       //   出現数を tests/ 込みで数えており、コメントであっても baseline を動かす
       const appSlug = `search-coverage-app-${stamp}`;
       const ap = await window.appedit.save({
@@ -160,7 +160,7 @@ test.describe('Search Coverage & Backfill E2E Tests', () => {
     // ③の呼称は「アプリ提供範囲(参考)」→「アプリ対象範囲」
     await expect(page.getByTestId('app-coverage-label')).toContainText('アプリ対象範囲');
     // 自動カバレッジが maps_rtree 由来で表示されること。値の細部は TIN の頂点展開に依存する
-    // ため（既存の変更で seed を公開 API 経由へ移した際に W139.69… → W139.67… へ動いた）、
+    // ため（移行の一気通貫化で seed を公開 API 経由へ移した際に W139.69… → W139.67… へ動いた）、
     // 手動指定値 'W139 S35 E140 N36' と判別できる粒度で見る
     await expect(page.locator('.small.font-monospace')).toContainText('W139.6');
     await expect(page.locator('button:has-text("クリア")')).not.toBeVisible();

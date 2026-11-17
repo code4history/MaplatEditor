@@ -2,7 +2,7 @@
 // reserve は予約表しか見ないため、registry(保存済み資産)も見る check を前置しないと
 // 保存済み slug (taken) に対しても予約が成立してしまう。
 // 採番候補・切詰め幅・系列上限は utils/slugSequence.ts へ一本化した
-// (旧 candidate 実装と同値 — smoke:既存の変更で表駆動検証)。reserveCopySlug は
+// (旧 candidate 実装と同値 — smoke:inline-poi-convert で表駆動検証)。reserveCopySlug は
 // reserveSequencedSlug(suffix "-copy") への挙動不変 wrapper。
 import type { SlugFieldKind } from "../utils/slugReservationKind";
 import { findAvailableSlug } from "../utils/slugSequence";
@@ -42,7 +42,7 @@ export async function reserveSequencedSlug(
 
 // 複製用に新 UID を採番し、"-copy" → "-copy2".."-copy100" の順で空き slug を予約する。
 // 全候補枯渇時は null（呼出元が duplicate_failed 診断を出す）。
-// 公開シグネチャ・返値・候補系列・切詰めとも 実装から不変 (既存の変更で内部委譲のみ)。
+// 公開シグネチャ・返値・候補系列・切詰めとも当初の実装から不変 (インライン POI 変換の変更で内部委譲のみ)。
 export async function reserveCopySlug(
   baseSlug: string | undefined,
   assetKind: SlugFieldKind,
@@ -53,7 +53,7 @@ export async function reserveCopySlug(
 
 // --- ローカル複製 ("-local") ---
 //
-// 既存の変更が (a) "-copy" と (b) "-poi" をここへ畳んだとき、**(c) "-local" だけが
+// インライン POI 変換の変更が (a) "-copy" と (b) "-poi" をここへ畳んだとき、**(c) "-local" だけが
 // PoiEdit.vue の中に取り残された**。view の中にあったため service 層のテストから
 // 到達できず、次の2つの欠陥がテストに掛からないまま残っていた:
 //   1. off-by-one — 候補を 49件しか検査せず、**未検査の base-local50 を返していた**

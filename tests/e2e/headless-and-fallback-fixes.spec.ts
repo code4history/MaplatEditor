@@ -11,7 +11,7 @@
 //        MaplatCore mixin の相対仮置き fetch を options.thumbnail 注入で通さない）
 //
 // 製品起動（env 無し）での挙動不変性は main.ts の show 制御が MAPLAT_E2E_ROOT のみに
-// 分岐する構造で担保される（smoke 既存の変更が webPreferences 内容を引き続き検査）。
+// 分岐する構造で担保される（settings-menu-about-smoke が webPreferences 内容を引き続き検査）。
 import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -20,7 +20,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 // evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
 import { evalMain, openAboutWindow } from './helpers/electronMenu';
-// case 5 の zip インポート工程は 既存の変更が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
+// zip インポート工程は map-package-roundtrip が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
 import {
   openHash,
   saveFolderOf,
@@ -106,7 +106,7 @@ test.describe('ベースマップフォールバック統一（HR-2）', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       await page.evaluate(() => window.settings.set('lang', 'ja'));
-      // POI ソースを seed し PoiEdit を開く（既存の変更の seed パターンと同型）
+      // POI ソースを seed し PoiEdit を開く（poi-content-mode の seed パターンと同型）
       const poi = await page.evaluate(async () => {
         const slug = `t1-ac4-poi-${Date.now()}`;
         const created = await window.poiSources.createLocal({ slug, title: { ja: 'T1 POI', en: 'T1 POI' }, lang: 'ja' });

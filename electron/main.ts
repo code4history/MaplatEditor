@@ -42,7 +42,7 @@ installBackendErrorForwarding()
 
 // 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
 import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
-// 自動更新の器。製品のコードからは更新を確かめない（既存の変更が呼ぶ）。ここでは e2e の口だけを置く
+// 自動更新の器。製品のコードからは更新を確かめない（更新のお知らせの処理が呼ぶ）。ここでは e2e の口だけを置く
 import { installUpdateTestHook } from './services/UpdateService'
 // 自動更新の形（起動時の確認・メニューの「更新を確認…」・同意で更新）
 import * as UpdateController from './services/UpdateController'

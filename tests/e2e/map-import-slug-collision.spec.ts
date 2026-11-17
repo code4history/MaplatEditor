@@ -3,9 +3,9 @@
 // 固定する受け入れ条件:
 //   case 8  実 UI から同名 ZIP を取り込み、base-2 の地図が一覧に現れ preview まで通る
 //
-// 【既存の変更の case 11-b との違い】
-// 既存の変更は ZIP の slug を **書き換えてから**取り込んだ（同名は 'Exist' で弾かれる仕様だった）。
-// 既存の変更はその制約を外したタスクなので、ここでは **書き換えずそのまま**取り込む。
+// 【map-package-roundtrip の確認との違い】
+// map-package-roundtrip は ZIP の slug を **書き換えてから**取り込んだ（同名は 'Exist' で弾かれる仕様だった）。
+// この spec はその制約を外した変更の確認なので、ここでは **書き換えずそのまま**取り込む。
 // 人間が 2026-08-03 に踏んだ「既存のマップIDです。処理を停止します。」の再発検査でもある。
 //
 // smoke（サンドボックス）は electron スタブ上でサービスを直接叩くため、
@@ -80,7 +80,7 @@ test.describe('実 UI からの同名 slug 取込', () => {
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await exportSeededMap(app, page, seeded.mapUid, zipPath);
 
-      // **slug を書き換えない**。既存の変更では ここで 'Exist' になっていた
+      // **slug を書き換えない**。以前は ここで 'Exist' になっていた
       await importViaMapList(app, page, zipPath);
 
       // 取込完了は進捗モーダルの成功表示で判定する
@@ -125,7 +125,7 @@ test.describe('実 UI からの同名 slug 取込', () => {
     }
   });
 
-  test('-b: 3回連続で同名取込すると base-2 → base-3 と進む', async () => {
+  test('3回連続で同名取込すると base-2 → base-3 と進む', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t5-seq-'));
     const { app, page } = await launch(e2eRoot);

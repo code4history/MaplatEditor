@@ -49,7 +49,7 @@ async function expectDefaultMapOptions(page: Page): Promise<void> {
   await expect(tilesHelp.locator('i.bi-question-circle')).toHaveCount(1);
 }
 
-/** 書き出しの完了の進捗モーダル（OK で閉じる）を閉じる。前例 既存の変更の dismissStartupModals */
+/** 書き出しの完了の進捗モーダル（OK で閉じる）を閉じる。前例 map-name-unification の dismissStartupModals */
 async function closeFinishedModals(page: Page): Promise<void> {
   for (let i = 0; i < 5; i++) {
     const modal = page.locator('.modal.d-block');

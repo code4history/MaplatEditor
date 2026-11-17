@@ -3,7 +3,7 @@
 //
 // なぜ必要か: MaplatEditor/electron/utils/store_handler.ts の keys 配列に
 // licenseNote / dataLicenseNote を足さないと、MapEditService.save (histMap2Store) で
-// 保存した瞬間に data_json から消える。これは 既存の変更が pois で踏んだ穴 (store_handler の
+// 保存した瞬間に data_json から消える。これは地図の POI 保存（mapedit-pois-save）が pois で踏んだ穴 (store_handler の
 // keys 落ち) と同型であり、同じ harness (mapedit-pois-save-smoke.mjs) を踏襲する。
 //
 // シナリオ:
@@ -99,7 +99,7 @@ try {
       const NOTE_FIXTURE = { ja: '出典: 国土地理院' };
       const DATA_NOTE_FIXTURE = { ja: 'データ補足', en: 'Data note' };
 
-      // gcps < 3 の最小 mapObject (既存の変更と同じ)。
+      // gcps < 3 の最小 mapObject (mapedit-pois-save-smoke と同じ)。
       const mapObject: any = {
         mapID: 'license-note-map',
         title: 'ライセンス補足テスト地図',

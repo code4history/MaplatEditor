@@ -143,7 +143,7 @@ try {
 
   for (const pk of ["mapbox", "maplibre"]) {
     const v = validateBaseMapDocument({ ...baseDoc, kind: pk, maptype: null, style: null });
-    assert.equal(v.errors.includes("style-required"), true, `case 2: ${pk} は style-required (既存の変更で置換済み)`);
+    assert.equal(v.errors.includes("style-required"), true, `case 2: ${pk} は style-required (style-required へ置換済み)`);
     assert.equal(v.errors.includes("provider-incomplete"), false, `case 2: ${pk} は provider-incomplete を出さない`);
   }
 
@@ -178,7 +178,7 @@ try {
   const appSrc = createAppSourceFromBaseMap(masterGoogleItem, "ja");
   assert.equal(appSrc.baseMapUid, "uid-google", "case 7: createAppSourceFromBaseMap が参照を持つ");
   const viewer = composeViewerSource(appSrc, { lookup });
-  assert.equal("maptype" in viewer, false, "case 7: 既存の変更でアプリ JSON に maptype は出さない");
+  assert.equal("maptype" in viewer, false, "case 7: アプリ JSON に maptype は出さない");
   assert.equal(viewer.settingFile, "maps/google-master.json", "case 7: 設定ファイル参照を出す");
   assert.equal(
     composeBaseMapSettingFile(masterGoogleItem, appSrc.role).maptype,

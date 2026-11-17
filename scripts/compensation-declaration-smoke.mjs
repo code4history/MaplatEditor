@@ -100,7 +100,7 @@ try {
     {
       const uid = await addAsset('trashed-ok');
       const result = await imageAssetService.delete(uid);
-      assert.equal(result.ok, true, '正常系の ok:true は維持されること（既存 既存の変更の回帰）');
+      assert.equal(result.ok, true, '正常系の ok:true は維持されること（image-asset-smoke の挙動の回帰）');
       assert.equal(result.bytes, 'trashed', 'case 5/6: 退避に成功したら bytes は trashed であること');
       assert.equal(result.retainedPath, undefined, 'case 5/6: 残留していないので retainedPath は付かないこと');
       assert.equal(result.warning, undefined, 'case 5/6: 警告も付かないこと');

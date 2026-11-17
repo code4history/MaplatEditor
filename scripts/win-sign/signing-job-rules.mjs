@@ -1,7 +1,7 @@
 /**
  * 署名専用ジョブ（Azure Artifact Signing・OIDC の id-token を持つジョブ）の規則の正本。
  *
- * 既存の変更の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、既存の変更で入る署名専用ジョブが
+ * 以前の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、署名の経路の導入で入った署名専用ジョブが
  * **同じ規則で検査される**ように、規則をこの 1 か所に置く。各 smoke は自前で規則を書き直さず、ここを呼ぶ。
  *
  * 署名専用ジョブは OIDC の要求口（id-token: write）をジョブの間ずっと持つ。そのため:
@@ -18,7 +18,7 @@
  *     トークンで行われ GITHUB_TOKEN を使わない。）
  *   - 署名の記録（signing-record.json）を job summary にも表で書く（artifact は 1 日で消えるが summary は run と同じだけ残る。
  *     probe は除く。規則 11）
- *   - & の対象 $env:SIGNTOOL・/dlib の $env:DLIB を付け替えさせない（既存の変更の E1〜E4。規則 12〜14）:
+ *   - & の対象 $env:SIGNTOOL・/dlib の $env:DLIB を付け替えさせない（レビューで挙げた E1〜E4。規則 12〜14）:
  *     SIGNTOOL・DLIB への代入（$env:X = ・Set-Item env:X・SetEnvironmentVariable）と step の env: での上書きを拒む。
  *     GITHUB_ENV へ書いてよいのは NuGet の step（ちょうど 1 つ）の SIGNTOOL・DLIB と、許可した名前（UNSIGNED_SHA256）だけで、
  *     行の頭がリテラルの "名前= でなければ拒む。GITHUB_PATH は誰にも書かせない。ドット・ソース（. <パス>）と
@@ -51,7 +51,7 @@ const GITHUB_ENV_ALLOWED_VALUE_RE = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
 /** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。*/
 const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 
-/** 署名専用ジョブが受け取る入力のディレクトリ（既存の変更は probe-in・既存の変更は sign-in） */
+/** 署名専用ジョブが受け取る入力のディレクトリ（疎通ジョブは probe-in・署名専用ジョブは sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
 
 /** コマンド位置のパッケージマネージャ・JS 実行系（case 11 の正規表現に yarn|bun を足したもの） */

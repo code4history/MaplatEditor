@@ -1079,7 +1079,7 @@ async function save(): Promise<void> {
     // draftLifecycle cleanup は保存成功時常に実行（capturedVersion に関わらず）。
     // 旧 draftUid のドラフト削除（markSaved）→ 新 (uid, revision) へ identity 再構成（rebase）
     // → flush。保存中に別編集が入った場合 shouldPersist が true なので新 uid で persist される。
-    // PoiEdit.vue 既存の変更と同じ markSaved → rebase → flush パターン。
+    // PoiEdit.vue と同じ markSaved → rebase → flush パターン。
     await draftLifecycle.markSaved();
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
@@ -1190,7 +1190,7 @@ const {
   // **K1 判定の連言を落としてはならない。** 落とすと K2
   // （thumbnail がプリセット basemap_icons/*.png）でも fileUrl が同梱リソースを truthy で
   // 解決するため「52px の実体あり」と誤判定し、強制 ON が外れる。その状態で derive OFF の
-  // 512px 単独置換を行うと 512px だけが tmbs/ に生じ、既存の変更が で塞いだ孤児 512px が
+  // 512px 単独置換を行うと 512px だけが tmbs/ に生じ、ベースマップの 512px サムネイルの導入で塞いだ孤児 512px が
   // 再発する（E2E の E6 / がこの退行を捕らえる番人である）。
   // issue #192: 実体があっても**他者の uid 名**を指している間は強制を外さない（自分の 52px ではない）。
   // 外すと 512px だけ自分の uid 名へ書き、指し先を移したときに 52px が欠ける。
@@ -1206,7 +1206,7 @@ const {
 // 規則 指し先の移動は「文書編集」だが「undo の対象」ではない。
 // 履歴の全段へ同じ値を焼き、pointer / basePointer を動かさない（＝ undo/redo で戻らない）。
 // これは save() の付け替え追随（初回保存で backend が暫定名→uid 名へ寄せる処理）で
-// 既存の変更が採用済みの同型パターンである。
+// ベースマップの 512px サムネイルの導入で採用済みの同型パターンである。
 //
 // push しない理由: push すると undo 1 段で指し先だけが戻り、実ファイル（既に書き換わっている）と
 // 食い違う。全段へ焼けば undo/redo のどの位置からも指し先は新しいままになる。

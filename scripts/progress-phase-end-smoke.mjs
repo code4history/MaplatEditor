@@ -7,7 +7,7 @@
 //   (2) 動的・判別力の対照: minPercentDelta 0・分母 10000 で、地図ごとの最終件 `(37/37)` は
 //       update だと落ち、updatePhaseEnd だと送られる
 //
-// 実行方法: node scripts/progress-phase-end-smoke.mjs（既存の変更と同じ vite SSR 方式）
+// 実行方法: node scripts/progress-phase-end-smoke.mjs（progress-reporter-smoke と同じ vite SSR 方式）
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';

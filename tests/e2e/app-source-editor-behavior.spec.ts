@@ -7,7 +7,7 @@
 // 断言するのは「保存した apps.data_json の該当ソース」（window.appedit.request で読み戻す）と
 // 画面の表示。操作は書き込み経路の呼び出し元を全部通す:
 //   (a) ベースマップのラベルの上書き・空にする（setLangResource → writeOverride / clearOverride）
-//   (b) 数値の上書きと消去（setNumber。mercator シフト。既存の変更で minZoom 等は撤去済みのため、
+//   (b) 数値の上書きと消去（setNumber。mercator シフト。その後 minZoom 等は撤去済みのため、
 //       setNumber の唯一の利用者である overlay の mercatorXShift で通す）
 //   (c) 範囲の入力（4 欄そろえて反映。小窓と同じ検査）と消去（clearEnvelope）
 //   (d) 「存在範囲からコピー」（copyCoverageToEnvelope）
@@ -45,7 +45,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   // 外部タイルへ出ない（中身は断言しない）
   await page.route('**/tile.openstreetmap.org/**', (route) => route.fulfill({ status: 404, body: '' }));
   await page.route('https://example.com/**', (route) => route.fulfill({ status: 404, body: '' }));
-  // AppEdit の保存は main 側の確認ダイアログを挟む（既存の変更と同一の stub）
+  // AppEdit の保存は main 側の確認ダイアログを挟む（app-source-diff-model・app-poi-hide-override と同一の stub）
   await app.evaluate(async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });

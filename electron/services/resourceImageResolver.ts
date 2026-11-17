@@ -20,7 +20,7 @@ import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths'
 // file:// URL として解決する共通ヘルパ。
 //
 // この処理はもともと resolveMapListImage の tiles fallback と resolveMapTileByRef に
-// 同じものが2つ写しで存在し、前者にだけ追加された 既存の変更の封じ込めが後者へ伝播せず、
+// 同じものが2つ写しで存在し、前者にだけ追加された封じ込めが後者へ伝播せず、
 // 以前の版の包括セキュリティとして顕在化した。挙動を似せて2箇所を直すのではなく
 // 単一実装へ畳んで、写しが再発しない形にしている。
 //
@@ -70,7 +70,7 @@ export async function resolveMapListImage(doc: {
     if (!isUnderFolder(uiThumbnail, saveFolder)) return null;
     return localFileUrl(uiThumbnail);
   }
-  // sec-1  の tiles fallback 封じ込めは 既存の変更で共通ヘルパへ移した
+  // tiles fallback の封じ込めは、ジオコーダのエスケープと封じ込めの変更で共通ヘルパへ移した
   return resolveTileZeroFileUrl(saveFolder, fileKey);
 }
 
@@ -106,7 +106,7 @@ export async function resolveAppListImage(doc: any): Promise<string | null> {
 }
 
 // startFrom 地図の 0/0/0 タイル解決。
-// 旧実装はここで tiles パスを自前に組み立てており、既存の変更が
+// 旧実装はここで tiles パスを自前に組み立てており、封じ込めの追加が
 // resolveMapListImage 側へ入れた saveFolder 封じ込めが適用されていなかった。
 // 同一操作である resolveTileZeroFileUrl へ委譲して封じ込めを一元化する。
 // あわせて、抽出元として AppDataService 側の同等関数を指していた旧コメントを外した
@@ -134,7 +134,7 @@ export async function resolveMapListImage512(doc: {
   if (rel512) {
     const thumb512 = path.join(saveFolder, rel512);
     if (await fs.pathExists(thumb512)) {
-      // 既存の変更と同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
+      // 上の封じ込めと同型: fileKey が slug 由来で '..' を含む場合の saveFolder 配下封じ込め
       if (!isUnderFolder(thumb512, saveFolder)) return null;
       return localFileUrl(thumb512);
     }

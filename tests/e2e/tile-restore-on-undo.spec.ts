@@ -35,7 +35,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// ダイアログ差し替え（既存の変更と同型のアップロードハーネス）
+// ダイアログ差し替え（upload-tile-refresh・thumbnail-512 と同型のアップロードハーネス）
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
   await app.evaluate(async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
@@ -48,7 +48,7 @@ async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
   });
 }
 
-// 実 imageCutter を走らせる画像アップロード操作（既存の変更の同名ヘルパと同型）
+// 実 imageCutter を走らせる画像アップロード操作（upload-tile-refresh の同名ヘルパと同型）
 async function uploadImageViaUi(page: Page, app: ElectronApplication, imagePath: string): Promise<void> {
   await installDialogHarness(app, imagePath);
   await page.getByRole('button', { name: '地図画像登録' }).click();
@@ -106,7 +106,7 @@ async function historyJournal(page: Page): Promise<any[]> {
  *
  * 固定スリープではなく「履歴長が quietMs の間変化しない」という状態条件で待つ。
  * これを挟まずに undo すると、直前の編集の push が未着地のまま pointer を動かすことになり、
- * 復元先が意図した状態と変わってしまう（既存の変更で同種の待ちを入れているのと同じ理由）。
+ * 復元先が意図した状態と変わってしまう（map-poi-hide-override で同種の待ちを入れているのと同じ理由）。
  */
 async function waitHistoryQuiet(page: Page, quietMs = 700, timeoutMs = 30_000): Promise<number> {
   const start = Date.now();
@@ -128,7 +128,7 @@ async function waitHistoryQuiet(page: Page, quietMs = 700, timeoutMs = 30_000): 
 }
 
 // MapEdit の onHistoryKeydown は isEditableElement（nativeTextUndo.ts）で INPUT/TEXTAREA 上の
-// グローバル undo を抑止する。実利用者と同じくフォーカスを外してから押す（既存の変更と同型）
+// グローバル undo を抑止する。実利用者と同じくフォーカスを外してから押す（map-poi-hide-override と同型）
 const UNDO_KEY = process.platform === 'darwin' ? 'Meta+z' : 'Control+z';
 const REDO_KEY = process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+Shift+z';
 
@@ -144,7 +144,7 @@ async function pressRedo(page: Page): Promise<void> {
 
 // ---- seed --------------------------------------------------------------------
 
-// 画像未アップロードの既存地図を IPC 直叩きで seed する（既存の変更の seedBareMap と同型）
+// 画像未アップロードの既存地図を IPC 直叩きで seed する（upload-tile-refresh の seedBareMap と同型）
 async function seedBareMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const mapSlug = `hf2-existing-${Date.now()}`;
@@ -207,7 +207,7 @@ async function seedMapWithEdge(page: Page): Promise<{ uid: string; slug: string 
 }
 
 // backend の load 経路は url_ を再導出するため seed 時の url_ は保持されない。
-// GCP タブを使える状態にするため page 側で url_ を設定して loadMapTiles を起動する（既存の変更と同型）
+// GCP タブを使える状態にするため page 側で url_ を設定して loadMapTiles を起動する（edge-split と同型）
 async function forceGcpsTabReady(page: Page): Promise<void> {
   await page.evaluate(() => {
     (window as any).testDebug.mapData.value.url_ =
@@ -219,7 +219,7 @@ async function forceGcpsTabReady(page: Page): Promise<void> {
 
 // 窓が小さい環境（#123: GitHub runner の画面 1024x768 で content が 1024x645 に縮む）では
 // 対象点が illst 地図の表示範囲の外に出て地図外の要素を右クリックしてしまうため、
-// 先に対象点を地図の中心へ寄せて描画を同期させ、表示範囲内にあることを確かめてから座標を取る（既存の変更と同型）
+// 先に対象点を地図の中心へ寄せて描画を同期させ、表示範囲内にあることを確かめてから座標を取る（edge-split と同型）
 async function rightClickOnIllstMap(page: Page, xy: [number, number]): Promise<void> {
   const probe = await page.evaluate((target) => {
     const info = (window as any).testDebug.illstMapInfo();
@@ -270,7 +270,7 @@ test.describe('undo/redo でのタイルソース復元', () => {
       // 恒久パス判定は「`tiles/<uid>` を含むこと」で行ってはならない。既存地図の
       // アップロード staging は `draft-tiles/<uid>/…`で、これは `tiles/<uid>` を
       // 部分文字列として含むため、staging のまま条件が成立してしまう。
-      // staging root を含まないことを直接見る（既存の変更と同じ判定）。
+      // staging root を含まないことを直接見る（upload-tile-refresh と同じ判定）。
       const draftTileRoot = path.join(e2eRoot, 'draft-tiles');
       await uploadImageViaUi(page, app, imageA);
       const stagingUrlA = await mapUrl(page);
@@ -362,7 +362,7 @@ test.describe('undo/redo でのタイルソース復元', () => {
         .poll(async () => page.evaluate(() => (window as any).testDebug.edges.value.length), { timeout: 15_000 })
         .toBe(1);
 
-      // GCP を実 UI 操作で1点追加する（対応線上にマーカー追加。既存の変更の実績経路）
+      // GCP を実 UI 操作で1点追加する（対応線上にマーカー追加。edge-split の実績経路）
       await rightClickOnIllstMap(page, [200, 250]);
       await expect.poll(async () => (await contextMenuTexts(page)).join('|'), { timeout: 10_000 })
         .toContain('対応線上にマーカー追加');

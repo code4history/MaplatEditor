@@ -320,7 +320,7 @@ function onEnvelopeUpdate(value: [number, number][] | null) {
 
 // 「存在範囲からコピー」。マスタの存在範囲（coverageLngLats）を利用範囲へ写す。
 // 存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まりが退けたのは coverage の**自動継承**であり、ユーザーの明示操作は想定内である
-// （ADR 自身が「usage = coverage は 1 回の大きなドラッグ」と述べている。既存の変更はそれを 1 クリックにする）。
+// （ADR 自身が「usage = coverage は 1 回の大きなドラッグ」と述べている。この操作子はそれを 1 クリックにする）。
 // 活性条件は BaseMapEdit の「存在範囲から生成」（basemap.generate_icon）の先例に揃え、
 // v-if ではなく :disabled にする（存在範囲を登録すれば使えることを見せる必要があるため）。
 const coverageAvailable = computed(

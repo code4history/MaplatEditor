@@ -78,7 +78,7 @@ async function cardImages(page: Page): Promise<Array<{ uid: string | undefined; 
   );
 }
 
-test.describe('-HOTFIX-1 search thumbnails', () => {
+test.describe('search thumbnails', () => {
   test('MapList が tmbs サムネイル、AppList が iconSource 画像を表示する', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-hotfix1-list-'));

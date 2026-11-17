@@ -39,7 +39,7 @@
     <template #selected>
       <h5 class="d-flex align-items-center gap-1">
         <span>{{ t(headingKey ?? "poiref.selected_list_app") }}</span>
-        <!-- 相互排他制約の理由提示 (既存の変更の (i) ボタン文法) -->
+        <!-- 相互排他制約の理由提示 (説明の文法の (i) ボタン) -->
         <ContextHelp
           v-if="hasNonReferenceEntries"
           :text="t('poiref.add_blocked_note')"

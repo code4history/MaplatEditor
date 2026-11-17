@@ -407,8 +407,8 @@ console.log("smoke Part 8: OK");
 
 // --- Part 9: P6 Back cache ---
 const backCache = await read("src/composables/useResourceListBackCache.ts");
-assert.match(backCache, /sessionStorage/, "back cache must use sessionStorage (D6)");
-assert.match(backCache, /resource-list:/, "cache key must be resource-list:<kind> (D6)");
+assert.match(backCache, /sessionStorage/, "back cache must use sessionStorage");
+assert.match(backCache, /resource-list:/, "cache key must be resource-list:<kind>");
 const mapListP9 = await read("src/views/MapList.vue");
 assert.match(mapListP9, /restore\(/, "grid list must call composable restore on Back");
 console.log("smoke Part 9: OK");

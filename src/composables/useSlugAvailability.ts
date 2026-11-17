@@ -13,7 +13,7 @@ export type SlugAvailabilityState =
 // の 6 値状態語彙 (/D1)。SlugField はこの語彙で状態を表示する。
 // 内部の SlugAvailabilityState を写像する: taken→reserved-by-other(registry既存 or
 // 他者予約の双方を包含)、unavailable→check-failed、format不正→invalid-format。
-// 既存の 5 値 state は後方互換のため温存する(既存の変更の state machine テスト等)。
+// 既存の 5 値 state は後方互換のため温存する(ui-foundations の state machine テスト等)。
 export type SlugFieldState =
   | 'idle'
   | 'checking'

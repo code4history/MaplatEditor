@@ -5,7 +5,7 @@
  *   [2] case 1 更新器の設定（updaterSettings・applyUpdaterSettings を本物の electron-updater の更新器に当てる）
  *   [3] case 1 electron-builder.config.cjs の publish と publisherName（i）〜（iv）
  *   [4] case 1 vite.config.ts の main の external
- *   [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の check の中だけ（既存の変更で 既存の変更の形へ）
+ *   [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の check の中だけ（更新の UX の変更で今の形へ）
  *   [6] case 3 resolveUpdateFeed のマトリクスと、SettingsService・process.argv を読まないこと
  *   [7] case 4 (d) Windows の x64／arm64 の更新ファイルの選び方（判定 (A)）
  *   [8] mac の zip・build.yml の artifact と注記・verify-win-install の publisherName の検査
@@ -251,15 +251,15 @@ function mainExternal(src) {
     assert.deepEqual([...head].sort(), [...want].sort(), 'external(HEAD) が external(origin/master) ∪ {electron-updater} でない');
     pass(`case 1 vite external = origin/master ∪ {electron-updater}（${[...head].join(', ')}）`);
   } else {
-    // CI の浅い checkout には origin/master が無い。既存の変更の後の master の期待値で比べる
+    // CI の浅い checkout には origin/master が無い。Electron 43 への更新の後の master の期待値で比べる
     const want = new Set(['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater']);
-    assert.deepEqual([...head].sort(), [...want].sort(), 'external が 既存の変更の期待値と違う');
-    pass('case 1 vite external（origin/master が無いので 既存の変更の期待値で比べた）');
+    assert.deepEqual([...head].sort(), [...want].sort(), 'external が期待値と違う');
+    pass('case 1 vite external（origin/master が無いので固定の期待値で比べた）');
   }
 }
 
 // ───────────────────────────────────────────────
-// [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の中だけ（既存の変更で 既存の変更の形へ広げた）
+// [5] case 2 更新の確認を起動する呼び出しは UpdateService.ts と UpdateController.ts の中だけ（更新の UX の変更で今の形へ広げた）
 //   (1) 該当ファイルは {UpdateService.ts, UpdateController.ts} だけ
 //   (2) UpdateController.ts の中でそれらの名前が現れるのは関数 check の本文の中だけ
 //   (3) main.ts が UpdateController について呼ぶのは check({ manual: true })（メニューの click）と startAutomaticCheck( の 2 つだけ
@@ -272,7 +272,7 @@ function mainExternal(src) {
     `該当が UpdateService.ts・UpdateController.ts の中だけでない: ${[...files].join(', ')}`);
 
   // (2) check の本文（開き波括弧から対応する閉じ波括弧まで）。名前はコメントを除いた「コード」の中だけで数える
-  //     （既存の変更の説明はコメントに書く ∴ コメント中の名前で赤にしない）
+  //     （この除外の説明はコメントに書く ∴ コメント中の名前で赤にしない）
   const stripComments = (src) => src
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/[^\n]*/g, '$1');

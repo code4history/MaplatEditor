@@ -3,7 +3,7 @@
 //
 //   S1    defaultApp の httpSettings は現行値のまま（②読み込み時の欠落補完を動かさない）
 //   S2    新既定は NEW_APP_HTTP_OVERRIDES 1 箇所に集約され、適用点は newAppDocument だけ
-//   S3    AppEdit.vue の <ContextHelp タグ数 = 14（既存の変更でアプリの書き出しの小窓に +1）
+//   S3    AppEdit.vue の <ContextHelp タグ数 = 14（アプリの書き出しを小窓にした変更で +1）
 //   S4    MapEdit.vue の merc <p> 廃止 / <ContextHelp タグ数 = 18
 //   S5   BaseMapEdit.vue の <ContextHelp タグ数 = 10
 //   S6   共通 7 説明の field_help.* への 1 本化（移送元 7 キーは 11 言語から消滅・値は不変）
@@ -26,7 +26,7 @@ const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const readSrc = (rel) => readFile(path.join(projectRoot, rel), "utf8");
 const count = (haystack, needle) => haystack.split(needle).length - 1;
 
-// 凍結属性名（既存の変更の走査に引っかからないよう断片から組み立てる。上のコメント参照）
+// 凍結属性名（range-vocabulary-smoke の走査に引っかからないよう断片から組み立てる。上のコメント参照）
 const FROZEN_RANGE_ATTRS = [
   "coverage" + "LngLats",
   "envelope" + "LngLats",

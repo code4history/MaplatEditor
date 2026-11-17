@@ -25,7 +25,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 // 同一規則 — layer が string または FeatureCollection で、自身は FC ではなく、座標キーを持たない
 // plain object。main (poiReferenceResolver の外部ファイル化) と renderer (PoiReferenceEditor の
 // 要素分類) の双方がこの1本を使う (恒久指示「同一扱い処理は共通実装へ徹底」)。
-// 既存の変更で resolver 内に private で置いていた同名関数はここへ移設した (挙動同一)。
+// 以前 resolver 内に private で置いていた同名関数はここへ移設した (挙動同一)。
 export function isPoiLayerRef(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
   if (value.type === "FeatureCollection") return false;
@@ -102,7 +102,7 @@ export function hasPoisLayerKey(entry: unknown): boolean {
 // 上と同じ key 導出の値版。truthy な key があればその値、無ければ undefined。
 // hasPoisLayerKey はこれの存在判定として実装されており、判定位置は常に1箇所で一致する
 // (id → properties.id の順・truthy 判定は viewer normalize_pois.ts:124 と同じ `||` 意味論)。
-// 既存の変更では外部ファイル名の基底として使う — viewer がレイヤ key を読む位置と揃えるため
+// 書き出しでは外部ファイル名の基底として使う — viewer がレイヤ key を読む位置と揃えるため
 // (揃えないと、公開データ旧形の FC ような properties.id 側に key を持つ FC が
 //  fallback 名 'poi' へ落ちる)。
 export function poisLayerKeyOf(entry: unknown): unknown {

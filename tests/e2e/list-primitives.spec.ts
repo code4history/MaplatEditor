@@ -255,8 +255,8 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await page.getByTestId('basemap-title').fill('E2E User BaseMap');
     await page.getByTestId('basemap-title').press('Tab');
     // NOTE (既存RED吸収): (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
-    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。既存の変更は
-    // af691aa、既存の変更は 9c2815e で同じ吸収を済ませているので、それに揃える。
+    // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。master-detail は
+    // af691aa、shell-tokens は 9c2815e で同じ吸収を済ませているので、それに揃える。
     await page.getByTestId('basemap-attr').fill('テスト帰属');
     await page.getByTestId('basemap-attr').press('Tab');
     await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
@@ -283,7 +283,7 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await expect(userRow).toHaveCSS('border-top-color', 'rgb(13, 110, 253)');
 
     // v2.0 gap: 親 .resource-list__rows が gap:6px で行間隔を一元管理
-    // （旧 .resource-master-row + .resource-master-row { margin-top: 6px } は 既存の変更で廃止、gap へ統一）
+    // （旧 .resource-master-row + .resource-master-row { margin-top: 6px } は一覧の部品の整理で廃止、gap へ統一）
     const rowCount = await page.locator('[data-testid^="basemap-row-"]').count();
     expect(rowCount).toBeGreaterThanOrEqual(3);
     const rowParent = page.locator('[data-testid^="basemap-row-"]').nth(2).locator('xpath=..');

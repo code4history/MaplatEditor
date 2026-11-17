@@ -1,5 +1,5 @@
 // スモーク: clone 後のタイル URL が複製元 uid を指し続ける潜在不整合の修正。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
+// upload-tile-ref-smoke・originals-lifecycle-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save() の copySourceUid (clone) 分岐が返す MapSaveResult.url を behavioral に検証する。
 // /準拠。
 // シナリオ:

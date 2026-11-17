@@ -9,7 +9,7 @@
 // case 7  語彙が licenseVocabulary.ts 単一の正本から供給され、image 11件 / data 10件で PD は data に無い。
 //      ソーステキスト assert: MapEdit / BaseMapEdit に <option のべた書きが残っていない。
 //
-// 既存の変更と同じ harness（vite SSR ビルド + import）。
+// master-detail-smoke と同じ harness（vite SSR ビルド + import）。
 import assert from "node:assert/strict";
 import { mkdtemp, rm, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -87,7 +87,7 @@ try {
   assert.deepEqual(fresh.dataAttr, {}, "case 2: dataAttr は空オブジェクトのはず");
 
   // --- (レビュー差し戻し): attr (地図画像帰属) を必須化 ---
-  // kind: "tms" は 既存の変更が導入した必須チェックへの適応（validateBaseMapDocument は kind-required を持つ）
+  // kind: "tms" は 種別の軸の導入で加わった必須チェックへの適応（validateBaseMapDocument は kind-required を持つ）
   const attrMissing = { ...fresh, kind: "tms", slug: "custom", title: { fr: "Titre" }, url: "https://x/{z}/{x}/{y}.png" };
   const attrMissingValidation = validateBaseMapDocument(attrMissing);
   assert.ok(

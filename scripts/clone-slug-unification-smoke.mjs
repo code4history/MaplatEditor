@@ -1,4 +1,4 @@
-// clone の slug 採番を正本 slugSequence へ寄せる（タスク設計 v1.1）。
+// clone の slug 採番を正本 slugSequence へ寄せる。
 //
 // 固定する受け入れ条件:
 //   case 1 正常系の出力が現行と完全一致（n=1..50 表駆動）＋ normalizeCloneBase の適用順
@@ -34,7 +34,7 @@ const viewPath = path.join(projectRoot, 'src/views/PoiEdit.vue');
   assert.equal(/`\$\{base\}-local/.test(viewSrc), false,
     'case 3: PoiEdit.vue に独自の候補文字列組み立てが残っていないこと');
   assert.equal(/replace\(\/\[\^A-Za-z0-9_-\]\+\/g/.test(viewSrc), false,
-    'case 3: base 正規化も composable 側へ移っていること（設計 v1.1）');
+    'case 3: base 正規化も composable 側へ移っていること');
   assert.match(viewSrc, /findLocalCloneSlug/,
     'case 3: PoiEdit.vue が共有 API を呼んでいること');
 

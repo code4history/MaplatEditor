@@ -7,7 +7,7 @@
 // そもそも起動しない。
 //
 // 【衝突の作り方】`slugTaken` は `asset_registry` だけを見る（SqliteDataService.slugTaken 実読。
-// 既存の変更で当該ファイルから 200 行超を削ったため、行番号ではなくシンボル名で指す）。
+// 移行の一気通貫化で当該ファイルから 200 行超を削ったため、行番号ではなくシンボル名で指す）。
 // ∴ builtin の `base_maps` 行だけを消し、registry 行を残せば「slug は取られているが
 // ビルトイン行は無い」状態になり、次回起動の再シードが衝突回避へ入る。
 // 1文の DELETE で作れる最小の細工である。
@@ -37,7 +37,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.waitForLoadState('domcontentloaded');
   // 同期点: DB 初期化（getDb → migrate → applyBuiltinBaseMapSeed）の完了を待つ。
   // maplist.request は main で SqliteDataService.getDb() を await してから答えるので、
-  // resolve した時点でシードは commit 済み（既存の変更と同じ同期点）。
+  // resolve した時点でシードは commit 済み（basemap-bootstrap・migration-pipeline-e2e と同じ同期点）。
   // settings.get は SettingsService を読むだけで DB に触れないため、同期点にならない。
   // それで待っていた頃は、起動が遅いとシード前の DB を読み、2回目の起動で
   // 「builtin が復活していない」・1回目で「no such table」「database is locked」になった。

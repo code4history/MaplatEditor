@@ -10,7 +10,7 @@
  * （前例: electron/utils/releaseChannel.ts）。
  *
  * （第 2 版）: ローカルリソースは renderer と**同一 origin** の `app://bundle/__local/<abs>` で
- * 配信する。既存の変更の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
+ * 配信する。以前の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
  * crossOrigin="Anonymous" のタイル読込が CORS 拒否された。別 origin のまま app: に corsEnabled を付けると
  * Chromium は応答の Access-Control-Allow-Origin を検査せず、プレビュー配信（http://127.0.0.1）や data: 等
  * 任意の origin のページから中身を読めてしまう（実装レビュー IR1 で実測）。同一 origin 化すれば
@@ -613,7 +613,7 @@ export interface AppSchemeHandlerDeps {
  *   ただし fs に触れる前の形の検査（localPathShape）は必ず前にある（要求者が URL で選べるパスで外部へ接続しない）
  * - 許可経路外 → 403。ルートの外の欠損・外を指すリンクの先も 403（存在の有無を漏らさない）。ルート内の欠損のみ 404
  * - MIME は**要求側（字面）のパス**から決める（実体が .html でも要求が .png なら image/png）
- * - スクリプト系 MIME（.js/.mjs）は**字面と実体の両方**で拒否する（既存の変更の案 B を実体側にも広げる）
+ * - スクリプト系 MIME（.js/.mjs）は**字面と実体の両方**で拒否する（CSP の変更で選んだ案 B を実体側にも広げる）
  * - stat / 読取権限の確認 / fetchFile は**実体のパス**に対して行う（判定と読み出しの間の付け替えの窓を狭める。閉じはしない）
  * - stat / 読取権限の確認に失敗 → fsErrorStatus（ENOENT/ENOTDIR 以外は warn）・ディレクトリ → 403＋warn・読込例外 → 500＋warn
  * - Content-Type は mimeFor が導出した値を明示

@@ -87,8 +87,8 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     // case 11 + case 4: slug/title/url を埋めて保存 → 再オープンで tms 維持・既存編集が現行どおり
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-tms');
     await fillAndCommit(page.getByTestId('basemap-title'), '種別テスト');
-    // 既存の変更が attr（地図画像帰属）を必須化したため、保存には attr 入力が必要
-    // （/既存の変更の衝突面を両方残すマージ対応。baseMapValidation の attr-required）
+    // attr（地図画像帰属）が必須になったため、保存には attr 入力が必要
+    // （種別の軸と attr 必須化の衝突面を両方残すマージ対応。baseMapValidation の attr-required）
     await fillAndCommit(page.getByTestId('basemap-attr'), '© 種別テスト');
     await fillAndCommit(page.getByTestId('basemap-url'), 'https://example.test/{z}/{x}/{y}.png');
     await expect(page.getByTestId('editor-save')).toBeEnabled();

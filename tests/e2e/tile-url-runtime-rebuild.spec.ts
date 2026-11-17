@@ -45,7 +45,7 @@ async function openHash(page: Page, hash: string, waitFor?: string): Promise<voi
   if (waitFor) await expect(page.locator(waitFor)).toBeVisible({ timeout: 15_000 });
 }
 
-/** 既存の変更と同型のダイアログ差し替えハーネス */
+/** upload-tile-refresh・tile-restore-on-undo と同型のダイアログ差し替えハーネス */
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
   await app.evaluate(async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
@@ -53,7 +53,7 @@ async function installDialogHarness(app: ElectronApplication, imagePath: string)
   }, imagePath);
 }
 
-/** 既存の変更が使う診断口。タイル源の交換回数と現在のキー */
+/** tile-restore-on-undo が使う診断口。タイル源の交換回数と現在のキー */
 async function tileDebug(page: Page): Promise<{ exchangeCount: number; key: string | null }> {
   return page.evaluate(() => (window as any).testDebug.tileSourceDebug());
 }
@@ -66,7 +66,7 @@ async function mapUrlPair(page: Page): Promise<{ url: string | undefined; url_: 
 }
 
 // MapEdit の onHistoryKeydown は INPUT/TEXTAREA 上のグローバル undo を抑止する。
-// 実利用者と同じくフォーカスを外してから押す（既存の変更と同型）
+// 実利用者と同じくフォーカスを外してから押す（tile-restore-on-undo・map-poi-hide-override と同型）
 const UNDO_KEY = process.platform === 'darwin' ? 'Meta+z' : 'Control+z';
 const REDO_KEY = process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+Shift+z';
 
@@ -76,7 +76,7 @@ async function historyDebug(page: Page): Promise<any> {
 
 /**
  * 履歴スタックが静止する（＝デバウンス中のスナップショットが出揃う）まで待つ。
- * 既存の変更の waitHistoryQuiet と同型。これを挟まずに undo すると、直前の編集の
+ * tile-restore-on-undo の waitHistoryQuiet と同型。これを挟まずに undo すると、直前の編集の
  * push が未着地のまま pointer を動かすことになり、復元先が意図した状態と変わる。
  */
 async function waitHistoryQuiet(page: Page, quietMs = 700, timeoutMs = 30_000): Promise<number> {
@@ -104,7 +104,7 @@ async function pressRedo(page: Page): Promise<void> {
 
 const urlInput = (page: Page) => page.getByTestId('map-tile-url');
 
-/** 既存の保存済み地図を IPC で seed する（既存の変更の seedBareMap と同型） */
+/** 既存の保存済み地図を IPC で seed する（upload-tile-refresh・tile-restore-on-undo の seedBareMap と同型） */
 async function seedSavedMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const mapSlug = `fx-existing-${Date.now()}`;

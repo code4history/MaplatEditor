@@ -12,11 +12,11 @@
 //   (e) rename: 既存slugへの改名 → Exist
 //   (f) rename: stale expectedRevision → { error:'revision-conflict', current }
 //   (g) rename: 正常系 → revision++ / registry 同期(旧slug解放・新slugで解決可能)
-//   (h) getFilePath: 実在ファイルは app://bundle/__local URL を返す（#105 で file:// から移行し、既存の変更で同一 origin の形へ）
+//   (h) getFilePath: 実在ファイルは app://bundle/__local URL を返す（#105 で file:// から移行し、その後 renderer と同一 origin の形へ）
 //   (i) delete: 本体・registry 掃除 / ファイルは削除でなく _trash へ退避 / 旧slugは再利用可能
 //   (j) delete-race: rename の書込 (upsertAssetMeta) の直前に並行 delete (フックで注入、
 //       事前チェックの順序に依らずガードを直撃) → 復活 (revision=1 再INSERT + registry slug 再占有)
-//       せず Error{code:'not-found'}、slug は解放のまま (既存の変更の l4 と同機構: upsertAssetRow の not-found ガード)
+//       せず Error{code:'not-found'}、slug は解放のまま (poi-service-smoke の l4 と同機構: upsertAssetRow の not-found ガード)
 import { mkdtemp, rm, writeFile, mkdir, stat, readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';

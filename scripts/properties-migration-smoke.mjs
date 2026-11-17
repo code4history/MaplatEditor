@@ -1,5 +1,5 @@
 // スモーク: layer metadata 交換形の properties 正本化 + 参照 entry hide + icon 波及解消
-// 11ケースを検証する。vite バンドル方式（既存の変更と同パターン）。
+// 11ケースを検証する。vite バンドル方式（poi-geojson-smoke と同パターン）。
 // poiGeoJson.ts（toExportForm / normalizePoiSourceCollection）と poiPackage.ts（rewritePoiMediaReferences）を検証。
 // poiReferenceResolver.ts（applyReferenceIconOverrides / resolveIconRefsInFc）は smoke で実経路検証済みのため、
 // ここでは純関数レベルの検証を行う。

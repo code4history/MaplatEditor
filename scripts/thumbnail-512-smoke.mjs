@@ -1,5 +1,5 @@
 // smoke: 512px サムネイル解決（resolveMapListImage512 / resolveAppListImage fallback / R4 生成）。
-// 既存の変更と同型 harness（electron/electron-store stub + vite ssr build）。
+// resolver-containment-smoke・preview-containment-smoke と同型 harness（electron/electron-store stub + vite ssr build）。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';

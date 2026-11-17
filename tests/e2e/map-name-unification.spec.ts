@@ -184,7 +184,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
         expect(all.length, 'case 15: 母数が 0 の空振り緑を防ぐ').toBeGreaterThan(0);
         expect(emptyTitles.length, 'case 15: 移行後に title が空の地図は 0 件のはず').toBe(0);
 
-        // --- case 5 (既存の変更で差し替え): 名称統一 marker は無く、レガシー取込 marker だけがある ---
+        // --- case 5 (移行の一気通貫化で差し替え): 名称統一 marker は無く、レガシー取込 marker だけがある ---
         const removed = db
           .prepare('SELECT id FROM schema_migrations WHERE id = ?')
           .all(REMOVED_NAME_UNIFICATION_MIGRATION_ID) as any[];
@@ -246,7 +246,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
   // =========================================================================
   // Test 2【最重要】: 非空の廃止属性を持つ neDB 入力の end-to-end（case 7B）
   // =========================================================================
-  test('B/case 14/case 11: 非空の正確名を持つ neDB 入力が取込→移行で正確名を保ち、3 面に出る', async () => {
+  test('非空の正確名を持つ neDB 入力が取込→移行で正確名を保ち、3 面に出る', async () => {
     test.setTimeout(420_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-map-name-unification-exactname-'));
     const saveFolder = path.join(e2eRoot, 'save-folder');
@@ -369,7 +369,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
   // =========================================================================
   // Test 3: UI と交換形（case 7C）
   // =========================================================================
-  test('C: 2 欄化・制限撤廃・書き出し・0.7.0 形の取込境界受容', async () => {
+  test('2 欄化・制限撤廃・書き出し・0.7.0 形の取込境界受容', async () => {
     test.setTimeout(420_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-map-name-unification-ui-'));
     const { app, page } = await launch(e2eRoot);
@@ -470,7 +470,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
       //   直接の根拠になる。
       //   ★エディタ内プレビュー（AppPreviewService）は別経路で、maps/*.json の label を
       //     `source.label || preview.title` で上書きする（AppPreviewService.ts の maplat 分岐）。
-      //     これはアプリ側上書き宣言の既存挙動であり 既存の変更の射程外のため触らない。
+      //     これはアプリ側上書き宣言の既存挙動でありこの spec の射程外のため触らない。
       //     case 11 は公開搬出経路で検証する（設計の検証手段からの意図的な差異。task-state に記録）。
       {
         const labeledSlug = `fx-labeled-${Date.now()}`;

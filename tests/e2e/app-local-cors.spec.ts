@@ -1,7 +1,7 @@
 // （第 2 版）: app:// 移行でタイルが CORS 拒否され地図が表示されない退行の回帰 E2E と、
-// その是正が「renderer 以外の origin にローカルデータを読ませない」という 既存の変更の目的を壊していないことの否定テスト。
+// その是正が「renderer 以外の origin にローカルデータを読ませない」という app:// への移行の目的を壊していないことの否定テスト。
 //
-// 背景: 既存の変更の renderer は app://bundle、タイル等は app://local（host が違う ∴ 別 origin）。MaplatCore は
+// 背景: app:// へ移行した時点の renderer は app://bundle、タイル等は app://local（host が違う ∴ 別 origin）。MaplatCore は
 // タイル画像を crossOrigin="Anonymous" で読み canvas に描いて toDataURL する（@maplat/core src/source/mixin.ts）
 // ので、別 origin のタイルは CORS 拒否 → 対応点編集の左ペインが真っ白になる。第 1 版は app: に corsEnabled を
 // 付けて直したが、corsEnabled の app:// は Chromium が ACAO を検査せず、任意 origin から読めた（IR1）。

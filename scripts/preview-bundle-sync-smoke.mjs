@@ -12,7 +12,7 @@
  *      解決されている可能性」を示唆する
  * case 4: 同期スクリプトが冪等である（2回実行して2回目に差分なし）
  * case 6: pnpm-lock.yaml を変更していない
- * case 7: 既存の smoke の lock pin assert は 既存の変更で registry 参照へ移行したため
+ * case 7: preview-bundle-namespaceID-smoke の lock pin assert は registry 参照へ移行したため
  *      成立しない。当該 assert をコメント付き skip とする。
  */
 import assert from "node:assert/strict";
@@ -176,8 +176,8 @@ console.log("✅ case 6: pnpm-lock.yaml は registry 参照形式で github ref 
 passed++;
 
 // ── case 7: 既存 smoke の lock pin assert は skip ──
-// / case 7 のとおり、lock pin の hash 検査は 既存の変更で registry 参照へ移行したため
-// 成立しない。当該 assert を「既存の変更で registry 参照へ移行したため検査対象外」と明記して
+// 上の case 7 のとおり、lock pin の hash 検査は registry 参照へ移行したため
+// 成立しない。当該 assert を「registry 参照へ移行したため検査対象外」と明記して
 // skip する（削除ではなくコメント付き skip とし理由を残す）。
 //
 // 実測値（2026-08-01）:
@@ -187,7 +187,7 @@ passed++;
 // なお showPoiLayer(*.namespaceID) 正規表現は新 dist でも生存するので、
 // case 1/case 2 は壊れない。
 console.log(
-  "⏭️  case 7: lock pin assert は skip（既存の変更で registry 参照へ移行のため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
+  "⏭️  case 7: lock pin assert は skip（registry 参照へ移行済みのため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
 );
 
 // ── case 8 (レビュー 再発防止): プレビュー配信ロケールのライセンス用語が正本一致 ──

@@ -60,7 +60,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（既存の変更と同型）
+// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（edge-split と同型）
 async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const slug = `mapedit-align-contextmenu-map-${Date.now()}`;
@@ -100,7 +100,7 @@ async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   });
 }
 
-// GCPタブを有効化するため url_ を page 側で設定する（既存の変更と同型）
+// GCPタブを有効化するため url_ を page 側で設定する（edge-split と同型）
 async function forceGcpsTabReady(page: Page): Promise<void> {
   await page.evaluate(() => {
     (window as any).testDebug.mapData.value.url_ =

@@ -21,12 +21,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'preview-containment-containment-'));
-const entryFile = path.join(workDir, 'preview-containment-containment-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'preview-containment-'));
+const entryFile = path.join(workDir, 'preview-containment-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'preview-containment-containment-smoke.mjs');
+const bundledFile = path.join(outDir, 'preview-containment-smoke.mjs');
 
 try {
   const dataDir = path.join(workDir, 'data');
@@ -216,7 +216,7 @@ try {
       rollupOptions: {
         external: ['jimp'],
         output: {
-          entryFileNames: 'preview-containment-containment-smoke.mjs',
+          entryFileNames: 'preview-containment-smoke.mjs',
           format: 'es',
         },
       },

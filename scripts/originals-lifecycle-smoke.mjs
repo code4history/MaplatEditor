@@ -1,5 +1,5 @@
 // スモーク: UUID originals lifecycle parity (rename/clone)。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
+// originals-resolver-smoke・originals-migration-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save() の rename/clone 分岐を behavioral に検証する。
 // /準拠。
 // シナリオ:
@@ -15,7 +15,7 @@
 //   新契約（DB delete 先行 → 成功後にのみ shell.trashItem・rollback 廃止）の上位互換テスト
 //   scripts/os-trash-delete-smoke.mjs の Part A〜D へ委譲した。
 //   旧 Part J/K/L/M（startup reconcile・trash 非 purge）は、検証対象の機構
-//   (MapTrashReconcileService / 独自 trash 保持) 自体が 既存の変更で廃止されたため撤去した
+//   (MapTrashReconcileService / 独自 trash 保持) 自体が OS のゴミ箱への委譲で廃止されたため撤去した
 //   (廃止根拠: —
 //   新順序では reconcile が対象とした「退避済みだが DB 未削除」状態が構造的に発生しない)。
 import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
@@ -379,7 +379,7 @@ try {
       }
 
       // ============================================================
-      // 旧 Part G〜M (delete/rollback/ambiguous delete/reconcile/trash 非 purge) は 既存の変更で撤去。
+      // 旧 Part G〜M (delete/rollback/ambiguous delete/reconcile/trash 非 purge) は OS のゴミ箱への委譲で撤去。
       // - G/H/I の検証意図は scripts/os-trash-delete-smoke.mjs の Part A〜D が
       //   新契約 (DB delete 先行 → shell.trashItem・rollback 廃止) の上位互換として引き継ぐ
       // - J/K/L/M は検証対象の機構 (MapTrashReconcileService / 独自 trash 保持) 自体が廃止

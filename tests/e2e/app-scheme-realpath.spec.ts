@@ -10,7 +10,7 @@
 //
 // URL は spec 内で組み立てる（electron/utils/appScheme.ts を import すると、変更前の版で「変更前の URL 形」を
 // 測ってしまう。app-local-cors.spec.ts の sameOriginLocalUrl に倣う）。
-// ハーネス（launch・終了処理）も同 spec と 既存の変更の様式に従う。
+// ハーネス（launch・終了処理）も同 spec と draft-tile-durability の様式に従う。
 import { _electron as electron, expect, test } from '@playwright/test';
 import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -48,7 +48,7 @@ test('app:// のローカル配信は symlink の先が許可ルートの外な�
     const linkOut = path.join(saveFolder, 'app-scheme-realpath-out');
     await symlink(outDir, linkOut);
 
-    const tileDir = path.join(saveFolder, 'tiles', 'app-scheme-realpath-t7', '0', '0');
+    const tileDir = path.join(saveFolder, 'tiles', 'app-scheme-realpath-tiles', '0', '0');
     await mkdir(tileDir, { recursive: true });
     await writeFile(path.join(tileDir, '0.png'), PNG);
     const linkIn = path.join(saveFolder, 'app-scheme-realpath-in');

@@ -1,5 +1,5 @@
 // スモーク: 新規アップロード地図のタイル化直後にタイルが表示されない回帰の修正。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
+// originals-resolver-smoke・originals-lifecycle-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save() の tmpCheck 分岐が返す MapSaveResult.url を behavioral に検証する。
 // /準拠。
 // シナリオ:
@@ -269,7 +269,7 @@ try {
 
       // ============================================================
       // Part E: clone は url を含むようになった。以前は「clone は
-      // url を含まない」が正しい前提だったが、既存の変更が「複製保存後もレンダラーが
+      // url を含まない」が正しい前提だったが、複製のタイル参照の変更が「複製保存後もレンダラーが
       // 複製元uidのタイルURLを保持し続ける」潜在不整合を修正した結果、clone 分岐も
       // (tmpCheck 分岐と同様に) 複製先タイルパスを指す恒久URLを返すようになった。
       // これは意図した仕様変更であり、旧アサーション(url===undefined)は本タスクの

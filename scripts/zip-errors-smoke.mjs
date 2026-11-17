@@ -14,7 +14,7 @@
 //       （ソーステキスト。後続タスクが分岐を落としたら気づけるようにする）
 //   (h) R1: 利用者の操作による失敗（ENOENT）を「壊れた ZIP」と判定しない
 //
-// 実行方法: node scripts/zip-errors-smoke.mjs（既存の変更と同じ vite SSR ビルド＋
+// 実行方法: node scripts/zip-errors-smoke.mjs（zip-residual-smoke と同じ vite SSR ビルド＋
 // electron／electron-store のスタブ方式）。2 GiB＋1 バイトの fixture はスパースファイルで、
 // os.tmpdir() 配下に作り、終わりに消す（実ディスクはほぼ使わない）。
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';

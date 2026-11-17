@@ -57,7 +57,7 @@ interface Props {
   text: string;
   /** i18n の補間パラメータ（{{key}} に流し込む値）。
    *  数値入りの文言を出すために追加した。呼び出し側で t() を通す回避策は採らない —
-   *  既存の変更の「キーのみを渡す」契約を壊さずに拡張するための口である
+   *  「キーのみを渡す」という従来の契約を壊さずに拡張するための口である
    *  (strict-export-guard-smoke.mjs が modalShow(t( / modalFinish(t( の
    *  両方をゼロ件で監視している) */
   textParams?: Record<string, unknown>;

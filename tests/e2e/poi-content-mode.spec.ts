@@ -53,7 +53,7 @@ async function seedPoi(page: Page): Promise<{ uid: string; slug: string }> {
 }
 
 test.describe('POI Content Mode', () => {
-  test('-case 8+case 16: content mode tabs, field visibility, diagnostics, mode switch+undo', async () => {
+  test('content mode tabs, field visibility, diagnostics, mode switch+undo', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-poi-content-mode-'));
     const { app, page } = await launch(e2eRoot);
 

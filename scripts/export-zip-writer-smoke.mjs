@@ -18,7 +18,7 @@
 //   case 6  搬出フローで進捗が (N/N) まで到達してから完了文言に切り替わる
 //           （forceNext() 欠落なら throttle される規模であることを前提条件 assert）
 //
-// 既存の変更と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ）。
+// app-source-diff-model-smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ）。
 // 環境変数:
 //   T1_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の mkdtemp）
 //   T1_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用）
@@ -32,21 +32,21 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 // external 指定の 'adm-zip' 等が bundle の位置から解決できず ERR_MODULE_NOT_FOUND になる（実測）
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const buildRoot = await mkdtemp(path.join(scratchRoot, 't1-export-zip-writer-build-'));
+const buildRoot = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-build-'));
 // データ作業域（合成ツリー・zip・展開結果）は T1_SMOKE_WORKDIR で外へ出せる（証跡の残置用）
 let workDir;
 if (process.env.T1_SMOKE_WORKDIR) {
   workDir = path.resolve(process.env.T1_SMOKE_WORKDIR);
   await mkdir(workDir, { recursive: true });
 } else {
-  workDir = await mkdtemp(path.join(scratchRoot, 't1-export-zip-writer-'));
+  workDir = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-'));
 }
 const keepWorkDir = process.env.T1_SMOKE_KEEP === '1';
-const entryFile = path.join(buildRoot, 't1-export-zip-writer-smoke.ts');
+const entryFile = path.join(buildRoot, 'export-zip-writer-smoke.ts');
 const electronStubFile = path.join(buildRoot, 'electron-stub.ts');
 const electronStoreStubFile = path.join(buildRoot, 'electron-store-stub.ts');
 const outDir = path.join(buildRoot, 'dist');
-const bundledFile = path.join(outDir, 't1-export-zip-writer-smoke.mjs');
+const bundledFile = path.join(outDir, 'export-zip-writer-smoke.mjs');
 
 try {
   const dataDir = path.join(workDir, 'data');
@@ -695,7 +695,7 @@ try {
           '@maplat/tin',
           '@maplat/transform',
         ],
-        output: { entryFileNames: 't1-export-zip-writer-smoke.mjs', format: 'es' },
+        output: { entryFileNames: 'export-zip-writer-smoke.mjs', format: 'es' },
       },
     },
   });

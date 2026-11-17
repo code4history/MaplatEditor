@@ -234,7 +234,7 @@ export function googleTileLocaleOf(lang: unknown): { language: string; region: s
 // MapEdit 側が型エラーになる。
 //
 // 行うのは**キーの移し替えだけ**であり、URL の組み立てではない（導出ロジックは main の
-// 単一関数に閉じる。既存の変更が排したのは「同じ導出が複数箇所に散る」ことである）。
+// 単一関数に閉じる。URL の導出の統一で排したのは「同じ導出が複数箇所に散る」ことである）。
 // url_ が無ければ返り値にも載せない（IPC 側と同じ own key 規律。(3)）。
 // 返り値は新しいオブジェクトであり、引数の item.data を破壊しない。
 export function toBaseMapLayerData(
@@ -388,9 +388,9 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
   // 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
-  // kind に関わらず attr は必須（既存の変更の kind チェックとは独立）
+  // kind に関わらず attr は必須（種別の軸の kind チェックとは独立）
   if (!document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
-  // url 必須は kind === "tms" のみ（merc は 既存の変更が導出、provider は不要。現行の tms 挙動と完全一致）
+  // url 必須は kind === "tms" のみ（merc はメルカトルタイルの生成が導出、provider は不要。現行の tms 挙動と完全一致）
   if (kind === "tms") {
     if (!document.url.trim()) errors.push("url-required");
     else if (!(document.url.includes("{z}") && document.url.includes("{x}") && (document.url.includes("{y}") || document.url.includes("{-y}")))) {

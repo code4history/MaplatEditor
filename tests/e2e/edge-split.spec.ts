@@ -31,7 +31,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 async function seedMapWithEdge(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const slug = `edge-split-map-${Date.now()}`;
-    // 既存の変更の角座標から線形補間で内側 GCP を作る（x: 0-400 → 15551351.4-15562483.3、
+    // geocoder-estimate の角座標から線形補間で内側 GCP を作る（x: 0-400 → 15551351.4-15562483.3、
     // y: 300-0 → 4249117.8-4259837.2）
     const toMerc = (x: number, y: number): number[] => [
       15551351.4 + (x / 400) * (15562483.3 - 15551351.4),
@@ -91,7 +91,7 @@ async function rightClickOnIllstMap(page: Page, xy: [number, number]): Promise<v
 }
 
 // GCPタブを有効化するため url_ を page 側で設定する（backend の load 経路は url_ を
-// json.url / tile thumbnail から再導出するため、seed 時の url_ は保持されない。既存の変更と同型）
+// json.url / tile thumbnail から再導出するため、seed 時の url_ は保持されない。geocoder-estimate と同型）
 async function forceGcpsTabReady(page: Page): Promise<void> {
   await page.evaluate(() => {
     (window as any).testDebug.mapData.value.url_ =

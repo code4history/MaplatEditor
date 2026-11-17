@@ -48,7 +48,7 @@ import { isAllowedDeliveryUrl } from '../../src/utils/ipClassify';
 const THUMB_512_IMPORT_EXT_CANDIDATES = [THUMB_512_EXT ?? 'jpg', 'jpg', 'jpeg', 'png'];
 
 // 読取側の 2 GiB 上限。adm-zip は 2 GiB 超の zip を読めない
-// （ERR_FS_FILE_TOO_LARGE を実測）。定数と判定は 既存の変更で electron/utils/zipImportGuard.ts へ
+// （ERR_FS_FILE_TOO_LARGE を実測）。定数と判定は ZIP の異常の扱いの整理で electron/utils/zipImportGuard.ts へ
 // 移した（POI 単体の取り込み〔PoiPackageService.importPoiZip〕も同じ上限を使う）。
 
 // restore 失敗経路で先に走った補償の残留を、
@@ -275,7 +275,7 @@ class DataUploadService {
             // ユーザー可視なエラーへ写像する（既存 catch が { err: message } へ写像するため、
             // 孤児化や不可視の失敗にならない）。> 2 GiB の地図 ZIP を実際に import できる
             // 完全ストリーミング読取は依存追加を要する機能追加で、脆弱性是正のタスクでは扱わない
-            // （既存の変更で範囲外と記録し、既存の変更の棚卸しへ回した）。
+            // （範囲外と記録し、後の棚卸しへ回した）。
             const zipSize = (await fs.stat(zipFile)).size;
             // 比較の式はこの文字列のまま残す（smoke がソースで探す）。
             // 投げる例外は ZipImportError('too-large') ∴ 外側の catch が利用者向けのコード 'TooLarge' へ写す
@@ -528,7 +528,7 @@ class DataUploadService {
             // 大きすぎる ZIP と壊れた ZIP（adm-zip・zlib の読み取りの例外）は
             // 利用者向けのコードへ写す（MapEdit が固定文の i18n を出す）。原文は上の console.error だけ。
             // 重複名（duplicate-entry）は写さない（は too-large・corrupt の 2 つだけ。
-            // 既存の変更の安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
+            // 取り込みの安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
             const zipError = classifyZipReadError(err);
             // 件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries（「2 GiB を超える」とは別の文言）

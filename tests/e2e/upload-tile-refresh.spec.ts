@@ -30,7 +30,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// ダイアログを差し替えて任意の画像を選択させる（既存の変更と同型のダイアログ差し替えハーネス）
+// ダイアログを差し替えて任意の画像を選択させる（thumbnail-512 と同型のダイアログ差し替えハーネス）
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
   await app.evaluate(async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
@@ -75,7 +75,7 @@ async function tileSourceIdentity(page: Page): Promise<number> {
   });
 }
 
-// 既存地図を IPC 直叩きで seed する (既存の変更の seedMap と同型。画像は未アップロードのまま)
+// 既存地図を IPC 直叩きで seed する (thumbnail-512 の seedMap と同型。画像は未アップロードのまま)
 async function seedBareMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const mapSlug = `t17-existing-${Date.now()}`;

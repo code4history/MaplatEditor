@@ -1,6 +1,6 @@
 // 下書きの明示破棄の後に、下書きの記録が書き戻されないこと。
 //
-// 既存の変更の case 20-3（編集画面の破棄で staging と envelope が回収される）が間欠に落ちていた原因の
+// draft-tile-durability の確認（編集画面の破棄で staging と envelope が回収される）が間欠に落ちていた原因の
 // 再現と回帰検査。破棄（draftLifecycle.discard）が envelope を消した後、編集画面が閉じる前に
 // slug の可用性確認（400ms の debounce ＋ IPC）が「使用できます」に落ちると、useInitialDraftPersist が
 // draftLifecycle.flush() を呼び、エディタの履歴がまだ dirty なので下書きを再び dirty にして

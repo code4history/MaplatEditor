@@ -17,7 +17,7 @@
 //
 // 【不変条件 INV-T】52px の所在（`rel52()`）が正本であり、512px の所在は
 // `thumb512PathFor(rel52())` からのみ導く。**このモジュールを含め、512px パスの文字列を
-// 手で組み立ててはならない**（既存の変更が置いた拡張子の単一変化点を迂回してしまうため）。
+// 手で組み立ててはならない**（WebP 化で置いた拡張子の単一変化点を迂回してしまうため）。
 import { computed, ref, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import i18next from "i18next";
 import { thumb512PathFor } from "../utils/thumbnailPaths";

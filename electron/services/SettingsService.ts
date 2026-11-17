@@ -12,7 +12,7 @@ interface AppSettings {
   lastDialogFolders?: RememberedDialogFolders;
   /**
    * JPEG デコードの会計メモリ**キャップ**（MB = 2^20 バイト）。`null` = 自動。
-   * 既存の変更では「デコーダへそのまま渡す運用値」だったが、既存の変更で画像ごとの自動決定へ移り、
+   * 以前は「デコーダへそのまま渡す運用値」だったが、その後、画像ごとの自動決定へ移り、
    * この設定は「自動決定値がこれを超えたら弾く」上限の意味になった。
    */
   jpegDecodeMaxMemoryMB: number | null;
@@ -32,7 +32,7 @@ interface AppSettings {
 /**
  * JPEG デコードキャップの下限。
  *
- * 既定は**「自動」（`null`）**である。既存の変更の既定 8192 / 800 は撤去した — 実測トリガの
+ * 既定は**「自動」（`null`）**である。以前の既定 8192 / 800 は撤去した — 実測トリガの
  * 画像（470 MP・会計 9865 MB）が 8192 では通らず、利用者に設定を触らせる前提自体が
  * 誤りだったためである。いまは画像ごとにヘッダから必要量を導出して渡す。
  *
@@ -79,7 +79,7 @@ const runtimeStoragePaths = resolveRuntimeStoragePaths(
 
 // lang はデフォルト値を持たせない: 未設定(初回起動)の場合はOSの言語から解決し
 // (非対応言語は en へフォールバック)、その結果を設定として永続化する。
-// 一方 既存の変更の JPEG デコード上限は「初回から効いている値」であるべきなので既定を持たせる
+// 一方 JPEG デコード上限は「初回から効いている値」であるべきなので既定を持たせる
 // (lang の設計意図とは別種)
 const defaultSettings: AppSettings = {
   saveFolder: runtimeStoragePaths.saveFolder,
@@ -193,7 +193,7 @@ class SettingsService extends EventEmitter {
    * 呼び出し側が `get('jpegDecodeMaxMemoryMB')` を直接読むと正規化が抜けるため作らない。
    *
    * `null` は**自動**（キャップなし）を意味する。運用値そのものではない点に注意
-   * （既存の変更の `getJpegDecodeLimits` は運用値を返していた。**意味が変わったので改名した** —
+   * （以前の `getJpegDecodeLimits` は運用値を返していた。**意味が変わったので改名した** —
    * 同名のまま意味だけ変えると、旧義で読む人を誤らせる）。
    */
   public getJpegDecodeCaps(): { maxMemoryUsageInMB: number | null; maxResolutionInMP: number | null } {

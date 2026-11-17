@@ -35,8 +35,8 @@ export interface IiifSection {
 export interface HistMapStore {
   title: LangResource;
   // 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。既存の変更の licenseNote /
-  //  既存の変更の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。ライセンスの欄の追加の licenseNote /
+  //  地図の POI 保存の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
   //  なった」のではなく「器そのものが最初から無く一度も保存されたことがない」)
   label: LangResource;
   attr: LangResource;
@@ -50,7 +50,7 @@ export interface HistMapStore {
   license: string;
   dataLicense: string;
   // ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。既存の変更の pois と同じ穴)
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。地図の POI 保存の pois と同じ穴)
   licenseNote: LangResource;
   dataLicenseNote: LangResource;
   contributor: LangResource;

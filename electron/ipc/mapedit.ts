@@ -157,7 +157,7 @@ export const registerMapEditHandlers = () => {
      * ランタイム専用タイル URL（url_）の導出。
      *
      * なぜ IPC が要るか: url が空のとき url_ はファイルシステム上のタイル実体から
-     * 組み立てる必要がある。renderer に持ち込むと 既存の変更が1本化した deriveRuntimeTileUrl が
+     * 組み立てる必要がある。renderer に持ち込むと、URL の導出の統一で1本化した deriveRuntimeTileUrl が
      * 3箇所目として復活するため、導出は main に閉じたままここへ問い合わせる。
      *
      * 探索順は **draft → 保存済み**。draft staging のキーは保存済み uid と同一
@@ -166,9 +166,9 @@ export const registerMapEditHandlers = () => {
      * そのとき mapData.width/height は新画像の値なので、旧保存タイルを返すと
      * 新寸法×旧タイルの源ができてしまう。
      *
-     * 導出そのものは deriveRuntimeTileUrl（既存の変更の正本）に委ね、ここは thumbFolder の
+     * 導出そのものは deriveRuntimeTileUrl（URL の導出の正本）に委ね、ここは thumbFolder の
      * 決定だけを行う。パス組み立ては resolveDraftTileDir を通す（'..' 等での親領域参照を
-     * 構造的に排除する。既存の変更と同じ防御）。
+     * 構造的に排除する。下書きのタイルの保全と同じ防御）。
      */
     ipc.handle('mapedit:deriveRuntimeTileUrl', async (_event, url?: string, mapRef?: string) => {
         // url が非空ならタイル実体を見る必要がない（deriveRuntimeTileUrl が url をそのまま返す）
