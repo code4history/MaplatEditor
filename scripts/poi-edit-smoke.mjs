@@ -101,7 +101,7 @@ try {
     'PoiEdit に poiedit.confirm_no_save 離脱確認がない'
   );
 
-  // slug 一意性チェック: case 17 で共通 SlugField へ移行(内部で excludeUid=自 uid の
+  // slug 一意性チェック: 共通 SlugField へ移行(内部で excludeUid=自 uid の
   // checkSlug 合成を行う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの「自分の現 slug は空き扱い」は asset-uid prop が担う)
   assert.match(
     poiEdit,

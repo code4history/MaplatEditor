@@ -37,7 +37,7 @@ const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'runtime-tile-url-ipc-smoke.mjs');
 
 // case 2 の percent-encoding 経路も通るよう、保存フォルダに空白と非 ASCII を含める
-// （case 4 と同じ理由。percent-encoding ありのビルダー — #105以降は appScheme の
+// （URL の導出の統一と同じ理由。percent-encoding ありのビルダー — #105 以降は appScheme の
 //  localFileUrl()（app://bundle/__local）— の組み立てであることの確認を兼ねる）
 const dataDir = path.join(workDir, 'データ folder');
 const draftRoot = path.join(workDir, 'e2eroot', 'draft-tiles');

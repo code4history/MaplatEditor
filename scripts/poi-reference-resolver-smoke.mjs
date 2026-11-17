@@ -271,7 +271,7 @@ try {
       const previewRawFc = await (await fetch(prepared.url + 'pois/embedded-raw.geojson')).json();
       assert.deepEqual(previewRawFc, rawFc, 'preview でも生 FC の中身は無加工のはず');
 
-      // case 17-4: layer metadata icon が preview で反映され、
+      // layer metadata icon が preview で反映され、
       // app 側 entry の icon（POI-112 最小形）が優先されることを確認
       // （assertResolvedFc 内で fc.properties.icon=asset UUID → imgs/temple-mark.png 解決済み、
       //   feature.icon=builtin:defaultpin → imgs/icons/builtin/defaultpin.png 解決済み。
@@ -590,7 +590,7 @@ try {
         '解除後も残存参照の上書きキーが温存されるはず: ' + JSON.stringify(partial));
       console.log('ok: (15) applyPoiSelection preserves reference override keys');
 
-      // --- case 17-4: entry icon が layer metadata icon を上書き (applyReferenceIconOverrides) ---
+      // --- entry icon が layer metadata icon を上書き (applyReferenceIconOverrides) ---
       {
         // 新規 POI ソース: layer metadata icon=asset UUID
         const ac174 = await PoiSourceService.createLocal({ slug: 'ac174-poi', title: 'case 17-4 POI' });

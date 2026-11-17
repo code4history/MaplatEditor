@@ -7,7 +7,7 @@
  *       mode=full で候補があるときだけ真になる
  *   [C] case 2: win-sign.cjs の signFile で、outbox へ置く（outboxDir()）より前に checkSigner(…, 'esigner')（C-3）がある
  *   [D] case 3: publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、run: のコマンド位置に
- *       pnpm・npm・npx・node が無い（case 11 と同じ規則が新しい step にも効く）
+ *       pnpm・npm・npx・node が無い（リリースのワークフローの検査と同じ規則が新しい step にも効く）
  *   [E] case 3: 検査の正規表現が設計の固定値と同じで、win-sign.cjs の assetName の出力がその正規表現に合う
  *
  * 実行: node scripts/cache-publish-guard-smoke.mjs（rtk を付けない）

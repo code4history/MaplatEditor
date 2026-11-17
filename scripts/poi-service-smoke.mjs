@@ -235,7 +235,7 @@ try {
       console.log('ok: (f) importFile legacy POI list');
 
       // (f2) importFile: 旧POIオブジェクト形式で whitelist 外キー(実データ実在例 start・selectedIcon)が
-      //      save 後も保持される (case 5-1/5-2)
+      //      save 後も保持される
       const importLegacyUnknownFile = nodePath.join(workDir, 'import-legacy-unknown.json');
       await fsWriteFile(importLegacyUnknownFile, JSON.stringify([
         { lat: 39.703, lng: 141.153, name: '御堂', selectedIcon: 'builtin:temple-selected', start: 1599 },
@@ -251,7 +251,7 @@ try {
       assert.ok(!('lng' in legacyUnknownDoc.fc.features[0].properties), 'lng は properties に残置されないはず');
       console.log('ok: (f2) importFile legacy POI preserves whitelist-external keys through get ');
 
-      // (f3) feature 単位の未知 properties が save→get で round-trip する (case 5-4, テストカバレッジの穴(a)の解消)
+      // (f3) feature 単位の未知 properties が save→get で round-trip する (テストカバレッジの穴(a)の解消)
       const unknownPropsSave = await poiSourceService.save(legacyUnknownDoc.uid, {
         slug: legacyUnknownDoc.slug,
         title: legacyUnknownDoc.title,
@@ -649,7 +649,7 @@ try {
       // (r) 仕様 : FC トップレベル layer metadata の save round-trip。id/name は保存されない
       // (slug/title 由来の独立しない概念、export 時にのみ書き込む)。icon/selectedIcon/hide/
       // poiTemplate/未知キー (customMeta) は round-trip 保持される (backend バグ修正、Phase5 Task1)。
-      // case 17-3: patchLayerMeta で icon を変更しても、未編集の poiTemplate/customMeta 等
+      // patchLayerMeta で icon を変更しても、未編集の poiTemplate/customMeta 等
       // が save→get で保持されることを確認する end-to-end 検証。
       const layerMetaSave = await poiSourceService.save(uid, {
         slug: 'kyoto-poi',
@@ -682,7 +682,7 @@ try {
       assert.equal(afterLayerMetaSave.featureCount, 1, 'layer metadata 追加で feature_count がずれないはず');
       console.log('ok: (r) FC top-level layer metadata round-trips through save; id/name are not persisted ()');
 
-      // (r3) case 17-3: load → icon のみ変更 → save → get で未変更キーが保持される
+      // (r3) load → icon のみ変更 → save → get で未変更キーが保持される
       // （patchLayerMeta が呼ぶサービス経路の end-to-end 検証）
       const iconOnlySave = await poiSourceService.save(uid, {
         slug: 'kyoto-poi',

@@ -185,7 +185,7 @@ if (!CAPTURE) {
   console.log(`ok: case 5(c) marker 定数は 5 本（${markerConsts.map((l) => l.split(' ')[1]).join(' / ')}）`);
 
   // (d) 写像の呼び出し点は adoptDeprecatedMapNames の 1 箇所だけ、かつ読み込み側から呼ばない
-  //     （case 18 の後継。新しい不変条件へ書き換えたもの =）
+  //     （地図名の統一の移行の検査の後継。新しい不変条件へ書き換えたもの）
   const adoptHits = sqliteLines
     .map((line, i) => ({ no: i + 1, line }))
     .filter(({ line }) => line.includes('adoptDeprecatedMapNames') && !isCommentLine(line));

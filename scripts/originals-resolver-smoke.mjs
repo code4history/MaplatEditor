@@ -530,7 +530,7 @@ try {
       const mercTileRoot = path.join(originalsDir, '..', 'merc', TARGET_BASE_MAP_UID_H1);
       assert.ok(await fs.pathExists(mercTileRoot), '出力先が merc/{targetBaseMapUid} 配下であるはず（旧 wmts/{mapID} ではない）');
       assert.ok(await fs.pathExists(path.join(mercTileRoot, 'tilejson.json')), 'merc/{targetBaseMapUid}/tilejson.json が書かれるはず');
-      console.log('ok: (H-1) WmtsGeneratorService.generate(): resolves canonical originals/<uid>.<ext> and outputs merc/{targetBaseMapUid} + tilejson.json (case 1/case 2/case 12)');
+      console.log('ok: (H-1) WmtsGeneratorService.generate(): resolves canonical originals/<uid>.<ext> and outputs merc/{targetBaseMapUid} + tilejson.json (case 2/case 12)');
 
       const UID_H2 = 'h2222222-2222-4222-8222-222222222222';
       await fs.writeFile(path.join(originalsDir, 'h2-legacy-slug.jpg'), imageBuffer);

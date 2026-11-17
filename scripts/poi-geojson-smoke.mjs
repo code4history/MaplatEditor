@@ -181,7 +181,7 @@ try {
         console.log('ok: normalizeLegacyPoi passes through whitelist-external keys (selectedIcon/start/arbitrary)');
       }
 
-      // ---- normalizeLegacyPoi: 座標キー・id は properties に残置されない (case 5-2) ----
+      // ---- normalizeLegacyPoi: 座標キー・id は properties に残置されない ----
       {
         const f = normalizeLegacyPoi({ lnglat: [135, 35], lng: 999, lat: 999, longitude: 999, latitude: 999, id: 'p9', name: 'A' });
         for (const key of ['lnglat', 'lng', 'lat', 'longitude', 'latitude', 'id']) {

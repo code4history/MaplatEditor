@@ -1,7 +1,7 @@
 /**
  * smoke: style 契約 / CDN 共通モジュール / peerDeps / wiring
  * master-detail-smoke と同様に vite で contracts をバンドルして検証する。
- * case 1/case 3: case 13 ブロックへ単色プレースホルダ検出・寸法検証を追加
+ * case 3: case 13 ブロックへ単色プレースホルダ検出・寸法検証を追加
  */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -385,14 +385,14 @@ function satisfiesRange(version, range) {
     assert.equal(st.isFile(), true, `case 13: basemap_icons/${name} 存在`);
   }
 
-  // ---- case 1: 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----
+  // ---- 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----
   for (const name of ["mapbox.png", "maplibre.png"]) {
     const icon = path.join(projectRoot, "public/basemap_icons", name);
     await assertNotSolidColor(icon, `${name} (52px)`);
     await assertDimensions(icon, 52, `${name} (52px)`);
   }
 
-  // ---- case 2/case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
+  // ---- case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
   for (const name of ["mapbox.webp", "maplibre.webp"]) {
     const icon512 = path.join(projectRoot, "public/basemap_icons_512", name);
     const st512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));

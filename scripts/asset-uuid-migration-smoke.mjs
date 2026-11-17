@@ -49,7 +49,7 @@ const sqliteSrc = await readFile(sqlitePath, 'utf8');
   assert.deepEqual(constLines, [`const ASSET_UUID_NAMES_V1_ID = '${MARKER_ID}';`],
     'T5-R2-MIN-1: 印の定数は SqliteDataService.ts の行頭の const（export しない）');
   // F13: migrate() の中で、取込（runLegacyMigrationIfNeeded）→ 原本の移行（runColdBoot）→ 本移行 の順。
-  // 本移行は this. のメソッドでなく try/catch の中のモジュールの関数（case 5(b) の段に数えない）
+  // 本移行は this. のメソッドでなく try/catch の中のモジュールの関数（移行の段の数には数えない）
   const start = sqliteSrc.indexOf('  private async migrate(db: DatabaseSync)');
   const end = sqliteSrc.indexOf('  private async runLegacyMigrationIfNeeded(');
   assert.ok(start > 0 && end > start, 'F13: migrate() の本体を切り出せる');

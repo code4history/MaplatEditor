@@ -330,7 +330,7 @@ try {
     /<[a-zA-Z][^>]*v-show[^>]*\bd-flex\b[^>]*>/,
     'AppEdit に v-show + d-flex 同居要素がある (v-show 専用ラッパーを挟むこと)'
   );
-  // case 9: タブは EditorTabs primitive + 語彙(editor_ui.tabs.pois)へ移行した
+  // タブは EditorTabs primitive + 語彙(editor_ui.tabs.pois)へ移行した
   assert.match(
     appEditView,
     /key: 'pois'[\s\S]{0,120}?editor_ui\.tabs\.pois/,

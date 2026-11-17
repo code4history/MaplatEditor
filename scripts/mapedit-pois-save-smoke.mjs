@@ -189,7 +189,7 @@ try {
       // **外部参照**（pois/<name>.geojson + 実体同梱）へ統一された。
       // ここで固定すべき意図は「未解決の {poiUid} を出力へ漏らさない」
       // 「件数を変えない」「解決できるなら warning を出さない」であり、
-      // それらは保ったまま形だけを新契約へ合わせる（case 2）。
+      // それらは保ったまま形だけを新契約へ合わせる（書き出しの統一の取り決め）。
       const created = await PoiSourceService.createLocal({ slug: 'download-poi', title: 'ダウンロードPOI' });
       assert.equal(created.result, 'Success', 'createLocal は Success のはず: ' + JSON.stringify(created));
       const srcUid = created.uid;
