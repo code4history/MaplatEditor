@@ -92,7 +92,7 @@ export function hasMixedPoisShapes(shapes: readonly PoisEntryShape[]): boolean {
 
 // viewer normalize_pois.ts:30 の key 導出 (layer.id || (layer.properties && layer.properties.id))
 // の truthy 判定。複層モードで index >= 1 の生メンバーが key を持たない場合、viewer は throw する
-// (:31-33 "POI layers include bad key setting" = POI 全損)。の viewer-fatal 注記
+// (:31-33 "POI layers include bad key setting" = POI 全損)。上の viewer-fatal 注記
 // (poiref.layer_key_missing_warning) の判定に使う — UI のみで使用し resolver の警告契約
 // は拡張しない
 export function hasPoisLayerKey(entry: unknown): boolean {

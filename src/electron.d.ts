@@ -34,7 +34,7 @@ export interface AppSavePayload {
     uid?: string;
     slug: string;
     expectedRevision?: number;
-    // 新規作成の明示合図 (/D11改)。true=create経路(uid採用)
+    // 新規作成の明示合図。true=create経路(uid採用)
     create?: boolean;
 }
 
@@ -91,13 +91,13 @@ export interface MapSavePayload {
     slug?: string;
     expectedRevision?: number;
     copyFromUid?: string;
-    // 新規作成の明示合図 (/D11改)。true=create経路(uid採用)
+    // 新規作成の明示合図。true=create経路(uid採用)
     create?: boolean;
-    // UID維持改名の残作業引き継ぎ (/D5改)。Map専用
+    // UID維持改名の残作業引き継ぎ。Map専用
     renameFromSlug?: string;
 }
 
-// slug 予約 API (/)
+// slug 予約 API
 export type SlugReservationResult =
     | { result: 'ok' }
     | { result: 'conflict' }
@@ -114,7 +114,7 @@ export type MapSaveResult =
     // url : 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
     // 恒久タイルURL({z}/{x}/{y}.ext パターンのテンプレート文字列)。既存地図の通常更新・clone・
     // rename 経路(tmpCheckが偽)では省略(undefined)。electron/adapters/StorageAdapter.ts の
-    // 正本定義と同期すること(手動同期ミラー、設計レビュー v1 Major1)
+    // 正本定義と同期すること(手動同期ミラー。設計レビューの指摘)
     | { result: 'Success'; uid: string; slug: string; revision: number; url?: string }
     | { result: 'Exist' }
     // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
@@ -169,7 +169,7 @@ export interface PoiValidationIssue {
     swapped?: boolean;
 }
 
-// Error 結果の機械可読コード: 'network' = fetch 到達不能/timeout (POI-118 degraded 表示対象)、
+// Error 結果の機械可読コード: 'network' = fetch 到達不能/timeout (degraded 表示の対象)、
 // 'http-status' = HTTP 非 2xx (remote-gone 等)、'parse' = 応答/ファイルが JSON でない、
 // 'not-found' = 対象ソース不在 (並行 delete 含む)、'invalid-request' = 引数不正、'internal' = 内部エラー
 export type PoiSourceErrorCode =
@@ -229,7 +229,7 @@ export interface PoiSourceReference {
 export interface PoiSourcesAPI {
     list(request: { query: string; page: number; pageSize: number }): Promise<PoiSourceListResult>;
     get(uid: string): Promise<PoiSourceDetailResult | null>;
-    // uid = renderer 事前採番 preset (D11改/): slug 予約の帰属と行 uid を一致させる。
+    // uid = renderer 事前採番 preset: slug 予約の帰属と行 uid を一致させる。
     // fc 指定時は内容入りの単一作成 (遅延作成の保存経路)。prepare 検証で error あれば Invalid 拒否
     createLocal(input: { slug: string; title: any; lang?: string; uid?: string; fc?: unknown }): Promise<PoiSourceSaveResult>;
     save(uid: string, payload: { slug: string; title: any; fc: any; expectedRevision?: number }): Promise<PoiSourceSaveResult>;
@@ -247,7 +247,7 @@ export interface PoiSourcesAPI {
     exportTable(uid: string, format: 'csv' | 'json'): Promise<PoiExportTableResult>;
     // 開いているソースへの取り込み。選択と解析を main で 1 回で行い、パスは渡さない・返さない
     pickAndParseMerge(input: { lang: string }): Promise<PoiPickAndParseMergeResult>;
-    // インポート用ネイティブファイル選択 (Phase 3)。キャンセル時は null
+    // インポート用ネイティブファイル選択。キャンセル時は null
     pickImportFile(): Promise<{ token: string; fileName: string } | null>;
 }
 
@@ -277,7 +277,7 @@ export type ImageAssetSaveResult =
     | { result: 'Error'; code: ImageAssetErrorCode; message?: string; uid?: string; slug?: string; revision?: number }
     | { error: 'revision-conflict'; current: number };
 
-// 逆参照 (poi_sources の icon/selectedIcon/image 参照)。AID-006 の削除確認フローが使う
+// 逆参照 (poi_sources の icon/selectedIcon/image 参照)。削除確認フローが使う
 export interface ImageAssetReference {
     uid: string;
     slug: string;
@@ -299,7 +299,7 @@ export type ReadPickedSourceResult =
     | { ok: false; code: PickedSourceErrorCode; byteSize?: number };
 
 export interface ImageAssetsAPI {
-    // uid = renderer 事前採番 preset (D11改/): slug 予約の帰属と行 uid を一致させる
+    // uid = renderer 事前採番 preset: slug 予約の帰属と行 uid を一致させる
     // 読み元は token（pickImageFile が返したもの）か duplicateFrom（複製元アセットの uid）。
     // 選んでいない・期限切れの token は Error{code:'invalid-request'}、実体の無い複製元は Error{code:'not-found'}
     add(input: { slug: string; title: any; lang: string; sourceName: string; token?: string; duplicateFrom?: string; uid?: string }): Promise<ImageAssetSaveResult>;
@@ -340,7 +340,7 @@ export interface AppAssetsAPI {
 }
 
 // uid正準のベースマップ保存要求 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。uid無指定は新規作成。
-// create=true (b/D11改) は新規作成の明示合図(uid=事前採番preset)
+// create=true は新規作成の明示合図(uid=事前採番preset)
 export interface BaseMapSavePayload {
     uid?: string;
     slug: string;

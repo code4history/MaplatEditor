@@ -1,4 +1,4 @@
-// 地図の上に重ねる UI の共通部品（docs/ui-map-overlay-proposal.md 案 A）。
+// 地図の上に重ねる UI の共通部品（docs/ui-map-overlay-proposal.md §4.2 案 A）。
 // - OL の既定の部品の名前（i18n）とアイコン
 // - 左上の一列（ズーム → 回転のリセット → 住所検索）と右下の余白の並べ方
 // - 編集中・参考の図形の縁取り（白の halo と濃い灰の細線）と取っ手の色
@@ -171,7 +171,7 @@ function underlayStyle(width: number, color: string, zIndex: number, dash?: numb
 
 /**
  * 線の外側に白 1.5px の halo、さらに外に濃い灰の細線を重ねたスタイル（編集中の図形）。
- * `outline: false` のときは白の halo だけにする（参考の図形。）。
+ * `outline: false` のときは白の halo だけにする（参考の図形。ui-map-overlay-proposal §4.2）。
  * 当たり判定は色の線と塗りだけで行う（縁取りでは広げない）。
  */
 export function haloLineStyles(

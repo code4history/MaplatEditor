@@ -15,8 +15,8 @@ export interface MapListAdapterDeps {
   diagnosticsLabels?: DiagnosticsBadgeLabels;
 }
 
-// page式 maplist backend を cursor(=ページ番号) へ内部包装する（D1）。
-// 件数表示統一(2026-07-16 人間指示、旧D8改を更新): backend が total を返すようになったため実値を通す。
+// page式 maplist backend を cursor(=ページ番号) へ内部包装する。
+// 件数表示統一(2026-07-16 人間指示、以前の取り決めを更新): backend が total を返すようになったため実値を通す。
 export function createMapListAdapter(deps: MapListAdapterDeps): ResourceListAdapter<MapListRow, number> {
   return {
     async load({ filter, cursor, limit }) {

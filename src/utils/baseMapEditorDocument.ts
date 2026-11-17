@@ -90,7 +90,7 @@ export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
   expectedRevision?: number;
-  // 新規作成の明示合図 (/b)。true=uid を事前採番 preset として採用
+  // 新規作成の明示合図。true=uid を事前採番 preset として採用
   create?: boolean;
   tms: Partial<Record<BaseMapMetaLangKey, Record<string, string>>> & {
     // 種別軸。保存時は document.kind ?? "tms" で必ず既知5値のいずれか。

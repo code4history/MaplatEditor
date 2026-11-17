@@ -52,7 +52,7 @@ const emit = defineEmits<{
 const { t } = useTranslation();
 const fieldId = `slug-${Math.random().toString(36).slice(2, 8)}`;
 const slugRef = toRef(props, 'modelValue');
-// 自 asset_uid は常に excludeUid にする(D2改: 所有判定の正本は reservation.asset_uid)。
+// 自 asset_uid は常に excludeUid にする(所有判定の正本は reservation.asset_uid)。
 // 新規でも自分が張った予約(reserve/claim)を reserved-by-other 扱いにしないため、
 // originalSlug の有無によらず自 uid を除外する(registry に自 uid 行が無い新規では無害)。
 const excludeUid = computed(() => props.assetUid);
@@ -155,7 +155,7 @@ async function confirmForSave(): Promise<boolean> {
   return result?.ok ?? false;
 }
 
-// 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する(D6改/)。
+// 新規の放棄(モーダル閉じ・draft 破棄)で保持中の予約を明示解放する。
 // promote 消化済み・未予約時は no-op。
 async function release(): Promise<void> {
   await reservation.releaseIfHeld();

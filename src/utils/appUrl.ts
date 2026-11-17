@@ -49,7 +49,7 @@ const TILE_TEMPLATE_SUFFIX = /^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/;
  * 更新前の版で作った未保存下書きは url_ が旧形のまま復元される:
  *   - v1.0.0（公開版）: `file:///<userData>/draft-tiles/<uid>/{z}/{x}/{y}.<ext>`（webSecurity 下の renderer は file:// を読めない）
  *   - 期（未公開ビルド）: `app://local/<abs>/…`（renderer と別 origin のため CORS 拒否）
- * そのままタイル源に渡すと保存するまで対応点編集の左ペインが真っ白になる（IR2）。保存時の正規化は main の
+ * そのままタイル源に渡すと保存するまで対応点編集の左ペインが真っ白になる（実装レビューで実測）。保存時の正規化は main の
  * `normalizeLegacyTileUrl`が担うので、ここでは表示のときだけ同じ形へ写す。
  *
  * 規則は main の `migrateLegacyFileUrl`（electron/utils/appScheme.ts）と同じ出力になるよう複製する

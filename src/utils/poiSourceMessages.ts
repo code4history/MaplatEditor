@@ -1,10 +1,10 @@
-// PoiSourceSaveResult の Error コード / 検証 issue code → i18n キーの共有写像 (Phase 4 Task 5)。
-// Phase 3 で PoiSourceList.vue 内にあった写像を PoiEdit.vue と共用するため移設した (挙動不変)。
+// PoiSourceSaveResult の Error コード / 検証 issue code → i18n キーの共有写像。
+// 以前 PoiSourceList.vue 内にあった写像を PoiEdit.vue と共用するため移設した (挙動不変)。
 // i18next には依存せず、t() は呼び出し側から受け取る (useRevisionedAssetSave と同じ方針)。
 import type { PoiSourceErrorCode, PoiValidationIssue } from "../electron";
 
-// poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は POI-104 専用文言。
-// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch (POI-121) が返す
+// poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は専用文言。
+// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch が返す
 export const ISSUE_CODE_KEYS: Record<string, string> = {
   "geometry-not-point": "poisource.errors.non_point",
   "not-feature-collection": "poisource.errors.not_feature_collection",
@@ -62,7 +62,7 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。
-// invalid-request は「引数不正」だが利用者向けには検証エラーと同じ文言を出す (Phase 3 踏襲)
+// invalid-request は「引数不正」だが利用者向けには検証エラーと同じ文言を出す (以前の扱いを踏襲)
 export const ERROR_CODE_KEYS: Record<PoiSourceErrorCode, string> = {
   network: "poisource.errors.network",
   "http-status": "poisource.errors.http_status",

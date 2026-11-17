@@ -1,4 +1,4 @@
-// 共通 List 契約（List 正本 + D8改 差分）。
+// 共通 List 契約（List 正本からの差分）。
 // primitive/adapter/composable が共有する型の単一定義箇所。
 
 export type Wgs84Bbox = [west: number, south: number, east: number, north: number];
@@ -10,7 +10,7 @@ export interface ResourceListFilter {
 
 export interface ResourceListBatch<T, Cursor = string> {
   items: T[];
-  // D8改: page式backend(maplist/applist)は総数を返さないため null 縮退を許す。
+  // page式backend(maplist/applist)は総数を返さないため null 縮退を許す。
   // POI/BaseMap/Asset(全件取得系)は実 total を返す。List からの唯一の明示差分。
   total: number | null;
   nextCursor: Cursor | null;
@@ -40,7 +40,7 @@ export interface ResourceListItemViewModel {
   hasDraft: boolean;
   /** IIIF の画像サービスのまま配信する地図か（一覧の印）。 */
   iiifDelivery?: boolean;
-  // capability。builtin Base Map 等 action 不能な item は空配列（D4改）。
+  // capability。builtin Base Map 等 action 不能な item は空配列。
   actions: Array<"duplicate" | "delete">;
   /** v2.0 HM4: selector variant で追加不可の理由（text-danger で常時表示 + :title ツールチップ） */
   disabledReason?: string;

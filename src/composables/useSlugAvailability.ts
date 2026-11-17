@@ -10,7 +10,7 @@ export type SlugAvailabilityState =
   | 'taken'
   | 'unavailable';
 
-// の 6 値状態語彙 (/D1)。SlugField はこの語彙で状態を表示する。
+// 6 値の状態語彙。SlugField はこの語彙で状態を表示する。
 // 内部の SlugAvailabilityState を写像する: taken→reserved-by-other(registry既存 or
 // 他者予約の双方を包含)、unavailable→check-failed、format不正→invalid-format。
 // 既存の 5 値 state は後方互換のため温存する(ui-foundations の state machine テスト等)。
@@ -48,7 +48,7 @@ export function useSlugAvailability(options: UseSlugAvailabilityOptions) {
   const state = ref<SlugAvailabilityState>('idle');
   const validationError = computed(() => validateSlugSyntax(options.slug.value));
 
-  // 6 値語彙への写像 (D1)。SlugField が表示に使う。checking 中は format 判定より
+  // 6 値語彙への写像。SlugField が表示に使う。checking 中は format 判定より
   // 照会状態を優先する。'required'(空) は idle 扱いにしてエラー表示を出さない。
   const fieldState = computed<SlugFieldState>(() => {
     if (state.value === 'checking') return 'checking';

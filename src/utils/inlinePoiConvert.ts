@@ -3,7 +3,7 @@
 // assetDrafts.put のみで、pois 配列・Undo 履歴は一切変更しない (update:pois を発火しない)。
 // 正規化は既存共用純関数 (normalizePoiSourceCollection + validateFeatureCollection) の再利用のみ。
 //
-// 層構造注記 (設計 v1.0 レビュー — 据え置き): composables/useResourceDuplicate からの
+// 層構造注記 (設計レビューで据え置きと判断): composables/useResourceDuplicate からの
 // import は utils→composables の逆行だが、reserveSequencedSlug は window API を使う plain async
 // 関数で composable 性 (setup 依存・リアクティブ state) を持たず動作上の問題はない。
 // (a) 複製 wrapper と (b) 本変換が同一の tryReserve 実装を共有する骨格を優先する。
@@ -28,15 +28,15 @@ export interface InlineConvertOutcome {
 
 // 任意入力 (生 FC 要素 / 変換群 = 旧オブジェクト+生 Feature の配列) を内部形 FC へ正規化し検証する。
 // 生 FC 要素は layerMeta (type/features/id/name/lang 以外のトップレベル) が round-trip 保持され、
-// 変換群は normalizeLegacyPoiList の配列受容に載る。error issue (非 Point 等 — POI-104) は
-// hasError で返し、warning (POI-108/121 等) は変換を止めない (PoiEdit 保存時の既存文法で表示される)。
+// 変換群は normalizeLegacyPoiList の配列受容に載る。error issue (非 Point 等) は
+// hasError で返し、warning (無コンテンツ・規模など) は変換を止めない (PoiEdit 保存時の既存文法で表示される)。
 export function convertInlineEntries(input: unknown, lang: LangCode): InlineConvertOutcome {
   const fc = normalizePoiSourceCollection(input, lang);
   const issues = validateFeatureCollection(fc);
   return { fc, issues, hasError: issues.some((issue) => issue.level === "error") };
 }
 
-// ドラフト title の決定 (手順4, POI-114 整合):
+// ドラフト title の決定 (手順4):
 // 生 FC 要素 = FC.name (非空時) → 無ければホストタイトル / 変換群 (配列) = ホストタイトル
 export function resolveConvertTitle(input: unknown, hostTitle: LangResource | undefined): LangResource {
   if (input && typeof input === "object" && !Array.isArray(input)) {
@@ -54,8 +54,8 @@ export function resolveConvertTitle(input: unknown, hostTitle: LangResource | un
 
 export type InlineConvertFailureReason =
   | "slug-exhausted" // 予約候補の全枯渇 (予約は成立していないため解放なし)
-  | "invalid" // 検証 error (POI-104 非 Point 等)
-  | "too-large" // envelope が MAX_ASSET_DRAFT_BYTES (20MB) 超 (POI-121 warning とは独立の絶対上限)
+  | "invalid" // 検証 error (非 Point 等)
+  | "too-large" // envelope が MAX_ASSET_DRAFT_BYTES (20MB) 超 (規模の warning とは独立の絶対上限)
   | "failed"; // assetDrafts.put の失敗
 
 export type InlineConvertResult =

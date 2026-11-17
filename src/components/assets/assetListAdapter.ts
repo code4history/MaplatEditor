@@ -10,7 +10,7 @@ export interface AssetAdapterDeps {
   batchSize?: number;
 }
 
-// D2: 全件取得（imageAssets.list/search）を client-side batch（配列スライス cursor=offset）で払い出す。
+// 全件取得（imageAssets.list/search）を client-side batch（配列スライス cursor=offset）で払い出す。
 export function createAssetListAdapter(deps: AssetAdapterDeps): ResourceListAdapter<ImageAssetRow, number> {
   const batchSize = deps.batchSize ?? 40;
   return {

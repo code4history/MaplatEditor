@@ -36,7 +36,7 @@ try {
   // 実装レビューM-1是正: wmtsgenerate.*は「引き続き使用する」ではなく、実装レビューで
   // ProgressReporterのテキストキーがmerc.*へ修正された結果コードから参照されなくなった
   // （公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり: UIから"WMTS"を排除）。JSON定義自体は休眠保全の対象として残す
-  assert.match(mapEdit, /ユーザー向け文言は公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まりに\n\s*従いwmtsgenerate\.\*ではなくmerc\.\*を使う/, '#1 ブロックコメントの merc.* 使用の明記が欠落している');
+  assert.match(mapEdit, /ユーザー向け文言は、公開するパスを merc と呼ぶ決まり（エディタのコードは wmts の綴りを残す）に\n\s*従いwmtsgenerate\.\*ではなくmerc\.\*を使う/, '#1 ブロックコメントの merc.* 使用の明記が欠落している');
   assert.match(mapEdit, /wmtsgenerate\.\* 5キーはコードから参照されなくなったが、\n\s*JSON定義自体は休眠保全の対象として削除しない/, '#1 ブロックコメントのwmtsgenerate.*休眠保全（コード非参照）明記が欠落している');
 
   // #2 mainLayerHash（computed）

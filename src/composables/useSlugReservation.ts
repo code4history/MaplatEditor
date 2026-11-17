@@ -1,4 +1,4 @@
-// SlugField 内部で使う予約 lifecycle composable (/D6改)。
+// SlugField 内部で使う予約 lifecycle composable。
 // window.slugReservations を叩き、available 確定時に reserve/move、originalSlug 復帰や
 // draft 破棄で release、保存直前に confirmForSave で予約成立を再確認する。
 import { ref } from 'vue';
@@ -39,7 +39,7 @@ export function useSlugReservation(opts: {
   // Counter-based pending tracking: increment on start, decrement on finish.
   // reservationPendingCount > 0 iff any reserve/release operation is in flight.
   let reservationPendingCount = 0;
-  // release失敗/保留を SlugField に伝える reactive 状態(/)。
+  // release失敗/保留を SlugField に伝える reactive 状態。
   // plain boolean だと Vue computed が再評価されないため ref を使う。
   const releasePending = ref(false);
   const releaseFailed = ref(false);
@@ -284,7 +284,7 @@ export function useSlugReservation(opts: {
     }
   }
 
-  // release失敗/保留を SlugField に伝える(/)。
+  // release失敗/保留を SlugField に伝える。
   // ref なので Vue computed が再評価され、check-failed 表示が保証される。
   function hasFailedRelease(): boolean {
     return releaseFailed.value || releasePending.value;

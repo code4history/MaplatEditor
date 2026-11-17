@@ -255,7 +255,7 @@ const duplicateSourceItem = computed(() =>
 );
 async function duplicateAsset(row: ImageAssetRow): Promise<void> {
   const reserved = await reserveCopySlug(row.slug, "image-asset", "asset");
-  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }  // (R3/C50): native alert() 廃止
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }  // native alert() 廃止
   await selectDuplicate(row.uid, reserved);
 }
 

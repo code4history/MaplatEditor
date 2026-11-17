@@ -168,7 +168,7 @@ const newDrafts = computed(() => props.draftSummaries.filter((draft) => draft.ba
 const userItems = computed(() => props.items.filter((item) => item.scope === "user"));
 const builtinItems = computed(() => props.items.filter((item) => item.scope === "builtin"));
 
-// item→view model 写像は共通 adapter（D3改の filterBaseMapCatalog を内包）へ集約する。
+// item→view model 写像は共通 adapter（filterBaseMapCatalog を内包）へ集約する。
 // ここでは toViewModel のみを使い、host が渡す既に filter 済みの props.items を描画する。
 const adapter = createBaseMapListAdapter({
   source: () => props.items,

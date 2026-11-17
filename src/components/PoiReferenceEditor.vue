@@ -3,7 +3,7 @@
        左 = 検索付き POI ソース一覧 (ResourceSelectorList)、右 = 選択済み参照のカード列
        (pois 配列の順番どおり = viewer の layer 順)。参照要素は ↑/↓/× + 上書き
        icon/selectedIcon、生 URL/FC 要素は「外部データ」カードとして 表示 + ↑/↓/× のみ
-       (編集 UI は作らない — Phase 8 設計コントラクト) -->
+       (編集 UI は作らない — 設計の取り決め) -->
   <ResourceSelector>
     <template #list>
       <!-- 非参照要素 (object / URL 文字列 / junk) が残る間は追加を無効化する
@@ -76,7 +76,7 @@
             :disabled="readOnly || converting || !canConvertLayer"
             @click="convertGroup"
           >{{ t("poiref.convert_group_action", { count: entries.length }) }}</button>
-          <!-- 変換不可の理由と整理手順 (: 生 FC・参照・URL・非 UUID poiUid・junk 含みは disabled) -->
+          <!-- 変換不可の理由と整理手順 (生 FC・参照・URL・非 UUID poiUid・junk 含みは disabled) -->
           <ContextHelp
             v-if="!canConvertLayer"
             :text="t('poiref.convert_blocked_note')"
@@ -235,7 +235,7 @@
               </div>
             </div>
           </div>
-          <!-- 非参照メンバー行の注記 (/R1 の (i) ボタン文法。: バッジ種別で
+          <!-- 非参照メンバー行の注記 (説明の文法の (i) ボタン。バッジ種別で
                inline_note / external_url_note を出し分け) -->
           <div v-else class="mb-0"><ContextHelp :text="t(entryNoteKey(entry))" :ariaLabel="t(entryNoteKey(entry))" /></div>
         </div>
@@ -257,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-// 「POIデータ」タブの本体 (Phase 8 Task 2/5, 43 )。AppEdit (appData.pois) と
+// 「POIデータ」タブの本体 。AppEdit (appData.pois) と
 // MapEdit (mapData.pois) の両方から使う。真実の器は呼び出し側の pois 配列 1 つで、
 // 本コンポーネントは配列ごと差し替えの update:pois を emit するだけ (履歴記録は呼び出し側:
 // AppEdit = recordHistory 明示 / MapEdit = mapData の deep-watch)。
@@ -351,11 +351,11 @@ function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListIte
 
 // --- 相互排他制約・項目数・変換・削除確認 ---
 
-// : 非参照要素 (object・URL 文字列・junk すべて — 吸収) が 1 つでも残る間、
+// 非参照要素 (object・URL 文字列・junk すべて) が 1 つでも残る間、
 // GeoJSON POI ソースの追加を禁止する (入口ガード)。computed のため全削除で自動再有効化
 const hasNonReferenceEntries = computed(() => entries.value.some((entry) => poiUidOf(entry) === null));
 
-// : 項目数 (生 FC = features 数 / 旧オブジェクト・生 Feature・非 UUID poiUid = 1 /
+// 項目数 (生 FC = features 数 / 旧オブジェクト・生 Feature・非 UUID poiUid = 1 /
 // URL 文字列・junk = null 非表示 — 項目数の概念が成立しないため。v1.1 )
 function entryItemCount(entry: unknown): number | null {
   if (poiUidOf(entry) !== null) return null;
@@ -383,7 +383,7 @@ function entryItemCountLabel(entry: unknown): string | null {
 }
 
 // (v1.2/v1.3): レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
-// の computed 連鎖がペイン構成 ()・変換可否 ()・混在警告表示の唯一の判定源。
+// の computed 連鎖がペイン構成・変換可否・混在警告表示の唯一の判定源。
 // 参照要素は "fc" へ写像する (resolver が FC に置換した後の形 = viewer が見る形で判別 — 前文)
 // **上書きレイヤ (ラッパー) も同じ理由で "fc" へ写像する。** ラッパーは viewer が
 // isPoiLayerRef 分岐で1レイヤとして受ける形であり (normalize_pois.ts:106-133)、生の POI
@@ -398,7 +398,7 @@ const entryShapes = computed<readonly PoisEntryShape[]>(() =>
 const layerMode = computed(() => poisLayerMode(entryShapes.value, entries.value));
 const isMixedLayer = computed(() => hasMixedPoisShapes(entryShapes.value));
 
-// : 単層モードのレイヤ変換可能条件 = 全メンバーが旧 POI オブジェクト / 生 Feature
+// 単層モードのレイヤ変換可能条件 = 全メンバーが旧 POI オブジェクト / 生 Feature
 // (= shape "object" かつ非 UUID poiUid 温存規約の対象外)。生 FC・参照 (= shape "fc")・
 // URL 文字列・junk が 1 つでも含まれると不可 (削除で整理されると computed で自動有効化)
 const canConvertLayer = computed(
@@ -442,7 +442,7 @@ function acceptsOverride(entry: unknown): boolean {
   return poiUidOf(entry) !== null || isPoiLayerRef(entry);
 }
 
-// : バッジ 2 種 (string = 外部URL参照 / それ以外の非参照要素 = 地図内定義POI。
+// バッジ 2 種 (string = 外部URL参照 / それ以外の非参照要素 = 地図内定義POI。
 // junk は inline 側帰属 — 第 3 バッジは増やさない)
 // 3 分類 — 上書きレイヤ = 外部ファイル参照 / 文字列 = 外部URL参照 / それ以外 = 地図内定義POI
 function entryBadgeLabel(entry: unknown): string {
@@ -450,13 +450,13 @@ function entryBadgeLabel(entry: unknown): string {
   return typeof entry === "string" ? t("poiref.external_url") : t("poiref.inline_data");
 }
 
-// : 非参照メンバー行の注記キー (バッジと同じ object vs string の二分で出し分け)
+// 非参照メンバー行の注記キー (バッジと同じ object vs string の二分で出し分け)
 function entryNoteKey(entry: unknown): string {
   if (isPoiLayerRef(entry)) return "poiref.layer_ref_note";
   return typeof entry === "string" ? "poiref.external_url_note" : "poiref.inline_note";
 }
 
-// : 変換フィードバック (成功/失敗) — DiagnosticFeedback で表示 (ref 代入のみ、)
+// 変換フィードバック (成功/失敗) — DiagnosticFeedback で表示 (ref 代入のみ)
 const convertFeedback = ref<{ severity: "success" | "warning"; message: string } | null>(null);
 const converting = ref(false);
 
@@ -510,7 +510,7 @@ async function convertFcEntry(index: number): Promise<void> {
   }
 }
 
-// : 非参照要素の削除確認 (index キーの軽量ローカル state。deleting は常に false = 同期 splice)
+// 非参照要素の削除確認 (index キーの軽量ローカル state。deleting は常に false = 同期 splice)
 const deleteConfirm = ref<{ visible: boolean; title: string; index: number }>({
   visible: false,
   title: "",
@@ -567,7 +567,7 @@ function entryKey(entry: unknown, index: number): string {
   return `ref:${uid}#${occurrence}`;
 }
 
-// 行タイトル: 参照 = 上書き title (D1、あれば localizeTitle 解決) → cachedTitle → uid、
+// 行タイトル: 参照 = 上書き title (あれば localizeTitle 解決) → cachedTitle → uid、
 // 外部データ = URL 文字列 or FC の name/id
 function entryTitle(entry: unknown): string {
   const uid = poiUidOf(entry);
@@ -591,7 +591,7 @@ function entryTitle(entry: unknown): string {
     if (typeof record.name === "string" && record.name) return record.name;
     if (typeof record.id === "string" && record.id) return record.id;
   }
-  // : name/id を持たない非参照 object のタイトル fallback (旧 external_data → inline_data)
+  // name/id を持たない非参照 object のタイトル fallback (旧 external_data → inline_data)
   return t("poiref.inline_data");
 }
 
@@ -600,7 +600,7 @@ function entryTitle(entry: unknown): string {
 // 遅延解決してキャッシュする。解決前/失敗 (削除済みソース等) は uid をそのまま出す
 const slugByUid = ref<Record<string, string>>({});
 
-// not-found 確定の参照 uid 集合 (D4)。poiSources.get は IPC 成功 + 見つからない時に null を
+// not-found 確定の参照 uid 集合。poiSources.get は IPC 成功 + 見つからない時に null を
 // 返す (PoiSourceService.get) — これで削除済みソースと判定し、カードを警告表示にする。
 // IPC 一時失敗 (reject) は unknown のまま = 警告にしない (ベストエフォート表示)
 const missingByUid = ref<Record<string, boolean>>({});
@@ -637,7 +637,7 @@ function entrySubLabel(entry: unknown): string {
   return slugByUid.value[uid] || uid;
 }
 
-// 上書きタイトル (D1) の現在値。LangResource (string | {lang: text}) 以外は未設定扱い
+// 上書きタイトル の現在値。LangResource (string | {lang: text}) 以外は未設定扱い
 function titleOverride(entry: unknown): string | Record<string, string> | undefined {
   const value = (entry as Record<string, unknown>).title;
   if (typeof value === "string") return value;
@@ -759,7 +759,7 @@ function onSelectionChange(refs: SelectedPoiSourceRef[]): void {
   emit("update:pois", applyPoiSelection(entries.value, refs));
 }
 
-// picker 表示中かどうか (Phase 8 品質MapEdit がグローバルキー
+// picker 表示中かどうか (品質の確認での追加。MapEdit がグローバルキー
 // (undo/redo/menu:undo/redo) を picker 表示中は抑止するために参照する)。参照行数ぶんの
 // IconRefField (icon/selectedIcon 上書き、行ごとに2個 = 2N) を v-for 内の template ref で
 // 配列収集し、いずれか1つでも picker 表示中なら true とする

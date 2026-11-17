@@ -8,7 +8,7 @@ export interface ResourceListBackState {
   scrollTop: number;
 }
 
-// P6/D6: 一覧→item 遷移前の状態を sessionStorage(resource-list:<kind>) へ退避し、Back 時に復元する。
+// P6/一覧→item 遷移前の状態を sessionStorage(resource-list:<kind>) へ退避し、Back 時に復元する。
 // renderer 寿命のみ（Electron 再起動を跨ぐ持続は不要 / List 「永続 draft へ入れない」）。
 export function useResourceListBackCache(kind: ResourceListKind) {
   const key = `resource-list:${kind}`;

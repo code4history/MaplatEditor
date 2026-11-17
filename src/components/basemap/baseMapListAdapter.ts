@@ -11,7 +11,7 @@ export interface BaseMapAdapterDeps {
   batchSize?: number;
 }
 
-// D2: client-side batch（配列スライス cursor=offset）。D3改: filter.bbox 実値を filterBaseMapCatalog へ渡す。
+// client-side batch（配列スライス cursor=offset）。filter.bbox 実値を filterBaseMapCatalog へ渡す。
 export function createBaseMapListAdapter(deps: BaseMapAdapterDeps): ResourceListAdapter<BaseMapCatalogItem, number> {
   const batchSize = deps.batchSize ?? 40;
   return {
@@ -32,7 +32,7 @@ export function createBaseMapListAdapter(deps: BaseMapAdapterDeps): ResourceList
         badges: [],
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
-        // D4改 / builtin は削除不可（現行区分維持）→ actions 空 → ⋮ 非表示。user のみ delete。
+        // builtin は削除不可（現行区分維持）→ actions 空 → ⋮ 非表示。user のみ delete。
         actions: item.scope === "builtin" ? [] : ["duplicate", "delete"],
       };
     },

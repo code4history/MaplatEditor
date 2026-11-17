@@ -589,7 +589,7 @@ async function save(): Promise<void> {
   error.value = "";
   saving.value = true;
   try {
-    // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断(D7)。
+    // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断。
     // registry 重複は backend の unique 制約(Exist)が最終防衛。
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) { error.value = t("assetlist.errors.slug_taken"); return; }

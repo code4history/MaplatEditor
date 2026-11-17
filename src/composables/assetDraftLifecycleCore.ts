@@ -104,7 +104,7 @@ export function createAssetDraftLifecycleCore(options: CoreOptions) {
       if (isDirty) discarded = false;
       cancelTimer();
       if (!dirty) {
-        // D9/S7a : dirty→clean 遷移(Undo 等の checkpoint clean)で
+        // dirty→clean 遷移(Undo 等の checkpoint clean)で
         // 永続 draft を即時除去し、再起動時の draft 復活を防ぐ。store が正になるだけで、
         // T5 の liveDraftOverrides/reconcile 契約は不変。
         // この契機のみ keepStaging=true — staging dir を残置し、

@@ -1,9 +1,9 @@
 // 「ベースマップ位置合わせモード」の純関数モジュール。
-// 座標系・単位・符号の契約はマイルストーン設計 C-2:
+// 座標系・単位・符号の契約:
 //   MercatorShiftX/Y は EPSG:3857 メートル。正の X は画像を東へ、正の Y は北へ動かす。
 //   確定式 shift = P_groundTruth − P_reference。合成規則は「上書き」であり既存値へ加算しない。
 // 保持値は編集環境ストア（SQLite テーブル map_base_map_shift）へ Save 不要で即時永続化される
-// （HR-6。C-3 v1.2。HR-4.3 の「非永続」は人間により明示的に逆転された）。
+// （以前の「非永続」の方針は人間の判断で逆転された）。
 // 地図文書にもベースマップ master にもアプリソースにも書かない（ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりとは整合のまま）。
 
 export type MercatorShift = { x: number; y: number };
@@ -14,7 +14,7 @@ export const ZERO_SHIFT: MercatorShift = { x: 0, y: 0 };
 
 /**
  * 基準点と Ground Truth の EPSG:3857 座標差からシフト量を求める（C-2 の確定式）。
- * 基準点はシフト解除状態の対象ベースマップ上で打たれる（HR-4.6(e)）ため、
+ * 基準点はシフト解除状態の対象ベースマップ上で打たれるため、
  * 得られる差分は絶対量であって増分ではない。
  */
 export function computeMercatorShift(reference: number[], groundTruth: number[]): MercatorShift {
@@ -38,7 +38,7 @@ export function applyShiftOverwrite(
  * P1 / P2 では対象ベースマップの実効値だけを 0 にする。保持値は変えない。
  */
 /**
- * シフトが 0,0（＝補正なし）かどうか（リセットボタンの disabled 判定。HR-5.2）。
+ * シフトが 0,0（＝補正なし）かどうか（リセットボタンの disabled 判定）。
  * ストア側は 0,0 を行 DELETE で表現するため、
  * メモリの明示的な {x:0, y:0} と未登録（行なし）は同義である。
  */

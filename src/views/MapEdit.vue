@@ -46,7 +46,7 @@ import { isProviderBaseMapData, isGoogleEditorBasemap, baseMapProviderKindOf, go
 import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, isZeroShift, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
-// t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（契約表）。
+// Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
 import { resolveSourceThumbnail } from '../utils/sourceThumbnail';
 // 更新前の版の下書きに残る旧形 url_（file:// / app://local）を、タイル源に渡すときだけ現行形へ
@@ -132,7 +132,7 @@ const MERC_CROSSMATRIX = [
 
 // 保存済みslug (基盤設定など旧slugキーのIPCが参照する)。表示中のslug編集値は mapData.mapID
 const mapID = ref('');
-// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり , Phase 4 Task 2)。
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // 以下の3値の正本は handle の ref に一本化する:
 //   uid(=mapUid): 不変の正本キー。undefined = 未保存の新規地図
 //   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
@@ -147,7 +147,7 @@ let pendingSave: {
     copyFromUid: string | undefined;
 } | null = null;
 const saveHandle = useRevisionedAssetSave<MapSaveResult>({
-    // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar）
+    // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
     onStart: clearOperationNotice,
     send: async ({ expectedRevision }) => {
         const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
@@ -199,7 +199,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         // 新規原本アップロード直後の保存(tmpCheck)はバックエンドが恒久タイルURLを
         // result.url として返す。originalMapData の cloneDeep(次行)・markHistorySaved(165行)
         // より前に代入しないと、保存済みスナップショットに新しい url_ が反映されず
-        // 保存直後から恒久的に dirty になる(設計レビューv1 Major2 / で実挙動と整合確認済み)
+        // 保存直後から恒久的に dirty になる(設計レビューの指摘。実挙動と整合確認済み)
         if (result.url) mapData.value.url_ = result.url;
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
@@ -236,7 +236,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
             // DBコミット後のファイル操作失敗 (Error{revision付き}, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
             // 原本改名の残作業は mapID ref(applySuccess でのみ更新)由来の renameFromSlug が
-            // 再試行に引き継ぐ(/D5改)
+            // 再試行に引き継ぐ
             console.error('[saveMap] Save error:', result);
             saveOperationError.value = t('mapedit.error_saving');
         }
@@ -1351,7 +1351,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
                     : [],
             };
         },
-        // 保持値の seed（/の分離観測用。表示・適用経路は本物を通る）
+        // 保持値の seed（e2e での分離観測用。表示・適用経路は本物を通る）
         seedBaseMapShifts: (shifts: Record<string, { x: number; y: number }>) => {
             baseMapShifts.value = { ...shifts };
         },
@@ -1378,7 +1378,7 @@ function onMapIDLiveInput(value: string): void {
     mapData.value.mapID = value;
 }
 
-// --- POIデータタブ配線 (Phase 8 Task 2, 43 ) ---
+// --- POIデータタブ配線  ---
 // 器は mapData.pois 配列 (無ければ undefined)。順番変更/上書き/解除/追加は
 // PoiReferenceEditor が配列ごと差し替えの update:pois で返す。書き込みは mapData の
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
@@ -1422,7 +1422,7 @@ const performRedo = async () => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質)
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     if (!(event.metaKey || event.ctrlKey)) return;
     const key = event.key.toLowerCase();
     if (key === 's') {
@@ -1447,7 +1447,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質)
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
     // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
     if (isEditableElement(document.activeElement)) return;
@@ -1804,7 +1804,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         
         const illst1 = illstSource.xy2SysCoord(gcp1[0]);
         const illst2 = illstSource.xy2SysCoord(gcp2[0]);
-        // : 対応線（編集中の図形）に縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 対応線（編集中の図形）に縁取りを付ける
         const style = haloLineStyles('red', 2);
 
         const mercCoords = [gcp1[1]];
@@ -2247,7 +2247,7 @@ const createContextMenu = (map: any) => {
 
     // P1 / P2 の間は地理面の右クリックが F0 / F1 / F2 のいずれよりも優先する。
     // GCP マーカー・対応線に命中した場合も 1 項目のみ ∴ フィーチャ判定より前に早期 return する
-    // （HR-4.6(f) / HR-4.7(g) の「のみ」）。地図面は で操作不可 ∴ 項目を出さない
+    // （要件の「のみ」）。地図面は位置合わせ中は操作不可 ∴ 項目を出さない
     if (alignPhase.value !== 'P0') {
       if (map !== mercMap) return;
       contextmenu.push({
@@ -2268,9 +2268,7 @@ const createContextMenu = (map: any) => {
     });
 
 
-     // フィーチャ命中時の項目構成の正本は
-     //
-     // の相別契約表である。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
+     // フィーチャ命中時の項目構成は、設計の相別契約表に従う。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
      // F1（対応線作図中）→ F2（対応点待機中）→ F0（通常）。F1 / F2 はフィーチャ種別を問わず 1 項目。
      if (feature) {
        const isLine = feature.getGeometry()?.getType() === 'LineString';
@@ -2623,7 +2621,7 @@ onMounted(async () => {
                 await loadEditorGoogleKey();
                 await loadBaseMapVisibility();
             })();
-            void loadBaseMapShifts();  // (HR-6): visibility と同じ site から並置で再読込
+            void loadBaseMapShifts();  // visibility と同じ site から並置で再読込
         }
         // v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
     });
@@ -2718,10 +2716,10 @@ const edgeModifyCondition = (e: any) => {
 const tinStyle = (feature: any) => {
     const type = feature.getGeometry()?.getType();
     if (type === 'Polygon') {
-        // : TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
+        // ui-map-overlay-proposal §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
         return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)', outline: false });
     } else if (type === 'LineString') {
-        // : 対対応線（編集中の図形）に縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 対対応線（編集中の図形）に縁取りを付ける
         return haloLineStyles('red', 2);
     }
     // Point: kinks（交差エラー点）を黄色ダイヤ型アイコンで表示
@@ -3017,7 +3015,7 @@ const initMaps = async () => {
     illstBoundsSource = illstBoundsVSrc;
     const illstBoundsLayer = new VectorLayer({
         source: illstBoundsVSrc,
-        // : 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        // ui-map-overlay-proposal §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
         style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     illstBoundsLayer.set('name', 'bounds');
@@ -3052,7 +3050,7 @@ const initMaps = async () => {
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
         condition: edgeModifyCondition,
-        // : 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
         style: editSketchStyleFunction('red')
     });
     illstEdgeModify.on('modifystart', edgeModifyStart);
@@ -3081,7 +3079,7 @@ const initMaps = async () => {
         ]),
         controls: mapOverlayControlDefaults(controlLabels).extend([
             // setSwitchableBaseMaps が renderPanel を呼ぶためインスタンスを保持する。
-            // : 今の選択の名前を札に出し、クリックで開く
+            // ui-map-overlay-proposal §5-4: 今の選択の名前を札に出し、クリックで開く
             (baseMapSwitcher = createBaseMapSwitcher({
                 tipLabel: t('mapedit.control_basemap'),
                 labelOf: currentBaseMapLabel
@@ -3095,7 +3093,7 @@ const initMaps = async () => {
     mercBoundsSource = mercBoundsVSrc;
     const mercBoundsLayer = new VectorLayer({
         source: mercBoundsVSrc,
-        // : 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        // ui-map-overlay-proposal §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
         style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     mercBoundsLayer.set('name', 'bounds');
@@ -3237,7 +3235,7 @@ const exchangeTileSource = async (): Promise<any> => {
         attr: mapData.value.attr,
         noload: true, // HistMap/HistMap_tin を直接生成するためのフラグ
         imageExtension: resolveImageExtension(mapData.value),
-        // t1 HR-3: thumbnail 未指定だと MaplatCore mixin が相対仮置き fetch を行う
+        // thumbnail 未指定だと MaplatCore mixin が相対仮置き fetch を行う
         // （file:// では dist/tmbs/ 宛に解決され必ず失敗）。絶対 URL / noImage を渡して通さない。
         // 同一性キー（tileIdentityKey）には含めない — 同一性は url_/width/height/imageExtension
         // で決まる現行契約を維持（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり・地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり・ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）
@@ -3253,7 +3251,7 @@ const exchangeTileSource = async (): Promise<any> => {
     }
     try {
         const source = await mapSourceFactory(options, {});
-        // : 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
+        // ui-map-overlay-proposal §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
         // （innerHTML で描かれるので escape する。applyIllstAttribution の注記）
         source.setAttributions?.(illstAttributions());
         illstSource = source;
@@ -3536,7 +3534,7 @@ const getBaseMapLayerCollection = (group?: any) => {
 };
 
 // C-4: シフトのソースへの適用は単一実装へ集約する。呼び出し元は
-// (1) setupBaseMaps 末尾（レイヤ再生成後） (2) 確定時（HR-4.8） (3) 相遷移時 のすべて。
+// (1) setupBaseMaps 末尾（レイヤ再生成後） (2) 確定時 (3) 相遷移時 のすべて。
 // P1/P2 では対象ベースマップの「実効値」だけを 0 にする。保持値 baseMapShifts は変えない
 const applyBaseMapShifts = (group?: any) => {
     const layers = getBaseMapLayerCollection(group);
@@ -3587,7 +3585,7 @@ const persistBaseMapShift = (baseMapID: string, shift: MercatorShift) => {
         .catch((e: any) => console.error('[persistBaseMapShift] Failed:', e));
 };
 
-// : ベースマップ切替候補の制御は title 退避 + renderPanel の単一機構に寄せる。
+// ベースマップ切替候補の制御は title 退避 + renderPanel の単一機構に寄せる。
 // ol-layerswitcher の renderLayers_ は if (l.get('title')) で偽値タイトルの層をスキップする
 // （dist/ol-layerswitcher.js:503 実測）∴ title を空にすればラジオごと消える。
 // disabled クラスは見た目にすぎず input を無効化しない（案 γ の却下理由）
@@ -3656,12 +3654,12 @@ const applySwitchableBaseMapsForPhase = () => {
         : { exclude: alignTargetMapID.value || '' });
 };
 
-// : 地図面の操作不可（HR-4.6(a) の literal な読み: パン・ズームも止める）。
+// 地図面の操作不可（要件の文字どおりの読み: パン・ズームも止める）。
 // 前例: PoiEditMap.vue の readOnly 処理（modify.setActive(false) + contextmenu.disable()）。
 // MapEdit.vue に setActive の既存呼び出しは無く illstMap の interaction はすべて既定 active
 // ∴ forEach(setActive(true)) で正しく戻る。
 // 呼び出し相（設計レビューで決めた形）: P0→P1 で無効化し、P2 でも解除せず、
-// P0 復帰（確定時）で再有効化する。HR-4.6(b) の逐語「完了まで」と
+// P0 復帰（確定時）で再有効化する。要件の逐語「完了まで」と
 // マイルストーンモード表（P2 の地図面 = 操作不可）に整合させた
 const setIllstMapInteractive = (on: boolean) => {
     if (!illstMap) return;
@@ -3671,8 +3669,8 @@ const setIllstMapInteractive = (on: boolean) => {
     }
 };
 
-// : 位置合わせマーカー。同じ alignKind の既存フィーチャを消してから置く
-// ∴ 常に最後の 1 点のみが残る（HR-4.6(g) / HR-4.7(h)）
+// 位置合わせマーカー。同じ alignKind の既存フィーチャを消してから置く
+// ∴ 常に最後の 1 点のみが残る
 const alignMarkerStyle = (kind: 'reference' | 'groundTruth') => {
     const color = kind === 'reference' ? '#1E64C8' : '#C81E1E';
     const svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20px" height="24px" viewBox="0 0 20 24" xml:space="preserve">
@@ -3710,7 +3708,7 @@ const selectAlignPoint = (coordinate: number[]) => {
     }
 };
 
-// ベースマップの可視レイヤをプログラム的に切り替える（HR-4.7(b) の OSM 強制と確定時の復帰に使う）。
+// ベースマップの可視レイヤをプログラム的に切り替える（OSM 強制と確定時の復帰に使う）。
 // setVisible は の change:visible 購読を発火させ currentBaseMapID が追随する
 const setVisibleBaseMapLayer = (mapID: string) => {
     const layers = getBaseMapLayerCollection();
@@ -3743,23 +3741,23 @@ const alignPhaseButtonDisabled = computed(() =>
     : alignPhase.value === 'P1' ? alignReferencePoint.value === null
     : alignGroundTruth.value === null);
 
-const startBasemapAlign = () => {                       // P0 → P1（HR-4.6）
+const startBasemapAlign = () => {                       // P0 → P1
     if (currentBaseMapID.value === 'osm') return;       // Q1: ボタン disabled と二重の防御
-    alignTargetMapID.value = currentBaseMapID.value;    // P0→P1 遷移で現在値を写す（HR-4.6(e)「その時のベースマップ」）
+    alignTargetMapID.value = currentBaseMapID.value;    // P0→P1 遷移で現在値を写す（「その時のベースマップ」）
     alignReferencePoint.value = null;
     alignGroundTruth.value = null;
     alignPhase.value = 'P1';
-    setIllstMapInteractive(false);                      // HR-4.6(a)
-    applySwitchableBaseMapsForPhase();                  // HR-4.6(c)
-    applyBaseMapShifts();                               // HR-4.6(e): 対象の実効値を 0 へ
+    setIllstMapInteractive(false);
+    applySwitchableBaseMapsForPhase();
+    applyBaseMapShifts();                               // 対象の実効値を 0 へ
 };
 
-const finishReferencePhase = () => {                    // P1 → P2（HR-4.7）
+const finishReferencePhase = () => {                    // P1 → P2
     if (alignReferencePoint.value === null) return;
     alignPhase.value = 'P2';
-    setVisibleBaseMapLayer('osm');                      // HR-4.7(b): osm は強制常時有効 ∴ 必ず存在する
-    applySwitchableBaseMapsForPhase();                  // HR-4.7(c): 対象以外へは切替可
-    applyBaseMapShifts();                               // HR-4.7(d): 非対象には保持値・対象は 0 のまま
+    setVisibleBaseMapLayer('osm');                      // osm は強制常時有効 ∴ 必ず存在する
+    applySwitchableBaseMapsForPhase();                  // 対象以外へは切替可
+    applyBaseMapShifts();                               // 非対象には保持値・対象は 0 のまま
 };
 
 // P1/P2 を離れて P0 へ戻る後始末の単一実装。
@@ -3773,11 +3771,11 @@ const leaveAlignEditPhases = (restoreMapID: string | null) => {
     setIllstMapInteractive(true);                       // P0 復帰で再有効化
     applySwitchableBaseMapsForPhase();
     if (restoreMapID) setVisibleBaseMapLayer(restoreMapID);  // 対象ベースマップへ表示を戻す（P2 の OSM から）
-    applyBaseMapShifts();                               // 保持値の実効値を反映（HR-4.8）
+    applyBaseMapShifts();                               // 保持値の実効値を反映
     alignTargetMapID.value = null;
 };
 
-const finishGroundTruthPhase = () => {                  // P2 → P0（確定。HR-4.8）
+const finishGroundTruthPhase = () => {                  // P2 → P0（確定）
     const reference = alignReferencePoint.value;
     const groundTruth = alignGroundTruth.value;
     const target = alignTargetMapID.value;
@@ -3786,7 +3784,7 @@ const finishGroundTruthPhase = () => {                  // P2 → P0（確定。
     const shift = computeMercatorShift(reference, groundTruth);
     baseMapShifts.value = applyShiftOverwrite(baseMapShifts.value, target, shift);
     leaveAlignEditPhases(target);
-    persistBaseMapShift(target, shift);                 // (HR-6): 確定で即時永続化（メモリが先・IPC は後）
+    persistBaseMapShift(target, shift);                 // 確定で即時永続化（メモリが先・IPC は後）
 };
 
 // 編集中（P1/P2）のキャンセル。基準点指定作業を終了して P0 へ戻るだけで、
@@ -3815,7 +3813,7 @@ const onAlignPhaseButton = () => {
 // 第 2 ボタン（相ボタンの一つ左隣）。P0 = リセット / P1・P2 = キャンセル（表が正本）
 const alignSecondButtonLabel = computed(() =>
     alignPhase.value === 'P0' ? t('mapedit.basemap_align_reset') : t('mapedit.basemap_align_cancel'));
-// HR-5.2: P0 では保持値 0,0（未登録含む）なら無効。HR-5.3: P1/P2 のキャンセルは常に押せる
+// P0 では保持値 0,0（未登録含む）なら無効。P1/P2 のキャンセルは常に押せる
 // （相ボタンが disabled でも独立して効く）
 const alignSecondButtonDisabled = computed(() => {
     if (alignPhase.value !== 'P0') return false;
@@ -3883,7 +3881,7 @@ const setupBaseMaps = async () => {
 
     if (baseMapVisibilityList.value.length === 0 && baseMapVisibilityMapRef()) {
         await loadBaseMapVisibility();
-        await loadBaseMapShifts();  // (HR-6): 入場時に編集環境ストアから保持値を読み込む（visibility と並置）
+        await loadBaseMapShifts();  // 入場時に編集環境ストアから保持値を読み込む（visibility と並置）
     }
 
     if (baseMapVisibilityList.value.length > 0) {
@@ -3977,7 +3975,7 @@ const setupBaseMaps = async () => {
                      maptype: 'base',
                      maxZoom: tms.maxZoom || 18,
                      minZoom: tms.minZoom || 0,
-                     // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+                     // thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
                      // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
                      thumbnail: await resolveSourceThumbnail(tms.mapID)
                  }, {});
@@ -3989,7 +3987,7 @@ const setupBaseMaps = async () => {
 
         if (!source) return null;
 
-        // : 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
+        // ui-map-overlay-proposal §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
         // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
         // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
         // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）。
@@ -4010,7 +4008,7 @@ const setupBaseMaps = async () => {
             },
             visible: tms.mapID === (currentBaseMapID.value || 'osm')
         });
-        // LayerSwitcher による切替を currentBaseMapID へ追随させる（HR-4.4）。
+        // LayerSwitcher による切替を currentBaseMapID へ追随させる。
         // これは currentBaseMapID の意味を「setupBaseMaps 時点の値」から「現在値」へ変える是正であり、
         // 既存の読み手 2 箇所（再構築時のフォールバック判定・初期 visible 判定）にも現在値のほうが正しい
         tileLayer.on('change:visible', () => {
@@ -4040,7 +4038,7 @@ const setupBaseMaps = async () => {
     mapLayers.setAt(0, layerGroup);
 
     // レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
-    // 再構築が起きると切替禁止（HR-4.6(c)/HR-4.7(c)）が解ける。相に応じて呼び直す
+    // 再構築が起きると切替禁止が解ける。相に応じて呼び直す
     applySwitchableBaseMapsForPhase();
     baseMapSwitcher?.refreshLabel();
 };
@@ -4252,10 +4250,10 @@ const saveMap = async (): Promise<boolean> => {
 };
 
 const saveMapAfterConfirm = async (): Promise<boolean> => {
-    // 2. 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断(D7)
+    // 2. 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) {
-        // 予約 conflict は operation 診断で保存中断(D7)
+        // 予約 conflict は operation 診断で保存中断
         saveOperationError.value = t('mapedit.error_duplicate_id');
         return false;
     }
@@ -4370,7 +4368,7 @@ const discardRestoredDraft = async () => {
     await draftLifecycle.discard();
     await reloadFromStore();
     // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
-    // 下書きに残す。）
+    // 下書きに残す）
     draftLifecycle.endDiscardGuard();
 };
 
@@ -4497,7 +4495,7 @@ const updateWholeGcps = (newGcps: any[]) => {
 // 旧実装: vueMap.$on('importMap') 相当
 // 有効条件: !dirty && status === 'New'
 const importMap = async () => {
-    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     modalShow('mapedit.image_uploading');
     const unsubscribe = window.mapedit.onProgress((progress) => {
@@ -4675,7 +4673,7 @@ const downloadSavedMap = async (): Promise<boolean> => {
 
 const exportMap = async () => {
     if (exporting.value || saving.value) return;
-    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     exporting.value = true;
     try {
@@ -4876,7 +4874,7 @@ async function onMercCreateNew(payload: { uid: string; slug: string; title: stri
 // 旧実装: vueMap.$on('uploadCsv') 相当
 // 休眠パネル専用（削除禁止・あとで再編予定）
 const uploadCsv = async () => {
-    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+    // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     if (gcps.value.length > 0) {
         const confirm = await (window as any).dialog.showMessageBox({
@@ -4966,7 +4964,7 @@ const goBack = async () => {
                                    data-testid="map-export-option-originals" v-model="mapExportOptions.originals" />
                             <label class="form-check-label" for="mapExportOptionOriginals">{{ t('mapedit.export_option_originals') }}</label>
                             <ContextHelp class="ms-1" :text="t('mapedit.export_option_originals_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.export_option_originals') })" data-testid="map-export-option-originals-help" />
-                            <!-- ui-grammar （U1）: ファイルサイズ・個人情報の注意は ? に入れず、選んだときに黄色の警告で常に見せる -->
+                            <!-- ui-grammar §2.4（U1）: ファイルサイズ・個人情報の注意は ? に入れず、選んだときに黄色の警告で常に見せる -->
                             <DiagnosticFeedback v-if="mapExportOptions.originals" scope="field"
                                                 :items="[{ key: 'export-originals', severity: 'warning', message: t('mapedit.export_option_originals_warning') }]"
                                                 data-testid="map-export-option-originals-warning" />
@@ -5040,7 +5038,7 @@ const goBack = async () => {
             @dismiss="edgeOperationError = null"
         />
 
-        <!-- 2. Tabs (/EditorTabs primitive + 語彙。gcpsEditReady の
+        <!-- 2. Tabs (EditorTabs primitive + 共通の語彙。gcpsEditReady の
              disabled/aria/tabindex は EditorTabs の disabled 機構が担う) -->
         <div class="px-4 mt-2">
             <EditorTabs
@@ -5298,7 +5296,7 @@ const goBack = async () => {
                             <!-- Function Select -->
                             <div class="col-md-2">
                                 <label class="small fw-bold mb-0">{{ t("mapedit.map_function_select") }}</label>
-                                <!-- HR-4.6(b): P1/P2 の間は完了まで他の機能に変わらないよう操作不可（P2 でも解除しない） -->
+                                <!-- P1/P2 の間は完了まで他の機能に変わらないよう操作不可（P2 でも解除しない） -->
                                 <select class="form-select form-select-sm" v-model="mappingUIRow" :disabled="alignPhase !== 'P0'">
                                     <option value="layer">{{ t("mapedit.edit_layer") }}</option>
                                     <option value="coordinate">{{ t("mapedit.edit_coordinate") }}</option>
@@ -5377,14 +5375,14 @@ const goBack = async () => {
                                          <input type="text" class="form-control form-control-sm" disabled :value="alignShiftDisplay.y" data-testid="mapedit-align-shift-y">
                                      </div>
                                      <div class="col-md-4"></div>
-                                     <!-- 第 2 ボタン（相ボタンの一つ左隣 = HR-5.1）。P0 はリセット（0,0 なら無効 = HR-5.2）、
-                                          P1/P2 はキャンセル（常に押せる = HR-5.3） -->
+                                     <!-- 第 2 ボタン（相ボタンの一つ左隣）。P0 はリセット（0,0 なら無効）、
+                                          P1/P2 はキャンセル（常に押せる） -->
                                      <div class="col-md-2">
                                          <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-second-button"
                                              :disabled="alignSecondButtonDisabled"
                                              @click="onAlignSecondButton">{{ alignSecondButtonLabel }}</button>
                                      </div>
-                                     <!-- バー右端の相ボタン（HR-4.5。文言は相で切替、対象 OSM のときは無効 = Q1） -->
+                                     <!-- バー右端の相ボタン（文言は相で切替、対象 OSM のときは無効） -->
                                      <div class="col-md-2">
                                          <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-phase-button"
                                              :disabled="alignPhaseButtonDisabled"
@@ -5497,7 +5495,7 @@ const goBack = async () => {
               「メルカトルタイル」タブへ分離・移設済み（地図からのタイル生成）。本ブロックが参照する i18n
               キー（public/locales/*/translation.json の dataio.* 全28キー・
               mapedit.export_map_data）も削除禁止（JSON側にコメント記載不可のため本注記が
-              唯一の防御線）。ユーザー向け文言は公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まりに
+              唯一の防御線）。ユーザー向け文言は、公開するパスを merc と呼ぶ決まり（エディタのコードは wmts の綴りを残す）に
               従いwmtsgenerate.*ではなくmerc.*を使う（新規mercタブの生成中モーダル・完了/エラー表示
               とも merc.* を参照）。wmtsgenerate.* 5キーはコードから参照されなくなったが、
               JSON定義自体は休眠保全の対象として削除しない。
@@ -5777,7 +5775,7 @@ const goBack = async () => {
             </div>
             </div>
 
-            <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の
+            <!-- Tab: POIデータ。器は mapData.pois 配列、履歴は mapData の
                  deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
             <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden" data-testid="map-pois-tab-pane">
                 <!-- 未対応形式の警告。機構 (DiagnosticFeedback + read-only) は AppEdit と

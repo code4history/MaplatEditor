@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<{
   // マスタ編集では「未設定」だが、アプリソース編集では「マスタに従う」を意味する。
   // 既定は現行のハードコード値と同一なので MapEdit / BaseMapEdit の表示は変わらない
   unsetLabelKey?: string;
-  // IR2-H-1: 空選択肢へ併記する実効値（例:「マスタに従う（ODbL）」）。
+  // 空選択肢へ併記する実効値（例:「マスタに従う（ODbL）」）。
   // ラベルキー側の {{value}} へ差し込む。補間を持たないキー（mapedit.license_unset）では
   // i18next が余分な引数を無視するため、既定の呼び出し側は影響を受けない
   unsetLabelValue?: string;

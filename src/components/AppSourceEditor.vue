@@ -15,7 +15,7 @@
 // url の上書き欄は で撤去済みで、その旨の注記（appedit.source_url_master_note /
 // data-testid="app-source-url-note"）が残っていたが、**人間の指示により削除した**。
 // 上書き欄がすべて消えた画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
-// 代替の説明は UI へ置かない。url がマスタ管理であることは ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり と 地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まりが正本である。
+// 代替の説明は UI へ置かない。url がマスタ管理であることは ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりと 地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まりが正本である。
 //
 // 提示モデルは「入力があればそれを指定、消せば既定＝マスタ値」。独立した「マスタに戻す」
 // ボタンは置かない。× は MapList/AppList の既存デザインを欄の種別ごとに踏襲する:
@@ -395,7 +395,7 @@ function copyCoverageToEnvelope() {
     <!-- builtin / tms: 共通のピンポイント設定 -->
     <div v-else class="row g-2 mt-1">
       <!-- 言語別テキスト欄と帰属・ライセンス欄。**配置順はマスタ編集フォーム（BaseMapEdit:175-250）
-           に揃える**: attr → dataAttr → license → licenseNote → dataLicense → dataLicenseNote。
+           に揃える**（設計の決定）: attr → dataAttr → license → licenseNote → dataLicense → dataLicenseNote。
            clearable = 検索バーと同じ native ×。空にする＝マスタへ戻る。
            アンカーは v-for で回さず**リテラルで書く**（の抽出は文字列リテラルを要求するため、
            動的バインドにすると照合から漏れる。設計レビュー round4 Info 1） -->

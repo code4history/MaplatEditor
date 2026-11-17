@@ -117,7 +117,7 @@ interface AppDocument {
   httpSettings: HttpSettings;
   appSettings: AppRuntimeSettings;
   manifestSettings: ManifestSettings;
-  // POI データ (43 ): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
+  // POI データ: {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
   // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。editor 正準形は配列のみ。
   // acceptDocumentPois が形式判定と受け入れ (温存を含む) を行い、保存形は pois 配列のみ。
   // 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
@@ -243,7 +243,7 @@ const currentLang = ref<LangCode>("ja");
 const selectEditorLanguage = (language: LangCode) => {
   currentLang.value = language;
 };
-// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり , Phase 4 Task 3)。
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // 以下の3値の正本は handle の ref に一本化する:
 //   uid(=appUid): 不変の正本キー。undefined = 未保存の新規アプリ
 //   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
@@ -252,7 +252,7 @@ const selectEditorLanguage = (language: LangCode) => {
 let pendingSave: { document: AppDocument } | null = null;
 let appSaveSucceeded = false;
 const saveHandle = useRevisionedAssetSave<AppSaveResult>({
-  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar）
+  // 保存を始めるときに前の通知を消す（前の成功と今回の失敗が並ばないように。ui-grammar §5.3）
   onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
@@ -277,7 +277,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
     appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
     // 保存の入口で UUID 名へ寄せた画像の参照を画面の文書へ反映する。
-    // 反映しないと画面が旧名を持ち続け、次の保存のたびに新しい複製ができる（の 2 回保存）
+    // 反映しないと画面が旧名を持ち続け、次の保存のたびに新しい複製ができる（2 回保存したとき）
     if (result.imageRefs?.splash) appData.value.appSettings.splash = result.imageRefs.splash;
     if (result.imageRefs?.iconSource) appData.value.manifestSettings.iconSource = result.imageRefs.iconSource;
     await hydrateSourceThumbnails();
@@ -1064,7 +1064,7 @@ async function saveApp(): Promise<boolean> {
     saveOperationError.value = t("appedit.no_appid");
     return false;
   }
-  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断(D7)。
+  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断。
   // registry 重複は backend の unique 制約(Exist)が最終防衛
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
@@ -1136,7 +1136,7 @@ async function discardRestoredDraft() {
   await draftLifecycle.discard();
   await reloadFromStore();
   // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
-  // 下書きに残す。）
+  // 下書きに残す）
   draftLifecycle.endDiscardGuard();
 }
 
@@ -1228,7 +1228,7 @@ const closeAppExportOptions = (value: { includeTiles: boolean } | null) => {
 
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
-  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar）
+  // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
   clearOperationNotice();
   // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
   // 小窓で取り消したら何もしない
@@ -1468,7 +1468,7 @@ function createPreviewDocument(): AppDocument {
   return document;
 }
 
-// --- POIデータタブ配線 (Phase 8 Task 2, 43 ) ---
+// --- POIデータタブ配線  ---
 // 真実の器は appData.pois 配列 1 つ。順番変更/上書き/解除/追加は PoiReferenceEditor が
 // 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う。
 // 冒頭のガードは MapEdit と同一形。read-only は UI の入口を閉じるだけなので、
@@ -1912,7 +1912,7 @@ function onPoisChange(next: unknown[]) {
         </template>
       </ResourceSelector>
 
-      <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
+      <!-- Tab: POIデータ。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
       <!-- NOTE: v-show を d-flex と同じ div に置くと Bootstrap の display:flex!important に負けて
            v-show が効かず、後続タブ(プレビュー)を覆い隠す (MapEdit settings と同じ罠、2026-07-12)。

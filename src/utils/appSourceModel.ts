@@ -653,7 +653,7 @@ export function composeViewerSource(
       };
       // 畳み込みの基準は**アプリ文書の既定言語**（options.lang）である。
       // マスタの lang へフォールバックしてはならない — アプリ JSON の交換形の平文は
-      // 「アプリ文書の既定言語の値」を意味するため（設定ファイル側の基準とは別物。）。
+      // 「アプリ文書の既定言語の値」を意味するため（設定ファイル側の基準とは別物）。
       const compact = compactLangObject(merged, options.lang);
       if (compact !== undefined) out[key] = compact;
       continue;
@@ -698,14 +698,14 @@ export function composeBaseMapSettingFile(
     else data[key] = compact;
   }
 
-  // : 上から順に評価し、最初に成立した行を採る（provider は role より優先）
+  // 上から順に評価し、最初に成立した行を採る（provider は role より優先）
   const maptype = isProviderKind(kind)
     ? String(masterData.maptype ?? "base")
     : role === "overlay"
       ? "overlay"
       : "base";
 
-  // : kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
+  // kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
   // provider は url を出さない（source_ex.ts:221-224 が削除するため）。
   if (isProviderKind(kind)) {
     delete data.url;

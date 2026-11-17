@@ -37,5 +37,5 @@ export const DATA_LICENSE_OPTIONS: readonly LicenseOption[] = LICENSE_VOCABULARY
   (option) => option.forData,
 );
 
-/** アイコンを持たない語彙の保存値 (Custom)。ビューアではアイコン無しで Note 文章だけを出す () */
+/** アイコンを持たない語彙の保存値 (Custom)。ビューアではアイコン無しで Note 文章だけを出す */
 export const LICENSE_WITHOUT_ICON = "Custom";

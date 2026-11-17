@@ -66,7 +66,7 @@ export async function createOverlayBaseMaps(
               maptype: 'base',
               maxZoom: tms.maxZoom || 18,
               minZoom: tms.minZoom || 0,
-              // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+              // thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
               // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
               thumbnail: await resolveSourceThumbnail(tms.mapID),
             },
@@ -79,7 +79,7 @@ export async function createOverlayBaseMaps(
       }
       if (!source) return null;
       const meta = resolveBaseMapLayerMetadata(tms, lang);
-      // : 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
+      // ui-map-overlay-proposal §5-8: 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
       // 帰属表示とレイヤ名（title）はどちらも innerHTML で描かれるので escape して渡す
       source.setAttributions?.(textAttributions(meta.attr));
       return new TileLayer({

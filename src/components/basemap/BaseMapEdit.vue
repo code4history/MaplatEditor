@@ -1020,7 +1020,7 @@ async function save(): Promise<void> {
         return;
       }
     }
-    // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断(D7)。
+    // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断。
     // registry 重複は backend の unique 制約(Exist)が最終防衛。
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) { error.value = t("basemap.errors.id_duplicate"); return; }
@@ -1141,7 +1141,7 @@ const iconFileKey = () => document.value.uid;
 // 【不変条件 INV-T】document.thumbnail は常に 52px サムネイルの所在である。
 // 512px の所在は thumb512PathFor(document.thumbnail) からのみ導く。
 // 512px パスを thumbnail へ書くと (a) 派生が _512_512 になり、(b) 書き出しの uuid 一致から
-// 外れて viewer 出力へ uid 名が漏れる（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり の export 契約違反）。
+// 外れて viewer 出力へ uid 名が漏れる（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの export 契約違反）。
 
 // 規則 K: 置換の書き込みキーと拡張子は **document.thumbnail から**採る。
 // iconFileKey() から採ると、アイコン生成後に slug を変えた未保存文書でキーの出所が割れ、
@@ -1182,7 +1182,7 @@ const {
     });
   },
   disabledReason: () => t("basemap.errors.id_required"),
-  // : parity から意図的に逸脱する唯一の点。
+  // parity から意図的に逸脱する唯一の点。
   // ベースマップは thumbnail を文書属性として持つ（地図は uid 規約で暗黙）ため、52px の実体が
   // 無いまま thumbnail を tmbs/{key}.{ext} へ向けると一覧・書き出し・viewer のアイコンが空になる。
   // ∴ 規則 K が K2 に落ちる場合（または K1' / K1 でも実体が無い場合）は 52px の派生を強制する。
