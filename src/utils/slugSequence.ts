@@ -39,7 +39,7 @@ export function slugCandidate(base: string, n: number, opts?: SlugSequenceOption
 //
 // **反復規則の唯一の実装**。非同期ドライバ (findAvailableSlug) と同期ドライバ
 // (findAvailableSlugSync) がこれを共有する。上限・順序・打ち切り条件を2箇所へ書くと、
-// 片方だけを直す事故が起きる — それは 既存の変更が是正しようとしている状況そのものである。
+// 片方だけを直す事故が起きる — それは slug の規則の統一が是正しようとしている状況そのものである。
 export function* slugCandidates(base: string, opts?: SlugSequenceOptions): Generator<string> {
   const maxIndex = opts?.maxIndex ?? SEQUENCE_MAX_INDEX;
   for (let n = 1; n <= maxIndex; n++) yield slugCandidate(base, n, opts);

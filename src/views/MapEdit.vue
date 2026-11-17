@@ -207,7 +207,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、
         // identity を保存済み行の (uid, revision) へ再構成しないと、その後の編集が
         // 旧 draftUid で persist され、正式データと同一 slug のドラフトが取り残される。
-        // PoiEdit.vue の 既存の変更で確立した markSaved → rebase → flush パターンと同一。
+        // PoiEdit.vue で確立した markSaved → rebase → flush パターンと同一。
         draftLifecycle.rebase(result.uid, result.revision);
         await draftLifecycle.flush();
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
@@ -1355,7 +1355,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         seedBaseMapShifts: (shifts: Record<string, { x: number; y: number }>) => {
             baseMapShifts.value = { ...shifts };
         },
-        // / 既存の変更のレイヤ再構築駆動用
+        // レイヤ再構築駆動用
         refreshBaseMapLayers: () => refreshBaseMapLayers(),
     };
 }
@@ -3271,7 +3271,7 @@ const exchangeTileSource = async (): Promise<any> => {
 // url（交換形）→ url_（ランタイム専用）の再導出。
 //
 // なぜ main へ問い合わせるか: url が空のとき url_ はタイル実体から組み立てる
-// 必要があり、renderer に持ち込むと 既存の変更が1本化した deriveRuntimeTileUrl が3箇所目として
+// 必要があり、renderer に持ち込むと、URL の導出の統一で1本化した deriveRuntimeTileUrl が3箇所目として
 // 復活する。∴ 導出は main（mapedit:deriveRuntimeTileUrl）に閉じたまま呼ぶ。
 //
 // lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない
@@ -3660,7 +3660,7 @@ const applySwitchableBaseMapsForPhase = () => {
 // 前例: PoiEditMap.vue の readOnly 処理（modify.setActive(false) + contextmenu.disable()）。
 // MapEdit.vue に setActive の既存呼び出しは無く illstMap の interaction はすべて既定 active
 // ∴ forEach(setActive(true)) で正しく戻る。
-// 呼び出し相（既存の変更の決着）: P0→P1 で無効化し、P2 でも解除せず、
+// 呼び出し相（設計レビューで決めた形）: P0→P1 で無効化し、P2 でも解除せず、
 // P0 復帰（確定時）で再有効化する。HR-4.6(b) の逐語「完了まで」と
 // マイルストーンモード表（P2 の地図面 = 操作不可）に整合させた
 const setIllstMapInteractive = (on: boolean) => {
@@ -3764,7 +3764,7 @@ const finishReferencePhase = () => {                    // P1 → P2（HR-4.7）
 
 // P1/P2 を離れて P0 へ戻る後始末の単一実装。
 // 確定（finishGroundTruthPhase）とキャンセル（cancelBasemapAlign）の両方がこの 1 本を呼ぶ。
-// 内容は 既存の変更の finishGroundTruthPhase 後半（P0 復帰 8 要素）をそのまま関数抽出したもの
+// 内容は位置合わせモード導入時の finishGroundTruthPhase 後半（P0 復帰 8 要素）をそのまま関数抽出したもの
 const leaveAlignEditPhases = (restoreMapID: string | null) => {
     alignPhase.value = 'P0';
     clearAlignMarkers();                                // 両マーカーを消す
@@ -4028,7 +4028,7 @@ const setupBaseMaps = async () => {
         layers: validLayers
     });
 
-    // C-4: シフトの実効値を setAt より前に載せる（既存の変更の決着は
+    // シフトの実効値を setAt より前に載せる（設計レビューで決めた形は
     // の 注記側 = 「代入した後で setAt する」。差し替え初回の renderFrame が
     // 既に値の載ったソースを読むため、この経路は refresh() の revision 機構に依存しない。
     // レビュアー実測ではどちらの順でも同一同期ブロック内で renderFrame は挟まらないが、
@@ -4579,7 +4579,7 @@ const importMap = async () => {
             // 取り込んだ地図とは別に baseRevision:null の下書き（＝一覧に下書きカードとして出る）
             // が1件生まれていた。実測では取込完了の約1.8秒後に出現する。
             //
-            // 保存経路 (:174-183) が 既存の変更で確立した
+            // 保存経路 (:174-183) が保存後の後片付けの整理で確立した
             //   originalMapData 更新 → markHistorySaved → markSaved → rebase → flush
             // と同一手順を踏む。originalMapData は上で更新済みのため残り4つをここで行う。
             // markHistorySaved を省くと dirty が残り、rebase 後の identity で
@@ -4617,8 +4617,8 @@ const chooseMapExport = async (hasSaved: boolean) => {
 // previewSource()(strict throw あり)+download の2段呼び出しから、
 // strict-freeな新IPC mapedit:download-saved(mapRef) の単一呼び出しへ切替える。
 // tins組み立てロジックはserver側(MapPurposeService.downloadSavedMap())へ移管したため削除
-// （#113・HR-19）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
-// （選択を覚えない。HR-19「まずはこの形。改善は使ってから」）
+// （#113）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
+// （選択を覚えない。人間の判断「まずはこの形。改善は使ってから」）
 const mapExportOptionsVisible = ref(false);
 const mapExportOptions = ref<MapExportOptions>({ ...DEFAULT_MAP_EXPORT_OPTIONS });
 const mapExportOptionsSelectable = computed(() => hasAnyMapExportContent(mapExportOptions.value));
@@ -4825,7 +4825,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
 // （以前から転用を予定していた地図からのタイル生成に対応）。関数名(wmtsGenerate)は維持し、呼び出し元の
 // ボタンのみ休眠inoutタブから新規mercタブへ移設した。有効条件: wmtsEditReady
 // 「生成」ボタン押下時: 既存 merc マスタ(この地図由来)を window.baseMaps.list() のclient-side
-// フィルタで取得する(新規IPCなし。既存の変更の前例に倣う)。0件なら黙って新規作成、1件以上ならモーダルで選ばせる
+// フィルタで取得する(新規IPCなし。provider-followups の前例に倣う)。0件なら黙って新規作成、1件以上ならモーダルで選ばせる
 async function wmtsGenerate(): Promise<void> {
     if (!mapData.value.uid) return;
     const list = await window.baseMaps.list();
@@ -4936,7 +4936,7 @@ const goBack = async () => {
             :enable-close="modalEnableClose"
             @close="modalHide"
         />
-        <!-- （#113・HR-19）: 書き出す中身の選択。ビジー表示（z-index 1040）より前面の .modal（1055） -->
+        <!-- （#113）: 書き出す中身の選択。ビジー表示（z-index 1040）より前面の .modal（1055） -->
         <div v-if="mapExportOptionsVisible" class="modal show d-block" tabindex="-1" role="dialog" aria-modal="true"
              data-testid="map-export-options">
             <div class="modal-dialog modal-dialog-centered">

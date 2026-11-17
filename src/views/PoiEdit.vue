@@ -1386,7 +1386,7 @@ async function initializeEditor(): Promise<void> {
   } else {
     initializeEmptySession();
   }
-  // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（既存の変更と同型）
+  // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（slug の予約と同型）
   if (route.query.draftUid !== newPoiUid.value) {
     await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
   }

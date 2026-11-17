@@ -7,7 +7,7 @@
 //     ※ 正確名を持たない言語キーは旧 title で必須制約を満たす（移行時の一時措置であり、
 //        実行時の代替表示ではない。表示側にフォールバックは実装しない）
 //
-// ★不変条件（絶対・既存の変更で更新）: (A) unifyMapNameFields は「移行の写像」であって
+// ★不変条件（絶対・移行の一気通貫化で更新）: (A) unifyMapNameFields は「移行の写像」であって
 //   「正規化」ではない。呼んでよいのは **下記 adoptDeprecatedMapNames の 1 箇所だけ** である。
 //   そして adoptDeprecatedMapNames を呼んでよいのは、書き込み側の唯一の正規化点
 //   SqliteDataService.normalizeMapDocument の 1 箇所だけである。
@@ -36,7 +36,7 @@
 //   「廃止属性にのみ存在する言語キー」を持つ地図は無い）。
 //
 // ★写像は文書単位ではなく **言語キー単位** で取る（多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり の per-language 前提）。
-//   ベースマップ側の参照実装（SqliteDataService.normalizeLegacyBaseMapDocument。既存の変更で
+//   ベースマップ側の参照実装（SqliteDataService.normalizeLegacyBaseMapDocument。移行の一気通貫化で
 //   起動時 migration から取込側へ移設したもの）の whole-object 判定
 //   （Object.keys(label).length > 0 ? label : {...title}）は参照実装であって規範ではない。
 //   文書単位だと title={ja,en} / 正確名={ja} の地図で英語のタイトルが消える。
@@ -88,7 +88,7 @@ export function unifyMapNameFields<T extends Record<string, any>>(document: T): 
 }
 
 /**
- * (B) 取込境界での受容（既存の変更の「過去の正規形式の受容」の許容側）。
+ * (B) 取込境界での受容（「過去の正規形式は受け入れる」方針の許容側）。
  *
  * 廃止属性のキーが在るとき **だけ** (A) を適用し、無ければ何もしない（非破壊で返す）。
  * 0.7.0 が公開した交換形を 1.0.0 の語彙へ写すためのもので、1.0.0 のエディタが書き出す

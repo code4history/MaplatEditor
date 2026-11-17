@@ -1,4 +1,4 @@
-// （#113・HR-19）: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
+// （#113）: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
 //
 // main（electron/）と renderer（src/）の両方が import する唯一の窓口。
 // 既定値・正規化・目録の生成と読み取りをここに集め、二重の定義を作らない。
@@ -18,7 +18,7 @@ export interface AppExportOptions {
   includeTiles: boolean;
 }
 
-/** 地図の書き出しの既定。現行（既存の変更より前）と同じ中身＝タイルと JSON。原画像は選んだときだけ */
+/** 地図の書き出しの既定。書き出しの選択肢を入れる前と同じ中身＝タイルと JSON。原画像は選んだときだけ */
 export const DEFAULT_MAP_EXPORT_OPTIONS: Readonly<MapExportOptions> = Object.freeze({
   tiles: true,
   json: true,

@@ -635,7 +635,7 @@ async function save(): Promise<void> {
     // draftLifecycle cleanup は保存成功時常に実行（capturedVersion に関わらず）。
     // 旧 draftUid のドラフト削除（markSaved）→ 新 (uid, revision) へ identity 再構成（rebase）
     // → flush。保存中に別編集が入った場合 shouldPersist が true なので新 uid で persist される。
-    // PoiEdit.vue 既存の変更と同じ markSaved → rebase → flush パターン。
+    // PoiEdit.vue と同じ markSaved → rebase → flush パターン。
     await draftLifecycle.markSaved();
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
