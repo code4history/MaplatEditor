@@ -1,8 +1,8 @@
 # #138: app:// のローカル配信の封じ込めを realpath で判定する変更を、Windows の runner で確かめる。
 #
-# なぜ test.yml に job を足さないか: 既存の変更の判定 smoke（ci-judge-smoke.mjs）が test.yml の
-# job の集合を `['e2e','smoke']`・`runs-on: macos-26` に固定しており、job を足すとその case 5 の断言を 4 か所
-# 書き換えることになる（既存の変更が触る test.yml とも重なる）。∴ Windows の smoke だけを別の workflow に置く。
+# なぜ test.yml に job を足さないか: 判定器の smoke（ci-judge-smoke.mjs）が test.yml の
+# job の集合を `['e2e','smoke']`・`runs-on: macos-26` に固定しており、job を足すとその job の集合の断言を 4 か所
+# 書き換えることになる（並行の作業が触る test.yml とも重なる）。∴ Windows の smoke だけを別の workflow に置く。
 #
 # 依存は入れない（smoke は electron/utils/appScheme.ts と Node の組み込みだけを import する）∴ pnpm/action-setup を持たない。
 # `fsutil 8dot3name set` の失敗は step の失敗＝赤（8.3 名が得られないことを skip にしない。赤字はこの step で解く）。

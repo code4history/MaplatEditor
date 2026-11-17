@@ -29,12 +29,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'resolver-containment-containment-'));
-const entryFile = path.join(workDir, 'resolver-containment-containment-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'resolver-containment-'));
+const entryFile = path.join(workDir, 'resolver-containment-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'resolver-containment-containment-smoke.mjs');
+const bundledFile = path.join(outDir, 'resolver-containment-smoke.mjs');
 
 // ---- case 6 / case 7: ソース検査（バンドル前に実施する） -------------------
 {
@@ -337,7 +337,7 @@ try {
       rollupOptions: {
         external: ['jimp'],
         output: {
-          entryFileNames: 'resolver-containment-containment-smoke.mjs',
+          entryFileNames: 'resolver-containment-smoke.mjs',
           format: 'es',
         },
       },

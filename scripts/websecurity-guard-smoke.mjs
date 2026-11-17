@@ -51,15 +51,15 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
 
 // --- case 1 assert 3: 経路解決純関数の許可 / 拒否 ---
 {
-  const bundleRoots = ["/tmp/websecurity-guard-t2/dist", "/tmp/websecurity-guard-t2/public"];
+  const bundleRoots = ["/tmp/websecurity-guard/dist", "/tmp/websecurity-guard/public"];
   // 是正（実装レビュー Round 1）: localFileUrl が URL 化する置き場所は saveFolder だけでなく
   //   - draftTileRoot（userData/draft-tiles。下書き staging タイル）
   //   - tmpFolder/tiles（OS 一時ディレクトリ MaplatEditor 配下の tiles。後方互換 tmp タイル）
   // も含む。これらを正規の配信ルートとして許可し、それ以外は引き続き拒否する。
   // allowlist を広げすぎないため、tmpFolder 直下は「tiles サブディレクトリのみ」を許可する。
-  const saveFolder = "/tmp/websecurity-guard-t2/save";
-  const draftTileRoot = "/tmp/websecurity-guard-t2/userData/draft-tiles";
-  const tmpFolder = "/tmp/websecurity-guard-t2/temp/MaplatEditor";
+  const saveFolder = "/tmp/websecurity-guard/save";
+  const draftTileRoot = "/tmp/websecurity-guard/userData/draft-tiles";
+  const tmpFolder = "/tmp/websecurity-guard/temp/MaplatEditor";
   const tmpTilesRoot = path.join(tmpFolder, "tiles");
   const localRoots = [saveFolder, draftTileRoot, tmpTilesRoot];
   const roots = { bundleRoots, localRoots };
@@ -110,13 +110,13 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   );
   //   - draftTileRoot の兄弟 dir（境界判定）は許可しない
   assert.equal(
-    resolveAppUrl(localFileUrl("/tmp/websecurity-guard-t2/userData/draft-tiles-evil/x.png"), roots),
+    resolveAppUrl(localFileUrl("/tmp/websecurity-guard/userData/draft-tiles-evil/x.png"), roots),
     null,
     "draftTileRoot の兄弟 dir（draft-tiles-evil）は拒否されるべき",
   );
   //   - saveFolder の兄弟 dir（境界判定）は許可しない
   assert.equal(
-    resolveAppUrl(localFileUrl("/tmp/websecurity-guard-t2/save-evil/x.png"), roots),
+    resolveAppUrl(localFileUrl("/tmp/websecurity-guard/save-evil/x.png"), roots),
     null,
     "saveFolder の兄弟 dir（save-evil）は拒否されるべき",
   );
@@ -143,21 +143,21 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   // 旧実装（file-url ライブラリ + 手組み `/{z}/{x}/{y}.<ext>`）が生成した交換形 url の
   // file:// テンプレートを app://local へ補正する。テンプレートサフィックス {z}/{x}/{y} は
   // literal のまま残る（%7B に符号化されない）ことを assert する。
-  const legacy = migrateLegacyFileUrl("file:///tmp/websecurity-guard-t2/save/tiles/a/{z}/{x}/{y}.png");
+  const legacy = migrateLegacyFileUrl("file:///tmp/websecurity-guard/save/tiles/a/{z}/{x}/{y}.png");
   assert.equal(
     legacy,
     // ローカルリソースは renderer と同一 origin の app://bundle/__local へ（旧 app://local から変更）
-    "app://bundle/__local/tmp/websecurity-guard-t2/save/tiles/a/{z}/{x}/{y}.png",
+    "app://bundle/__local/tmp/websecurity-guard/save/tiles/a/{z}/{x}/{y}.png",
     "旧 file:// テンプレートは app://bundle/__local へ補正されるべき（{z}/{x}/{y} は literal のまま）",
   );
 
   // 補正後の app://local URL は resolveAppUrl で許可ルートとして解決できること
   const migrated = resolveAppUrl(legacy.replace("/{z}/{x}/{y}.png", "/0/0/0.png"), {
-    bundleRoots: ["/tmp/websecurity-guard-t2/dist", "/tmp/websecurity-guard-t2/public"],
-    localRoots: ["/tmp/websecurity-guard-t2/save", "/tmp/websecurity-guard-t2/userData/draft-tiles", "/tmp/websecurity-guard-t2/temp/MaplatEditor/tiles"],
+    bundleRoots: ["/tmp/websecurity-guard/dist", "/tmp/websecurity-guard/public"],
+    localRoots: ["/tmp/websecurity-guard/save", "/tmp/websecurity-guard/userData/draft-tiles", "/tmp/websecurity-guard/temp/MaplatEditor/tiles"],
   });
   assert.ok(migrated, "補正後の app://local タイル URL は許可ルートとして解決されるべき");
-  assert.equal(migrated.filePath, "/tmp/websecurity-guard-t2/save/tiles/a/0/0/0.png");
+  assert.equal(migrated.filePath, "/tmp/websecurity-guard/save/tiles/a/0/0/0.png");
 
   // http/https と新形 app://bundle/__local はそのまま（リモートタイル・補正済み URL を壊さない）。
   // 期の旧 app://local は同一 origin の新形へ写す

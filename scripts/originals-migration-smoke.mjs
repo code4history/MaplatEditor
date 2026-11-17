@@ -1,5 +1,5 @@
 // スモーク: slug originals → UUID originals の one-shot migration/report。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron スタブ + saveFolder=一時dir) で
+// originals-resolver-smoke と同じ sandbox 方式 (vite SSR ビルド + electron スタブ + saveFolder=一時dir) で
 // OriginalsMigrationService.runColdBoot/runManual と MigrationReportService.mergeAndWriteReport を
 // behavioral に検証する。runColdBoot/runManual は db: DatabaseSync を直接受け取る設計
 // (: getDb 再入禁止) のため、SqliteDataService/getDb は経由せず node:sqlite の

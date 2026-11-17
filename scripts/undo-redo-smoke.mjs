@@ -68,7 +68,7 @@ try {
   assert.match(flushCallback, /cancelPendingSnapshot\(\)/, 'C7 must take the pending origin');
   assert.match(flushCallback, /'\(flush\)'/, "C7 must tag its origin with '(flush)'");
   assert.doesNotMatch(flushCallback, /\bcatch\b/, 'C7 callback must not catch (the composable catches and reports)');
-  // === 復元時のタイルソース再構築（設計 v1.1）===
+  // === 復元時のタイルソース再構築===
   // case 5: restoreHistoryState の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
   {
     const body = mapEdit.match(/const restoreHistoryState = async[\s\S]*?\n\}\);/)?.[0] ?? '';

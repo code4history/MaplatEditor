@@ -5,11 +5,11 @@
 //        **計装した jpeg-js の実値**と突き合わせる（式の再実装で照合しない）
 //   case 2  decoderHeapMB が実 Electron main の実測と ±10% で一致する
 //   case 3  jpegDecodeBudget.ts が electron / electron-store / v8 のいずれも import しない
-//   case 4  JPEG でない入力・SOF 不能で null（例外を投げない）— 既存の変更から継承
+//   case 4  JPEG でない入力・SOF 不能で null（例外を投げない）— large-image-decode-limits から継承
 //   case 5  resolveDecodeSafety が heap_size_limit を実行時に読み、定数を焼き込んでいない
 //   case 6  実測トリガ級（470 MP 4:4:4）が maxResolutionMP を下回る。
 //        **機体依存 assert を書かない** — 期待値は heapSizeLimitMB から式で導出し、
-//        470 の追加 assert は heap >= 4096 の機体でのみ行う（設計 v1.1 Minor3）
+//        470 の追加 assert は heap >= 4096 の機体でのみ行う
 //
 // case 3 の担保方法: Phase A と同じく electron / electron-store のエイリアスを張らず
 // external のままバンドルする。間接参照があれば素の Node 実行で MODULE_NOT_FOUND になる。
@@ -27,7 +27,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'decode-safety-phase-a-phase-a-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'decode-safety-phase-a-'));
 const entryFile = path.join(workDir, 'phase-a.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'phase-a.mjs');
@@ -161,7 +161,7 @@ await writeFile(
       });
     }
 
-    // ---- case 4: JPEG でない入力（既存の変更から継承。新フィールド追加で壊れていないこと）
+    // ---- case 4: JPEG でない入力（large-image-decode-limits から継承。新フィールド追加で壊れていないこと）
     check('case 4-1 PNG バッファで null', async () => {
       assert.equal(estimateJpegDecodeBudget(await new Jimp({ width: 8, height: 8 }).getBuffer('image/png')), null);
     });

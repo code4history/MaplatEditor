@@ -169,7 +169,7 @@ await writeFile(
       assert.equal(c.maxMemoryUsageInMB, safety.maxMemoryMB);
       assert.equal(c.maxResolutionInMP, safety.maxResolutionMP);
     });
-    await check('case 15-c 下限は 既存の変更のまま（512 / 100）', () => {
+    await check('case 15-c 下限は以前のまま（512 / 100）', () => {
       SettingsService.set('jpegDecodeMaxMemoryMB', 256);
       SettingsService.set('jpegDecodeMaxResolutionMP', 50);
       const c = SettingsService.getJpegDecodeCaps();
@@ -183,7 +183,7 @@ await writeFile(
       assert.equal(c.maxMemoryUsageInMB, null);
       assert.equal(c.maxResolutionInMP, null);
     });
-    await check('case 15-e 非数値も「自動」へ落ちる（既存の変更は既定値へ落としていた）', () => {
+    await check('case 15-e 非数値も「自動」へ落ちる（以前は既定値へ落としていた）', () => {
       for (const bad of ['abc', {}, [], NaN, true]) {
         rawStore.set('jpegDecodeMaxMemoryMB', bad);
         assert.equal(SettingsService.getJpegDecodeCaps().maxMemoryUsageInMB, null,
@@ -306,7 +306,7 @@ await writeFile(
 
     // ================= case 8 / case 9 / case 10: 自動上限の実効 =====================
     {
-      // 会計量が 8192 MB（既存の変更の旧既定）を超える寸法を選ぶ。
+      // 会計量が 8192 MB（以前の既定）を超える寸法を選ぶ。
       // 4:4:4 = 22 B/px なので 8192 MB ≒ 390 MP。実デコードは重すぎるため、
       // 「デコードへ渡された値」を捕捉して検証する。
       const captured = [];

@@ -7,7 +7,7 @@
 //             変わるのは実装が正本へ寄ることだけである）
 //   case 12(c-1) 候補列が上限で止まる — 旧実装は上限を無視して base-101 を作っていた
 //   case 12(c-2) 空きが永久に見つからなくても **有限で終わる** — 旧実装は無限ループした
-//   case 7       地図 slug と POI ソース slug が独立に解決される。既存の変更の復元・補償は不変
+//   case 7       地図 slug と POI ソース slug が独立に解決される。POI 復元つき取り込みの復元・補償は不変
 //
 // 【旧実装の壊れ方は2段階である（実測）】
 // while に上限が無いため、(1) 通常は上限 100 を超えて base-101… を作り続け、
@@ -178,7 +178,7 @@ try {
 
       const after = await assetSlugs();
       assert.deepEqual(after, before,
-        'case 12(c-1): 失敗時に asset が残らないこと（既存の変更の補償が働く）実際: ' + JSON.stringify(after));
+        'case 12(c-1): 失敗時に asset が残らないこと（取り込みの補償が働く）実際: ' + JSON.stringify(after));
       // 上限を超えた候補が作られていないことを名指しで固定する
       assert.equal(after.includes(FULL + '-101'), false,
         'case 12(c-1): 上限を超えた候補（base-101）を作らないこと');
@@ -250,10 +250,10 @@ try {
       assert.equal(poiSlug, slugCandidate(NAME, 2),
         'case 7: POI ソース側だけが base-2 へ解決されること（実際: ' + poiSlug + '）');
 
-      // 既存の変更の復元契約が不変であること
+      // 取り込みの復元契約が不変であること
       assert.equal(r.mapData.pois.length, 1, 'case 7: pois の要素数が保存される');
       assert.ok(r.mapData.pois[0].poiUid, 'case 7: 管理下 POI として復元される');
-      console.log('ok case 7: 地図 slug と POI slug が独立に解決され、既存の変更の復元契約も不変');
+      console.log('ok case 7: 地図 slug と POI slug が独立に解決され、取り込みの復元契約も不変');
     }
 
     // =====================================================================

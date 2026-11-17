@@ -13,7 +13,7 @@
 //        のみ後始末で削除し、'wx' で開けなかった既存ファイル・symlink は削除しないこと
 //
 // 実行方法: node scripts/zip-residual-smoke.mjs（pnpm run は使わない。
-//   outer lock 汚染回避。既存の変更と同じ vite SSR ビルド + electron/electron-store スタブ方式）。
+//   outer lock 汚染回避。app-source-diff-model-smoke と同じ vite SSR ビルド + electron/electron-store スタブ方式）。
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -24,7 +24,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'zip-residual-residual-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'zip-residual-'));
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');
@@ -157,7 +157,7 @@ try {
     const { default: dataUploadService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/DataUploadService.ts'))});
     await SqliteDataService.getDb();
 
-    // 地図 ZIP の最小 fixture（既存の変更と同型）。
+    // 地図 ZIP の最小 fixture（map-import-slug-collision-smoke と同型）。
     const makeMapZip = (slug) => {
       const zip = new AdmZip();
       zip.addFile('maps/' + slug + '.json', Buffer.from(JSON.stringify({

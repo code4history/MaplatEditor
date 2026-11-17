@@ -235,7 +235,7 @@ try {
 
       // (1b) post-commit失敗(移動元は実在するがtiles/移動先の書込みが拒否される): DBコミット後の
       //     fs.move が失敗し、確定した uid/slug/revision 付きの Error が返る(D5: 再試行完遂
-      //     のための意図的設計。post-commit catch は 既存の変更で無変更・移動元不存在クラスの
+      //     のための意図的設計。post-commit catch は保存前の実在ガードの導入でも無変更・移動元不存在クラスの
       //     みが(1a)へ切り出された)。移動元(tmp)を実在させ保存前ガードを通過させたうえで、
       //     移動先 saveFolder/tiles を読み取り専用にして move の新規エントリ作成を物理的に
       //     拒否させる(fs.ensureDir(tileFolder) は既存ディレクトリの存在確認のみで書込み権限を

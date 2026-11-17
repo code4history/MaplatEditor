@@ -147,7 +147,7 @@ await section("[case 2] about.html の外出し（インライン script/style�
   assert.ok(existsSync(path.join(projectRoot, "public/about.css")), "public/about.css が無い");
 });
 
-await section("[case 7] handler: __local のスクリプト系 MIME は 403・__local の応答に nosniff（既存の変更の案 B）", async () => {
+await section("[case 7] handler: __local のスクリプト系 MIME は 403・__local の応答に nosniff（レビューで選んだ案 B）", async () => {
   assert.equal(appScheme.localResponseHeaders()["x-content-type-options"], "nosniff", "localResponseHeaders() に nosniff が無い");
   for (const f of ["evil.js", "evil.mjs", "EVIL2.JS"]) {
     const res = await get(L(f));
