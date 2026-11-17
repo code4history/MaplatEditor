@@ -1,4 +1,4 @@
-// （第 2 版）: app:// 移行でタイルが CORS 拒否され地図が表示されない退行の回帰 E2E と、
+// 第 2 版: app:// 移行でタイルが CORS 拒否され地図が表示されない退行の回帰 E2E と、
 // その是正が「renderer 以外の origin にローカルデータを読ませない」という app:// への移行の目的を壊していないことの否定テスト。
 //
 // 背景: app:// へ移行した時点の renderer は app://bundle、タイル等は app://local（host が違う ∴ 別 origin）。MaplatCore は
