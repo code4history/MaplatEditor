@@ -1,12 +1,12 @@
 /**
- * 署名ビルド CI/CD の受け入れ検査（設計 v1.1）
+ * 署名ビルド CI/CD の受け入れ検査
  *
  * case 1: build.yml が YAML として妥当 + secrets 参照が 契約表と1対1 + action の SHA ピン
  * case 3: release ガード（P3 スクリプト）の4ケース
  * case 4: eSigner / 公証 / Release が release=false で発火しない（ワークフロー式の静的検査）
  * case 5: latest.yml 再計算 + blockmap 再生成（P4 スクリプト）
  * case 6: 旧 WIN_CSC_LINK 参照が残存しない
- * t1/case 1: 証明書インポートは if: を持たない（push でも実行 — t1・2026-08-21 で 既存の変更の dispatch 限定を撤廃）
+ * t1/case 1: 証明書インポートは if: を持たない（push でも実行 — 2026-08-21 に以前の dispatch 限定を撤廃）
  * SAC（2026-10-03）: Windows は配布物の全 PE を electron-builder の署名フック（scripts/win-sign/win-sign.cjs）で
  *   署名する。esigner-codesign action（Setup.exe 2 本だけ）は撤去し、CodeSignTool を版とハッシュで固定して取得する
  */
@@ -30,7 +30,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 // ───────────────────────────────────────────────
 // case 3: リリースガード（workflow と同一実装を直接実行）
 //
-// 2軸モデル（人間決定 D6・2026-08-08）:
+// 2軸モデル（人間の決定・2026-08-08）:
 //   mode=verify … Mac 署名のみ / Win 署名なし / Release 作らない → 課金ゼロ → 全バージョン許可
 //   mode=full   … Mac 署名+公証 / Win eSigner 署名 / draft Release → 課金あり → rc 以降に限定
 // 「rc 以降」の定義: prerelease 識別子が rc 始まり（alpha/beta は拒否）、
@@ -92,7 +92,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   ng(run('sign-check', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }),
     'sign-check + win_signer=esigner → 拒否（課金の退路を検査用途に使わない）', /esigner/);
   // --- mode=full の win_signer（artifact-signing・esigner のどちらか。既定は artifact-signing）---
-  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }), 'full + esigner → 許可（J-7 の退路）');
+  ok(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'esigner' }), 'full + esigner → 許可（Artifact Signing が使えないときの退路）');
   ng(run('full', 'refs/heads/master', '1.2.0', { sha: SHA, version: '1.2.0', signer: 'bogus' }), 'full + 不正な win_signer → 拒否', /win_signer/);
   ng(run('nonsense', 'refs/heads/master', '1.2.0'), '未知の mode → 拒否', /mode/);
   ok(run('', 'refs/heads/master', '1.2.0'), 'push（mode が空）→ 制約なし');
@@ -187,7 +187,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.ok(!uses.some((u) => u.startsWith('SSLcom/esigner-codesign@')),
     'SAC: esigner-codesign action（Setup.exe だけを署名）を使わない（署名はフック経由で全 PE）');
 
-  // case 4: 課金・公証を伴う経路が mode=full のときだけ発火する（D6 の2軸モデル）
+  // case 4: 課金・公証を伴う経路が mode=full のときだけ発火する（2軸モデル）
   const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
 
   // case 10: 入力が mode / platforms の2軸（+ #104 の exact SHA 宣言 expected_editor_sha / expected_version）であり、既定が課金ゼロ側であること
@@ -195,12 +195,12 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   assert.deepEqual(
     Object.keys(inputs).sort(),
     ['expected_editor_sha', 'expected_version', 'mode', 'notarize', 'platforms', 'win_signer'],
-    'case 10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + 既存の変更の win_signer'
+    'case 10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + Windows の署名者の win_signer'
   );
   assert.equal(inputs.notarize.type, 'boolean', 'notarize は boolean 入力');
   assert.equal(inputs.notarize.required, false, 'notarize は任意');
   assert.equal(inputs.notarize.default, false, 'notarize の既定は false（公証なし）');
-  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'case 10: mode の選択肢（既存の変更で sign-check）');
+  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'case 10: mode の選択肢（sign-check は署名の確認用）');
   assert.deepEqual(inputs.win_signer.options, ['artifact-signing', 'esigner'], 'win_signer の選択肢');
   assert.equal(inputs.win_signer.default, 'artifact-signing', 'win_signer の既定は artifact-signing（定額）');
   assert.equal(inputs.mode.default, 'verify', 'case 10: mode の既定は課金ゼロ側（verify）');
@@ -355,7 +355,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const config = await readFile(path.join(projectRoot, 'electron-builder.config.cjs'), 'utf8');
   assert.ok(!config.includes('WIN_CSC_LINK'), 'case 6: electron-builder.config.cjs に WIN_CSC_LINK が残存しない');
   assert.ok(!config.includes('isWinSigning'), 'case 6: 未使用 isWinSigning が撤去されている');
-  assert.ok(existsSync(GUARD) && existsSync(RESIGN), 'P3/P4 スクリプトが実在する');
+  assert.ok(existsSync(GUARD) && existsSync(RESIGN), 'リリースの検査と更新メタデータの再署名のスクリプトが実在する');
   console.log('  [4/7] case 6 repo 側残存なし: PASS');
 }
 

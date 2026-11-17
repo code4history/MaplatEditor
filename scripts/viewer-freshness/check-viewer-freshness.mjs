@@ -1,5 +1,5 @@
 /**
- * （HR-26/4）: MaplatEditor が「新ビューアを出力」していることを検査する鮮度ガード。
+ * MaplatEditor が「新ビューアを出力」していることを検査する鮮度ガード。
  *
  * 設計: 2026-09-19-check-viewer-freshness-design.md ・。以下 4 つの入口を持つ。
  *
@@ -42,7 +42,7 @@ const OLD_V3 = 3;
 // 依存なし検査（node_modules 無し）では transform/tin/core の中身（weight_buffer / format_version）を
 // 検証できない。「新しさは中身で判定、版は整合性だけ」に合わせ、この分岐では版番号を
 // 新しさの根拠にしない（旧世代拒否は行わない）。版は整合性（解決版 1 種類・下限一致・依存辺一致）
-// の確認にだけ使い、依存の実体（node_modules）の中身の判定は依存導入後の完全検査で行う（FIX3）。
+// の確認にだけ使い、依存の実体（node_modules）の中身の判定は依存導入後の完全検査で行う。
 
 // Editor が地図保存で使う TIN 設定（electron/ipc/mapedit.ts:30 ほかと同一）
 const TIN_V2_OPTIONS = { useV2Algorithm: true };
@@ -262,7 +262,7 @@ function textSnapshotDep(lockText, pkg, resolvedVersion, depName) {
 
 /**
  * compiled の新旧判定。戻り値: 'old' | 'new' | 'invalid'。
- *   old     … version が無い・2.00703 以下・3（旧 V3）。weight_buffer は問わない（HR-26/2）。
+ *   old     … version が無い・2.00703 以下・3（旧 V3）。weight_buffer は問わない。
  *   new     … 2.00704 / 3.00001 かつ weight_buffer が {}（空）。
  *   invalid … どちらでもない（2.00704 なのに重みあり、3.00001 超の未知版、等）。
  */
@@ -595,7 +595,7 @@ function depsAvailableForAuto(root) {
  * （public/preview/maplat_ui.umd.js）の中身だけなので、それを早期ガードとして検査する。
  * package.json（4 パッケージ宣言）と pnpm-lock.yaml（解決版・依存辺）はテキストで読み、
  * 版は整合性の確認（解決版 1 種類・下限一致・依存辺一致）にだけ使う（「新しさは中身で
- * 判定、版は整合性だけ」）。「解決版 > 1.0.0」を新しさの根拠にしない（FIX3）。依存の実体
+ * 判定、版は整合性だけ」）。「解決版 > 1.0.0」を新しさの根拠にしない。依存の実体
  * （node_modules）の中身の判定は依存導入後の完全検査（build ジョブの step）で行う。
  * 読めない・見つからない場合は該当 detail を不合格にする（fail-closed。enforce なら exit 1）。
  */
@@ -999,7 +999,7 @@ async function runSelfTest() {
   ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/core', '1.1.0-rc.0', '@maplat/transform') === '1.1.0-rc.0', 'lock テキスト: core→transform の辺（peer 付きキー）');
   ok(textSnapshotDep(NEW_LOCK_TEXT, '@maplat/ui', '1.1.0-rc.0', '@maplat/core') === '1.1.0-rc.0(mapbox-gl@3.0.0)', 'lock テキスト: ui→core の辺');
 
-  // --- 依存なし検査（evaluateDependencyFreeFacts）の向き（FIX3: 版は整合性だけ。新しさを版で判定しない）---
+  // --- 依存なし検査（evaluateDependencyFreeFacts）の向き（版は整合性だけ。新しさを版で判定しない）---
   const NEW_PKG = { dependencies: { '@maplat/transform': '^1.1.0-rc.0', '@maplat/tin': '^1.1.0-rc.0', '@maplat/core': '^1.1.0-rc.0', '@maplat/ui': '^1.1.0-rc.0' } };
   const OLD_PKG = { dependencies: { '@maplat/transform': '^1.0.0', '@maplat/tin': '^1.0.0', '@maplat/core': '^1.0.0', '@maplat/ui': '^1.0.0' } };
   const NEW_PREVIEW = '/* maplat viewer */ 2.00704';
@@ -1019,7 +1019,7 @@ async function runSelfTest() {
   ok(evaluateDependencyFreeFacts({ pkg: { dependencies: {} }, lockText: NEW_LOCK_TEXT, previewJs: NEW_PREVIEW }).failed === true,
     '依存なし: 4 パッケージの宣言なし → 不合格（fail-closed）');
 
-  // --- FIX3: 二段の形 — 依存なし分岐は通してよいが、依存ありの完全検査が旧い依存実体を止める ---
+  // --- 二段の形 — 依存なし分岐は通してよいが、依存ありの完全検査が旧い依存実体を止める ---
   {
     const stale = clone(); // PASS（版・依存辺・preview は整合）を 1.1 系へ合わせ、依存の実体だけ旧いままにする
     stale.specifiers = { transform: '^1.1.0-rc.0', tin: '^1.1.0-rc.0', core: '^1.1.0-rc.0', ui: '^1.1.0-rc.0' };
@@ -1096,7 +1096,7 @@ async function main() {
   // prepare 相当（node_modules 無し）: 依存なしで確かめられるのは同梱ビューア public/preview の中身
   // だけ。package.json（4 パッケージの宣言）と pnpm-lock.yaml（解決版・依存辺）をテキストで読み、
   // 版は整合性の確認（解決版 1 種類・下限一致・依存辺一致）にだけ使い、同梱ビューアを直接検査する
-  // （fail-closed）。「解決版 > 1.0.0」を新しさの根拠にしない（FIX3 の是正）。依存の実体
+  // （fail-closed）。「解決版 > 1.0.0」を新しさの根拠にしない。依存の実体
   // （node_modules）の中身の判定は依存導入後の完全検査で行う。js-yaml / node_modules は使わない。
   // 公開済みの版（warn）は結果を出すだけ exit 0、未公開の版（enforce）は版の整合性違反・宣言欠落・
   // 旧ビューア同梱で exit 1。

@@ -131,7 +131,7 @@ try {
 
       // 同梱リソース（basemap_icons/）の解決基点を明示する。
       // electron/utils/resourceAssets.ts は APP_ROOT が無いと bundle の __dirname から
-      // 相対で探すため、outDir 名に依存した偶然の解決になる（既存の変更の harness は outDir が
+      // 相対で探すため、outDir 名に依存した偶然の解決になる（edge-split-smoke の harness は outDir が
       // 'dist' で vite が publicDir を複製するため偶然通っている）。ここでは明示して固定する
       // （前例: 既存の各 smoke が同じ形で設定している）。
       process.env.APP_ROOT = ${JSON.stringify(projectRoot)};
@@ -168,7 +168,7 @@ try {
         dataLicense: '',
         licenseNote: {},
         dataLicenseNote: {},
-        // merc は url を保存しない（読み込み時は常に空文字。既存の変更の不変条件）
+        // merc は url を保存しない（読み込み時は常に空文字。merc-tile-set の不変条件）
         url: kind === 'merc' ? '' : 'https://example.invalid/{z}/{x}/{y}.png',
         minZoom: 12,
         maxZoom: 16,

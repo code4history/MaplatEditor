@@ -102,7 +102,7 @@ const {
   assert.equal(baseMapProviderKindOf(null), null);
   assert.equal(baseMapProviderKindOf(undefined), null);
 
-  // 従来述語の意味は変えない（既存の変更の case 6 と同一の期待値）。
+  // 従来述語の意味は変えない（mapbox-maplibre-smoke と同一の期待値）。
   // なお既存述語は maptype を種別名として見るため旧保存形の `google_roadmap` は拾わない。
   // 既存述語は変更しないので、この穴は新しい述語側で塞ぐ（MINOR a）
   assert.equal(isProviderBaseMapData({ kind: "google" }), true);

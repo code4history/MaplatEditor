@@ -14,7 +14,7 @@ import { build } from 'vite';
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'app-source-diff-model-diff-model-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'app-source-diff-model-'));
 const outDir = path.join(workDir, 'dist');
 const read = async (rel) => await readFile(path.join(projectRoot, rel), 'utf8');
 
@@ -350,7 +350,7 @@ try {
     console.log('ok: case 5 交換形のゆれ吸収');
   }
   {
-    // 既存の変更が data.baseMapUid に置いた merc の参照はトップレベルへ昇格する
+    // メルカトルタイルの生成が data.baseMapUid に置いた merc の参照はトップレベルへ昇格する
     const legacyMerc = {
       sourceType: 'tms', mapUid: 'merc-nobeoka', role: 'base',
       data: { mapID: 'merc-nobeoka', kind: 'merc', baseMapUid: 'uid-merc', url: 'merc/merc-nobeoka/{z}/{x}/{y}.png' },
@@ -437,7 +437,7 @@ try {
   }
 
   // ============ case 1: 宣言テーブルが凍結契約と一致する ============
-  // v1.4 の 11 キーは 既存の変更で `label` 1 個へ縮んだ。アプリ文書がベースマップマスタに対して
+  // 以前の 11 キーは `label` 1 個へ縮んだ。アプリ文書がベースマップマスタに対して
   // 持てる上書きは表示ラベルだけであり、帰属・ライセンス・ズーム・サムネイルはマスタが正本。
   {
     assert.deepEqual(

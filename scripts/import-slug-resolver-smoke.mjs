@@ -76,7 +76,7 @@ console.log('ok case 1(b): 4経路（＋経路5）が共有 API を呼ぶ');
 // ---- case 1(d): 契約の実挙動 ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'import-slug-resolver-resolver-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'import-slug-resolver-'));
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');

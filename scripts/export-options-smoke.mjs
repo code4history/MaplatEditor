@@ -442,8 +442,8 @@ try {
     }
 
     // ===================================================================
-    // (f) 11 言語に 9 キー（ui-grammar でオリジナル画像の説明と注意を分けた。既存の変更でタイルの説明 export_option_tiles_help を追加。
-    //     既存の変更でアプリの書き出しが小窓へ移り、appedit.export_exclude_tiles は無くなった）
+    // (f) 11 言語に 9 キー（ui-grammar でオリジナル画像の説明と注意を分けた。書き出しの文言の見直しでタイルの説明 export_option_tiles_help を追加。
+    //     アプリの書き出しが小窓へ移り、appedit.export_exclude_tiles は無くなった）
     // ===================================================================
     {
       const KEYS = [
@@ -498,7 +498,7 @@ try {
     const data = JSON.parse(line.slice('BASELINE_JSON='.length));
     await mkdir(path.dirname(baselineFile), { recursive: true });
     await writeFile(baselineFile, JSON.stringify({
-      note: 'nov26-m6-t8 (b): 変更前の master で --write-baseline により生成した、既定の地図の書き出し物のエントリと SHA-256。手で書き換えない',
+      note: '書き出しの選択肢 (b): 書き出しの選択肢を入れる前の master で --write-baseline により生成した、既定の地図の書き出し物のエントリと SHA-256。手で書き換えない',
       entries: data.entries,
     }, null, 2) + '\n');
     console.log('baseline written: ' + path.relative(projectRoot, baselineFile) + ' (' + Object.keys(data.entries).length + ' entries)');

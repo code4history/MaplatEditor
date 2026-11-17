@@ -16,7 +16,7 @@
 //   (d) new AdmZip を呼ぶ取り込みの関数（4 か所）が、どれも new AdmZip の前に assertZipImportable を呼ぶ（ソース）
 //   (e) 11 言語に新しい 2 キーがある
 //
-// 実行方法: node scripts/zip-entry-limit-smoke.mjs（既存の変更と同じ vite SSR ビルド＋
+// 実行方法: node scripts/zip-entry-limit-smoke.mjs（zip-errors-smoke と同じ vite SSR ビルド＋
 // electron／electron-store のスタブ方式）。作業場所は .tmp-smoke/ の下に作り、終わりに消す。
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';

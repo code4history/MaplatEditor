@@ -263,7 +263,7 @@ try {
         'preview app JSON: {poiUid} 参照は pois/<slug>.geojson への参照になるはず ');
       const previewFcA = await (await fetch(prepared.url + 'pois/kyoto-poi.geojson')).json();
       assertResolvedFc(previewFcA, 'preview pois/kyoto-poi.geojson');
-      // ② 生 URL は {layer:URL} へ包まれ、生 FC も外部化される（既存の変更の E2/E3 と同じ規則）
+      // ② 生 URL は {layer:URL} へ包まれ、生 FC も外部化される（export-pois-externalization の E2/E3 と同じ規則）
       assert.deepEqual(appJson.pois[1], { layer: rawUrl },
         'preview app JSON: 生 URL は {layer:URL} へ包まれるはず');
       assert.deepEqual(appJson.pois[2], { layer: 'pois/embedded-raw.geojson' },
@@ -284,7 +284,7 @@ try {
         'preview HTML の viewerOption に enableMarkerList: true が載るはず'
       );
 
-      // ② 要素数（生 URL / 生 FC の扱いは上の ①② で assert 済み。既存の変更で参照形になった）
+      // ② 要素数（生 URL / 生 FC の扱いは上の ①② で assert 済み。preview も参照形になった）
       assert.equal(appJson.pois.length, 3, 'missing 参照が落ちて 3 要素のはず');
 
       // ②' 配信 app JSON の pois 配列順は document の定義順 (エディタ POIデータタブの並び順) を保持
@@ -372,7 +372,7 @@ try {
       const exportDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract');
       new AdmZip(exported.outDir).extractAllTo(exportDir, true);
       // export の pois は **外部ファイル + URL 参照** になった (preview は従来どおり
-      // インライン展開のまま = 既存の変更の責務)。∴ 解決済み FC の中身は外部ファイル側で検証する
+      // インライン展開のまま = preview-pois-parity の責務)。∴ 解決済み FC の中身は外部ファイル側で検証する
       const exportedAppJson = JSON.parse(
         await fsReadFile(nodePath.join(exportDir, 'apps', 'poi_ref_app.json'), 'utf8')
       );
@@ -637,7 +637,7 @@ try {
         // 以降、上書きは FC へ焼き込まれず**参照側 (wrapper)** に載る (G2)。
         assert.equal(ac174Json.pois[0].layer, 'pois/ac174-poi.geojson');
         assert.equal(ac174Json.pois[0].icon, 'imgs/icons/builtin/defaultpin.png',
-          'case 17-4: entry の icon が wrapper に載り imgs/ へ解決されるはず (既存の変更の上書き移設)');
+          'case 17-4: entry の icon が wrapper に載り imgs/ へ解決されるはず (書き出しでの上書き移設)');
         // 外部ファイル側にはソース本来の layer icon (asset UUID) が解決された値が残る
         // = 上書きが焼き込まれていないことの対偶
         const ac174Fc = await (await fetch(ac174Prepared.url + 'pois/ac174-poi.geojson')).json();

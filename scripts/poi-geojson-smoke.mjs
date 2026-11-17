@@ -1,6 +1,6 @@
 // src/utils/poiGeoJson.ts (POI GeoJSON 純関数, renderer/main 共用) のスモーク。
 // 検証コード・旧POI正規化・表示ID採番・_maplatUid注入/剥離・export形往復を検証する。
-// 既存の変更の vite-bundle-single-module 方式に倣う(electron スタブ不要の純モジュール)。
+// asset-identity-smoke の vite-bundle-single-module 方式に倣う(electron スタブ不要の純モジュール)。
 import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';

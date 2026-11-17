@@ -4,7 +4,7 @@
 //   書き出した zip のスプラッシュ・app JSON の splash・og:image に内部名（UUID）が出ず、`{appID}_splash.{ext}` である。
 //   名前は 1 箇所の関数 exportedSplashName で導く（3 箇所で組み立てない）。
 //
-// harness は 既存の変更と同型（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
+// harness は basemap-thumbnail-512-smoke と同型（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';

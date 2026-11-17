@@ -78,7 +78,7 @@ try {
     kind: "tms",
     slug: "valid-slug",
     title: { ja: "T" },
-    // 既存の変更が attr 必須化したためテストデータにも設定（両方残すのマージ対応）
+    // attr が必須になったためテストデータにも設定（両方残すのマージ対応）
     attr: { ja: "© Ex" },
     url: "https://x/{z}/{x}/{y}.png",
   };
@@ -94,7 +94,7 @@ try {
   assert.equal(tmsMissingUrl.errors.includes("kind-required"), false, "case 2: tms は kind-required を出さない");
   assert.equal(tmsMissingUrl.errors.includes("provider-incomplete"), false, "case 2: tms は provider-incomplete を出さない");
 
-  // mapbox/maplibre → style-required（style 空）。google は 既存の変更で maptype-required へ移行済み
+  // mapbox/maplibre → style-required（style 空）。google は maptype-required へ移行済み
   for (const pk of ["mapbox", "maplibre"]) {
     const doc = { ...tmsDoc, kind: pk, url: "", style: null };
     const v = validateBaseMapDocument(doc);
@@ -134,7 +134,7 @@ try {
   const savedNull = toBaseMapSavePayload({ ...newBaseMapDocument(uid, "ja"), slug: "s", title: { ja: "T" } }, null);
   assert.equal(savedNull.tms.kind, "tms", "case 11: kind null は保存時 \"tms\" へ正規化");
 
-  // ---- case 5 / case 6: kind が viewer へ漏れないこと（既存の変更で境界が移動）----
+  // ---- case 5 / case 6: kind が viewer へ漏れないこと（アプリのソースの差分モデルで境界が移動）----
   // maptype はアプリ JSON ではなく設定ファイル側が持つようになった。
   // kind はどちらにも出てはならない、という case 6 の趣旨は不変なので、両方の出力で検査する。
   const kindCases = [
@@ -154,7 +154,7 @@ try {
     const out = composeViewerSource(normalized, { lookup });
     assert.equal(canonical(out.mapID), canonical("t1"), `case 5(${label}): mapID=t1`);
     assert.equal(out.settingFile, "maps/t1.json", `case 5(${label}): 設定ファイル参照を出す`);
-    assert.equal("maptype" in out, false, `case 5(${label}): 既存の変更でアプリ JSON に maptype は出さない`);
+    assert.equal("maptype" in out, false, `case 5(${label}): アプリ JSON に maptype は出さない`);
     assert.equal("kind" in out, false, `case 6(${label}): kind はアプリ JSON に出ない`);
 
     const settingFile = composeBaseMapSettingFile(master, normalized.role);
@@ -194,7 +194,7 @@ try {
   const googleLookup = createBaseMapMasterLookup([masterGoogle]);
   const appSource = createAppSourceFromBaseMap(masterGoogle, "ja");
   assert.equal(appSource.baseMapUid, "uid-google-master", "case 13: 参照（baseMapUid）を持つ");
-  assert.deepEqual(appSource.overrides ?? {}, {}, "case 13: 既存の変更では全コピーせず上書きは空");
+  assert.deepEqual(appSource.overrides ?? {}, {}, "case 13: 差分モデルでは全コピーせず上書きは空");
   const composedAppSource = composeViewerSource(appSource, { lookup: googleLookup });
   assert.equal("kind" in composedAppSource, false, "case 13: kind は出力に出ない");
   assert.equal(

@@ -3,7 +3,7 @@
 // 担当 AC:
 //   case 3  是正が共有ライブラリ側 1 箇所であること（呼び出し側 2 画面に幅・折り返しの実装が無い）
 //        ※ 機械検証コマンド（git diff --name-only）は実行不能だったため本検査へ移した
-//           （タスク既存の変更の閉じ方）
+//           （設計レビューで決めた閉じ方）
 //   case 4  フィーチャ命中分岐が F1 → F2 → F0 の順であり、F1 / F2 が 1 項目であること
 //   case 5a キャンセル処理が面非依存の共通実装 1 本（cancelPendingNewGcp）であり、
 //        3 経路がすべて同じ関数を呼ぶ。面依存の getSource('marker') 引きが残っていない
@@ -201,7 +201,7 @@ try {
   // F1 / F2 では出さない
   assert.ok(
     idxPairing > idxF2,
-    '対応マーカー表示が F0 より前（F1 / F2 の相）に置かれている（既存の変更の決着）',
+    '対応マーカー表示が F0 より前（F1 / F2 の相）に置かれている（レビューで決めた配置）',
   );
 
   assert.equal(countOf(mapEdit, 'const pairingMarker = ('), 1, 'pairingMarker の定義が 1 本でない');
@@ -383,7 +383,7 @@ try {
     });
     return failures;
   };
-  assert.deepEqual(probeFailures(sourceMethods), [], '既存の変更の DOM 欠落/通常経路');
+  assert.deepEqual(probeFailures(sourceMethods), [], 'メソッドの欠落時の DOM 欠落/通常経路');
 
   // guard を source ではなくメモリだけで外し、各検査が元の TypeError を検出することを示す。
   const mutations = [

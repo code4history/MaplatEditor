@@ -226,7 +226,7 @@ try {
       // 置き換えただけになる（PROBE-3 却下と同じ落とし穴）。
       //
       // あわせて、衝突時に生成される slug が **正本の '-' 始まり規則**に従うことを検証する
-      // （既存の変更の規則統一の seed 経路での end-to-end 検証 = case 5）。
+      // （slug の規則統一の seed 経路での end-to-end 検証 = case 5）。
       {
         const collideFolder = ${JSON.stringify(path.join(workDir, 'part-b2-collide'))};
         await mkdir(collideFolder, { recursive: true });

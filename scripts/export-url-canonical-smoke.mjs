@@ -12,7 +12,7 @@
 // 是正の形:
 //   downloadSavedMap() が既に取得している mapDoc（slug/fileKey 解決用）の url を mapObject へ載せ直す。
 //   buildPreviewSource() の preview 契約（strict-free 読み出し・compiled 整備・tins）は無変更とし、
-//   既存の変更が守る搬出契約を壊さない。∴ 是正は url 1フィールドに閉じる。
+//   strict-export-guard-smoke が守る搬出契約を壊さない。∴ 是正は url 1フィールドに閉じる。
 //
 // 検証方式:
 //   既存 smokeと同じサンドボックス方式

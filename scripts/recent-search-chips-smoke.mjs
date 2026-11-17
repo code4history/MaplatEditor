@@ -1,6 +1,6 @@
 // recent-search-chips: 一覧トップの検索条件の記憶（直近の検索条件チップ）smoke
 //
-// 設計レビュー 既存の変更の指示:
+// 設計レビューの指示:
 //   1. ResourceListToolbar / BaseMapMasterList / AssetMasterList の検索入力に @change（Enter と blur）を付け、
 //      新しい emit `commit:query` を足す（既存 props/emit/testid は変えない）
 //   2. 800 ms の予約は compositionstart〜compositionend の間はしない（字面を本 smoke で固定する）

@@ -4,7 +4,7 @@
 //
 // **MC5 は 凍結契約（範囲を保持する 3 属性の名前を変更しない）の
 //   機械証明の単独手段である**（レビュー が「MC5 単独で十分」と判定）。
-//   既存の変更で絶対数 assert から性質の検査（宣言の錨・識別子の集合）へ改めた（MC5 の節を参照）。
+//   絶対数 assert から性質の検査（宣言の錨・識別子の集合）へ改めた（MC5 の節を参照）。
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -244,7 +244,7 @@ for (const loc of LOCALES) {
   assert.ok(i >= 0, `MC6-b: ${loc} に resource_selector セクションが無い`);
   assert.equal(sections[i + 1], "range_filter",
     `MC6-b: ${loc} の range_filter は resource_selector の直後でなければならない（。`
-    + `既存の変更の database 編集帯から離す配置）`);
+    + `WebP 化で置いた database 編集帯から離す配置）`);
 }
 console.log("smoke MC6-b: OK（新設 9 キーが 11 言語に非空・全キー参照あり・挿入位置固定）");
 
@@ -252,7 +252,7 @@ console.log("smoke MC6-b: OK（新設 9 キーが 11 言語に非空・全キー
 // MC5 : 属性名の凍結証明。**単独手段**
 // ---------------------------------------------------------------------------
 // (#117 S2) で「全出現数の絶対値（473 / 43 / 6）」から**性質の検査**へ置き換えた。
-// 絶対数は、後のタスクが属性を**使う**行を足しただけで動き（既存の変更で実際に動いた）、
+// 絶対数は、後のタスクが属性を**使う**行を足しただけで動き（wiki のスクリーンショット取得とメルカトルの実行時 URL の変更で実際に動いた）、
 // 凍結契約（名前を変えない）の違反ではないのに赤になっていた。性質は次の 2 つ:
 //   (a) 宣言箇所の固定表: 3 属性名がそれぞれ、型宣言・キー表の錨（下の FREEZE_ANCHORS）に在る
 //   (b) 識別子の集合: `coverage`／`envelope(p)`／`appCoverage` で始まり `Lng`／`Lon`／`Lat` を含む
@@ -272,7 +272,7 @@ const FROZEN_ATTRS = [ATTR_COVERAGE, ATTR_ENVELOPE, ATTR_APP_COVERAGE];
 
 const FREEZE_ROOTS = ["src", "electron", "scripts", "tests", "public"];
 
-// (a) 宣言箇所の固定表（既存の変更の実装時に `git grep -n -E "<名>\??:" -- src electron` で測った）。
+// (a) 宣言箇所の固定表（この検査を改めたときに `git grep -n -E "<名>\??:" -- src electron` で測った）。
 //     envelope 側は TS の型宣言を持たない（override の文字列キーで扱う）ため、キー表と書き込みの錨を使う。
 const FREEZE_ANCHORS = [
   { attr: ATTR_COVERAGE, file: "electron/services/TileJsonImportService.ts", needle: `${ATTR_COVERAGE}?: [number, number][];` },

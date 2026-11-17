@@ -25,7 +25,7 @@
 //   case 2 : import 後の DB と搬出 zip の双方に url_ キーが現れない（不変条件 I-2）
 //   case 3 : import 直後と再読込後で url_ の導出結果が一致する【RED 対象・二重実装解消の本丸】
 //   case 4 : 空白と非 ASCII を含む保存フォルダで percent-encoding ありの URL ビルダー側へ揃う
-//         ※#105でビルダーは file-url の fileUrl から appScheme の localFileUrl へ移った（生成形は 既存の変更で app://bundle/__local）
+//         ※#105でビルダーは file-url の fileUrl から appScheme の localFileUrl へ移った（生成形はその後 app://bundle/__local）
 //   case 5 : ローカルタイルのみ（url 空）→ import 直後の url_ が自 uid のタイルを指す（非回帰）
 //   case 6 : compiled を持つ層の tins 要素が生 Compiled 形【RED 対象】
 //   case 10: byCompiled の切替でメタデータが変わらない（Transform 経由の読みと等価）

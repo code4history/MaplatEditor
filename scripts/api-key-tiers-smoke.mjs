@@ -1,6 +1,6 @@
 /**
  * smoke: API キー3段解決の純粋ロジック（providerKeyResolution.ts / requiresProviderKey）
- * 既存の変更と同様に vite で contracts をバンドルして検証する。
+ * mapbox-maplibre-smoke と同様に vite で contracts をバンドルして検証する。
  *
  * case 13: requiresProviderKey / PROVIDER_KEY_REQUIRED_KINDS が isProviderKind（3種）・
  *       providerGlCdn の sourceKind（2種・CDN用）と混同されない

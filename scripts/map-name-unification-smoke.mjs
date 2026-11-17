@@ -10,17 +10,17 @@
 //   case 1c  store_handler の keys に label が入っている
 //   case 2   保存経路 (histMap2Store) で label が保持される (behavioral)
 //   case 4   unifyMapNameFields の写像が言語キー単位・無損失 (5 ケース)
-//   case 18a レガシー取込が写像を素通りしない（既存の変更で不変条件を差し替え。旧: 取込だけが
+//   case 18a レガシー取込が写像を素通りしない（移行の一気通貫化で不変条件を差し替え。旧: 取込だけが
 //          preserveDeprecatedForMigration で写像を持たない → 新: そのオプションが存在しない）
 //   case 18b unifyMapNameFields の呼び出し点が mapNameUnification.ts の 1 箇所だけ
-//          （既存の変更で 2 箇所 → 1 箇所。marker 保護下の one-shot migration を撤去したため）
+//          （移行の一気通貫化で 2 箇所 → 1 箇所。marker 保護下の one-shot migration を撤去したため）
 //   case 18c adoptDeprecatedMapNames が冪等 (3 形)
 //
-// ★既存の変更による不変条件の差し替えについて:
+// ★移行の一気通貫化による不変条件の差し替えについて:
 //   旧不変条件は「写像の呼び出し点は 2 箇所（one-shot migration と取込境界ゲート）。
 //   レガシー取込からは呼ばない」だった。その規律の理由は「取込行は同一 migrate() 実行内の
 //   後段 applyMapNameUnificationMigration が marker 保護下で写像する」ことであり、
-//   既存の変更がその後段を撤去したため前提が消滅した。差し替え後は
+//   一気通貫化がその後段を撤去したため前提が消滅した。差し替え後は
 //   「写像の呼び出し点は 1 箇所。到達経路は書き込み側の唯一の正規化点 normalizeMapDocument だけ。
 //   読み込み側からは呼ばない」であり、規律の目的（写像を 1 箇所に閉じる）は強化されている。
 //   assert は消していない（消すのではなく新しい条件へ書き換える）。
@@ -117,7 +117,7 @@ assert.ok(
 );
 console.log('ok: case 1c store_handler の HistMapStore/keys に label の器がある');
 
-// case 18a (既存の変更で差し替え): レガシー取込は写像を素通りしない。
+// case 18a (一気通貫化で差し替え): レガシー取込は写像を素通りしない。
 //   旧条件「preserveDeprecatedForMigration のコード行が 3 行あり、呼び出しは importLegacyMaps
 //   本体の 1 行だけ」は、当該オプションを撤去したことで維持不能になった。
 //   新条件: (1) 当該オプションはコード行に 1 件も無い、
@@ -130,7 +130,7 @@ const preserveHits = sqliteLines
 assert.deepEqual(
   preserveHits.map((h) => `${h.no}: ${h.line.trim()}`),
   [],
-  'case 18a: 取込だけ写像を素通りさせるオプションはコード行に残っていないはず (既存の変更で撤去)'
+  'case 18a: 取込だけ写像を素通りさせるオプションはコード行に残っていないはず (一気通貫化で撤去)'
 );
 // 呼び出し行が importLegacyMaps の本体行レンジにあることを行番号で assert する (目視ではない)
 function bodyRangeOf(lines, signatureNeedle) {
@@ -168,9 +168,9 @@ console.log(
   `ok: case 18a レガシー取込は唯一の正規化点を素通りしない (行 ${normalizeCallsInImport[0].no})`
 );
 
-// case 18b (既存の変更で差し替え): unifyMapNameFields の呼び出し点は 1 ファイルだけ。
+// case 18b (一気通貫化で差し替え): unifyMapNameFields の呼び出し点は 1 ファイルだけ。
 //   旧条件は 2 ファイル (SqliteDataService.ts の one-shot migration + mapNameUnification.ts)。
-//   既存の変更が前者を撤去したので、写像に触れるのは写像モジュール自身だけになった。
+//   一気通貫化が前者を撤去したので、写像に触れるのは写像モジュール自身だけになった。
 const unifyHits = [];
 for (const f of sources) {
   f.text.split('\n').forEach((line, i) => {

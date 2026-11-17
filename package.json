@@ -234,7 +234,7 @@
     "smoke:export-preview": "node scripts/export-preview-smoke.mjs",
     "smoke:preview-bundle-label-merge-guard": "node scripts/preview-bundle-label-merge-guard-smoke.mjs",
     "smoke:map-name-unification": "node scripts/map-name-unification-smoke.mjs",
-    "smoke:t1-export-zip-writer": "node scripts/t1-export-zip-writer-smoke.mjs",
+    "smoke:export-zip-writer": "node scripts/export-zip-writer-smoke.mjs",
     "test:e2e:m19-t1": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/m19-t1-map-name-unification.spec.ts",
     "smoke:settings-menu-about": "node --experimental-strip-types scripts/settings-menu-about-smoke.mjs",
     "smoke:websecurity-guard": "node --experimental-strip-types scripts/websecurity-guard-smoke.mjs",

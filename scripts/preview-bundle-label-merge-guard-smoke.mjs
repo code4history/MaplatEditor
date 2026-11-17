@@ -12,7 +12,7 @@
  * 修正そのものが検証をすり抜ける（H-A で実装レビューが再オープンした事故と同型）。
  * ∴ 伝搬鎖の全ホップに修正が到達していることを固定する。
  *
- * 修正シグネチャについて（既存の変更の知見を踏襲）:
+ * 修正シグネチャについて（preview-bundle-provider-url-guard の知見を踏襲）:
  * ローカル変数はビルドのたび minify で識別子が変わる（実測: ESM は `e`、UMD も `e` だが
  * 保証は無い）。∴ 変数名の literal grep ではなく、**構造**を identifier-agnostic な
  * 正規表現で検出する:
@@ -29,7 +29,7 @@
  *
  * NOTE : case 26-3 は node_modules/@maplat/ui の **実体**を読む。partial-submodule
  * worktree では registry の公開版へ解決され得るため、失敗しても原因調査へ入らず
- * 既存の変更の手順（マージ後に root で実走して確定）に従うこと。
+ * 「マージ後に root で実走して確定する」手順に従うこと。
  */
 import assert from "node:assert/strict";
 import { readFile, access } from "node:fs/promises";
@@ -78,7 +78,7 @@ for (const hop of HOPS) {
   const source = await readFile(file, "utf8");
   assert.ok(
     SIGNATURE.test(source),
-    `${hop.ac}: ${hop.rel} に 既存の変更の label マージ修正が到達していません。\n` +
+    `${hop.ac}: ${hop.rel} に label マージ修正が到達していません。\n` +
       `  伝搬鎖の再生成が必要です。src だけ直しても E2E と人間検証は\n` +
       `  旧バンドルで走ります（H-A と同型の事故）。`,
   );

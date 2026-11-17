@@ -6,7 +6,7 @@
 //   保存・staging 判定の入口が file:// を認識せず、Success が返るのにタイル・原本が恒久領域へ移らず、
 //   下書きの削除（AssetDraftService.onRemoved）で staging ごと画像が消えていた。
 //
-// sandbox 方式は 既存の変更と同じ（vite SSR ビルド + electron / electron-store スタブ）。
+// sandbox 方式は upload-tile-ref-smoke・runtime-tile-url-ipc-smoke と同じ（vite SSR ビルド + electron / electron-store スタブ）。
 // userData・saveFolder には空白と非 ASCII を含め、v1.0.0 の file-url の符号化（encodeURI 系）を復号できることも確かめる。
 // MAPLAT_E2E_ROOT は空にして、実運用と同じ `userData/draft-tiles` を staging ルートにする。
 //

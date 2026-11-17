@@ -117,7 +117,7 @@ await writeFile(
   const dtsSrc = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
   assert.equal(/thumbnail512/.test(dtsSrc), false, 'S6: electron.d.ts（BaseMapSavePayload 等）に thumbnail512 を追加していない');
   // case 8(c): renderer は thumbnail512 明示属性を一切読まない。
-  // 属性名ではない識別子は除外する: thumbnail512Url（ref 名）/ thumbnail512Codec（既存の変更の符号化モジュール名）。
+  // 属性名ではない識別子は除外する: thumbnail512Url（ref 名）/ thumbnail512Codec（WebP 化の符号化モジュール名）。
   const NON_ATTRIBUTE_IDENTIFIERS = ['thumbnail512Url', 'thumbnail512Codec'];
   const srcHits = [];
   const walk = async (dir) => {
@@ -152,7 +152,7 @@ const runLateStaticChecks = async () => {
       assert.ok(json.basemap && typeof json.basemap[key] === 'string' && json.basemap[key].length > 0,
         `S7: ${lang} に basemap.${key} が必要`);
       assert.ok(json.mapedit && typeof json.mapedit[key] === 'string',
-        `S7: ${lang} の mapedit.${key} を削除していない（共有面 1: 既存の変更のセクションへ侵入しない）`);
+        `S7: ${lang} の mapedit.${key} を削除していない（共有面 1: 別の機能のセクションへ侵入しない）`);
     }
   }
   console.log(`ok: S7 basemap.thumbnail_* 4 キー × ${langs.length} 言語 + mapedit.thumbnail_* 温存`);
@@ -184,10 +184,10 @@ const runLateStaticChecks = async () => {
   const baseMapThumbSection = exportSrc.slice(baseMapThumbStart, baseMapThumbEnd);
   assert.equal(countMatches(baseMapThumbSection, /_512\./), 0,
     'case 2(b): ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
-  // 完了後: 既存の変更が「別の変更の受け持ち」として残していた地図分岐の 3 行も thumb512PathFor へ寄った。
-  // ∴ AppExportService 全体でインライン派生は 0 になる（既存の変更の case 3 が全ファイルで機械照合する）。
+  // WebP 化の後: それまで WebP 化の受け持ちとして残していた地図分岐の 3 行も thumb512PathFor へ寄った。
+  // ∴ AppExportService 全体でインライン派生は 0 になる（thumbnail-512-webp-smoke が全ファイルで機械照合する）。
   assert.equal(countMatches(exportSrc, /_512\./), 0,
-    `case 2(b): AppExportService 全体で 512px のインライン派生が 0（既存の変更で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
+    `case 2(b): AppExportService 全体で 512px のインライン派生が 0（WebP 化で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
   // case 2(c): BaseMapEdit.vue に 512px パスのインライン派生が 0。
   //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外（v1.2）。
@@ -257,8 +257,8 @@ await writeFile(
       // thumb52PathFor
       assert.equal(thumb52PathFor('abc', 'png'), 'tmbs/abc.png', 'S1: thumb52PathFor（png）');
       assert.equal(thumb52PathFor('abc', 'jpg'), 'tmbs/abc.jpg', 'S1: thumb52PathFor（jpg。地図の既定）');
-      // 既存の変更の吸収点（現行は null = 入力の拡張子を引き継ぐ）
-      assert.equal(THUMB_512_EXT, 'webp', 'S1: THUMB_512_EXT の現行値は webp（既存の変更が変えた単一変化点）');
+      // WebP 化の吸収点（現行は null = 入力の拡張子を引き継ぐ）
+      assert.equal(THUMB_512_EXT, 'webp', 'S1: THUMB_512_EXT の現行値は webp（WebP 化で変えた単一変化点）');
 
       // (a) ビルトイン全件で 派生 === 明示属性
       const withAttr = builtin.filter((e) => 'thumbnail512' in e);
