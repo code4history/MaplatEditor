@@ -1,7 +1,7 @@
 /**
  * MaplatEditor が「新ビューアを出力」していることを検査する鮮度ガード。
  *
- * 設計: 2026-09-19-check-viewer-freshness-design.md ・。以下 4 つの入口を持つ。
+ * 以下 4 つの入口を持つ。
  *
  *   (A) 依存とビルド（--enforce / --warn / 自動）: 4 パッケージ（transform・tin・core・ui）と
  *       同梱ビューア（public/preview）を個別に検査（A1〜A5）。

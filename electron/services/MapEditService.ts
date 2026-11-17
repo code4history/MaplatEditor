@@ -12,7 +12,7 @@ import MapMutationQueue from './MapMutationQueue';
 // 下書き staging (draft-tiles) のパス解決は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveDraftTileDir, resolveStagingDirFromUrl } from './draftTilePaths';
 // 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
-// （インライン派生を製品コードに残さない。/ W5・W6）。
+// （インライン派生を製品コードに残さない）。
 import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // @ts-ignore
 import Tin from '@maplat/tin';
@@ -245,7 +245,7 @@ class MapEditService {
 
         // 新規原本アップロード(tmpCheck/stagingCheck)で未対応拡張子なら、DB write に
         // 一切触れる前に reject する。既存地図の更新(両検査とも false)は従来どおり legacy
-        // imageExtension をそのまま使うため、この reject の対象外(AC-T2-3)
+        // imageExtension をそのまま使うため、この reject の対象外
         if ((tmpCheck || stagingCheck) && normalizedExt === null) {
             return { result: 'Error', errorKey: 'mapedit.originals.unsupported_extension' };
         }
@@ -285,10 +285,10 @@ class MapEditService {
             let renamedFromSlug: string | null = null;
             try {
                 if (request.create === true) {
-                    // 新規作成の明示合図(D11改): rendererが事前採番したuidを採用し、
+                    // 新規作成の明示合図: rendererが事前採番したuidを採用し、
                     // unique制約 + 予約promoteで二重作成/他者占有を防ぐ。uid有無ではなくcreateフラグで
                     // 分岐するため、既存update経路の復活防止不変条件(lookup失敗=エラー)を侵さない。
-                    // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
+                    // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする
                     if (!(await SqliteDataService.isSlugAvailable(slug, request.uid ?? undefined))) {
                         throw new Error('Exist');
                     }
@@ -317,7 +317,7 @@ class MapEditService {
                         renamedFromSlug = existing.slug;
                     } else if (request.renameFromSlug && request.renameFromSlug !== slug &&
                                !(await SqliteDataService.findMapBySlug(request.renameFromSlug))) {
-                        // 再試行の救済(D5改): 前回の保存がDBコミット後のファイル操作で失敗した場合、
+                        // 再試行の救済: 前回の保存がDBコミット後のファイル操作で失敗した場合、
                         // DB上のslugは既に改名済みで existing.slug === slug となり renamedFromSlug が
                         // 立たない。editorが成功(saved)まで保持し続ける明示フィールド renameFromSlug を
                         // 手掛かりに、旧slugが孤児(どの地図にも属さない)であれば原本(originals)改名の
@@ -395,7 +395,7 @@ class MapEditService {
                         // tmp プレフィックス文字列置換方式。url_ は tmpCheck 判定
                         // により regex(^tmpUrl) に必ずマッチすることが保証されているため、
                         // 置換後は元の {z}/{x}/{y}.ext サフィックスがそのまま保持される。
-                        // 置換を関数形式にする(設計レビュー v2 Minor1): 第2引数が文字列だと
+                        // 置換を関数形式にする(設計レビューの指摘): 第2引数が文字列だと
                         // $&/$`/$'/$n が特殊置換パターンとして解釈され、saveFolder パスに $ が
                         // 含まれる場合に恒久URLが破損する(実測確認済み)。関数形式なら戻り値が
                         // そのままリテラルとして挿入されるため、この種の解釈は一切発生しない
@@ -411,7 +411,7 @@ class MapEditService {
                     if (await fs.pathExists(tmpThumb)) {
                         await fs.move(tmpThumb, newThumbnail);
                     }
-                    // R3: タイル出力フォルダの 512px 中間ファイルを tmbs/ 配下の uid 名へ移動する。
+                    // タイル出力フォルダの 512px 中間ファイルを tmbs/ 配下の uid 名へ移動する。
                     // 両辺とも派生規約の単一モジュールから導く（拡張子は THUMB_512_EXT が決める）
                     const tmpThumb512 = path.join(newTile, THUMB_512_TMP_BASENAME);
                     const newThumbnail512 = path.join(saveFolder, thumb512PathFor(thumb52PathFor(savedUid, 'jpg'))!);
@@ -421,8 +421,8 @@ class MapEditService {
                     }
                     // renamedFromSlug の legacy 原本クリーンアップは削除する。canonical
                     // 書込み先が uid キーになったことで新旧ファイル名の衝突が起こらなくなったため
-                    // 不要になった。legacy ファイルは非破壊方針(SI-1/SI-2 の精神)により T3
-                    // migration / T4 delete が扱うまで放置してよい(旧実装の掃除処理を意図的に削除)
+                    // 不要になった。legacy ファイルは非破壊方針により
+                    // 原本の移行と削除が扱うまで放置してよい(旧実装の掃除処理を意図的に削除)
                 } else if (copySourceUid) {
                     // 複製: 複製元uidのtiles/tmbsを新キーへコピー
                     const oldTile = path.join(tileFolder, copySourceUid);
@@ -437,7 +437,7 @@ class MapEditService {
                         // oldTileのパスに正規表現特殊文字(括弧等)が含まれていても安全なため。
                         // 詳細は設計レビューで見つかった $ 特殊シーケンスハザードの
                         // 教訓を踏まえ、置換対象文字列に対する解釈を一切発生させない構築方式を採用する)。
-                        // 設計レビューv1 Minor1: 区切り文字(/)を跨がない前方一致は誤検出になり得るため、
+                        // 設計レビューの指摘: 区切り文字(/)を跨がない前方一致は誤検出になり得るため、
                         // プレフィックス直後がパス区切りであることまで判定する(区切り込みで判定)。
                         const oldTileUrlPrefix = localFileUrl(oldTile) + '/';
                         if (url_ && url_.startsWith(oldTileUrlPrefix)) {
@@ -452,7 +452,7 @@ class MapEditService {
                     // 原本は複製元 uid の canonical-first / legacy-fallback 解決結果を
                     // 複製先の canonical 名 (uid キー) へ複写する。旧実装の legacy slug キー複写
                     // (`${copySourceSlug}.${imageExtension}` -> `${slug}.${imageExtension}`) は廃止する
-                    // (T2 以降の新規保存は canonical 名で書かれるため、複製先も canonical 名に揃える)。
+                    // (原本の解決の導入以降の新規保存は canonical 名で書かれるため、複製先も canonical 名に揃える)。
                     // 複製元が解決不能 (ambiguous/missing legacy 等) でも clone の DB 行/tiles/tmbs は
                     // 成功させる (milestone : best-effort、source は非破壊)
                     try {

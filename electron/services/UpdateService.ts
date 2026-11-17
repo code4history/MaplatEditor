@@ -6,7 +6,7 @@
 //   - e2e のときだけ置く試験用の口（globalThis.__maplatUpdateTest）
 // を持つ。renderer に更新元の URL・パスを渡す IPC は作らない（C-6）。
 //
-// 設定（updaterSettings・t5/）: autoDownload・autoInstallOnAppQuit・allowPrerelease・allowDowngrade・fullChangelog
+// 設定（updaterSettings）: autoDownload・autoInstallOnAppQuit・allowPrerelease・allowDowngrade・fullChangelog
 // はすべて偽。allowPrerelease が偽なので GitHub の更新元は「最新のリリース」（prerelease を含まない）だけを見る
 // ＝ RC と win-signed-cache を拾わない。allowDowngrade が偽なので古い版へは戻さない。
 //

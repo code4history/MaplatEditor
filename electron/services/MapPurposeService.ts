@@ -34,7 +34,7 @@ class MapPurposeService {
     async assertViewerRuntimeAllowed(mapRefs: string[], _purpose: ViewerPurpose): Promise<void> {
         const classified = await this.classifyViewerRuntimeRefs(mapRefs);
         if (classified.missing.length > 0 || classified.strictError.length > 0) {
-            // 不在も strict と同じ拒否理由キーで統一する (: 呼び出し元 UI は既に
+            // 不在も strict と同じ拒否理由キーで統一する (呼び出し元 UI は既に
             // appedit.preview.strict_error を「選択・表示不可」の一般的な理由文言として使っている)
             throw new Error('appedit.preview.strict_error');
         }
@@ -59,7 +59,7 @@ class MapPurposeService {
 
     // 保存済み地図を strict-free に ZIP 搬出する。main-owned、dialog を含む。
     // 内部で発生した例外(map not found / too_less_gcps / dialog・fs エラー等)はすべて catch し
-    // 'Error' へ写像する — reject しない (: milestone v2.1 の型契約
+    // 'Error' へ写像する — reject しない (型契約
     // Promise<'Success'|'Canceled'|'Error'> は常にこの3値のいずれかで resolve する契約と解釈)
     // #113: options は書き出す中身。省略時は既定（現行と同じ中身）。
     // 3 つとも false は書かずに 'Error'（画面は選べないようにしているので防御）
@@ -73,7 +73,7 @@ class MapPurposeService {
             // file:///Users/<ユーザ名>/… という実行環境の絶対パスになるため、そのまま搬出すると
             // 交換形 JSON に絶対パスが焼き込まれ、再インポートで DB へ永続化されて
             // 同梱タイルが二度と使われなくなる。
-            // ∴ **交換形の url は DB 正本**とする（不変条件 I-3）。AppExportService が
+            // ∴ **交換形の url は DB 正本**とする。AppExportService が
             // DB doc + delete url_ で既に満たしている不変条件へ揃える。
             // strict-free 読み出し・compiled 整備・tins は buildPreviewSource のまま使う
             const mapDoc = await SqliteDataService.findMapByRef(mapRef);

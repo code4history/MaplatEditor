@@ -14,7 +14,7 @@ export interface AppSaveRequest {
   uid?: string | null;
   slug: string;
   expectedRevision?: number | null;
-  // 新規作成の明示合図 (D11改)。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
+  // 新規作成の明示合図。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
   create?: boolean;
 }
 
@@ -96,7 +96,7 @@ class AppDataService {
     if (!slug) return { result: 'Error' };
     try {
       // strict_error / missing map を含む maplat 参照は保存自体を拒否する
-      // (AC-T1-2)。DB書き込み分岐より前・try ブロック先頭で判定する
+      // DB書き込み分岐より前・try ブロック先頭で判定する
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(requestedDocument), 'app-save'
       );
@@ -108,9 +108,9 @@ class AppDataService {
       );
       const withRefs = <T extends object>(result: T): T => (imageRefs ? { ...result, imageRefs } : result);
       if (request.create === true) {
-        // 新規作成の明示合図(D11改): 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
+        // 新規作成の明示合図: 事前採番uidを採用。uid有無ではなくcreateフラグで分岐し、
         // 既存update経路の復活防止不変条件(lookup失敗=Error)を侵さない。
-        // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする(D2改)
+        // excludeUid=事前採番uid: 自分の予約(帰属=asset_uid)を空き扱いにする
         if (!(await SqliteDataService.isSlugAvailable(slug, uid))) return { result: 'Exist' };
         const { uid: createdUid } = await SqliteDataService.createApp(slug, document, uid);
         return withRefs({ result: 'Success' as const, uid: createdUid, slug, revision: 1 });

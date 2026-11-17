@@ -88,7 +88,7 @@ function abs(saveFolder: string, rel: string): string {
 }
 
 /**
- * 比較と交換（の 6）。SqliteDataService.withTransaction は private で使えないので、同じ SQL を書く。
+ * 比較と交換（手順の 6）。SqliteDataService.withTransaction は private で使えないので、同じ SQL を書く。
  * `revision` と `updated_at` は書かない。
  */
 function compareAndSwap(
@@ -220,7 +220,7 @@ export async function runAssetUuidNamesColdBoot(
   }
   const markDone = () => db.prepare('INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)').run(markerId);
 
-  // 1. 収集（の 1）
+  // 1. 収集
   const apps = collectApps(db);
   const baseMaps = collectBaseMaps(db);
   if (apps.length + baseMaps.length === 0) {
@@ -232,7 +232,7 @@ export async function runAssetUuidNamesColdBoot(
     return { skipped: 'no-save-folder', summary, entries };
   }
 
-  // 3. 共有の検出を先に（の 3）。複製元の正規化した相対パス → 参照の一覧（uid の昇順）
+  // 3. 共有の検出を先に。複製元の正規化した相対パス → 参照の一覧（uid の昇順）
   const groups = new Map<string, AppCandidate[]>();
   for (const ref of apps) {
     const key = path.posix.normalize(ref.rel);

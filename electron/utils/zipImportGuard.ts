@@ -10,7 +10,7 @@
 //   adm-zip の例外は util/errors.js の E() により必ず 'ADM-ZIP: ' で始まる。圧縮データの破損は
 //   zlib.inflateRawSync が Node の zlib の例外（code が 'Z_' で始まる、または ERR_ZLIB 系）として投げる。
 //   重複名は PoiPackageService.zipEntryInfos が `Duplicate <kind> entry` へ写したもの。
-//   利用者の操作による失敗（ENOENT・権限等）は判定しない（null）。「壊れた ZIP」と誤って出さない（設計 R1）。
+//   利用者の操作による失敗（ENOENT・権限等）は判定しない（null）。「壊れた ZIP」と誤って出さない。
 //
 // 利用者に見せる文言は i18n の固定文で、例外の原文（ファイルのパスや adm-zip の `{0}` を含みうる）は
 // 呼び出し側が console.error／main のログへだけ出す。

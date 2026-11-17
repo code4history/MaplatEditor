@@ -2,7 +2,7 @@
 //
 // 起動時の移行（AssetUuidNamesMigrationService）と保存の入口の正規化（AppDataService.saveApp）が
 // 同じ規則で「UUID の形か」「保存フォルダの中か」「複製して確かめる」を判定するため、ここに集める。
-// 命名の契約はタスク設計 `2026-10-11-assetImageRefs-task-design.md` が唯一の定義:
+// 命名の契約（下の定数と関数が唯一の定義）:
 //   スプラッシュ        : appSettings.splash = `{uuid}.{ext}`（置き場 img/。値はファイル名だけ）
 //   PWA アイコンの元画像 : manifestSettings.iconSource（または旧配置 httpSettings.iconSource）= `pwa/{uuid}.{ext}`
 //   ベースマップのアイコン: thumbnail = thumb52PathFor(uid, ext)（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり。自分の uid を使う）
@@ -18,7 +18,7 @@ const UUID_BODY = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 export const UUID_SPLASH_NAME = new RegExp(`^${UUID_BODY}\\.[a-z0-9]{1,5}$`);
 /** PWA アイコンの元画像の「UUID の形」。saveFolder 相対 */
 export const UUID_ICON_SOURCE = new RegExp(`^pwa/${UUID_BODY}\\.[a-z0-9]{1,5}$`);
-/** 移行・正規化で保つ拡張子の形（の 5） */
+/** 移行・正規化で保つ拡張子の形 */
 const SAFE_EXT = /^[a-z0-9]{1,5}$/;
 
 export type AppImageKey = 'splash' | 'iconSource';
@@ -105,7 +105,7 @@ export type SourceCheck =
   | { ok: false; outcome: 'outside_folder' | 'source_missing'; detail: string };
 
 /**
- * 安全の判定（の 2）: `..`・絶対パス・`\` を含む参照は扱わない。実在するなら realpath が
+ * 安全の判定: `..`・絶対パス・`\` を含む参照は扱わない。実在するなら realpath が
  * saveFolder の realpath の下にあること（symlink で外を指すものを弾く）。
  */
 export async function checkSource(saveFolder: string, rel: string): Promise<SourceCheck> {
@@ -154,7 +154,7 @@ export type CopyResult =
   | { ok: false; detail: string };
 
 /**
- * 複製して確かめる（の 5）。旧ファイルは消さない。
+ * 複製して確かめる。旧ファイルは消さない。
  * - 複製先が既にあり内容が同じ（大きさと SHA-256）なら、作ったものとみなさず済んだとして進む（created=false）
  * - 内容が違えば失敗（既にあったファイルには触れない）
  * - 複製した後、存在と大きさが複製元と同じでなければ、この呼び出しで作ったファイルだけを消して失敗

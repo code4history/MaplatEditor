@@ -1,6 +1,6 @@
 // Slug Reservation Service。
 // 複数 MaplatEditor instance 間で slug を予約・移動・解放・昇格する機構。
-// 予約帰属の正本は asset_uid（/D2改）。draft_uid は GC の draft 存在判定専用、
+// 予約帰属の正本は asset_uid。draft_uid は GC の draft 存在判定専用、
 // instance_id は lease 管理専用で、いずれも所有判定には使わない。
 // electron の app/ipcMain には依存させず、DB 接続・instanceId・now を注入で受ける
 // 純関数ファクトリ（createSlugReservationService）にする。これにより service unit が
@@ -128,7 +128,7 @@ export function createSlugReservationService(deps: Deps) {
 
     check(p: { slug: string; excludeUid?: string }): SlugCheckResult {
       // registryを先に判定する。予約表にも異常な重複行がある場合でも、永続資産の
-      // occupied状態を公開契約の taken として優先する（/D2）。
+      // occupied状態を公開契約の taken として優先する。
       const owner = registryOwner(p.slug);
       if (owner != null && owner !== p.excludeUid) return 'taken';
       const row = db.prepare(
@@ -138,7 +138,7 @@ export function createSlugReservationService(deps: Deps) {
       return 'available';
     },
 
-    // save 6 経路が withTransaction 内から呼ぶ promote 検証(D12/D13、IPC 非公開)。
+    // save 6 経路が withTransaction 内から呼ぶ promote 検証(IPC 非公開)。
     // 対象 slug の有効予約が「無い」or「asset_uid 一致」なら成立。他 asset_uid の有効予約は conflict。
     promoteWithin(txDb: DatabaseSync, p: { slug: string; assetUid: string }): { ok: true } | { ok: false; reason: 'conflict' } {
       const row = txDb.prepare(
@@ -156,7 +156,7 @@ export function createSlugReservationService(deps: Deps) {
         .run(leaseUntil(), now(), instanceId);
     },
 
-    // GC(D4): lease 失効 かつ draft なし かつ updated_at から 24h 経過の予約を削除。
+    // GC: lease 失効 かつ draft なし かつ updated_at から 24h 経過の予約を削除。
     gc(opts: { draftExists: (kind: string, draftUid: string | null) => boolean }): void {
       const rows = db.prepare('SELECT slug, asset_kind, draft_uid, lease_expires_at, updated_at FROM slug_reservations').all() as any[];
       const nowStr = now();

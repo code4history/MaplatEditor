@@ -179,7 +179,7 @@ class DataUploadService {
             // **内側の residue を捨てない**。
             // 従来は戻り値を捨てて rethrow しており、外側 catch では restored が null のため
             // 拾い直せず、この経路で asset が retained になっても poi_sources の削除に失敗しても
-            // 「残留なし」として申告されていた（I-4c 違反）。
+            // 「残留なし」として申告されていた（「補償は成功したことにできない」の違反）。
             // throw する Error へ添えて外側へ運ぶ（Error の identity は保つ）。
             const residue = await this.compensate({ createdPoiUids, cleanupAssets: imported.cleanup });
             if (residue.length > 0) attachResidue(e, residue);
@@ -197,7 +197,7 @@ class DataUploadService {
     }
 
     /**
-     * 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（I-4c）。
+     * 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（補償は成功したことにできない）。
      * 順序: 配置済みファイル → map 行 → poi_sources → asset
      */
     private async compensate(handle: {
@@ -211,7 +211,7 @@ class DataUploadService {
         // 1) 配置済みの tile・通常/512px サムネイル（新規 UID 配下のみ）
         //    削除できなければ **残留として申告する**。
         //    console.warn だけだと、タイル数百 MB が live path に残ったまま
-        //    「完全に巻き戻した」と申告されてしまう（I-4c 違反）
+        //    「完全に巻き戻した」と申告されてしまう（「補償は成功したことにできない」の違反）
         for (const p of handle.placedPaths ?? []) {
             try {
                 await fs.remove(p);
