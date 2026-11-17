@@ -27,7 +27,7 @@
 //              WIN_SIGN_SIGNED_DIR に同じ実行で署名済みの `<SHA-256>--<名前>.signed` があれば、関門（署名を除き
 //              TimeDateStamp も除いた中身の一致・証明書表・Authenticode Valid・署名者が artifact-signing）を通ったものだけ
 //              差し替える（decision: signed-substituted）。関門は Windows でしか通らない（他の OS では would-sign に落ちる）
-//   esigner  … CodeSignTool で本当に署名する（課金あり。build.yml の mode=full・win_signer=esigner だけ。J-7 の退路）
+//   esigner  … CodeSignTool で本当に署名する（課金あり。build.yml の mode=full・win_signer=esigner だけ。Artifact Signing が使えないときの退路）
 //
 // --prepackaged（build.yml の pack のジョブ）では beforePack が呼ばれない（app-builder-lib の doPack が先頭で
 // return する）。∴ NSIS ツールセットの用意は electron-builder の外の step（prepare-nsis-toolset.mjs）が

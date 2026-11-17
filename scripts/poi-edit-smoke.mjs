@@ -1414,7 +1414,7 @@ try {
   );
 
   // 未設定/未解決は標準ピンへフォールバック、選択中は selectedIcon or 選択中ピン切替
-  // 既存の変更で markerStyle が resolveIconPair/resolveDisplayIcon へリファクタリング
+  // レイヤのメタデータの変更で markerStyle が resolveIconPair/resolveDisplayIcon へリファクタリング
   assert.match(
     poiEditMap,
     /const pair = resolveIconPair\(properties, layerMeta\);/,

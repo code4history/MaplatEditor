@@ -43,7 +43,7 @@ const THUMBNAIL_SOURCE = path.join(
 const TINY_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
 
 async function forceEnglish(page: Page): Promise<void> {
-  // 契約 英語 UI で単一撮影する（英日両ページから共有）。既存の変更と同一手順に
+  // 英語 UI で単一撮影する（英日両ページから共有）。wiki-screenshots-basic と同一手順に
   // **リロードを1つ足している**: ContextHelp.vue は Bootstrap Popover の content を
   // onMounted で1度だけ束縛するため、言語切替より前に mount された「？」は切替後も
   // 旧言語の本文を出し続ける（実測: 設定画面の JPEG 上限の「？」が日本語のままだった）。
@@ -174,7 +174,7 @@ test.describe('Wiki 掲載用スクリーンショット（新規 7 枚）', () 
       await expect(page.locator(`[data-testid="app-selected-source-${overlaySlug}"] select`)).toHaveValue('overlay');
       await page.getByTestId('app-basemap-search').fill('');
       // 3 バリアントのカードは既定の 768px 高では 2 枚強しか入らない。台帳 B-52 は
-      // 3 バリアントを 1 枚に収めることを求めており、枝番へ割ると 既存の変更が書いた
+      // 3 バリアントを 1 枚に収めることを求めており、枝番へ割ると以前の変更が書いた
       // Wiki の参照行を書き換える必要が出る（残件2）∴ ウィンドウを縦に伸ばして 1 枚に収める
       await setContentSize(app, { w: 1200, h: 1140 });
       await expect(page.locator('[data-testid^="app-selected-source-"]').nth(2)).toBeInViewport({ timeout: 20000 });

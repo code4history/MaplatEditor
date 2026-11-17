@@ -227,7 +227,7 @@ test('provider マスタは MapEdit 背景選択の両ペインに表示され�
       }
     }, MAPLIBRE_STYLE);
 
-    // 地図を seed してベースマップ設定タブへ（既存の変更のパターン）
+    // 地図を seed してベースマップ設定タブへ（base-map-selector のパターン）
     const seeded = await page.evaluate(async () => {
       const mapSlug = `fx-map-${Date.now()}`;
       const mapR = await (window as any).mapedit.save({

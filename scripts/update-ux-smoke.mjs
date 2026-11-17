@@ -215,7 +215,7 @@ function blockFrom(src, start) {
   assert.deepEqual([...head.keys()].sort(), [...want].sort(), `defaultSettings のキーが ${baseLabel} ∪ {updateCheckEnabled} でない`);
   for (const [k, v] of base) assert.equal(head.get(k), v, `defaultSettings.${k} の字面が ${baseLabel} と違う`);
   assert.equal(head.get('updateCheckEnabled'), 'true', 'defaultSettings.updateCheckEnabled が true でない');
-  assert.equal(head.get('lastDialogFolders'), '{}', '既存の変更の lastDialogFolders: {} が残っていない');
+  assert.equal(head.get('lastDialogFolders'), '{}', 'ダイアログのフォルダの記憶の lastDialogFolders: {} が残っていない');
   pass(`case 3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
 }
 

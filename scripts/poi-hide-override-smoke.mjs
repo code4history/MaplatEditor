@@ -58,7 +58,7 @@ assert.match(setHideBody, /delete\s+updated\.hide/, 'case 1-4: OFF で hide キ�
 assert.doesNotMatch(
   setHideBody,
   /(updated|record)\.hide\s*=\s*false/,
-  'case 1-4: false を書き込む経路が存在しない（既存の変更の2状態契約）',
+  'case 1-4: false を書き込む経路が存在しない（表示上書きの2状態契約）',
 );
 console.log('  [3/6] case 1-3/4 2状態の書き込み契約（true セット / キー削除・false 不使用）: PASS');
 

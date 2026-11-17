@@ -6,7 +6,7 @@
 //   (c) BaseMapEdit.vue の iconFileKey が document.value.uid を返す（ソーステキスト）。K0 の判定は slug で行う     -> case 1
 //   (d) TMS サムネイルのアップロード（撤去したメソッドと IPC）が electron/・src/ に 0 件                                                         -> case 3
 //
-// 既存の変更と同型の harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）で
+// basemap-thumbnail-512-smoke と同型の harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）で
 // 実サービス（AppAssetService）を直接呼ぶ。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -19,12 +19,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-names-names-'));
-const entryFile = path.join(workDir, 'asset-uuid-names-names-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-names-'));
+const entryFile = path.join(workDir, 'asset-uuid-names-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'asset-uuid-names-names-smoke.mjs');
+const bundledFile = path.join(outDir, 'asset-uuid-names-smoke.mjs');
 const dataDir = path.join(workDir, 'data');
 await mkdir(dataDir, { recursive: true });
 
@@ -213,7 +213,7 @@ await build({
     target: 'node22',
     rollupOptions: {
       external: ['@jsquash/webp'],
-      output: { entryFileNames: 'asset-uuid-names-names-smoke.mjs', format: 'es' },
+      output: { entryFileNames: 'asset-uuid-names-smoke.mjs', format: 'es' },
     },
   },
 });

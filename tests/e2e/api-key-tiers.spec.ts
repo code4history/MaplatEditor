@@ -212,7 +212,7 @@ test('プレビューは鍵未解決の provider ソースを sources から除�
 
     expect(preview.warnings).toContain('appedit.warn_provider_google_key_missing');
     // 退行止め: マスタ欠落による除外が先に成立していると、鍵3段の経路を1行も踏まないまま
-    // 「除外された」ことだけが偶然一致してしまう（既存の変更で実際に起きた沈黙した被覆喪失）
+    // 「除外された」ことだけが偶然一致してしまう（アプリのソースの差分モデルの変更で実際に起きた沈黙した被覆喪失）
     expect(preview.warnings).not.toContain('appedit.warn_missing_base_map_master');
 
     const token = tokenFromPreviewUrl(preview.url);

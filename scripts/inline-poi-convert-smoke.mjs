@@ -23,7 +23,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'inline-poi-convert-convert-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'inline-poi-convert-'));
 const entryFile = path.join(workDir, 'inline-poi-convert-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -452,7 +452,7 @@ try {
       console.log('smoke Part F (resolver 混在警告 case 6-7): OK');
 
       // ---- Part G: 未対応形式時温存  — 純関数 + AppDataService save round-trip ----
-      // healPoisValue/healAppDocumentPois (bounded reparse 復元) は 既存の変更に基づき
+      // healPoisValue/healAppDocumentPois (bounded reparse 復元) は「多重 stringify の後始末をしない」方針に基づき
       // 撤去され、単一実装 readAppDocumentPois (形式判定のみ・復元なし) へ置き換えられた。
       // 生値温存 round-trip (旧 :459-474) は契約継続のため無変更で維持する。
       {

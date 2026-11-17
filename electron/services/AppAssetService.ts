@@ -70,7 +70,7 @@ class AppAssetService {
     return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 
-  // 非ビルトインTMSのサムネイルのアップロード: 既存の変更でメソッドを IPC ごと撤去した。
+  // 非ビルトインTMSのサムネイルのアップロード: アセットの UUID 名への移行でメソッドを IPC ごと撤去した。
   // （この行は smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
   // src からの呼び出しが 0 件で、名前（mapID）を呼び出し元が決められる口だけが残っていたため
   // （画像の内部名は UUID／uid に統一する。）。置換は replaceMapThumbnail が担う。

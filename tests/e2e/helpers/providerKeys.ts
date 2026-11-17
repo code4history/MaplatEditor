@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 // 既存の ///系 E2E は種別ボタンを直接クリックする前提で書かれているため、
 // これらのセットアップでダミーのエディタ用キーを事前投入し、ゲート追加前の挙動を維持する。
 // 実キーではないため実際の地図タイル取得はできない（それらの検証は本タスクの
-// human_verification H-4 / 既存の変更の V-1 に委ねる）。
+// 人間による確認に委ねる）。
 export async function seedE2EProviderKeys(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await window.settings.set('editorGoogleApiKey', 'e2e-dummy-google-key');

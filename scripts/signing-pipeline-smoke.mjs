@@ -517,7 +517,7 @@ const OLD = new Date('2020-01-02T03:04:05Z');
     '[3] manifest の paths は作業ディレクトリからの相対パス（/ 区切り）');
   assert.equal(ff.comparable, ws.comparableDigest(files.dllX[1]), '[3] manifest に署名前の comparableDigest');
 
-  // pack-win-1（uninstaller）: プラグインの would-sign が残る＝差し替えられていない（既存の変更の再発）→ 赤
+  // pack-win-1（uninstaller）: プラグインの would-sign が残る＝差し替えられていない（レビューで見つかった欠陥の再発）→ 赤
   const pack1Bad = writeRec('rec-pack1-bad.jsonl', [entry('plugin', 'would-sign'), entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
   const e1 = run('uninstaller', pack1Bad, 'p1bad').errors;
   assert.ok(e1.some((x) => /前の phase/.test(x) && /nsExec\.dll/.test(x)), `[3] uninstaller でプラグインの would-sign が残れば赤: ${e1}`);

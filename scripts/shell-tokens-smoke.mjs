@@ -192,7 +192,7 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   assert.match(src, /scope="operation"/, `${rel} save error must be operation-scope diagnostic`);
   // F3改 (人間検証R3): 全量サマリバナー(section scope の validation 集約)は廃止し、
   // Map/App と同じ「field 診断 + バナーは操作エラーのみ」の文法へ統一。
-  // 既存の変更で readOnly 通知等の非 validation バナーが DF scope=section へ変換されたため、
+  // 説明の文法の統一で readOnly 通知等の非 validation バナーが DF scope=section へ変換されたため、
   // 禁止対象は field 診断 (…Diagnostics) を束ねる section DF に限定する
   const sectionDfTags = (src.match(/<DiagnosticFeedback[^>]*>/g) ?? []).filter((tag) => tag.includes('scope="section"'));
   for (const tag of sectionDfTags) {

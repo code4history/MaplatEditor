@@ -1,5 +1,5 @@
-// スモーク: export の POI 外部ファイル化 (設計 v1.1)。
-// 既存の変更と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
+// スモーク: export の POI 外部ファイル化 。
+// poi-reference-resolver-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // 純関数と AppExportService.exportApp の実出力を behavioral に検証する。
 //
 // Part A: poiExportFileName の表駆動 (sanitize / 一意化)                                      … case 6
@@ -497,7 +497,7 @@ try {
       // ============================================================
       // Part D: 単独形の文書が export に出る (case 16)
       // ------------------------------------------------------------
-      // 既存の変更で readAppDocumentPois が単独形（レイヤ1つを配列に包まず直接置く形）を
+      // editor-layer-ref の変更で readAppDocumentPois が単独形（レイヤ1つを配列に包まず直接置く形）を
       // supported にしたことの **副次効果**。export / preview / 診断はいずれも
       // readAppDocumentPois(document).pois を受け取るため、現行まで Array.isArray の判定に
       // 落ちて無視されていた単独形の POI が出力されるようになる。t2/t3 の出力契約
@@ -532,13 +532,13 @@ try {
         assert.deepEqual(
           soloAppJson.pois,
           [{ layer: 'https://example.com/solo-app-pois.geojson', hide: true }],
-          'case 16: 単独形の上書きレイヤが配列1件として出力される（既存の変更の出力契約と同形）',
+          'case 16: 単独形の上書きレイヤが配列1件として出力される（上の書き出しの出力契約と同形）',
         );
         const soloMapJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'maps', 'fxsolo.json'), 'utf8'));
         assert.deepEqual(
           soloMapJson.pois,
           [{ layer: 'https://example.com/solo-pois.geojson' }],
-          'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（既存の変更の E3）',
+          'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（上の E3）',
         );
         console.log('ok: (D) single-layer-form documents now reach the export output (case 16)');
       }

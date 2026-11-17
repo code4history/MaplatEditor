@@ -1,4 +1,4 @@
-// 搬出 → 別 slug へ import → 再読込・preview・再搬出（タスク設計 v1.1）。
+// 搬出 → 別 slug へ import → 再読込・preview・再搬出。
 //
 // 固定する受け入れ条件:
 //   case 8  POI・icon・maplat-asset:・通常/512px サムネイルを含む地図 ZIP を export し、
@@ -8,7 +8,7 @@
 //
 // 【なぜ「別 slug へ」なのか】
 // 元の地図を残したまま複製を取り込むのが実際の利用形である。同 slug は Exist で弾かれる
-// （その失敗契約は 既存の変更の担当であり本タスクでは変えない）∴ ZIP 側の slug を書き換えて
+// （その失敗契約は map-import-slug-collision の担当であり本タスクでは変えない）∴ ZIP 側の slug を書き換えて
 // 取り込む。書き換えるのは maps/ ・ tmbs/ ・ tiles/ の名前と mapID であり、
 // pois/ ・ imgs/ の名前は ZIP 内で slug 非依存なのでそのままである。
 //
@@ -137,7 +137,7 @@ try {
     // 文字列なら gcps を載せる（store_handler.histMap2Store）。preview は
     // compiled が無いと GCP から生成するため（MapEditService:130-131）、
     // 実地図と同じ「compiled 済み」の形で往復させる
-    // 既存の変更の fixture と同型（loose・3点）
+    // preview-pois-parity-smoke・poi-reference-resolver-smoke の fixture と同型（loose・3点）
     const GCPS = [
       [[0, 0], [135.0, 35.1]],
       [[400, 0], [135.1, 35.1]],

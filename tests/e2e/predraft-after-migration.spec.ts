@@ -135,7 +135,7 @@ test('移行前の下書きは移行後に衝突にならず復元・保存で�
       await page.waitForTimeout(2_000);
       await page.getByTestId('app-title').fill('下書きで編集したアプリ');
       await page.getByTestId('app-title').blur();
-      // 一覧へ戻ると下書きが書き出される（既存の変更の hot exit と同じ経路）
+      // 一覧へ戻ると下書きが書き出される（draft-hot-exit の hot exit と同じ経路）
       await page.getByTestId('editor-back').click();
       await expect
         .poll(async () => page.evaluate(async (uid) => (await window.assetDrafts.get('app', uid))?.baseRevision ?? null, appUid), { timeout: 30_000 })

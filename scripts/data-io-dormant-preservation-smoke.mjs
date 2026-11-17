@@ -35,7 +35,7 @@ try {
   assert.match(mapEdit, /WMTS生成部分（旧実装 mapedit\.html の同タブ下部）は新規\n\s*「メルカトルタイル」タブへ分離・移設済み/, '#1 ブロックコメントのWMTS生成部分移設明記が欠落している');
   // 実装レビューM-1是正: wmtsgenerate.*は「引き続き使用する」ではなく、実装レビューで
   // ProgressReporterのテキストキーがmerc.*へ修正された結果コードから参照されなくなった
-  // （公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり: UIから"WMTS"を排除）。JSON定義自体は既存の変更の休眠保全対象として残す
+  // （公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり: UIから"WMTS"を排除）。JSON定義自体は休眠保全の対象として残す
   assert.match(mapEdit, /ユーザー向け文言は公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まりに\n\s*従いwmtsgenerate\.\*ではなくmerc\.\*を使う/, '#1 ブロックコメントの merc.* 使用の明記が欠落している');
   assert.match(mapEdit, /wmtsgenerate\.\* 5キーはコードから参照されなくなったが、\n\s*JSON定義自体は休眠保全の対象として削除しない/, '#1 ブロックコメントのwmtsgenerate.*休眠保全（コード非参照）明記が欠落している');
 
@@ -102,7 +102,7 @@ try {
     '#10 updateWholeGcps の保全注記が欠落している',
   );
 
-  // #11 wmtsGenerate: 既存の変更でMapEdit.vueの新規mercタブから到達可能になった（関数名は維持）
+  // #11 wmtsGenerate: MapEdit.vueの新規mercタブから到達可能になった（関数名は維持）
   assert.match(
     mapEdit,
     /vueMap\.\$on\('wmtsGenerate'\) 相当\n\/\/ 本ロジックはMapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\n\/\/ （以前から転用を予定していた地図からのタイル生成に対応）。関数名\(wmtsGenerate\)は維持し、呼び出し元の\n\/\/ ボタンのみ休眠inoutタブから新規mercタブへ移設した。有効条件: wmtsEditReady\n[\s\S]{0,300}async function wmtsGenerate\(\): Promise<void> \{/,
@@ -116,7 +116,7 @@ try {
     '#12 uploadCsv の保全注記が欠落している',
   );
 
-  // #13 WmtsGeneratorService（クラス全体）: 既存の変更で新規mercタブから到達可能になった
+  // #13 WmtsGeneratorService（クラス全体）: 新規mercタブから到達可能になった
   const wmtsService = await readProjectFile('electron/services/WmtsGeneratorService.ts');
   assert.match(
     wmtsService,

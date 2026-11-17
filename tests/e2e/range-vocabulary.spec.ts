@@ -16,7 +16,7 @@
 // MapEdit.vue の `baseMapSpatialContext` は
 //     if (manual) { return { bbox: manual, enabled: true }; }
 // という形をしており、この return 文は `if (manual) {` の**唯一の中身**である。
-// 既存の変更はこの行から `labelKey` プロパティを除去したが、**行ごと削除すると**
+// 範囲の語彙の統一ではこの行から `labelKey` プロパティを除去したが、**行ごと削除すると**
 // if ブロックが空になり、手動設定した絞り込み範囲が握り潰されて GCP 自動範囲へ
 // フォールスルーする。
 //
@@ -167,7 +167,7 @@ test.describe('範囲語彙の統一', () => {
       await openHash(page, `#/basemaps?uid=${uid}`);
       await expect(page.locator('[data-testid="basemap-editor"]')).toBeVisible({ timeout: 30000 });
 
-      // ①のラベルは据置（存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まり と 既存の変更が確定した基準点）
+      // ①のラベルは据置（存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まりと、アプリのソース編集の整理で確定した基準点）
       const label = page.locator('label', { hasText: NAME.coverage }).first();
       await expect(label).toBeVisible({ timeout: 30000 });
 
@@ -315,7 +315,7 @@ test.describe('範囲語彙の統一', () => {
   // -------------------------------------------------------------------------
   // case 15 / E6 — 本 spec の主眼。ファイル冒頭の長いコメントを参照のこと。
   // -------------------------------------------------------------------------
-  test('E6/case 15: 手動の絞り込み範囲を確定すると、リストが実際にその範囲で絞られる', async () => {
+  test('E6: 手動の絞り込み範囲を確定すると、リストが実際にその範囲で絞られる', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-range-vocabulary-e6-'));
     const { app, page } = await launch(e2eRoot);

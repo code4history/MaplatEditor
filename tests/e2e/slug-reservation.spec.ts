@@ -525,7 +525,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
     // 必須フィールドを埋めて保存
     // NOTE (既存RED吸収): (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
     // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。
-    // 既存の変更は af691aa、既存の変更は 9c2815e で同じ吸収を済ませているので、それに揃える。
+    // master-detail は af691aa、shell-tokens は 9c2815e で同じ吸収を済ませているので、それに揃える。
     await page.getByTestId('basemap-title').fill('case 6新規ベースマップ');
     await page.getByTestId('basemap-title').press('Tab');
     await page.getByTestId('basemap-attr').fill('テスト帰属');
@@ -587,7 +587,7 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
     // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
     await page.getByTestId('basemap-title').fill('case 6 Clash');
     await page.getByTestId('basemap-title').press('Tab');
-    // 既存の変更の attr 必須化（上記 NOTE）。attr を埋めておかないと保存ボタンの disabled が
+    // attr の必須化（上記 NOTE）。attr を埋めておかないと保存ボタンの disabled が
     // 「slug が他所で予約済み」ではなく「attr 未入力」由来になり、下の分岐が常に false 側へ落ちる。
     await page.getByTestId('basemap-attr').fill('テスト帰属');
     await page.getByTestId('basemap-attr').press('Tab');
@@ -631,7 +631,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
     await runtime.page.getByTestId('basemap-slug').press('Tab');
     await runtime.page.getByTestId('basemap-title').fill('T7ドラフト');
     await runtime.page.getByTestId('basemap-title').press('Tab');
-    // 既存の変更の attr 必須化（上記 NOTE）。未入力だと editor-save が disabled のままで click が timeout する。
+    // attr の必須化（上記 NOTE）。未入力だと editor-save が disabled のままで click が timeout する。
     await runtime.page.getByTestId('basemap-attr').fill('テスト帰属');
     await runtime.page.getByTestId('basemap-attr').press('Tab');
     await runtime.page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');

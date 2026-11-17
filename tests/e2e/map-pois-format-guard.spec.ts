@@ -2,16 +2,16 @@
 //。
 //
 // 検証範囲:
-//   case 3/case 4: 【既存の変更で契約が変わった】pois が URL 文字列（実データ maps/morioka.json と同形）の
+//   case 3/case 4: 【editor-layer-ref の変更で契約が変わった】pois が URL 文字列（実データ maps/morioka.json と同形）の
 //        地図は「単独形の URLレイヤ」として **編集可能** になった（viewer 正本が受容する形のため）。
-//        read-only と未対応形式の警告は出ない。既存の変更の read-only はこの形を扱えなかった時点の
-//        暫定であり、既存の変更の対応で不要になった
+//        read-only と未対応形式の警告は出ない。この spec が当初見ていた read-only はこの形を扱えなかった時点の
+//        暫定であり、editor-layer-ref の対応で不要になった
 //   case 5: 同じ地図で他タブを編集して保存しても pois の生値がそのまま残る
-//        （= 本タスクが塞ぐデータ喪失経路そのものの回帰テスト。**既存の変更でも維持される** —
+//        （= 本タスクが塞ぐデータ喪失経路そのものの回帰テスト。**editor-layer-ref の後も維持される** —
 //        単独形は要素数1のまま単独形で保存されるため、文字列がそのまま残る）
 //   case 6: 全解除の保存形が両画面ともキーなし／既存の空配列は配列のまま維持される
 //
-// read-only の判定について: 既存の変更は「左ペインの poi-selector-disabled は非参照要素の
+// read-only の判定について: pois-roundtrip は「左ペインの poi-selector-disabled は非参照要素の
 // 相互排他制約でも立つため read-only の判定には使えない」と注記している。ただしそれは
 // 非参照要素が存在する場合の話で、未対応形式では表示用配列が空（entries 0件）になるため
 // hasNonReferenceEntries は必ず false であり、poi-selector-disabled が立つ原因は readOnly
@@ -46,14 +46,14 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   return { app, page };
 }
 
-// MapEdit の保存は confirm ダイアログを挟むため OK 自動応答へ差し替える（既存の変更と同方式）
+// MapEdit の保存は confirm ダイアログを挟むため OK 自動応答へ差し替える（map-poi-hide-override と同方式）
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
   await app.evaluate(async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }
 
-// GCP 4点 + updateTin による compiled を持つ地図を seed する（/ 既存の変更と同一手順。
+// GCP 4点 + updateTin による compiled を持つ地図を seed する（map-poi-hide-override・geocoder-estimate と同一手順。
 // compiled が無いと viewer runtime ゲートに掛かるため保存が通らない）
 async function seedMap(page: Page, slug: string, pois: unknown): Promise<string> {
   return await page.evaluate(async ({ slug, pois }: any) => {
@@ -149,7 +149,7 @@ test.describe('pois 受け入れ関所と判定ガードの共通化', () => {
       // ---- case 3（改訂）: read-only ではなく、1件のカードとして編集可能に表示される ----
       await expect(cards, 'case 3: 単独形の URLレイヤが1件のカードとして表示される').toHaveCount(1, { timeout: 30000 });
       // 左ペインは無効化されたままだが、原因が readOnly から「非参照要素があるので POI ソースを
-      // 追加できない」（既存の変更の既存制約 poiref.add_blocked_note）へ変わっている。
+      // 追加できない」（inline-poi-preserve-convert の既存制約 poiref.add_blocked_note）へ変わっている。
       // read-only でないことは「カードが表示され操作できる」で示す（上の toHaveCount(1)）
       await expect(
         poisPane.locator('.poi-selector-disabled'),
@@ -160,7 +160,7 @@ test.describe('pois 受け入れ関所と判定ガードの共通化', () => {
         'case 3: read-only ではないので行の操作ボタンは有効',
       ).toBeEnabled();
 
-      // ---- case 5: 他タブの編集を保存しても pois の生値が失われない（既存の変更でも維持される）----
+      // ---- case 5: 他タブの編集を保存しても pois の生値が失われない（editor-layer-ref の後も維持される）----
       await saveEditor(page);
 
       const afterSave = await readSavedMapPois(page, uid);
@@ -240,7 +240,7 @@ test.describe('pois 受け入れ関所と判定ガードの共通化', () => {
       expect(appAfter.persistedHasKey, 'case 6(App): 既存の pois キーは維持される').toBe(true);
       expect(appAfter.value, 'case 6(App): 既存の空配列は配列のまま（キー削除の正規化はしない）').toEqual([]);
 
-      // ---- App: pois キーを持たない文書には空配列を生やさない（既存の変更で変わる挙動）----
+      // ---- App: pois キーを持たない文書には空配列を生やさない（この spec で変わる挙動）----
       // 旧実装は defaultApp() の pois: [] がそのまま残り、保存すると pois: [] が生えていた。
       // 受け入れ関所は「元に無いキーを生やさない」ため、保存後もキーは現れない。
       const bareSlug = `map-pois-format-guard-bare-${stamp}`;

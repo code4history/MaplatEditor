@@ -51,7 +51,7 @@ export async function deleteMapWithTrash(uidOrMapID: string): Promise<void> {
         if (doc) {
             const { canonicalPaths, legacyPath, legacyCandidateCount } = await resolveDeletionTargets(fileKey, slug);
             // ambiguous legacy (2件以上) は対象にせず live に残置する。何が起きたか運用者が
-            // 追跡できるよう warning を残す (既存の変更からの挙動維持)
+            // 追跡できるよう warning を残す (原本のライフサイクルの扱いからの挙動維持)
             if (legacyCandidateCount >= 2) {
                 console.warn(`[MapDeleteTrashService] delete: ambiguous legacy originals for uid=${fileKey} slug=${slug} (candidates=${legacyCandidateCount}); leaving all legacy files in place (not moved to the OS trash)`);
             }

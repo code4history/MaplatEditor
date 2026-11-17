@@ -1,5 +1,5 @@
-// スモーク: preview を export と同一形式にする（pois/ 配信）。設計 v1.1。
-// 既存の変更と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ +
+// スモーク: preview を export と同一形式にする（pois/ 配信）。
+// poi-reference-resolver-smoke・export-pois-externalization-smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で AppPreviewService.prepare の実 HTTP 配信を behavioral に検証する。
 //
 // Part A: 配信 JSON が参照形（apps / maps ともインライン FC 0件）                      … case 1 / case 2
@@ -173,7 +173,7 @@ try {
         height: 300,
         strictMode: 'loose',
         vertexMode: 'plain',
-        // preview の compiled 生成に GCP が3点以上要る（既存の変更の fixture と同型）
+        // preview の compiled 生成に GCP が3点以上要る（poi-reference-resolver-smoke の fixture と同型）
         gcps: [
           [[0, 0], [135.0, 35.1]],
           [[400, 0], [135.1, 35.1]],

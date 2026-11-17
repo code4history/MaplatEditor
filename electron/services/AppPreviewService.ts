@@ -638,7 +638,7 @@ ${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMaj
     const baseFolder = path.resolve(path.join(saveFolder, folder));
     const resolved = path.resolve(path.join(baseFolder, ...segments.map(segment => decodeURIComponent(segment))));
     // startsWith(baseFolder) は末尾 path.sep 欠落で `{baseFolder}-x`（例 tmbs-x）が
-    // prefix 一致通過していた。isUnderFolder（= startsWith(base + path.sep)）で厳密化（既存の変更と同型）
+    // prefix 一致通過していた。isUnderFolder（= startsWith(base + path.sep)）で厳密化（resolveAssetImageFile の封じ込めと同型）
     if (!isUnderFolder(resolved, baseFolder)) return this.sendText(res, 403, 'Forbidden');
     await this.sendFile(res, resolved);
   }

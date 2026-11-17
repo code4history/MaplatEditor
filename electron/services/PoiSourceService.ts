@@ -52,7 +52,7 @@ const REMOTE_MAX_BYTES = 50 * 1024 * 1024; // 50 MiB 超 → 登録拒否
 
 // cleanup が返す残留物を main プロセスのログへ可視化する。
 // POI 単体 import の戻り値形（PoiSourceSaveResult）は **変えない** — 残留の利用者向け表示は
-// 既存の変更の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
+// 取り込みの補償の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
 // 地図 ZIP import 側は DataUploadService が residue を戻り値へ載せる。
 function logCompensationResidue(stage: string, residue: CompensationResidue[]): void {
   if (residue.length === 0) return;
@@ -299,7 +299,7 @@ export class PoiSourceService {
     const byteSize = Buffer.byteLength(fetched.text, 'utf8');
     if (byteSize > this.remoteMaxBytes) {
       // guardedFetch のストリーミングガードで既に補足されるはずの経路だが、既存コードの
-      // 二重チェックをそのまま保持する（除去は 既存の変更のスコープ外）
+      // 二重チェックをそのまま保持する（除去は TileJSON 取り込みの変更のスコープ外）
       return { ok: false, failure: { result: 'Invalid', issues: [{ level: 'error', code: 'payload-too-large' }] } };
     }
     let parsed: unknown;
@@ -557,7 +557,7 @@ export class PoiSourceService {
     if (prepared.hasError) return { result: 'Invalid', issues: prepared.issues };
 
     // slug は POI import の既存解決をそのまま使う（base, base-2 … の空き探索）。
-    // 地図 slug とは別系統であり、地図側の衝突解決は 既存の変更の責務である。
+    // 地図 slug とは別系統であり、地図側の衝突解決は地図の取り込みの slug 衝突の処理の責務である。
     const resolvedSlug = await resolveImportSlug(name);
     if (resolvedSlug === null) return { result: 'Exist' };
 

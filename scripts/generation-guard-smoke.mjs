@@ -23,7 +23,7 @@ import { build } from "vite";
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "generation-guard-guard-"));
+const workDir = await mkdtemp(path.join(scratchRoot, "generation-guard-"));
 const outDir = path.join(workDir, "dist");
 
 function deferred() {

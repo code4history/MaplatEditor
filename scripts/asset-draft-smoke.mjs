@@ -235,7 +235,7 @@ try {
     assert.match(source, /draftLifecycle\.flush\(\)/, `${viewName}: hot-exit flush missing`);
   }
   // save cleanup (拡張): 全エディタが markSaved → rebase → flush パターンを持つ。
-  // PoiEdit.vue は 既存の変更で先行導入、MapEdit/AppEdit/BaseMapEdit/AssetEdit は 既存の変更で追従。
+  // PoiEdit.vue が先行して導入し、MapEdit/AppEdit/BaseMapEdit/AssetEdit が後から追従した。
   // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を保存済み行の
   // (uid, revision) へ再構成しないと、旧 draftUid のドラフトが取り残され、
   // 正式データと同一 slug のドラフトが並ぶ不具合を防ぐための必須パターン。

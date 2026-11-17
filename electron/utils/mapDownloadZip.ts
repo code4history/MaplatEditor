@@ -63,7 +63,7 @@ export async function composeDownloadMapJson(
   //       ∴ 利用者から見て POI が失われる
   //   (2) icon / maplat-asset: の実体が manifest へ集まらず ZIP に同梱されない
   //
-  // 既存の変更は同じ欠陥を **app 側でだけ** 是正した (AppExportService の該当コメントが
+  // 上書きレイヤの対応は同じ欠陥を **app 側でだけ** 是正した (AppExportService の該当コメントが
   // 「map 側だけ生判定だったため単独形の地図で POI が丸ごと落ちていた・実データ3件が該当」
   // と記録している)。その是正が地図 ZIP 側に及んでいなかったのを本タスクで揃える
   // (恒久指示「同一扱い処理は共通実装へ徹底」)。

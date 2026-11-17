@@ -13,7 +13,7 @@
  *   **file-url の import 直上に限って** @ts-ignore を禁止する。
  *
  * 追随（#105）:
- *   既存の変更でローカルタイル URL の生成は file-url（file://）から `electron/utils/appScheme.ts` の
+ *   ローカルタイル URL の生成は file-url（file://）から `electron/utils/appScheme.ts` の
  *   `localFileUrl`（app://local）へ移り、下記 5 ファイルから file-url の import が消えた
  *   （webSecurity:true の下で renderer は file:// を読めない ∴ file:// 生成器の復活は契約違反）。
  *   case 8 の検査対象（import 行）を置換先の appScheme import へ移し、

@@ -70,7 +70,7 @@ await mkdir(scratchRoot, { recursive: true });
 // 出力の一致: 同じ POI 入力に対し、共通 API が返す参照形が地図/アプリで同一であること
 // ---------------------------------------------------------------------------
 async function importResolver() {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'export-unification-parity-parity-'));
+  const workDir = await mkdtemp(path.join(scratchRoot, 'export-unification-parity-'));
   const outDir = path.join(workDir, 'dist');
   const entryFile = path.join(workDir, 'entry.ts');
   const electronStub = path.join(workDir, 'electron-stub.ts');

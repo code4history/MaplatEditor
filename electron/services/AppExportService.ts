@@ -128,7 +128,7 @@ export const OG_IMAGE_FAILED_WARNING = 'appedit.export.og_image_failed';
 export const PWA_ICON_DEFAULT_WARNING = 'appedit.export.pwa_icon_default';
 
 /**
- * CSS の背景色を jimp の色（0xRRGGBBAA）にする（既存の変更の退避経路）。
+ * CSS の背景色を jimp の色（0xRRGGBBAA）にする（アイコン元画像から作れないときの退避経路）。
  * 読めない書式は既定の背景色（`PWA_DEFAULT_BACKGROUND`）にする。
  */
 function cssColorToRgbaInt(value: unknown): number {
@@ -512,7 +512,7 @@ class AppExportService {
         // 生の Array.isArray ではなく共通の readAppDocumentPois を通す。app 側 (:263,:510)
         // が既にこの関数で読んでいるのに map 側だけ生判定だったため、**単独形 (レイヤ1つを配列に
         // 包まず直接置く形) の地図では POI が export から丸ごと落ちていた**。実データ maps の
-        // 3件がこの形であり、既存の変更で MapEdit が編集可能にした形でもある ∴ 同一扱いへ寄せる
+        // 3件がこの形であり、MapEdit が上書きレイヤの対応で編集可能にした形でもある ∴ 同一扱いへ寄せる
         // (恒久指示「同一扱い処理は共通実装へ徹底」)。未対応形式は従来どおり空配列になるので、
         // その場合の挙動 (pois を触らない) も変わらない。
         // 読み出しと外部化を **地図 ZIP 搬出と共有する唯一の実装** へ寄せる

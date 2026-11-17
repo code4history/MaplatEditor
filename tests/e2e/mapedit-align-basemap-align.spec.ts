@@ -56,7 +56,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（既存の変更と同型）
+// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（mapedit-align-contextmenu と同型）
 async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const slug = `mapedit-align-basemap-align-map-${Date.now()}`;
@@ -566,7 +566,7 @@ test.describe('ベースマップ位置合わせモード', () => {
   // HR-4.3 の「セッション限り」を明示的に逆転させたため、本テストの期待を反転した
   // （旧: リロードで 0.00 に戻る → 新: 編集環境ストアに保存され、リロード後も保持値が残る）。
   // seed はメモリ専用の testDebug.seedBaseMapShifts では reload を跨げない
-  // ∴ 実 IPC（mapedit.setBaseMapShiftForMapID = 既存の変更の永続経路）で書き、reload 後は実 load 経路で読む
+  // ∴ 実 IPC（mapedit.setBaseMapShiftForMapID = mapedit-align-reset-persist の永続経路）で書き、reload 後は実 load 経路で読む
   test('（case 9 で期待反転）: 保持値は編集環境ストアへ永続化され、リロード後も残る', async () => {
     test.setTimeout(240_000);
     const { app, page, errors, uid } = await bootstrap('maplat-fx-session-');

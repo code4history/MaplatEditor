@@ -139,7 +139,7 @@ async function envelopeOf(page: Page, assetUid: string): Promise<any> {
   return page.evaluate(async (uid) => window.assetDrafts.get('map', uid), assetUid);
 }
 
-// 既存地図を IPC 直叩きで seed（既存の変更の seedBareMap と同型）
+// 既存地図を IPC 直叩きで seed（upload-tile-refresh の seedBareMap と同型）
 async function seedBareMap(page: Page, slugPrefix: string): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async (prefix) => {
     const mapSlug = `${prefix}-${Date.now()}`;

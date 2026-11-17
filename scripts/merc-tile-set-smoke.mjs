@@ -182,7 +182,7 @@ try {
       const lookup = createBaseMapMasterLookup([masterItem]);
       const appSource = createAppSourceFromBaseMap(masterItem, 'ja');
       assert.equal(appSource.baseMapUid, TARGET_UID_1, 'case 5: baseMapUid（マスタ参照）を持つはず');
-      assert.deepEqual(appSource.overrides ?? {}, {}, 'case 5: 既存の変更では全コピーせず上書きは空');
+      assert.deepEqual(appSource.overrides ?? {}, {}, 'case 5: 差分モデルでは全コピーせず上書きは空');
       const settingFile = composeBaseMapSettingFile(masterItem, appSource.role);
       assert.equal(settingFile.url, 'merc/merc-source-a/{z}/{x}/{y}.png', 'case 5: 設定ファイルの url はマスタの現在 slug から導出されるはず');
       console.log('ok: (B) createAppSourceFromBaseMap + 設定ファイル: merc の url 導出 ');
@@ -260,7 +260,7 @@ try {
       assert.equal(exportedD.result, 'Success');
       assert.ok(
         !exportedD.warnings.includes(MERC_NAME_COLLISION_WARNING),
-        'case 8: 既存の変更では dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
+        'case 8: 差分モデルでは dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
       );
       const zipD = new AdmZip(zipPathD);
       const namesD = zipD.getEntries().map((e) => e.entryName);

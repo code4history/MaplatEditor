@@ -98,7 +98,7 @@ for (const rel of [MAP_EDIT, BASE_MAP_EDIT]) {
 console.log("smoke S2: OK（実装本体 1 件 / 呼び出し 2 画面）");
 
 // ---------------------------------------------------------------------------
-// S3 : 512px パスのインライン組み立てが無い（既存の変更の単一変化点を迂回しない）
+// S3 : 512px パスのインライン組み立てが無い（WebP 化の単一変化点を迂回しない）
 //   before = 0 / after = 0（この 0 を守る。派生は thumb512PathFor だけを通す）
 // ---------------------------------------------------------------------------
 const GUARDED_FILES = [MAP_EDIT, BASE_MAP_EDIT, COMPOSABLE];
@@ -117,7 +117,7 @@ for (const rel of GUARDED_FILES) {
 assert.deepEqual(inlineHits, [],
   "S3: 512px パスのインライン組み立てが混入した（[C4]）。\n"
   + `  実測:\n    ${inlineHits.join("\n    ")}\n`
-  + "  派生は utils/thumbnailPaths.ts の thumb512PathFor だけを通すこと（既存の変更の単一変化点）。");
+  + "  派生は utils/thumbnailPaths.ts の thumb512PathFor だけを通すこと（WebP 化の単一変化点）。");
 
 // THUMB_512_EXT の再代入・写しが無いこと（コメント言及のみ可）
 for (const rel of GUARDED_FILES) {

@@ -1,5 +1,5 @@
 {
-  "note": "nov26-m6-t8 (b): 変更前の master で --write-baseline により生成した、既定の地図の書き出し物のエントリと SHA-256。手で書き換えない",
+  "note": "書き出しの選択肢 (b): 書き出しの選択肢を入れる前の master で --write-baseline により生成した、既定の地図の書き出し物のエントリと SHA-256。手で書き換えない",
   "entries": {
     "imgs/icons/builtin/defaultpin.png": "a6435b80bcc4f27bb95be2ab66fbf2bc4e2316433690362e111d43cc278de673",
     "maps/m6t8map.json": "10a52bd78f609d07bc3b846743217ea36052170ffe958e1c3b9353b65dae416e",

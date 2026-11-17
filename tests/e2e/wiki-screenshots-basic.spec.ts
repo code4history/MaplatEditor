@@ -132,7 +132,7 @@ test('capture current-1..4 wiki screenshots (MapList / MapEdit-GCP / PoiEdit / A
     // 付与されるため、reload 後も同一 draft を指し続ける(MapEdit.vue:1980 相当)。
     await openHash(page, '#/mapedit?new=1', '[data-testid="map-title"]');
     await fillAndCommit(page.getByTestId('map-title'), 'Draft Map for Screenshot');
-    await page.reload(); // beforeunload flushSync で draft を永続化する（既存の変更の base map draft 検証と同じパターン）
+    await page.reload(); // beforeunload flushSync で draft を永続化する（shell-tokens の base map draft 検証と同じパターン）
     await page.waitForLoadState('domcontentloaded');
     // reload 後の初回遷移（/mapedit）が確定して編集画面が出るまで待ってから hash を変える。
     // 待たずに書き換えると、遅い runner では初回遷移と競合して /maplist への遷移が

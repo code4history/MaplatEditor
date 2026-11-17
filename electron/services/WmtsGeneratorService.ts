@@ -238,7 +238,7 @@ class WmtsGeneratorService {
             // --- プログレス ---
             // 実装レビュー M-1: 進捗イベントのテキストキーは modalProgress() 経由でモーダル本文を
             // 上書きするため、公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり（UIから "WMTS" を排除）に従い merc.* を使う
-            // （呼び出し元は 既存の変更の新規 merc タブのみ。wmtsgenerate.generating_tile は
+            // （呼び出し元は新規 merc タブのみ。wmtsgenerate.generating_tile は
             // もう参照されない）
             const reporter = new ProgressReporter(
                 'mapedit:taskProgress',

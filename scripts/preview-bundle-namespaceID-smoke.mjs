@@ -3,7 +3,7 @@
  *
  * case 1: public/preview/maplat_ui.umd.js に showPoiLayer(\w+\.namespaceID) が含まれる
  * case 2: dist/preview/maplat_ui.umd.js に同修正が含まれる
- * case 3: （既存 E2E 既存の変更で検証 — この smoke では対象外）
+ * case 3: （既存の e2e の preview-back-navigation で検証 — この smoke では対象外）
  * case 4: pnpm build が成功する（build 前提でファイル存在確認）
  * case 5: maplat_ui.css が変更されない（MD5 比較: node_modules と public/preview）
  * case 6: pnpm-lock.yaml の @maplat/ui lock pin が 6503813e から更新されている
@@ -95,17 +95,17 @@ const total = 4;
   passed++;
 }
 
-// case 6: pnpm-lock.yaml の @maplat/ui lock pin は 既存の変更で registry 参照へ移行したため
+// case 6: pnpm-lock.yaml の @maplat/ui lock pin は registry 参照へ移行したため
 // 旧 pin 6503813e / 新 pin 07ee37a5 ともに pnpm-lock.yaml に出現ゼロ（2026-08-01 実測）。
 // 当該 assert は本タスク着手前から RED であり、本タスクの変更が壊すわけではない。
 // 削除ではなくコメント付き skip とし、理由を残す。
-console.log("⏭️  case 6: lock pin assert は skip（既存の変更で registry 参照へ移行。実測値: 旧 pin 6503813e/新 pin 07ee37a5 は出現ゼロ）");
+console.log("⏭️  case 6: lock pin assert は skip（registry 参照へ移行済み。実測値: 旧 pin 6503813e/新 pin 07ee37a5 は出現ゼロ）");
 
-// case 7: pnpm-lock.yaml の @maplat/core lock pin は 既存の変更で registry 参照へ移行したため
+// case 7: pnpm-lock.yaml の @maplat/core lock pin は registry 参照へ移行したため
 // 旧 pin 84c09697 / 新 pin 9b97eb5 ともに pnpm-lock.yaml に出現ゼロ（2026-08-01 実測）。
 // 当該 assert は本タスク着手前から RED であり、本タスクの変更が壊すわけではない。
 // 削除ではなくコメント付き skip とし、理由を残す。
-console.log("⏭️  case 7: lock pin assert は skip（既存の変更で registry 参照へ移行。実測値: 旧 pin 84c09697/新 pin 9b97eb5 は出現ゼロ）");
+console.log("⏭️  case 7: lock pin assert は skip（registry 参照へ移行済み。実測値: 旧 pin 84c09697/新 pin 9b97eb5 は出現ゼロ）");
 
 console.log(`\n結果: ${passed}/${total} AC パス（case 6/case 7 は t2 移行により skip）`);
 console.log("case 3（既存 E2E 回帰）は smoke 範囲外 — 別途実行してください");

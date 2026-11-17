@@ -26,7 +26,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-representation-matrix-matrix-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'poi-representation-matrix-'));
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');

@@ -150,7 +150,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 test.describe('更新のお知らせ', () => {
   test.skip(process.platform !== 'darwin', '模擬の更新元は latest-mac.yml の形（e2e の CI は macOS）');
 
-  test('case 1 (i)(ii): 新しい正式版を起動の後に 1 回だけ知らせ、「後で」ならダウンロードしない', async () => {
+  test('新しい正式版を起動の後に 1 回だけ知らせ、「後で」ならダウンロードしない', async () => {
     test.setTimeout(120_000);
     const feed = await startFeed('new');
     const root = await makeRoot({});
@@ -175,7 +175,7 @@ test.describe('更新のお知らせ', () => {
     }
   });
 
-  test('case 1 (iii): 「更新する」で zip を取りに行き「今すぐ再起動して更新」が出る。その後に失敗のダイアログが出ない', async () => {
+  test('「更新する」で zip を取りに行き「今すぐ再起動して更新」が出る。その後に失敗のダイアログが出ない', async () => {
     test.setTimeout(120_000);
     const feed = await startFeed('new');
     const root = await makeRoot({});
@@ -208,7 +208,7 @@ test.describe('更新のお知らせ', () => {
     }
   });
 
-  test('case 1 (iv): updateCheckEnabled=false で起動すると更新元への要求が 0 件', async () => {
+  test('updateCheckEnabled=false で起動すると更新元への要求が 0 件', async () => {
     test.setTimeout(120_000);
     const feed = await startFeed('new');
     const root = await makeRoot({ updateCheckEnabled: false });
@@ -229,7 +229,7 @@ test.describe('更新のお知らせ', () => {
     }
   });
 
-  test('case 2: 正式版が現在の版なら起動時は何も出さず、メニュー「更新を確認…」で「最新です」。設定で切れる', async () => {
+  test('正式版が現在の版なら起動時は何も出さず、メニュー「更新を確認…」で「最新です」。設定で切れる', async () => {
     test.setTimeout(120_000);
     const feed = await startFeed('current');
     const root = await makeRoot({});

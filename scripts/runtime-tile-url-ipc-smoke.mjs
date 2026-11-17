@@ -2,7 +2,7 @@
 //
 // なぜ必要か:
 //   タイル URL 欄が書き換えるのは `mapData.url` だが、タイル源が読むのは `mapData.url_` で、
-//   両者を繋ぐ反映がどこにも無い。renderer 側で `url_` を導出すると、既存の変更が1本化した
+//   両者を繋ぐ反映がどこにも無い。renderer 側で `url_` を導出すると、url-derivation-unification が1本化した
 //   `deriveRuntimeTileUrl` が3箇所目として復活するため、main へ問い合わせる形にする。
 //
 // 検証する受け入れ条件:
@@ -220,7 +220,7 @@ await writeFile(
       const thumbFolder = nodePath.join(${JSON.stringify(dataDir)}, 'tiles', SAVED_ONLY_UID, '0', '0');
       const expected = await deriveRuntimeTileUrl({}, thumbFolder);
       const got = await call('', SAVED_ONLY_UID);
-      check('case 7 導出が deriveRuntimeTileUrl（既存の変更の正本）と同じ値を返す', () => {
+      check('case 7 導出が deriveRuntimeTileUrl（url-derivation-unification の正本）と同じ値を返す', () => {
         assert.equal(got, expected);
       });
       const expectedExt = await deriveRuntimeTileUrl({ url: EXT_URL }, thumbFolder);

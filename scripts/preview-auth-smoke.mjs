@@ -251,7 +251,7 @@ try {
       console.log('ok: case 4 foreign Origin is rejected with 403');
       // Origin 不在は case 3 で確認済み（headers 未指定）。以下は許可されるべき Origin 群
       assert.equal(await request(port, '/preview/' + token1 + '/', { origin: 'null' }), 200,
-        'case 5: file:// レンダラの Origin: null が通過しない（既存の変更のレンダラ直 fetch が落ちる）');
+        'case 5: file:// レンダラの Origin: null が通過しない（properties-viewer-reach のレンダラ直 fetch が落ちる）');
       assert.equal(await request(port, '/preview/' + token1 + '/', { origin: 'http://localhost:5173' }), 200,
         'case 5: Vite dev server オリジン（ループバック別ポート）が通過しない');
       assert.equal(await request(port, '/preview/' + token1 + '/', { origin: 'http://127.0.0.1:' + port }), 200,
@@ -270,7 +270,7 @@ try {
         'case 8: 有効 token の /local-file が 200 配信されない（非退行）');
       console.log('ok: case 8 /local-file with a valid token serves the file');
       assert.equal(await request(port, '/local-file/' + token1 + toUrlPathname(outsideFile)), 403,
-        'case 9: saveFolder 外のパスが 403 にならない（既存の変更の封じ込めが新経路で効いていない）');
+        'case 9: saveFolder 外のパスが 403 にならない（preview-containment の封じ込めが新経路で効いていない）');
       console.log('ok: case 9 path containment still holds on the tokenized route');
 
       // ---- case 11: 2回目の prepare で旧セッションが失効する ----

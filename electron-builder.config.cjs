@@ -14,7 +14,7 @@
 
 // Windows NSIS ペイロードの圧縮フィルタは electron-builder 26.15.6 以降が BCJ に固定する
 // （上流 #9988・v26 への backport #9989。環境変数では変えられない）。
-// 既存の変更の回避策（BCJ2 の指定）は 既存の変更で撤去した。生成物の検査は
+// 以前の回避策（BCJ2 の指定）は Electron 43 への更新で撤去した。生成物の検査は
 // scripts/win-payload/verify-win-payload-codec.mjs（G2）。
 
 // Windows: 全 PE 署名（2026-10-03・SAC 起動拒否への対処。詳細は scripts/win-sign/win-sign.cjs 冒頭）
@@ -101,7 +101,7 @@ const config = {
         // 自前の公証は明示的に止める。**false を省略できない**: electron-builder 24.13.3 は
         // APPLE_ID を env に見つけると notarizeIfProvided を起動し、mac.notarize が未定義だと
         // macPackager.js:501 の `const { appBundleId, ascProvider } = options` が undefined を
-        // 分解して落ちる（case 7 の初回実走で実測。回帰止めは case 9）。
+        // 分解して落ちる（成果物の SHA の照合の初回実走で実測。回帰止めは release-workflow-smoke）。
         // 仮に落ちなくても afterSign と二重に公証してしまう
         notarize: false,
         ...(isMacSigning && {

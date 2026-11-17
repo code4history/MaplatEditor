@@ -14,9 +14,9 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 【/ case 8 の実測による訂正】設計は「単独形 URL の文書で POI を追加 → 可能。
 // 元の URL は要素として残り配列化して2要素になる」としていたが、**UI からこの経路には到達
 // できない**。PoiReferenceEditor の hasNonReferenceEntries（:356）が非参照要素の存在で真に
-// なり、POI ソース選択ペインが 既存の変更の既存制約（poiref.add_blocked_note）で無効化される
-// ためである。既存の変更が解除するのは readOnly だけで、この制約は別物であり 既存の変更の範囲外。
-// ∴ 「黙って消えない」（既存の変更の約束）は、追加時に上書きされる経路がそもそも存在しないという
+// なり、POI ソース選択ペインが inline-poi-preserve-convert の既存制約（poiref.add_blocked_note）で無効化される
+// ためである。この spec が解除するのは readOnly だけで、この制約は別物でありこの spec の範囲外。
+// ∴ 「黙って消えない」（map-pois-format-guard の約束）は、追加時に上書きされる経路がそもそも存在しないという
 // より強い形で維持される。単独形→配列化の写像そのものは純関数の契約として
 // smoke Part D が表駆動で検証する（UI から到達できない分岐でも契約は正しく持つ）。
 //
@@ -250,7 +250,7 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       // ---- case 9(a): POI 追加による上書き喪失の経路が存在しない ----
       // 非参照要素（ここでは URLレイヤ）がある間は POI ソースの追加自体が塞がれている
-      // （既存の変更の既存制約。既存の変更が解除するのは readOnly だけ）
+      // （inline-poi-preserve-convert の既存制約。この spec が解除するのは readOnly だけ）
       await page.getByTestId('map-tab-pois').click();
       await expect(cards, '前提: カードは1件のまま').toHaveCount(1, { timeout: 30000 });
       await expect(

@@ -11,11 +11,11 @@
 // （凍結契約）: 上書き可能キーは `label` 1 個へ縮んだ。表題・帰属・
 // ライセンス・ズーム範囲・サムネイルの操作子は撤去され、それらを対象にしていた本 spec の
 // 検証も同じ縮小を受ける（残る操作子は label / envelopeLngLats / mercator シフト 2 欄）。
-// 加えて 既存の変更の case 7（「存在範囲からコピー」の活性条件と反映）を本 spec で検証する。
+// 加えて、アプリのソース編集の整理で加えた「存在範囲からコピー」の活性条件と反映を本 spec で検証する。
 //
 //。
 //
-// NOTE (case 26 との順序): 本 spec の case 13 は出荷バンドル（public/preview 経由の
+// NOTE (preview-restart の直 fetch の確認との順序): 本 spec の case 13 は出荷バンドル（public/preview 経由の
 // maplat_ui.umd.js）で走る。MaplatCore の label マージ修正が伝搬鎖の全ホップへ
 // 到達していることは `pnpm run smoke:preview-bundle-label-merge-guard` が固定する。src だけ直して
 // dist を再生成し忘れると、ここは旧バンドルで通ってしまう。
@@ -296,7 +296,7 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
 // case 15（人間検証由来）: 表示ラベルが翻訳モードで編集できること。
 //
 // 本タスクの要望は「表示ラベルを単言語要素 → 多言語要素にする」である。器（LangResourceInput）は
-// 既存の変更の時点で入っていたが、**欄に :disabled="translationMode" が付いていたため、既定言語以外へ
+// 差分モデルの時点で入っていたが、**欄に :disabled="translationMode" が付いていたため、既定言語以外へ
 // 切り替えると読み取り専用になり翻訳を入力できなかった**（base 74c3806 から存在した欠陥）。
 // チップは出るのに入力できない ＝ 機構として多言語になっていない。
 //
@@ -401,7 +401,7 @@ test('builtin(osm) への上書きが配信 JSON と viewer の両方へ届く',
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
   try {
-    // AppEdit の保存は main 側の確認ダイアログを挟む（既存の変更と同一の stub）
+    // AppEdit の保存は main 側の確認ダイアログを挟む（app-poi-hide-override と同一の stub）
     await app.evaluate(async ({ dialog }) => {
       dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
     });
