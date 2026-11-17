@@ -1310,8 +1310,8 @@ function addBaseMapSource(item: BaseMapItem) {
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
   // マスタの全コピーはやめ、参照（baseMapUid）＋空の上書きだけを持つ。
   // マスタ由来値（url / zoom / 帰属 / ライセンス / サムネイル）は書き出し・プレビュー時に
-  // マスタから読む。∴ merc の url 導出も選択時点ではなく composeBaseMapSettingFile が行い
-  //、旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
+  // マスタから読む。∴ merc の url 導出も選択時点ではなく composeBaseMapSettingFile が行い、
+  // 旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
   const source = createAppSourceFromBaseMap(
     { uid: item.uid, mapID: item.mapID, data: item.data || {} },
     appData.value.lang,
@@ -1360,8 +1360,8 @@ function sourceIdLabel(source: AppSource): string {
 }
 
 // v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
-// added 判定（HM6: 追加済み=青=selected=true）・disabledReason（HM4: previewDisabled 理由表示）・
-// スラッグ重複除去（HM10: metadata から mapID を除外、slug 行が表示するため）を反映。
+// added 判定（追加済み=青=selected=true）・disabledReason（previewDisabled 理由表示）・
+// スラッグ重複除去（metadata から mapID を除外、slug 行が表示するため）を反映。
 function isMapSourceAdded(uid: string): boolean {
   return appData.value.sources.some((source) => source.mapUid === uid && source.sourceType === "maplat");
 }
@@ -1378,11 +1378,11 @@ function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
     thumbnailUrl: item.image ?? null,
     metadata: [],
     badges: [],
-    // HM6: 追加済み=selected=true（青）。disabled より selected を優先
+    // 追加済み=selected=true（青）。disabled より selected を優先
     selected: added,
     hasDraft: false,
     actions: [],
-    // HM4: previewDisabled 理由を常時表示（added でない場合のみ）
+    // previewDisabled 理由を常時表示（added でない場合のみ）
     disabledReason: !added && previewDisabled ? t(item.previewDisabledReason || "appedit.preview.unavailable") : undefined,
   };
 }
@@ -1399,10 +1399,10 @@ function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListIte
     slug: String(item.mapID),
     title,
     thumbnailUrl: item.thumbnailUrl ?? null,
-    // HM10: スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
+    // スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
     metadata: item.scope ? [item.scope] : [],
     badges: [],
-    // HM6: 追加済み=selected=true（青）
+    // 追加済み=selected=true（青）
     selected: added,
     hasDraft: false,
     actions: [],
@@ -1920,9 +1920,9 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'pois'" class="h-100" data-testid="app-pois-tab-pane">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
-        <!-- / / 未対応形式中は表示ガード (poisForEditor — MapEdit と同一の
+        <!-- 未対応形式中は表示ガード (poisForEditor — MapEdit と同一の
              共通 composable) + read-only で、生値温存を空配列表示の編集が上書きする経路を塞ぐ。
-             : hostSlug/hostTitle は変換 slug/title 基底 -->
+             hostSlug/hostTitle は変換 slug/title 基底 -->
         <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="poisForEditor" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>

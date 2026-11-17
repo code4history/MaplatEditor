@@ -87,7 +87,7 @@ try {
   console.log('  [4/6] Title normalization + save path: PASS');
 
   // --- Part 5: Remote fetch guard ---
-  // http/https のみ許可 + POI-121 の payload サイズガード (warn/max)
+  // http/https のみ許可 + payload サイズガード (warn/max)
   // scheme 検証は electron/services/remoteFetchGuard.ts の guardedFetch へ抽出済み。
   // PoiSourceService.ts 自体はそれを呼ぶだけになったため、scheme 検査は委譲先の
   // remoteFetchGuard.ts 側で確認し、PoiSourceService.ts 側は guardedFetch への委譲を確認する
@@ -100,7 +100,7 @@ try {
   assert.match(serviceSource, /payload-too-large/, 'PoiSourceService に payload-too-large ガードがない');
   assert.match(serviceSource, /remoteWarnBytes|REMOTE_WARN_BYTES/, 'PoiSourceService に warn 閾値がない');
   assert.match(serviceSource, /remoteMaxBytes|REMOTE_MAX_BYTES/, 'PoiSourceService に max 閾値がない');
-  // 明示再取得 (POI-118)
+  // 明示再取得
   assert.match(serviceSource, /refreshRemote/, 'PoiSourceService に refreshRemote がない');
 
   console.log('  [5/6] Remote fetch guard: PASS');

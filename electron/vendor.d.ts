@@ -8,7 +8,7 @@ declare module 'adm-zip' {
         getEntries(): AdmZip.IZipEntry[];
         writeZip(targetFileName?: string): void;
         // adm-zip 0.6.x: 内部で toAsyncBuffer を使う非同期版。zip 全体を単一 Buffer へ連結する
-        // 全メモリ方式のため、大規模データには使わない（t1: アプリ搬出は electron/utils/zipWriter.ts
+        // 全メモリ方式のため、大規模データには使わない（アプリ搬出は electron/utils/zipWriter.ts
         // のストリーミング実装へ移行済み。型宣言は mapDownloadZip 等の将来利用のため残す）
         writeZipPromise(targetFileName?: string, props?: { overwrite?: boolean; perm?: number }): Promise<void>;
         toBuffer(): Buffer;

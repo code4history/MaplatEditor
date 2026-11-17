@@ -36,7 +36,7 @@ const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'resolver-containment-smoke.mjs');
 
-// ---- case 6 / case 7: ソース検査（バンドル前に実施する） -------------------
+// ---- case 7: ソース検査（バンドル前に実施する） -------------------
 {
   const resolverSrc = await readFile(
     path.join(projectRoot, 'electron/services/resourceImageResolver.ts'),

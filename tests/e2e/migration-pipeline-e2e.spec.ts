@@ -7,7 +7,6 @@
 // tests/e2e/single-instance-lock.spec.ts と同一パターン(mkdtemp + MAPLAT_E2E_ROOT +
 // --user-data-dir 必須)を踏襲する。フィクスチャは tests/fixtures/migration-pipeline/
 // 配下の実データ由来コピー(takabatake_kozu1/2、人間承認済み)+ 合成タイルを使う。
-//。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdir, mkdtemp, cp, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -36,7 +35,7 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
 
   // --- 手順2: フィクスチャを <e2eRoot>/save-folder/ 配下へ配置する ---
   // (テストの隔離実行であり実データには一切触れない。フィクスチャ自体は実装時に
-  // 実データフォルダから読み取り専用 grep/コピーで抽出済み。/AC-T5-4)
+  // 実データフォルダから読み取り専用 grep/コピーで抽出済み)
   await mkdir(saveFolder, { recursive: true });
   // legacy migration 未実行を再現するため、ライブファイル名は "nedb.db"(退避名 "_nedb.db" ではない)
   await cp(path.join(fixturesRoot, 'legacy-nedb-lines.ndjson'), path.join(saveFolder, 'nedb.db'));
@@ -75,7 +74,7 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
     const page: Page = await app.firstWindow();
     await page.waitForLoadState('domcontentloaded');
 
-    // --- 手順5: 同期点。window.maplist.request の resolve は内部で
+    // --- 手順5: 同期点。window.maplist.request() の resolve は内部で
     // SqliteDataService.getDb() を要求するため、resolve 時点で migrate() の3段階すべてが
     // 完了していることが保証される(positional 契約: request(query, page, pageSize)) ---
     const result: any = await page.evaluate(() => (window as any).maplist.request('', 1, 50));
@@ -92,7 +91,7 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
     await quitElectronApplication(app);
     app = null;
 
-    // --- (AC-T5-3a) sqlite: maps 行 + schema_migrations marker ---
+    // --- (a) sqlite: maps 行 + schema_migrations marker ---
     const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
     try {
       const row1: any = db.prepare('SELECT uid, slug FROM maps WHERE uid = ?').get(uid1);
@@ -112,7 +111,7 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
       db.close();
     }
 
-    // --- (AC-T5-3b) originals: canonical uid 原本 + legacy slug 原本の無傷(byte一致) ---
+    // --- (b) originals: canonical uid 原本 + legacy slug 原本の無傷(byte一致) ---
     const canonical1 = path.join(saveFolder, 'originals', `${uid1}.jpg`);
     const canonical2 = path.join(saveFolder, 'originals', `${uid2}.jpg`);
     expect(await pathExistsBool(canonical1), 'canonical originals/<uid1>.jpg が生成されているはず').toBe(true);
@@ -132,7 +131,7 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
     expect(legacyHash1, 'legacy slug 原本1はフィクスチャ由来と byte-for-byte 不変のはず(SI-2)').toBe(fixtureHash1);
     expect(legacyHash2, 'legacy slug 原本2はフィクスチャ由来と byte-for-byte 不変のはず(SI-2)').toBe(fixtureHash2);
 
-    // --- (AC-T5-3c) migration-report-v2.json: originalsUuidMigration.entries ---
+    // --- (c) migration-report-v2.json: originalsUuidMigration.entries ---
     const report = JSON.parse(await readFile(path.join(saveFolder, 'migration-report-v2.json'), 'utf8'));
     expect(report.originalsUuidMigration, 'originalsUuidMigration が additive に書かれているはず').toBeTruthy();
     const entries: any[] = report.originalsUuidMigration.entries;

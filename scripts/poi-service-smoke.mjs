@@ -9,17 +9,17 @@
 //   (d) save stale expectedRevision → { error:'revision-conflict', current } (maps/apps と同形)
 //   (e) importFile: GeoJSON FeatureCollection (.geojson)
 //   (f) importFile: 旧POIオブジェクト形式 (.json 配列, lat/lng・lnglat) → 正規化して取込
-//   (g) importFile: Point以外を含む → 取込拒否 (POI-104)、ソースは作られない
+//   (g) importFile: Point以外を含む → 取込拒否、ソースは作られない
 //   (h) registerRemote: fetch成功時のみ登録、snapshot が DB に永続 (mode='remote')
 //   (i) remote ソースへの save は拒否 (read-only)
-//   (j) refreshRemote: サーバ内容変更 → snapshot更新 + revision++ (POI-118)
+//   (j) refreshRemote: サーバ内容変更 → snapshot更新 + revision++
 //   (k) refreshRemote: fetch失敗 → Error、既存 snapshot は無傷 (degraded cache)
-//   (l) POI-121 閾値: warn超え → warning issue付きで登録 / max超え → 登録拒否
+//   (l) サイズ閾値: warn超え → warning issue付きで登録 / max超え → 登録拒否
 //   (l2) Error taxonomy: HTTP 非2xx → code 'http-status' / 非JSON応答 → code 'parse'
 //   (l3) chunked 応答 (content-length なし) が閾値超過 → stream 読みを abort し登録拒否
 //   (l4) delete-race: refreshRemote の fetch 中に並行 delete → 復活せず Error code 'not-found'、slug は解放のまま
 //   (m) cloneToLocal: remote → local 複製 (features維持、複製先は保存可能)
-//   (n) findReferences → [] (Phase 7 まで参照は書かれない)
+//   (n) findReferences → [] (参照を書く経路ができるまでは空)
 //   (o) delete: 本体・registry掃除 (slug解放)
 //   (p) 旧 poi-sources.json / poi-sources/ ディレクトリは読みも消しもしない (無傷)
 //   (q) list: uid/slug/title/mode/featureCount/revision/updatedAt を返し blob を含まない / query=FTS
@@ -235,7 +235,7 @@ try {
       console.log('ok: (f) importFile legacy POI list');
 
       // (f2) importFile: 旧POIオブジェクト形式で whitelist 外キー(実データ実在例 start・selectedIcon)が
-      //      save 後も保持される (case 5-1/5-2)
+      //      save 後も保持される
       const importLegacyUnknownFile = nodePath.join(workDir, 'import-legacy-unknown.json');
       await fsWriteFile(importLegacyUnknownFile, JSON.stringify([
         { lat: 39.703, lng: 141.153, name: '御堂', selectedIcon: 'builtin:temple-selected', start: 1599 },
@@ -251,7 +251,7 @@ try {
       assert.ok(!('lng' in legacyUnknownDoc.fc.features[0].properties), 'lng は properties に残置されないはず');
       console.log('ok: (f2) importFile legacy POI preserves whitelist-external keys through get ');
 
-      // (f3) feature 単位の未知 properties が save→get で round-trip する (case 5-4, テストカバレッジの穴(a)の解消)
+      // (f3) feature 単位の未知 properties が save→get で round-trip する (テストカバレッジの穴(a)の解消)
       const unknownPropsSave = await poiSourceService.save(legacyUnknownDoc.uid, {
         slug: legacyUnknownDoc.slug,
         title: legacyUnknownDoc.title,
@@ -263,7 +263,7 @@ try {
       assert.equal(afterUnknownPropsSave.fc.features[0].properties.start, 1599, 'feature 単位の未知 properties は save→get で round-trip するはず ');
       console.log('ok: (f3) feature-level unknown properties round-trip through save→get ');
 
-      // (g) importFile: Point以外を含む → 取込拒否 (POI-104)
+      // (g) importFile: Point以外を含む → 取込拒否
       const importBadFile = nodePath.join(workDir, 'import-bad.geojson');
       await fsWriteFile(importBadFile, JSON.stringify({
         type: 'FeatureCollection',
@@ -277,7 +277,7 @@ try {
       assert.ok(importRejected.issues.some((i: any) => i.code === 'geometry-not-point'), 'geometry-not-point issue を返すはず');
       assert.equal(await SqliteDataService.findPoiSourceBySlug('bad-import'), null, '拒否された import でソースは作られないはず');
       assert.equal(await SqliteDataService.isSlugAvailable('bad-import'), true, '拒否された import で slug は消費されないはず');
-      console.log('ok: (g) importFile rejects non-Point (POI-104)');
+      console.log('ok: (g) importFile rejects non-Point');
 
       // (g2) portable ZIP: 規定配置を取り込み、画像pathを永続Asset UIDへ戻す。
       const AdmZip = (await import('adm-zip')).default;
@@ -462,7 +462,7 @@ try {
       assert.equal((await poiSourceService.get(registered.uid)).revision, remoteDoc.revision, 'remote save 拒否で revision 不変のはず');
       console.log('ok: (i) remote source rejects save (read-only)');
 
-      // (j) refreshRemote: サーバ内容変更 → snapshot 更新 (POI-118)
+      // (j) refreshRemote: サーバ内容変更 → snapshot 更新
       remotePayload = JSON.stringify({
         type: 'FeatureCollection',
         features: [
@@ -489,7 +489,7 @@ try {
       assert.equal(afterFail.revision, refreshedDoc.revision, 'fetch 失敗時は revision 不変のはず');
       console.log('ok: (k) refreshRemote failure keeps cached snapshot');
 
-      // (l) POI-121 サイズ閾値 (テスト用に閾値を注入した service インスタンスで検証)
+      // (l) サイズ閾値 (テスト用に閾値を注入した service インスタンスで検証)
       let payload2 = JSON.stringify({
         type: 'FeatureCollection',
         features: [{ type: 'Feature', id: 'big1', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { name: 'big' } }],
@@ -520,7 +520,7 @@ try {
       assert.equal(tooLarge.result, 'Invalid', 'max 閾値超えは登録拒否のはず');
       assert.ok(tooLarge.issues.some((i: any) => i.level === 'error' && i.code === 'payload-too-large'), 'payload-too-large issue を返すはず');
       assert.equal(await SqliteDataService.findPoiSourceBySlug('too-large-remote'), null, '拒否された remote は登録されないはず');
-      console.log('ok: (l) POI-121 remote payload thresholds');
+      console.log('ok: (l) remote payload thresholds');
 
       // (l2) Error taxonomy: http-status / parse
       const httpStatus = await poiSourceService.registerRemote({
@@ -620,7 +620,7 @@ try {
 
       // (n) findReferences → []
       const refs = await poiSourceService.findReferences(uid);
-      assert.deepEqual(refs, [], 'Phase 7 まで参照は常に空のはず');
+      assert.deepEqual(refs, [], '参照を書く経路が無いので常に空のはず');
       console.log('ok: (n) findReferences returns []');
 
       // (q) list: blob なし + updatedAt あり + query=FTS
@@ -649,7 +649,7 @@ try {
       // (r) 仕様 : FC トップレベル layer metadata の save round-trip。id/name は保存されない
       // (slug/title 由来の独立しない概念、export 時にのみ書き込む)。icon/selectedIcon/hide/
       // poiTemplate/未知キー (customMeta) は round-trip 保持される (backend バグ修正、Phase5 Task1)。
-      // case 17-3: patchLayerMeta で icon を変更しても、未編集の poiTemplate/customMeta 等
+      // patchLayerMeta で icon を変更しても、未編集の poiTemplate/customMeta 等
       // が save→get で保持されることを確認する end-to-end 検証。
       const layerMetaSave = await poiSourceService.save(uid, {
         slug: 'kyoto-poi',
@@ -672,17 +672,17 @@ try {
       });
       assert.equal(layerMetaSave.result, 'Success', 'layer metadata 付き save は成功するはず: ' + JSON.stringify(layerMetaSave));
       const afterLayerMetaSave = await poiSourceService.get(uid);
-      assert.equal(afterLayerMetaSave.fc.icon, 'builtin:defaultpin', 'icon は round-trip 保持されるはず (POI-111)');
-      assert.equal(afterLayerMetaSave.fc.selectedIcon, 'builtin:defaultpin-selected', 'selectedIcon は round-trip 保持されるはず (POI-111)');
-      assert.equal(afterLayerMetaSave.fc.hide, false, 'hide は round-trip 保持されるはず (POI-111)');
-      assert.equal(afterLayerMetaSave.fc.poiTemplate, '<div>{{name}}</div>', 'poiTemplate は round-trip 保持されるはず (POI-007/111)');
+      assert.equal(afterLayerMetaSave.fc.icon, 'builtin:defaultpin', 'icon は round-trip 保持されるはず');
+      assert.equal(afterLayerMetaSave.fc.selectedIcon, 'builtin:defaultpin-selected', 'selectedIcon は round-trip 保持されるはず');
+      assert.equal(afterLayerMetaSave.fc.hide, false, 'hide は round-trip 保持されるはず');
+      assert.equal(afterLayerMetaSave.fc.poiTemplate, '<div>{{name}}</div>', 'poiTemplate は round-trip 保持されるはず');
       assert.deepEqual(afterLayerMetaSave.fc.customMeta, { future: 'extension', nested: [1, 2, 3] }, '未知キーも round-trip 保持されるはず (将来拡張)');
-      assert.ok(!('id' in afterLayerMetaSave.fc), 'FC.id は保存されないはず (slug 由来の独立しない概念、)');
-      assert.ok(!('name' in afterLayerMetaSave.fc), 'FC.name は保存されないはず (title 由来の独立しない概念、)');
+      assert.ok(!('id' in afterLayerMetaSave.fc), 'FC.id は保存されないはず (slug 由来の独立しない概念)');
+      assert.ok(!('name' in afterLayerMetaSave.fc), 'FC.name は保存されないはず (title 由来の独立しない概念)');
       assert.equal(afterLayerMetaSave.featureCount, 1, 'layer metadata 追加で feature_count がずれないはず');
       console.log('ok: (r) FC top-level layer metadata round-trips through save; id/name are not persisted ()');
 
-      // (r3) case 17-3: load → icon のみ変更 → save → get で未変更キーが保持される
+      // (r3) load → icon のみ変更 → save → get で未変更キーが保持される
       // （patchLayerMeta が呼ぶサービス経路の end-to-end 検証）
       const iconOnlySave = await poiSourceService.save(uid, {
         slug: 'kyoto-poi',

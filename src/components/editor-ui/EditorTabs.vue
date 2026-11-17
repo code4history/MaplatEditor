@@ -1,5 +1,5 @@
 <template>
-  <!-- Edit の tab primitive。現行 nav-tabs と同等の DOM
+  <!-- 編集画面の tab primitive。現行 nav-tabs と同等の DOM
        (ul.nav.nav-tabs.nav-fill + li.nav-item > a.nav-link、active/disabled class、
        href="#"、click.prevent)を出力しつつ、role/aria-selected/roving tabindex と
        ArrowLeft/Right/Home/End の focus 移動、disabled 理由 tooltip、狭幅 overflow を

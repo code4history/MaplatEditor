@@ -51,7 +51,7 @@ async function exportSeededMap(
   await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden({ timeout: 120000 });
 }
 
-/** MapList の「インポート」から ZIP を取り込む（case 11 の実導線） */
+/** MapList の「インポート」から ZIP を取り込む（一覧の取り込みボタンの実導線） */
 async function importViaMapList(
   app: Awaited<ReturnType<typeof launch>>['app'],
   page: Awaited<ReturnType<typeof launch>>['page'],

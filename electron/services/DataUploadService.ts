@@ -306,7 +306,7 @@ class DataUploadService {
             // 契約として保証されたものではない）。呼び出し側で明示的に検証する。
             //
             // ここで throw しても **まだ何も書いていない** ため、補償は不要である
-            // （完全ロールバック。の residue は付かない）。
+            // （完全ロールバック。補償の申告の residue は付かない）。
             const entryInfos = zipEntryInfos(zip, 'map package');
             assertArchiveStructure(entryInfos, zipSize, 'map package');
             assertSafeArchiveEntries(entryInfos, 'map package');
@@ -517,7 +517,7 @@ class DataUploadService {
             (histMap as any).revision = 1;
             (histMap as any).status = 'Update';
 
-            // url_ の導出は共通実装 deriveRuntimeTileUrl が正本
+            // url_ の導出は共通実装 deriveRuntimeTileUrl() が正本
             // （MapEditService.normalizeRequestData と同一。二重実装の一本化）
             const url_ = await deriveRuntimeTileUrl(mapData, path.join(tileToPath, '0', '0'));
             if (url_) (histMap as any).url_ = url_;

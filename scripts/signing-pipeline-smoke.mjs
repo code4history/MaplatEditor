@@ -649,7 +649,7 @@ function checkBuildWorkflow(wf) {
   const v = [];
   const jobs = wf?.jobs ?? {};
   // (i) run-name
-  if (wf['run-name'] !== RUN_NAME) v.push(`(i) run-name が 式と一致しない: ${JSON.stringify(wf['run-name'])}`);
+  if (wf['run-name'] !== RUN_NAME) v.push(`(i) run-name が決めた式と一致しない: ${JSON.stringify(wf['run-name'])}`);
   // (a) id-token を持つのは署名専用ジョブ 3 つだけ（縮退時は pack-sign-win も）・workflow レベルに無い
   if (wf.permissions && 'id-token' in wf.permissions) v.push('(a) workflow レベルに id-token がある');
   const allowedIdToken = new Set([...Object.keys(SIGN_JOBS), ...(jobs['pack-sign-win'] ? ['pack-sign-win'] : [])]);
@@ -812,7 +812,7 @@ function checkBuildWorkflow(wf) {
   const bwUp = (jobs['build-win']?.steps ?? []).find((st) => st.with?.name === 'win-artifacts');
   if (!bwUp || bwUp.if !== "needs.prepare.outputs.win_sign_path != 'artifact-signing'") v.push('(j) build-win の win-artifacts が Artifact Signing の経路でも上がる（二重 upload）');
   if (!needsOf(jobs.release).includes('verify-win-install') || !needsOf(jobs.release).includes('finalize-win')) v.push('(j) release の needs に finalize-win・verify-win-install が無い');
-  if (jobs.release?.if !== RELEASE_IF) v.push('(j) release の if: が 式と一致しない');
+  if (jobs.release?.if !== RELEASE_IF) v.push('(j) release の if: が決めた式と一致しない');
 
   // (k) 縮退（pack-sign-win）があるときだけ
   if (jobs['pack-sign-win']) {
@@ -855,7 +855,7 @@ const wf = yaml.load(wfText);
 {
   const v = checkBuildWorkflow(wf);
   assert.deepEqual(v, [], `case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
-  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は m10 の PIN（case 4）');
+  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は固定した版の PIN（case 4）');
   // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
   {
     const pinLine = 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413';
@@ -1003,4 +1003,4 @@ const wf = yaml.load(wfText);
   console.log(`  [6/6] 自己検査（変異 ${mutations.length} 件がすべて違反を出す）: PASS`);
 }
 
-console.log('\nnov26-signing pipeline smoke: すべて成功');
+console.log('\nsigning pipeline smoke: すべて成功');

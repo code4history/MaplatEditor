@@ -122,7 +122,7 @@ try {
       assert.equal(migratedLanguageRow.sourceName, null, '既存assetのsourceNameは推測せずnullのはず');
 
       // (a0) exceedsPixelLimit: 境界値 (10000x10000 = 100,000,000 はちょうど上限、超えない /
-      // 10000x10001 は超える) — add の伸長爆弾ガードから切り出した純関数 (Phase 6 品質レビュー 補強)
+      // 10000x10001 は超える) — add の伸長爆弾ガードから切り出した純関数 (品質レビューでの補強)
       assert.equal(exceedsPixelLimit(10000, 10000), false, '10000x10000 はちょうど上限で超過ではないはず');
       assert.equal(exceedsPixelLimit(10000, 10001), true, '10000x10001 は上限を超えるはず');
       console.log('ok: (a0) exceedsPixelLimit boundary (10000x10000=false, 10000x10001=true)');
@@ -430,7 +430,7 @@ try {
   });
 
   // ソースパターン断言: add が exceedsPixelLimit を呼ぶ形にリファクタされているはず
-  // (ロジックの重複復活・呼び出し漏れの防止。Phase 6 品質レビュー 補強)
+  // (ロジックの重複復活・呼び出し漏れの防止。品質レビューでの補強)
   const serviceSource = await readFile(servicePath, 'utf8');
   assert.match(
     serviceSource,

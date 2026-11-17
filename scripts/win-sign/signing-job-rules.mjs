@@ -28,7 +28,7 @@
  *
  * checkSigningJob(jobName, job, opts?) → string[]（違反の一覧。空なら合格）
  *   opts.requireSummary（既定: jobName !== 'probe-sign'）… 規則 11 を課すか
- * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて の PIN か）
+ * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて固定した版の PIN か）
  * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う
  */
 
@@ -54,7 +54,7 @@ const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 /** 署名専用ジョブが受け取る入力のディレクトリ（疎通ジョブは probe-in・署名専用ジョブは sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
 
-/** コマンド位置のパッケージマネージャ・JS 実行系（case 11 の正規表現に yarn|bun を足したもの） */
+/** コマンド位置のパッケージマネージャ・JS 実行系（リリースのワークフローの検査の正規表現に yarn|bun を足したもの） */
 const RUNTIME_RE = /(^|[\s;&|(])(pnpm|npm|npx|node|yarn|bun)\s/m;
 /** owner/repo[/path]@<40 桁 hex> */
 const PINNED_USES_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\/[A-Za-z0-9_./-]+)?@[0-9a-f]{40}$/;

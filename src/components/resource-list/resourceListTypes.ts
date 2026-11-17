@@ -42,7 +42,7 @@ export interface ResourceListItemViewModel {
   iiifDelivery?: boolean;
   // capability。builtin Base Map 等 action 不能な item は空配列。
   actions: Array<"duplicate" | "delete">;
-  /** v2.0 HM4: selector variant で追加不可の理由（text-danger で常時表示 + :title ツールチップ） */
+  /** selector variant で追加不可の理由（text-danger で常時表示 + :title ツールチップ） */
   disabledReason?: string;
 }
 

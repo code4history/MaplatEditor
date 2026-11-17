@@ -451,7 +451,7 @@ const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
 });
 // stable インスタンス（computed で再生成しない）。source() が reactive に最新を返すため、
 // ResourceSelectorList の spatialContext / query watch で再 load される。
-// HM1: 楽観更新で baseMapVisibilityList の item.enabled を in-place 更新するため、
+// 楽観更新で baseMapVisibilityList の item.enabled を in-place 更新するため、
 // adapter の source() は常に最新の reactivity を返す（remount なし）。
 const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     source: () => baseMapVisibilityList.value,
@@ -505,7 +505,7 @@ const {
 });
 watch(mapUid, () => { void refreshThumbnails(); }, { immediate: true });
 
-// v2.0 HM1: 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
+// 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
 // :key remount・baseMapReloadNonce は廃止。エラー時のみ loadBaseMapVisibility() で再取得。
 async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean): Promise<void> {
     if (item.locked || !baseMapVisibilityMapRef()) return;
@@ -521,7 +521,7 @@ async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean):
 }
 
 // v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
-// HM1: :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
+// :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
 // ※ 楽観更新中（item.enabled 変更のみ）は配列参照が不変のため watch は発火せず、in-place で更新される。
 //   初回 IPC 読込完了時のみ配列参照が差し替わり watch が発火。
 const baseMapSelectorListRef = ref<{ reload: () => Promise<void> } | null>(null);
@@ -538,14 +538,14 @@ function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceL
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
 }
 
-// v2.0 HM3: 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
+// 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
 const baseMapRangeState = computed<"none" | "auto" | "manual">(() => {
     if (baseMapFilterRegion.value) return "manual";
     if (gcpAutoRange.bbox.value) return "auto";
     return "none";
 });
 
-// v2.0 HM8: POI 選択の範囲コントロール（ベースマップ選択と同一方針）
+// POI 選択の範囲コントロール（ベースマップ選択と同一方針）
 const poiFilterRegion = ref<[number, number][] | null>(null);
 const showPoiRegionModal = ref(false);
 const poiSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -837,7 +837,7 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
         // 交換の判断と実行は下に残す（exchange: false）。
         await refreshRuntimeTileUrl((mapData.value?.url ?? '') as string, { applyUrl: false, exchange: false });
         // 復元した mapData が指すタイルと表示中のタイルが異なるなら
-        // ソースを再構築する。gcpsToMarkers()/updateTin は
+        // ソースを再構築する。gcpsToMarkers()/updateTin() は
         // illstSource の座標変換を使うため、必ずそれらより前に行う。
         // 本関数は W1 抑止スコープの内側なので、再構築に伴う書き戻しは履歴へ入らない。
         if (tileIdentityKey(mapData.value) !== illstSourceKey) {
@@ -1384,7 +1384,7 @@ function onMapIDLiveInput(value: string): void {
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
 const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
-// v2.0 Min2: mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
+// mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
 // （POI spatial は poiSpatialContext へ移行済み、consumer なし）
 
 // 冒頭のガードは AppEdit と同一形。read-only は UI の入口を閉じるだけなので、
@@ -2623,7 +2623,7 @@ onMounted(async () => {
             })();
             void loadBaseMapShifts();  // visibility と同じ site から並置で再読込
         }
-        // v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
+        // pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
     });
 });
 
@@ -3006,7 +3006,7 @@ const initMaps = async () => {
         ]),
         controls: mapOverlayControlDefaults(controlLabels)
     });
-    // P1/P2 で contextmenu.disable を呼ぶためインスタンスを保持する
+    // P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
     illstContextMenu = createContextMenu(illstMap);
     illstMap.addControl(illstContextMenu);
 
@@ -3078,7 +3078,7 @@ const initMaps = async () => {
             new Drag()
         ]),
         controls: mapOverlayControlDefaults(controlLabels).extend([
-            // setSwitchableBaseMaps が renderPanel を呼ぶためインスタンスを保持する。
+            // setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する。
             // ui-map-overlay-proposal §5-4: 今の選択の名前を札に出し、クリックで開く
             (baseMapSwitcher = createBaseMapSwitcher({
                 tipLabel: t('mapedit.control_basemap'),
@@ -3272,8 +3272,8 @@ const exchangeTileSource = async (): Promise<any> => {
 // 必要があり、renderer に持ち込むと、URL の導出の統一で1本化した deriveRuntimeTileUrl が3箇所目として
 // 復活する。∴ 導出は main（mapedit:deriveRuntimeTileUrl）に閉じたまま呼ぶ。
 //
-// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない
-//。入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
+// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない。
+// 入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
 // url と url_ が食い違う ＝ 本タスクが直すはずの症状を新経路で再導入してしまう。
 // ∴ 更新は本関数の中だけで行い、経路 (a)(b) のどちらを通っても必ず更新される形にする。
 let lastDerivedUrl: string | null = null;
@@ -3585,7 +3585,7 @@ const persistBaseMapShift = (baseMapID: string, shift: MercatorShift) => {
         .catch((e: any) => console.error('[persistBaseMapShift] Failed:', e));
 };
 
-// ベースマップ切替候補の制御は title 退避 + renderPanel の単一機構に寄せる。
+// ベースマップ切替候補の制御は title 退避 + renderPanel() の単一機構に寄せる。
 // ol-layerswitcher の renderLayers_ は if (l.get('title')) で偽値タイトルの層をスキップする
 // （dist/ol-layerswitcher.js:503 実測）∴ title を空にすればラジオごと消える。
 // disabled クラスは見た目にすぎず input を無効化しない（案 γ の却下理由）
@@ -3709,7 +3709,7 @@ const selectAlignPoint = (coordinate: number[]) => {
 };
 
 // ベースマップの可視レイヤをプログラム的に切り替える（OSM 強制と確定時の復帰に使う）。
-// setVisible は の change:visible 購読を発火させ currentBaseMapID が追随する
+// setVisible は OL レイヤの change:visible 購読を発火させ currentBaseMapID が追随する
 const setVisibleBaseMapLayer = (mapID: string) => {
     const layers = getBaseMapLayerCollection();
     if (!layers) return;
@@ -4027,7 +4027,7 @@ const setupBaseMaps = async () => {
     });
 
     // シフトの実効値を setAt より前に載せる（設計レビューで決めた形は
-    // の 注記側 = 「代入した後で setAt する」。差し替え初回の renderFrame が
+    // 「代入した後で setAt する」。差し替え初回の renderFrame が
     // 既に値の載ったソースを読むため、この経路は refresh() の revision 機構に依存しない。
     // レビュアー実測ではどちらの順でも同一同期ブロック内で renderFrame は挟まらないが、
     // 依存を消せる側へ寄せた）
@@ -4612,7 +4612,7 @@ const chooseMapExport = async (hasSaved: boolean) => {
 };
 
 // 保存済み正本だけを入力にし、編集中state/draftを直接出力しない。
-// previewSource()(strict throw あり)+download の2段呼び出しから、
+// previewSource()(strict throw あり)+download() の2段呼び出しから、
 // strict-freeな新IPC mapedit:download-saved(mapRef) の単一呼び出しへ切替える。
 // tins組み立てロジックはserver側(MapPurposeService.downloadSavedMap())へ移管したため削除
 // （#113）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
@@ -4702,9 +4702,9 @@ const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
 const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
-// 実装レビュー round3 M-6: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
+// 実装レビューの指摘: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
 const mercDefaultAttr = computed(() => attr.value);
-// 実装レビュー round3 M-3: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
+// 実装レビューの指摘: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
 // 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
 const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
 const MERC_SLUG_SUFFIX = '-merc';
@@ -4732,7 +4732,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
         );
         if (arg.err || !arg.tileJson) {
             console.error('[generateMercTileSet]', arg.err);
-            // 実装レビュー M-2: JPEG デコード予算超過を、画像アップロード（:3311-3333）と同型で
+            // 実装レビューの指摘: JPEG デコード予算超過を、画像アップロード（:3311-3333）と同型で
             // 差別化表示する。分岐鍵は arg.errorCode（未知/未設定は従来どおり汎用文言）
             if (arg.errorCode === 'jpeg_machine_limit' && arg.machine) {
                 modalFinish('mapedit.error_image_machine_limit', {
@@ -4757,14 +4757,14 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
             }
             return;
         }
-        // 旧実装 wmtsGenerate と同じ: wmtsHash フィールド名は不変(公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり)。U22 の
+        // 旧実装 wmtsGenerate() と同じ: wmtsHash フィールド名は不変(公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり)。旧実装の
         // await 跨ぎ確定パターンも踏襲する
         mapData.value.wmtsHash = arg.hash;
         commitHistorySnapshot();
         const coverageLngLats = bboxToEnvelope(arg.tileJson.bounds);
         const lang = mapData.value.lang || 'ja';
         if (target.mode === 'new') {
-            // 実装レビュー round3 M-6: 元地図の帰属・ライセンスを既定値として継承する
+            // 実装レビューの指摘: 元地図の帰属・ライセンスを既定値として継承する
             // （BaseMapEdit.vue の既存編集フォームで差し替え可能）。attr のみモーダルに手入力欄が
             // あるため、非空ならその言語スロットだけ上書きし、他言語スロットは元地図の値を保つ
             const inheritedAttr = cloneDeep(mapData.value.attr) || {};
@@ -4835,7 +4835,7 @@ async function wmtsGenerate(): Promise<void> {
         slug: item.mapID,
     }));
     if (matched.length === 0) {
-        // 実装レビュー round3 M-4: モーダルを介さない自動作成経路には SlugField の
+        // 実装レビューの指摘: モーダルを介さない自動作成経路には SlugField の
         // 生存中衝突検査が無い。base_maps.slug は TEXT NOT NULL UNIQUE のため、
         // slugSequence の既存4系統目として "-merc" を使い、衝突時は連番（-merc2…）へ回す
         // （(a) "-copy" / (b) "-poi" / (c) import 衝突採番と同じ reserveSequencedSlug 実装を共有）。
@@ -5363,7 +5363,7 @@ const goBack = async () => {
                                  </div>
                              </div>
 
-                             <!-- Base Map Align Row（。既存 2 行の前例に倣いインライン・ContextHelp なし） -->
+                             <!-- Base Map Align Row（既存 2 行の前例に倣いインライン・ContextHelp なし） -->
                              <div class="col-md-10" v-if="mappingUIRow === 'basemap_align'">
                                  <div class="row g-2 align-items-end">
                                      <div class="col-md-2">
@@ -5744,7 +5744,7 @@ const goBack = async () => {
                                     </div>
                                 </div>
                                 <div class="btn-group btn-group-sm">
-                                    <!-- HM2: locked は × ではなく lock アイコン -->
+                                    <!-- locked は × ではなく lock アイコン -->
                                     <span v-if="item.locked" class="text-secondary d-flex align-items-center px-2" :title="t('mapedit.base_map_always_visible')">
                                         <i class="bi bi-lock-fill" aria-hidden="true"></i>
                                     </span>

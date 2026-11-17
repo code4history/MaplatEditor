@@ -1,5 +1,4 @@
 // スモーク: マスタ由来ソースの差分保持ストレージモデルと出力文法の刷新。
-//。
 //
 // 対象 AC: case 1(出力形) / case 2(設定ファイル) / case 3(マージ順) / case 4(マスタ欠落) / case 5(旧形移行)
 //          case 6(overlay 保全) / case 19(builtin の url) / case 21(commonOptions 禁止キー)
@@ -317,22 +316,22 @@ try {
     const migrated = resolveAppSource(normalized, lookup);
     assert.equal(migrated.ok, true);
     const ov = migrated.source.overrides || {};
-    // case 8: 旧「data 全コピー」形からは **OWNED 3 キー以外すべて捨てる**。
+    // 旧「data 全コピー」形からは **OWNED 3 キー以外すべて捨てる**。
     // title はマスタと異なる値だが、上書き可能キーではなくなったため温存しない
     assert.deepEqual(
       ov, { envelopeLngLats: [[130.5, 32.5]] },
-      'case 8: 旧形移行で温存するのはアプリ所有キーだけ（title などは値が異なっても捨てる）',
+      '旧形移行で温存するのはアプリ所有キーだけ（title などは値が異なっても捨てる）',
     );
     for (const key of [
       'title', 'attr', 'maxZoom', 'minZoom', 'thumbnail',
       'url', 'coverageLngLats', 'kind', 'mapID', 'lang',
       'license', 'dataLicense', 'dataAttr', 'licenseNote', 'dataLicenseNote',
     ]) {
-      assert.equal(key in ov, false, `case 8: 廃止・非上書きキー（${key}）は捨てる`);
+      assert.equal(key in ov, false, `廃止・非上書きキー（${key}）は捨てる`);
     }
     assert.equal(migrated.source.label, undefined, 'case 5: label もマスタと同値なら上書きにしない');
     assert.equal(migrated.source.baseMapUid, 'uid-tms', 'case 5: baseMapUid を補う');
-    console.log('ok: case 5/case 8 旧形の移行（OWNED のみ温存）');
+    console.log('ok: case 5 旧形の移行（OWNED のみ温存）');
   }
   {
     // 言語別フィールドの表記ゆれ（プレーン文字列 ⇄ 言語オブジェクト）を吸収して比較する
@@ -436,19 +435,19 @@ try {
     console.log('ok: createAppSourceFromBaseMap が参照＋空 overrides を返す');
   }
 
-  // ============ case 1: 宣言テーブルが凍結契約と一致する ============
+  // ============ 宣言テーブルが凍結契約と一致する ============
   // 以前の 11 キーは `label` 1 個へ縮んだ。アプリ文書がベースマップマスタに対して
   // 持てる上書きは表示ラベルだけであり、帰属・ライセンス・ズーム・サムネイルはマスタが正本。
   {
     assert.deepEqual(
       [...APP_SOURCE_OVERRIDABLE_KEYS].sort(),
       ['label'],
-      'case 1: 上書き可能キーは label のみ（1.0.0 まで凍結）',
+      '上書き可能キーは label のみ（1.0.0 まで凍結）',
     );
     assert.deepEqual(
       [...APP_SOURCE_OWNED_KEYS].sort(),
       ['envelopeLngLats', 'mercatorXShift', 'mercatorYShift'],
-      'case 1: アプリ所有キーは 3 個のまま（H-2 で存置が確定）',
+      'アプリ所有キーは 3 個のまま（H-2 で存置が確定）',
     );
 
     // 未上書きなら**アプリ JSON 要素に出ない**（設定ファイル側のマスタ値が効く）。
@@ -459,11 +458,11 @@ try {
       { lang: 'ja', lookup },
     );
     for (const key of ['dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote', 'title', 'minZoom', 'maxZoom', 'thumbnail']) {
-      assert.equal(key in bare, false, `case 1: 上書きを持たない ${key} はアプリ JSON 要素に出ない`);
+      assert.equal(key in bare, false, `上書きを持たない ${key} はアプリ JSON 要素に出ない`);
     }
     // 設定ファイル側にはマスタ値が出ている（消費側が引ける先が必ずある）
     const setting = composeBaseMapSettingFile(lookup.byUid('uid-tms'), 'base');
-    assert.equal(setting.license, 'CC BY', 'case 1: 効くのは設定ファイル側のマスタ値');
+    assert.equal(setting.license, 'CC BY', '効くのは設定ファイル側のマスタ値');
     assert.equal(setting.dataLicense, 'ODbL');
     assert.equal(setting.dataAttr, 'データ作者');
 
@@ -475,12 +474,12 @@ try {
     );
     assert.deepEqual(
       osmOverride.label, { en: 'OSM(Now)', ja: 'アプリラベル' },
-      'case 1: 言語別の上書き（label）は編集言語だけ差し替わり、未編集言語はマスタ値が残る',
+      '言語別の上書き（label）は編集言語だけ差し替わり、未編集言語はマスタ値が残る',
     );
-    console.log('ok: case 1 宣言テーブルの凍結');
+    console.log('ok: 宣言テーブルの凍結');
   }
 
-  // ============ case 9: 差分保持形で保存済みの廃止キーは読み込み時に落ちる ============
+  // ============ 差分保持形で保存済みの廃止キーは読み込み時に落ちる ============
   // overrides は （未公開）で導入された保存形であり、廃止キーの残存値は捨てる。
   // 救う分岐（別キーへの移送・既定値合成・マスタ値での穴埋め）は 1 つも足さない。
   {
@@ -505,18 +504,18 @@ try {
     assert.deepEqual(
       normalized.overrides,
       { envelopeLngLats: [[1, 2]], mercatorXShift: 0.5, mercatorYShift: -0.25 },
-      'case 9: 廃止した上書きキーは読み込み時に落ち、アプリ所有キーだけが残る',
+      '廃止した上書きキーは読み込み時に落ち、アプリ所有キーだけが残る',
     );
     // 救っていないこと（別キーへ移していない・既定値を合成していない）の直接確認
     for (const key of ['title', 'maxZoom', 'minZoom', 'thumbnail', 'attr', 'dataAttr', 'license', 'dataLicense', 'licenseNote', 'dataLicenseNote']) {
-      assert.equal(key in normalized, false, `case 9: ${key} をトップレベルへ移送していない`);
+      assert.equal(key in normalized, false, `${key} をトップレベルへ移送していない`);
     }
     // label（唯一の上書き可能キー）はトップレベルに保存されるため従来どおり残る
     const withLabel = normalizeAppSource({
       sourceType: 'tms', mapUid: 'user-tms', role: 'base', overrides: {}, label: { ja: 'ラベル' },
     }, 'ja');
-    assert.deepEqual(withLabel.label, { ja: 'ラベル' }, 'case 9: label は従来どおりトップレベルで保持する');
-    console.log('ok: case 9 差分保持形の廃止キー濾過');
+    assert.deepEqual(withLabel.label, { ja: 'ラベル' }, 'label は従来どおりトップレベルで保持する');
+    console.log('ok: 差分保持形の廃止キー濾過');
   }
 
   // ============ case 28（v1.4・IR-H-2）: 操作子種別がマスタ編集フォームと一致し、共通部品の既定値が変わらない ============
@@ -569,7 +568,7 @@ try {
     const anchors = new Set(
       [...editorSrc.matchAll(/(?:data|input)-testid="app-source-override-([a-zA-Z]+)"/g)].map((m) => m[1]),
     );
-    // : 解除の×は別接頭辞。override 側の抽出へ 'clear' が混入していないこと
+    // 解除の×は別接頭辞。override 側の抽出へ 'clear' が混入していないこと
     assert.equal(anchors.has('clear'), false, 'case 7: 解除の×は app-source-clear- 接頭辞で分離する');
     const declared = new Set([...APP_SOURCE_OVERRIDABLE_KEYS, ...APP_SOURCE_OWNED_KEYS]);
     assert.deepEqual(
@@ -604,7 +603,7 @@ try {
     console.log('ok: hotfix 回帰ガード（label 強制補完の廃止・maplat label 操作子の復旧）');
   }
 
-  // ============ case 3: 解除の × は利用範囲 1 個だけになる ============
+  // ============ 解除の × は利用範囲 1 個だけになる ============
   {
     const editorSrc = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
     const clearAnchors = new Set(
@@ -612,17 +611,17 @@ try {
     );
     assert.deepEqual(
       [...clearAnchors].sort(), ['envelopeLngLats'],
-      'case 3: 解除の × は利用範囲の 1 個だけ（minZoom / maxZoom / thumbnail は廃止）',
+      '解除の × は利用範囲の 1 個だけ（minZoom / maxZoom / thumbnail は廃止）',
     );
     // 新設「存在範囲からコピー」は override- でも clear- でもない第3の接頭辞（case 7 の集合に混入しない）
     assert.match(
       editorSrc, /data-testid="app-source-copy-coverage-envelopeLngLats"/,
-      'case 7: 「存在範囲からコピー」のアンカーが在る',
+      '「存在範囲からコピー」のアンカーが在る',
     );
-    console.log('ok: case 3 解除アンカーの縮小と copy アンカーの新設');
+    console.log('ok: 解除アンカーの縮小と copy アンカーの新設');
   }
 
-  // ============ case 6: 廃止した操作子の記号と i18n キーが残っていない ============
+  // ============ 廃止した操作子の記号と i18n キーが残っていない ============
   {
     const editorSrcRaw = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
     // 判定対象は**コードだけ**である。行コメント（// …）と HTML コメント（<!-- … -->）は
@@ -637,7 +636,7 @@ try {
     ]) {
       assert.doesNotMatch(
         editorSrc, new RegExp(symbol),
-        `case 6: 使用点が廃止された ${symbol} が AppSourceEditor.vue に残っていない`,
+        `使用点が廃止された ${symbol} が AppSourceEditor.vue に残っていない`,
       );
     }
     // 廃止した i18n キー（11 言語すべてから消えていること）
@@ -654,22 +653,22 @@ try {
       for (const key of ABOLISHED_I18N_KEYS) {
         assert.equal(
           key in dict.appedit, false,
-          `case 6: ${lang} の appedit.${key} が削除されている`,
+          `${lang} の appedit.${key} が削除されている`,
         );
       }
       // ---- case 4: 「表示ラベル」は 3 面共通の語（basemap.master_detail.label と同値）----
       assert.equal(
         dict.appedit.source_label, dict.basemap.master_detail.label,
-        `case 4: ${lang} の appedit.source_label がベースマップ側の「表示ラベル」と同値`,
+        `${lang} の appedit.source_label がベースマップ側の「表示ラベル」と同値`,
       );
       // ---- case 5: DB 属性名の露出（"start_from"）をやめる ----
       assert.notEqual(
         dict.appedit.start_from, 'start_from',
-        `case 5: ${lang} の appedit.start_from が DB 属性名のままになっていない`,
+        `${lang} の appedit.start_from が DB 属性名のままになっていない`,
       );
       assert.ok(
         String(dict.appedit.start_from || '').trim().length > 0,
-        `case 5: ${lang} の appedit.start_from が非空`,
+        `${lang} の appedit.start_from が非空`,
       );
       // ---- 新設キー（存在範囲からコピー）----
       assert.ok(
@@ -686,7 +685,7 @@ try {
       for (const key of ABOLISHED_I18N_KEYS) {
         assert.doesNotMatch(
           src, new RegExp(`appedit\\.${key}\\b`),
-          `case 6: ${rel} に appedit.${key} の参照が残っていない`,
+          `${rel} に appedit.${key} の参照が残っていない`,
         );
       }
     }
@@ -694,12 +693,12 @@ try {
     const appEditSrc = await read('src/views/AppEdit.vue');
     assert.doesNotMatch(
       appEditSrc, /overrides\?\.(thumbnail|title|attr|minZoom|maxZoom|license)/,
-      'case 6: AppEdit.vue に廃止した上書きキーを読む分岐が残っていない',
+      'AppEdit.vue に廃止した上書きキーを読む分岐が残っていない',
     );
-    console.log('ok: case 4/case 5/case 6 廃止記号・廃止 i18n キー・新設語彙');
+    console.log('ok: case 5/case 6 廃止記号・廃止 i18n キー・新設語彙');
   }
 
-  // ============ case 15（人間検証由来）: translationMode の適用範囲 ============
+  // ============ 人間の確認で決めた translationMode の適用範囲 ============
   // 翻訳モードで無効化してよいのは**言語に依存しない構造的な値だけ**である。言語別テキスト
   // （表示ラベル）を無効化すると、チップは出るのに翻訳を入力できない＝多言語要素として機能しない。
   // リポジトリ共通の規律であり、BaseMapEdit が構造的な欄（structuralDisabled）と言語別欄
@@ -711,13 +710,13 @@ try {
     // (a) 表示ラベルの 2 操作子（maplat 分岐 / builtin・tms 分岐）が translationMode で無効化されない。
     //     LangResourceInput の呼び出しブロックを取り出して、その中に :disabled が無いことを見る
     const langInputBlocks = [...editorSrc.matchAll(/<LangResourceInput\b[\s\S]*?\/>/g)].map((m) => m[0]);
-    assert.equal(langInputBlocks.length, 2, 'case 15: 言語別欄は表示ラベルの 2 箇所だけ');
+    assert.equal(langInputBlocks.length, 2, '言語別欄は表示ラベルの 2 箇所だけ');
     for (const testid of ['app-source-maplat-label', 'app-source-override-label']) {
       const block = langInputBlocks.find((b) => b.includes(`input-testid="${testid}"`));
-      assert.ok(block, `case 15: ${testid} の LangResourceInput が在る`);
+      assert.ok(block, `${testid} の LangResourceInput が在る`);
       assert.doesNotMatch(
         block, /:disabled=/,
-        `case 15: ${testid}（言語別テキスト）は翻訳モードで無効化してはならない。` +
+        `${testid}（言語別テキスト）は翻訳モードで無効化してはならない。` +
           'チップは出るのに翻訳を入力できない状態になり、多言語要素として機能しなくなる',
       );
     }
@@ -730,7 +729,7 @@ try {
       'data-testid="app-source-clear-envelopeLngLats"',
     ]) {
       const line = editorSrc.split('\n').find((l) => l.includes(anchor));
-      assert.ok(line, `case 15: ${anchor} が在る`);
+      assert.ok(line, `${anchor} が在る`);
     }
     // 上の 4 つのうち、単一行で書かれている 3 つは同じ行に :disabled="translationMode…" を持つ
     for (const anchor of [
@@ -741,14 +740,14 @@ try {
       const line = editorSrc.split('\n').find((l) => l.includes(anchor));
       assert.match(
         line, /:disabled="translationMode/,
-        `case 15: ${anchor}（構造的な値）は翻訳モードで無効のままであること`,
+        `${anchor}（構造的な値）は翻訳モードで無効のままであること`,
       );
     }
     // 複数行で書かれた「存在範囲からコピー」も translationMode を含む
     const copyBlock = editorSrc.match(/<button[^>]*[\s\S]*?data-testid="app-source-copy-coverage-envelopeLngLats"[\s\S]*?>/)[0];
     assert.match(
       copyBlock, /:disabled="translationMode \|\| !coverageAvailable"/,
-      'case 15: 「存在範囲からコピー」は翻訳モードで無効のままであること',
+      '「存在範囲からコピー」は翻訳モードで無効のままであること',
     );
 
     // (c) 欠陥B: url がマスタ管理である旨の注記は**削除された**（人間指示）。
@@ -767,10 +766,10 @@ try {
       editorCodeOnly, /appedit\.source_url_master_note/,
       '（人間指示）: 注記の i18n キー参照も残さない',
     );
-    console.log('ok: case 15 translationMode の適用範囲と url 注記の撤去');
+    console.log('ok: translationMode の適用範囲と url 注記の撤去');
   }
 
-  // ============ case 12（弱照合）: ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの列挙が凍結後の集合になっている ============
+  // ============ （弱照合）ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの列挙が凍結後の集合になっている ============
   {
     const adr = await readFile(
       path.join(projectRoot, '../docs/adr/0018-base-map-master-is-authoritative-for-app-sources.md'),
@@ -779,18 +778,18 @@ try {
     // 「上書き可能」と述べる文（Today that is …）に廃止キーが並んでいないこと。
     // 主判定は手動レビューであり、ここは陳腐化の再発を機械で拾うための弱い網である
     const overridableSentence = adr.match(/Today,? that is[^.]*\./)?.[0] ?? '';
-    assert.ok(overridableSentence.length > 0, 'case 12: ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりに上書き可能キーの列挙文がある');
+    assert.ok(overridableSentence.length > 0, 'ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりに上書き可能キーの列挙文がある');
     for (const key of ['licenseNote', 'minZoom', 'maxZoom', 'thumbnail', 'title']) {
       assert.equal(
         overridableSentence.includes(key), false,
-        `case 12: ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの上書き可能列挙から ${key} が外れている`,
+        `ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの上書き可能列挙から ${key} が外れている`,
       );
     }
-    assert.match(adr, /m19/, 'case 12: m19 で凍結した旨が記されている');
-    console.log('ok: case 12 ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの列挙更新（弱照合）');
+    assert.match(adr, /m19/, 'm19 で凍結した旨が記されている');
+    console.log('ok: ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりの列挙更新（弱照合）');
   }
 
-  console.log('\nm6-t10 app-source-diff-model smoke: すべて成功');
+  console.log('\napp-source-diff-model smoke: すべて成功');
 } finally {
   await rm(workDir, { recursive: true, force: true });
 }

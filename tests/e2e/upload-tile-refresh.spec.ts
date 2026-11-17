@@ -2,7 +2,6 @@
 // case 2（新規地図: 画像アップロード→保存→保存直後にタイルが恒久パスで読める）/
 // case 3（保存直後の参照が恒久パスを指し旧tmpパスを指さない）/
 // case 4（既存地図の画像差し替えでも同一シーケンスで壊れない）を検証する。
-//。
 // 案B（テスト専用フック不要。既存 window.testDebug の mapData ref を直接読む）を採用
 // (設計レビューv2 Info2: file:// ロードの Playwright ネットワークイベント計測は不確実なため)。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';

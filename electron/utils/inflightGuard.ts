@@ -1,4 +1,4 @@
-// t1: メインプロセスで致命例外（uncaughtException）が起きたとき、実行中の長時間 IPC を
+// メインプロセスで致命例外（uncaughtException）が起きたとき、実行中の長時間 IPC を
 // 必ず settle させるためのガード。
 //
 // 背景: adm-zip の非同期継続で投げられた例外は誰の try/catch にも捕まらず、IPC の Promise が

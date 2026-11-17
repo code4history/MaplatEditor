@@ -6,7 +6,6 @@
 //        重複作成されず、title は保持される
 //   case 10: エディタ内アイコン生成（generateTmsThumbnail）が merc マスタに対して file://
 //         経由でタイルを読み、成功する
-// /準拠。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';

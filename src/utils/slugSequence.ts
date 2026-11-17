@@ -1,9 +1,9 @@
-// slug 連番採番の共有純関数 (renderer/main 共用、— 旧 統合)。
+// slug 連番採番の共有純関数 (renderer/main 共用。以前の複製用の採番を統合)。
 // 3 系統 — (a) 複製 "-copy" (useResourceDuplicate.reserveCopySlug) / (b) inline POI 変換 "-poi"
 // (inlinePoiConvert) / (c) import 衝突自動採番 (PoiSourceService.importFile, suffix なし) — の
 // 候補生成規則をここへ一本化する。検査手段の差 (予約成立 / 空き確認) は tryAcquire コールバック
 // 抽象で吸収する。候補生成は旧 reserveCopySlug の candidate 実装
-// (base.slice(0, SLUG_MAX - suffix.length) + suffix) と同値 (挙動不変 — )。
+// (base.slice(0, SLUG_MAX - suffix.length) + suffix) と同値 (挙動不変)。
 
 // suggestSlug と同じ slug 最大長。候補は suffix (連番込み) がこの長さに収まるよう base を切り詰める。
 export const SLUG_MAX = 100;

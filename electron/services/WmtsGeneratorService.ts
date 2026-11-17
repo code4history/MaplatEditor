@@ -129,7 +129,7 @@ export function resolveMercDecodeOptions(
 // 本クラスへのUI導線は一度撤去されていたが、その後 MapEdit.vueの
 // 新規「メルカトルタイル」タブから到達可能になった（以前から転用を予定していた
 // 地図からのタイル生成に対応）。ロジック・i18nキー（wmtsgenerate.* 全5キー、public/locales/*/
-// translation.json）は削除しない（参照）。
+// translation.json）は削除しない。
 class WmtsGeneratorService {
     private get folders() {
         const saveFolder = SettingsService.get('saveFolder') as string;

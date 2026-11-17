@@ -1,7 +1,7 @@
-// v2.0: MapEdit ベースマップ選択の 2 ペイン化 E2E。
-// case 1（2 ペイン形式 + locked は lock アイコン・× なし HM2）/ case 2（add/remove が反映・連続選択でスクロール保持 HM1）/
-// case 2b（IPC が thumbnailUrl を付与）/ case 3（範囲コントロールが ResourceRangeFilterButton に一本化 HM3・検索は全言語ヒット Min2）/
-// case 4（CSS 一元化・.resource-list__rows 適用）/ case 5（added=青 .selected HM6）/ case 7（empty state = ResourceEmptyState HM7）
+// MapEdit ベースマップ選択の 2 ペイン化 E2E。
+// case 1（2 ペイン形式 + locked は lock アイコン・× なし）/ case 2（add/remove が反映・連続選択でスクロール保持）/
+// case 2b（IPC が thumbnailUrl を付与）/ case 3（範囲コントロールが ResourceRangeFilterButton に一本化・検索は全言語ヒット）/
+// case 4（CSS 一元化・.resource-list__rows 適用）/ case 5（added=青 .selected）/ case 7（empty state = ResourceEmptyState）
 // を検証する。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
@@ -73,12 +73,12 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
       await expect(page.getByTestId('map-base-map-selector').locator('.source-pane')).toBeVisible();
       await expect(page.getByTestId('map-base-map-selector').locator('.selected-pane')).toBeVisible();
 
-      // case 8 HM7: 「ベースマップ編集」h4 が存在しない
+      // case 8: 「ベースマップ編集」h4 が存在しない
       await expect(page.getByText('ベースマップ編集')).toHaveCount(0);
-      // case 8 HM7: 検索 placeholder が「ベースマップを検索…」
+      // case 8: 検索 placeholder が「ベースマップを検索…」
       const searchInput = page.getByTestId('map-base-map-selector').locator('.source-pane input[type="search"]');
       await expect(searchInput).toHaveAttribute('placeholder', 'ベースマップを検索…');
-      // case 8 HM7: 右ペイン見出しが「この地図のベースマップ」
+      // case 8: 右ペイン見出しが「この地図のベースマップ」
       await expect(page.getByTestId('map-base-map-selector').locator('.selected-pane h5')).toHaveText('この地図のベースマップ');
 
       // case 2b: IPC 返却に thumbnailUrl が含まれる（builtin OSM は basemap_icons/ で解決される）
@@ -87,7 +87,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
       expect(osmItem).toBeTruthy();
       expect(osmItem.thumbnailUrl).toBeTruthy();
 
-      // case 1 HM2: locked (常時表示) の OSM は右ペインに固定表示、× ではなく lock アイコン
+      // case 1: locked (常時表示) の OSM は右ペインに固定表示、× ではなく lock アイコン
       await expect(page.locator('[data-testid="map-selected-basemap-osm"]')).toBeVisible({ timeout: 15000 });
       // × ボタンが存在しない（lock アイコンがある）
       await expect(page.locator('[data-testid="map-remove-basemap-osm"]')).toHaveCount(0);
@@ -105,7 +105,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
     }
   });
 
-  test('左ペイン行クリックで右へ追加（enabled=1）・右ペイン削除で enabled=0・連続選択でスクロール保持（HM1）', async () => {
+  test('左ペイン行クリックで右へ追加（enabled=1）・右ペイン削除で enabled=0・連続選択でスクロール保持', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10-v2-add-remove-'));
     const { app, page } = await launch(e2eRoot);
@@ -124,7 +124,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
         return page.getByTestId('map-base-map-selector').locator('.source-pane .resource-master-row').count();
       }, { timeout: 30000 }).toBeGreaterThan(0);
 
-      // HM1: スクロール位置を記録（連続選択でスクロールが保持されることを検証）
+      // スクロール位置を記録（連続選択でスクロールが保持されることを検証）
       const sourceList = page.getByTestId('map-base-map-selector').locator('.source-list');
       // スクロールを少し下げておく（行が多い場合）
       await sourceList.evaluate((el: HTMLElement) => { el.scrollTop = 50; }).catch(() => undefined);
@@ -172,7 +172,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
           return item?.enabled;
         }, { timeout: 15000 }).toBe(true);
 
-        // HM1: スクロール位置が保持されていることを確認（remount でリセットされない）
+        // スクロール位置が保持されていることを確認（remount でリセットされない）
         const scrollTopAfter = await sourceList.evaluate((el: HTMLElement) => el.scrollTop).catch(() => 0);
         // スクロール位置が 0 にリセットされていないことを確認（50 に設定したので、多少の変動は許容）
         // ※ 楽観更新で in-place 更新のため remount なし、スクロール保持されるはず
@@ -203,7 +203,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
       await openHash(page, '#/basemaps');
       await seedMapAndOpenBaseMapTab(page);
 
-      // case 3 HM3: 旧「地域指定」ボタン行が存在しない（map-base-map-region-button は ResourceRangeFilterButton 内）
+      // case 3: 旧「地域指定」ボタン行が存在しない（map-base-map-region-button は ResourceRangeFilterButton 内）
       const rangeBtn = page.getByTestId('map-base-map-region-button');
       await expect(rangeBtn).toBeVisible({ timeout: 15000 });
       // ResourceRangeFilterButton が .resource-range-filter-button クラスを持つ（base-map 側のみ）
@@ -235,7 +235,7 @@ test.describe('v2.0 MapEdit base map selector 2-pane', () => {
       const firstRow = page.getByTestId('map-base-map-selector').locator('.resource-master-row').first();
       await expect(firstRow).not.toHaveClass(/list-group-item/);
 
-      // case 5 HM6: locked OSM が .selected（青）で表示される
+      // case 5: locked OSM が .selected（青）で表示される
       const osmRow = page.locator('[data-resource-uid]').filter({ hasText: 'OpenStreetMap' }).first();
       // OSM は locked で enabled=true のため selected=true（青）
       // ※ 実際の class は .selected が付いているはず

@@ -313,7 +313,7 @@ try {
         assert.deepEqual((r.fc as any).poiTemplate, { a: 1 }, 'layerMeta poiTemplate round-trip');
         assert.equal((r.fc as any).name, undefined, 'FC.name は layerMeta に残さない (title 側で扱う)');
 
-        // 非 Point 混入 → hasError (POI-104)
+        // 非 Point 混入 → hasError
         const badFc = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: {} }] };
         assert.equal(convertInlineEntries(badFc, 'ja').hasError, true, '非 Point は error');
 
@@ -516,7 +516,7 @@ try {
 
         // (I-2) 表の 10 行の定義条件を「各行独立の述語」として実装する。
         // 決定木を if/else の逐次分岐で転記すると「ちょうど1クラスに分類される」assert が
-        // 構成上常に真になり網羅・排他の検証が vacuous になる (v1.3 )。
+        // 構成上常に真になり網羅・排他の検証が vacuous になる (レビューの指摘)。
         // 各述語は他の行の否定 (else) に依存しない独立式であり、任意の入力に対して真になる
         // 述語がちょうど 1 個であることを classify / (I-4) で毎回検証する
         const tail = (seq: readonly Shape[]): readonly Shape[] => seq.slice(1);
@@ -547,7 +547,7 @@ try {
           C7b: (seq) => seq.length > 0 && seq[0] === 'junk'
             && seq.includes('fc') && seq.includes('object'),
         };
-        // クラス → 期待 (mode / warning)。警告列は hasMixedPoisShapes の値の転記 (mode ゲートなし — )
+        // クラス → 期待 (mode / warning)。警告列は hasMixedPoisShapes の値の転記 (mode ゲートなし)
         const CLASS_EXPECT: Record<string, { mode: string; warning: boolean }> = {
           C1: { mode: 'empty', warning: false },
           C2a: { mode: 'multi', warning: false },
@@ -572,7 +572,7 @@ try {
         // poisLayerMode は (shapes, entries) の両引数必須になった。shapes だけでは
         // 上書きレイヤ ({layer:…}) と旧 POI オブジェクトを区別できず (どちらも "object")、
         // viewer は前者が先頭ならレイヤ配列モードへ入るためである (normalize_pois.ts:106-109)。
-        // 本表が検証するのは の **shape ベースの完全分割** なので、"object" の代表値には
+        // 本表が検証するのは **shape ベースの完全分割** なので、"object" の代表値には
         // 上書きレイヤでない旧 POI オブジェクトを与える。上書きレイヤ先頭の判定 (→ multi) は
         // smoke Part B が viewer 正本との一致として担当する。
         const SHAPE_SAMPLE: Record<Shape, unknown> = {
@@ -712,7 +712,7 @@ try {
       // poi_heal_failed → poi_format_unsupported へ改名（意味も「復元失敗」→「正準形式でない」へ変更）
       ['appedit', 'poi_format_unsupported'],
     ];
-    // v1.2 (G3): 旧キーは 11 locale から削除済みであること (旧契約の残置禁止 — )
+    // v1.2 (G3): 旧キーは 11 locale から削除済みであること (旧契約の残置禁止)
     // poi_heal_failed も同様に旧契約として削除済みであること
     const REMOVED = [
       ['poiref', 'external_data'],

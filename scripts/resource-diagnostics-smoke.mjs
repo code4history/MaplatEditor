@@ -239,13 +239,13 @@ try {
       await attachMapDiagnostics(mapDocs);
       const [normalMap, strictMap, subStrictMap, missingPoiMap, inlineOnlyMap, assetMap, iconMap, referencedAssetMap] = mapDocs;
       assert.deepEqual(normalMap.resourceDiagnostics, { kind: 'map', strictError: false, missingPoiRefs: false, missingAssetRefs: false });
-      assert.equal(strictMap.resourceDiagnostics.strictError, true, 'M1 strict_error');
-      assert.equal(subStrictMap.resourceDiagnostics.strictError, true, 'M1 sub_maps strict_error');
-      assert.equal(missingPoiMap.resourceDiagnostics.missingPoiRefs, true, 'M2 missing poi');
-      assert.equal(inlineOnlyMap.resourceDiagnostics.missingPoiRefs, false, 'M3 inline/url/non UUID は POI 欠損にしない');
-      assert.equal(assetMap.resourceDiagnostics.missingAssetRefs, true, 'M4 inline FC asset 欠損');
-      assert.equal(iconMap.resourceDiagnostics.missingAssetRefs, true, 'M4 inline FC unresolved icon');
-      assert.equal(referencedAssetMap.resourceDiagnostics.missingAssetRefs, true, 'M4 参照先 POI source 内 asset 欠損');
+      assert.equal(strictMap.resourceDiagnostics.strictError, true, 'strict_error');
+      assert.equal(subStrictMap.resourceDiagnostics.strictError, true, 'sub_maps strict_error');
+      assert.equal(missingPoiMap.resourceDiagnostics.missingPoiRefs, true, 'missing poi');
+      assert.equal(inlineOnlyMap.resourceDiagnostics.missingPoiRefs, false, 'inline/url/non UUID は POI 欠損にしない');
+      assert.equal(assetMap.resourceDiagnostics.missingAssetRefs, true, 'inline FC asset 欠損');
+      assert.equal(iconMap.resourceDiagnostics.missingAssetRefs, true, 'inline FC unresolved icon');
+      assert.equal(referencedAssetMap.resourceDiagnostics.missingAssetRefs, true, '参照先 POI source 内 asset 欠損');
       console.log('ok: Part 2/3 map diagnostics classes');
 
       const mapRefCases = [

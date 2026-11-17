@@ -443,7 +443,7 @@ function redo(): void { history.redo(); applyHistory(); }
 
 // (方針(i)): 局所実装を共有 suggestSlug へ統合。前処理 (NFKD + 不許可文字ラン →
 // ハイフン置換) で記号 → ハイフンの局所挙動 (map(1).png → map-1) を保存する。残余差分は
-// ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認 — )
+// ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認)
 const suggestSlug = (name: string) => sharedSuggestSlug(name.normalize("NFKD").replace(/[^A-Za-z0-9._\s-]+/g, "-"), "");
 
 // feat2: いま表示すべき画像を優先順で決める。

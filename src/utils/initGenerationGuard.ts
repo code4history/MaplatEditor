@@ -28,7 +28,7 @@ export type GuardedImportOutcome =
 
 // 世代 guard 付き import フロー（PoiEdit importAutoRun の本体）。
 // 各ステップ間で isCurrent を確認し、stale なら以降の副作用（load/replace/診断）を行わない。
-// 残留物ポリシー（Min2）: importFile 成功・失敗に関わらず世代切替済みなら、
+// 残留物ポリシー: importFile 成功・失敗に関わらず世代切替済みなら、
 // 「自世代 uid の draft cleanup（removeDraft）」は新 session を上書きしないため実行する。
 // 作成済み source は一覧へ残す（許容。削除はユーザー判断）。
 export async function runGuardedPoiImport(opts: {

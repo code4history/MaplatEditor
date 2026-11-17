@@ -42,7 +42,7 @@ const SIGNATURE =
   /\w+\s*=\s*\w+\.label\s*\|\|\s*\w+\.year\s*;\s*if\s*\(\s*\w+\s*!==\s*void 0\s*&&\s*\(\s*\w+\.label\s*=\s*\w+\s*\)/;
 
 // NOTE: 「修正前の形が残っていないこと」を追加で検査することは**できない**。
-// とおり `source_ex.ts:189`（settingFile 読み込み後のフォールバック）は
+// 設計どおり `source_ex.ts:189`（settingFile 読み込み後のフォールバック）は
 // 意図的に修正していないため、`X.label = X.label || Y.year` という旧形と同型のコードは
 // 修正後のバンドルにも正当に残る。∴ 否定形の検査は判別力を持たず、書けば必ず誤検出する。
 // 上の SIGNATURE（正の検査）だけで必要十分である — 実測で、修正前のバンドル
@@ -86,4 +86,4 @@ for (const hop of HOPS) {
   checked++;
 }
 
-console.log(`\nm6-t10 preview-bundle label-merge guard: ${checked} ホップ検査 / ${skipped} スキップ`);
+console.log(`\npreview-bundle label-merge guard: ${checked} ホップ検査 / ${skipped} スキップ`);

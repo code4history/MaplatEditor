@@ -190,7 +190,7 @@ test.describe('inline POI 保全・変換', () => {
       await expect(counts.nth(1)).toHaveText(/1 項目/);
       // 中身確認 UI (フォーム等) は追加されていない: 非参照メンバー行に上書きフォームが無い
       await expect(cards.first().locator('input')).toHaveCount(0);
-      // 単層クリーン = 混在警告なし (C4 — )
+      // 単層クリーン = 混在警告なし (C4)
       await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
 
       // --- 手順3: 相互排他制約 (case 6-3 前半) ---
@@ -332,7 +332,7 @@ test.describe('inline POI 保全・変換', () => {
         .toBeVisible({ timeout: 15000 });
       const drafts = await page.evaluate(async () => window.assetDrafts.list('poi'));
       expect(drafts.map((d) => d.slug).sort()).toEqual([`${seeded.slug}-poi`, `${seeded.slug}-poi2`]);
-      // title は FC.name 優先 (POI-114) / name 無し FC はホストタイトル fallback (手順4)
+      // title は FC.name 優先 / name 無し FC はホストタイトル fallback (手順4)
       expect(drafts.find((d) => d.slug === `${seeded.slug}-poi`)?.label).toBe('生FCレイヤA');
       expect(drafts.find((d) => d.slug === `${seeded.slug}-poi2`)?.label).toBe('T6 複層');
       // document は不変
@@ -392,7 +392,7 @@ test.describe('inline POI 保全・変換', () => {
       await confirmDeleteCard(app, page, cards, 2, 3);
       await expect(groupButton).toBeDisabled();
       await expect(poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(0);
-      // URL メンバーを削除 → 変換が自動有効化 (computed — )
+      // URL メンバーを削除 → 変換が自動有効化 (computed)
       await confirmDeleteCard(app, page, cards, 2, 2);
       await expect(groupButton).toBeEnabled();
       await groupButton.click();
@@ -419,7 +419,7 @@ test.describe('inline POI 保全・変換', () => {
       await expect(urlHead.poisPane.getByTestId('poiref-layer-pane')).toHaveCount(1);
       // 混在警告あり (tail に fc と object の両方 — (c) 是正後の警告挙動)
       await expect(urlHead.poisPane.getByTestId('poiref-mixed-warning')).toHaveCount(1);
-      // 変換ボタン disabled (URL メンバー含み恒常 — )
+      // 変換ボタン disabled (URL メンバー含み恒常)
       await expect(urlHead.poisPane.getByTestId('poiref-convert-group')).toBeDisabled();
       await expect(urlHead.poisPane.getByTestId('poiref-convert-fc')).toHaveCount(0);
 

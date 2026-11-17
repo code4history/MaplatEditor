@@ -1,4 +1,4 @@
-// スモーク: 登録 POI ソース参照 ({poiUid}) の preview / package export 解決層 (Phase 7 Task 1)。
+// スモーク: 登録 POI ソース参照 ({poiUid}) の preview / package export 解決層。
 // 既存の smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // AppPreviewService.prepare (HTTP 配信の app/map JSON) と AppExportService.exportApp (実出力) を behavioral に検証する。
 // シナリオ:
@@ -11,13 +11,13 @@
 //      appedit.warn_duplicate_poi_reference。map JSON 側の pois[0] も FC に解決される
 //   ⑤ {poiUid} を pois に持つ app を保存 (AppDataService.saveApp) → findReferences(uid) が
 //      その app (と pois を持つ map) を返す (AID-006 実効化)
-//   ⑥ export 経路: AppExportService.exportApp の実出力 (zip、Phase 8 Task 6) を展開した
+//   ⑥ export 経路: AppExportService.exportApp の実出力 (zip) を展開した
 //      apps/{appID}.json / maps/{slug}.json の pois が①④と同じ解決結果になり、
 //      result.warnings に③④のキーが載る
-//   ⑩ icon 参照文法の解決 (POI-117): feature properties.icon='builtin:defaultpin' / layer metadata
+//   ⑩ icon 参照文法の解決: feature properties.icon='builtin:defaultpin' / layer metadata
 //      icon=asset UUID → preview の app JSON で 'imgs/icons/builtin/defaultpin.png' /
 //      'imgs/{slug}.{ext}' に書き換わり、その URL を HTTP fetch すると 200 + 実体 (画像バイト)。
-//      builtin:defaultpin の実体は Phase 8 Task 4 でビューア標準の png に差し替え済み
+//      builtin:defaultpin の実体はビューア標準の png に差し替え済み
 //   ⑪ export zip の展開結果に imgs/icons/builtin/defaultpin.png と imgs/{slug}.{ext} が実在し、
 //      app JSON の参照がそれを指す
 //   ⑫ 未登録 setId ('maki:bank') → 原文維持 + warnings に appedit.warn_unresolved_icon (1回)
@@ -74,7 +74,7 @@ try {
         whenReady() { return Promise.resolve(); },
         exit(code?: number) { if (code && code !== 0) process.exitCode = code; },
       };
-      // export 先 zip パスを返す (AppExportService.exportApp の zip 保存ダイアログ相当, Phase 8 Task 6)
+      // export 先 zip パスを返す (AppExportService.exportApp の zip 保存ダイアログ相当)
       export const dialog = {
         showSaveDialog() {
           return Promise.resolve({
@@ -137,7 +137,7 @@ try {
       const UNRESOLVED_ICON_KEY = 'appedit.warn_unresolved_icon';
       const MISSING_UID = '99999999-9999-4999-8999-999999999999';
 
-      // --- fixture: image asset (icon の asset UUID 参照先, POI-117) ---
+      // --- fixture: image asset (icon の asset UUID 参照先) ---
       // ImageAssetService.add は jimp デコードを要するため、DB 行 + 実体ファイルを直接作る
       const assetBytes = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -178,7 +178,7 @@ try {
       });
       assert.equal(saved.result, 'Success', 'save は Success のはず: ' + JSON.stringify(saved));
 
-      // --- fixture: pois に同じ {poiUid} を持つ登録地図 (map data_json 側参照, POI-137 の受け皿) ---
+      // --- fixture: pois に同じ {poiUid} を持つ登録地図 (map data_json 側参照の受け皿) ---
       const { uid: mapUid } = await SqliteDataService.createMap('poimap', {
         title: 'POI Map',
         width: 400,
@@ -230,16 +230,16 @@ try {
       function assertResolvedFc(fc: any, label: string) {
         assert.ok(fc && typeof fc === 'object' && !Array.isArray(fc), label + ': pois[0] はオブジェクトのはず');
         assert.equal(fc.type, 'FeatureCollection', label + ': pois[0] は FeatureCollection のはず');
-        assert.equal(fc.id, 'kyoto-poi', label + ': FC.id === slug のはず (POI-133)');
+        assert.equal(fc.id, 'kyoto-poi', label + ': FC.id === slug のはず');
         assert.equal(fc.name, '京都POI', label + ': FC.name === title のはず (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりのcollapse)');
         assert.equal(fc.properties.icon, 'imgs/temple-mark.png',
-          label + ': layer metadata の asset UUID 参照が FC.properties.icon に解決されるはず (POI-117)');
+          label + ': layer metadata の asset UUID 参照が FC.properties.icon に解決されるはず');
         assert.equal(fc.features.length, 1);
         const feature = fc.features[0];
         assert.equal(feature.id, 'kinkakuji');
         assert.equal(feature.properties.name, '金閣寺', label + ': feature name も交換形へ collapse されるはず');
         assert.equal(feature.properties.icon, 'imgs/icons/builtin/defaultpin.png',
-          label + ': feature の builtin 参照が imgs/icons/{setId}/{iconId}.{ext} (実体 = png) に解決されるはず (POI-117, Phase 8 Task 4)');
+          label + ': feature の builtin 参照が imgs/icons/{setId}/{iconId}.{ext} (実体 = png) に解決されるはず');
         assert.equal(feature.properties.selectedIcon, 'maki:bank',
           label + ': 未登録 setId の参照は原文維持のはず (⑫)');
         const internalKeys = Object.keys(feature.properties).filter((key: string) => key.startsWith('_maplat'));
@@ -247,7 +247,7 @@ try {
         assert.deepEqual(
           feature.geometry.coordinates,
           [135.1234568, 35.1234568],
-          label + ': 座標が7桁丸めされているはず (POI-143)'
+          label + ': 座標が7桁丸めされているはず'
         );
       }
 
@@ -271,8 +271,8 @@ try {
       const previewRawFc = await (await fetch(prepared.url + 'pois/embedded-raw.geojson')).json();
       assert.deepEqual(previewRawFc, rawFc, 'preview でも生 FC の中身は無加工のはず');
 
-      // case 17-4: layer metadata icon が preview で反映され、
-      // app 側 entry の icon（POI-112 最小形）が優先されることを確認
+      // layer metadata icon が preview で反映され、
+      // app 側 entry の icon（最小形）が優先されることを確認
       // （assertResolvedFc 内で fc.properties.icon=asset UUID → imgs/temple-mark.png 解決済み、
       //   feature.icon=builtin:defaultpin → imgs/icons/builtin/defaultpin.png 解決済み。
       //   entry の icon が layer metadata icon より優先されることを実証済み）
@@ -317,11 +317,11 @@ try {
         'preview map JSON も同じ外部ファイルを参照するはず（app と map で1ファイルへ畳む）');
       console.log('ok: (1)-(4) preview app/map JSON resolve {poiUid} references with warnings');
 
-      // --- (10) 解決後の imgs/... URL が preview セッションから実際に配信される (POI-117) ---
+      // --- (10) 解決後の imgs/... URL が preview セッションから実際に配信される ---
       const builtinRes = await fetch(prepared.url + 'imgs/icons/builtin/defaultpin.png');
       assert.equal(builtinRes.status, 200, 'builtin icon の配信は 200 のはず');
       const builtinBody = Buffer.from(await builtinRes.arrayBuffer());
-      // PNG シグネチャ (\x89PNG) — defaultpin の実体はビューア標準の png (Phase 8 Task 4)
+      // PNG シグネチャ (\x89PNG) — defaultpin の実体はビューア標準の png
       assert.ok(builtinBody.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
         'builtin icon の中身は PNG のはず: ' + builtinBody.subarray(0, 8).toString('hex'));
       const assetRes = await fetch(prepared.url + 'imgs/temple-mark.png');
@@ -353,7 +353,7 @@ try {
       );
       console.log('ok: (5) findReferences returns referencing app/map (AID-006)');
 
-      // ⑥ export 経路 (exportApp の実出力 = zip、Phase 8 Task 6)。
+      // ⑥ export 経路 (exportApp の実出力 = zip)。
       //    生成 zip を展開し、従来のディレクトリ出力と同じアサーションを展開結果へ適用する
       const fakeWin = { webContents: { send() {} } };
       // ⑯ favicon/manifest 検証のため export では pwaManifest を有効化する (preview 側の
@@ -403,11 +403,11 @@ try {
       assert.equal(exported.warnings.filter((key: string) => key === DUPLICATE_KEY).length, 1, 'export duplicate 警告キーは1回だけのはず');
       console.log('ok: (6) exportApp resolves {poiUid} in app/map JSON output with warnings');
 
-      // --- (11) export zip の展開結果に icon 実体が同梱される (POI-117) ---
+      // --- (11) export zip の展開結果に icon 実体が同梱される ---
       const exportedBuiltin = await fsReadFile(
         nodePath.join(exportDir, 'imgs', 'icons', 'builtin', 'defaultpin.png'));
       assert.ok(exportedBuiltin.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])),
-        'export された builtin icon の中身は PNG のはず (Phase 8 Task 4: ビューア標準 png)');
+        'export された builtin icon の中身は PNG のはず (ビューア標準 png)');
       const exportedAsset = await fsReadFile(nodePath.join(exportDir, 'imgs', 'temple-mark.png'));
       assert.ok(exportedAsset.equals(assetBytes), 'export された asset icon の中身は登録したバイト列のはず');
       // 外部ファイル側の参照が同梱ファイルを指すこと (参照は app JSON ではなく pois/ 側)
@@ -500,7 +500,7 @@ try {
       );
       console.log('ok: (9) duplicate uid references within the same array both resolve');
 
-      // --- (14) 参照要素の icon/selectedIcon 上書き (Phase 8 Task 2, POI-112 最小形) ---
+      // --- (14) 参照要素の icon/selectedIcon 上書き (最小形) ---
       // 参照側の上書きが解決後 FC のトップレベル icon/selectedIcon に適用され、ソース側の
       // 既存値 (layer icon=asset UUID → imgs/temple-mark.png) より参照側が勝つ。
       // 上書き値も既存の icon 参照文法解決 (imgs/ 書き換え + files 収集) を通る
@@ -570,7 +570,7 @@ try {
       }
       console.log('ok: (17) reference-level title override rewrites FC.name in exchange form (D1)');
 
-      // --- (15) poiReferenceUi.applyPoiSelection が上書きキーを温存する (Phase 8 Task 2) ---
+      // --- (15) poiReferenceUi.applyPoiSelection が上書きキーを温存する ---
       const { extractPoiRefs, applyPoiSelection } = await import(${JSON.stringify(poiReferenceUiPath)});
       const poisWithOverride = [
         'https://example.com/raw.geojson',
@@ -590,7 +590,7 @@ try {
         '解除後も残存参照の上書きキーが温存されるはず: ' + JSON.stringify(partial));
       console.log('ok: (15) applyPoiSelection preserves reference override keys');
 
-      // --- case 17-4: entry icon が layer metadata icon を上書き (applyReferenceIconOverrides) ---
+      // --- entry icon が layer metadata icon を上書き (applyReferenceIconOverrides) ---
       {
         // 新規 POI ソース: layer metadata icon=asset UUID
         const ac174 = await PoiSourceService.createLocal({ slug: 'ac174-poi', title: 'case 17-4 POI' });

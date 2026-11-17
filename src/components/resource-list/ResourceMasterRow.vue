@@ -65,7 +65,7 @@ const helpAriaLabel = computed(() => {
 });
 const actions = computed(() => buildResourceListActions(props.kind, props.item));
 // v2.0: .active → .selected rename（Bootstrap 競合回避）。
-// selector variant では added（selected=true）を青で表示（HM6）。disabled は追加不可。
+// selector variant では added（selected=true）を青で表示。disabled は追加不可。
 // 優先順位: selected（added）が最優先（追加済みかつ previewDisabled の場合、追加済みが意味を持つ）
 const rowClass = computed(() => {
   const classes: Record<string, boolean> = {};

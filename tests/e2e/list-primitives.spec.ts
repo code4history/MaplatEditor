@@ -114,7 +114,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
 
     // case 2: 統一された ＋新規追加
     await expect(page.locator('[data-resource-new]')).toContainText('新規追加');
-    // case 2: MapList の import ボタン文言は「インポート」（「地図インポート」ではない）
+    // MapList の import ボタン文言は「インポート」（「地図インポート」ではない）
     await expect(page.locator('[data-resource-import]')).toHaveText('インポート');
     // case 5: pager ボタンが存在せず sentinel がある
     await expect(page.locator('[data-resource-sentinel]')).toHaveCount(1);
@@ -214,12 +214,12 @@ test('poi list shows real total, keeps Import in secondary slot, and hides flag-
 
     // case 12: Import は toolbar secondary slot にあり、Remote 登録ボタンは DOM に無い（フラグ抑制 D13）
     // 旧 [data-poi-import]+プレビューモーダルは解体され、共通 ImportSlot([data-resource-import])
-    // + file picker 直行フローに統一（クリック→エディタ遷移の実効検証は case 10 が担う）。
+    // + file picker 直行フローに統一（クリック→エディタ遷移の実効検証は取り込みの導線の e2e が担う）。
     const toolbar = page.locator('[data-resource-toolbar]');
     await expect(toolbar.locator('[data-resource-import]')).toBeVisible();
-    // case 1: PoiSourceList の検索 placeholder は「POIを検索…」
+    // PoiSourceList の検索 placeholder は「POIを検索…」
     await expect(page.locator('[data-resource-search]')).toHaveAttribute('placeholder', 'POIを検索…');
-    // case 2: PoiSourceList の import ボタン文言は「インポート」
+    // PoiSourceList の import ボタン文言は「インポート」
     await expect(toolbar.locator('[data-resource-import]')).toHaveText('インポート');
     await expect(page.locator('button', { hasText: 'リモート登録' })).toHaveCount(0);
   } finally {

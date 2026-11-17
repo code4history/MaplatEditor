@@ -4,7 +4,7 @@
 // UI (PoiReferenceEditor のペイン構成・変換可否・混在警告表示) と main (poiReferenceResolver の
 // 混在警告発行) の双方がここを使う — 恒久指示「同一扱い処理は共通実装へ徹底」。
 // 本モジュールは poiUidOf に依存しない形状分類のみを持つ (参照 → fc の写像は renderer 側
-// 呼び出しで合成する。resolver は解決後配列を判定するため写像不要 — )。
+// 呼び出しで合成する。resolver は解決後配列を判定するため写像不要)。
 
 // pois 配列要素の静的形状。viewer 正本 normalize_pois.ts の判別軸に対応する。
 // fc: 非配列 object かつ type === "FeatureCollection" / object: その他の非 null 非配列 object /
@@ -85,7 +85,7 @@ export function poisLayerMode(
 }
 
 // 混在判定: "fc" と "object" の両方が存在 (string / junk は数えない — 出口側判定と同一)。
-// 警告列はこの述語の値の転記であり、mode によるゲートは挟まない (唯一の判定源 — )
+// 警告列はこの述語の値の転記であり、mode によるゲートは挟まない (唯一の判定源)
 export function hasMixedPoisShapes(shapes: readonly PoisEntryShape[]): boolean {
   return shapes.includes("fc") && shapes.includes("object");
 }

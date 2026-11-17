@@ -81,7 +81,7 @@ test.describe('Fix-1: 起動時 512px マイニング', () => {
       // マイニング marker を削除して、次回起動で 512px マイニングが走る状態にする
       const db = new DatabaseSync(path.join(saveFolder, 'maplat.sqlite'));
       try {
-        // で marker が v2（2026-07-21-thumbnail-512-mining-v2）へ更新された。将来の版替えにも耐えるよう LIKE で全世代を削除する
+        // 後の版で marker が v2（2026-07-21-thumbnail-512-mining-v2）へ更新された。将来の版替えにも耐えるよう LIKE で全世代を削除する
         db.prepare("DELETE FROM schema_migrations WHERE id LIKE '%thumbnail-512-mining%'").run();
       } finally {
         db.close();

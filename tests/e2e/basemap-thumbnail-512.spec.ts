@@ -1,8 +1,7 @@
 // E2E: ベースマップ管理のサムネイル操作を地図管理と同型にする（512px/52px）。
-//。
 //
 //   T1 サムネイル管理セクションの表示（512px/52px プレビュー・置換 2 本・チェック）
-//      ＋ の derive52 強制 ON（checked かつ disabled）           -> case 6
+//      ＋ derive52 の強制 ON（checked かつ disabled）           -> case 6
 //   T2 512px 置換でプレビューが ?v= で更新され、実ファイルが更新される -> case 6
 //   T3 52px 置換で 52px が更新され document.thumbnail が 52px を指す   -> case 6
 //   T4 未保存の新規ベースマップ → 保存で 512px も uid 名へ寄る          -> case 7（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 A）
@@ -220,7 +219,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       const saveFolder = await saveFolderOf(page);
       await installDialogHarness(app, await makeSourceImage(e2eRoot, 'replace.png'));
 
-      // 未保存の新規ベースマップを作る（以降、iconFileKey は未保存でも事前採番の uid を返す）
+      // 未保存の新規ベースマップを作る（以降、iconFileKey() は未保存でも事前採番の uid を返す）
       const slug = `fx-new-${Date.now().toString(36)}`;
       await openHash(page, '#/basemaps');
       await page.getByTestId('basemap-new').click();

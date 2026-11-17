@@ -5,7 +5,7 @@
 // replaceThumbnail / エラー）。同一扱いの処理は「挙動を似せる」のではなく**同一実装へ寄せる**
 // （人間の恒久指示・由来）ため、本モジュールへ集約し、差分だけをホストが注入する。
 //
-// 【確定した意味論】（。UI にも同じ言葉で出す）
+// 【確定した意味論】（UI にも同じ言葉で出す）
 //   規則 サムネイル画像そのものの置換は**即時反映の資源操作**である。保存の対象ではなく、
 //            元に戻す（undo）の対象でもない。戻したい場合は再度置換する。
 //   規則 文書が「どのファイルをサムネイルとするか」を保持している場合（ベースマップの
@@ -66,7 +66,7 @@ export interface ThumbnailReplace {
   thumbnail52Url: ComputedRef<string | null>;
   thumbnailError: Ref<string>;
   thumbnailNonce: Ref<number>;
-  /** 52px の実体が rel52 の位置に存在するか。**所有権は本モジュールにある** */
+  /** 52px の実体が rel52() の位置に存在するか。**所有権は本モジュールにある** */
   exists52: Ref<boolean>;
   /** v-model 用。derive52Forced が真なら常に true を返し set を無視する */
   derive52Model: WritableComputedRef<boolean>;
@@ -102,7 +102,7 @@ export function useThumbnailReplace(host: ThumbnailReplaceHost): ThumbnailReplac
     set: (value: boolean) => { derive52FromUpload.value = value; },
   });
 
-  // 規則 T3。rel52 を混ぜてはならない（。混ぜると thumbnail 空の新規ベースマップで
+  // 規則 T3。rel52() を混ぜてはならない（混ぜると thumbnail 空の新規ベースマップで
   // 置換が塞がれ、サムネイルの e2e が RED になる＝機能が落ちる）
   const replaceDisabled = computed(() => host.writeTarget() === null);
   const replaceDisabledReason = computed(() => (replaceDisabled.value ? host.disabledReason() : ""));

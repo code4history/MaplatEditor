@@ -111,8 +111,8 @@ try {
     { ...fresh, minZoom: null, maxZoom: 18 },
     d,
   );
-  assert.equal(onlyMinNull.minZoom, 0, "m1: min only null → fill min");
-  assert.equal(onlyMinNull.maxZoom, 18, "m1: max user value kept");
+  assert.equal(onlyMinNull.minZoom, 0, "min only null → fill min");
+  assert.equal(onlyMinNull.maxZoom, 18, "max user value kept");
 
   // empty All right reserved path: empty license gets default
   const emptyLic = applyGooglePresetDefaults({ ...fresh, license: "" }, d);
@@ -135,7 +135,7 @@ try {
   assert.equal(
     enDefaultInJaDoc.licenseNote.ja,
     d.licenseNote.ja,
-    "m3: EN default note text is still treated as Google default and re-applied for defaultLang",
+    "EN default note text is still treated as Google default and re-applied for defaultLang",
   );
 
   assert.equal(isGoogleDefaultAttr(""), true);

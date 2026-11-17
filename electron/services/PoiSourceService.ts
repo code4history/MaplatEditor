@@ -6,10 +6,8 @@
 //
 // remote ソース (mode='remote') は read-only。fetch 結果のスナップショットを data_json に
 // 永続 cache する — 当初の設計の「session memory cache」からの意図的逸脱で、再取得の
-// 「network failure 時は cache で degraded 表示」を再起動を跨いで満たす上位互換
-// (計画書 outer リポジトリ
-//  設計コントラクト参照)。
-// fetch payload には 規模の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
+// 「network failure 時は cache で degraded 表示」を再起動を跨いで満たす上位互換。
+// fetch payload には規模の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { FeatureCollection } from 'geojson';
@@ -50,7 +48,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 const REMOTE_WARN_BYTES = 5 * 1024 * 1024; // 5 MiB 超 → warning
 const REMOTE_MAX_BYTES = 50 * 1024 * 1024; // 50 MiB 超 → 登録拒否
 
-// cleanup が返す残留物を main プロセスのログへ可視化する。
+// cleanup() が返す残留物を main プロセスのログへ可視化する。
 // POI 単体 import の戻り値形（PoiSourceSaveResult）は **変えない** — 残留の利用者向け表示は
 // 取り込みの補償の責務外であり、ここでの追随は「握り潰さない」ことの担保に留める。
 // 地図 ZIP import 側は DataUploadService が residue を戻り値へ載せる。
@@ -280,7 +278,6 @@ export class PoiSourceService {
   // scheme 検証・タイムアウト・ストリームサイズガードは remoteFetchGuard.ts の
   // guardedFetch へ抽出済み（TileJsonImportService と共用）。写像は下記のとおりで、
   // 外部挙動（failure の形・エラーコード）は抽出前と完全に不変
-  // （の写像表）。
   private async fetchSnapshot(
     url: string,
     fallbackLang: string = DEFAULT_LANG,

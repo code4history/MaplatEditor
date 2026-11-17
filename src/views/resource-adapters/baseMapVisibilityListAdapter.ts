@@ -1,8 +1,8 @@
 // MapEdit ベースマップ選択（2 ペイン）の左ペイン用 adapter。
 // baseMapVisibilityList（IPC で取得済みの in-memory 全件）を ResourceListAdapter として包み、
 // ResourceSelectorList + ResourceMasterRow へ供給する。load は q/bbox filter を適用、cursor は未使用。
-// v2.0: 検索 haystack を全言語値化（Min2 吸収）、metadata からスラッグ重複除去（HM7）、
-// added 判定で selected=true（HM6: 追加済み=青）
+// 検索 haystack を全言語値化、metadata からスラッグ重複除去、
+// added 判定で selected=true（追加済み=青）
 import type { ResourceListAdapter, ResourceListItemViewModel, Wgs84Bbox } from "../../components/resource-list/resourceListTypes";
 import type { BaseMapVisibilityItem } from "../../../electron/services/SqliteDataService";
 import { localizeTitle, type LangResource } from "../../utils/langResource";
@@ -33,7 +33,7 @@ function coverageIntersects(coverageLngLats: [number, number][] | null | undefin
   return bboxIntersects([minLng, minLat, maxLng, maxLat], bbox);
 }
 
-// v2.0 Min2: 検索 haystack を全言語値化（旧 MapEdit.vue:2466-2472 baseMapSearchHaystack と同仕様に復元）
+// 検索 haystack を全言語値化（旧 MapEdit.vue:2466-2472 baseMapSearchHaystack と同仕様に復元）
 function searchHaystack(item: BaseMapVisibilityItem): string {
   const title = item.data?.title;
   const titleValues = typeof title === "object" && title !== null ? Object.values(title) : [title];
@@ -53,7 +53,7 @@ export function createBaseMapVisibilityListAdapter(
       const bbox = filter.bbox;
       let filtered = all;
       if (q) {
-        // Min2: 全言語値でヒット判定（表示言語に依らず全言語タイトル + mapID で検索）
+        // 全言語値でヒット判定（表示言語に依らず全言語タイトル + mapID で検索）
         filtered = filtered.filter((item) => searchHaystack(item).includes(q));
       }
       if (bbox) {
@@ -74,11 +74,11 @@ export function createBaseMapVisibilityListAdapter(
         slug: String(item.mapID),
         title: localized,
         thumbnailUrl: item.thumbnailUrl ?? null,
-        // HM7: metadata からスラッグ重複除去。slug 行が mapID を表示するため scope のみ残す
+        // metadata からスラッグ重複除去。slug 行が mapID を表示するため scope のみ残す
         metadata: [item.scope],
         // locked は「常時表示」badge で表現
         badges: item.locked ? [{ key: "locked", label: "常時表示", tone: "info" }] : [],
-        // HM6: 追加済み（enabled）は selected=true（青表示）。locked も enabled 扱いで selected=true
+        // 追加済み（enabled）は selected=true（青表示）。locked も enabled 扱いで selected=true
         selected: item.enabled,
         hasDraft: deps.hasDraft(item.uid),
         actions: [],

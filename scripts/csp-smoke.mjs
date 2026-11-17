@@ -108,7 +108,7 @@ await section("[case 1] renderer CSP（handler の実挙動・v3 のパス限定
     assert.notEqual(res.headers.get("content-security-policy"), RENDERER_CSP);
   }
 
-  // : 実ビルド物が許可パスに収まる（Vite の既定 assetsDir に依存しているため）
+  // 実ビルド物が許可パスに収まる（Vite の既定 assetsDir に依存しているため）
   const distRoot = path.join(projectRoot, "dist");
   assert.ok(existsSync(path.join(distRoot, "index.html")), "dist/index.html が無い（先に vite build すること。黙って合格しない）");
   const indexHtml = await readFile(path.join(distRoot, "index.html"), "utf8");

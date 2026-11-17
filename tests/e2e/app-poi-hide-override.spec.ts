@@ -1,12 +1,11 @@
 // アプリ管理 > POI 編集の hide 上書き UI — E2E
-//。
 //
 // 検証範囲（case 2-1/2/3/4/7/8/9/10）:
 //   1. AppEdit の POI タブで参照要素に hide チェックボックスが出る
-//   2. 非参照要素（生 FC）には出ない（別 seed・シナリオ2で検証 =）
+//   2. 非参照要素（生 FC）には出ない（別 seed・シナリオ2で検証）
 //   3/4/7. ON → 保存 → 再読込 → OFF → 保存 の round-trip（OFF では hide キーごと消える）
 //   8a. 他の上書き（icon）との佷存（シナリオ1内で検証）
-//   8b. 追加選択・並べ替え・別参照の解除でも hide が保持される（シナリオ3で検証 =）
+//   8b. 追加選択・並べ替え・別参照の解除でも hide が保持される（シナリオ3で検証）
 //   9. viewer 到達: AppEdit の preview タブで app-level POI の hide が viewer に届く
 //      （app-level レイヤの namespaceID は prefix なしの key = normalize_pois:192-193 + index.ts:384）
 //   10. undo / redo（AppEdit の historyApplying + recordHistory 経路）
@@ -347,7 +346,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
     }
   });
 
-  // : case 2-2 — 非参照要素（生 FC）には hide チェックボックスが出ない。
+  // case 2-2 — 非参照要素（生 FC）には hide チェックボックスが出ない。
   // 別 seed（参照2件 + 生 FC 1件）。preview タブは開かない（UI 検証のみ・viewer 無関係）。
   // 生 FC はインラインのため nodesLoader の fetch は発火しない（生 URL とは異なる）。
   test('シナリオ2: case 2-2: 非参照要素（生 FC）には hide チェックボックスが出ない', async () => {
@@ -418,7 +417,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
     }
   });
 
-  // : case 2-8b — 追加選択・並べ替え・別参照の解除でも hide が保持される。
+  // case 2-8b — 追加選択・並べ替え・別参照の解除でも hide が保持される。
   // 別 seed（参照2件 → 追加選択で3件 → 並べ替え → 参照解除で2件）。
   // 検証は保存形（readSavedAppPois）で行い、DOM の再マウントに依存しない。
   test('シナリオ3: case 2-8b: 追加選択・並べ替え・別参照の解除でも hide が保持される', async () => {
@@ -543,7 +542,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       console.log('  case 2-8b-2: 並べ替え後も icon/hide が保持される: PASS');
 
       // ---- 別参照の解除: A（index 0）を × で解除 → [C, B] ----
-      // : "hide を ON にした参照とは別の参照を選択解除（×）し、
+      // 設計の言い方では「hide を ON にした参照とは別の参照を選択解除（×）し、
       //   残った参照の hide / icon が保持されることを assert"
       // A は icon を持つ参照で、B は hide を持つ参照。A を解除 → 残る C と B。
       // B の hide が保持されることを検証。

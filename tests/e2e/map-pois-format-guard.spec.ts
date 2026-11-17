@@ -1,5 +1,4 @@
 // MapEdit の POI 扱いを AppEdit と同一の共通実装へ統一する — E2E
-//。
 //
 // 検証範囲:
 //   case 3/case 4: 【editor-layer-ref の変更で契約が変わった】pois が URL 文字列（実データ maps/morioka.json と同形）の

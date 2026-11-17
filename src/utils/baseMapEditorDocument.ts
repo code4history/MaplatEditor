@@ -69,7 +69,7 @@ export interface BaseMapValidation {
   valid: boolean;
   errors: Array<
     | "kind-required" // 新設。kind 未選択（null）
-    | "provider-incomplete" // 新設。t4/t5 で google=maptype-required・mapbox/maplibre=style 系へ置換済み（型互換のため残置）
+    | "provider-incomplete" // 新設。後に google=maptype-required・mapbox/maplibre=style 系へ置換済み（型互換のため残置）
     | "maptype-required" // 新設。kind === "google" で maptype 未選択
     | "style-required" // mapbox/maplibre で style 空
     | "style-mapbox-scheme-forbidden" // maplibre で mapbox:

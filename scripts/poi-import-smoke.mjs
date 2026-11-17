@@ -199,7 +199,7 @@ try {
     console.log('  case o (エクスポートの選択ダイアログ): PASS');
   }
 
-  // ---------- 確定時の再確認 (r5 ) ----------
+  // ---------- 確定時の再確認（レビューの指摘） ----------
   {
     const at = editSrc.indexOf('function onMergeImportSubmit');
     assert.ok(at >= 0, 'onMergeImportSubmit がない');
@@ -544,14 +544,14 @@ try {
       assert.equal(await service.detectImportLanguage(fx('names-utf8.csv'), 'en'), 'en');
       assert.equal(await service.detectImportLanguage(fx('names-utf8.csv')), 'ja');
 
-      // (c) の CSV: temple-1 の行が新しい POI の必須を満たさない -> 全件か拒否
+      // (c) 取り込みの統合の CSV: temple-1 の行が新しい POI の必須を満たさない -> 全件か拒否
       const merge = await service.importFile({ slug: 'csv-merge', title: { ja: 'm' }, filePath: fx('demo-merge.csv'), lang: 'ja' });
       assert.equal(merge.result, 'Invalid', JSON.stringify(merge));
       assert.ok(keys(merge.issues).includes('name-required:error'));
       assert.ok(keys(merge.issues).includes('coord-missing:error'));
       assert.equal(await service.get('csv-merge'), null, 'Invalid では行を残さない');
 
-      // の CSV: Invalid で issues が parse.issues + plan.issues
+      // 不正な行を含む CSV: Invalid で issues が parse.issues + plan.issues
       const errors = await service.importFile({ slug: 'csv-errors', title: { ja: 'e' }, filePath: fx('demo-errors.csv'), lang: 'ja' });
       assert.equal(errors.result, 'Invalid');
       const got = keys(errors.issues).sort();

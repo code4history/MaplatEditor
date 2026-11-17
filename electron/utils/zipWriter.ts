@@ -228,7 +228,7 @@ export async function writeZipStreaming(
   });
   let offset = 0;
 
-  // stream.write の戻り値が false のときは 'drain' を待つ（背圧を守る）
+  // stream.write() の戻り値が false のときは 'drain' を待つ（背圧を守る）
   const write = async (buf: Buffer): Promise<void> => {
     if (streamError) throw streamError;
     const ok = out.write(buf);

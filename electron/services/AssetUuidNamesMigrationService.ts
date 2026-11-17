@@ -13,7 +13,7 @@
 // 不変条件:
 //   - 旧ファイルは消さない（複製方式）。消すのは「この件で overwrite: false で作ったファイル」だけ
 //   - 参照の形を変えない（読んだキーそのものを書き換える）
-//   - revision と updated_at を進めない（。移行前の下書きを衝突にしない）
+//   - revision と updated_at を進めない（移行前の下書きを衝突にしない）
 //   - 比較と交換: 書き換えの直前に行を読み直し、該当キーが手順 1 で見た旧値のときだけ置き換える
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';

@@ -448,7 +448,7 @@ export interface WmtsGenAPI {
         hash: string;
         tileJson?: MercTileJsonDocument;
         err?: any;
-        // 実装レビュー M-2: JPEG デコード予算超過の構造化エラー（MapUploadResult と同型）
+        // 実装レビューの指摘: JPEG デコード予算超過の構造化エラー（MapUploadResult と同型）
         errorCode?: 'jpeg_machine_limit' | 'jpeg_memory_limit' | 'jpeg_resolution_limit';
         configuredMB?: number;
         configuredMP?: number;

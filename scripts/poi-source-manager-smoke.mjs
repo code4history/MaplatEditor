@@ -61,7 +61,7 @@ try {
     'router に PoiSourceList name がない'
   );
 
-  // エディタ (Phase 4: PoiEdit) が定義されていること (旧 PoiSourceDetail は置換済み)
+  // エディタ (PoiEdit) が定義されていること (旧 PoiSourceDetail は置換済み)
   assert.match(
     routerSource,
     /name\s*:\s*['"]PoiEdit['"]/,
@@ -140,7 +140,7 @@ try {
   );
 
   // 作成モーダル撤去 + 遅延作成統一に伴い、import のファイル名 → suggestSlug の
-  // 自動提案 (43 ) は PoiEdit の import 自動起動へ移動。一覧は /poisources/new 系へ遷移するだけ。
+  // 自動提案は PoiEdit の import 自動起動へ移動。一覧は /poisources/new 系へ遷移するだけ。
   // import フローは generation guard 付きの runGuardedPoiImport（initGenerationGuard.ts）へ
   // 抽出され、suggestSlug はその内部で呼ばれる
   const poiEditSrc = await readFile(
@@ -197,7 +197,7 @@ try {
   console.log('  [3/3] PoiSourceList.vue shape: PASS');
 
   // 旧 PoiSourceDetail / PoiFeatureTable / usePoiSourceDetail のアサーションは
-  // Phase 4 Task 5 (PoiEdit への置換) で削除。エディタ側の検証は poi-edit-smoke.mjs 参照
+  // PoiEdit への置換で削除。エディタ側の検証は poi-edit-smoke.mjs 参照
 
   console.log('POI source manager UI smoke passed');
 } catch (err) {

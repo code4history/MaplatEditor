@@ -241,7 +241,7 @@ const deletion = useResourceDelete({
     await masterList.value?.reload();
     await refreshDraftsNow();
   },
-  // native alert を廃止。error ref は DF operation バナーで表示（他一覧と同文法）
+  // native alert() を廃止。error ref は DF operation バナーで表示（他一覧と同文法）
 });
 async function requestDeleteAsset(row: ImageAssetRow): Promise<void> {
   await deletion.request({ uid: row.uid, title: localizeTitle(row.title, activeLang.value) || row.slug });

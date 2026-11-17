@@ -153,7 +153,7 @@ assert.match(diag, /:role="[^"]*'alert'[^"]*'status'[^"]*"/, "DiagnosticFeedback
 assert.match(diag, /dismissible/); assert.match(diag, /dismiss/);
 assert.match(diag, /var\(--editor-ui-diag-/, "DiagnosticFeedback must use diag tokens");
 assert.match(diag, /var\(--editor-ui-diag-summary-padding\)/);
-// 画面上部のバナーは行が多くても伸ばさず、中をスクロールする（PR #246 の）
+// 画面上部のバナーは行が多くても伸ばさず、中をスクロールする（PR #246）
 assert.match(diag, /\.editor-diagnostic--operation \.editor-diagnostic__list \{[^}]*max-height: var\(--editor-ui-diag-operation-max-height\);[^}]*overflow-y: auto;/);
 
 const help = await read("src/components/editor-ui/ContextHelp.vue");
@@ -213,10 +213,10 @@ for (const rel of ["src/components/basemap/BaseMapEdit.vue", "src/components/ass
   // F8: dirty 変化を親へ通知する draft-state イベント
   assert.match(src, /"draft-state"/, `${rel} must emit draft-state for live badge (F8)`);
   // F8 flush 完了後に List のバッジ再照会契機を作る flushed イベント
-  assert.match(src, /flushed:\s*\[\]/, `${rel} must declare flushed emit (F8 )`);
-  assert.match(src, /emit\("flushed"\)/, `${rel} must emit flushed after flush/discard (F8 )`);
+  assert.match(src, /flushed:\s*\[\]/, `${rel} must declare flushed emit (F8)`);
+  assert.match(src, /emit\("flushed"\)/, `${rel} must emit flushed after flush/discard (F8)`);
   // F8 uid 切替中は旧 session の dirty を新 uid へ流さない
-  assert.match(src, /establishDraftState/, `${rel} must establish draft-state per session (F8 )`);
+  assert.match(src, /establishDraftState/, `${rel} must establish draft-state per session (F8)`);
 }
 // BaseMap は URL / zoom も field 診断 + is-invalid（F3 全項目）
 const baseMapEdit = await read("src/components/basemap/BaseMapEdit.vue");
@@ -239,10 +239,10 @@ for (const rel of ["src/views/BaseMapList.vue", "src/views/AssetList.vue"]) {
   assert.match(src, /effectiveDraftUids/, `${rel} must expose effectiveDraftUids override (F8)`);
   assert.match(src, /:draft-uids="effectiveDraftUids"/, `${rel} master list must use effectiveDraftUids (F8)`);
   // F8 行切替を跨いで override を保持する Map と、store 一致分の回収、flush 後の即時再照会
-  assert.match(src, /liveDraftOverrides/, `${rel} must keep per-uid draft overrides (F8 )`);
-  assert.match(src, /reconcileDraftOverrides/, `${rel} must reconcile overrides with store (F8 )`);
-  assert.match(src, /@flushed="refreshDraftsNow"/, `${rel} must refresh badges right after flush (F8 )`);
-  assert.doesNotMatch(src, /setTimeout\([^)]*, 900\)/, `${rel} must not refresh before persist delay (F8 )`);
+  assert.match(src, /liveDraftOverrides/, `${rel} must keep per-uid draft overrides (F8)`);
+  assert.match(src, /reconcileDraftOverrides/, `${rel} must reconcile overrides with store (F8)`);
+  assert.match(src, /@flushed="refreshDraftsNow"/, `${rel} must refresh badges right after flush (F8)`);
+  assert.doesNotMatch(src, /setTimeout\([^)]*, 900\)/, `${rel} must not refresh before persist delay (F8)`);
 }
 // basemap.coverage_help を 11 locale へ追加
 for (const loc of LOCALES) {

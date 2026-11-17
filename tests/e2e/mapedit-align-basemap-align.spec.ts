@@ -1,14 +1,14 @@
 // 「ベースマップ位置合わせモードの新設」E2E。
-// モード遷移の正本: マイルストーンモード表（P0/P1/P2）・（バー表示値）。
-// メニューの相の優先関係: （P1/P2 は F0/F1/F2 のいずれよりも優先・1 項目のみ）。
+// モード遷移: P0/P1/P2 の 3 つの相と、相ごとのバーの表示値。
+// メニューの相の優先関係: P1/P2 は F0/F1/F2 のいずれよりも優先し、1 項目だけを出す。
 //
 // 担当 AC:
 //   case 1  副機能ドロップダウンに 3 つ目の選択肢が出る
 //   case 2  バーに現在のベースマップの保持値が出る（未計測なら 0.00。P1/P2 は対象の保持値）
 //   case 3  ベースマップ切替で表示値が随時そのベースマップの保持値へ変わる
 //   case 4  保持値は編集環境ストアへ即時永続化され、リロード後も残る
-//        （2026-08-21 改訂: HR-6 が HR-4.3 の「セッション限り」を明示的に逆転させたため
-//          期待を反転した = case 9。結果表 #1 / outer）
+//        （2026-08-21 改訂: 人間の判断で当初の「セッション限り」が逆転され、
+//          保持値を永続化することになったため期待を反転した）
 //   case 5  バー右端に「編集開始」ボタン
 //   case 6  P1: (a) 地図面操作不可 (b) ドロップダウン操作不可 (c) 切替ラジオ 0 件 (d) ボタン文言
 //   case 7  P1 で対象ソースの実効シフトが 0
@@ -19,7 +19,7 @@
 //   case 12 P2 でも基準点マーカーが同じ位置に残る
 //   case 13 P2 の右クリックが「Ground Truth を選ぶ」のみ。置き直し可
 //   case 14 確定で shift = GT − 基準点 が保持値になり、バーと表示に反映される
-//   case 16 レイヤ再構築でシフトが失われない（P1 中の再構築で切替禁止も解けない =）
+//   case 16 レイヤ再構築でシフトが失われない（P1 中の再構築で切替禁止も解けない）
 //   case 21 反復適用: 2 回目の編集開始で実効 0 へ戻り（画が動く機械観測）、確定値は置換
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
@@ -144,7 +144,7 @@ async function layerSwitcherRadios(page: Page): Promise<{ count: number; labels:
     const map = (window as any).testDebug.mercMapInfo().map;
     const ctrl = map.getControls().getArray()
       .find((c: any) => c.element?.classList?.contains('layer-switcher'));
-    // showPanel はパネルが表示済みだと renderPanel を呼ばず
+    // showPanel() はパネルが表示済みだと renderPanel() を呼ばず
     // 古い DOM を読む ∴ hidePanel() で一度閉じてから開き、必ず再描画させる
     // （これが無いと製品側の結線を外した変異でも PASS してしまう = 判別力ゼロ）
     ctrl.hidePanel();
@@ -422,7 +422,7 @@ test.describe('ベースマップ位置合わせモード', () => {
       expect(refs.length).toBe(1);
       expect(refs[0].coord).not.toEqual(firstRef);
       const refCoord = refs[0].coord;
-      // : P1 のバー表示は対象の保持値（0.00）のまま
+      // P1 のバー表示は対象の保持値（0.00）のまま
       await expect(shiftX(page)).toHaveValue('0.00');
 
       // ---- P1 → P2 ----
@@ -452,7 +452,7 @@ test.describe('ベースマップ位置合わせモード', () => {
       const refsP2 = dbgP2.alignFeatures.filter((f) => f.kind === 'reference');
       expect(refsP2.length).toBe(1);
       expect(refsP2[0].coord).toEqual(refCoord);
-      // ドロップダウンは P2 でも操作不可（HR-4.6(b)「完了まで」）
+      // ドロップダウンは P2 でも操作不可（人間の確認で決めた「完了まで」）
       await expect(functionSelect(page)).toBeDisabled();
       // GT を置くまで完了ボタンは無効
       await expect(phaseButton(page)).toBeDisabled();
@@ -561,13 +561,13 @@ test.describe('ベースマップ位置合わせモード', () => {
     }
   });
 
-  // 2026-08-21 改訂（HR-6。結果表 #1。outer）:
-  // HR-6「あ、これは逆に保存されて欲しいです。…ベースマップ指定と同様、Saveする必要のない即時記憶で」が
-  // HR-4.3 の「セッション限り」を明示的に逆転させたため、本テストの期待を反転した
+  // 2026-08-21 改訂:
+  // 人間の判断「あ、これは逆に保存されて欲しいです。…ベースマップ指定と同様、Saveする必要のない即時記憶で」が
+  // 当初の「セッション限り」を明示的に逆転させたため、本テストの期待を反転した
   // （旧: リロードで 0.00 に戻る → 新: 編集環境ストアに保存され、リロード後も保持値が残る）。
   // seed はメモリ専用の testDebug.seedBaseMapShifts では reload を跨げない
   // ∴ 実 IPC（mapedit.setBaseMapShiftForMapID = mapedit-align-reset-persist の永続経路）で書き、reload 後は実 load 経路で読む
-  test('（case 9 で期待反転）: 保持値は編集環境ストアへ永続化され、リロード後も残る', async () => {
+  test('case 4（永続化の決定で期待を反転）: 保持値は編集環境ストアへ永続化され、リロード後も残る', async () => {
     test.setTimeout(240_000);
     const { app, page, errors, uid } = await bootstrap('maplat-fx-session-');
     try {
@@ -593,7 +593,7 @@ test.describe('ベースマップ位置合わせモード', () => {
       await waitBaseLayers(page);
       await functionSelect(page).selectOption('basemap_align');
       await setVisibleBaseMap(page, other);
-      // HR-6: 保持値が編集環境ストアから復元されて表示され、タイルにも実効値として載っている
+      // 永続化の決定により、保持値が編集環境ストアから復元されて表示され、タイルにも実効値として載っている
       await expect(shiftX(page)).toHaveValue('55.00');
       await expect(shiftY(page)).toHaveValue('66.00');
       const dbgAfter = await alignDebug(page);

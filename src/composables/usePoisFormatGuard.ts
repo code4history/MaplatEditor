@@ -1,5 +1,5 @@
-// pois の判定とその帰結（表示配列・read-only・書き込み可否）を AppEdit / MapEdit で共有する
-//。受け入れ（生値温存）は acceptDocumentPois が担い、ここは「今の文書がどう扱われる
+// pois の判定とその帰結（表示配列・read-only・書き込み可否）を AppEdit / MapEdit で共有する。
+// 受け入れ（生値温存）は acceptDocumentPois が担い、ここは「今の文書がどう扱われる
 // べきか」を反応的に示す第2層である。
 //
 // なぜ computed か: 両画面とも履歴 undo/redo は受け入れ関所を通らない

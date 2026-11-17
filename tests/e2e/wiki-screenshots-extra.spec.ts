@@ -1,5 +1,4 @@
 // Wiki（MaplatEditor.wiki）掲載用スクリーンショット取得スクリプト（新規 7 枚）。
-//。
 //
 // 機能テストではなく、Wiki 用の静的画像資産を決定的に生成する補助スクリプトである
 // （先例: tests/e2e/wiki-screenshots-basic.spec.ts。既存 4 枚 current-1〜4 はそちらが撮る）。
@@ -15,7 +14,7 @@
 //   current-12-app-settings   アプリ編集の HTTP 設定 8 トグル + アプリ設定            B-64
 //
 // current-8-app-menu.png は OS ネイティブのメニューバーであり Playwright では構造的に撮れない
-//。唯一の人間ゲート G-A として手動撮影する（docs/wiki-screenshots-extra-g-a-手順書）。
+// 唯一の人間ゲート G-A として手動撮影する。
 //
 // 起動は helpers/launchIsolated.ts を使う（MAPLAT_E2E_ROOT + --user-data-dir。実ユーザーの
 // save folder / 設定ストアに一切触れない。付け忘れを構造的に防ぐため launch() を直書きしない）。

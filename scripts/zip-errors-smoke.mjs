@@ -1,6 +1,5 @@
 // スモーク: ZIP の取り込みの大きさの検査（#98）と、読み取りの例外を利用者向けの
 // コードへ写すこと（#116）。
-// （outer リポジトリ）・case 2・case 4。
 //
 // 固定する受け入れ条件:
 //   (a) POI の importFile に壊れた／大きすぎる ZIP を渡すと { result: 'Error', code: 'zip-too-large' | 'zip-corrupt' }
@@ -30,7 +29,7 @@ const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 // バンドルは adm-zip を external にするため、node_modules を辿れるプロジェクト配下に置く
 const workDir = await mkdtemp(path.join(scratchRoot, 'zip-errors-'));
-// fixture（スパースファイルを含む）はとおり os.tmpdir 配下
+// fixture（スパースファイルを含む）は設計どおり os.tmpdir() 配下
 const fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'zip-errors-zip-fixtures-'));
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');

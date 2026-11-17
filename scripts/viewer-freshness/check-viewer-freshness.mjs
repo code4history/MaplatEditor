@@ -129,7 +129,7 @@ function compareSemver(a, b) {
  * `>X`（開区間）や複雑な比較子は扱わない（本 repo では出現しない）。
  *
  * prerelease（`-rc.0` 等）は保持し、複数比較子の下限は compareSemver（prerelease の
- * 順序を含む）で選ぶ。`^1.1.0-rc.0` の下限は `1.1.0-rc.0`（の是正）。
+ * 順序を含む）で選ぶ。`^1.1.0-rc.0` の下限は `1.1.0-rc.0`（レビューの指摘の是正）。
  */
 function minVersion(range) {
   const r = String(range ?? '').trim();
@@ -165,7 +165,7 @@ function sha256Hex(buf) {
 async function loadLock(root) {
   // js-yaml は devDependency。CI の prepare は依存導入前なので、ここを遅延 import にして、
   // --self-test や prepare（node_modules 無し）の経路が js-yaml を要求しないようにする
-  // （の是正）。
+  // （レビューの指摘の是正）。
   const { default: yaml } = await import('js-yaml');
   return yaml.load(readFileSync(path.join(root, 'pnpm-lock.yaml'), 'utf8'));
 }
@@ -794,7 +794,7 @@ async function runSelfTest() {
   ok(minVersion('>=1.0.0') === '1.0.0', 'minVersion(>=1.0.0) = 1.0.0');
   ok(minVersion('^0.2.3') === '0.2.3', 'minVersion(^0.2.3) = 0.2.3');
   ok(minVersion('1.2.3') === '1.2.3', 'minVersion(1.2.3) = 1.2.3');
-  // --- prerelease を保持する minVersion と semver 比較（の是正）---
+  // --- prerelease を保持する minVersion と semver 比較（レビューの指摘の是正）---
   ok(minVersion('^1.1.0-rc.0') === '1.1.0-rc.0', 'minVersion(^1.1.0-rc.0) = 1.1.0-rc.0（prerelease 保持）');
   ok(compareSemver('1.1.0-rc.1', '1.1.0-rc.0') > 0, 'semver: 1.1.0-rc.1 > 1.1.0-rc.0');
   ok(compareSemver('1.1.0', '1.1.0-rc.9') > 0, 'semver: 1.1.0 > 1.1.0-rc.9');

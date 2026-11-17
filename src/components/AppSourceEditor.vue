@@ -343,13 +343,13 @@ function copyCoverageToEnvelope() {
 <template>
   <div>
     <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
-         hotfix (2026-08-07): の label 操作子移設で maplat 分岐が空になり、
+         hotfix (2026-08-07): label 操作子の移設で maplat 分岐が空になり、
          maplat ソースの label 編集が消えていた退行の復旧。
          #108: maplat にはベースマップのマスタは無いが、viewer はアプリの label が
          無ければ地図の設定の label を使う。∴ 親が masterData に地図の文書（label / lang）を渡し、
          ベースマップの分岐と同じくその label をプレースホルダに出す。空にする＝label を外す
          （viewer は地図の label へフォールバックする）。testid は override- 接頭辞にしない
-         （の照合集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
+         （操作子と定数の照合の集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
          マスタとの差分ではないため） -->
     <div v-if="source.sourceType === 'maplat'" class="row g-2 mt-1">
       <div class="col-md-6">
@@ -397,8 +397,8 @@ function copyCoverageToEnvelope() {
       <!-- 言語別テキスト欄と帰属・ライセンス欄。**配置順はマスタ編集フォーム（BaseMapEdit:175-250）
            に揃える**（設計の決定）: attr → dataAttr → license → licenseNote → dataLicense → dataLicenseNote。
            clearable = 検索バーと同じ native ×。空にする＝マスタへ戻る。
-           アンカーは v-for で回さず**リテラルで書く**（の抽出は文字列リテラルを要求するため、
-           動的バインドにすると照合から漏れる。設計レビュー round4 Info 1） -->
+           アンカーは v-for で回さず**リテラルで書く**（操作子と定数の照合の抽出は文字列リテラルを要求するため、
+           動的バインドにすると照合から漏れる。設計レビューの指摘） -->
       <div class="col-md-6">
         <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
         <LangResourceInput
@@ -429,7 +429,7 @@ function copyCoverageToEnvelope() {
       <!-- 利用範囲(envelopeLngLats): base/overlay共通。既定は空で、設定時のみViewerへ渡る(存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まり)。
            プレースホルダにマスタの存在範囲(coverageLngLats)は出さない。
            存在範囲と利用範囲は別概念であり、未設定時に効くのは「範囲指定なし」であって存在範囲ではない。
-           : 解除は範囲フィルタ方式の×へ揃える（MapList/AppList の範囲フィルタ解除と同型） -->
+           解除は範囲フィルタ方式の×へ揃える（MapList/AppList の範囲フィルタ解除と同型） -->
       <div class="col-12">
         <label class="form-label small mb-0 d-flex align-items-center gap-1">
           {{ t("appedit.envelope") }}
@@ -516,7 +516,7 @@ function copyCoverageToEnvelope() {
           <!-- マスタの存在範囲を利用範囲へ写す。存在範囲が未登録でもボタンは見せ、
                :disabled で不活性にする（BaseMapEdit の「存在範囲から生成」と同じ形）。
                接頭辞は app-source-copy- — envelopeLngLats の補助操作であって独立キーではないため、
-               の照合集合（app-source-override-*）へは混入させない -->
+               操作子と定数の照合の集合（app-source-override-*）へは混入させない -->
           <button
             type="button"
             class="btn btn-sm btn-outline-primary"
@@ -536,7 +536,7 @@ function copyCoverageToEnvelope() {
     </div>
 
     <!-- #85: オフライン表示から外す（Maplat の地図とベースマップで同じ 1 つの欄）。
-         アプリ所有の値なので testid は override- 接頭辞にしない（の照合集合に入れない）。
+         アプリ所有の値なので testid は override- 接頭辞にしない（操作子と定数の照合の集合に入れない）。
          アプリのキャッシュが働かないときは不活性にする。? は説明の 1 つだけで、使える条件は説明の文の末尾に書く
          （同じ画面の「オフライン表示（キャッシュ）」の欄と同じ形。赤字にしない） -->
     <div v-if="showNoCache" class="row g-2 mt-1">

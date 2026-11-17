@@ -5,7 +5,7 @@
  * ローカルリソース（saveFolder 配下のタイル・サムネイル等）と同梱リソース（dist/public）を
  * 許可経路の allowlist に限定して配信するための、経路解決の純関数と URL ビルダー。
  *
- * 本モジュールは electron を import しない。の smoke が
+ * 本モジュールは electron を import しない。app scheme の smoke が
  * `node --experimental-strip-types` で直接 import できることが前提
  * （前例: electron/utils/releaseChannel.ts）。
  *

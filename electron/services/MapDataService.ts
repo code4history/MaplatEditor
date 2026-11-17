@@ -84,7 +84,7 @@ class MapDataService {
 
   // uid正準の削除 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。参照解決は findMapByRef に一本化
   // (UUID形状はuid優先、旧slugリンク経由の呼び出しにはslugフォールバックで応える)
-  // 中身を MapDeleteTrashService.deleteMapWithTrash へ委譲する。
+  // 中身を MapDeleteTrashService.deleteMapWithTrash() へ委譲する。
   // シグネチャは不変。trash lifecycle (canonical/legacy を trash へ move → DB delete →
   // 失敗時のみ live へロールバック → tiles/tmbs/tmbs_512 削除) は同サービスの責務。
   async deleteMap(uidOrMapID: string): Promise<void> {

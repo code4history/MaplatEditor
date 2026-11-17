@@ -467,7 +467,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
         }
       }
 
-      // ---- AC-FF-7a（case 5(a)）: 同一 origin のローカル HTML を renderer の iframe に埋め込めない
+      // ---- AC-FF-7a（CSP の導入で足した条件 (a)）: 同一 origin のローカル HTML を renderer の iframe に埋め込めない
       //      （renderer CSP の frame-src で拒否）・renderer（親）の DOM に触れない ----
       const titleBefore = await page.title();
       const consoleBefore = consoleTexts.length;
@@ -486,7 +486,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
       expect.soft(frameSrcViolations.length, 'renderer の iframe への __local HTML の埋め込みが frame-src で拒否されない').toBeGreaterThan(0);
       if (iframeResult.title === 'PWNED-BY-LOCAL-HTML') await page.evaluate((t) => { document.title = t; }, titleBefore);
 
-      // ---- AC-FF-7b（case 5(b)）: renderer CSP の無い文書（トップレベル）で開いたローカル HTML のスクリプトが走らない
+      // ---- AC-FF-7b（CSP の導入で足した条件 (b)）: renderer CSP の無い文書（トップレベル）で開いたローカル HTML のスクリプトが走らない
       //      （__local の sandbox CSP の効き。renderer CSP の frame-src に隠れないよう iframe を使わない）----
       const topLevel = await app.evaluate(async ({ BrowserWindow }, u) => {
         const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });

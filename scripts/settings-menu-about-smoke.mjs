@@ -77,7 +77,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [3/6] main.ts: 開発メニューが shouldShowDevelopmentMenu で条件付き: PASS");
 }
 
-// --- case 6: About ウィンドウの createAboutWindow 関数本体だけを取り出して判定する。
+// --- case 6: About ウィンドウの createAboutWindow() 関数本体だけを取り出して判定する。
 // レビュー Minor 申し送り: 単純 grep だと main.ts:17 のコメントや :69 のメインウィンドウの
 // webPreferences（preload: path.join(...) を持つ）が誤ってヒットする。関数本体へスコープを絞る ---
 {
@@ -100,7 +100,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     !/preload\s*:/.test(webPreferencesMatch[0]),
     "createAboutWindow()'s webPreferences must not have a preload key (zero exposure surface — 案2)",
   );
-  // t1 HR-4 : 判定対象からコメント行を除去してから test する。
+  // 判定対象からコメント行を除去してから test する。
   // #105 / webSecurity:false 据え置き assert を撤廃し、実設定として
   // webSecurity: false が存在しないこと（webSecurity は既定 true へ戻ったこと）を assert する。
   // （renderer は file:// 直読みから app:// カスタムスキームへ移行した）
@@ -159,7 +159,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     0,
     "src/views/Settings.vue must not reference settings.original_map (expected 0)",
   );
-  // : タブは3→2枚になる。第3タブの id="original" tab-pane も消える
+  // タブは3→2枚になる。第3タブの id="original" tab-pane も消える
   assert.equal(
     (settingsVue.match(/id="original"/g) || []).length,
     0,

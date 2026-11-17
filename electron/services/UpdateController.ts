@@ -162,7 +162,7 @@ export async function check({ manual }: { manual: boolean }): Promise<void> {
 }
 
 /**
- * 起動の少し後に 1 回だけ確かめる。設定がオフなら要求を出さない（t6/(iv)）。
+ * 起動の少し後に 1 回だけ確かめる。設定がオフなら要求を出さない。
  * 定期の確認はしない。
  */
 export function startAutomaticCheck(getWindow: () => BrowserWindow | null): void {
