@@ -1,6 +1,6 @@
-// main window・About ウィンドウの遷移ガード（セキュリティレビュー C の F-C1）の E2E。
+// main window・About ウィンドウの遷移ガード（セキュリティレビューの指摘）の E2E。
 //
-// F-C1: main window（preload あり）に will-navigate と setWindowOpenHandler のガードが無く、プレビュー iframe 内の
+// 指摘: main window（preload あり）に will-navigate と setWindowOpenHandler のガードが無く、プレビュー iframe 内の
 // POI の `<a target="_top">` を押すと main window が外部ページへ遷移し、遷移先に preload（IPC）が入る。
 //
 // 検証すること:
@@ -87,7 +87,7 @@ async function startFrameServer(): Promise<{ origin: string; close: () => Promis
   };
 }
 
-test.describe('main window・About ウィンドウの遷移ガード（F-C1）', () => {
+test.describe('main window・About ウィンドウの遷移ガード', () => {
   test('G1: main window で location.href を外部 URL にしても main frame は app://bundle/ に留まる', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-g1-'));
     const { app, page } = await launch(e2eRoot);
@@ -158,7 +158,7 @@ test.describe('main window・About ウィンドウの遷移ガード（F-C1）',
       await expect(frame.locator('#top')).toBeVisible();
 
       // target="_top"（ユーザー操作のクリック。cross-origin の子フレームからでも top の遷移は許される）。
-      // F-C1 の本筋なので最初に確かめる（ガードが無いとここで main window が外部へ遷移する）
+      // 指摘の本筋なので最初に確かめる（ガードが無いとここで main window が外部へ遷移する）
       await frame.locator('#top').click();
       await expect.poll(async () => (await recorded(app)).willNavigate).toContain(EXTERNAL_URL);
       await settle(page);

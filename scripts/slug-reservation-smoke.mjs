@@ -325,7 +325,7 @@ assert.equal(toDraftKind("asset"), "image-asset");
   db.close();
 }
 
-// --- Part A3c: expired reservation takeover / draft protection（D2/D4/D6） ---
+// --- Part A3c: expired reservation takeover / draft protection ---
 {
   const db = makeDb();
   const now = () => new Date("2026-07-15T00:00:00Z").toISOString();

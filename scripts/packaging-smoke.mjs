@@ -75,7 +75,7 @@ function grepRepo(pattern, dirs) {
   );
   // ビルド設定とスクリプトに死んだ
   // @duckdb の external を残さない（復活させない）恒久の不在検査。vite.config.ts の external は
-  // 1 行の配列で、他タスク（既存の変更の electron-updater 追加など）の rebase で旧い行が戻り得る。
+  // 1 行の配列で、他タスク（自動更新のための electron-updater 追加など）の rebase で旧い行が戻り得る。
   // grep に頼らず読む（grep はヒット 0 と失敗の区別が付かない）。本ファイル自身は不在の断言のため除く。
   const NEEDLE = '@' + 'duckdb';
   const buildConfigs = ['vite.config.ts'];
@@ -213,9 +213,9 @@ function findAsar() {
 //
 // CI は monorepo ではなく**各リポジトリを単独 clone** し、リポジトリ自身の
 // pnpm-lock.yaml を frozen-lockfile で使う。∴ ワークスペースルートの lock だけを
-// 再解決しても CI は直らない。実際 既存の変更の実装で本ファイルの更新を落とし、
+// 再解決しても CI は直らない。実際、DuckDB の撤去の実装で本ファイルの更新を落とし、
 // Linux ジョブが ERR_PNPM_OUTDATED_LOCKFILE で落ちた（2026-08-09）。
-// 更新手段: outer で `node scripts//refresh-standalone-locks.mjs MaplatEditor`
+// 更新手段: 親の作業場所にある単独 clone の lock の更新スクリプトを MaplatEditor を指定して走らせる
 // ───────────────────────────────────────────────
 {
   const lock = read('pnpm-lock.yaml');
@@ -261,7 +261,7 @@ function findAsar() {
 // ───────────────────────────────────────────────
 // case 13: override と依存の宣言範囲が衝突していないこと（jimp × file-type）
 //
-// 既存の変更のセキュリティ override `file-type: "^21.3.1"` は、宣言範囲を無視して
+// 以前に入れたセキュリティ override `file-type: "^21.3.1"` は、宣言範囲を無視して
 // 全経路へ 21.x を強制する。ところが:
 //   @jimp/core@1.6.0 → file-type ^16.0.0 を宣言し `file-type/core.js` を import
 //   file-type@21.x   → exports は '.' / './core' / './node'（`./core.js` は無い）
@@ -283,7 +283,7 @@ function findAsar() {
     ge161,
     `case 13: jimp が ${maj}.${min}.${pat} に解決されている。`
       + ' 1.6.0 は file-type ^16 前提で file-type/core.js を import するため、'
-      + ' 既存の変更の override（file-type ^21.3.1）と衝突して起動時に'
+      + ' セキュリティの override（file-type ^21.3.1）と衝突して起動時に'
       + ' ERR_PACKAGE_PATH_NOT_EXPORTED で落ちる。1.6.1 以上であること'
   );
   // 対になる前提: override が 21.x を当てていること（外れたら本検査の根拠も変わる）

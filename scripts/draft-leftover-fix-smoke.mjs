@@ -59,7 +59,7 @@ const envelope = (kind, assetUid, revision = 1, payload = { title: 'draft' }) =>
 try {
   // [1] ソース grep: 全エディタが draftLifecycle.rebase を持ち、
   //     かつ markSaved → rebase → flush の順序で呼んでいること
-  // PoiEdit.vue は 既存の変更で確立済み。本タスクは他の4エディタへ展開する。
+  // PoiEdit.vue では確立済み。本タスクは他の4エディタへ展開する。
   const editorFiles = [
     { name: 'MapEdit.vue', relative: 'src/views/MapEdit.vue' },
     { name: 'AppEdit.vue', relative: 'src/views/AppEdit.vue' },
@@ -79,7 +79,7 @@ try {
     assert.match(
       activeSource,
       /draftLifecycle\.rebase\(/,
-      `${f.name}: draftLifecycle.rebase が存在しない（コメント行を除く）。既存の変更で markSaved → rebase → flush パターンを実装すること`,
+      `${f.name}: draftLifecycle.rebase が存在しない（コメント行を除く）。markSaved → rebase → flush パターンを実装すること`,
     );
     assert.match(
       activeSource,
@@ -115,11 +115,11 @@ try {
     const flushAfterRebase = flushLines.find((ln) => ln > firstRebase);
     assert.ok(
       firstMarkSaved < firstRebase,
-      `${f.name}: markSaved (line ${firstMarkSaved + 1}) が rebase (line ${firstRebase + 1}) より後にある。既存の変更の契約順序は markSaved → rebase → flush`,
+      `${f.name}: markSaved (line ${firstMarkSaved + 1}) が rebase (line ${firstRebase + 1}) より後にある。保存後の後片付けの契約順序は markSaved → rebase → flush`,
     );
     assert.ok(
       flushAfterRebase !== undefined && flushAfterRebase > firstRebase,
-      `${f.name}: rebase (line ${firstRebase + 1}) の後に flush がない。既存の変更の契約順序は markSaved → rebase → flush`,
+      `${f.name}: rebase (line ${firstRebase + 1}) の後に flush がない。保存後の後片付けの契約順序は markSaved → rebase → flush`,
     );
   }
   console.log('  [1/2] 全エディタが markSaved → rebase → flush の順序で持つ: PASS');

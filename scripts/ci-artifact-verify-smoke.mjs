@@ -45,7 +45,7 @@ function run(dir) {
   );
 }
 
-const root = mkdtempSync(path.join(os.tmpdir(), "ci-artifact-verify-artifact-verify-"));
+const root = mkdtempSync(path.join(os.tmpdir(), "ci-artifact-verify-"));
 try {
   // --- exact GREEN ---
   {

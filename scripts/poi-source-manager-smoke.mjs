@@ -61,7 +61,7 @@ try {
     'router に PoiSourceList name がない'
   );
 
-  // エディタ (Phase 4: PoiEdit) が定義されていること (旧 PoiSourceDetail は 既存の変更で置換済み)
+  // エディタ (Phase 4: PoiEdit) が定義されていること (旧 PoiSourceDetail は置換済み)
   assert.match(
     routerSource,
     /name\s*:\s*['"]PoiEdit['"]/,

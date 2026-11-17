@@ -1,7 +1,7 @@
 /**
  * #121: CI の判定器・除外表・workflow・測り直しスクリプト・実行器の打ち切りの受け入れ検査
  *
- * case 2: 判定器が合成報告で赤／緑を正しく出す（(a)〜(s)・既存の変更の intermittent (t)〜(z)）
+ * case 2: 判定器が合成報告で赤／緑を正しく出す（(a)〜(s)・intermittent (t)〜(z)）
  * case 3: ci/test-exclusions.json の形式検査（実物が通る・壊した複製が落ちる）
  * case 5: .github/workflows/test.yml の静的検査
  * case 6: measure-exclusions.mjs が 3 種の差分を 1 件ずつ検出する・intermittent は結果を問わず差分にしない（(m-1)）

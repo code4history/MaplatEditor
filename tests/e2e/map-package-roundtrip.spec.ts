@@ -44,8 +44,8 @@ import {
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
-test.describe('B: 実 UI からの地図搬出・別 slug import・アプリ搬出', () => {
-  test('-a: MapEdit の搬出ボタンから出た ZIP に POI 実体・依存画像・通常/512px サムネイルが入る', async () => {
+test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出', () => {
+  test('MapEdit の搬出ボタンから出た ZIP に POI 実体・依存画像・通常/512px サムネイルが入る', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-export-'));
     const { app, page } = await launch(e2eRoot);
@@ -92,7 +92,7 @@ test.describe('B: 実 UI からの地図搬出・別 slug import・アプリ搬�
     }
   });
 
-  test('-b: MapList のインポートボタンから別 slug へ取り込み、POI が復元され preview まで通る', async () => {
+  test('MapList のインポートボタンから別 slug へ取り込み、POI が復元され preview まで通る', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-import-'));
     const { app, page } = await launch(e2eRoot);
@@ -155,7 +155,7 @@ test.describe('B: 実 UI からの地図搬出・別 slug import・アプリ搬�
     }
   });
 
-  test('-c: AppEdit の搬出ボタンから出た ZIP が地図由来の POI 実体と依存画像を含む', async () => {
+  test('AppEdit の搬出ボタンから出た ZIP が地図由来の POI 実体と依存画像を含む', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t4b-appexport-'));
     const { app, page } = await launch(e2eRoot);

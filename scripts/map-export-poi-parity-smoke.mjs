@@ -8,10 +8,10 @@
 //   case 4   地図 JSON は minify のまま（整形は出力プロファイルとして保持）
 //
 // 【なぜ case 2b が「整理」ではなく「欠陥の是正」なのか】
-// AppExportService は 既存の変更で readAppDocumentPois へ寄せられたが、mapDownloadZip.ts:31 には
+// AppExportService は editor-layer-ref の変更で readAppDocumentPois へ寄せられたが、mapDownloadZip.ts:31 には
 // `Array.isArray((compiled as any).pois)` の生判定が残っている。∴ 単独形の地図では
 // POI が export から**丸ごと落ちる**。実データ maps の3件が該当する。
-// 既存の変更のコメント（AppExportService.ts:281-286 相当）がこの是正理由を記録しており、
+// その変更のコメント（AppExportService.ts:281-286 相当）がこの是正理由を記録しており、
 // 本 smoke はその欠陥が地図 ZIP 側に残っていることを RED として固定してから是正する。
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
@@ -109,7 +109,7 @@ try {
   // 未処理で素通りすることの実害は2つある:
   //   (1) **登録参照 {poiUid} が解決されないまま配布 ZIP に残る。** これは editor 内部の
   //       参照であり viewer には解決できない ∴ 利用者から見て POI は失われる
-  //       （既存の変更のコメントが app 側について「丸ごと落ちていた」と記録しているのはこの意味）
+  //       （そのコメントが app 側について「丸ごと落ちていた」と記録しているのはこの意味）
   //   (2) icon / maplat-asset: の実体が manifest へ集まらず、ZIP に同梱されない
   //
   // 本 smoke は DB を持たないため (1) の {poiUid} 解決は検証できない（統合 smoke の担当）。

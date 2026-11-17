@@ -5,7 +5,7 @@ import path from "node:path";
 import { build } from "vite";
 
 const root = path.resolve(import.meta.dirname, "..");
-const entry = "virtual:basemap-metadata-t6";
+const entry = "virtual:basemap-metadata";
 const bundle = await build({
   root, configFile: false, logLevel: "error",
   plugins: [{ name: "basemap-metadata-memory-fixture", resolveId: id => id === entry ? id : undefined,

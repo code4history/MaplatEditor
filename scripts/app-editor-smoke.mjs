@@ -368,7 +368,7 @@ try {
   assert.doesNotMatch(
     appEditView,
     /poisUnsupported\.value\s*=/,
-    'AppEdit.vue に poisUnsupported への命令的代入が残存している (既存の変更で computed へ移行済みのはず)'
+    'AppEdit.vue に poisUnsupported への命令的代入が残存している (computed へ移行済みのはず)'
   );
   assert.match(
     appEditView,
@@ -421,7 +421,7 @@ try {
   const poiReferenceEditor = await readFile(path.join(projectRoot, 'src/components/PoiReferenceEditor.vue'), 'utf8');
   assert.match(
     poiReferenceEditor,
-    // 既存の変更で isNonReferenceObjectEntry 等の named import が増えたため、3 関数の存在のみを検査
+    // インライン POI 変換で isNonReferenceObjectEntry 等の named import が増えたため、3 関数の存在のみを検査
     /import \{[^}]*\bpoiUidOf\b[^}]*\bextractPoiRefs\b[^}]*\bapplyPoiSelection\b[^}]*\} from "\.\.\/utils\/poiReferenceUi"/,
     'PoiReferenceEditor.vue が共有 util (poiReferenceUi) を import していない'
   );

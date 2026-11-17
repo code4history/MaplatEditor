@@ -3,7 +3,7 @@
  *
  * 実装レビュー round2 で H-A が再オープンされた原因は、MaplatCore/src の修正が
  * 出荷成果物（プレビュー/書き出しが実際に読み込む @maplat/ui 同梱 UMD バンドル）へ
- * 届いていなかったこと。伝播鎖の各ホップに同じ手法（scripts/preview-bundle-provider-url-guard-preview-bundle-
+ * 届いていなかったこと。伝播鎖の各ホップに同じ手法（scripts/preview-bundle-
  * namespaceID-smoke.mjs の「出荷バンドルを修正シグネチャで grep する」手法）を適用し、
  * 全ホップで修正が到達していることを固定する。
  *

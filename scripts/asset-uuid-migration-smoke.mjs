@@ -9,7 +9,7 @@
 //   case 10 保存の入口の正規化（AppDataService.saveApp・saveUserBaseMap の付け替え F16〜F18）
 //   F13  migrate の呼び順と呼び出しの形（ソーステキスト）／印の定数の置き場
 //
-// harness は 既存の変更と同型（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
+// harness は basemap-thumbnail-512-smoke と同型（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
 // 移行の単体（F1〜F20）は、SqliteDataService.ts の migrate() の DDL を**ソースから切り出して**流した
 // 一時の DB で runAssetUuidNamesColdBoot を直接呼ぶ（DDL の写しを持たないので食い違わない）。
 // F15 は同じバンドルを子プロセスで `--crash` モードで起動し、__beforeSwap から process.exit(1) で落とす。
@@ -44,7 +44,7 @@ const MARKER_ID = '2026-10-11-asset-uuid-names-v1';
 // ---- ホスト側: ソーステキストの断言（F13）と DDL の切り出し ----------------
 const sqliteSrc = await readFile(sqlitePath, 'utf8');
 {
-  // 印の定数は SqliteDataService.ts の行頭の const（既存の変更の case 5(c) が数える形）
+  // 印の定数は SqliteDataService.ts の行頭の const（migration-passthrough-smoke が数える形）
   const constLines = sqliteSrc.split('\n').filter((l) => /^const ASSET_UUID_NAMES_V1_ID = /.test(l));
   assert.deepEqual(constLines, [`const ASSET_UUID_NAMES_V1_ID = '${MARKER_ID}';`],
     'T5-R2-MIN-1: 印の定数は SqliteDataService.ts の行頭の const（export しない）');

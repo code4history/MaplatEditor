@@ -14,7 +14,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 // evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出した
-// （既存の変更の撮影スペックが同じロジックを要したため。挙動は無変更）
+// （wiki-screenshots-extra の撮影スペックが同じロジックを要したため。挙動は無変更）
 import { applicationMenuLabels, evalMain, openAboutWindow } from './helpers/electronMenu';
 
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {

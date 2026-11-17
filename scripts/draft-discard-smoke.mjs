@@ -1,6 +1,6 @@
 // (#117 E3) smoke: 下書きの明示破棄の後に、下書きの記録が書き戻されないこと。
 //
-// 既存の変更の case 20-3 の間欠失敗の原因（製品の競合）の再発防止。破棄（discard）が envelope を消した後に、
+// draft-tile-durability の e2e で見えた間欠失敗の原因（製品の競合）の再発防止。破棄（discard）が envelope を消した後に、
 // 編集画面が閉じる前の flush（slug の予約成功で useInitialDraftPersist が呼ぶ・エディタの履歴は dirty の
 // まま）が下書きを再び dirty にして put し、unmount の flushSync も envelope を書き戻していた。
 // タイミングに依存しないよう、書き戻しの経路（flush / flushSync / 自動保存のタイマー）を直接呼ぶ。
@@ -16,7 +16,7 @@ import { build } from 'vite';
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'draft-discard-discard-'));
+const workDir = await mkdtemp(path.join(scratchRoot, 'draft-discard-'));
 
 async function importSource(relativeEntry, fileName) {
   const outDir = path.join(workDir, fileName.replace(/\.mjs$/, ''));

@@ -22,7 +22,7 @@
 // 実行時間: タイル生成が支配的である。（タイル生成ループの原寸クローン除去）以後の
 // 実測は、タイル化が 48 MP 約 29.7 秒 / 110 MP 約 57.1 秒、smoke 全体で約 126 秒。
 // 時点の記録は 48 MP 約 65 秒 / 110 MP 約 286 秒（合計 6〜8 分）だったが、実行機・
-// 実行時期が異なるため新旧の直接比較には使えない（FUTURE_PLAN.md 「注意」。既存の変更の
+// 実行時期が異なるため新旧の直接比較には使えない（FUTURE_PLAN.md の「注意」。tile-cut-clone-reduction の
 // 受け入れ条件も同一プロセス A/B のほうであって、この値ではない）。
 // いずれも本タスクのデコード設定とは独立した imageCutter 側の性質である。
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
@@ -210,9 +210,9 @@ try {
         catch (e) { failures.push(label + ' — ' + (e.message ?? String(e))); console.log('NG: ' + label + ' — ' + (e.message ?? String(e))); }
       };
 
-      // 既存の変更で既定は「自動」(null) になった。8192 / 800 という運用値は無くなり、
+      // 既定は「自動」(null) になった。8192 / 800 という運用値は無くなり、
       // この2項目は「利用者が明示したときだけ効くキャップ」に変わっている
-      okB('case 5 既定は自動（null / null）— 既存の変更で運用値からキャップへ変更', () => {
+      okB('case 5 既定は自動（null / null）— 運用値からキャップへ変更済み', () => {
         const d = SettingsService.getJpegDecodeCaps();
         assert.equal(d.maxMemoryUsageInMB, null);
         assert.equal(d.maxResolutionInMP, null);

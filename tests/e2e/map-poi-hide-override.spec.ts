@@ -38,7 +38,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  // 外部 OSM タイルをローカル fixture へ差し替え（既存の変更と同一方式・実行時ネットワーク非依存）
+  // 外部 OSM タイルをローカル fixture へ差し替え（properties-viewer-reach と同一方式・実行時ネットワーク非依存）
   const fakeTile = await readFile(FAKE_TILE_PATH);
   await page.route('**/tile.openstreetmap.org/**', async (route) => {
     const m = route.request().url().match(/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png/);
@@ -53,7 +53,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   return { app, page };
 }
 
-// main 側 dialog.showMessageBox を OK 自動応答へ差し替える（既存の変更の stubMessageBoxRecording と同方式）。
+// main 側 dialog.showMessageBox を OK 自動応答へ差し替える（inline-poi-preserve-convert の stubMessageBoxRecording と同方式）。
 // MapEdit の保存は confirm ダイアログ（「変更を保存します。よろしいですか?」）を挟むため、
 // これを入れないと editor-save-state が「保存済み」にならずタイムアウトする。
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
@@ -70,7 +70,7 @@ async function previewFrame(page: Page): Promise<Frame> {
   return frame;
 }
 
-// POI データタブを開いてペインスコープの locator を返す（既存の変更の共通手順を踏襲）
+// POI データタブを開いてペインスコープの locator を返す（inline-poi-preserve-convert の共通手順を踏襲）
 // 抑止スコープの初期無効タグは route query で注入する。
 // W3(:2012)/W4(:1957-) は onMounted 内で走るため、testDebug 経由（mount 後）では
 // 基点条件を作れない。MAPLAT_NO_HISTORY_SUPPRESS=W2,W3,W4 で基点測定モードになる。
@@ -118,7 +118,7 @@ const POI_A_ID = 'a1';
 const POI_B_ID = 'b1';
 
 test.describe('地図管理 POI 編集の hide 上書き UI', () => {
-  test('2/3/4/7/8/9/10: hide 上書きの UI・round-trip・viewer 到達・undo', async () => {
+  test('hide 上書きの UI・round-trip・viewer 到達・undo', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-hide-override-'));
     const { app, page } = await launch(e2eRoot);
@@ -152,7 +152,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
 
       // ---- seed: 地図（pois に A と B を参照。A には icon 上書きも付ける）----
       // AppEdit preview は GCP が足りないと appedit.preview.too_less_gcps で失敗するため、
-      // 既存の変更の createMapWithGcps と同じく GCP 4点 + updateTin による compiled を持たせる
+      // geocoder-estimate の createMapWithGcps と同じく GCP 4点 + updateTin による compiled を持たせる
       // （case 1-9 の viewer 到達検証に preview が必須のため）
       const mapUid = await page.evaluate(async ({ slug, poiUidA, poiUidB }: any) => {
         const mapObject: any = {
@@ -343,7 +343,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
         .poll(async () => (await readSavedPois(page, mapUid)).filter((e: any) => e?.hide === true).length, { timeout: 30000 })
         .toBe(1);
 
-      // ================= case 1-9: viewer 到達（AppEdit preview harness は 既存の変更の責務）=================
+      // ================= case 1-9: viewer 到達（AppEdit preview harness はこの spec の責務）=================
       // 保存地図を source に持つ App を作る。startFrom:true で当該地図を active source に固定する
       // （MaplatCore/src/index.ts:647,701-706 の setInitialMap）
       await page.evaluate(async ({ mapUid }: any) => {

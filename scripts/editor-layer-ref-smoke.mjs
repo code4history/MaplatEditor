@@ -1,4 +1,4 @@
-// スモーク: Editor の URLレイヤ・上書きレイヤ読み書き（設計 v1.1）。
+// スモーク: Editor の URLレイヤ・上書きレイヤ読み書き。
 // 純関数層（poisLayerStructure / appPoisFormat）を表駆動で検証する。UI は E2E が担う。
 //
 // Part A: isPoiLayerRef が viewer 正本と同一規則                                  … case 1 の前提
@@ -121,7 +121,7 @@ const URL_A = 'pois/a.geojson';
     [{ pois: '' }, { pois: [], unsupported: true }, '空文字'],
     [{ pois: { main: [], id1: [] } }, { pois: [], unsupported: true }, 'レイヤ名キー object'],
     [{ pois: 42 }, { pois: [], unsupported: true }, '数値'],
-    [{ pois: '["a"]' }, { pois: [], unsupported: true }, 'JSON 文字列化された配列（既存の変更の NG 側）'],
+    [{ pois: '["a"]' }, { pois: [], unsupported: true }, 'JSON 文字列化された配列（多重 stringify を直さない方針の NG 側）'],
   ];
   for (const [input, expected, label] of cases) {
     assert.deepEqual(readAppDocumentPois(input), expected, `readAppDocumentPois — ${label}`);
@@ -228,7 +228,7 @@ const URL_A = 'pois/a.geojson';
   assert.deepEqual(accept({ layer: URL_A, hide: true }), { layer: URL_A, hide: true },
     '単独形ラッパーも生値のまま');
   assert.deepEqual(accept([FC('x')]), [FC('x')], '配列は従来どおり');
-  assert.equal(accept({ main: [] }).main.length, 0, 'unsupported も生値温存（既存の変更の約束）');
+  assert.equal(accept({ main: [] }).main.length, 0, 'unsupported も生値温存（pois-format-guard の約束）');
   assert.equal(accept(undefined), '<キーなし>', '未設定はキーを作らない');
   console.log('ok: (G) acceptDocumentPois never rewrites the single-layer form');
 }

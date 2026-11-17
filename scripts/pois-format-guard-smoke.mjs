@@ -61,7 +61,7 @@ try {
         { id: 'F4', label: '配列[URL 文字列]', incoming: urlArray, expect: 'same-ref', supported: true },
         // 単独形（レイヤ1つを配列に包まず直接置く形）は viewer 正本が受容するので supported へ
         // 変わった。**受け入れ側の挙動は不変**（生値を温存する）で、変わったのは supported 判定だけ
-        // である — この分離こそ 既存の変更の要求（読み込み側で保存形を書き換えない）である
+        // である — この分離こそ「読み込みで保存形を書き換えない」方針の要求（読み込み側で保存形を書き換えない）である
         { id: 'F5', label: 'URL 文字列（単体 = 単独形）', incoming: urlString, expect: 'preserved', supported: true },
         { id: 'F6', label: 'JSON 文字列化された配列', incoming: jsonString, expect: 'preserved', supported: false },
         { id: 'F7', label: 'レイヤ名キー object', incoming: layerKeyObject, expect: 'preserved', supported: false },

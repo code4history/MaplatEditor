@@ -14,7 +14,7 @@ const artifactDir = path.join(projectRoot, 'test-results', 'shell-tokens-screens
 // helpers/launchIsolated.ts へ抽出し、本ファイルからも import する形に変更した
 // （スペック間 import を避けるため。挙動は無変更）。
 
-// 既存の変更と同じ dialog stub 先例を踏襲（Electron main の dialog を差し替える）。
+// master-detail と同じ dialog stub 先例を踏襲（Electron main の dialog を差し替える）。
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
   await app.evaluate(async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
@@ -201,12 +201,12 @@ test('base map: new-draft discard removes list row and duplicate-id operation di
     await expect(draftRow).toHaveCount(0);
 
     // F4: ID 重複の operation 診断が Undo（文書変更）で消える
-    // NOTE (実装時に吸収): 既存の変更が attr を必須化した（validateBaseMapDocument の
+    // NOTE (実装時に吸収): attr が必須になった（validateBaseMapDocument の
     // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。本 spec は
-    // 以降ずっと RED だった。既存の変更は af691aa で
+    // 以降ずっと RED だった。master-detail は af691aa で
     // 同じ吸収を済ませているので、それに揃えて basemap-attr の入力を足す。
     //
-    // 訂正（2026-08-09）: 旧版は「最終更新は 既存の変更の edd897b」と書いていたが、edd897b と
+    // 訂正（2026-08-09）: 旧版は「最終更新は種別の軸の導入の edd897b」と書いていたが、edd897b と
     // ecc2c3d は互いに祖先ではない（merge-base は d536bf1f。別ブランチが後で合流した）。
     // ∴ git 系譜としては「前」と言えない。実時刻では edd897b 09:18 → ecc2c3d 10:19（同日）
     // であり、「spec を最後に触った後で attr が必須化された」という事実関係と結論は変わらない。

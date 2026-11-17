@@ -9,7 +9,7 @@
 // 期（未公開ビルド）の旧 app://local も、同一 origin 化（t2ff 第 2 版）後は別 origin で同じく読めない。
 //
 // 是正（案 A）: renderer の displayTileUrl（src/utils/appUrl.ts）で、タイル源に渡すときだけ現行形
-// app://bundle/__local/<abs> へ変換する。**url_ 自体は書き換えない**（保存時の正規化は main の 既存の変更が担う）。
+// app://bundle/__local/<abs> へ変換する。**url_ 自体は書き換えない**（保存時の正規化は main 側の旧形式の下書きの修正が担う）。
 //
 // AC（renderer の request 事象で、この下書きのタイル（/z/x/y.png）の読込を数える）:
 //   - current（対照）・legacyFile（v1.0.0）・legacyAppLocal（期）の 3 形で、復元直後（保存前）に
@@ -18,7 +18,7 @@
 //   - legacyFile は保存 → 再起動 → 再オープンでもタイルが読め、下書きと staging は残らない
 //   変更前（94ee275）の実測: legacyFile は 200×0・失敗 4（IR2 と同じ）
 //
-// 一時 e2e（IR2 `evidence/legacy-draft-display-t2s/ir2-legacy-display.spec.ts.txt`）の昇格。下書きは実 UI で作り、envelope の url_ を
+// 実装レビューのときに書いた一時 e2e の昇格。下書きは実 UI で作り、envelope の url_ を
 // 旧形に書き換える（下書きの保存形式は v1.0.0..94ee275 で差分が無い: IR2）。旧形の符号化は file-url 4.0.0 と同じ
 // encodeURI 系を spec 内で独立に書く（製品のビルダーを使わない）。e2eRoot には空白と非 ASCII を含める。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';

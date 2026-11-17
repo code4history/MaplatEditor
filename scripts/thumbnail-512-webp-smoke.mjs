@@ -6,10 +6,10 @@
 //   B  ビルトイン 512px 資産が 335 件・全 webp・合計 45,000,000 B 未満                -> case 2
 //   C  静的検査（インライン派生の集約・符号化点の単一性・読み込み側 fallback の不在） -> case 3 / case 4 / case 10 / case 13
 //   D  単一変化点の不変条件（THUMB_512_EXT を null へ戻すとパスも符号化も戻る）       -> case 9
-//   M  既存ユーザデータ移行は **既存の変更で撤去**（migration ごと削除。理由は当該箇所のコメント）
+//   M  既存ユーザデータ移行は **移行の一気通貫化で撤去**（migration ごと削除。理由は当該箇所のコメント）
 //   R  relocate 堅牢化の回帰（順序 + 中止 / ロールバック / 正常系）                    ->
 //
-// 既存の変更と同型 harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir）で、
+// basemap-thumbnail-512-smoke と同型 harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir）で、
 // 実サービス（SqliteDataService / thumbnail512Codec）を直接呼ぶ。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, readdir, writeFile, stat } from 'node:fs/promises';
@@ -22,12 +22,12 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'thumbnail-512-webp-webp-'));
-const entryFile = path.join(workDir, 'thumbnail-512-webp-webp-smoke.ts');
+const workDir = await mkdtemp(path.join(scratchRoot, 'thumbnail-512-webp-'));
+const entryFile = path.join(workDir, 'thumbnail-512-webp-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
-const bundledFile = path.join(outDir, 'thumbnail-512-webp-webp-smoke.mjs');
+const bundledFile = path.join(outDir, 'thumbnail-512-webp-smoke.mjs');
 
 const dataDir = path.join(workDir, 'data');
 await mkdir(dataDir, { recursive: true });
@@ -364,9 +364,9 @@ await writeFile(
       return SqliteDataService.getDb();
     };
 
-    // ============ Part M: 既存ユーザデータの移行— 既存の変更で撤去 ============
+    // ============ Part M: 既存ユーザデータの移行— 移行の一気通貫化で撤去 ============
     // migrateThumbnail512ToWebpIfNeeded（marker '2026-08-10-thumbnail-512-webp-v1'）は
-    // 0.7.0 の入力から到達しない段だったため、既存の変更が起動時パイプラインごと削除した
+    // 0.7.0 の入力から到達しない段だったため、移行の一気通貫化で起動時パイプラインごと削除した
     //   - 0.7.0 は 512px を構造的に作れない（v0.7.0 のソース全文に 512px 生成機構が無い）
     //   - ZIP 取込は受け取った時点で正規形へ transcode する（本 smoke の Part C が固定）
     //   - マイニングの出力は最初から正規形（thumb512PathFor 経由）
@@ -506,7 +506,7 @@ await build({
     target: 'node22',
     rollupOptions: {
       external: ['@jsquash/webp'],
-      output: { entryFileNames: 'thumbnail-512-webp-webp-smoke.mjs', format: 'es' },
+      output: { entryFileNames: 'thumbnail-512-webp-smoke.mjs', format: 'es' },
     },
   },
 });

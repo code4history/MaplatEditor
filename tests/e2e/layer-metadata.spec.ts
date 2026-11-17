@@ -200,7 +200,7 @@ test.describe('POI layer metadata 編集 UI', () => {
     expect(iconAfterApply).toBe('builtin:defaultpin-selected');
   });
 
-  test('b: layer icon が反映される（feature icon なし時・通常時）', async () => {
+  test('layer icon が反映される（feature icon なし時・通常時）', async () => {
     const { uid } = await seedPoiSource(page);
     await openPoiEdit(page, uid);
 
@@ -220,7 +220,7 @@ test.describe('POI layer metadata 編集 UI', () => {
     expect(result.source).toBe('layer');
   });
 
-  test('c: feature icon が layer icon より優先される（通常時）', async () => {
+  test('feature icon が layer icon より優先される（通常時）', async () => {
     const { uid } = await seedPoiSource(page);
     await openPoiEdit(page, uid);
 
@@ -241,7 +241,7 @@ test.describe('POI layer metadata 編集 UI', () => {
     expect(result.source).toBe('feature');
   });
 
-  test('d: 選択時も resolved icon が維持される（layer icon のみ・α）', async () => {
+  test('選択時も resolved icon が維持される（layer icon のみ・α）', async () => {
     const { uid } = await seedPoiSource(page);
     await openPoiEdit(page, uid);
 
@@ -263,7 +263,7 @@ test.describe('POI layer metadata 編集 UI', () => {
     expect(result.source).toBe('layer');
   });
 
-  test('e: feature icon のみ（selectedIcon なし）選択時も feature icon が維持される', async () => {
+  test('feature icon のみ（selectedIcon なし）選択時も feature icon が維持される', async () => {
     const { uid } = await seedPoiSource(page);
     await openPoiEdit(page, uid);
 

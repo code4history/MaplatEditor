@@ -39,7 +39,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// seed / 更新: 指定 pois を持つ地図を保存する (uid 指定時は更新 — 既存の変更の実績文法)
+// seed / 更新: 指定 pois を持つ地図を保存する (uid 指定時は更新 — search-ui の実績文法)
 async function saveMapWithPois(
   page: Page,
   args: { slug: string; uid?: string; title: string; pois: unknown[] },

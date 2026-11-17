@@ -7,7 +7,7 @@
 //      url がマスタ管理である旨の注記（app-source-url-note）は削除された。
 //      上書き欄が全廃された画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
 //      ∴ 本テストも注記の可視性ではなく**不在**を固定する。撤去そのものの意図は E2E が受け持つ
-// case 3: 【v1.4 で撤去・既存の変更へ移管】「マスタから再取得」機能自体を 既存の変更から撤去したため、当該テストも削除
+// case 3: 【撤去・アプリのソースの差分モデルへ移管】「マスタから再取得」機能自体をこの spec の対象から撤去したため、当該テストも削除
 // case 6: 種別選択ボタン・プリセットボタンで、無効なボタンにのみ ContextHelp が表示され、有効なボタンには出ない
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
@@ -82,7 +82,7 @@ test('provider kind hides url field in AppSourceEditor; ContextHelp shows only w
     await page.getByTestId(`app-basemap-row-${tmsSlug}`).click();
     const tmsSource = page.getByTestId(`app-selected-source-${tmsSlug}`);
     await expect(tmsSource).toBeVisible();
-    // case 14: tms でも url 欄は出ない（既存の変更で注記は削除された）
+    // case 14: tms でも url 欄は出ない（その後、注記は削除された）
     await expect(tmsSource.getByTestId('app-source-url-field')).toHaveCount(0);
     await expect(tmsSource.getByTestId('app-source-url')).toHaveCount(0);
     await expect(tmsSource.getByTestId('app-source-url-note'), '注記は削除された').toHaveCount(0);

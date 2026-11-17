@@ -10,7 +10,7 @@
 //          個別 assert は C-3 v1.2 でも全部真のため原則維持 = 結果表 #2 / outer）
 //   case 16 シフト適用が単一実装（C-4）: source.mercatorXShift への代入が
 //        applyBaseMapShifts の中だけ・呼び出し 3 箇所以上
-//   case 6(c) 系（既存の変更の処方）: setupBaseMaps 末尾で setSwitchableBaseMaps を
+//   case 6(c) 系（設計レビューの処方）: setupBaseMaps 末尾で setSwitchableBaseMaps を
 //        相に応じて呼び直している（P1/P2 中の再構築で切替禁止が解けない）
 //   case 18 新規 i18n キー 9 件が全 11 言語に実在・空値なし・末尾改行保持・
 //        mercator_x/y_shift の訳が appedit.* と同一文言
@@ -38,7 +38,7 @@ const NEW_KEYS = [
   'context_select_ground_truth',
 ];
 
-// vite lib build で src/utils/basemapAlign.ts を .mjs 化して import する（既存の変更と同型）。
+// vite lib build で src/utils/basemapAlign.ts を .mjs 化して import する（app-source-diff-model-smoke と同型）。
 // 生成物は scratch 配下に残置する（破壊的操作 gate: 一時領域は消さない）
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
@@ -137,7 +137,7 @@ try {
   console.log('[4/7] case 16/C-4: シフト適用の単一実装 OK');
 
   // ---------------------------------------------------------------- [5/7]
-  // 既存の変更の処方: setupBaseMaps 末尾で setSwitchableBaseMaps を呼び直す
+  // 設計レビューの処方: setupBaseMaps 末尾で setSwitchableBaseMaps を呼び直す
   {
     const fnStart = mapEdit.indexOf('const setupBaseMaps');
     assert.ok(fnStart >= 0, 'setupBaseMaps が見つからない');
