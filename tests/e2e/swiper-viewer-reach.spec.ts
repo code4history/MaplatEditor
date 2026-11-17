@@ -49,7 +49,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  // 外部 OSM タイルはローカル fixture へ差し替える（既存の変更と同じ。実行時ネットワーク非依存）
+  // 外部 OSM タイルはローカル fixture へ差し替える（properties-viewer-reach と同じ。実行時ネットワーク非依存）
   const fakeTile = await readFile(FAKE_TILE_PATH);
   await page.route('**/tile.openstreetmap.org/**', async (route) => {
     const m = route.request().url().match(/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png/);
@@ -126,7 +126,7 @@ test.describe('swiper 12 — preview 到達', () => {
       await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
       const frame = await previewFrame(page);
 
-      // 4. viewer の ready と marker 生成を状態ベースで待機（既存の変更と同じ作法）
+      // 4. viewer の ready と marker 生成を状態ベースで待機（properties-viewer-reach と同じ作法）
       await frame.waitForFunction(() => !!(window as any).__maplatPreview, undefined, { timeout: 90000 });
       await frame.waitForFunction(() => {
         const src = (window as any).__maplatPreview?.core?.mapObject?.getSource?.('marker');
@@ -165,7 +165,7 @@ test.describe('swiper 12 — preview 到達', () => {
         document.querySelectorAll('cc-swiper cc-swiper-slide').length);
       expect(slideCount, 'swiper のスライド数が seed した画像数と一致すること').toBe(IMAGES.length);
 
-      // 7. 人間確認用の一時停止（MAPLAT_E2E_PAUSE=1 のときだけ有効。既存 既存の変更と同じ作法）
+      // 7. 人間確認用の一時停止（MAPLAT_E2E_PAUSE=1 のときだけ有効。app-poi-hide-override と同じ作法）
       //    判定項目: (i) 全枚数表示 (ii) スワイプ送り
       //    (iii) ページネーションが枚数と一致し現在位置を示す (iv) 先頭でさらに戻る / 末尾でさらに送る
       if (process.env.MAPLAT_E2E_PAUSE === '1') {

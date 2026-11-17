@@ -78,8 +78,8 @@ async function seedSavedBaseMap(page: Page, thumbnailOf: (uid: string) => string
         minZoom: 0, maxZoom: 18,
         thumbnail: thumbTemplate.replace('{uid}', uid),
         // 範囲属性は与えない（未指定は fromBaseMapCatalogItem が null へ正規化する）。
-        // 既存の変更の凍結契約は当該属性名の出現数を tests/ 込みで数えるため、
-        // 本タスクの fixture が不要にその件数を動かさないようにしている（既存の変更の実装先例）。
+        // range-vocabulary-smoke の凍結契約は当該属性名の出現数を tests/ 込みで数えるため、
+        // 本タスクの fixture が不要にその件数を動かさないようにしている（range-vocabulary-smoke の実装先例）。
         tileJsonSourceUrl: null, sourceMapUid: null,
       },
     } as any);

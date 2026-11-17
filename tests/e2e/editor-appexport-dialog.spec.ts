@@ -33,7 +33,7 @@ async function stubSaveDialog(app: Launched['app'], zip: string): Promise<void> 
   }, zip);
 }
 
-/** 書き出しの完了の進捗モーダル（OK で閉じる）を閉じる。前例 既存の変更の closeFinishedModals */
+/** 書き出しの完了の進捗モーダル（OK で閉じる）を閉じる。前例 export-options の closeFinishedModals */
 async function closeFinishedModals(page: Page): Promise<void> {
   for (let i = 0; i < 5; i++) {
     const modal = page.locator('.modal.d-block');

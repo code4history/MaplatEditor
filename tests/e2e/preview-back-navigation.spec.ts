@@ -84,7 +84,7 @@ async function seedAppAndOpenList(page: Page): Promise<{ appUid: string; appSlug
 }
 
 test.describe('preview 表示後の「一覧へ」復帰', () => {
-  test('2/3: preview 汚染下でも一覧へ1クリックで復帰し、クエリと絞り込み状態が保持される', async () => {
+  test('preview 汚染下でも一覧へ1クリックで復帰し、クエリと絞り込み状態が保持される', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t31-preview-back-'));
     const { app, page } = await launch(e2eRoot);

@@ -38,7 +38,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 // GCP3点（三角形）付きの strict コンパイル済み地図を、実体の originals/{uid}.png を Node fs で
 // 直接書き込んだうえで seed する（Part H / seedMapWithEdge と同型の直接fs手法。
 // UI 経由の imageCutter アップロードは非決定的なタイミングを要するため避ける。GCP 座標は
-// 既存の変更と同じ実測値からの線形補間で、境界内側に置く）
+// edge-split と同じ実測値からの線形補間で、境界内側に置く）
 async function seedStrictMap(page: Page, saveFolder: string): Promise<{ uid: string; slug: string }> {
   const slug = `merc-tile-set-map-${Date.now()}`;
   const toMerc = (x: number, y: number): number[] => [

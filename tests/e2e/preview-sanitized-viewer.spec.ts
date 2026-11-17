@@ -9,7 +9,7 @@
 //       当該 img タグが生成されないこと（サニタイズでイベントハンドラ除去）
 //   (b) onerror などのスクリプトが実行されないこと
 //   (c) POI html が iframe ではなく Shadow DOM で描画されること
-//      （既存の変更の動作面の到達確認。旧実装は srcdoc 経由の iframe）
+//      （新しい viewer の動作面の到達確認。旧実装は srcdoc 経由の iframe）
 //   (d) viewer 本体が到達・描画されること
 //
 // 起動は必ず task script 経由で行うこと:
@@ -41,7 +41,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  // 外部 OSM タイルはローカル fixture へ差し替える（既存の変更と同じ。実行時ネットワーク非依存）
+  // 外部 OSM タイルはローカル fixture へ差し替える（properties-viewer-reach と同じ。実行時ネットワーク非依存）
   const fakeTile = await readFile(FAKE_TILE_PATH);
   await page.route('**/tile.openstreetmap.org/**', async (route) => {
     const m = route.request().url().match(/tile\.openstreetmap\.org\/(\d+)\/(\d+)\/(\d+)\.png/);
@@ -153,7 +153,7 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
       expect(onerrorDescFired, 'desc の onerror が発火していないこと').toBe(false);
 
       // 7. (c) POI html が Shadow DOM で描画されていること（iframe srcdoc ではない）
-      //    既存の変更では POI html は Shadow DOM に描画される（旧実装は iframe srcdoc）
+      //    新しい viewer では POI html は Shadow DOM に描画される（旧実装は iframe srcdoc）
       const hasShadowDomPoi = await frame.evaluate(() => {
         const hosts = document.querySelectorAll('.poi_html_host');
         if (hosts.length === 0) return false;

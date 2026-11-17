@@ -35,7 +35,7 @@ async function openHash(page: Page, hash: string, waitFor?: string): Promise<voi
   if (waitFor) await expect(page.locator(waitFor)).toBeVisible({ timeout: 15_000 });
 }
 
-/** 既存の変更と同型のダイアログ差し替えハーネス */
+/** upload-tile-refresh・tile-restore-on-undo と同型のダイアログ差し替えハーネス */
 async function installDialogHarness(app: ElectronApplication, imagePath: string | null): Promise<void> {
   await app.evaluate(async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => (

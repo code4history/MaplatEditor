@@ -47,7 +47,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
   await page.waitForLoadState('domcontentloaded');
 }
 
-// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（既存の変更と同型）
+// GCP3点（三角形）+ edge [0,1] 付きの地図を compiled tin 付きで seed する（mapedit-align-basemap-align と同型）
 async function seedMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const slug = `mapedit-align-reset-persist-map-${Date.now()}`;
@@ -128,7 +128,7 @@ async function setVisibleBaseMap(page: Page, mapID: string): Promise<void> {
   }, mapID);
 }
 
-/** LayerSwitcher のパネルを開いて描画させ、ラジオの数を返す（既存の変更と同型） */
+/** LayerSwitcher のパネルを開いて描画させ、ラジオの数を返す（mapedit-align-basemap-align と同型） */
 async function layerSwitcherRadioCount(page: Page): Promise<number> {
   return page.evaluate(() => {
     const map = (window as any).testDebug.mercMapInfo().map;
@@ -227,7 +227,7 @@ async function reenterMapEdit(page: Page, uid: string): Promise<void> {
   await functionSelect(page).selectOption('basemap_align');
 }
 
-/** 永続ストアの実測（実 IPC = 既存の変更の get 経路） */
+/** 永続ストアの実測（実 IPC = 永続化の get 経路） */
 async function persistedShifts(page: Page, uid: string): Promise<Array<{ mapID: string; x: number; y: number }>> {
   return page.evaluate(async (mapUid) => {
     const rows = await (window as any).mapedit.getBaseMapShiftsOfMapID(mapUid);

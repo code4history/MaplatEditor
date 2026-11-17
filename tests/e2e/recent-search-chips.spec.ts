@@ -1,6 +1,6 @@
 // recent-search-chips: 一覧トップの検索条件の記憶とワンクリック再実行（実操作）
 //
-// 設計レビュー 既存の変更の指示 1-4 を実経路で確かめる:
+// 設計レビューの指示 1-4 を実経路で確かめる:
 //   1. 入力の確定（Enter / blur の @change）で即時記録する
 //   2. 変換中（compositionstart〜compositionend）は記録しない
 //   3. 左右ペインは uid 変化時と unmount で flush する（ここでは選択後のチップ適用で uid 保持を見る）

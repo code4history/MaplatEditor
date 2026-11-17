@@ -352,7 +352,7 @@ test.describe('Dedup/Import', () => {
       await page.getByTestId('basemap-title').press('Tab');
       // NOTE (既存RED吸収): (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
       // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。
-      // 既存の変更は af691aa、既存の変更は 9c2815e で同じ吸収を済ませているので、それに揃える。
+      // master-detail は af691aa、shell-tokens は 9c2815e で同じ吸収を済ませているので、それに揃える。
       await page.getByTestId('basemap-attr').fill('テスト帰属');
       await page.getByTestId('basemap-attr').press('Tab');
       await page.getByTestId('basemap-url').fill('https://example.test/{z}/{x}/{y}.png');
