@@ -1,4 +1,4 @@
-// （#141 決めること 1・6）: 更新のお知らせの方針を決める純関数。electron を import しない
+// #141 決めること 1・6: 更新のお知らせの方針を決める純関数。electron を import しない
 // （smoke が node で直接読む。前例: updateFeed.ts・releaseChannel.ts）。
 
 export type UpdateAction = 'download' | 'open-releases';
