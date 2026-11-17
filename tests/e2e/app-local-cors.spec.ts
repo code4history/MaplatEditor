@@ -17,7 +17,7 @@
 //   AC-FF-6       他 origin 拒否: http://127.0.0.1:<port>（プレビュー配信と同種）と data:（origin null）のページから、
 //                 タイル・maplat.sqlite・symlink 先を fetch でも crossOrigin <img> でも読めない（新旧両形の URL）
 //   AC-FF-7       renderer と同一 origin で開いたローカル HTML が、renderer（親）の DOM に触れない。
-//                 （renderer CSP）以降は 2 層に分けて測る（t6）:
+//                 （renderer CSP）以降は 2 層に分けて測る:
 //                 7a renderer の iframe への埋め込みは renderer CSP の frame-src で拒否される（違反行 ≥1・親 title 不変）
 //                 7b renderer CSP の無い文書（トップレベルの非表示 BrowserWindow）で開いても、__local の sandbox CSP で
 //                    スクリプトが走らない（renderer CSP が iframe を拒否するので、7a だけでは sandbox の退行を検出できない）

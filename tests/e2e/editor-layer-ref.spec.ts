@@ -15,8 +15,8 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 元の URL は要素として残り配列化して2要素になる」としていたが、**UI からこの経路には到達
 // できない**。PoiReferenceEditor の hasNonReferenceEntries（:356）が非参照要素の存在で真に
 // なり、POI ソース選択ペインが 既存の変更の既存制約（poiref.add_blocked_note）で無効化される
-// ためである。t4 が解除するのは readOnly だけで、この制約は別物であり t4 の範囲外。
-// ∴ 「黙って消えない」（t1 の約束）は、追加時に上書きされる経路がそもそも存在しないという
+// ためである。既存の変更が解除するのは readOnly だけで、この制約は別物であり 既存の変更の範囲外。
+// ∴ 「黙って消えない」（既存の変更の約束）は、追加時に上書きされる経路がそもそも存在しないという
 // より強い形で維持される。単独形→配列化の写像そのものは純関数の契約として
 // smoke Part D が表駆動で検証する（UI から到達できない分岐でも契約は正しく持つ）。
 //
@@ -120,7 +120,7 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
     try {
       // t2/t3 が出力する形そのもの: 先頭が生 FC、2件目が上書きレイヤ。
-      // t4 以前はこの配列で「複層モード index>=1 の key 欠落」= viewer 全損の誤警告が出ていた
+      // 以前はこの配列で「複層モード index>=1 の key 欠落」= viewer 全損の誤警告が出ていた
       const fc = {
         type: 'FeatureCollection', id: 'layer-a', lang: 'ja',
         features: [{
@@ -135,7 +135,7 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       const wrapperCard = cards.nth(1);
 
-      // ---- case 2: viewer-fatal 注記が出ない（t4 以前はここが誤警告の発生点だった）----
+      // ---- case 2: viewer-fatal 注記が出ない（以前はここが誤警告の発生点だった）----
       await expect(
         poisPane.getByTestId('poiref-key-missing'),
         'case 2: 上書きレイヤに viewer 全損の誤警告が出ない',
@@ -250,7 +250,7 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       // ---- case 9(a): POI 追加による上書き喪失の経路が存在しない ----
       // 非参照要素（ここでは URLレイヤ）がある間は POI ソースの追加自体が塞がれている
-      // （既存の変更の既存制約。t4 が解除するのは readOnly だけ）
+      // （既存の変更の既存制約。既存の変更が解除するのは readOnly だけ）
       await page.getByTestId('map-tab-pois').click();
       await expect(cards, '前提: カードは1件のまま').toHaveCount(1, { timeout: 30000 });
       await expect(

@@ -9,7 +9,7 @@
 // 期（未公開ビルド）の旧 app://local も、同一 origin 化（t2ff 第 2 版）後は別 origin で同じく読めない。
 //
 // 是正（案 A）: renderer の displayTileUrl（src/utils/appUrl.ts）で、タイル源に渡すときだけ現行形
-// app://bundle/__local/<abs> へ変換する。**url_ 自体は書き換えない**（保存時の正規化は main の t2s が担う）。
+// app://bundle/__local/<abs> へ変換する。**url_ 自体は書き換えない**（保存時の正規化は main の 既存の変更が担う）。
 //
 // AC（renderer の request 事象で、この下書きのタイル（/z/x/y.png）の読込を数える）:
 //   - current（対照）・legacyFile（v1.0.0）・legacyAppLocal（期）の 3 形で、復元直後（保存前）に

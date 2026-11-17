@@ -16,7 +16,7 @@
 // MapEdit.vue の `baseMapSpatialContext` は
 //     if (manual) { return { bbox: manual, enabled: true }; }
 // という形をしており、この return 文は `if (manual) {` の**唯一の中身**である。
-// t11 はこの行から `labelKey` プロパティを除去したが、**行ごと削除すると**
+// 既存の変更はこの行から `labelKey` プロパティを除去したが、**行ごと削除すると**
 // if ブロックが空になり、手動設定した絞り込み範囲が握り潰されて GCP 自動範囲へ
 // フォールスルーする。
 //
@@ -30,7 +30,7 @@
 //
 // ∴ E6 は**ボタン文言ではなくリストの中身**を assert する。これが唯一の番人である。
 //
-// 実装注意（設計レビュー v2 Info-3）: baseMapVisibilityListAdapter は
+// 実装注意（設計レビュー v2）: baseMapVisibilityListAdapter は
 // `if (item.enabled) return true;` でチェック済み項目を bbox フィルタから**バイパス**する。
 // ∴「近傍側が消える」を成立させるには、近傍ベースマップを**未チェックのまま**用意する必要がある。
 // ---------------------------------------------------------------------------
@@ -322,7 +322,7 @@ test.describe('範囲語彙の統一', () => {
     try {
       const stamp = Date.now();
       // 近傍: 東京（GCP 自動範囲＝東京の内側）。**未チェックのまま**にする
-      //   （チェック済みは adapter が bbox フィルタをバイパスするため消えない。レビュー v2 Info-3）
+      //   （チェック済みは adapter が bbox フィルタをバイパスするため消えない。レビュー v2）
       const nearUid = await seedBaseMapWithCoverage(
         page, `fx-near-${stamp}`, `近傍テスト ${stamp}`, [139.75, 35.62, 139.78, 35.67],
       );

@@ -1,9 +1,9 @@
-// 差分保持ストレージモデル（アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まり / ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）の E2E。
+// 差分保持ストレージモデル（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり / ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）の E2E。
 //
 //   case 12: 未上書きフィールドの入力欄は空で、placeholder にマスタの実効値が出る。
 //         上書きすると解除ボタンが現れ、押すとマスタ値（＝空欄+placeholder）へ戻る
 //   case 13: builtin（osm）にも tms と同一の編集フォームが出る。加えて builtin への上書きが
-//         **実際に viewer へ届く**（アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まりで文字列のみ指定をやめた効果の本丸）
+//         **実際に viewer へ届く**（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まりで文字列のみ指定をやめた効果の本丸）
 //   case 14: url の入力欄は全種別で出ない。代わりに「マスタで管理する」注記が出る
 //   case 25: label の操作子は AppSourceEditor 側にあり、**上書きが無くても表示される**。
 //         上書き可能フィールドはすべて data-testid="app-source-override-<key>" を持つ
@@ -447,7 +447,7 @@ test('builtin(osm) への上書きが配信 JSON と viewer の両方へ届く',
       return await resp.json();
     }, url);
 
-    // ---- (a) 配信アプリ JSON: ID 参照 + settingFile + 上書き分だけ（アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まり）----
+    // ---- (a) 配信アプリ JSON: ID 参照 + settingFile + 上書き分だけ（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）----
     const appJson: any = await fetchJson(`${previewBase}/apps/${token}.json`);
     const element = appJson.sources.find((s: any) => s && typeof s === 'object' && s.mapID === 'osm');
     expect(element, 'case 13: osm ソースが**オブジェクト**として出る（文字列のみ指定は廃止）').toBeTruthy();

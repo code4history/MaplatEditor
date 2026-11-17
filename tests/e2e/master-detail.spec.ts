@@ -148,7 +148,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     await page.getByTestId('asset-pick-file').click();
     await fillAndCommit(page.getByTestId('asset-slug'), 'e2e-image-asset');
     await fillAndCommit(page.getByTestId('asset-title'), 'テスト画像');
-    // T12: 旧 1200ms 遅延 stub (window.imageAssets.add の差し替え) は contextBridge 凍結
+    // 旧 1200ms 遅延 stub (window.imageAssets.add の差し替え) は contextBridge 凍結
     // オブジェクトへの代入で無効(実際には遅延しない)ことが診断で判明。overlay は一瞬しか
     // 表示されず toBeVisible が並列負荷時に取り逃すため、overlay 可視化 assertion は撤去し
     // 保存完了(URL/save-state)で検証する。busy overlay 自体のカバレッジは別の e2e(Export Busy)

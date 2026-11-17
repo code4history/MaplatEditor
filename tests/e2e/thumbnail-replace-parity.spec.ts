@@ -5,7 +5,7 @@
 //   E2 ベースマップ K2（thumbnail がプリセット）: 指し先が動き保存が有効／undo で指し先は戻らない
 //      ＋ 保存 → 再オープンで残る                                                        -> case 2 / case 2-impl / case 3
 //   E3 地図管理: 512px 置換で保存 disabled のまま・undo 非活性（＝ E1 と同一の見え方）   -> case 4
-//   E4 規則 T3: writeTarget() が null のときだけ disabled＋理由。thumbnail 空でも
+//   E4 規則 writeTarget が null のときだけ disabled＋理由。thumbnail 空でも
 //      slug があれば enabled                                                              -> case 5
 //   E5 規則 T1 の注記が両画面に同一文言で出る                                             -> case 6
 //   E6 K2（指し先がプリセット）で derive52 が checked かつ disabled                       -> case 6b
@@ -158,9 +158,9 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
 
       // (1) ファイルは即時に置き換わる
       await expect.poll(async () => (await readFile(path512)).equals(before512), { timeout: 15000 }).toBe(false);
-      // (2) 規則 T1: 保存の対象ではない
+      // (2) 規則 保存の対象ではない
       await expect(page.getByTestId('editor-save')).toBeDisabled();
-      // (3) 規則 T1: undo の対象でもない
+      // (3) 規則 undo の対象でもない
       await expect(page.getByTestId('editor-undo')).toBeDisabled();
       // (4) 指し先は動かない（規則 U の同値ガード）
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
@@ -176,7 +176,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-e2-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      // K2: 指し先がプリセット（basemap_icons/*.png）。tmbs/ 配下には何も無い
+      // 指し先がプリセット（basemap_icons/*.png）。tmbs/ 配下には何も無い
       const { uid } = await seedSavedBaseMap(page, () => 'basemap_icons/maplibre.png');
       const saveFolder = await saveFolderOf(page);
       await installDialogHarness(app, await makeSourceImage(e2eRoot, 'replace.png'));
@@ -205,7 +205,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
       // (2) 指し先が tmbs/ へ動いたことは 512px プレビューの解決先で観測できる
       const img512 = page.locator('img[alt="512px"]');
       await expect(img512).toHaveAttribute('src', new RegExp(`${uid}_512\\.webp`), { timeout: 15000 });
-      // (3) 規則 T2: 指し先の移動は文書編集 ⇒ 保存ボタンが有効
+      // (3) 規則 指し先の移動は文書編集 ⇒ 保存ボタンが有効
       await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 15000 });
 
       // (4) undo を押しても指し先は戻らない（先行編集だけが戻る）

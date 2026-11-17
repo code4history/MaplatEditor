@@ -470,7 +470,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
       //   直接の根拠になる。
       //   ★エディタ内プレビュー（AppPreviewService）は別経路で、maps/*.json の label を
       //     `source.label || preview.title` で上書きする（AppPreviewService.ts の maplat 分岐）。
-      //     これはアプリ側上書き宣言の既存挙動であり t1 の射程外のため触らない。
+      //     これはアプリ側上書き宣言の既存挙動であり 既存の変更の射程外のため触らない。
       //     case 11 は公開搬出経路で検証する（設計の検証手段からの意図的な差異。task-state に記録）。
       {
         const labeledSlug = `fx-labeled-${Date.now()}`;

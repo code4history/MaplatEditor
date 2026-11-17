@@ -101,7 +101,7 @@ async function readBaseMapThumbnail(page: Page, uid: string): Promise<string> {
 }
 
 test.describe('ベースマップのサムネイル管理（512px/52px）', () => {
-  test('T1: サムネイル管理セクションが表示され、52px 実体が無い新規では derive52 が強制 ON になる', async () => {
+  test('サムネイル管理セクションが表示され、52px 実体が無い新規では derive52 が強制 ON になる', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t1-'));
     const { app, page } = await launch(e2eRoot);
@@ -139,13 +139,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeDisabled();
 
-      console.log('  T1: PASS');
+      console.log('  case 1: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T2: 512px 置換でプレビューが cache buster で更新され、derive52 ON なら 52px も更新される', async () => {
+  test('512px 置換でプレビューが cache buster で更新され、derive52 ON なら 52px も更新される', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t2-'));
     const { app, page } = await launch(e2eRoot);
@@ -176,13 +176,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 二重派生が起きていない
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
-      console.log('  T2: PASS');
+      console.log('  case 2: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T3: 52px 置換で 52px が更新され、document.thumbnail が 52px を指し続ける', async () => {
+  test('52px 置換で 52px が更新され、document.thumbnail が 52px を指し続ける', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t3-'));
     const { app, page } = await launch(e2eRoot);
@@ -206,13 +206,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 52px 置換は 512px を触らない（地図側と同挙動）
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
-      console.log('  T3: PASS');
+      console.log('  case 3: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T4: 未保存の新規ベースマップで作ったサムネイルは、保存時に 512px も uid 名へ寄る（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 A）', async () => {
+  test('未保存の新規ベースマップで作ったサムネイルは、保存時に 512px も uid 名へ寄る（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 A）', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t4-'));
     const { app, page } = await launch(e2eRoot);
@@ -279,13 +279,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       expect(await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))).toBe(false);
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
 
-      console.log('  T4: PASS');
+      console.log('  case 4: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T8: 新規ベースマップの初回保存後も 512px プレビューが残る（人間検証で見つかった欠陥の回帰）', async () => {
+  test('新規ベースマップの初回保存後も 512px プレビューが残る（人間検証で見つかった欠陥の回帰）', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t8-'));
     const { app, page } = await launch(e2eRoot);
@@ -334,13 +334,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 52px の実体も uid 名で解決できる ⇒ 強制 ON に落ちない
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeEnabled({ timeout: 15000 });
 
-      console.log('  T8: PASS');
+      console.log('  case 8: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T5: ビルトインは 512px プレビューが出て、置換操作は無効化される', async () => {
+  test('ビルトインは 512px プレビューが出て、置換操作は無効化される', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t5-'));
     const { app, page } = await launch(e2eRoot);
@@ -363,13 +363,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-replace-512')).toBeDisabled();
       await expect(page.getByTestId('basemap-thumbnail-replace-52')).toBeDisabled();
 
-      console.log('  T5: PASS');
+      console.log('  case 5: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T6: サムネイル未存在時は placeholder が表示される（null 連結退行の回帰）', async () => {
+  test('サムネイル未存在時は placeholder が表示される（null 連結退行の回帰）', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t6-'));
     const { app, page } = await launch(e2eRoot);
@@ -387,13 +387,13 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeDisabled();
 
-      console.log('  T6: PASS');
+      console.log('  case 6: PASS');
     } finally {
       await quitElectronApplication(app);
     }
   });
 
-  test('T7: derive52 OFF の 512px 単独置換で document.thumbnail が不変（INV-T の回帰）', async () => {
+  test('derive52 OFF の 512px 単独置換で document.thumbnail が不変（INV-T の回帰）', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-t7-'));
     const { app, page } = await launch(e2eRoot);
@@ -442,7 +442,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       const img52 = page.locator('img.base-map-icon');
       await expect(img52).toHaveAttribute('src', new RegExp(`${uid}\\.png`), { timeout: 15000 });
 
-      console.log('  T7: PASS');
+      console.log('  case 7: PASS');
     } finally {
       await quitElectronApplication(app);
     }

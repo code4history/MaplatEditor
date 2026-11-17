@@ -343,7 +343,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
         .poll(async () => (await readSavedPois(page, mapUid)).filter((e: any) => e?.hide === true).length, { timeout: 30000 })
         .toBe(1);
 
-      // ================= case 1-9: viewer 到達（AppEdit preview harness は t1 の責務）=================
+      // ================= case 1-9: viewer 到達（AppEdit preview harness は 既存の変更の責務）=================
       // 保存地図を source に持つ App を作る。startFrom:true で当該地図を active source に固定する
       // （MaplatCore/src/index.ts:647,701-706 の setInitialMap）
       await page.evaluate(async ({ mapUid }: any) => {

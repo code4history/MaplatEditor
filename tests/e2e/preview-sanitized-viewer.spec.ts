@@ -9,7 +9,7 @@
 //       当該 img タグが生成されないこと（サニタイズでイベントハンドラ除去）
 //   (b) onerror などのスクリプトが実行されないこと
 //   (c) POI html が iframe ではなく Shadow DOM で描画されること
-//      （t5 の動作面の到達確認。旧実装は srcdoc 経由の iframe）
+//      （既存の変更の動作面の到達確認。旧実装は srcdoc 経由の iframe）
 //   (d) viewer 本体が到達・描画されること
 //
 // 起動は必ず task script 経由で行うこと:
@@ -153,7 +153,7 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
       expect(onerrorDescFired, 'desc の onerror が発火していないこと').toBe(false);
 
       // 7. (c) POI html が Shadow DOM で描画されていること（iframe srcdoc ではない）
-      //    t5 では POI html は Shadow DOM に描画される（旧実装は iframe srcdoc）
+      //    既存の変更では POI html は Shadow DOM に描画される（旧実装は iframe srcdoc）
       const hasShadowDomPoi = await frame.evaluate(() => {
         const hosts = document.querySelectorAll('.poi_html_host');
         if (hosts.length === 0) return false;

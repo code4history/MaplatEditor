@@ -122,9 +122,9 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       }, { sa: slugA, sb: slugB, idA: POI_A_ID, idB: POI_B_ID });
 
       // ---- seed: App（pois に A と B を参照。A には icon 上書きも付ける）----
-      // AppEdit には preview タブが組み込みで存在するため、t1 のように別途 App を作成する必要はない。
-      // sources はビルトイン OSM を使用（t5 と同一方式: viewer 内蔵辞書でタイル要求が発火する）。
-      // homeLng/homeLat で viewer の初期位置を札幌に固定（t5 の教訓: デフォルト東京だとマーカーが見えない）。
+      // AppEdit には preview タブが組み込みで存在するため、既存の変更のように別途 App を作成する必要はない。
+      // sources はビルトイン OSM を使用（既存の変更と同一方式: viewer 内蔵辞書でタイル要求が発火する）。
+      // homeLng/homeLat で viewer の初期位置を札幌に固定（既存の変更の教訓: デフォルト東京だとマーカーが見えない）。
       // ※生 URL 非参照要素は viewer 到達検証（シナリオ5）の seed に含めない — viewer の
       //   nodesLoader が fetch を試みてタイムアウトするため。case 2-2 はシナリオ2（生 FC =
       //   インライン・fetch 不要・preview 不使用の UI 検証）で別途検証する。
@@ -227,7 +227,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       console.log('  case 2-8a: icon と hide の佷存が保存後も保持される: PASS');
 
       // ================= case 2-10: undo / redo =================
-      // AppEdit は recordHistory が即座に実行されるため、t1 のような expect.poll 待ちは不要。
+      // AppEdit は recordHistory が即座に実行されるため、既存の変更のような expect.poll 待ちは不要。
       // ただしチェックボックスは <input> のため isEditableElement で undo が抑止される → blur が必要。
       ({ poisPane } = await openAppPoisTab(page, appUid, appSlug));
       const hideChecks5 = poisPane.locator('[data-testid="poiref-hide-override"] input[type="checkbox"]');
@@ -235,7 +235,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       await hideChecks5.nth(1).uncheck(); // ON → OFF
       await expect(hideChecks5.nth(1)).not.toBeChecked();
 
-      // blur してから undo（isEditableElement 抑止対策 = t1 と同じ）
+      // blur してから undo（isEditableElement 抑止対策 = 既存の変更と同じ）
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
       await expect(hideChecks5.nth(1), 'case 2-10: undo で ON へ戻る').toBeChecked({ timeout: 15000 });
@@ -263,7 +263,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
       const frame = await previewFrame(page);
 
-      // viewer ready を状態ベースで待機（t5 と同一方式）
+      // viewer ready を状態ベースで待機（既存の変更と同一方式）
       await frame.waitForFunction(() => !!(window as any).__maplatPreview?.core, undefined, { timeout: 90000 });
       await frame.waitForFunction(() => {
         const core = (window as any).__maplatPreview?.core;
@@ -271,7 +271,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
         return !!src && src.getFeatures().length >= 1;
       }, undefined, { timeout: 90000 });
 
-      // モーダル消失待機（t5 と同一）
+      // モーダル消失待機（既存の変更と同一）
       await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
       await frame.evaluate(() => new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
@@ -314,7 +314,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       // app-level POI レイヤは core.pois[<key>] に載る。
       // key は FC.id または FC.properties.id から決まる（normalizeLayer で key として使用）。
       // exportForm が返す FC の id は POI ソースの slug になる（t5 E2E と同一。
-      // t5 では core.pois[slugB] でアクセスしている）。
+      // 既存の変更では core.pois[slugB] でアクセスしている）。
       const viewerState = await frame.evaluate(({ sa, sb }: any) => {
         const core = (window as any).__maplatPreview.core;
         const src = core.mapObject.getSource('marker');

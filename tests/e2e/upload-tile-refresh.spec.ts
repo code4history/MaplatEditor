@@ -75,7 +75,7 @@ async function tileSourceIdentity(page: Page): Promise<number> {
   });
 }
 
-// 既存地図を IPC 直叩きで seed する (t15 の seedMap と同型。画像は未アップロードのまま)
+// 既存地図を IPC 直叩きで seed する (既存の変更の seedMap と同型。画像は未アップロードのまま)
 async function seedBareMap(page: Page): Promise<{ uid: string; slug: string }> {
   return page.evaluate(async () => {
     const mapSlug = `t17-existing-${Date.now()}`;

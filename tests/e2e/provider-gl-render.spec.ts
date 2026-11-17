@@ -8,10 +8,10 @@
 // T5 プレビューの配信に CSP が無く、CSP の違反がコンソールに出ない（Preview）
 // T6 外部の切絵図の style（Export・Preview）。外部に届かないときは注記つきで skip する
 //
-// WebGL 2 の段（WebGL 2 を要するのは T1・T2・T6）:
+// WebGL 2 の段（WebGL 2 を要するのは case 1・case 2・T6）:
 //   第 1 段: 通常の起動で WebGL 2 が使える
 //   第 2 段: 通常の起動で使えないとき、テストだけの起動引数（swiftshader）で起動し直して使える
-//   第 3 段: それでも使えないとき、CI の中に限り T1・T2・T6 を注記つきで skip する。手元では失敗させる
+//   第 3 段: それでも使えないとき、CI の中に限り case 1・case 2・case 6 を注記つきで skip する。手元では失敗させる
 // 段を進めるのは「確かめが正常に終わり、getContext('webgl2') が厳密に null」のときだけ。
 // 確かめの例外・時間切れ・想定外の値は、その場で失敗させる。
 // 確かめはプレビューを開く前の素の BrowserWindow（about:blank）で行い、プレビューの不具合と切り離す。
@@ -222,7 +222,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
         .then(() => true, () => false);
       const bodyText = await frame.evaluate(() => document.body?.innerText?.slice(0, 300) ?? '').catch((e) => String(e));
       const lines = consoleLines.slice(from);
-      console.log(`T4: started=${started} loadFailedLogged=${lines.some((l) => l.text.includes(LOAD_FAILED))} body=${JSON.stringify(bodyText)}`);
+      console.log(`case 4: started=${started} loadFailedLogged=${lines.some((l) => l.text.includes(LOAD_FAILED))} body=${JSON.stringify(bodyText)}`);
       expect(lines.some((l) => l.text.includes(LOAD_FAILED)), 'コンソールに読み込みの失敗の行が無い').toBe(true);
       expect(started, `アプリが起動しない（window.__maplatPreview が無い）: ${bodyText}`).toBe(true);
     } finally {
@@ -253,7 +253,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     const sample = await sampleWindow(page, await iframeRect());
     await saveShot('T1-preview', sample.png);
     const styleErrors = consoleLines.slice(from).filter((l) => STYLE_ERROR.test(l.text));
-    console.log(`T1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+    console.log(`case 1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
     const fixtureLayers = JSON.parse(await readFile(FIXTURE_STYLE, 'utf8')).layers.length;
     expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
     expect(state.ready, `__maplatPreview が無い: ${JSON.stringify(state)}`).toBe(true);
@@ -277,7 +277,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
       }
       await saveShot('T2-export', sample.png);
       const styleErrors = ex.lines.filter((l) => STYLE_ERROR.test(l.text));
-      console.log(`T2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+      console.log(`case 2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
       expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
       expect(sample.bgHits, 'fixture の背景色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
       expect(sample.fillHits, 'fixture の塗りの色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);

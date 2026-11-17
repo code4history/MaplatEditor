@@ -358,7 +358,7 @@ test('F8: draft badges stay consistent across row switching', async () => {
     await fillAndCommit(page.getByTestId('basemap-title'), 'F8切替A 変更');
     await expect(page.getByTestId('basemap-draft-badge')).toBeVisible();
     await page.getByTestId('basemap-row-f8-switch-b').click();
-    // T12: 固定sleepを廃し、行切替の session flush が store へ永続化するのを状態ベースで待つ
+    // 固定sleepを廃し、行切替の session flush が store へ永続化するのを状態ベースで待つ
     await expect.poll(async () =>
       page.evaluate(async () => (await window.assetDrafts.list('base-map')).length),
     { timeout: 30_000 }).toBe(1);
@@ -382,7 +382,7 @@ test('F8: draft badges stay consistent across row switching', async () => {
     await page.getByTestId('asset-row-f8-asset-a').click();
     await fillAndCommit(page.getByTestId('asset-title'), 'F8 A 変更');
     await expect(page.getByTestId('asset-draft-badge')).toBeVisible();
-    // T12: 固定sleep(3000ms)を廃し、draft が store に永続化される(persist throttle 2000ms)のを
+    // 固定sleep(3000ms)を廃し、draft が store に永続化される(persist throttle 2000ms)のを
     // 状態ベースで待つ。「store に載った draft が Undo クリーン化で消える」検証の前提条件
     await expect.poll(async () =>
       page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length),
@@ -390,7 +390,7 @@ test('F8: draft badges stay consistent across row switching', async () => {
     await page.getByTestId('editor-undo').click();
     await expect(page.getByTestId('asset-draft-badge')).toHaveCount(0, { timeout: 30_000 });
     await page.getByTestId('asset-row-f8-asset-b').click();
-    // T12: 固定sleepを廃し、session flush の removePersisted を状態ベースで待つ
+    // 固定sleepを廃し、session flush の removePersisted を状態ベースで待つ
     await expect.poll(async () =>
       page.evaluate(async () => (await window.assetDrafts.list('image-asset')).length),
     { timeout: 30_000 }).toBe(0);

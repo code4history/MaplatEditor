@@ -75,7 +75,7 @@ test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
   });
 });
 
-test.describe('t1 ベースマップフォールバック統一（HR-2）', () => {
+test.describe('ベースマップフォールバック統一（HR-2）', () => {
   test('新規（未保存）エディタで /tms_list.json 要求が発生しない', async () => {
     test.setTimeout(120_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-'));
@@ -139,7 +139,7 @@ test.describe('t1 ベースマップフォールバック統一（HR-2）', () =
   });
 });
 
-test.describe('t1 インポート直後サムネイルの相対 fetch 死除去（HR-3）', () => {
+test.describe('インポート直後サムネイルの相対 fetch 死除去（HR-3）', () => {
   test('zip インポート直後に dist/tmbs/ 宛のページ相対要求が発生しない', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac5-'));

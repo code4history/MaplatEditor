@@ -43,7 +43,7 @@ const THUMBNAIL_SOURCE = path.join(
 const TINY_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
 
 async function forceEnglish(page: Page): Promise<void> {
-  // 契約 C9: 英語 UI で単一撮影する（英日両ページから共有）。既存の変更と同一手順に
+  // 契約 英語 UI で単一撮影する（英日両ページから共有）。既存の変更と同一手順に
   // **リロードを1つ足している**: ContextHelp.vue は Bootstrap Popover の content を
   // onMounted で1度だけ束縛するため、言語切替より前に mount された「？」は切替後も
   // 旧言語の本文を出し続ける（実測: 設定画面の JPEG 上限の「？」が日本語のままだった）。

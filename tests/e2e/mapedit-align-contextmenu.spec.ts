@@ -22,7 +22,7 @@ type Face = 'illst' | 'merc';
 
 const MAP_ELEMENT_ID: Record<Face, string> = { illst: 'illstMap', merc: 'mercMap' };
 
-// t11 型の角座標から線形補間で画像座標 → mercator 座標を作る（seed と同じ式）
+// 型の角座標から線形補間で画像座標 → mercator 座標を作る（seed と同じ式）
 const toMerc = (x: number, y: number): [number, number] => [
   15551351.4 + (x / 400) * (15562483.3 - 15551351.4),
   4249117.8 + ((300 - y) / 300) * (4259837.2 - 4249117.8),
