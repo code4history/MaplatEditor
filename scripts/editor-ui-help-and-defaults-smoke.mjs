@@ -442,7 +442,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
     assert.equal(
       actual,
       expectedOccurrences,
-      `S12/case 18 (c): ${rel} の凍結属性名の出現回数は ${expectedOccurrences} のまま（既存の変更の baseline を動かさない。got ${actual}）`,
+      `S12/case 18 (c): ${rel} の凍結属性名の出現回数は ${expectedOccurrences} のまま（range-vocabulary-smoke の baseline を動かさない。got ${actual}）`,
     );
     const lines = source.split("\n").filter((l) => l.includes(FROZEN_RANGE_ATTRS[0])).length;
     assert.equal(
