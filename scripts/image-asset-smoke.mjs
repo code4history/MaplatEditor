@@ -1,6 +1,6 @@
 // ImageAssetService  スモーク: Write Store 上の画像アセット domain layer。
 // バイト実体は {saveFolder}/assets/{uid}.{ext} に置き、DB(assets テーブル)にはメタデータのみ持つ
-// (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり )。fixture は Jimp で実際に生成した小さな PNG を使う(サムネイル生成に使う
+// (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。fixture は Jimp で実際に生成した小さな PNG を使う(サムネイル生成に使う
 // 既存の画像処理依存を、デコード/メタデータ抽出にもそのまま流用する — 新規依存を足さない)。
 // シナリオ:
 //   (a) add: 実PNGをコピー → metadata(mime/width/height/ext) 正しい / assets/{uid}.{ext} に実体 /
