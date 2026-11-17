@@ -52,7 +52,7 @@ The editor runs on two kinds of engines: the Chromium bundled with Electron, and
 
 ## UI Grammar
 
-Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/AGENTS-screenshot-followup-on-ui-change.md`).
+Follow [docs/ui-grammar.md](docs/ui-grammar.md) for help, diagnostics, empty states, dialogs, and button roles. The human decisions in section 8 are binding. Run `pnpm smoke:editor-ui-grammar` and `pnpm smoke:editor-ui-grammar-fixtures` after UI changes; CI runs them with the other smokes. Each exception in `docs/ui-grammar.allowlist.json` must name one rule, one file, a key or test ID, a reason, and a source. Never add a blanket exception to suppress new violations. Take before/after screenshots for UI changes (`docs/superpowers/rules/rule-0002-screenshot-followup-on-ui-change.md`).
 
 ## UI Wording & Glossary
 

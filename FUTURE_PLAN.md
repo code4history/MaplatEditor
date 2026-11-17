@@ -3,7 +3,7 @@
 This document outlines potential future enhancements, features, and UI/UX improvements identified during the modernization of MaplatEditor to MaplatEditor-next.
 
 ## 1. Map-Specific Base Map Configuration UI
-**Status**: Implemented . The MapEdit "Select Base Maps" tab lets users
+**Status**: Implemented. The MapEdit "Select Base Maps" tab lets users
 toggle which base maps are visible/available for the currently edited historical map
 (`setBaseMapVisibilityForMapID`), backed by the SQLite `base_maps` table rather than
 manual `tmsList.[mapID].json` editing. Legacy `tmsList.*.json` files are still read for
@@ -65,7 +65,7 @@ _Note: This document should be updated continuously as more areas for improvemen
 
 end-to-end のタイル化時間（`pnpm smoke:large-image-decode-limits` の観測値）:
 
-| 原本 | 原寸 RGBA | タイル総数 | タイル化時間（時点の記録） | タイル化時間（後の実測） |
+| 原本 | 原寸 RGBA | タイル総数 | タイル化時間（大きな画像の取り込みの上限を入れた時点の記録） | タイル化時間（タイル切り出しの高速化の後の実測） |
 |---|---|---|---|---|
 | 8000×6000（48 MP） | 約 183 MiB | 1025 | 41 秒 | **29.7 秒** |
 | 11000×10000（110 MP） | 約 420 MiB | 2314 | 155 秒 | **57.1 秒** |
@@ -129,13 +129,13 @@ UI設計より前に「そもそも335ファイル全部を512pxで持つ必要�
 
 **解消済み（2026-09-10）。**
 
-**旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v | wc -l`
+**旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v packaging-smoke | wc -l`
 実測。依存不在 assertion を持つ `packaging-smoke.mjs` を除く）が esbuild の `external` に
 `'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` の3要素を
 列挙していた。DuckDB の撤去で依存そのものを撤去したため、これらは**不活性な no-op** だった
 （存在しないモジュール名を external に挙げても esbuild は何もしない）。
 
-**対処**: （issue #94）で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
+**対処**: issue #94 で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
 `vite.config.ts:28` の同一3要素は、同配列が `pwa-asset-generator` external（#99）と共有されており、
 依存の是正の作業で同時に除去するのが最も安いため、ここでは触らずその作業へ申し送った。
 
@@ -185,7 +185,7 @@ vite の ssr build は outDir 名にかかわらず `publicDir` を複製する�
 outDir を `workDir/'dist'` にしており、この偶然に乗って `thumbnailUrl` の解決が成立している。
 outDir 名を変えた瞬間に解決が `null` へ落ちて赤くなる。
 
-**smoke がどう回避したか**: 同 smoke は harness を2種類同居させる都合で outDir が
+**メルカトルの実行時 URL の smoke がどう回避したか**: 同 smoke は harness を2種類同居させる都合で outDir が
 2つある（`dist-ipc` / `dist-lib`）∴ 名前の偶然に乗れない。そこで `APP_ROOT` を明示的に設定している。
 実際に当該行をコメントアウトすると S8 が
 「thumbnailUrl の添付が維持されること: null」で赤くなることを実測済みである。
