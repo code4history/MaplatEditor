@@ -8,7 +8,7 @@
 // Part D: 未知の pois/<name> は {}（404 で POI 全損にしない）                           … case 5
 // Part E: 外部ファイル内の icon / asset が imgs/ ルートで実体として取れる               … case 6
 // Part F: preview と export が同一形式（ファイル名の一致は要求しない）                  … case 7
-// Part G: バンドル viewer の 対応（伝播要否の判定を記録する）                     … case 8
+// Part G: バンドル viewer の POI 表示の対応（伝播要否の判定を記録する）                     … case 8
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -26,7 +26,7 @@ const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'preview-pois-parity-smoke.mjs');
 
-// --- Part G: バンドル viewer の 対応（sandbox の外で判定する。ファイルを読むだけ） ---
+// --- Part G: バンドル viewer の POI 表示の対応（sandbox の外で判定する。ファイルを読むだけ） ---
 {
   const bundlePath = path.join(projectRoot, 'public/preview/maplat_ui.umd.js');
   const bundle = await readFile(bundlePath, 'utf8');
@@ -168,7 +168,7 @@ try {
       const uidB = createdB.uid;
 
       const { uid: mapUid } = await SqliteDataService.createMap('t3map', {
-        title: 't3地図',
+        title: 'POI 地図',
         width: 400,
         height: 300,
         strictMode: 'loose',

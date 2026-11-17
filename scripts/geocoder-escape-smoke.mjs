@@ -3,7 +3,7 @@
 //
 //   case 3(a): nominatim.js のソースに row.address.name の生補間が現れない
 //   case 3(b): OSM 分岐が共有プリミティブ template( を通る
-//   case 3(c): helpers/dom.js の template を実際に import して起動し、HTML がエスケープされることを確認
+//   case 3(c): helpers/dom.js の template() を実際に import して起動し、HTML がエスケープされることを確認
 //           （テスト内でエスケープ処理を再現しない。実関数を呼ぶ）
 //
 // dom.js は './mix' を拡張子なしで import するため node から直接 import できない。
@@ -58,7 +58,7 @@ assert.match(dom, /export function template\(/u, 'case 3: helpers/dom.js に tem
 assert.match(dom, /export function htmlEscape\(/u, 'case 3: helpers/dom.js に htmlEscape() が存在すること');
 console.log('ok: case 3 shared escape primitives present in helpers/dom.js');
 
-// ---- case 3(c): template の実起動 -------------------------------------------
+// ---- case 3(c): template() の実起動 -------------------------------------------
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
@@ -97,7 +97,7 @@ await writeFile(
     const braced = render('{name} 通り');
     assert.equal(braced, '<span class="gcd-road">{name} 通り</span>',
       'case 3(c): 置換値に含まれる {…} は再展開されないこと: ' + braced);
-    console.log('ok: case 3(c) substituted value is not re-scanned (design review )');
+    console.log('ok: case 3(c) substituted value is not re-scanned (design review)');
 
     console.log('geocoder escape smoke: ALL PASS');
   `,

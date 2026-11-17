@@ -1,4 +1,4 @@
-// （#113・HR-19）: 書き出す中身の選択（case 1〜case 4）。
+// スモーク（#113）: 書き出す中身の選択（case 1〜case 4）。
 //
 // 固定する受け入れ条件:
 //   (a)  地図の書き出しを選択の 7 通り（3 つの部分集合から空を除く）で行い、エントリの一覧が 割り当てどおり
@@ -467,7 +467,7 @@ try {
       console.log('ok (f): 11 言語に 9 キーがある');
     }
 
-    console.log('nov26-m6-t8 export options OK');
+    console.log('export options OK');
     process.exit(0);
   `;
 
@@ -504,7 +504,7 @@ try {
     console.log('baseline written: ' + path.relative(projectRoot, baselineFile) + ' (' + Object.keys(data.entries).length + ' entries)');
   } else {
     process.stdout.write(stdout);
-    console.log('nov26-m6-t8 export options smoke passed');
+    console.log('export options smoke passed');
   }
 } finally {
   await rm(workDir, { recursive: true, force: true });

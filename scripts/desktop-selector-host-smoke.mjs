@@ -147,7 +147,7 @@ try {
   console.log('  [2/6] useAppSourceHost 型チェック: PASS');
 
   // --- Part 3: 旧 DesktopRegisteredMapSelector.vue は消した ---
-  // どこからも参照されていなかったので、UI 文法の修正（PR #246 の）で消した。
+  // どこからも参照されていなかったので、UI 文法の修正（PR #246）で消した。
   // 選択の状態の型（SelectedRegisteredMapHostState）は Part 1・2 が useRegisteredMapSelector・useAppSourceHost で確かめる
   assert.equal(
     existsSync(path.join(projectRoot, 'src/components/DesktopRegisteredMapSelector.vue')),

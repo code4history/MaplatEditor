@@ -10,7 +10,7 @@ const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'shell-tokens-screenshots');
 
 // Wiki スクリーンショット取得スペック（wiki-screenshots-basic.spec.ts）も
-// この launch ヘルパーを env 含め丸ごと再利用する。として
+// この launch() ヘルパーを env 含め丸ごと再利用する。として
 // helpers/launchIsolated.ts へ抽出し、本ファイルからも import する形に変更した
 // （スペック間 import を避けるため。挙動は無変更）。
 

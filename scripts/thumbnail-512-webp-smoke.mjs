@@ -1,5 +1,4 @@
 // smoke: 512px サムネイルの webp 統一。
-//。
 //
 // 対象パートと対応 AC:
 //   A  THUMB_512_EXT === 'webp' / THUMB_512_TMP_BASENAME の派生                       -> case 1
@@ -225,7 +224,7 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
     /thumbnail512Codec/.test(src),
     '注釈が符号化側の対（thumbnail512Codec）に言及している（case 9 の不変条件と一致する文言）',
   );
-  console.log('ok: C/冒頭注釈の是正');
+  console.log('ok: C/冒頭注釈の是正（レビューの指摘）');
 }
 
 // ============================================================================
@@ -372,7 +371,7 @@ await writeFile(
     //   - マイニングの出力は最初から正規形（thumb512PathFor 経由）
     // ∴ 非正規形の 512px が新たに生じる経路は無く、移行段を公開版へ同梱する意味が無い。
     // 「正規形以外の 512px を作らない」という本質は Part A / C / D が引き続き固定している。
-    // ============ Part R: relocate 堅牢化の回帰（の引き受け） ============
+    // ============ Part R: relocate 堅牢化の回帰（実装レビューの指摘の引き受け） ============
     {
       const rDir = nodePath.join(workDir, 'relocate');
       await useSaveFolder(rDir);

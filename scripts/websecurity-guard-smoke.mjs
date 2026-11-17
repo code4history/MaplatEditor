@@ -52,7 +52,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
 // --- case 1 assert 3: 経路解決純関数の許可 / 拒否 ---
 {
   const bundleRoots = ["/tmp/websecurity-guard/dist", "/tmp/websecurity-guard/public"];
-  // 是正（実装レビュー Round 1）: localFileUrl が URL 化する置き場所は saveFolder だけでなく
+  // 是正（実装レビュー Round 1）: localFileUrl() が URL 化する置き場所は saveFolder だけでなく
   //   - draftTileRoot（userData/draft-tiles。下書き staging タイル）
   //   - tmpFolder/tiles（OS 一時ディレクトリ MaplatEditor 配下の tiles。後方互換 tmp タイル）
   // も含む。これらを正規の配信ルートとして許可し、それ以外は引き続き拒否する。

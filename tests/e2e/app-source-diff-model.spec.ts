@@ -12,8 +12,8 @@
 // ライセンス・ズーム範囲・サムネイルの操作子は撤去され、それらを対象にしていた本 spec の
 // 検証も同じ縮小を受ける（残る操作子は label / envelopeLngLats / mercator シフト 2 欄）。
 // 加えて、アプリのソース編集の整理で加えた「存在範囲からコピー」の活性条件と反映を本 spec で検証する。
-//
-//。
+// その条件を「コピー(a)」（存在範囲を持つマスタで活性・コピーで外接矩形になる）・「コピー(b)」
+// （持たないマスタで非活性）・「コピー(c)」（値が入ると × が出て解除できる）と呼ぶ。
 //
 // NOTE (preview-restart の直 fetch の確認との順序): 本 spec の case 13 は出荷バンドル（public/preview 経由の
 // maplat_ui.umd.js）で走る。MaplatCore の label マージ修正が伝搬鎖の全ホップへ
@@ -89,7 +89,7 @@ async function clickNativeSearchClear(locator: ReturnType<Page['getByTestId']>):
 }
 
 // AppEdit の既定言語（AppEdit.vue currentLang = 'ja'）に揃える。
-// **coverageLngLats は null のまま**にしておく — case 7(b)「存在範囲を持たないマスタでは
+// **coverageLngLats は null のまま**にしておく — コピー(b)「存在範囲を持たないマスタでは
 // 『存在範囲からコピー』が非活性」の検証対象そのものであるため。
 const masterTmsDoc = {
   lang: 'ja',
@@ -110,7 +110,7 @@ const masterTmsDoc = {
   coverageLngLats: null,
 };
 
-// case 7(a): 存在範囲を持つマスタ。非矩形（5 点）にしてあるのは、
+// 存在範囲を持つマスタ。非矩形（5 点）にしてあるのは、
 // 「4 隅をそのまま写す（bbox へ潰さない）」実装でも入力欄の bbox が外接矩形になることと、
 // 情報が落ちていないこと（クリア→再コピーで同じ値に戻る）を同時に見るため。
 const COVERAGE_LNG_LATS: [number, number][] = [
@@ -152,7 +152,7 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
   try {
     const tmsSlug = `fx-tms-${Date.now()}`;
     await seedBaseMap(page, tmsSlug, { ...masterTmsDoc });
-    // case 7(a) 用（存在範囲を持つマスタ）。
+    // コピー(a) 用（存在範囲を持つマスタ）。
     // **AppEdit へ入る前に seed する** — baseMapMasters は onMounted で1回読むだけなので、
     // 画面表示後に seed したマスタは lookup に載らず、ソースがマスタ欠落表示になる
     const coverageSlug = `fx-cov-${Date.now()}`;
@@ -171,21 +171,21 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
     // case 25 の本丸: label は**上書きが無くても**操作子が出る（旧実装は v-if="source.label" で消えていた）
     await expect(card.getByTestId('app-source-override-label')).toHaveValue('');
 
-    // ---- case 2: 廃止した 10 キーの操作子が 1 つも残っていない ----
+    // ---- 廃止した 10 キーの操作子が 1 つも残っていない ----
     for (const key of [
       'title', 'attr', 'dataAttr', 'license', 'licenseNote', 'dataLicense', 'dataLicenseNote',
       'minZoom', 'maxZoom', 'thumbnail',
     ]) {
       await expect(
         card.getByTestId(`app-source-override-${key}`),
-        `case 2: ${key} の上書き操作子は撤去された`,
+        `${key} の上書き操作子は撤去された`,
       ).toHaveCount(0);
     }
-    // ---- case 3: 解除の × も利用範囲の 1 個だけ ----
+    // ---- 解除の × も利用範囲の 1 個だけ ----
     for (const key of ['minZoom', 'maxZoom', 'thumbnail']) {
       await expect(
         card.getByTestId(`app-source-clear-${key}`),
-        `case 3: ${key} の解除ボタンは撤去された`,
+        `${key} の解除ボタンは撤去された`,
       ).toHaveCount(0);
     }
 
@@ -213,10 +213,10 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
     await expect(labelInput, 'case 12: native × のクリックで上書きが解除される').toHaveValue('');
     await expect(labelInput).toHaveAttribute('placeholder', 'マスタラベル');
 
-    // ---- case 7(b): 存在範囲を持たないマスタでは「存在範囲からコピー」が非活性 ----
+    // ---- 存在範囲を持たないマスタでは「存在範囲からコピー」が非活性 ----
     const copyButton = card.getByTestId('app-source-copy-coverage-envelopeLngLats');
-    await expect(copyButton, 'case 7(b): 存在範囲が無くてもボタンは見える（v-if ではない）').toBeVisible();
-    await expect(copyButton, 'case 7(b): 存在範囲が無いので非活性').toBeDisabled();
+    await expect(copyButton, 'コピー(b): 存在範囲が無くてもボタンは見える（v-if ではない）').toBeVisible();
+    await expect(copyButton, 'コピー(b): 存在範囲が無いので非活性').toBeDisabled();
     // 利用範囲が未設定なので × も出ない
     await expect(card.getByTestId('app-source-clear-envelopeLngLats')).toHaveCount(0);
 
@@ -235,7 +235,7 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
     await expect(card.getByTestId('app-source-override-mercatorXShift')).toBeVisible();
     await expect(card.getByTestId('app-source-override-mercatorYShift')).toBeVisible();
 
-    // ---- case 7(a)/(c): 存在範囲を持つマスタでコピー → 4 入力欄が外接矩形になる ----
+    // ---- コピー(a)/(c): 存在範囲を持つマスタでコピー → 4 入力欄が外接矩形になる ----
     await page.getByTestId('app-basemap-search').fill(coverageSlug);
     await expect(page.getByTestId(`app-basemap-row-${coverageSlug}`)).toBeVisible({ timeout: 30000 });
     await page.getByTestId(`app-basemap-row-${coverageSlug}`).click();
@@ -243,29 +243,29 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
     await expect(covCard).toBeVisible();
 
     const covCopy = covCard.getByTestId('app-source-copy-coverage-envelopeLngLats');
-    await expect(covCopy, 'case 7(a): 存在範囲があるので活性').toBeEnabled();
+    await expect(covCopy, 'コピー(a): 存在範囲があるので活性').toBeEnabled();
     const envelopeInputs = covCard
       .getByTestId('app-source-override-envelopeLngLats')
       .locator('.envelope-input input');
     await expect(envelopeInputs).toHaveCount(4);
     for (let i = 0; i < 4; i += 1) {
-      await expect(envelopeInputs.nth(i), 'case 7(a): コピー前は空欄').toHaveValue('');
+      await expect(envelopeInputs.nth(i), 'コピー(a): コピー前は空欄').toHaveValue('');
     }
     await covCopy.click();
     for (let i = 0; i < 4; i += 1) {
       await expect(
         envelopeInputs.nth(i),
-        `case 7(a): コピー後の利用範囲がマスタの存在範囲の外接矩形になる（${i}）`,
+        `コピー(a): コピー後の利用範囲がマスタの存在範囲の外接矩形になる（${i}）`,
       ).toHaveValue(COVERAGE_INPUT_ORDER[i]);
     }
-    // case 7(c): 値が入ったので × が現れ、押すと解除される（従来どおりの挙動）
+    // コピー(c): 値が入ったので × が現れ、押すと解除される（従来どおりの挙動）
     const covClear = covCard.getByTestId('app-source-clear-envelopeLngLats');
-    await expect(covClear, 'case 7(c): 値が入ると × が出る').toBeVisible();
+    await expect(covClear, 'コピー(c): 値が入ると × が出る').toBeVisible();
     await covClear.click();
     for (let i = 0; i < 4; i += 1) {
-      await expect(envelopeInputs.nth(i), 'case 7(c): × で解除される').toHaveValue('');
+      await expect(envelopeInputs.nth(i), 'コピー(c): × で解除される').toHaveValue('');
     }
-    await expect(covClear, 'case 7(c): 解除後は × が消える').toHaveCount(0);
+    await expect(covClear, 'コピー(c): 解除後は × が消える').toHaveCount(0);
     // 再コピーで同じ値へ戻る（4 隅をそのまま保持しており、bbox 化で情報が落ちていない）
     await covCopy.click();
     for (let i = 0; i < 4; i += 1) {
@@ -293,7 +293,7 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
   }
 });
 
-// case 15（人間検証由来）: 表示ラベルが翻訳モードで編集できること。
+// 人間の確認で決めた翻訳モードの範囲: 表示ラベルが翻訳モードで編集できること。
 //
 // 本タスクの要望は「表示ラベルを単言語要素 → 多言語要素にする」である。器（LangResourceInput）は
 // 差分モデルの時点で入っていたが、**欄に :disabled="translationMode" が付いていたため、既定言語以外へ
@@ -339,11 +339,11 @@ test('表示ラベルは翻訳モードでも編集でき、言語間を往復�
     // 人間の報告どおり JA チップが出る（ja に値があり、active が ja ではなくなったため）
     await expect(
       card.locator('.lang-value-chip', { hasText: 'JA' }),
-      'case 15: 他言語に値があることを示す JA チップが出る',
+      '翻訳モード: 他言語に値があることを示す JA チップが出る',
     ).toBeVisible();
     // **本丸**: 翻訳モードでも表示ラベルは編集できる（この assert が欠陥の再現そのもの）
-    await expect(label, 'case 15: 翻訳モードでも表示ラベルは編集できる').toBeEnabled();
-    await expect(label, 'case 15: en は未入力なので空欄').toHaveValue('');
+    await expect(label, '翻訳モード: 翻訳モードでも表示ラベルは編集できる').toBeEnabled();
+    await expect(label, '翻訳モード: en は未入力なので空欄').toHaveValue('');
     await label.fill('Label in English');
     await label.press('Tab');
     await expect(label).toHaveValue('Label in English');
@@ -351,7 +351,7 @@ test('表示ラベルは翻訳モードでも編集でき、言語間を往復�
     // ---- 翻訳モードでも、言語に依存しない構造的な値は無効のまま（既存の意図を壊さない）----
     await expect(
       card.getByTestId('app-source-copy-coverage-envelopeLngLats'),
-      'case 15: 構造的な操作（存在範囲からコピー）は翻訳モードで無効のまま',
+      '翻訳モード: 構造的な操作（存在範囲からコピー）は翻訳モードで無効のまま',
     ).toBeDisabled();
     const envelopeInputs = card
       .getByTestId('app-source-override-envelopeLngLats')
@@ -359,33 +359,33 @@ test('表示ラベルは翻訳モードでも編集でき、言語間を往復�
     for (let i = 0; i < 4; i += 1) {
       await expect(
         envelopeInputs.nth(i),
-        `case 15: 利用範囲の入力欄は翻訳モードで無効のまま（${i}）`,
+        `翻訳モード: 利用範囲の入力欄は翻訳モードで無効のまま（${i}）`,
       ).toBeDisabled();
     }
     await expect(
       card.getByTestId('app-source-override-mercatorXShift'),
-      'case 15: mercator シフトは翻訳モードで無効のまま',
+      '翻訳モード: mercator シフトは翻訳モードで無効のまま',
     ).toBeDisabled();
     await expect(card.getByTestId('app-source-override-mercatorYShift')).toBeDisabled();
     // role セレクト自体（構造的な値）も翻訳モードでは変更できないままであること
     await expect(
       card.locator('select.form-select-sm').first(),
-      'case 15: role セレクトは翻訳モードで無効のまま',
+      '翻訳モード: role セレクトは翻訳モードで無効のまま',
     ).toBeDisabled();
 
     // ---- 往復: en → ja → en で双方の値が保たれる ----
     await langSelect.selectOption('ja');
-    await expect(label, 'case 15: ja へ戻すと ja の値が出る').toHaveValue('ラベル日本語');
+    await expect(label, '翻訳モード: ja へ戻すと ja の値が出る').toHaveValue('ラベル日本語');
     await expect(label).toBeEnabled();
     await expect(
       card.locator('.lang-value-chip', { hasText: 'EN' }),
-      'case 15: ja から見ると EN チップが出る',
+      '翻訳モード: ja から見ると EN チップが出る',
     ).toBeVisible();
     await langSelect.selectOption('en');
-    await expect(label, 'case 15: en へ戻すと en の値が保たれている').toHaveValue('Label in English');
+    await expect(label, '翻訳モード: en へ戻すと en の値が保たれている').toHaveValue('Label in English');
 
     // maplat 分岐の表示ラベル（app-source-maplat-label）は登録地図の seed が要るため
-    // 本 spec では扱わず、smoke 側のソーステキスト照合（case 15）で同じ規律を機械照合する
+    // 本 spec では扱わず、smoke 側のソーステキスト照合（翻訳モードの範囲）で同じ規律を機械照合する
 
     expect(pageErrors).toEqual([]);
   } finally {

@@ -6,7 +6,7 @@ const projectRoot = path.resolve(import.meta.dirname, '../../..');
 // shell-tokens.spec.ts で導入された隔離 Electron 起動ヘルパー。
 // wiki-screenshots-basic.spec.ts が env（MAPLAT_E2E_ROOT・--user-data-dir）含め
 // 丸ごと再利用するため、両スペックが import できる helpers/ 配下へ抽出した
-// （。MAPLAT_E2E_ROOT の付け忘れを構造的に防ぐのが目的で、挙動は無変更。
+// （MAPLAT_E2E_ROOT の付け忘れを構造的に防ぐのが目的で、挙動は無変更。
 // スペック間 import は Playwright が禁止するパターンで
 // `playwright test`（引数なし・全体実行）の collection を破壊するため、
 // helpers/ への抽出でスペック間 import を解消した）。

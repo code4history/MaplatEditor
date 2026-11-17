@@ -1,13 +1,12 @@
-// t1: E2E ヘッドレス化と、配布物で死んでいる経路3件の是正。
-//
+// E2E ヘッドレス化と、配布物で死んでいる経路3件の是正。
 //
 // 検証する受け入れ条件:
 //   case 1  E2E 実行時（MAPLAT_E2E_ROOT 付き起動）、メインウィンドウと About ウィンドウが
 //        isVisible() === false で生成される。paintWhenInitiallyHidden は既定 true のまま ∴
 //        非表示でも renderer は描画を続ける（screenshot 系 spec の前提を壊さない）
 //   case 4  新規地図（未保存）でベースマップ一覧が osm/gsi/gsi_ortho の3種になり、
-//        /tms_list.json への要求が発生しない（HR-2・dev/配布物の挙動統一）
-//   case 5  zip インポート直後に dist/tmbs/ 宛のネットワーク要求が 0 件になる（HR-3・
+//        /tms_list.json への要求が発生しない（dev/配布物の挙動統一）
+//   case 5  zip インポート直後に dist/tmbs/ 宛のネットワーク要求が 0 件になる（
 //        MaplatCore mixin の相対仮置き fetch を options.thumbnail 注入で通さない）
 //
 // 製品起動（env 無し）での挙動不変性は main.ts の show 制御が MAPLAT_E2E_ROOT のみに
@@ -33,7 +32,7 @@ async function forceJapanese(page: Page): Promise<void> {
   await page.evaluate(() => window.settings.set('lang', 'ja'));
 }
 
-test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
+test.describe('E2E のヘッドレス化', () => {
   test('MAPLAT_E2E_ROOT 付き起動ではメインウィンドウが isVisible()===false で生成される', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac1-'));
     const { app, page } = await launch(e2eRoot);
@@ -75,7 +74,7 @@ test.describe('t1 E2E ヘッドレス化（HR-1）', () => {
   });
 });
 
-test.describe('ベースマップフォールバック統一（HR-2）', () => {
+test.describe('ベースマップフォールバック統一', () => {
   test('新規（未保存）エディタで /tms_list.json 要求が発生しない', async () => {
     test.setTimeout(120_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac4-'));
@@ -139,7 +138,7 @@ test.describe('ベースマップフォールバック統一（HR-2）', () => {
   });
 });
 
-test.describe('インポート直後サムネイルの相対 fetch 死除去（HR-3）', () => {
+test.describe('インポート直後サムネイルの相対 fetch 死除去', () => {
   test('zip インポート直後に dist/tmbs/ 宛のページ相対要求が発生しない', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t1-ac5-'));
@@ -155,7 +154,7 @@ test.describe('インポート直後サムネイルの相対 fetch 死除去（H
       await stubMessageBoxAutoOk(app);
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
-      // 地図 ZIP を実 UI の搬出ボタンから作る（case 11-b と同じ導線）
+      // 地図 ZIP を実 UI の搬出ボタンから作る（書き出しの統一の往復の e2e と同じ導線）
       const zipPath = path.join(e2eRoot, 'map-export.zip');
       await app.evaluate(async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;

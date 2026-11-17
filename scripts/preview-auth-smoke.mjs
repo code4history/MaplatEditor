@@ -1,7 +1,7 @@
 // smoke: プレビューサーバの認証・オリジン防御。
 // smoke と同型の harness（electron/electron-store stub + vite ssr build）だが、
 // private メソッドの直接呼び出しでは handle() の Host 検査を素通りしてしまうため、
-// 実サーバを prepare で起動し **実 HTTP リクエスト**を発行して検証する。
+// 実サーバを prepare() で起動し **実 HTTP リクエスト**を発行して検証する。
 //
 // 検証する受け入れ条件:
 //   case 1  Host: evil.example:<port> は 403
@@ -15,8 +15,8 @@
 //   case 8  /local-file/<有効token>/<saveFolder 配下> は 200（非退行）
 //   case 9  /local-file/<有効token>/<saveFolder 外> は 403
 //   case 10 token が randomUUID 形状で毎回異なる
-//   case 11 2回目の prepare 後、1回目の token は 404（セッション失効）
-//   case 12 shutdown 後は ECONNREFUSED、かつ同ポートで再 listen できる
+//   case 11 2回目の prepare() 後、1回目の token は 404（セッション失効）
+//   case 12 shutdown() 後は ECONNREFUSED、かつ同ポートで再 listen できる
 //   case 13 main.ts の win.on('close') / before-quit 双方から shutdown が呼ばれている（ソーステキスト）
 //   case 18 shutdown → prepare でポートが漂流しない（INV-3）
 //   case 19 競合ケースA（shutdown→prepare 発行）: 最終状態はサーバ存続
@@ -169,7 +169,7 @@ try {
       });
 
       // ============ case 22〜case 24: URL 契約の純関数（path.win32 注入。POSIX 環境で実行可） ============
-      // 受信側の分解は handle と同じ手順を再現する
+      // 受信側の分解は handle() と同じ手順を再現する
       function splitLocalFileUrl(urlPath: string) {
         const p = new URL(urlPath, 'http://127.0.0.1:1').pathname;
         const PREFIX = '/local-file/';

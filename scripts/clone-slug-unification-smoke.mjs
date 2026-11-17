@@ -43,7 +43,7 @@ const viewPath = path.join(projectRoot, 'src/views/PoiEdit.vue');
     'case 3: findLocalCloneSlug が useResourceDuplicate に定義されていること');
   assert.match(dupSrc, /export function normalizeCloneBase/,
     'case 3: normalizeCloneBase も同居していること');
-  // case 6: sanctioned wrapper を経由すること（生 check を UI 層に散らさない — case 17）
+  // case 6: sanctioned wrapper を経由すること（生 check を UI 層に散らさない — 共通の SlugField への移行と同じ方針）
   assert.match(dupSrc, /checkSlugAvailability/,
     'case 6: sanctioned wrapper checkSlugAvailability を経由すること');
 

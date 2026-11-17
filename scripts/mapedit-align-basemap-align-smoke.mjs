@@ -6,8 +6,8 @@
 //   case 21(b) applyShiftOverwrite の 2 回適用が「置換」であり加算でない（C-2 の上書き意味論）
 //   case 4  保持値が編集環境ストア（map_base_map_shift）以外へ書かれないことの静的確認:
 //        BaseMapEditDocument / 保存経路 / MapEditHistoryState のいずれにも当該フィールドが増えていない
-//        （2026-08-21 改訂: HR-6 が HR-4.3 の「非永続」を明示的に逆転させたため表題を改めた。
-//          個別 assert は C-3 v1.2 でも全部真のため原則維持 = 結果表 #2 / outer）
+//        （2026-08-21 改訂: 人間の判断で当初の「非永続」が逆転され、保持値を永続化することになったため表題を改めた。
+//          個別の assert は改訂後の取り決めでも全部真のため原則維持）
 //   case 16 シフト適用が単一実装（C-4）: source.mercatorXShift への代入が
 //        applyBaseMapShifts の中だけ・呼び出し 3 箇所以上
 //   case 6(c) 系（設計レビューの処方）: setupBaseMaps 末尾で setSwitchableBaseMaps を
@@ -99,15 +99,15 @@ try {
   console.log('[2/7] case 21(b): applyShiftOverwrite の置換意味論 OK');
 
   // ---------------------------------------------------------------- [3/7]
-  // : effectiveShiftOf — P1/P2 では対象だけ 0、他は保持値。P0 は保持値
+  // effectiveShiftOf — P1/P2 では対象だけ 0、他は保持値。P0 は保持値
   {
     const shifts = { mapA: { x: 5, y: 6 }, mapB: { x: 7, y: 8 } };
     assert.deepEqual(effectiveShiftOf(shifts, 'mapA', 'P0', null), { x: 5, y: 6 }, 'P0 で保持値が出ない');
-    assert.deepEqual(effectiveShiftOf(shifts, 'mapA', 'P1', 'mapA'), { x: 0, y: 0 }, 'P1 の対象が 0 でない（HR-4.6(e)）');
-    assert.deepEqual(effectiveShiftOf(shifts, 'mapB', 'P1', 'mapA'), { x: 7, y: 8 }, 'P1 の非対象が保持値でない（HR-4.7(d) の前提）');
+    assert.deepEqual(effectiveShiftOf(shifts, 'mapA', 'P1', 'mapA'), { x: 0, y: 0 }, 'P1 の対象が 0 でない');
+    assert.deepEqual(effectiveShiftOf(shifts, 'mapB', 'P1', 'mapA'), { x: 7, y: 8 }, 'P1 の非対象が保持値でない（後の検査の前提）');
     assert.deepEqual(effectiveShiftOf(shifts, 'mapA', 'P2', 'mapA'), { x: 0, y: 0 }, 'P2 の対象が 0 でない');
     assert.deepEqual(effectiveShiftOf(shifts, 'unknown', 'P0', null), { x: 0, y: 0 }, '未計測の既定が 0 でない');
-    assert.deepEqual(shifts.mapA, { x: 5, y: 6 }, 'effectiveShiftOf が保持値を書き換えた（: 保持値は変えない）');
+    assert.deepEqual(shifts.mapA, { x: 5, y: 6 }, 'effectiveShiftOf が保持値を書き換えた（保持値は変えない）');
   }
   console.log('[3/7] : effectiveShiftOf の相別実効値 OK');
 
@@ -158,7 +158,7 @@ try {
   console.log('[5/7] setupBaseMaps 末尾の切替制限復元 OK');
 
   // ---------------------------------------------------------------- [6/7]
-  // case 4 / case 23: 保持値は編集環境ストア以外へ書かない（2026-08-21 改訂・HR-6。
+  // case 4 / case 23: 保持値は編集環境ストア以外へ書かない（2026-08-21 改訂・人間の判断で永続化に変わった。
   // 永続化は map_base_map_shift（編集環境ストア）だけが担い、地図文書（Save 対象）・
   // BaseMapEditDocument・MapEditHistoryState（undo）には増えていないことを検査する
   {
@@ -200,7 +200,7 @@ try {
         assert.ok(val.length > 0, `case 18: ${lang} の mapedit.${key} が空`);
       }
       assert.equal(json.mapedit.mercator_x_shift, json.appedit.mercator_x_shift,
-        `case 18: ${lang} の mercator_x_shift が appedit と別文言（: 同一概念は同一語）`);
+        `case 18: ${lang} の mercator_x_shift が appedit と別文言（同一概念は同一語）`);
       assert.equal(json.mapedit.mercator_y_shift, json.appedit.mercator_y_shift,
         `case 18: ${lang} の mercator_y_shift が appedit と別文言`);
     }

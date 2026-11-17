@@ -1,14 +1,13 @@
 // スモーク: UUID originals lifecycle parity (rename/clone)。
 // originals-resolver-smoke・originals-migration-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // MapEditService.save() の rename/clone 分岐を behavioral に検証する。
-// /準拠。
 // シナリオ:
-//   Part A: rename、canonical 保有 map（変更なしの確認、AC-T4-1）
-//   Part B: rename、legacy-only map（basename 追随の既存動作確認、AC-T4-1）
-//   Part C: rename、naramachi 型 ambiguous legacy（2件併存）map（シナリオ分析の実証、AC-T4-1）
-//   Part D: clone、canonical-only 複製元（AC-T4-2 主要ケース、Part G の既知差異の解消確認）
-//   Part E: clone、legacy-only 複製元（AC-T4-2）
-//   Part F: clone、原本解決不能な複製元（best-effort skip の確認、AC-T4-2）
+//   Part A: rename、canonical 保有 map（変更なしの確認）
+//   Part B: rename、legacy-only map（basename 追随の既存動作確認）
+//   Part C: rename、naramachi 型 ambiguous legacy（2件併存）map（シナリオ分析の実証）
+//   Part D: clone、canonical-only 複製元（主要ケース。原本の解決の smoke の (G) にあった既知差異の解消確認）
+//   Part E: clone、legacy-only 複製元
+//   Part F: clone、原本解決不能な複製元（best-effort skip の確認）
 //
 // (OS ゴミ箱移行) による改修:
 //   旧 Part G（trash move）/ Part H（rollback）/ Part I（ambiguous legacy 残置）の検証意図は、
@@ -141,7 +140,7 @@ try {
       }
 
       // ============================================================
-      // Part A: rename、canonical 保有 map（変更なしの確認、AC-T4-1）
+      // Part A: rename、canonical 保有 map（変更なしの確認）
       // ============================================================
       {
         const { dataDir, originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-a'))});
@@ -172,18 +171,18 @@ try {
           uid: UID_A1,
         });
         assert.equal(saveA1Rename.result, 'Success', 'rename は成功するはず: ' + JSON.stringify(saveA1Rename));
-        assert.ok(await fs.pathExists(canonicalA1), 'canonical original file name は rename で変わらないはず (AC-T4-1)');
+        assert.ok(await fs.pathExists(canonicalA1), 'canonical original file name は rename で変わらないはず');
         const canonicalA1BytesAfter = await fs.readFile(canonicalA1);
         assert.ok(canonicalA1BytesBefore.equals(canonicalA1BytesAfter), 'canonical の内容も不変のはず');
         assert.ok(
           !(await fs.pathExists(path.join(originalsDir, 'a1-renamed.jpg'))),
           'rename で legacy(新slugキー) の originals ファイルが新規に作られてはいけない'
         );
-        console.log('ok: (Part A) rename leaves canonical original untouched (AC-T4-1)');
+        console.log('ok: (Part A) rename leaves canonical original untouched');
       }
 
       // ============================================================
-      // Part B: rename、legacy-only map（basename 追随の既存動作確認、AC-T4-1）
+      // Part B: rename、legacy-only map（basename 追随の既存動作確認）
       // ============================================================
       {
         const { originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-b'))});
@@ -211,11 +210,11 @@ try {
           !(await fs.pathExists(path.join(originalsDir, UID_B1 + '.jpg'))),
           'legacy-only map の rename で canonical(uid キー) は作られないはず'
         );
-        console.log('ok: (Part B) rename follows legacy basename to new slug (existing behavior, AC-T4-1)');
+        console.log('ok: (Part B) rename follows legacy basename to new slug (existing behavior)');
       }
 
       // ============================================================
-      // Part C: rename、naramachi 型 ambiguous legacy（2件併存）map（AC-T4-1）
+      // Part C: rename、naramachi 型 ambiguous legacy（2件併存）map
       // ============================================================
       {
         const { originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-c'))});
@@ -255,11 +254,11 @@ try {
           !(await fs.pathExists(path.join(originalsDir, 'c1-ambiguous-map.png'))),
           '追随した png は旧 slug 名では消えているはず'
         );
-        console.log('ok: (Part C) naramachi-style ambiguous legacy rename does not crash; only the DB-imageExtension-matching file follows (AC-T4-1)');
+        console.log('ok: (Part C) naramachi-style ambiguous legacy rename does not crash; only the DB-imageExtension-matching file follows');
       }
 
       // ============================================================
-      // Part D: clone、canonical-only 複製元（AC-T4-2 主要ケース）
+      // Part D: clone、canonical-only 複製元（主要ケース）
       // ============================================================
       {
         const { originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-d'))});
@@ -293,7 +292,7 @@ try {
         });
         assert.equal(saveDDest.result, 'Success');
         const destCanonical = path.join(originalsDir, UID_D_DEST + '.jpg');
-        assert.ok(await fs.pathExists(destCanonical), 'clone 先の canonical(uidキー) が作られるはず (AC-T4-2)');
+        assert.ok(await fs.pathExists(destCanonical), 'clone 先の canonical(uidキー) が作られるはず');
         assert.equal(
           await fs.readFile(destCanonical, 'utf8'),
           await fs.readFile(srcCanonical, 'utf8'),
@@ -303,11 +302,11 @@ try {
           !(await fs.pathExists(path.join(originalsDir, 'd1-clone-dest.jpg'))),
           'clone 先には legacy(slugキー) の originals ファイルは作られないはず(Part G の既知差異の解消)'
         );
-        console.log('ok: (Part D) clone from canonical-only source copies resolved original to dest canonical (AC-T4-2)');
+        console.log('ok: (Part D) clone from canonical-only source copies resolved original to dest canonical');
       }
 
       // ============================================================
-      // Part E: clone、legacy-only 複製元（AC-T4-2）
+      // Part E: clone、legacy-only 複製元
       // ============================================================
       {
         const { originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-e'))});
@@ -328,7 +327,7 @@ try {
         });
         assert.equal(saveEDest.result, 'Success');
         const destCanonical = path.join(originalsDir, UID_E_DEST + '.jpg');
-        assert.ok(await fs.pathExists(destCanonical), 'legacy-only 複製元でも複製先 canonical が作られるはず (AC-T4-2)');
+        assert.ok(await fs.pathExists(destCanonical), 'legacy-only 複製元でも複製先 canonical が作られるはず');
         assert.equal(await fs.readFile(destCanonical, 'utf8'), 'legacy-src-bytes-e1');
         assert.ok(
           !(await fs.pathExists(path.join(originalsDir, 'e1-clone-dest-legacy.jpg'))),
@@ -343,11 +342,11 @@ try {
           'legacy-src-bytes-e1',
           '複製元の内容も不変のはず'
         );
-        console.log('ok: (Part E) clone from legacy-only source copies resolved original to dest canonical, source untouched (AC-T4-2)');
+        console.log('ok: (Part E) clone from legacy-only source copies resolved original to dest canonical, source untouched');
       }
 
       // ============================================================
-      // Part F: clone、原本解決不能な複製元（best-effort skip の確認、AC-T4-2）
+      // Part F: clone、原本解決不能な複製元（best-effort skip の確認）
       // ============================================================
       {
         const { originalsDir } = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-f'))});
@@ -366,7 +365,7 @@ try {
           copyFromUid: UID_F_SRC,
           create: true,
         }));
-        assert.equal(saveFDest.result, 'Success', '原本が解決不能でも clone 自体は成功するはず (best-effort, milestone )');
+        assert.equal(saveFDest.result, 'Success', '原本が解決不能でも clone 自体は成功するはず (best-effort)');
         assert.ok(
           !(await fs.pathExists(path.join(originalsDir, UID_F_DEST + '.jpg'))),
           '原本が解決不能なら複製先 canonical は作られないはず'
@@ -375,7 +374,7 @@ try {
           warnings.some((w) => w.includes('source original unresolved')),
           '原本解決不能時は console.warn で記録されるはず: ' + JSON.stringify(warnings)
         );
-        console.log('ok: (Part F) clone from unresolvable source succeeds (tiles/tmbs only) with a warning, no original copy (AC-T4-2)');
+        console.log('ok: (Part F) clone from unresolvable source succeeds (tiles/tmbs only) with a warning, no original copy');
       }
 
       // ============================================================
@@ -383,7 +382,7 @@ try {
       // - G/H/I の検証意図は scripts/os-trash-delete-smoke.mjs の Part A〜D が
       //   新契約 (DB delete 先行 → shell.trashItem・rollback 廃止) の上位互換として引き継ぐ
       // - J/K/L/M は検証対象の機構 (MapTrashReconcileService / 独自 trash 保持) 自体が廃止
-      //   (根拠: )
+      //   (根拠: OS のゴミ箱への移行で、独自の trash の保持をやめた)
       // ============================================================
 
       console.log('originals lifecycle smoke passed');

@@ -12,7 +12,7 @@
 //   2. 破棄を押し、asset-drafts:remove を止める（envelope の削除の途中）
 //   3. slug の確認を通して「使用できます」まで進める（ここで flush が走る）
 //   4. remove を通し、一覧へ戻った後に envelope が無いことを確かめる
-// 2 本目は 3 の代わりに文書を変える（watcher → schedule(true)。case 20-3 の失敗で実測した
+// 2 本目は 3 の代わりに文書を変える（watcher → schedule(true)。以前の下書きの e2e の失敗で実測した
 // 書き戻しの経路。画像の取込み後の非同期の変化で起きていた）。新規の破棄は endSession で守る。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';

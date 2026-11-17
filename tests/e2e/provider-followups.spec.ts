@@ -82,7 +82,7 @@ test('provider kind hides url field in AppSourceEditor; ContextHelp shows only w
     await page.getByTestId(`app-basemap-row-${tmsSlug}`).click();
     const tmsSource = page.getByTestId(`app-selected-source-${tmsSlug}`);
     await expect(tmsSource).toBeVisible();
-    // case 14: tms でも url 欄は出ない（その後、注記は削除された）
+    // tms でも url 欄は出ない（その後、注記は削除された）
     await expect(tmsSource.getByTestId('app-source-url-field')).toHaveCount(0);
     await expect(tmsSource.getByTestId('app-source-url')).toHaveCount(0);
     await expect(tmsSource.getByTestId('app-source-url-note'), '注記は削除された').toHaveCount(0);

@@ -6,7 +6,7 @@
 // case 12: 11言語ロケールに Google キーがある
 // case 13 相当: smoke 更新対象の分岐をここでも確認
 // case 16: 既定サムネイルパスの定数整合（document 値は UI 側。payload thumbnail は別経路）
-// case 1/case 3: icons exist ブロックへ単色プレースホルダ検出・寸法検証を追加
+// case 3: icons exist ブロックへ単色プレースホルダ検出・寸法検証を追加
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -25,7 +25,7 @@ const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relat
 
 const GOOGLE_MAPTYPES = ["google_roadmap", "google_satellite", "google_hybrid", "google_terrain"];
 
-// : 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
+// 単色プレースホルダでないことの検証（6x6 グリッドサンプルで distinct 色数を数える）
 async function assertNotSolidColor(filePath, label) {
   // 512px は webp。Jimp は webp を decode できないため共通リーダーへ委譲する
   const img = await readImageRGBA(filePath);
@@ -42,7 +42,7 @@ async function assertNotSolidColor(filePath, label) {
   assert.ok(seen.size >= 4, `${label}: 単色プレースホルダの疑い（distinct=${seen.size}）`);
 }
 
-// : 寸法検証（assertNotSolidColor とは独立に読み直す）
+// 寸法検証（assertNotSolidColor とは独立に読み直す）
 async function assertDimensions(filePath, expected, label) {
   const img = await readImageRGBA(filePath);
   const { width, height } = img;
@@ -162,7 +162,7 @@ try {
   assert.equal("maptype" in payloadTms.tms, false, "case 3: tms は maptype を出力しない");
 
   // ---- case 7 ----
-  // case 13 と同型: master は data を剥がした内部形（mapID/kind/maptype がトップレベル）
+  // 以前の書き出しの検査と同型: master は data を剥がした内部形（mapID/kind/maptype がトップレベル）
   const masterGoogle = {
     mapID: "g-road",
     lang: "ja",
@@ -219,14 +219,14 @@ try {
     assert.ok(buf.length > 0, `icon google_${suffix}.png exists`);
   }
 
-  // ---- case 1: 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----
+  // ---- 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----
   for (const suffix of ["roadmap", "satellite", "hybrid", "terrain"]) {
     const icon = path.join(projectRoot, "public/basemap_icons", `google_${suffix}.png`);
     await assertNotSolidColor(icon, `google_${suffix}.png (52px)`);
     await assertDimensions(icon, 52, `google_${suffix}.png (52px)`);
   }
 
-  // ---- case 2/case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
+  // ---- case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
   for (const suffix of ["roadmap", "satellite", "hybrid", "terrain"]) {
     const icon512 = path.join(projectRoot, "public/basemap_icons_512", `google_${suffix}.webp`);
     const stat512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));

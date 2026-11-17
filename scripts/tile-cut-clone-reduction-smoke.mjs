@@ -204,7 +204,7 @@ await writeFile(
     // Part 2: 性能（AC-P1 / AC-P2 / AC-P3）
     //
     // 同一プロセス・同一入力・同一矩形列で新旧 2 本の抽出経路を回す A/B。
-    // 過去の別マシンの記録（FUTURE_PLAN の 41 秒 / smoke ヘッダの約 65 秒）は
+    // 過去の別マシンの記録（FUTURE_PLAN の 41 秒 / タイル切り出しの smoke ヘッダの約 65 秒）は
     // 1.6〜1.8 倍食い違っているため、しきい値の基礎に使わない。
     //
     // フィクスチャ 4096x4096: 幅が 256 の 2 冪倍ちょうどのため最低ズームがショートカット分岐に
@@ -300,8 +300,7 @@ await writeFile(
     // Part 4: 圧縮元バッファの解放（AC-P4）
     //
     // 本項が保証するのは「Jimp.fromBuffer 以降に圧縮元バッファへの参照を残さないコード形状」
-    // までである（jpeg-js が入力 Buffer への参照を内部に保持しないことまでは検証していない。
-    //）。
+    // までである（jpeg-js が入力 Buffer への参照を内部に保持しないことまでは検証していない）。
     // ============================================================
     {
       const servicePath = nodePath.join(projectRoot, 'electron/services/MapUploadService.ts');
@@ -346,7 +345,7 @@ await writeFile(
       // 5% 刻み + 30 秒 heartbeat で送信を throttle するため send 回数 != update 回数である。
       // さらに heartbeat は実時間依存であり、本タスクは実行時間そのものを変える。
       // ∴ 回数は update の spy で数え、send の記録は**内容**の確認にのみ使う
-      //（の訂正）。
+      //（設計レビューの指摘による訂正）。
       const { ProgressReporter } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/ProgressReporter.ts'))});
       const updateArgs = [];
       const originalUpdate = ProgressReporter.prototype.update;

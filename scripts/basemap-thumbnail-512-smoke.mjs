@@ -1,5 +1,4 @@
 // smoke: ベースマップ管理のサムネイル操作を地図管理と同型にする（512px/52px）。
-//。
 //
 // 対象ケースと対応 AC:
 //   S1  thumb512PathFor の全域性 + ビルトイン 329 件の thumbnail512 明示属性との完全一致   -> case 1
@@ -211,7 +210,7 @@ const runLateStaticChecks = async () => {
   const pkg = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
   const wired = Object.entries(pkg.scripts).filter(([, v]) => v.includes('basemap-thumbnail-512'));
   assert.equal(wired.length, 2,
-    `case 14: package.json に smoke / e2e が結線されている（実測 ${wired.length}: ${JSON.stringify(wired)}）`);
+    `case 14: package.json にこの smoke / e2e が結線されている（実測 ${wired.length}: ${JSON.stringify(wired)}）`);
 
   console.log('ok: S9 grep 系 AC（case 2 a/b/c/d）');
 }
@@ -431,7 +430,7 @@ await writeFile(
       const UID = 'ffffffff-6666-4666-8666-ffffffffffff';
       const coverage = [[139.7, 35.6], [139.8, 35.7]];
 
-      // 未保存の新規ベースマップ: 以降、iconFileKey は未保存でも事前採番の uid を返す
+      // 未保存の新規ベースマップ: 以降、iconFileKey() は未保存でも事前採番の uid を返す
       // （旧: slug＝暫定名で書き、初回保存で uid 名へ付け替えていた）
       const gen = await AppAssetService.generateTmsThumbnail(UID, { url: tmsUrl, minZoom: 0, maxZoom: 18 }, coverage);
       server.close();

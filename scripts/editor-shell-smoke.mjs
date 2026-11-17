@@ -183,7 +183,7 @@ assert.match(mapEdit, /editor_ui\.export_dirty_prompt/);
 assert.match(mapEdit, /editor_ui\.export_save_and_run/);
 assert.match(mapEdit, /editor_ui\.export_saved_only/);
 assert.match(mapEdit, /editor_ui\.busy_exporting/);
-// downloadSavedMap は previewSource()+download の2段呼び出しから
+// downloadSavedMap() は previewSource()+download() の2段呼び出しから
 // window.mapedit.downloadSaved(mapUid.value) の単一呼び出しへ切替わった
 assert.match(mapEdit, /window\.mapedit\.downloadSaved\(mapUid\.value/);
 assert.doesNotMatch(mapEdit, /:disabled="disabled \|\| !!saveError \|\| exporting"/);
@@ -195,7 +195,7 @@ const mapMenuHandler = mapEdit.slice(
   mapEdit.indexOf('/**', mapEdit.indexOf('const onMainProcessMessage =')),
 );
 assert.match(mapMenuHandler, /if \(saving\.value \|\| exporting\.value\) return/);
-// modalShow への引数は t ラップなしの i18n key 直接渡しへ統一された
+// modalShow への引数は t() ラップなしの i18n key 直接渡しへ統一された
 assert.match(mapEdit, /modalShow\(['"]editor_ui\.busy_exporting['"]\)/);
 assert.doesNotMatch(
   mapEdit,

@@ -6,7 +6,7 @@
 //   case 2  decoderHeapMB が実 Electron main の実測と ±10% で一致する
 //   case 3  jpegDecodeBudget.ts が electron / electron-store / v8 のいずれも import しない
 //   case 4  JPEG でない入力・SOF 不能で null（例外を投げない）— large-image-decode-limits から継承
-//   case 5  resolveDecodeSafety が heap_size_limit を実行時に読み、定数を焼き込んでいない
+//   case 5  resolveDecodeSafety() が heap_size_limit を実行時に読み、定数を焼き込んでいない
 //   case 6  実測トリガ級（470 MP 4:4:4）が maxResolutionMP を下回る。
 //        **機体依存 assert を書かない** — 期待値は heapSizeLimitMB から式で導出し、
 //        470 の追加 assert は heap >= 4096 の機体でのみ行う

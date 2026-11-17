@@ -102,7 +102,7 @@ try {
     '#10 updateWholeGcps の保全注記が欠落している',
   );
 
-  // #11 wmtsGenerate: MapEdit.vueの新規mercタブから到達可能になった（関数名は維持）
+  // #11 wmtsGenerate(): MapEdit.vueの新規mercタブから到達可能になった（関数名は維持）
   assert.match(
     mapEdit,
     /vueMap\.\$on\('wmtsGenerate'\) 相当\n\/\/ M12-T22: 本ロジックはm6-t8でMapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\n\/\/ （M12-T22が転用予定としていたM4-\(2\)に対応）。関数名\(wmtsGenerate\)は維持し、呼び出し元の\n\/\/ ボタンのみ休眠inoutタブから新規mercタブへ移設した（設計 §3\.2）。有効条件: wmtsEditReady\n[\s\S]{0,300}async function wmtsGenerate\(\): Promise<void> \{/,

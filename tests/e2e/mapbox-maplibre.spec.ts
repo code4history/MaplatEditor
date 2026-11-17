@@ -93,10 +93,10 @@ test('maplibre マスタ保存 → プレビュー HTML へ maplibre-gl CDN が�
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
-    // case 5: 一覧行の既定サムネイルが実描画される（保存直後、/basemaps master-detail の左ペインに残る）
+    // 一覧行の既定サムネイルが実描画される（保存直後、/basemaps master-detail の左ペインに残る）
     await assertRowThumbnailRendered(page, 'e2e-fx-maplibre');
 
-    // case 5: mapbox は selectKind の既定サムネ設定（BaseMapEdit.vue:516,518）を通すため
+    // mapbox は selectKind の既定サムネ設定（BaseMapEdit.vue:516,518）を通すため
     // IPC seed ではなく UI 経由で作成する（IPC seed は thumbnail が空のまま残る）。
     // エディタ用 Mapbox トークンはこのテスト冒頭の seedE2EProviderKeys(page) で
     // BaseMapEdit の唯一のマウント点（直前の maplibre 作成時の basemap-new）より前に
@@ -114,7 +114,7 @@ test('maplibre マスタ保存 → プレビュー HTML へ maplibre-gl CDN が�
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
-    // case 5: mapbox 行の既定サムネイルが実描画される
+    // mapbox 行の既定サムネイルが実描画される
     await assertRowThumbnailRendered(page, 'e2e-fx-mapbox-thumb');
 
     // 保存データに maptype/style が載っている（case 2 の永続化側）
@@ -271,7 +271,7 @@ test('provider マスタは MapEdit 背景選択の両ペインに表示され�
     await expect(page.locator('[data-testid="map-selected-basemap-e2e-fx-ml-hidden"]')).toHaveCount(0);
     await expect(page.locator('[data-testid="map-selected-basemap-e2e-fx-mb-hidden"]')).toHaveCount(0);
     // 非 provider（osm）は従来どおり選択済みペインに出る（フィルタの誤爆が無いこと。
-    // osm は locked=常時表示のため右ペイン側を見る。91 と同じ定点）
+    // osm は locked=常時表示のため右ペイン側を見る。ベースマップ選択の 2 ペインの spec と同じ定点）
     await expect(page.locator('[data-testid="map-selected-basemap-osm"]')).toBeVisible({ timeout: 15000 });
 
     expect(pageErrors).toEqual([]);

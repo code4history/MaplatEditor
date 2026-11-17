@@ -1,4 +1,4 @@
-// Phase 4 Task 4: usePoiEditSession composable smoke (unit, vite lib build)
+// usePoiEditSession composable smoke (unit, vite lib build)
 // POI エディタの編集セッション（明示 commit = 1 Undo 単位、structural sharing、
 // UndoStack<PoiEditState> 委譲）を検証する。
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';

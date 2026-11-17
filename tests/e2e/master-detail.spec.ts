@@ -152,7 +152,7 @@ test('Base Map and Image Asset master-detail editors preserve checkpoint, draft,
     // オブジェクトへの代入で無効(実際には遅延しない)ことが診断で判明。overlay は一瞬しか
     // 表示されず toBeVisible が並列負荷時に取り逃すため、overlay 可視化 assertion は撤去し
     // 保存完了(URL/save-state)で検証する。busy overlay 自体のカバレッジは別の e2e(Export Busy)
-    // と smoke(のソース検査)が保持する
+    // とマスター・ディテールの smoke のソース検査が保持する
     await expect(page.getByTestId('editor-save')).toBeEnabled({ timeout: 10_000 });
     await expect(page.getByTestId('editor-save-state')).toHaveText(/未保存|下書きから復元/, { timeout: 10_000 });
     await page.getByTestId('editor-save').click();

@@ -1,4 +1,4 @@
-// Phase 4 Task 5/6: PoiEdit エディタのソースパターン smoke。
+// PoiEdit エディタのソースパターン smoke。
 // Task 5: /poisources/:sourceId が PoiEdit へ置き換わり、保存 (useRevisionedAssetSave) と
 // 編集セッション (usePoiEditSession)、slug 一意性 (checkSlug excludeUid)、ReadOnly 分岐
 // (cloneToLocal)、LangResourceInput が配線されていることを検証する。
@@ -10,10 +10,10 @@
 // Task 8: feature 一覧 (PoiFeatureList) の存在と PoiEdit 配線、自前 windowing
 // (spacer + scrollTop)、フィルタ対象 (表示 ID / name / desc)、scroll-to-selected、
 // 新規作成 = mapSession.addFeature 経由、readOnly ガードを検証する。
-// Phase 5 Task 2: raw GeoJSON 双方向ペイン (PoiRawPane) の存在と PoiEdit 配線、
+// raw GeoJSON 双方向ペイン (PoiRawPane) の存在と PoiEdit 配線、
 // toExportForm/fromExportForm 配線、Apply = session.commit 1 回 (=1 Undo)、
 // level==='error' ガード、規模ガード (poiGeoJson の export 定数)、readOnly を検証する。
-// Phase 6 Task 4: AssetPicker (icon/image 共用モーダル) の存在と PoiAttributeForm 配線
+// AssetPicker (icon/image 共用モーダル) の存在と PoiAttributeForm 配線
 // (icon/selectedIcon の解釈表示 + picker + クリア + 手入力 fallback、image 行 picker)、
 // parseIconRef/isRegisteredIconSet 使用、未登録 setId / 未存在 asset 警告、
 // 既存 onIconChange/onImageChange 確定経路の維持 (Undo 粒度不変)、readOnly を検証する。
@@ -75,7 +75,7 @@ try {
     'PoiEdit が useRevisionedAssetSave を使っていない'
   );
 
-  // 編集セッション: 明示 commit = 1 Undo 単位 (仕様 )
+  // 編集セッション: 明示 commit = 1 Undo 単位
   assert.match(
     poiEdit,
     /usePoiEditSession/,
@@ -101,7 +101,7 @@ try {
     'PoiEdit に poiedit.confirm_no_save 離脱確認がない'
   );
 
-  // slug 一意性チェック: case 17 で共通 SlugField へ移行(内部で excludeUid=自 uid の
+  // slug 一意性チェック: 共通 SlugField へ移行(内部で excludeUid=自 uid の
   // checkSlug 合成を行う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの「自分の現 slug は空き扱い」は asset-uid prop が担う)
   assert.match(
     poiEdit,
@@ -238,7 +238,7 @@ try {
     'LangResourceInput が入力毎 (@input) に emit している'
   );
 
-  // multiline / warning props (html XSS 警告用、POI-109)
+  // multiline / warning props (html XSS 警告用)
   assert.match(
     langResourceInput,
     /multiline\?\s*:\s*boolean/,
@@ -415,7 +415,7 @@ try {
     /baseMaps\.list/,
     'overlayBaseMaps が window.baseMaps.list で base map 一覧を取っていない'
   );
-  // t1 HR-2 : renderer の /tms_list.json fetch は廃止。PoiEditMap 単体でなく
+  // renderer の /tms_list.json fetch は廃止。PoiEditMap 単体でなく
   // src/ 全域で参照 0 件が要件（コメント含む）。PoiEdit 専用 smoke への MapEdit 側
   // 検査混在は 設計レビュー Info 4 で許容済み（case 3 の正 = src/ 全域での消失のため）
   assert.doesNotMatch(
@@ -442,7 +442,7 @@ try {
     assert.deepStrictEqual(
       hits,
       [],
-      `renderer (src/) に tms_list 参照が残っている（t1 HR-2 で廃止済み）: ${hits.join(', ')}`
+      `renderer (src/) に tms_list 参照が残っている（廃止済み）: ${hits.join(', ')}`
     );
   }
   assert.match(
@@ -477,7 +477,7 @@ try {
     'PoiEditMap に生 ipcRenderer 使用が残存している'
   );
 
-  // icon 読み込み失敗フォールバック (Phase 8 品質): new Image の preload
+  // icon 読み込み失敗フォールバック (品質の確認での追加): new Image() の preload
   // チェックで onerror 時に標準ピンへ差し替え、scheduleIconRedraw で再描画すること
   assert.match(
     poiEditMap,
@@ -571,7 +571,7 @@ try {
     'PoiAttributeForm が LangResourceInput を使っていない'
   );
 
-  // html の XSS 警告 (POI-109、サニタイズはしない)
+  // html の XSS 警告 (サニタイズはしない)
   assert.match(
     attrForm,
     /poiedit\.html_xss_warning/,
@@ -711,7 +711,7 @@ try {
     'PoiEdit が PoiFeatureList の create を受けていない'
   );
 
-  // 行選択の実行責務は PoiEdit 側: selectedUid 書き込み + 明示 pan (仕様 )
+  // 行選択の実行責務は PoiEdit 側: selectedUid 書き込み + 明示 pan
   assert.match(
     poiEdit,
     /session\.selectedUid\.value = uid/,
@@ -859,7 +859,7 @@ try {
 
   console.log('  [8/11] PoiFeatureList.vue feature list wiring: PASS');
 
-  // --- Part 9 (Phase 5 Task 2): raw GeoJSON 双方向ペイン (PoiRawPane) ---
+  // --- Part 9: raw GeoJSON 双方向ペイン (PoiRawPane) ---
   const rawPane = await readFile(
     path.join(projectRoot, 'src/components/PoiRawPane.vue'),
     'utf8'
@@ -918,7 +918,7 @@ try {
   );
 
   // 表示: toExportForm (座標丸めなし — Write Store の精度を劣化させない)、
-  // Apply: fromExportForm (Feature.id で UID 照合、POI-136)
+  // Apply: fromExportForm (Feature.id で UID 照合)
   assert.match(
     rawPane,
     /toExportForm/,
@@ -935,7 +935,7 @@ try {
     'PoiRawPane の表示が roundCoordinates:false でない (座標が劣化する)'
   );
 
-  // Apply = session.commit 1 回のみ (= 1 Undo、仕様 )。features/slug/title/layerMeta を
+  // Apply = session.commit 1 回のみ (= 1 Undo)。features/slug/title/layerMeta を
   // 同一 commit で差し替える
   assert.equal(
     (rawPane.match(/session\.commit\(/g) || []).length,
@@ -971,7 +971,7 @@ try {
     'PoiRawPane が poiSourceMessages.issueMessage を使っていない'
   );
 
-  // 規模ガード (POI-141): poiGeoJson の export 定数を使い readOnly 化 (再定義禁止)
+  // 規模ガード: poiGeoJson の export 定数を使い readOnly 化 (再定義禁止)
   assert.match(
     rawPane,
     /SCALE_FEATURE_COUNT/,
@@ -1045,7 +1045,7 @@ try {
     'PoiRawPane に生 ipcRenderer 使用が残存している'
   );
 
-  // Phase 5 品質レビュー MINOR: localDirty 化時点の snapshot と比較した stale notice
+  // 品質レビューの指摘: localDirty 化時点の snapshot と比較した stale notice
   assert.match(
     rawPane,
     /raw_stale_notice/,
@@ -1057,7 +1057,7 @@ try {
     'PoiRawPane が dirty 化時点の snapshot を保持していない (stale 判定ができない)'
   );
 
-  // Phase 5 品質レビュー MINOR: FC.id (slug) が string でない場合はエラー化して適用不可
+  // 品質レビューの指摘: FC.id (slug) が string でない場合はエラー化して適用不可
   assert.match(
     rawPane,
     /raw_id_not_string/,
@@ -1066,7 +1066,7 @@ try {
 
   console.log('  [9/11] PoiRawPane.vue raw GeoJSON pane wiring: PASS');
 
-  // --- Part 10 (Phase 6 Task 4): AssetPicker + PoiAttributeForm の picker 配線 ---
+  // --- Part 10: AssetPicker + PoiAttributeForm の picker 配線 ---
   const assetPicker = await readFile(
     path.join(projectRoot, 'src/components/AssetPicker.vue'),
     'utf8'
@@ -1095,7 +1095,7 @@ try {
   );
 
   // タブ: Icon set は mode:'icon' のみ表示。registry (listIconSets) + formatIconRef で
-  // `{setId}:{iconId}` を組み立てる (hardcode 分岐禁止、仕様 )
+  // `{setId}:{iconId}` を組み立てる (hardcode 分岐禁止)
   assert.match(
     assetPicker,
     /v-if="mode === 'icon'"/,
@@ -1163,7 +1163,7 @@ try {
   );
 
   // PoiAttributeForm 配線: image 行 picker は AssetPicker 直接、icon/selectedIcon 2 欄は
-  // 共通部品 IconRefField (Phase 8 Task 2 で挙動不変抽出。PoiReferenceEditor と共用)
+  // 共通部品 IconRefField (挙動を変えずに抽出。PoiReferenceEditor と共用)
   const iconRefField = await readFile(
     path.join(projectRoot, 'src/components/IconRefField.vue'),
     'utf8'
@@ -1245,7 +1245,7 @@ try {
   assert.match(
     iconRefField,
     /v-model="input"/,
-    'IconRefField の手入力 text 欄 (参照文法の直書き, POI-139) が残っていない'
+    'IconRefField の手入力 text 欄 (参照文法の直書き) が残っていない'
   );
   assert.match(
     iconRefField,
@@ -1289,7 +1289,7 @@ try {
     'IconRefField に生 ipcRenderer 使用が残存している'
   );
 
-  // pickerOpen ガード (Phase 6 品質): picker 表示中はグローバルキー
+  // pickerOpen ガード (品質の確認での追加): picker 表示中はグローバルキー
   // (undo/redo/Delete/menu:undo/redo) を抑止する。PoiAttributeForm が pickerOpen を expose し、
   // PoiEdit の3ハンドラがそれぞれ先頭でガードすること
   assert.match(
@@ -1298,7 +1298,7 @@ try {
     'PoiAttributeForm が pickerOpen を defineExpose していない'
   );
   // pickerOpen は image 行 picker + IconRefField 内蔵の icon picker ×2 を集約すること
-  // (IconRefField 抽出 [Phase 8] で icon picker が子コンポーネントに移ったため)
+  // (IconRefField の抽出で icon picker が子コンポーネントに移ったため)
   assert.match(
     attrForm,
     /pickerAssetVisible\.value \|\|\s*\n\s*!!iconFieldRef\.value\?\.pickerOpen \|\|\s*\n\s*!!selectedIconFieldRef\.value\?\.pickerOpen/,
@@ -1335,7 +1335,7 @@ try {
 
   console.log('  [10/11] AssetPicker + PoiAttributeForm picker wiring: PASS');
 
-  // --- Part 11 (Phase 8 Task 1): PoiEdit 右ペイン分配 + マーカーアイコン反映 ---
+  // --- Part 11: PoiEdit 右ペイン分配 + マーカーアイコン反映 ---
 
   // 右ペイン CSS: フォーム優先の固定分配 (flex: 0 0 auto + max-height 55%)、
   // 一覧は残り高さ (flex: 1 1 0 + min-height)。大量 feature でもフォームが潰れない
@@ -1431,7 +1431,7 @@ try {
     'PoiEditMap の markerStyle が標準ピンへフォールバックしていない'
   );
   // 標準ピンはビューア (MaplatCore) と同じ defaultpin.png / defaultpin-selected.png
-  // (Phase 8 Task 4, ユーザー決定 2026-07-11。旧・インライン SVG 生成器は廃止)
+  // (ユーザーの決定 2026-07-11。旧・インライン SVG 生成器は廃止)
   assert.match(
     poiEditMap,
     /"icons\/builtin\/defaultpin\.png"/,
