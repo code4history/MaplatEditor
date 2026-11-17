@@ -27,7 +27,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-const fixturesRoot = path.join(projectRoot, 'tests/fixtures/wiki-screenshots-basic-migration-pipeline');
+const fixturesRoot = path.join(projectRoot, 'tests/fixtures/migration-pipeline');
 const artifactDir = path.join(projectRoot, 'test-results', 'wiki-screenshots-basic-screenshots');
 
 // takabatake_kozu1 の legacy-nedb-lines.ndjson `compiled.points` をそのまま modern

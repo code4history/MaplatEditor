@@ -49,7 +49,7 @@ type Gates = { slugCalls: number; removeCalls: number; putCalls: number; release
 // 元の handler の処理は関門の後でそのまま行う（main の実装を呼ぶ）。
 async function installGates(app: ElectronApplication): Promise<void> {
   await app.evaluate(async ({ ipcMain }) => {
-    const g = globalThis as unknown as { _fx: Gates; __fxOrig: Record<string, (...a: unknown[]) => unknown> };
+    const g = globalThis as unknown as { __fx: Gates; __fxOrig: Record<string, (...a: unknown[]) => unknown> };
     // ipcMain の handler は公開 API で取り出せないため、内部の表から元の関数を拾う
     const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, (...a: unknown[]) => unknown> })._invokeHandlers;
     const orig = {
@@ -65,26 +65,26 @@ async function installGates(app: ElectronApplication): Promise<void> {
     g.__fx = { slugCalls: 0, removeCalls: 0, putCalls: 0, releaseSlug, releaseRemove };
     ipcMain.removeHandler('slug-reservations:check');
     ipcMain.handle('slug-reservations:check', async (...args: unknown[]) => {
-      g._fx.slugCalls += 1;
+      g.__fx.slugCalls += 1;
       await slugGate;
       return orig.check(...args);
     });
     ipcMain.removeHandler('asset-drafts:remove');
     ipcMain.handle('asset-drafts:remove', async (...args: unknown[]) => {
-      g._fx.removeCalls += 1;
+      g.__fx.removeCalls += 1;
       await removeGate;
       return orig.remove(...args);
     });
     ipcMain.removeHandler('asset-drafts:put');
     ipcMain.handle('asset-drafts:put', async (...args: unknown[]) => {
-      g._fx.putCalls += 1;
+      g.__fx.putCalls += 1;
       return orig.put(...args);
     });
   });
 }
 
 const gateCount = (app: ElectronApplication, key: 'slugCalls' | 'removeCalls' | 'putCalls') =>
-  app.evaluate((_e, k) => (globalThis as unknown as { _fx: Gates })._fx[k], key);
+  app.evaluate((_e, k) => (globalThis as unknown as { __fx: Gates }).__fx[k], key);
 
 async function launchWithRestoredDraft(): Promise<{ app: ElectronApplication; page: Page; draftUid: string }> {
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-discard-'));
@@ -120,8 +120,8 @@ async function launchWithRestoredDraft(): Promise<{ app: ElectronApplication; pa
 
 async function finishAndAssertNoRewrite(app: ElectronApplication, page: Page, draftUid: string): Promise<void> {
   // 4. remove を通す → 一覧へ戻る（unmount の flushSync もここで走る）
-  await app.evaluate(() => (globalThis as unknown as { _fx: Gates })._fx.releaseSlug());
-  await app.evaluate(() => (globalThis as unknown as { _fx: Gates })._fx.releaseRemove());
+  await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
+  await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseRemove());
   await expect(page.getByTestId('map-title')).toBeHidden({ timeout: 15_000 });
   await expect(page.locator('.resource-list__toolbar')).toBeVisible({ timeout: 15_000 });
 
@@ -135,7 +135,7 @@ test('新規地図の下書きを破棄した後、slug の確認が遅れて完
   const { app, page, draftUid } = await launchWithRestoredDraft();
   try {
     // 3. slug の確認を通し、編集画面が「使用できます」に落ちるまで進める（ここで flush が走る）
-    await app.evaluate(() => (globalThis as unknown as { _fx: Gates })._fx.releaseSlug());
+    await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
     await expect(page.getByText('使用できます')).toBeVisible({ timeout: 15_000 });
     await finishAndAssertNoRewrite(app, page, draftUid);
   } finally {

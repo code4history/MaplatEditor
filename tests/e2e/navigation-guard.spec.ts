@@ -32,7 +32,7 @@ const SETTLE_MS = 2_000;
 async function installRecorder(app: ElectronApplication): Promise<void> {
   await evalMain<void>(app, ({ app: electronApp, webContents }) => {
     const g = globalThis as unknown as {
-      _fx?: { willNavigate: string[]; createdWindows: string[] };
+      __fx?: { willNavigate: string[]; createdWindows: string[] };
       __fxHooked?: WeakSet<object>;
     };
     g.__fx = { willNavigate: [], createdWindows: [] };
@@ -40,9 +40,9 @@ async function installRecorder(app: ElectronApplication): Promise<void> {
     const hook = (wc: Electron.WebContents) => {
       if (g.__fxHooked!.has(wc)) return;
       g.__fxHooked!.add(wc);
-      wc.on('will-navigate', (_e: unknown, url: string) => { g._fx!.willNavigate.push(url); });
+      wc.on('will-navigate', (_e: unknown, url: string) => { g.__fx!.willNavigate.push(url); });
       wc.on('did-create-window', (_w: unknown, details: { url: string }) => {
-        g._fx!.createdWindows.push(details.url);
+        g.__fx!.createdWindows.push(details.url);
       });
     };
     for (const wc of webContents.getAllWebContents()) hook(wc);
@@ -52,8 +52,8 @@ async function installRecorder(app: ElectronApplication): Promise<void> {
 
 async function recorded(app: ElectronApplication): Promise<{ willNavigate: string[]; createdWindows: string[] }> {
   return evalMain(app, () => {
-    const g = globalThis as unknown as { _fx: { willNavigate: string[]; createdWindows: string[] } };
-    return { willNavigate: [...g._fx.willNavigate], createdWindows: [...g._fx.createdWindows] };
+    const g = globalThis as unknown as { __fx: { willNavigate: string[]; createdWindows: string[] } };
+    return { willNavigate: [...g.__fx.willNavigate], createdWindows: [...g.__fx.createdWindows] };
   });
 }
 
