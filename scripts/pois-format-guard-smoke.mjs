@@ -192,7 +192,7 @@ try {
   const mapEdit = await readFile(path.join(projectRoot, 'src/views/MapEdit.vue'), 'utf8');
   const appPoisFormat = await readFile(appPoisFormatPath, 'utf8');
 
-  // C1: 受け入れ関所は appPoisFormat.ts の1本のみ（判定関数と同居）
+  // 受け入れ関所は appPoisFormat.ts の1本のみ（判定関数と同居）
   assert.match(
     appPoisFormat,
     /export function acceptDocumentPois</,
@@ -200,7 +200,7 @@ try {
   );
   assert.doesNotMatch(appPoisFormat, /JSON\.parse/, 'appPoisFormat.ts に JSON.parse が混入している');
 
-  // C2: 両 View が同じ関所関数を通る
+  // 両 View が同じ関所関数を通る
   for (const [name, src] of [['AppEdit.vue', appEdit], ['MapEdit.vue', mapEdit]]) {
     assert.match(
       src,
@@ -227,7 +227,7 @@ try {
     );
   }
 
-  // C3: ローカル名が両 View で揃っている
+  // ローカル名が両 View で揃っている
   for (const [name, src] of [['AppEdit.vue', appEdit], ['MapEdit.vue', mapEdit]]) {
     assert.match(
       src,
@@ -237,7 +237,7 @@ try {
     assert.match(src, /:read-only="poisUnsupported"/, `case 1: ${name} が PoiReferenceEditor へ read-only を渡していない`);
   }
 
-  // C4: 警告表示の機構が同一（文言キーだけ画面別 — ・人間判断 2026-08-02）
+  // 警告表示の機構が同一（文言キーだけ画面別 — ・人間判断 2026-08-02）
   assert.match(
     appEdit,
     /v-if="poisUnsupported"[\s\S]{0,160}?appedit\.poi_format_unsupported/,
@@ -249,7 +249,7 @@ try {
     'case 1: MapEdit.vue の未対応形式警告（mapedit 名前空間）が無い',
   );
 
-  // C5: 書き込みガードが両 View に同一形で入っている
+  // 書き込みガードが両 View に同一形で入っている
   for (const [name, src] of [['AppEdit.vue', appEdit], ['MapEdit.vue', mapEdit]]) {
     const idx = src.indexOf('function onPoisChange');
     assert.ok(idx > 0, `${name} に onPoisChange が無い`);
@@ -292,7 +292,7 @@ try {
   );
   console.log('ok: Part C 実装同一性（case 1）と関所の実効性（case 2）');
 
-  // C7: 警告文言が 11 locale すべてに存在する（case 11 の先出し検査）
+  // 警告文言が 11 locale すべてに存在する（case 11 の先出し検査）
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
   for (const locale of LOCALES) {
     const dict = JSON.parse(await readFile(path.join(projectRoot, `public/locales/${locale}/translation.json`), 'utf8'));

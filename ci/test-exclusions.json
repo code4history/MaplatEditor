@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "policy": "確定版（合流直前の master d11ac0b ＋ t5 で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。t5 合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
+  "policy": "確定版（合流直前の master d11ac0b ＋ 既存の変更で測定。smoke 全数と e2e 3 シャード・Electron の言語は ja）。除外表に載ったものが通るようになったら赤・表に無い新しい失敗も赤。合流後に合流する変更は、合流前に手元で ci:smoke → ci:judge（e2e も 3 シャード）を通し、直した既知失敗は同じ変更で表から外す。詳細は ci/README.md",
   "smoke": [
     {
       "name": "electrobun-poc",

@@ -55,7 +55,7 @@ assert.match(
 );
 console.log('  [3/4] case 2-6 poisUnsupported が :read-only へ渡されている: PASS');
 
-// --- [4/4] case 2-11 補: i18n 2キーが 11 locale すべてに存在する（t1 と同一検証の二重チェック） ---
+// --- [4/4] case 2-11 補: i18n 2キーが 11 locale すべてに存在する（既存の変更と同一検証の二重チェック） ---
 const localesDir = path.join(projectRoot, 'public/locales');
 const { readdir } = await import('node:fs/promises');
 const langs = (await readdir(localesDir, { withFileTypes: true }))

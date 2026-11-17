@@ -3,7 +3,7 @@
  *
  *   [A] case 1: build.yml の publish-win-sign-cache の「Check cache candidates」の run: を抜き出し、fixture の
  *       outbox/ で bash に渡して実行する。正しい名前の PE は通り、名前・種類・大きさ・中身の形・件数の外れは落ちる
- *   [B] case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjs（t3）で評価し、eSigner の退路の
+ *   [B] case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjs で評価し、eSigner の退路の
  *       mode=full で候補があるときだけ真になる
  *   [C] case 2: win-sign.cjs の signFile で、outbox へ置く（outboxDir()）より前に checkSigner(…, 'esigner')（C-3）がある
  *   [D] case 3: publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、run: のコマンド位置に
@@ -31,7 +31,7 @@ const WIN_SIGN = path.join(projectRoot, 'scripts/win-sign/win-sign.cjs');
 const JOB = 'publish-win-sign-cache';
 const CHECK_STEP = 'Check cache candidates';
 const PUBLISH_STEP = 'Publish to the cache release';
-// 設計（t4）で固定した asset 名の規則。win-sign.cjs の assetName（<SHA-256 64 桁>--<名前>.signed）と同じ形
+// 設計で固定した asset 名の規則。win-sign.cjs の assetName（<SHA-256 64 桁>--<名前>.signed）と同じ形
 const NAME_RE_SRC = '^[0-9a-f]{64}--[A-Za-z0-9._-]{1,200}\\.signed$';
 
 const wf = yaml.load(readFileSync(WORKFLOW, 'utf8'));
@@ -277,7 +277,7 @@ check('[D] publish-win-sign-cache の全 step が checkout・pnpm・setup-node �
 check('[E] 検査の正規表現は設計の固定値で、assetName の出力がそれに合う', () => {
   const m = runOf(checkStep).match(/^\s*re='([^']+)'\s*$/m);
   assert.ok(m, "検査の run: に re='…' の行がある");
-  assert.equal(m[1], NAME_RE_SRC, '正規表現が設計（t4）の固定値と同じ');
+  assert.equal(m[1], NAME_RE_SRC, '正規表現が設計の固定値と同じ');
   const re = new RegExp(NAME_RE_SRC);
   // 名前の部分の上限 200 字（ファイル名の上限 255 バイトの方が先に効くため、fixture のファイルでは作れない ∴ 式で確かめる）
   assert.match(`${HEX}--${'n'.repeat(200)}.signed`, re, '名前の部分 200 字は合う');

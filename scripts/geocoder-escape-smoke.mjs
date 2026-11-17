@@ -93,11 +93,11 @@ await writeFile(
       'case 3(c): htmlEscape が & < > " \\' をすべて実体参照へ変換すること');
     console.log('ok: case 3(c) htmlEscape covers all five characters');
 
-    // 設計レビュー Info-2: 置換値は再走査されないため {…} を含む応答でも二重展開しない
+    // 設計レビュー 置換値は再走査されないため {…} を含む応答でも二重展開しない
     const braced = render('{name} 通り');
     assert.equal(braced, '<span class="gcd-road">{name} 通り</span>',
       'case 3(c): 置換値に含まれる {…} は再展開されないこと: ' + braced);
-    console.log('ok: case 3(c) substituted value is not re-scanned (design review Info-2)');
+    console.log('ok: case 3(c) substituted value is not re-scanned (design review )');
 
     console.log('geocoder escape smoke: ALL PASS');
   `,

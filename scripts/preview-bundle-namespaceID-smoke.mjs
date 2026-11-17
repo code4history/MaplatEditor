@@ -95,17 +95,17 @@ const total = 4;
   passed++;
 }
 
-// case 6: pnpm-lock.yaml の @maplat/ui lock pin は t2 で registry 参照へ移行したため
+// case 6: pnpm-lock.yaml の @maplat/ui lock pin は 既存の変更で registry 参照へ移行したため
 // 旧 pin 6503813e / 新 pin 07ee37a5 ともに pnpm-lock.yaml に出現ゼロ（2026-08-01 実測）。
 // 当該 assert は本タスク着手前から RED であり、本タスクの変更が壊すわけではない。
 // 削除ではなくコメント付き skip とし、理由を残す。
-console.log("⏭️  case 6: lock pin assert は skip（t2 で registry 参照へ移行。実測値: 旧 pin 6503813e/新 pin 07ee37a5 は出現ゼロ）");
+console.log("⏭️  case 6: lock pin assert は skip（既存の変更で registry 参照へ移行。実測値: 旧 pin 6503813e/新 pin 07ee37a5 は出現ゼロ）");
 
-// case 7: pnpm-lock.yaml の @maplat/core lock pin は t2 で registry 参照へ移行したため
+// case 7: pnpm-lock.yaml の @maplat/core lock pin は 既存の変更で registry 参照へ移行したため
 // 旧 pin 84c09697 / 新 pin 9b97eb5 ともに pnpm-lock.yaml に出現ゼロ（2026-08-01 実測）。
 // 当該 assert は本タスク着手前から RED であり、本タスクの変更が壊すわけではない。
 // 削除ではなくコメント付き skip とし、理由を残す。
-console.log("⏭️  case 7: lock pin assert は skip（t2 で registry 参照へ移行。実測値: 旧 pin 84c09697/新 pin 9b97eb5 は出現ゼロ）");
+console.log("⏭️  case 7: lock pin assert は skip（既存の変更で registry 参照へ移行。実測値: 旧 pin 84c09697/新 pin 9b97eb5 は出現ゼロ）");
 
 console.log(`\n結果: ${passed}/${total} AC パス（case 6/case 7 は t2 移行により skip）`);
 console.log("case 3（既存 E2E 回帰）は smoke 範囲外 — 別途実行してください");

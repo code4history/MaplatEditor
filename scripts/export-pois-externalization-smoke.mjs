@@ -532,13 +532,13 @@ try {
         assert.deepEqual(
           soloAppJson.pois,
           [{ layer: 'https://example.com/solo-app-pois.geojson', hide: true }],
-          'case 16: 単独形の上書きレイヤが配列1件として出力される（t2 の出力契約と同形）',
+          'case 16: 単独形の上書きレイヤが配列1件として出力される（既存の変更の出力契約と同形）',
         );
         const soloMapJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'maps', 'fxsolo.json'), 'utf8'));
         assert.deepEqual(
           soloMapJson.pois,
           [{ layer: 'https://example.com/solo-pois.geojson' }],
-          'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（t2 の E3）',
+          'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（既存の変更の E3）',
         );
         console.log('ok: (D) single-layer-form documents now reach the export output (case 16)');
       }

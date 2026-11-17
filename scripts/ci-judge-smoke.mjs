@@ -230,7 +230,7 @@ const green = (r, msg, re) => {
   red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '130' }), '(N1-d) Playwright exit が 0/1 以外', /exit が 130/);
   const knownSkipped = goodE2eSpecs();
   knownSkipped[1] = e2eTest('known broken', 4, 'skipped', [{ status: 'skipped', retry: 0 }], [{ type: 'skip', description: '後から skip' }]);
-  red(judge('e2e', { report: e2eReport(knownSkipped), exitCode: '0' }), '(N1-e) known-failure に後から test.skip（Info-3）', /known-failure の e2e が skipped/);
+  red(judge('e2e', { report: e2eReport(knownSkipped), exitCode: '0' }), '(N1-e) known-failure に後から test.skip', /known-failure の e2e が skipped/);
   const fixme = goodE2eSpecs();
   fixme[2] = e2eTest('other', 5, 'skipped', [{ status: 'skipped', retry: 0, annotations: [{ type: 'fixme' }] }]);
   green(judge('e2e', { report: e2eReport(fixme), exitCode: '1' }), '(N1-対照) fixme 注記の skipped は緑');

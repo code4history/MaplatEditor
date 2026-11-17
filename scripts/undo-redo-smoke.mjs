@@ -44,7 +44,7 @@ try {
   // INV-4: 履歴タイマーの直接操作が MapEdit から消えていること
   assert.doesNotMatch(mapEdit, /clearTimeout\(/, 'MapEdit.vue must not clear the history timer directly (INV-4)');
   assert.doesNotMatch(mapEdit, /historyTimer/, 'MapEdit.vue must not own the history timer any more (INV-4)');
-  // C1 / C6: MapEdit 側の終端廃棄
+  // MapEdit 側の終端廃棄
   assert.match(
     mapEdit,
     /const resetHistoryBase = \(\) => \{[\s\S]{0,200}?cancelPendingSnapshot\(\)/,
@@ -55,14 +55,14 @@ try {
     /onBeforeUnmount\(\(\) => \{[\s\S]{0,200}?cancelPendingSnapshot\(\)/,
     'C6 onBeforeUnmount must discard the pending snapshot origin',
   );
-  // C2 / C3: 直接確定は保留 origin を破棄せず引き継ぐ
+  // 直接確定は保留 origin を破棄せず引き継ぐ
   for (const [name, re] of [
     ['C2 markHistorySaved', /const markHistorySaved = \(\) => \{[\s\S]{0,400}?mergeOrigin\(pending, \['\(direct\)'/],
     ['C3 commitHistorySnapshot', /const commitHistorySnapshot = \(\) => \{[\s\S]{0,400}?mergeOrigin\(pending, \['\(direct\)'/],
   ]) {
     assert.match(mapEdit, re, `${name} must carry the pending timer origin over`);
   }
-  // C7: 進入直前フラッシュ。MapEdit 側では catch しない（composable が捕捉して報告する契約）
+  // 進入直前フラッシュ。MapEdit 側では catch しない（composable が捕捉して報告する契約）
   const flushCallback = mapEdit.match(/onBeforeFirstScope:\s*\(\)\s*=>\s*\{[\s\S]*?\n    \},/)?.[0] ?? '';
   assert.ok(flushCallback, 'C7 onBeforeFirstScope callback could not be located');
   assert.match(flushCallback, /cancelPendingSnapshot\(\)/, 'C7 must take the pending origin');

@@ -286,7 +286,7 @@ try {
         // poiUidOf との整合 (再定義していない)
         assert.equal(poiUidOf({ poiUid: '01234567-89ab-4cde-8f01-23456789abcd' }), '01234567-89ab-4cde-8f01-23456789abcd');
 
-        // 旧オブジェクト群 → 1 FC。whitelist 外キー (実在例 start — morioka_ndl 相当) も保持 (t5 実効確認)
+        // 旧オブジェクト群 → 1 FC。whitelist 外キー (実在例 start — morioka_ndl 相当) も保持 (実効確認)
         const legacyGroup = [
           { name: '三ツ石神社', lat: 39.7052, lng: 141.1592, image: 'mitsuishi_jinja.jpg', start: 1599, url: 'https://example.com/a' },
           { type: 'Feature', geometry: { type: 'Point', coordinates: [141.15, 39.70] }, properties: { name: '生Feature', customKey: 'kept' } },
@@ -521,18 +521,18 @@ try {
         // 述語がちょうど 1 個であることを classify / (I-4) で毎回検証する
         const tail = (seq: readonly Shape[]): readonly Shape[] => seq.slice(1);
         const CLASS_PREDICATES: Record<string, (seq: readonly Shape[]) => boolean> = {
-          // C1: 空配列
+          // 空配列
           C1: (seq) => seq.length === 0,
           // C2a: 先頭 fc・tail も全て fc (tail 空含む)
           C2a: (seq) => seq.length > 0 && seq[0] === 'fc' && tail(seq).every((s) => s === 'fc'),
           // C2b: 先頭 fc・tail に object なし・string または junk あり
           C2b: (seq) => seq.length > 0 && seq[0] === 'fc' && !tail(seq).includes('object')
             && (tail(seq).includes('string') || tail(seq).includes('junk')),
-          // C3: 先頭 fc・tail に object あり (string / junk 共存可)
+          // 先頭 fc・tail に object あり (string / junk 共存可)
           C3: (seq) => seq.length > 0 && seq[0] === 'fc' && tail(seq).includes('object'),
-          // C4: 先頭 object・fc を含まない
+          // 先頭 object・fc を含まない
           C4: (seq) => seq.length > 0 && seq[0] === 'object' && !seq.includes('fc'),
-          // C5: 先頭 object・fc を含む
+          // 先頭 object・fc を含む
           C5: (seq) => seq.length > 0 && seq[0] === 'object' && seq.includes('fc'),
           // C6a: 先頭 string・fc と object の両方は揃わない (tail 判定)
           C6a: (seq) => seq.length > 0 && seq[0] === 'string'

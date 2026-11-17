@@ -579,7 +579,7 @@ console.log("smoke Part B3: OK");
 
 const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh-TW"];
 
-// --- Part C0: renderer 予約状態機械 ---
+// --- Part renderer 予約状態機械 ---
 {
   const { createSlugReservationHarness } = await importSource(
     "scripts/fixtures/slug-reservation-harness.ts",
@@ -950,7 +950,7 @@ const LOCALES = ["de", "en", "es", "fr", "id", "ja", "ko", "th", "vi", "zh", "zh
   }
 }
 
-// --- Part C1: SlugField 契約 ---
+// --- Part SlugField 契約 ---
 const slugField = await readSrc("src/components/editor-ui/SlugField.vue");
 const slugReservation = await readSrc("src/composables/useSlugReservation.ts");
 assert.match(slugField, /assetKind/, "SlugField must accept assetKind prop");
@@ -977,7 +977,7 @@ assert.match(slugField, /hasFailedRelease\(\)\)\s*\{[\s\S]*?return\s+['"]check-f
 assert.match(slugReservation, /releaseFailed\.value|releasePending\.value/,
   "useSlugReservation must expose releaseFailed/releasePending as reactive refs ()");
 
-// --- Part C2: useSlugAvailability の 6 状態写像（D1） ---
+// --- Part useSlugAvailability の 6 状態写像（D1） ---
 const avail = await readSrc("src/composables/useSlugAvailability.ts");
 assert.match(avail, /invalid-format|invalid_format/, "must expose invalid-format state (D1)");
 assert.match(avail, /reserved-by-other/, "must map taken -> reserved-by-other (D1)");
@@ -1001,7 +1001,7 @@ for (const rel of [
   assert.doesNotMatch(src, /window\.assets\.checkSlug/, `${rel} must not use legacy checkSlug in the slug UI graph `);
 }
 
-// --- Part C3: 新 label キー（11 locale） ---
+// --- Part 新 label キー（11 locale） ---
 for (const loc of LOCALES) {
   const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
   assert.ok(t.editor_ui?.slug_label != null, `editor_ui.slug_label missing in ${loc}`);
@@ -1130,7 +1130,7 @@ assert.equal(jaI.editor_ui.tabs.maps, "地図選択");
 assert.equal(jaI.editor_ui.tabs.preview, "プレビュー");
 console.log("smoke Part I: OK");
 
-// --- Part J1: placeholder 全角 …(AppEdit picker 系、case 11 = T6 Info-10 持ち越し) ---
+// --- Part J1: placeholder 全角 …(AppEdit picker 系、case 11 = T6 持ち越し) ---
 // AppEdit の picker 検索 placeholder(ベースマップ検索)は i18n 値側に半角 ... が残っていた。
 for (const loc of LOCALES) {
   const t = JSON.parse(await readSrc(`public/locales/${loc}/translation.json`));
