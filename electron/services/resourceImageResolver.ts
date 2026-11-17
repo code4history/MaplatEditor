@@ -180,7 +180,7 @@ export function resolveBaseMapListImage(item: { mapID?: string; slug?: string; d
 // 引数型は resolveBaseMapListImage（{ mapID?, slug?, data? }）を流用しない。
 // 本関数は uid（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの正準キー。merc の実体ディレクトリ名）を必要とする。
 // 解決できない場合は undefined を返す。呼び出し側は url_ キーごと省くこと
-// （空文字を立てると mapSourceFactory の誤補完へ黙って戻る。）。
+// （空文字を立てると mapSourceFactory の誤補完へ黙って戻る）。
 export function resolveBaseMapRuntimeTileUrl(item: { uid?: string; data?: any }): string | undefined {
   const saveFolder = SettingsService.get('saveFolder');
   return deriveMercBaseMapTileUrl(item?.data, item?.uid, saveFolder);

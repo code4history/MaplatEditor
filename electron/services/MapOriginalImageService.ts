@@ -69,7 +69,7 @@ function normalizeExtHint(extHint?: string | null): OriginalExt | null {
 // slug と basename が完全一致し、拡張子が allowed set に正規化できるファイルだけを候補とする
 // (二重フィルタ)。QGIS サイドカーファイル (*.jpg.aux.xml 等) や作業用ファイル
 // (*_modified.tif 等) は basename 不一致または拡張子非対応により自動的に除外される
-// (/)。
+// (原本の解決と移行の判定表に従う)。
 async function scanLegacyCandidates(originalFolder: string, slug: string): Promise<LegacyCandidate[]> {
     let files: string[];
     try {
@@ -173,11 +173,11 @@ async function filesHaveSameContent(a: string, b: string): Promise<boolean> {
 }
 
 /**
- * copy-only migration (T3) 用の厳格な collision 判定。マイルストーン/の
+ * copy-only migration 用の厳格な collision 判定。移行の
  * 判定表をそのまま実装する。read 経路 (resolveRuntimeOriginal) と異なり extHint 優先の
  * 緩和は適用しない — 複数の legacy 候補があれば常に skip_ambiguous_legacy とする
- * (: migration は物理ファイルを新規作成する操作であり、read より慎重な基準を保つ)。
- * 本関数は分類のみを行い、実際の temp copy / fsync / atomic rename (T3 の責務) は行わない。
+ * (migration は物理ファイルを新規作成する操作であり、read より慎重な基準を保つ)。
+ * 本関数は分類のみを行い、実際の temp copy / fsync / atomic rename (移行の責務) は行わない。
  */
 export async function classifyMigrationCandidate(
     uid: string,
@@ -208,7 +208,7 @@ export async function classifyMigrationCandidate(
         // exact target が既にある場合、単一の legacy source と内容一致するかで
         // already_migrated / skip_target_conflict を分ける。legacy source が
         // 存在しない、または複数で一意に比較できない場合は「既に migration 済みで
-        // 安全」とみなし already_migrated とする (: idempotent 再走の精神)
+        // 安全」とみなし already_migrated とする (idempotent 再走の精神)
         const sameContent = singleSourcePath ? await filesHaveSameContent(singleSourcePath, exactTarget.path) : true;
         return sameContent
             ? { kind: 'already_migrated', sourcePath: singleSourcePath, targetPath: exactTarget.path, ext: targetExt }
@@ -250,7 +250,7 @@ export interface DeletionTargets {
     canonicalPaths: { ext: OriginalExt; path: string }[];
     legacyPath: { ext: OriginalExt; path: string } | null;
     /**
-     * v1.1 (AC-T4-3(c), ): legacy 候補の総数。呼び出し側 (MapDeleteTrashService)
+     * legacy 候補の総数。呼び出し側 (MapDeleteTrashService)
      * が「legacyPath が null」を 0件 (何もない) と 2件以上 (ambiguous) で区別できるようにするための
      * フィールド。legacyPath !== null のとき legacyCandidateCount は必ず 1。
      */
@@ -258,14 +258,14 @@ export interface DeletionTargets {
 }
 
 /**
- * delete (T4) 専用: trash へ move してよい対象だけを返す。
+ * delete 専用: trash へ move してよい対象だけを返す。
  * - canonical: uid は永続的に一意なので、originals/<uid>.<ext> に該当する全 ext variant を返す
  *   (ambiguity 判定不要、参照)
  * - legacy: scanLegacyCandidates() の候補が「ちょうど1件」の場合だけそれを legacyPath として返す
  *   (classifyMigrationCandidate と同じ厳格判定。extHint による緩和は行わない —
  *   delete は migration と同様に「誤った方を消してしまう」リスクを避けるため慎重な基準を保つ)。
  *   候補が2件以上 (ambiguous) の場合も legacyCandidateCount で件数を呼び出し側へ伝える
- *   (v1.1: milestone 手順3・AC-T4-3(c) の warning 契約に必要)
+ *   (削除の warning 契約に必要)
  */
 export async function resolveDeletionTargets(uid: string, slug: string): Promise<DeletionTargets> {
     const originalFolder = getOriginalFolder();

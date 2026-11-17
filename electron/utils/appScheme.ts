@@ -13,7 +13,7 @@
  * 配信する。以前の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
  * crossOrigin="Anonymous" のタイル読込が CORS 拒否された。別 origin のまま app: に corsEnabled を付けると
  * Chromium は応答の Access-Control-Allow-Origin を検査せず、プレビュー配信（http://127.0.0.1）や data: 等
- * 任意の origin のページから中身を読めてしまう（実装レビュー IR1 で実測）。同一 origin 化すれば
+ * 任意の origin のページから中身を読めてしまう（実装レビューで実測）。同一 origin 化すれば
  * corsEnabled が不要になり、corsEnabled の無い app:// は他 origin からの CORS 読込（fetch・crossOrigin 画像）を
  * 受け付けないので、renderer 以外は読めない。旧 `app://local` は既存データ互換のため受理して新形へ正規化する。
  *
@@ -56,7 +56,7 @@ const LEGACY_LOCAL_URL_PREFIX = `${APP_SCHEME}://${LOCAL_HOST}`;
  * app: スキームの privileges。main.ts の registerSchemesAsPrivileged はここから作る。
  *
  * 本番（dev server URL なし・空文字）では corsEnabled を**付けない**。付けると任意 origin のページから
- * app:// の中身を読めるようになる（IR1）。ローカルリソースは同一 origin 配信なので不要。
+ * app:// の中身を読めるようになる。ローカルリソースは同一 origin 配信なので不要。
  * 開発起動（VITE_DEV_SERVER_URL あり）だけは renderer が http://localhost:<port> になり同一 origin にならないため
  * 付ける。dev server URL を与えられる主体は main window に任意 URL を読ませられるので、新しい攻撃面ではない。
  */
@@ -582,7 +582,7 @@ function responseHeadersFor(resolution: AppUrlResolution): Record<string, string
 }
 
 /**
- * ファイル読込失敗の errno → HTTP status（IR1）。
+ * ファイル読込失敗の errno → HTTP status。
  * 404 は「存在しない」（ENOENT・途中がファイルの ENOTDIR）に限る。MaplatCore は範囲外タイルも要求するので
  * 欠損は正常系。権限・ディレクトリ等は 403、それ以外は 500 とし、404 に畳んで原因を隠さない。
  */

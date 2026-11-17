@@ -7,7 +7,7 @@
 // 同一 key の進行中 Promise をそのまま await して返すため、自分自身の完了を待つ自己デッドロック
 // になる。よって cold-boot 経路は runColdBoot(db) の引数として渡される db を直接使い、
 // SqliteDataService.* の getDb() 経由メソッドを一切呼ばない。循環 import を避けるため
-// SqliteDataService.ts は import しない(、: SqliteDataService.ts -> 本ファイルの
+// SqliteDataService.ts は import しない(SqliteDataService.ts -> 本ファイルの
 // 一方向 import のみ)。
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
@@ -40,10 +40,10 @@ function extractImageExtensionHint(dataJson: string): string | undefined {
     }
 }
 
-// : 大容量画像(実データ実測で最大561MB)を含む copy-only migration が
+// 大容量画像(実データ実測で最大561MB)を含む copy-only migration が
 // 長時間かかる場合に備え、既存 sendMigrationProgress (SqliteDataService.ts 559-563行)と同じ
 // パターンで進捗を通知する。OriginalsMigrationService.ts は SqliteDataService.ts を import
-// しない設計判断()のため、同等の小関数をここに複製する。
+// しない設計判断のため、同等の小関数をここに複製する。
 function sendMigrationProgress(text: string, percent: number, progress: string = ''): void {
     BrowserWindow.getAllWindows().forEach((win: any) => {
         win.webContents.send('app:taskProgress', { text, percent, progress });
@@ -118,7 +118,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
         // save()/rename()/clone()/delete() が同じ uid の canonical/legacy ファイルを変更し得て
         // TOCTOU (classify 結果が古いまま copy を実行してしまう) になる。
         //
-        // 既知の限界(v1.1, ): row.slug/extHint は run 開始時に列挙した
+        // 既知の限界: row.slug/extHint は run 開始時に列挙した
         // snapshot であり、queue に入るまでの間に別 uid の rename で slug 空間が変化し得る
         // (cold-boot 中はユーザー操作不可のため実質 manual run のみ想定)。誤内容 copy に至る
         // 条件は極端に人為的(run 中に slug を解放し別 map が同 slug の legacy ファイルを持つ)
@@ -187,7 +187,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
 // v1.1: rows.length === 0 のケースも runInternal 内部で処理するため、
 // runColdBoot/runManual のどちらの呼び出しも例外なく runWithSingleFlight を経由する。
 // これにより 0 件パスが in-flight run の存在確認を迂回して temp cleanup を実行する
-// 反例(解決主張・AC-T3-6 との自己矛盾)を解消し、cleanup コードの重複(DRY 違反)も
+// 反例(解決したという主張と、移行の受け入れ条件との自己矛盾)を解消し、cleanup コードの重複(DRY 違反)も
 // 解消される
 async function runWithSingleFlight(rows: MapRow[], mode: MigrationRunMode): Promise<MigrationRunResult> {
     const inFlight = getGlobalInFlight();
@@ -201,7 +201,7 @@ async function runWithSingleFlight(rows: MapRow[], mode: MigrationRunMode): Prom
 
 // cold-boot 専用エントリポイント。SqliteDataService.migrate(db) の最終ステップから、
 // db を直接受け取って呼ぶこと。SqliteDataService.getDb()/readAllMaps() 等の getDb() 経由
-// メソッドを内部で一切呼んではならない(: 呼ぶと自己デッドロックする)
+// メソッドを内部で一切呼んではならない(呼ぶと自己デッドロックする)
 export async function runColdBoot(db: DatabaseSync): Promise<MigrationRunResult> {
     const rows = db.prepare('SELECT uid, slug, data_json FROM maps').all() as unknown as MapRow[];
     return runWithSingleFlight(rows, 'startup');

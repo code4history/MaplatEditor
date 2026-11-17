@@ -32,7 +32,7 @@ import {
 // download 用の交換形 map JSON を組み立てる。histMap2Store + 言語畳み込みの後、
 // pois 内の {poiUid} 参照を resolvePoisArray で export 形 FC へ解決する
 // (AppExportService/AppPreviewService と同じ viewer 互換の扱いに統一)。
-// icon 参照文法も同時に imgs/... へ解決され (POI-117, )、実体コピー要求 files を返す
+// icon 参照文法も同時に imgs/... へ解決され 、実体コピー要求 files を返す
 // (呼び出し側が ZIP の imgs/... へ同梱する)。
 // mapedit:download / mapedit:download-saved の戻り値は 'Success'|'Canceled'|'Error' の文字列契約を保つため、
 // warnings はここでは返すのみに留め、呼び出し側で console.warn するか判断させる
@@ -103,8 +103,8 @@ export async function buildAndWriteMapZip(
   // histMap2Store で store 形式に変換してから JSON 保存。
   // エクスポート(交換形)ではデフォルト言語のみの言語別フィールドを
   // プレーン文字列に畳み込む (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。pois 内の {poiUid} 参照は export 形 FC へ
-  // 解決する (viewer 互換, )。renderer には warnings を表示する経路が未配線のため
-  // console.warn で可視化するに留める (判断根拠は Phase 7 品質レビュー 参照)
+  // 解決する (viewer 互換)。renderer には warnings を表示する経路が未配線のため
+  // console.warn で可視化するに留める (品質レビューでの判断)
   const { compiled, warnings, files, documents } = await composeDownloadMapJson(mapObject, tins);
   if (warnings.length > 0) {
     console.warn('[mapDownloadZip] POI reference warnings:', warnings);
@@ -150,7 +150,7 @@ export async function buildAndWriteMapZip(
     jsonTargets.push([poiTmpFiles[i], 'pois', path.posix.basename(documents[i].dest)]);
   }
 
-  // 解決済み POI icon の実体 (POI-117): zip ルート相対 imgs/... へ同梱
+  // 解決済み POI icon の実体: zip ルート相対 imgs/... へ同梱
   // (viewer は icon をページ URL 基準で解決するため、index.html と同階層に置かれる想定の配置)
   for (const file of files) {
     const destSegments = file.dest.split('/');

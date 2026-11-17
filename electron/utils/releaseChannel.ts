@@ -5,7 +5,7 @@
 // scripts/slug-reservation-smoke.mjs が直接 import している）。
 //
 // 「RC 版以降」は配布物の版を指す。開発実行（isPackaged=false）は常に開発メニューを出す
-// （reload / toggleDevTools のアクセラレータを失うと開発体験を損なうため。設計書 H-1）。
+// （reload / toggleDevTools のアクセラレータを失うと開発体験を損なうため。開発時の操作を残す判断）。
 
 /** SemVer のプレリリース識別子（"-" 以降）を取り出す。無ければ null（正式リリース）。 */
 function prereleaseIdentifier(version: string): string | null {

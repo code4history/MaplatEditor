@@ -140,7 +140,7 @@ class AppPreviewService {
 
   private async prepareInner(document: any): Promise<{ url: string; port: number; warnings: string[] }> {
     // strict_error / missing map を含む maplat 参照はプレビュー起動を拒否する
-    // (AC-T1-2)。ensureServer() (サーバー起動) / purgePreviewStorage() (ストレージ削除)
+    // ensureServer() (サーバー起動) / purgePreviewStorage() (ストレージ削除)
     // という副作用が始まる前に判定する
     await MapPurposeService.assertViewerRuntimeAllowed(
       MapPurposeService.collectMaplatMapRefs(document), 'app-preview'
@@ -218,7 +218,7 @@ class AppPreviewService {
   private async createSession(token: string, document: any): Promise<PreviewSession> {
     const maps: Record<string, any> = {};
     const documentLang = document.lang || 'ja';
-    // POI 参照解決 (Phase 7): app pois の {poiUid} 集合。map 側との積が非空なら二重参照警告 (POI-142)
+    // POI 参照解決: app pois の {poiUid} 集合。map 側との積が非空なら二重参照警告
     const warnings: string[] = [];
     const appPoisRaw = readAppDocumentPois(document).pois;
     const appPoiUids = collectPoiUids(appPoisRaw);
@@ -557,7 +557,7 @@ ${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMaj
       // maplat/overlay だけのプレビューでは backTo が null になり初期化時に落ちるため抑止する。
       overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
-      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI 検証 D3
+      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI の検証で決めた
       enableMarkerList: Boolean(httpSettings.enableMarkerList),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),
@@ -586,7 +586,7 @@ ${renderViewerStartupScript(requiredProviderGl, startupBody, session.maplibreMaj
     this.sendText(res, 404, 'Asset not found');
   }
 
-  // POI icon 参照解決 (POI-117) の出力パス 'imgs/...' の配信。
+  // POI icon 参照解決の出力パス 'imgs/...' の配信。
   // imgs/icons/{setId}/{iconId}.{ext} → icon set 実体 (public/icons/... の候補解決、traversal ガード込み)、
   // imgs/{slug}.{ext} → 登録 image asset の実体 {saveFolder}/assets/{uid}.{ext} (slug は DB 引き、
   // ext が record と一致する場合のみ — 任意ファイル読み出しを防ぐ)

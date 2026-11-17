@@ -319,7 +319,7 @@ export async function imageCutter(
 
         sourceBuffer = await fs.readFile(srcFile);
 
-        // () /: デコードもタイル化も始める前に判定する。
+        // デコードもタイル化も始める前に判定する。
         // ここで戻る経路は **outFolder のクリアに到達しない**ため、既存の下書きタイルを壊さない
         // （この順序が不変条件）。予測できない入力（PNG 等）は安全枠で続ける。
         const preflight = preflightJpegDecode(sourceBuffer, caps, safety, { unknownFormat: 'machineSafety' });
@@ -333,7 +333,7 @@ export async function imageCutter(
         }
         budget = preflight.budget;
 
-        // D5: 上限は足りているが非常に時間がかかる。**確認を取るまで進まない**。
+        // 上限は足りているが非常に時間がかかる。**確認を取るまで進まない**。
         // ここも outFolder より前なので、キャンセルしても後始末は要らない。
         if (!options.confirmed && budget !== null && budget.megapixels > LONG_IMPORT_THRESHOLD_MP) {
             return { needsConfirmation: 'long_import', megapixels: budget.megapixels };
@@ -443,7 +443,7 @@ export async function imageCutter(
         const thumbTo = path.resolve(outFolder, 'thumbnail.jpg');
         await makeThumbnail(thumbFrom, thumbTo);
 
-        // R3: タイルから長辺512pxサムネイル生成。
+        // タイルから長辺512pxサムネイル生成。
         // 長辺 512px 以下の画像（maxZoom < 2）も原寸のまま作る（以前はここで飛ばしていた）
         // 段の選び方と縫い合わせは起動時の補完と同じ関数（タイルの実寸から大きさを出す）
         const thumb512Level = await selectThumbnail512Level(outFolder);

@@ -42,7 +42,7 @@ function toImportInput(input: unknown) {
   };
 }
 
-// POI ソース IPC (Phase 2 Task 3, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は poisource:* を維持しつつ
+// POI ソース IPC (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。channel prefix は poisource:* を維持しつつ
 // 引数契約を uid/slug へ刷新。結果 union は maps/apps と同形 (PoiSourceSaveResult)
 export function registerPoisourceHandlers() {
   ipc.handle('poisource:list', (_, request) => poiSourceService.list(request));
@@ -162,7 +162,7 @@ export function registerPoisourceHandlers() {
         },
       })));
 
-  // インポート用ファイル選択 (Phase 3)。GeoJSON/JSON/ZIP/CSV/KML を選ばせ、token とファイル名を返す（パスは返さない）。
+  // インポート用ファイル選択。GeoJSON/JSON/ZIP/CSV/KML を選ばせ、token とファイル名を返す（パスは返さない）。
   // 実取り込みは renderer が slug/title を収集後に token を添えて poisource:importFile を呼ぶ二段構え。
   ipc.handle('poisource:pickImportFile', async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;

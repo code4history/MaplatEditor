@@ -44,7 +44,7 @@ export function resolveUpdateFeed(input: { isPackaged: boolean; env: Record<stri
   return options == null ? GITHUB : { kind: 'test', options };
 }
 
-/** 更新器に当てる値（t5/）。呼ぶたびに新しいオブジェクトを返す */
+/** 更新器に当てる値。呼ぶたびに新しいオブジェクトを返す */
 export function updaterSettings() {
   return {
     autoDownload: false,

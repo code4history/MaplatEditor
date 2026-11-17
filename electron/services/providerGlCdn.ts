@@ -111,7 +111,7 @@ export function detectRequiredProviderGl(
  * アプリ側の viewer 要素は **maptype も kind も持たない**。
  * どちらもマスタ所有へ移し、定義本体は maps/<slug>.json 側に置いたためである。
  * ∴ 合成後の要素を detectRequiredProviderGl へ渡しても mapbox/maplibre を検出できない
- * （の E2E がこの退行を捕捉した）。GL の要否はマスタの解決結果から判定する。
+ * （mapbox-maplibre の e2e がこの退行を捕捉した）。GL の要否はマスタの解決結果から判定する。
  *
  * Export と Preview の両 HTML 生成器はこの関数だけを呼ぶ（同一扱いは共通実装へ徹底）。
  */

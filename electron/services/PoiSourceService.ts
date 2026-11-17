@@ -1,15 +1,15 @@
-// POI ソースの domain layer (Phase 2 Task 3, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。正本は Write Store (maplat.sqlite) の
+// POI ソースの domain layer (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。正本は Write Store (maplat.sqlite) の
 // poi_sources テーブルで、本サービスは SqliteDataService の CRUD に GeoJSON 純ロジック
 // (src/utils/poiGeoJson.ts) と LangResource 正規化 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり) を被せる薄い層。
 // 旧実装 (electron-store poi-sources.json + poi-sources/{uuid}/source.geojson) はゼロベース置換
 // され、旧ファイルは読みも消しもしない (ディスク残置)。
 //
 // remote ソース (mode='remote') は read-only。fetch 結果のスナップショットを data_json に
-// 永続 cache する — 43 「session memory cache」からの意図的逸脱で、POI-118 の
+// 永続 cache する — 当初の設計の「session memory cache」からの意図的逸脱で、再取得の
 // 「network failure 時は cache で degraded 表示」を再起動を跨いで満たす上位互換
 // (計画書 outer リポジトリ
 //  設計コントラクト参照)。
-// fetch payload には POI-121 の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
+// fetch payload には 規模の閾値を適用: 5MB 超 warning / 50MB 超 登録拒否。
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { FeatureCollection } from 'geojson';
@@ -46,7 +46,7 @@ import { classifyZipReadError } from '../utils/zipImportGuard';
 const DEFAULT_LANG = 'ja';
 
 const FETCH_TIMEOUT_MS = 10_000;
-// POI-121: fetch payload の規模ガード
+// fetch payload の規模ガード
 const REMOTE_WARN_BYTES = 5 * 1024 * 1024; // 5 MiB 超 → warning
 const REMOTE_MAX_BYTES = 50 * 1024 * 1024; // 50 MiB 超 → 登録拒否
 
@@ -106,8 +106,8 @@ export interface PoiSourceDetail {
   fc: PoiEditorFC;
 }
 
-// Error 結果の機械可読コード (Phase 3 UI が affordance を組み立てる):
-// 'network' = fetch 到達不能/timeout (POI-118 の degraded cache 表示対象)、
+// Error 結果の機械可読コード (UI が affordance を組み立てる):
+// 'network' = fetch 到達不能/timeout (degraded cache の表示対象)、
 // 'http-status' = HTTP 非 2xx (remote-gone 等)、'parse' = 応答/ファイルが JSON でない、
 // 'not-found' = 対象ソース不在 (並行 delete に負けた upsert 含む)、
 // 'invalid-request' = 引数不正 (slug 欠落・非 remote への refresh・拡張子不正)、
@@ -174,11 +174,11 @@ export class PoiSourceService {
     }
     const normalizedCollection = normalizePoiSourceCollection(input, fallbackLang);
     const withUids = normalizedCollection.features;
-    // 仕様 : layer metadata (icon/selectedIcon/hide は編集対象 POI-111、
-    // poiTemplate/iconTemplate/poiStyle は UI 無しで round-trip 保持、未知キーも POI-007 系
+    // 仕様: layer metadata (icon/selectedIcon/hide は編集対象、
+    // poiTemplate/iconTemplate/poiStyle は UI 無しで round-trip 保持、未知キーも同じく保持
     // テンプレートの将来拡張のため保持) を save/importFile/registerRemote/refreshRemote/
     // cloneToLocal の全経路 (すべてここを通る) で保持する。ただし FC.id / FC.name は
-    // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む、) ため
+    // エディタが独立概念として持たない (slug/title 由来、export 時にのみ書き込む) ため
     // ここで削除する — これにより data_json が uid/slug/revision を含まない不変条件
     // (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) も自動的に守られる (FC.id が slug と同じ文字列であっても data_json には残らない)。
     // layer metadata の正本位置は FC.properties 直下（過去形式として FC トップレベルも受容）。
@@ -255,7 +255,7 @@ export class PoiSourceService {
   ): Promise<PoiSourceSaveResult> {
     const trimmed = String(slug ?? '').trim();
     if (!trimmed) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    // preset uid (D11改/): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
+    // preset uid: renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
     // 一致させ promote を成立させる。UUID 形状のみ受理(registry 汚染防止)
     if (presetUid != null && !UUID_PATTERN.test(presetUid)) {
       return { result: 'Error', code: 'invalid-request', message: 'uid must be a UUID' };
@@ -275,7 +275,7 @@ export class PoiSourceService {
     }
   }
 
-  // fetch → POI-121 サイズガード → JSON parse → 内部形化+検証。
+  // fetch → サイズガード → JSON parse → 内部形化+検証。
   // 戻り値: 登録/更新に使える snapshot、または失敗を表す PoiSourceSaveResult
   // scheme 検証・タイムアウト・ストリームサイズガードは remoteFetchGuard.ts の
   // guardedFetch へ抽出済み（TileJsonImportService と共用）。写像は下記のとおりで、
@@ -317,7 +317,7 @@ export class PoiSourceService {
       return { ok: false, failure: { result: 'Invalid', issues: prepared.issues } };
     }
     const issues = [...prepared.issues];
-    // POI-121: fetch payload 自体の 5MB 超 warning (validate の scale-byte-size と重複させない)
+    // fetch payload 自体の 5MB 超 warning (validate の scale-byte-size と重複させない)
     if (byteSize > this.remoteWarnBytes && !issues.some((i) => i.code === 'scale-byte-size')) {
       issues.push({ level: 'warning', code: 'scale-byte-size' });
     }
@@ -353,7 +353,7 @@ export class PoiSourceService {
     return record ? this.detail(record) : null;
   }
 
-  // preview / package export 用の export 形 FC (POI-117/143)。get と同じ uid正準+slugフォールバック
+  // preview / package export 用の export 形 FC。get と同じ uid正準+slugフォールバック
   // 解決 (remote ソースも data_json の snapshot cache から同様に返る)。FC.id=slug / FC.name=title を
   // 書き込み、_maplat* を剥がし、座標を7桁丸め (Write Store は変更しないため精度は劣化しない)。
   // 見つからない/読めない参照は null (呼び出し側の poiReferenceResolver が要素落ち+警告に写像)
@@ -389,7 +389,7 @@ export class PoiSourceService {
     return await this.createSource(input.slug, input.title, 'local', empty, [], undefined, input.uid);
   }
 
-  // 保存はuid正準。検証エラー (level='error') があれば拒否し issues を返す (POI-104 ほか)。
+  // 保存はuid正準。検証エラー (level='error') があれば拒否し issues を返す 。
   // remote ソースは read-only (cloneToLocal へ誘導)。expectedRevision は楽観ロック
   async save(
     uid: string,
@@ -431,7 +431,7 @@ export class PoiSourceService {
   // それぞれ別の規則を持っていたため、import 方針を1箇所へ移設した。
 
   // .geojson/.json を読み、FeatureCollection または 旧POIオブジェクト形式を内部形化して
-  // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否 (POI-104)。
+  // 新規 local ソースとして取り込む。Point以外を含む場合は取込拒否。
   // slug 同名衝突は 'Exist' 停止ではなく自動採番 (枯渇/レース時のみ 'Exist')
   async importFile(input: { slug: string; title: LangResource; filePath: string; lang?: string; langOverride?: boolean; uid?: string }): Promise<PoiSourceSaveResult> {
     const ext = path.extname(String(input.filePath ?? '')).toLowerCase();
@@ -616,7 +616,7 @@ export class PoiSourceService {
     return resolvePoiSourceLanguage(parsed?.lang, fallbackLang || SettingsService.get('lang'));
   }
 
-  // 明示再取得 (POI-118)。fetch 失敗時は既存 snapshot を無傷に保つ (degraded cache)。
+  // 明示再取得。fetch 失敗時は既存 snapshot を無傷に保つ (degraded cache)。
   // fetch を跨いだ並行 delete は upsertPoiSource の not-found ガードが捕捉し、mapWriteError が
   // Error{code:'not-found'} に写像する (削除済みソースを復活させない)
   async refreshRemote(uid: string): Promise<PoiSourceSaveResult> {
@@ -652,7 +652,7 @@ export class PoiSourceService {
     return await this.createSource(input.slug, title, 'local', prepared.fc, prepared.issues);
   }
 
-  // apps/maps からの参照走査 (AID-006 の器)。Phase 7 で参照が書かれるまで常に空
+  // apps/maps からの参照走査 (削除確認フローの器)。参照が書かれるまでは常に空
   async findReferences(uid: string): Promise<PoiSourceReference[]> {
     return await SqliteDataService.findPoiSourceReferences(uid);
   }

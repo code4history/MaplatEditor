@@ -21,7 +21,7 @@ function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[];
 }
 
 // paginate 後の page 分の docs へ画像を添付する。
-// pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ。）。
+// pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ）。
 // ただし attachWhenUnbounded=true の handler（search:baseMaps）は例外的に全件添付する
 // （basemap catalog は内蔵329件＋ユーザ定義の有界集合で、basemaps:list も全件解決している
 // 既存挙動のため）。key 引数で添付先フィールドを指定する（maps/apps は `image`、baseMaps は `thumbnailUrl`）。

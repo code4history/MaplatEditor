@@ -67,7 +67,7 @@ export function registerSettingsHandlers() {
       // merc の実行時タイル URL を item レベルへ付与する（data_json は汚さない）。
       // 解決できたときだけキーを立てる。thumbnailUrl（解決不能時も null を own key として立てる）
       // とは意図的に非対称である — url_ が立たない行の大半はそもそも対象外の非 merc であり
-      // 「解決できなかった」に表示上の意味が無い（(3)）。
+      // 「解決できなかった」に表示上の意味が無い。
       const runtimeTileUrl = resolveBaseMapRuntimeTileUrl(item);
       return { ...item, thumbnailUrl: resolveBaseMapListImage(item), ...(runtimeTileUrl ? { url_: runtimeTileUrl } : {}) };
     });
@@ -100,7 +100,7 @@ export function registerSettingsHandlers() {
 
   // uid正準の保存 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): payload = { uid?, slug, tms }(uidなし=新規作成)
   // NOTE: maplist:refresh は発行しない — リスナーは MapList のみで、ベースマップは地図一覧に
-  // 表示されないため実益がない (T12 レビュー Min1)
+  // 表示されないため実益がない (レビューの指摘)
   ipc.handle('basemaps:save-user', async (_, payload: { uid?: string; slug: string; tms: any }) => {
     const result = await SettingsService.saveUserBaseMap(payload);
     return result;

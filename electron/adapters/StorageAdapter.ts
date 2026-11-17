@@ -26,9 +26,9 @@ export interface MapSaveRequest {
   slug?: string;
   expectedRevision?: number | null;
   copyFromUid?: string | null;
-  // 新規作成の明示合図 (D11改)。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
+  // 新規作成の明示合図。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
   create?: boolean;
-  // UID維持改名の残作業引き継ぎ (D5改)。Map専用: originals(slugキー)改名の再試行救済
+  // UID維持改名の残作業引き継ぎ。Map専用: originals(slugキー)改名の再試行救済
   renameFromSlug?: string;
 }
 

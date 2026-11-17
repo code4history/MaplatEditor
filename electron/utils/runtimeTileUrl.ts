@@ -23,7 +23,7 @@ import { localFileUrl, migrateLegacyFileUrl } from './appScheme';
 /**
  * ランタイム専用のタイルURL（url_）を決定する。
  *
- * 交換形の url が指定されていればそれを採用し（不変条件 I-1: url は利用者が指定する
+ * 交換形の url が指定されていればそれを採用し（不変条件: url は利用者が指定する
  * タイルURLテンプレート）、無ければ内部タイル tiles/<uid>/0/0 の実体から組み立てる。
  * どちらも得られない場合は undefined を返す（呼び出し側は url_ を設定しない）。
  *

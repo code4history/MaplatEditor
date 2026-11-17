@@ -103,7 +103,7 @@ export class RevisionConflictError extends Error {
   }
 }
 
-// slug 予約の promote 検証(/D12)が他 asset_uid の有効予約を検出した場合に投げる。
+// slug 予約の promote 検証が他 asset_uid の有効予約を検出した場合に投げる。
 // save の withTransaction 内で throw することで本体書込を rollback し、asset を作らない。
 export class SlugReservationConflictError extends Error {
   readonly kind = 'slug-reservation-conflict';
@@ -190,7 +190,7 @@ const MAPLIBRE_VERSION_V1_ID = '2026-12-maplibre-version-v1';
 
 // ベースマップ保存要求 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
-// create=true (b/D11改) は新規作成の明示合図: uid を事前採番 preset として採用する
+// create=true は新規作成の明示合図: uid を事前採番 preset として採用する
 // (slug 予約の帰属 asset_uid と行 uid を一致させ promote を成立させる)。
 // create なし/false の uid 有無 dispatch は従来どおり(update 経路の NotFound throw=復活防止不変)
 export interface BaseMapSavePayload {
@@ -629,7 +629,7 @@ function sendMigrationProgress(text: string, percent: number, progress: string =
 
 class SqliteDataService {
   private db: DatabaseSync | null = null;
-  // slug 予約: instance_id は起動ごとに一度だけ採番(D3)。
+  // slug 予約: instance_id は起動ごとに一度だけ採番。
   private readonly instanceId = globalThis.crypto.randomUUID();
   private slugReservations: SlugReservationService | null = null;
   private slugTimers: { renew?: NodeJS.Timeout; gc?: NodeJS.Timeout } = {};
@@ -682,8 +682,8 @@ class SqliteDataService {
     await this.dbLifecycle.reset();
   }
 
-  // slug 予約 GC(D4): lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
-  // draft 存在判定は asset_kind→draft kind 写像()で AssetDraftService を照会する。
+  // slug 予約 GC: lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
+  // draft 存在判定は asset_kind→draft kind 写像で AssetDraftService を照会する。
   private slugReservationDraftExists(kind: string, draftUid: string | null): boolean {
     if (draftUid == null) return false;
     return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
@@ -765,7 +765,7 @@ class SqliteDataService {
       db.exec('PRAGMA recursive_triggers=ON');
       this.registerSearchFunctions(db);
       await this.migrate(db);
-      // slug 予約 service を同一 DatabaseSync 接続注入で生成し(D13)、起動時 GC +
+      // slug 予約 service を同一 DatabaseSync 接続注入で生成し、起動時 GC +
       // 30 秒 lease renew + 10 分 GC timer を開始する。
       // NOTE: const activeDb を closure 用に確保する(db は let なので finally の null 代入が
       //       後で registryOwner closure 内で null 参照を引き起こすため)
@@ -1002,11 +1002,11 @@ class SqliteDataService {
     await this.runLegacyMigrationIfNeeded(db);
     // 放棄された暫定表示設定の掃除。marker を持たない**毎起動の掃除**であって migration ではない
     this.sweepStaleProvisionalVisibility(db);
-    // R3: 512px サムネイル起動時マイニング。レガシー移行完了後に1回だけ実行。
+    // 512px サムネイル起動時マイニング。レガシー移行完了後に1回だけ実行。
     // スキーマ移行ではなくタイルからの導出であり、出力は最初から正規形（THUMB_512_EXT）
     await this.runThumbnail512MiningIfNeeded(db);
 
-    // 既存(T3): originals UUID migration
+    // 既存: originals UUID migration
     // slug originals -> UUID originals の one-shot migration/report。
     // v1.1: runColdBoot(db) 呼び出し全体を try/catch で防御する。
     // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
@@ -1015,7 +1015,7 @@ class SqliteDataService {
     // migrate() はいかなる場合も originals migration の失敗によって失敗してはならない
     // (= getDb() のアプリ起動をブロックしてはならない)契約とする。
     try {
-      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止、)
+      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止)
     } catch (e) {
       console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
     }
@@ -1122,7 +1122,7 @@ class SqliteDataService {
     ).run();
   }
 
-  // R3 px サムネイル起動時マイニング（migrate から見て 1 段）。
+  // 512px サムネイル起動時マイニング（migrate から見て 1 段）。
   // v2: ズーム2タイルを持つ地図（壊れた 512px の作り直しも含む）。v3: 512px が無い地図すべて。
   // 印は別々で、それぞれ 1 回だけ走る。v2 の印は既に出荷した版で付いているため、v2 の条件を
   // 後から広げても既存の利用者のフォルダでは走らない。v3 はその取りこぼしをまとめて拾う。
@@ -1133,7 +1133,7 @@ class SqliteDataService {
 
   // v2: 「ズーム2タイルは存在するが 512px サムネイルがない地図」を対象に、
   // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
-  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
+  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（個別失敗時継続）。
   private async mineThumbnail512FromZoom2(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
@@ -1153,7 +1153,7 @@ class SqliteDataService {
     // マイニング対象を抽出。
     //   (a) 512px サムネイルが存在しない地図（新規）
     //   (b) 壊れた 512px（crop 未実行で全グリッドキャンバスを縮小したもの）を持つ地図（自己修復）
-    // R5 でユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
+    // ユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
     const targets: string[] = [];
     const skipped: string[] = [];
     for (const map of maps) {
@@ -1292,7 +1292,7 @@ class SqliteDataService {
   //   Jimp が読めない形式のタイルなら catch へ落ちて false＝作り直さない）
   // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
   // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
-  // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
+  // 正規生成（コンテンツ境界で crop 済み）やユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
   private async isBrokenThumbnail512(thumbPath: string, zoom2Dir: string): Promise<boolean> {
     try {
       // @ts-ignore - Jimp は ESM 動的 import
@@ -1603,7 +1603,7 @@ class SqliteDataService {
     }
   }
 
-  // save 6経路のwithTransaction内から呼ぶslug予約promote検証(D12/D13)。
+  // save 6経路のwithTransaction内から呼ぶslug予約promote検証。
   // 同一DatabaseSync接続を共有するSlugReservationService.promoteWithinへ委譲し、
   // 他asset_uidの有効予約があればthrowしてtransaction全体をrollbackする。
   // 予約が無いslugでは常に成立するため、既存save回帰(予約未使用)を壊さない。
@@ -1628,7 +1628,7 @@ class SqliteDataService {
     return slugCheckResultIsAvailable(await this.checkSlugReservation({ slug, excludeUid }));
   }
 
-  // --- slug 予約 IPC 薄wrapper(/)。getDbで接続確定後にserviceへ委譲する。
+  // --- slug 予約 IPC 薄wrapper。getDbで接続確定後にserviceへ委譲する。
   //     promote/renewOwn/gc はrenderer非公開(save経路とmain timerのみが使う)。
   async reserveSlug(p: { slug: string; assetUid: string; assetKind: string; draftUid: string }) {
     await this.getDb();
@@ -1654,7 +1654,7 @@ class SqliteDataService {
 
   private createDocRow(db: DatabaseSync, kind: 'map' | 'app', slug: string, dataJson: string, presetUid?: string): string {
     const table = ASSET_TABLES[kind]!;
-    const uid = presetUid ?? generateUid(); // D11改: 指定があれば事前採番uidを採用(後方互換)
+    const uid = presetUid ?? generateUid(); // 指定があれば事前採番uidを採用(後方互換)
     this.withTransaction(db, () => {
       this.promoteSlugWithin(db, slug, uid); // 他者予約はconflictでrollback
       this.registerAsset(db, kind, uid, slug);
@@ -1856,7 +1856,7 @@ class SqliteDataService {
   // 専用の内部ヘルパーで実装する。
 
   private createPoiSourceRow(db: DatabaseSync, slug: string, input: PoiSourceInput, presetUid?: string): string {
-    const uid = presetUid ?? generateUid(); // D11改: 事前採番uid受け入れ(後方互換)
+    const uid = presetUid ?? generateUid(); // 事前採番uid受け入れ(後方互換)
     this.withTransaction(db, () => {
       this.promoteSlugWithin(db, slug, uid);
       this.registerAsset(db, 'poi_source', uid, slug);
@@ -1941,8 +1941,8 @@ class SqliteDataService {
     return await this.findPoiSourceBySlug(ref);
   }
 
-  // apps/maps の data_json 中の POI ソース参照 ("poiUid":"<uid>") を走査する (AID-006 の器)。
-  // 参照の書込は Phase 7 で始まるため、それまでは常に空配列。削除confirmフローが参照有無の
+  // apps/maps の data_json 中の POI ソース参照 ("poiUid":"<uid>") を走査する (削除確認フローの参照走査の器)。
+  // 参照がまだ書かれていなければ空配列。削除confirmフローが参照有無の
   // 提示に使う(削除自体はブロックしない)
   async findPoiSourceReferences(uid: string): Promise<Array<{ kind: 'map' | 'app'; uid: string; slug: string }>> {
     // UUID 形状のみ許可: %/_ 等の LIKE メタ文字混入で偽参照を作らないためのガード
@@ -1960,7 +1960,7 @@ class SqliteDataService {
   }
 
   // poi_sources の data_json 中の画像アセット参照 (`"<uid>"` — icon/selectedIcon/image 配列の
-  // どこに現れても文字列一致で拾える。POI-139 の参照文法は uid をそのまま値に持つため
+  // どこに現れても文字列一致で拾える。参照文法は uid をそのまま値に持つため
   // "poiUid":"<uid>" のようなキー限定は不要) を走査する (43 削除確認フローが使う)。
   // 参照ありでも削除自体はブロックしない(未解決 asset は picker の解釈表示側で警告する)
   async findAssetReferences(uid: string): Promise<{ poiSources: Array<{ uid: string; slug: string; title: Record<string, string> }> }> {
@@ -2032,7 +2032,7 @@ class SqliteDataService {
   // searchAssets は slug/title の LIKE 一致で足りる(maps/apps の raw LIKE フォールバックと同機構)。
 
   private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput, presetUid?: string): string {
-    // D11改: 事前採番uid受け入れ(後方互換)。アセットの UID は小文字で保存する（findAsset は
+    // 事前採番uid受け入れ(後方互換)。アセットの UID は小文字で保存する（findAsset は
     // 小文字に揃えて引くので、大文字のまま保存すると二度と見つからない）。行の uid・registry・
     // 呼び出し側が実体のファイル名に使う戻り値を、ここで同じ小文字に揃える
     const uid = (presetUid ?? generateUid()).toLowerCase();
@@ -2605,7 +2605,7 @@ class SqliteDataService {
       .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
       .get() as any;
     const sortOrder = Number(next.next_order);
-    // preset uid (D11改): create=true で uid 指定があれば事前採番 uid を採用(UUID 形状のみ)
+    // preset uid: create=true で uid 指定があれば事前採番 uid を採用(UUID 形状のみ)
     const presetUid = requestedCreate && payload?.uid != null && String(payload.uid).trim() !== ''
       ? String(payload.uid)
       : undefined;

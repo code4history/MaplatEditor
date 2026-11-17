@@ -1,8 +1,8 @@
 // 同一 map(uid) への save/rename/clone/delete/migration mutation を直列化する薄いキュー。
-// マイルストーン契約: run()/runMany は exclusive queue だけを提供する
+// 契約: run()/runMany は exclusive queue だけを提供する
 // (read/export/WMTS はキューに入れない)。
 //
-// タスクrun()/runMany は呼び出し元の戻り値型
+// run()/runMany は呼び出し元の戻り値型
 // (例: MapEditService.save() の Promise<MapSaveResult>) を型安全に伝播できるよう
 // <T> でジェネリック化する (マイルストーン 契約の additive 精緻化。呼び出し側の
 // 直列化保証はそのまま)。
@@ -39,7 +39,7 @@ class MapMutationQueue {
      * 複数 uid (clone の source/dest 等) にまたがる mutation を、関与する全 uid の
      * 既存キューが完了してから実行し、完了後は関与した全 uid のキューを同じ完了 promise
      * に更新する。これにより「どの uid の観点から見ても、他の同時実行中 mutation と
-     * 矛盾なく直列化される」という契約 (AC-T2-4) を、呼び出し順序に依らず満たす。
+     * 矛盾なく直列化される」という契約を、呼び出し順序に依らず満たす。
      */
     async runMany<T>(mapUids: string[], _purpose: string, fn: () => Promise<T>): Promise<T> {
         // stable sorted order (マイルストーン ): 呼び出し順に依らず同じ uid 集合なら

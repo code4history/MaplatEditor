@@ -1,4 +1,4 @@
-// t1: Node 標準 zlib のみで実装するストリーミング ZIP 書き出し（ZIP64 対応・依存追加なし）。
+// Node 標準 zlib のみで実装するストリーミング ZIP 書き出し（ZIP64 対応・依存追加なし）。
 //
 // 背景: adm-zip は zip 全体を「原本 + 圧縮後 + 連結後」の 3 重でメモリに
 // 保持するため、2.14 GiB のアプリ搬出では最後の Buffer.alloc(totalSize) が RangeError で失敗し、
@@ -30,7 +30,7 @@ export type ZipWriteOptions = {
   storeThresholdBytes?: number;
 };
 
-// t1/の単体検査のために export する central directory レコード型
+// 単体検査のために export する central directory レコード型
 export type CentralRecord = {
   entryName: string;
   crc: number;
@@ -259,7 +259,7 @@ export async function writeZipStreaming(
       const { entryName, localPath } = entries[i];
       const st = await fs.stat(localPath);
       // step 1: local header 側の zip64（両サイズ 8B 必須規則）を実装しないための
-      // fail-fast。実データの最大ファイルは MB 級（レビュー I-2 実測）∴ 実害なし
+      // fail-fast。実データの最大ファイルは MB 級（レビューで実測）∴ 実害なし
       if (st.size >= LIMIT_32) {
         throw new Error(
           `zipWriter: ファイル単体 ${LIMIT_32} バイト（4GiB−1）以上は本実装の対象外です: ` +
