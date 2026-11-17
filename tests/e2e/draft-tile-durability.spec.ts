@@ -81,7 +81,7 @@ async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> 
   });
 }
 
-// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md）。
+// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md §5.3）。
 // 両方を集めて返す
 async function operationNoticeTexts(app: ElectronApplication): Promise<string[]> {
   const texts = await Promise.all(app.windows().map((w) =>
@@ -322,7 +322,7 @@ test.describe('下書きタイルの永続 staging 化', () => {
       await window.assetDrafts.put(crafted);
     }, { targetUid: uid, url_: missingStagingUrl });
 
-    // conflict 分岐で復元し、適用 → 保存済み告知（喪失警告ではない）。確認はネイティブのダイアログ（docs/ui-grammar.md）
+    // conflict 分岐で復元し、適用 → 保存済み告知（喪失警告ではない）。確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）
     const conflict = await captureNativeConfirmation(app);
     await openHash(page, `#/mapedit?uid=${uid}`);
     const conflictPrompt = await conflict.wait();
@@ -378,7 +378,7 @@ test.describe('下書きタイルの永続 staging 化', () => {
     await page.getByTestId('editor-back').click();
     await expect(page.getByTestId('map-title')).toBeHidden();
 
-    // 確認はネイティブのダイアログ（docs/ui-grammar.md）。承諾して削除する
+    // 確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）。承諾して削除する
     const confirmation = await captureNativeConfirmation(app);
     const cardB = page.locator(`[data-resource-uid="${draftUidB}"]`);
     await expect(cardB).toBeVisible({ timeout: 15_000 });

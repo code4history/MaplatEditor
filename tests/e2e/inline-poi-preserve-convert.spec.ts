@@ -114,7 +114,7 @@ async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> 
   });
 }
 
-// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md）。
+// 通知だけのものはネイティブのダイアログではなく画面上部のバナー（operation-notice）に出る（docs/ui-grammar.md §5.3）。
 // 両方を集めて返す
 async function operationNoticeTexts(app: ElectronApplication): Promise<string[]> {
   const texts = await Promise.all(app.windows().map((w) =>
@@ -269,7 +269,7 @@ test.describe('inline POI 保全・変換', () => {
       await openHash(page, '#/maplist');
       const reopened = await openPoisTab(page, seeded.uid, seeded.slug);
       await expect(reopened.cards).toHaveCount(2, { timeout: 15000 });
-      // × → 確認 dialog (body = 変換導線つき Undo 可能文言) → cancel で残存。確認はネイティブのダイアログ（docs/ui-grammar.md）
+      // × → 確認 dialog (body = 変換導線つき Undo 可能文言) → cancel で残存。確認はネイティブのダイアログ（docs/ui-grammar.md §5.3）
       const cancelConfirmation = await captureNativeConfirmation(app);
       await reopened.cards.nth(0).locator('.btn-outline-danger').click();
       const prompt = await cancelConfirmation.wait();
