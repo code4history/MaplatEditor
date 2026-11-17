@@ -132,7 +132,7 @@ UI設計より前に「そもそも335ファイル全部を512pxで持つ必要�
 **旧状態**: `scripts/` 配下の **64ファイル**（`grep -rl "@duckdb" scripts/ | grep -v packaging-smoke | wc -l`
 実測。依存不在 assertion を持つ `packaging-smoke.mjs` を除く）が esbuild の `external` に
 `'@duckdb/node-api'` / `'@duckdb/node-bindings'` / `/^@duckdb\/node-bindings-.*/` の3要素を
-列挙していた。DuckDB の撤去で依存そのものを撤去したため、これらは**不活性な no-op** だった
+列挙していた。DuckDB の撤去で依存そのものが無くなったため、これらは**不活性な no-op** だった
 （存在しないモジュール名を external に挙げても esbuild は何もしない）。
 
 **対処**: issue #94 で scripts/ 配下 64ファイルから当該3要素のみを機械置換で除去した。
