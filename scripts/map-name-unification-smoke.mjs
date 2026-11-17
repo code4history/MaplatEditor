@@ -88,7 +88,7 @@ assert.deepEqual(
 console.log('ok: case 1a 除外 2 ファイル以外の src/electron に廃止属性の言及なし');
 
 // case 1b: SqliteDataService.ts 側は「行頭コメント行」を除けば 0 行。
-// (設計レビュー v2 Info-3: case 1b の正規表現は行末コメントを除外しないため、
+// (設計レビュー v2 case 1b の正規表現は行末コメントを除外しないため、
 //  説明コメントは行頭コメント行にのみ置く)
 const sqliteText = await readSource('electron/services/SqliteDataService.ts');
 const ac1bOffenders = sqliteText

@@ -1451,7 +1451,7 @@ jobs:
       - name: Verify Windows payload codec (Artifact Signing)
         run: pnpm run verify:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
-      # latest.yml の各 sha512 と署名済みの Setup.exe の sha512 を並べて照らす（t5 の H-B3 と t2/case 6 の材料）
+      # latest.yml の各 sha512 と署名済みの Setup.exe の sha512 を並べて照らす（既存の変更の H-B3 と t2/case 6 の材料）
       - name: Check latest.yml against the signed installers
         shell: pwsh
         run: |

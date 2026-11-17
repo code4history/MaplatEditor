@@ -4,15 +4,15 @@
  * case 1: public/preview/ の4項目が node_modules/@maplat/ui/dist と MD5 一致
  * case 2: 同一ビルド由来で揃っている（case 1 と同一の MD5 検査）
  * case 3: t3/t4/t5 の是正が bundle に到達している
- *      (a) maplat_ui.umd.js に DOMPurify が出現する（t4）
- *      (b) maplat_ui.umd.js に heightGetter が1件も出現しない（t5）
- *      (c) maplat_ui.css に .swiper-navigation-icon が出現する（t3）
+ *      (a) maplat_ui.umd.js に DOMPurify が出現する
+ *      (b) maplat_ui.umd.js に heightGetter が1件も出現しない
+ *      (c) maplat_ui.css に .swiper-navigation-icon が出現する
  * case 3a: 鮮度ガード — コピー元に heightGetter が残っていないこと
  *      失敗時メッセージに「workspace の symlink ではなく registry の公開版に
  *      解決されている可能性」を示唆する
  * case 4: 同期スクリプトが冪等である（2回実行して2回目に差分なし）
  * case 6: pnpm-lock.yaml を変更していない
- * case 7: 既存の smoke の lock pin assert は t2 で registry 参照へ移行したため
+ * case 7: 既存の smoke の lock pin assert は 既存の変更で registry 参照へ移行したため
  *      成立しない。当該 assert をコメント付き skip とする。
  */
 import assert from "node:assert/strict";
@@ -91,22 +91,22 @@ console.log(`✅ case 1/case 2: locales ${localesChecked}ファイル MD5 一致
 passed++;
 
 // ── case 3: 是正マーカー ──────────────────────────────────
-// (a) DOMPurify が出現する（t4）
+// (a) DOMPurify が出現する
 const umdContent = await readFile(path.join(dstDir, "maplat_ui.umd.js"), "utf8");
 assert.ok(
   /DOMPurify/.test(umdContent),
-  "case 3(a): maplat_ui.umd.js に DOMPurify が出現すること（t4 是正の到達確認）"
+  "case 3(a): maplat_ui.umd.js に DOMPurify が出現すること（是正の到達確認）"
 );
-console.log("✅ case 3(a): DOMPurify が bundle に含まれる（t4 到達）");
+console.log("✅ case 3(a): DOMPurify が bundle に含まれる（到達）");
 passed++;
 
-// (b) heightGetter が1件も出現しない（t5）
+// (b) heightGetter が1件も出現しない
 assert.equal(
   (umdContent.match(/heightGetter/g) ?? []).length,
   0,
-  "case 3(b): maplat_ui.umd.js に heightGetter が出現しないこと（t5 是正の到達確認）"
+  "case 3(b): maplat_ui.umd.js に heightGetter が出現しないこと（是正の到達確認）"
 );
-console.log("✅ case 3(b): heightGetter が 0 件（t5 到達）");
+console.log("✅ case 3(b): heightGetter が 0 件（到達）");
 passed++;
 
 // case 3a: 鮮度ガードの直接 assert — コピー元（node_modules/@maplat/ui/dist）に
@@ -124,13 +124,13 @@ assert.equal(
 console.log("✅ case 3a: コピー元に heightGetter は 0 件（stale ではない）");
 passed++;
 
-// (c) .swiper-navigation-icon が CSS に出現する（t3）
+// (c) .swiper-navigation-icon が CSS に出現する
 const cssContent = await readFile(path.join(dstDir, "maplat_ui.css"), "utf8");
 assert.ok(
   /\.swiper-navigation-icon/.test(cssContent),
-  "case 3(c): maplat_ui.css に .swiper-navigation-icon が出現すること（t3 是正の到達確認）"
+  "case 3(c): maplat_ui.css に .swiper-navigation-icon が出現すること（是正の到達確認）"
 );
-console.log("✅ case 3(c): .swiper-navigation-icon が CSS に含まれる（t3 到達）");
+console.log("✅ case 3(c): .swiper-navigation-icon が CSS に含まれる（到達）");
 passed++;
 
 // ── case 4: 冪等性 ──────────────────────────────────────
@@ -176,8 +176,8 @@ console.log("✅ case 6: pnpm-lock.yaml は registry 参照形式で github ref 
 passed++;
 
 // ── case 7: 既存 smoke の lock pin assert は skip ──
-// / case 7 のとおり、lock pin の hash 検査は t2 で registry 参照へ移行したため
-// 成立しない。当該 assert を「t2 で registry 参照へ移行したため検査対象外」と明記して
+// / case 7 のとおり、lock pin の hash 検査は 既存の変更で registry 参照へ移行したため
+// 成立しない。当該 assert を「既存の変更で registry 参照へ移行したため検査対象外」と明記して
 // skip する（削除ではなくコメント付き skip とし理由を残す）。
 //
 // 実測値（2026-08-01）:
@@ -187,7 +187,7 @@ passed++;
 // なお showPoiLayer(*.namespaceID) 正規表現は新 dist でも生存するので、
 // case 1/case 2 は壊れない。
 console.log(
-  "⏭️  case 7: lock pin assert は skip（t2 で registry 参照へ移行のため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
+  "⏭️  case 7: lock pin assert は skip（既存の変更で registry 参照へ移行のため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
 );
 
 // ── case 8 (レビュー 再発防止): プレビュー配信ロケールのライセンス用語が正本一致 ──

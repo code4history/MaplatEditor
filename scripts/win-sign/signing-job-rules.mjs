@@ -1,7 +1,7 @@
 /**
  * 署名専用ジョブ（Azure Artifact Signing・OIDC の id-token を持つジョブ）の規則の正本。
  *
- * t1 の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、t2 で入る署名専用ジョブが
+ * 既存の変更の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、既存の変更で入る署名専用ジョブが
  * **同じ規則で検査される**ように、規則をこの 1 か所に置く。各 smoke は自前で規則を書き直さず、ここを呼ぶ。
  *
  * 署名専用ジョブは OIDC の要求口（id-token: write）をジョブの間ずっと持つ。そのため:
@@ -51,7 +51,7 @@ const GITHUB_ENV_ALLOWED_VALUE_RE = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
 /** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。*/
 const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 
-/** 署名専用ジョブが受け取る入力のディレクトリ（t1 は probe-in・t2 は sign-in） */
+/** 署名専用ジョブが受け取る入力のディレクトリ（既存の変更は probe-in・既存の変更は sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
 
 /** コマンド位置のパッケージマネージャ・JS 実行系（case 11 の正規表現に yarn|bun を足したもの） */
@@ -127,7 +127,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
   // ジョブ全体（steps 以外）で secrets を参照しない（env: 等で全 step へ配らない）
   const { steps: rawSteps, ...rest } = job;
   if (hasSecretRef(rest)) v.push(`${jobName}: ジョブレベルで secrets を参照している`);
-  // github.token を参照しない（署名ジョブは GitHub に何も書かない・読まない。B24-Info-5）
+  // github.token を参照しない（署名ジョブは GitHub に何も書かない・読まない。B24-）
   if (GITHUB_TOKEN_RE.test(allStrings(job))) v.push(`${jobName}: github.token を参照している`);
   const defaultShell = job.defaults?.run?.shell;
 

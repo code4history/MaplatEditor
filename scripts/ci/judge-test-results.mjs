@@ -10,7 +10,7 @@
  *   node scripts/ci/judge-test-results.mjs e2e --report e2e-report.json --exit-file playwright-exit.txt [--shard 1/3]
  *   共通オプション: --root <リポジトリ直下（既定: カレント）> --exclusions <除外表（既定: <root>/ci/test-exclusions.json）>
  *
- * 規定の正本は（＋設計レビュー R2 の N1・Info-3）。運用は ci/README.md。
+ * 規定の正本は（＋設計レビュー R2 の N1）。運用は ci/README.md。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -329,7 +329,7 @@ export function judgeE2e({ report, table, exitText, shard }) {
         else flakyUnknown.push(label(t));
         break;
       case 'skipped':
-        // R2 Info-3: known-failure に後から test.skip が付くと「直ったら赤」が発火しなくなる
+        // known-failure に後から test.skip が付くと「直ったら赤」が発火しなくなる
         if (entry) failures.push(`known-failure の e2e が skipped（skip するなら除外表から外し、理由は spec 側に書く）: ${label(t)}`);
         break;
       default:

@@ -1,4 +1,4 @@
-// t1 スモーク: ストリーミング ZIP 書き出し（electron/utils/zipWriter.ts）と搬出経路の検査。
+// スモーク: ストリーミング ZIP 書き出し（electron/utils/zipWriter.ts）と搬出経路の検査。
 //。
 //
 // 対象 AC:

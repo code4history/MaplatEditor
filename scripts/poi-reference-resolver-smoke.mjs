@@ -372,7 +372,7 @@ try {
       const exportDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract');
       new AdmZip(exported.outDir).extractAllTo(exportDir, true);
       // export の pois は **外部ファイル + URL 参照** になった (preview は従来どおり
-      // インライン展開のまま = t3 の責務)。∴ 解決済み FC の中身は外部ファイル側で検証する
+      // インライン展開のまま = 既存の変更の責務)。∴ 解決済み FC の中身は外部ファイル側で検証する
       const exportedAppJson = JSON.parse(
         await fsReadFile(nodePath.join(exportDir, 'apps', 'poi_ref_app.json'), 'utf8')
       );

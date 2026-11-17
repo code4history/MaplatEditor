@@ -46,7 +46,7 @@ try {
     { uid: 'uid-kanto', mapID: 'kanto_rapid-900913', data: { mapID: 'kanto_rapid-900913', lang: 'ja', url: 'https://example.test/{z}/{x}/{y}.jpg', maxZoom: 17 } },
   ]);
 
-  // 1. 文字列ビルトイン → builtin。出力は文字列ではなく設定ファイル参照（アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まり）
+  // 1. 文字列ビルトイン → builtin。出力は文字列ではなく設定ファイル参照（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）
   const builtin = normalizeAppSource('osm');
   assert.equal(builtin.sourceType, 'builtin');
   assert.deepEqual(composeViewerSource(builtin, { lookup }), {

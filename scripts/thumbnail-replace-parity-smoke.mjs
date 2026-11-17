@@ -145,7 +145,7 @@ console.log("smoke S3: OK（インライン派生 0 件 / THUMB_512_EXT の写�
 //   before = 3（selectKind / replaceThumbnail / generateIcon）
 //   after  = 1（selectKind のみ）
 //   selectKind の 1 件は「プリセット種別を選ぶとバンドル既定アイコンを指す」純粋な文書編集で
-//   あり、ファイルを 1 バイトも書かない。∴ 規則 T1/T2 の対象外で undo 可能なままが正しい。
+//   あり、ファイルを 1 バイトも書かない。∴ 規則 T1 の対象外で undo 可能なままが正しい。
 // ---------------------------------------------------------------------------
 const baseMapEditLines = SRC_TEXT.get(BASE_MAP_EDIT).split("\n");
 const updateFieldThumbnailLines = [];
@@ -155,7 +155,7 @@ baseMapEditLines.forEach((line, i) => {
 assert.equal(updateFieldThumbnailLines.length, 1,
   "S4: BaseMapEdit.vue の updateField(\"thumbnail\", …) は 1 件（selectKind）だけであること（[C3]）。\n"
   + `  実測行: ${JSON.stringify(updateFieldThumbnailLines)}\n`
-  + "  置換・生成は rebaseThumbnailPointer を通す（規則 T2: 指し先の移動は undo の対象にしない）。");
+  + "  置換・生成は rebaseThumbnailPointer を通す（規則 指し先の移動は undo の対象にしない）。");
 
 // 残った 1 件が selectKind の中であることを確認する（名指しで固定する）
 const selectKindStart = baseMapEditLines.findIndex((l) => /function selectKind\(/.test(l));

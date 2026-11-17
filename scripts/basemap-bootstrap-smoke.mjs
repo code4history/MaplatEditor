@@ -3,7 +3,7 @@
 //
 // パターン（vite build + electron/electron-store スタブ + 動的 import）に従う。
 //
-// fixture 生成コマンド（レビュー Info-3）:
+// fixture 生成コマンド（レビュー）:
 //   python3 -c "import json;print(json.dumps(json.load(open('$HOME/Library/Application Support/maplat-editor/config.json'))['tmsList'],ensure_ascii=False,indent=2))" \
 //     > tests/fixtures/m12-t32-basemap-bootstrap/legacy-tmslist.json
 // 本機 config.json の tmsList（267 件・KTGIS 公開カタログ由来・個人情報不含）を忠実に保持。

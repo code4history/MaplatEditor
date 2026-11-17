@@ -228,7 +228,7 @@ const URL_A = 'pois/a.geojson';
   assert.deepEqual(accept({ layer: URL_A, hide: true }), { layer: URL_A, hide: true },
     '単独形ラッパーも生値のまま');
   assert.deepEqual(accept([FC('x')]), [FC('x')], '配列は従来どおり');
-  assert.equal(accept({ main: [] }).main.length, 0, 'unsupported も生値温存（t1 の約束）');
+  assert.equal(accept({ main: [] }).main.length, 0, 'unsupported も生値温存（既存の変更の約束）');
   assert.equal(accept(undefined), '<キーなし>', '未設定はキーを作らない');
   console.log('ok: (G) acceptDocumentPois never rewrites the single-layer form');
 }

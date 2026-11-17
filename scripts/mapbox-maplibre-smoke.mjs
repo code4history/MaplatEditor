@@ -314,7 +314,7 @@ function satisfiesRange(version, range) {
   // Preview の GL 判定は session.maps（maplat ソースのみ）を見てはならない。
   // maps ベースだと maplibre basemap を検出できない（実装中に検出した欠陥）。
   //
-  // 既存の変更で判定元がもう一度動いた: 差分保持モデル（アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まり・ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）では viewer 要素が
+  // 既存の変更で判定元がもう一度動いた: 差分保持モデル（地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり・ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）では viewer 要素が
   // maptype も kind も持たなくなり、compose 済み要素からも検出できなくなった。
   // ∴ マスタの解決結果から判定する detectRequiredProviderGlFromAppSources へ移し、
   // 結果を session.requiredProviderGl として持ち回る。旧2形（maps ベース・

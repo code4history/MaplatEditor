@@ -134,7 +134,7 @@ try {
     console.log('ok: case 1 tms の出力形');
   }
   {
-    // builtin も同じ形（文字列出力の廃止 = アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まり）
+    // builtin も同じ形（文字列出力の廃止 = 地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり）
     const source = { sourceType: 'builtin', mapUid: 'osm', baseMapUid: 'uid-osm', role: 'base' };
     const out = composeViewerSource(source, { lang: 'ja', lookup });
     assert.equal(typeof out, 'object', 'case 1: builtin も文字列ではなくオブジェクト');
@@ -754,7 +754,7 @@ try {
     // (c) 欠陥B: url がマスタ管理である旨の注記は**削除された**（人間指示）。
     //     上書き欄が全廃された画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
     //     当初は「末尾へ移して地の文にする」是正を採ったが、人間の指示により撤去へ変更した。
-    //     url がマスタ管理であることの正本は ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり / アプリのソースは設定ファイルを名指しし、上書き分だけを持つ決まりであり、UI へは戻さない
+    //     url がマスタ管理であることの正本は ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり / 地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まりであり、UI へは戻さない
     // 判定対象はコードだけ（削除の経緯を記すコメントに testid 名が出るため）
     const editorCodeOnly = editorSrc
       .replace(/<!--[\s\S]*?-->/g, '')

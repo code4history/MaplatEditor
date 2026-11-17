@@ -157,7 +157,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   assert.equal(
     (settingsVue.match(/settings\.original_map/g) || []).length,
     0,
-    "src/views/Settings.vue must not reference settings.original_map (C1: expected 0)",
+    "src/views/Settings.vue must not reference settings.original_map (expected 0)",
   );
   // : タブは3→2枚になる。第3タブの id="original" tab-pane も消える
   assert.equal(

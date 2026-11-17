@@ -152,7 +152,7 @@ const runLateStaticChecks = async () => {
       assert.ok(json.basemap && typeof json.basemap[key] === 'string' && json.basemap[key].length > 0,
         `S7: ${lang} に basemap.${key} が必要`);
       assert.ok(json.mapedit && typeof json.mapedit[key] === 'string',
-        `S7: ${lang} の mapedit.${key} を削除していない（共有面 1: t1 のセクションへ侵入しない）`);
+        `S7: ${lang} の mapedit.${key} を削除していない（共有面 1: 既存の変更のセクションへ侵入しない）`);
     }
   }
   console.log(`ok: S7 basemap.thumbnail_* 4 キー × ${langs.length} 言語 + mapedit.thumbnail_* 温存`);
@@ -175,7 +175,7 @@ const runLateStaticChecks = async () => {
 
   // case 2(b): AppExportService.ts のベースマップ分岐に 512px パスのインライン派生が 0。
   //   needle は `_512\.`（= パスリテラル）。素の `_512` は i18n キー名等も拾うため使わない（v1.2）。
-  //   地図分岐の 3 行は t5 所有のため対象外。行番号ではなく節の境界で切り出して判定する。
+  //   地図分岐の 3 行は別の変更の受け持ちのため対象外。行番号ではなく節の境界で切り出して判定する。
   const exportSrc = await readFile(appExportServicePath, 'utf8');
   const baseMapThumbStart = exportSrc.indexOf('// 3) ベースマップのサムネイル');
   const baseMapThumbEnd = exportSrc.indexOf('// 3b)');
@@ -184,8 +184,8 @@ const runLateStaticChecks = async () => {
   const baseMapThumbSection = exportSrc.slice(baseMapThumbStart, baseMapThumbEnd);
   assert.equal(countMatches(baseMapThumbSection, /_512\./), 0,
     'case 2(b): ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
-  // 完了後: 既存の変更が「t5 所有」として残していた地図分岐の 3 行も thumb512PathFor へ寄った。
-  // ∴ AppExportService 全体でインライン派生は 0 になる（t5 の case 3 が全ファイルで機械照合する）。
+  // 完了後: 既存の変更が「別の変更の受け持ち」として残していた地図分岐の 3 行も thumb512PathFor へ寄った。
+  // ∴ AppExportService 全体でインライン派生は 0 になる（既存の変更の case 3 が全ファイルで機械照合する）。
   assert.equal(countMatches(exportSrc, /_512\./), 0,
     `case 2(b): AppExportService 全体で 512px のインライン派生が 0（既存の変更で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
@@ -242,7 +242,7 @@ await writeFile(
     {
       // (b)(c) 接尾辞規則。ビルトイン 329 件はすべて basemap_icons/ 参照であり実データでは
       //        ディレクトリ差替え規則しか検証されないため、接尾辞規則は合成パターンで担保する
-      //        （設計レビュー v1 Info-4）
+      //        （設計レビュー v1）
       assert.equal(thumb512PathFor('tmbs/a.png'), 'tmbs/a_512.webp', 'S1(b): tmbs 接尾辞規則（png 入力 -> webp）');
       assert.equal(thumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.webp', 'S1(c): tmbs 接尾辞規則（jpg）');
       // (d) ディレクトリ差替え規則
@@ -257,7 +257,7 @@ await writeFile(
       // thumb52PathFor
       assert.equal(thumb52PathFor('abc', 'png'), 'tmbs/abc.png', 'S1: thumb52PathFor（png）');
       assert.equal(thumb52PathFor('abc', 'jpg'), 'tmbs/abc.jpg', 'S1: thumb52PathFor（jpg。地図の既定）');
-      // t5 の吸収点（現行は null = 入力の拡張子を引き継ぐ）
+      // 既存の変更の吸収点（現行は null = 入力の拡張子を引き継ぐ）
       assert.equal(THUMB_512_EXT, 'webp', 'S1: THUMB_512_EXT の現行値は webp（既存の変更が変えた単一変化点）');
 
       // (a) ビルトイン全件で 派生 === 明示属性

@@ -18,7 +18,7 @@ const translations = {};
 for (const loc of LOCALES) {
   translations[loc] = JSON.parse(await read(`public/locales/${loc}/translation.json`));
 }
-assert.equal(Object.keys(translations).length, 11, "11 言語ちょうどであること（C7）");
+assert.equal(Object.keys(translations).length, 11, "11 言語ちょうどであること");
 
 const dig = (obj, dotted) => dotted.split(".").reduce((o, k) => (o == null ? o : o[k]), obj);
 
@@ -156,7 +156,7 @@ console.log("smoke MC3: OK（廃止呼称 5 文字列が ja locale / src / elect
 // ---------------------------------------------------------------------------
 // MC4 : ④のモーダルへ①のキーを渡す画面が BaseMapEdit.vue だけ
 // ---------------------------------------------------------------------------
-// EnvelopeEditorModal を使う 8 ホスト（C6）。
+// EnvelopeEditorModal を使う 8 ホスト。
 const MODAL_HOSTS = [
   "src/components/AppSourceEditor.vue",
   "src/components/basemap/BaseMapEdit.vue",
@@ -197,7 +197,7 @@ const DELETED_KEYS = [
   "mapedit.base_map_filter_gcp_auto",
   "resource_selector.context_map",
 ];
-assert.equal(DELETED_KEYS.length, 11, "MC6-a: 削除キーは 11 件（C3）");
+assert.equal(DELETED_KEYS.length, 11, "MC6-a: 削除キーは 11 件");
 for (const loc of LOCALES) {
   for (const key of DELETED_KEYS) {
     assert.equal(dig(translations[loc], key), undefined,
@@ -225,7 +225,7 @@ const NEW_KEYS = [
   "range_filter.guide_badge",
   "appedit.envelope_help",
 ];
-assert.equal(NEW_KEYS.length, 9, "MC6-b: 新設キーは 9 件（C4）");
+assert.equal(NEW_KEYS.length, 9, "MC6-b: 新設キーは 9 件");
 for (const loc of LOCALES) {
   for (const key of NEW_KEYS) {
     const v = dig(translations[loc], key);
