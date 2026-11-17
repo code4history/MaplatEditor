@@ -88,7 +88,7 @@ test.describe('書き出す中身の選択', () => {
       await page.locator('[data-editor-action="export"]').click();
       await expectDefaultMapOptions(page);
       await expect(page.getByTestId('map-export-option-originals-help')).toBeVisible();
-      // ファイルサイズ・付帯情報の注意は、オリジナル画像を選んだときだけ黄色の警告で出る（ui-grammar）
+      // ファイルサイズ・付帯情報の注意は、オリジナル画像を選んだときだけ黄色の警告で出る（ui-grammar §2.4）
       await expect(page.getByTestId('map-export-option-originals-warning')).toHaveCount(0);
       await page.getByTestId('map-export-option-originals').check();
       await expect(page.getByTestId('map-export-option-originals-warning')).toHaveAttribute('data-diagnostic-severity', 'warning');
