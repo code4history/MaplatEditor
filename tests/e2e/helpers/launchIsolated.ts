@@ -18,7 +18,7 @@ export async function launch(e2eRoot: string): Promise<{ app: ElectronApplicatio
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
-  // case 14: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
+  // 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
   const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
   if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
     throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);

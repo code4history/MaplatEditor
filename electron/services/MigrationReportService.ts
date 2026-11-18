@@ -64,7 +64,7 @@ async function readReportSafe(saveFolder: string): Promise<Record<string, any> |
 // 失敗しても throw しない = 呼び出し元を失敗させない)
 async function writeReportAtomic(saveFolder: string, content: Record<string, any>): Promise<void> {
     const reportPath = path.join(saveFolder, REPORT_FILE);
-    // 同一ディレクトリの固定名 temp を使う(SI-5準拠の "same-directory" 要件。乱数名にしないのは、
+    // 同一ディレクトリの固定名 temp を使う(同一ディレクトリ内へ固定名で置く要件。乱数名にしないのは、
     // クラッシュ後に残っても次回実行で上書き・rename され自然に解消するため、専用cleanupが
     // 不要になる単純さを優先した設計判断)
     const tempPath = path.join(saveFolder, `${REPORT_FILE}.m13tmp`);

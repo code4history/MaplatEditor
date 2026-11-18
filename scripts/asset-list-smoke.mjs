@@ -77,7 +77,7 @@ try {
     path.join(projectRoot, 'src/components/assets/AssetEdit.vue'),
     'utf8'
   );
-  // P5/case 1: 行は共通 primitives へ移行。削除メニューの Escape 閉じは ResourceActionMenu、
+  // P5: 行は共通 primitives へ移行。削除メニューの Escape 閉じは ResourceActionMenu、
   // サムネイル(loading=lazy)と欠損フォールバック(placeholder)は ResourceMasterRow が担う。
   assetList += await readFile(
     path.join(projectRoot, 'src/components/resource-list/ResourceActionMenu.vue'),

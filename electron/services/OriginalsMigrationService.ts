@@ -69,7 +69,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
     const originalFolder = path.join(saveFolder, 'originals');
     const tmpRoot = path.join(originalFolder, '.m13-tmp');
 
-    // 手順1: 前回 crash の残留 temp を掃除する (SI-3)。originals/ 自体が無いsaveFolder
+    // 手順1: 前回 crash の残留 temp を掃除する。originals/ 自体が無いsaveFolder
     // (地図0件の新規環境)でも安全に no-op する。
     // cleanup 自体の失敗(権限等)も migration 全体を失敗させない。
     // 失敗しても後続の per-map copy は tempPath 個別の open/copyFile 失敗として
@@ -88,7 +88,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
     // 既存 thumbnail-512 mining の「対象0件」パターンに倣うが、reportを書かない点は
     // 「移行を実際に実行した時だけ書く」既存 legacy migration の精神とも整合する。
     // マイルストーン 手順7[無条件記述]からの軽微な逸脱だが、新規空環境に report
-    // ファイルを作らない合理的判断としてレビュー v1 Info 5 で支持された挙動を維持する)
+    // ファイルを作らない合理的判断として以前のレビューで支持された挙動を維持する)
     if (rows.length === 0) {
         return { mode, summary: {} as Record<Exclude<MigrationCandidateKind, 'copyable'> | 'migrated' | 'copy_failed', number>, entries: [] };
     }

@@ -55,8 +55,8 @@ try {
   const existingFeatures = async () => normalizePoiSourceCollection(await readJson('merge-existing.json'), 'ja').features;
   const demoBytes = new Uint8Array(await readFile(path.join(fixtureDir, 'demo-merge.csv')));
 
-  // --- case 6(1)(3)(4)(5): デモ A の追記と上書き ---
-  // 性質の検査は関数にまとめ、変異版 (下の case 10) にも同じ検査を当てる
+  // --- (1)(3)(4)(5): デモ A の追記と上書き ---
+  // 性質の検査は関数にまとめ、変異版（下の節）にも同じ検査を当てる
   const checkDemo = async (impl) => {
     const existing = await existingFeatures();
     const parse = parseCsv(demoBytes);
@@ -105,9 +105,9 @@ try {
   const expectedAppend = await readJson('expected-append.json');
   const expectedOverwrite = await readJson('expected-overwrite.json');
   assert.deepEqual(await checkDemo(planPoiMerge), []);
-  console.log('  case 1 (デモ A: 追記 6 件・上書き 5 件): PASS');
+  console.log('  (デモ A: 追記 6 件・上書き 5 件): PASS');
 
-  // --- case 6(2): 空セルの規則の表駆動 ---
+  // --- (2): 空セルの規則の表駆動 ---
   {
     // 項目 × 列あり/なし × セルが空/非空 × 既存に値あり/なし
     const fields = [
@@ -167,10 +167,10 @@ try {
     const r = plan(existing, parseCsv(enc('id,name,name:en\r\nk,新名,\r\n')), 'overwrite');
     assert.deepEqual(r.features[0].properties.name, { ja: '新名', en: 'Name', ko: '이름' });
     assert.ok(combos >= 40);
-    console.log(`  case 2 (空セルの規則 ${combos} 通り): PASS`);
+    console.log(`  (空セルの規則 ${combos} 通り): PASS`);
   }
 
-  // --- case 6(6): id の枯渇 ---
+  // --- (6): id の枯渇 ---
   {
     const ids = ['x', ...Array.from({ length: 99 }, (_, i) => `x-${i + 2}`)]; // x, x-2 ... x-100
     const existing = ids.map((id) => ({
@@ -184,10 +184,10 @@ try {
     // あと 1 つ空いていれば付け替わる
     const r2 = plan(existing.slice(0, -1), parseCsv(enc('id,name,lat,lng\r\nx,新,1,2\r\n')), 'append');
     assert.equal(r2.features.at(-1).id, 'x-100');
-    console.log('  case 3 (id の枯渇): PASS');
+    console.log('  (id の枯渇): PASS');
   }
 
-  // --- case 6(7): 往復 ---
+  // --- (7): 往復 ---
   {
     const source = await readJson('roundtrip-source.json');
     const internal = normalizePoiSourceCollection(source, 'ja');
@@ -251,10 +251,10 @@ try {
       assert.equal(result.features[0], withPipe.features[0]);
       assert.equal(result.summary.unchanged, 1);
     }
-    console.log('  case 4 (往復と陰性対照 A〜D): PASS');
+    console.log('  (往復と陰性対照 A〜D): PASS');
   }
 
-  // --- case 6(8): 20,000 行の合流が 1 秒以内 ---
+  // --- (8): 20,000 行の合流が 1 秒以内 ---
   {
     const n = 20000;
     const existing = Array.from({ length: n }, (_, i) => ({
@@ -274,10 +274,10 @@ try {
     const t1 = performance.now();
     planPoiMerge({ existing, rows, mode: 'append', defaultLang: 'ja' });
     assert.ok(performance.now() - t1 < 1000, '追記も 1 秒以内');
-    console.log(`  case 5 (20,000 行 ${ms.toFixed(0)} ms): PASS`);
+    console.log(`  (20,000 行 ${ms.toFixed(0)} ms): PASS`);
   }
 
-  // --- case 9: 取り込みの取り消し (編集セッションの commit 1 回 = Undo 1 単位) ---
+  // --- 取り込みの取り消し (編集セッションの commit 1 回 = Undo 1 単位) ---
   {
     for (const mode of ['append', 'overwrite']) {
       const session = usePoiEditSession();
@@ -301,7 +301,7 @@ try {
       assert.equal(restored.state.value.features.length, result.features.length);
       assert.equal(restored.state.value.features.at(-1).id, result.features.at(-1).id);
     }
-    console.log('  case 6 (取り込みの取り消し): PASS');
+    console.log('  (取り込みの取り消し): PASS');
   }
 
   // --- 変異試験: 性質の検査が壊れた実装を検出する ---
@@ -342,7 +342,7 @@ try {
     const parse = parseCsv(csv.bytes);
     const broken = plan(source.features, parse, 'overwrite', mutate((r) => ({ ...r, features: r.features.map((f) => structuredClone(f)) })));
     assert.notEqual(broken.features[0], source.features[0]);
-    console.log('  case 7 (変異試験 5 + 往復 1 を検出): PASS');
+    console.log('  (変異試験 5 + 往復 1 を検出): PASS');
   }
 
   console.log('poi-merge smoke: PASS');

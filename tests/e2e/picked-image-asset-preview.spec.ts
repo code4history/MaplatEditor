@@ -1,7 +1,6 @@
 // picked-image-preview (コミット2) E2E: 画像アセットの「指定した直後」の一次表示と Undo/Redo 追随、
 // 複製の流れ（元アセットの画像 → 選び直し → undo/redo → 保存）。
 //
-// 〜（case 1〜case 7）と、
 // 設計レビューの指示:
 //   (a) 既存アセットを複製すると元の画像が app:// で表示
 //   (b) 複製の画面で別の画像を選ぶと、保存前に src が data:image/ になり新しい画像に変わる・
@@ -87,10 +86,10 @@ test('新規登録は指定直後に一次画像（data:）を出し、undo/redo
 
     const preview = page.getByTestId('asset-source-preview');
     const unsavedBadge = page.getByTestId('asset-preview-unsaved');
-    // case 2: 指定しただけでは一覧（＝保存済み実体）は増えない
+    // 指定しただけでは一覧（＝保存済み実体）は増えない
     const before = await listCount(page);
 
-    // case 1: 指定直後に一次画像（data:）が出る。保存前であることも示す
+    // 指定直後に一次画像（data:）が出る。保存前であることも示す
     await installDialogHarness(app, imageA);
     await page.getByTestId('asset-pick-file').click();
     await expect(preview).toBeVisible({ timeout: 30_000 });
@@ -99,19 +98,19 @@ test('新規登録は指定直後に一次画像（data:）を出し、undo/redo
     await expect(unsavedBadge).toBeVisible();
     expect(await listCount(page)).toBe(before);
 
-    // case 4: 2 枚目を選ぶと保存前に 2 枚目へ変わる（サイズで見分ける）
+    // 2 枚目を選ぶと保存前に 2 枚目へ変わる（サイズで見分ける）
     await installDialogHarness(app, imageB);
     await page.getByTestId('asset-pick-file').click();
     await expect.poll(() => naturalWidthOf(preview)).toBe(640);
 
-    // case 3: 指定 1 回 = Undo 1 段。undo で 1 枚目・redo で 2 枚目
+    // 指定 1 回 = Undo 1 段。undo で 1 枚目・redo で 2 枚目
     await page.getByTestId('editor-undo').click();
     await expect.poll(() => naturalWidthOf(preview)).toBe(300);
     await expect(preview).toHaveAttribute('src', /^data:image\//);
     await page.getByTestId('editor-redo').click();
     await expect.poll(() => naturalWidthOf(preview)).toBe(640);
 
-    // case 5: 保存すると保存済み実体（app://）へ切り替わり、「保存前のプレビュー」が消える
+    // 保存すると保存済み実体（app://）へ切り替わり、「保存前のプレビュー」が消える
     const slug = page.getByTestId('asset-slug');
     await slug.fill('feat2-new-asset');
     await slug.press('Tab');
@@ -227,7 +226,7 @@ test('表示できない画像は理由を出し、保存は妨げない（20 MB
     await page.reload();
     await openHash(page, '#/assets', '[data-master-detail="image-asset"]');
 
-    // case 6: 20 MB 超は一次表示せず理由文。保存は押せる（保存時の拒否は既存挙動）
+    // 20 MB 超は一次表示せず理由文。保存は押せる（保存時の拒否は既存挙動）
     await page.getByTestId('asset-new').click();
     await installDialogHarness(app, tooLarge);
     await page.getByTestId('asset-pick-file').click();
@@ -237,7 +236,7 @@ test('表示できない画像は理由を出し、保存は妨げない（20 MB
     await expect(page.getByTestId('asset-source-preview')).toHaveCount(0);
     await expect(page.getByTestId('asset-preview-unsaved')).toHaveCount(0);
 
-    // case 7: 指定後にファイルが消えた（移動・削除）ときは理由文を出し、画面は壊れない
+    // 指定後にファイルが消えた（移動・削除）ときは理由文を出し、画面は壊れない
     await page.getByTestId('asset-new').click();
     await installDialogHarness(app, missing);
     await page.getByTestId('asset-pick-file').click();

@@ -986,7 +986,7 @@ class SqliteDataService {
     //   段階1 legacy migration (runLegacyMigrationIfNeeded, 下記)
     //     foundational・fail-closed: 呼び出し元(ここ)に try/catch なし。地図の DB 行そのものを
     //     作る段階であり、失敗を隠して起動を続けるより早期に失敗を可視化する方が安全という
-    //     意図的な設計(SI-9)。migrate() を抜けて getDb() の Promise を reject する
+    //     意図的な設計選択。migrate() を抜けて getDb() の Promise を reject する
     //   段階2 thumbnail-512 mining (runThumbnail512MiningIfNeeded, 下記)
     //     best-effort enhancement: 個別地図の失敗は内部の per-map try/catch で吸収し
     //     warnings として記録・継続する。ただし呼び出し元(ここ)にも try/catch がないため、

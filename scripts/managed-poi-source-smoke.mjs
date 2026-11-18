@@ -1,7 +1,7 @@
 // 地図 ZIP import 用の POI source 作成契約。
 //
 // 固定する受け入れ条件:
-//   case 10  POI source 作成契約
+// POI source 作成契約
 //         (a) dest 単位で1回だけ createSource が走る（同一 dest を指す2 entry で source は1つ）
 //         (b) slug が pois/<name>.geojson の <name> を種に既存の POI import slug 解決を通り、
 //             衝突時は base2 等へ解決される
@@ -97,24 +97,24 @@ try {
     };
 
     // -----------------------------------------------------------------------
-    // case 10 (b)(c): slug は <name> を種に解決 / title は空にならない / mode は local
+    // (b)(c): slug は <name> を種に解決 / title は空にならない / mode は local
     // -----------------------------------------------------------------------
     {
       const r = await poiSourceService.createPoiSourceFromManagedDocument(
         fc(), { dest: 'pois/himeji.geojson' },
       );
-      assert.equal(r.result, 'Success', 'case 10: 作成が Success であること: ' + JSON.stringify(r));
-      assert.equal(r.slug, 'himeji', 'case 10(b): slug は dest の <name> を種にすること');
+      assert.equal(r.result, 'Success', '作成が Success であること: ' + JSON.stringify(r));
+      assert.equal(r.slug, 'himeji', '(b): slug は dest の <name> を種にすること');
       const row = await rowOf(r.uid);
-      assert.equal(row.mode, 'local', 'case 10: mode は local（ZIP 同梱の実体を取り込むため）');
+      assert.equal(row.mode, 'local', 'mode は local（ZIP 同梱の実体を取り込むため）');
       const title = JSON.parse(row.title_json);
       assert.ok(Object.values(title).some((v: any) => String(v).length > 0),
-        'case 10(c): title が空にならないこと: ' + row.title_json);
-      console.log('ok: case 10 (b)(c) slug/title/mode');
+        '(c): title が空にならないこと: ' + row.title_json);
+      console.log('ok: (b)(c) slug/title/mode');
     }
 
     // -----------------------------------------------------------------------
-    // case 10 (b): slug 衝突は既存の POI import slug 解決で base2 等へ。
+    // (b): slug 衝突は既存の POI import slug 解決で base2 等へ。
     //   **既存 source は一切変更されない**（c: 再利用しない・触らない）
     // -----------------------------------------------------------------------
     {
@@ -126,21 +126,21 @@ try {
       const r = await poiSourceService.createPoiSourceFromManagedDocument(
         fc(), { dest: 'pois/himeji.geojson' },
       );
-      assert.equal(r.result, 'Success', 'case 10(b): 衝突しても新規作成が成功すること');
-      assert.notEqual(r.slug, 'himeji', 'case 10(b): 別 slug を取ること');
+      assert.equal(r.result, 'Success', '(b): 衝突しても新規作成が成功すること');
+      assert.notEqual(r.slug, 'himeji', '(b): 別 slug を取ること');
       // 生成部は必ず "-" 始まり（base 本体と生成部の境界を可視にする）。
       // 規則を手書きせず **正本 slugCandidate と突き合わせる** — 規則が変わっても
       // ここが旧規則に取り残されて黙って意味を失うことがない。
       assert.equal(r.slug, slugCandidate('himeji', 2),
-        'case 10(b): 正本の2番目の候補（himeji-2）で解決されること（実際: ' + r.slug + '）');
+        '(b): 正本の2番目の候補（himeji-2）で解決されること（実際: ' + r.slug + '）');
 
       const after = await rowOf(before.uid);
-      assert.deepEqual(after, before, 'case 10(b)/c: 既存 source は一切変更されないこと');
-      console.log('ok: case 10 (b) 衝突解決と既存 source の不変');
+      assert.deepEqual(after, before, '(b)/c: 既存 source は一切変更されないこと');
+      console.log('ok: (b) 衝突解決と既存 source の不変');
     }
 
     // -----------------------------------------------------------------------
-    // case 10 (c): title のフォールバック順 — properties.title → レイヤキー → <name>
+    // (c): title のフォールバック順 — properties.title → レイヤキー → <name>
     // -----------------------------------------------------------------------
     {
       const withTitle = await poiSourceService.createPoiSourceFromManagedDocument(
@@ -149,7 +149,7 @@ try {
       assert.equal(withTitle.result, 'Success');
       const t1 = JSON.parse((await rowOf(withTitle.uid)).title_json);
       assert.ok(Object.values(t1).includes('姫路城POI'),
-        'case 10(c): properties.title を最優先すること: ' + JSON.stringify(t1));
+        '(c): properties.title を最優先すること: ' + JSON.stringify(t1));
 
       const fallback = await poiSourceService.createPoiSourceFromManagedDocument(
         fc(), { dest: 'pois/no-title-here.geojson' },
@@ -157,12 +157,12 @@ try {
       assert.equal(fallback.result, 'Success');
       const t2 = JSON.parse((await rowOf(fallback.uid)).title_json);
       assert.ok(Object.values(t2).includes('no-title-here'),
-        'case 10(c): 最終フォールバックは dest の <name> であること: ' + JSON.stringify(t2));
-      console.log('ok: case 10 (c) title フォールバック');
+        '(c): 最終フォールバックは dest の <name> であること: ' + JSON.stringify(t2));
+      console.log('ok: (c) title フォールバック');
     }
 
     // -----------------------------------------------------------------------
-    // case 10 (d): 不正な FC は非 Success を返し、**poi_sources 行を作らない**
+    // (d): 不正な FC は非 Success を返し、**poi_sources 行を作らない**
     //   （呼び出し側が import 全体を失敗にできる）
     // -----------------------------------------------------------------------
     {
@@ -176,14 +176,14 @@ try {
         { dest: 'pois/line.geojson' },
       );
       assert.notEqual(bad.result, 'Success',
-        'case 10(d): Point 以外を含む FC は非 Success であること: ' + JSON.stringify(bad));
+        '(d): Point 以外を含む FC は非 Success であること: ' + JSON.stringify(bad));
       assert.equal(await countSources(), before,
-        'case 10(d): 非 Success 時に poi_sources 行が残らないこと（補償対象が一意に決まる根拠）');
-      console.log('ok: case 10 (d) 非 Success では行を作らない');
+        '(d): 非 Success 時に poi_sources 行が残らないこと（補償対象が一意に決まる根拠）');
+      console.log('ok: (d) 非 Success では行を作らない');
     }
 
     // -----------------------------------------------------------------------
-    // case 10 (a): 責務境界 — 本 API は **呼び出しごとに1行**作る。
+    // (a): 責務境界 — 本 API は **呼び出しごとに1行**作る。
     //   dest 単位で1回に畳むのは呼び出し側（Map<dest, poiUid>）の責務であり、
     //   本 API がそれを内部で持つと import を跨いだ状態を抱えてしまう。
     // -----------------------------------------------------------------------
@@ -193,9 +193,9 @@ try {
       const b = await poiSourceService.createPoiSourceFromManagedDocument(fc(), { dest: 'pois/dup.geojson' });
       assert.equal(a.result, 'Success');
       assert.equal(b.result, 'Success');
-      assert.notEqual(a.uid, b.uid, 'case 10(a): 本 API 自体は重複排除しない（呼び出し側の責務）');
+      assert.notEqual(a.uid, b.uid, '(a): 本 API 自体は重複排除しない（呼び出し側の責務）');
       assert.equal(await countSources(), before + 2);
-      console.log('ok: case 10 (a) 重複排除は呼び出し側の責務');
+      console.log('ok: (a) 重複排除は呼び出し側の責務');
     }
 
     console.log('managed poi source OK');

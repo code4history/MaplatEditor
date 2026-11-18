@@ -9,7 +9,7 @@
 //   installer   … basename が -Setup.exe で終わるもの
 // 記録の decision: would-sign のうち、今の phase のものを並べる。前の phase の would-sign が残っていたら赤
 // （pack-win-1 でプラグインの would-sign ＝ 差し替えられていない・pack-win-2 でアンインストーラーの would-sign ＝
-// U-1 不成立）。後の phase のもの（その段ではまだ署名できない）は数だけ出す。どの phase にも属さないものは赤。
+// 署名の差し替え失敗）。後の phase のもの（その段ではまだ署名できない）は数だけ出す。どの phase にも属さないものは赤。
 //
 // 出力: --out に <SHA-256>.pe（同じ中身は 1 本）、--manifest に [{ sha256, name, kind, size, comparable, paths[] }]
 //   paths は作業ディレクトリからの相対パス（/ 区切り）。comparable は署名と TimeDateStamp を除いた中身のハッシュ

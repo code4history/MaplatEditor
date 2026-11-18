@@ -1,9 +1,9 @@
-// case 11: 検査後に先取りされるレースを 'Exist' へ写像する。
+// 検査後に先取りされるレースを 'Exist' へ写像する。
 //
 // 固定する受け入れ条件:
-//   case 11(a) registerAsset の **本物の** 'Slug already in use' が 'Exist' になる
-//   case 11(b) SlugReservationConflictError（実型）が 'Exist' になる
-//   case 11(c) **負のケース** — restoreManagedPois の POI slug 失敗は 'Exist' に **ならない**
+// (a) registerAsset の **本物の** 'Slug already in use' が 'Exist' になる
+// (b) SlugReservationConflictError（実型）が 'Exist' になる
+// (c) **負のケース** — restoreManagedPois の POI slug 失敗は 'Exist' に **ならない**
 //
 // 【(a) が文言を注入しない理由】
 // 判別子 /^Slug already in use: / は message 依存であり単独では脆い。偽の message を
@@ -76,7 +76,7 @@ try {
     const { default: poiSourceService } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/PoiSourceService.ts'))});
 
     assert.equal(typeof SlugReservationConflictError, 'function',
-      'case 11(b): SlugReservationConflictError を実型として import できること（偽物を作らない）');
+      '(b): SlugReservationConflictError を実型として import できること（偽物を作らない）');
 
     const makeMapZip = (slug: string, pois?: unknown[], extra?: (z: AdmZip) => void) => {
       const zip = new AdmZip();
@@ -110,7 +110,7 @@ try {
     };
 
     // =====================================================================
-    // case 11(a): registerAsset の **本物の** throw が 'Exist' になる
+    // (a): registerAsset の **本物の** throw が 'Exist' になる
     // =====================================================================
     {
       const TAKEN = 'race-taken';
@@ -123,14 +123,14 @@ try {
         () => dataUploadService.extractZip(makeMapZip(TAKEN)));
 
       assert.equal(result.err, 'Exist',
-        'case 11(a): createMap の本物の slug 衝突が Exist へ写像されること（実際: '
+        '(a): createMap の本物の slug 衝突が Exist へ写像されること（実際: '
           + JSON.stringify(result).slice(0, 300) + '）');
-      assert.equal(result.mapData, undefined, 'case 11(a): 地図は作られない');
-      console.log('ok case 11(a): 本物の "Slug already in use" が Exist（文言変更の回帰ガード）');
+      assert.equal(result.mapData, undefined, '(a): 地図は作られない');
+      console.log('ok (a): 本物の "Slug already in use" が Exist（文言変更の回帰ガード）');
     }
 
     // =====================================================================
-    // case 11(b): SlugReservationConflictError（実型）が 'Exist' になる
+    // (b): SlugReservationConflictError（実型）が 'Exist' になる
     // =====================================================================
     {
       const originalCreateMap = SqliteDataService.createMap.bind(SqliteDataService);
@@ -140,16 +140,16 @@ try {
       try {
         const result = await dataUploadService.extractZip(makeMapZip('race-b'));
         assert.equal(result.err, 'Exist',
-          'case 11(b): 予約競合（多重起動）も Exist へ写像されること（実際: '
+          '(b): 予約競合（多重起動）も Exist へ写像されること（実際: '
             + JSON.stringify(result).slice(0, 300) + '）');
       } finally {
         SqliteDataService.createMap = originalCreateMap;
       }
-      console.log('ok case 11(b): SlugReservationConflictError が Exist');
+      console.log('ok (b): SlugReservationConflictError が Exist');
     }
 
     // =====================================================================
-    // case 11(c) 負のケース: POI 復元の slug 失敗は 'Exist' にならない
+    // (c) 負のケース: POI 復元の slug 失敗は 'Exist' にならない
     // =====================================================================
     {
       // 地図 slug は自由。**POI ソース**の作成が 'Slug already in use' で失敗する状況を作る。
@@ -167,17 +167,17 @@ try {
         const result = await dataUploadService.extractZip(zipPath);
 
         assert.notEqual(result.err, 'Exist',
-          'case 11(c): POI 復元の slug 失敗を地図レースと誤ラベルしないこと。'
+          '(c): POI 復元の slug 失敗を地図レースと誤ラベルしないこと。'
             + '写像が createMap 呼び出しへ限局されていない可能性がある（実際: '
             + JSON.stringify(result).slice(0, 300) + '）');
         assert.match(String(result.err), /Slug already in use/,
-          'case 11(c): POI 復元の失敗は message のまま返ること（renderer では error_upload へ）'
+          '(c): POI 復元の失敗は message のまま返ること（renderer では error_upload へ）'
             + '（実際: ' + JSON.stringify(result).slice(0, 300) + '）');
-        assert.equal(result.mapData, undefined, 'case 11(c): 地図は作られない');
+        assert.equal(result.mapData, undefined, '(c): 地図は作られない');
       } finally {
         poiSourceService.createPoiSourceFromManagedDocument = originalCreate;
       }
-      console.log('ok case 11(c): POI 復元の slug 失敗は Exist にならない（写像の限局を固定）');
+      console.log('ok (c): POI 復元の slug 失敗は Exist にならない（写像の限局を固定）');
     }
 
     console.log('import race mapping OK');

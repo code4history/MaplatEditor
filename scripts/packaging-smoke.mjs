@@ -43,35 +43,35 @@ function grepRepo(pattern, dirs) {
 }
 
 // ───────────────────────────────────────────────
-// case 1 / case 2: 依存宣言
+// 依存宣言
 // ───────────────────────────────────────────────
 {
   const eb = pkg.devDependencies?.['electron-builder'] ?? '';
   assert.match(
     eb, /^\^?26\./,
-    `case 1: electron-builder は 26 系であること（現在: ${eb}）。`
+    `electron-builder は 26 系であること（現在: ${eb}）。`
       + ' 24 系・25 系は pnpm の isolated レイアウトを辿れず、推移依存が asar から丸ごと欠落する'
   );
   const allDeps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
   const duck = Object.keys(allDeps).filter((k) => k.startsWith('@duckdb/'));
-  assert.deepEqual(duck, [], `case 2: @duckdb/* が依存に残っている: ${duck.join(', ')}`);
-  console.log('  [1/8] case 1/case 2 依存宣言（electron-builder 26 / @duckdb 不在）: PASS');
+  assert.deepEqual(duck, [], `@duckdb/* が依存に残っている: ${duck.join(', ')}`);
+  console.log('  [1/8] 依存宣言（electron-builder 26 / @duckdb 不在）: PASS');
 }
 
 // ───────────────────────────────────────────────
-// case 3 / case 4: DuckDB 経路の残骸が無い
+// DuckDB 経路の残骸が無い
 // ───────────────────────────────────────────────
 {
   const imports = grepRepo("@duckdb", ['electron', 'src']);
   assert.deepEqual(
     imports, [],
-    `case 3: electron/ src/ に @duckdb 参照が残っている:\n${imports.join('\n')}`
+    `electron/ src/ に @duckdb 参照が残っている:\n${imports.join('\n')}`
   );
   // 判定 env はコード・smoke から消えていること（決定記録の記述は対象外。決定記録は親のワークスペースにある）
   const envRefs = grepRepo('MAPLAT_SEARCH_ENGINE', ['electron', 'src', 'scripts', 'tests']);
   assert.deepEqual(
     envRefs, [],
-    `case 4: MAPLAT_SEARCH_ENGINE の参照が残っている:\n${envRefs.join('\n')}`
+    `MAPLAT_SEARCH_ENGINE の参照が残っている:\n${envRefs.join('\n')}`
   );
   // ビルド設定とスクリプトに死んだ
   // @duckdb の external を残さない（復活させない）恒久の不在検査。vite.config.ts の external は
@@ -80,18 +80,18 @@ function grepRepo(pattern, dirs) {
   const NEEDLE = '@' + 'duckdb';
   const buildConfigs = ['vite.config.ts'];
   for (const rel of buildConfigs) {
-    assert.ok(!read(rel).includes(NEEDLE), `case 3: ${rel} に ${NEEDLE} が残っている（死んだ external）`);
+    assert.ok(!read(rel).includes(NEEDLE), `${rel} に ${NEEDLE} が残っている（死んだ external）`);
   }
   const scriptHits = readdirSync(path.join(projectRoot, 'scripts'), { recursive: true })
     .map((p) => path.join('scripts', String(p)))
     .filter((rel) => rel !== SELF && /\.(mjs|cjs|js|ts)$/.test(rel))
     .filter((rel) => read(rel).includes(NEEDLE));
-  assert.deepEqual(scriptHits, [], `case 3: scripts/ に ${NEEDLE} 参照が残っている:\n${scriptHits.join('\n')}`);
-  console.log('  [2/8] case 3/case 4 DuckDB 経路の残骸なし（electron/ src/ scripts/ vite.config.ts）: PASS');
+  assert.deepEqual(scriptHits, [], `scripts/ に ${NEEDLE} 参照が残っている:\n${scriptHits.join('\n')}`);
+  console.log('  [2/8] DuckDB 経路の残骸なし（electron/ src/ scripts/ vite.config.ts）: PASS');
 }
 
 // ───────────────────────────────────────────────
-// case 5: SearchDataService の公開 API が不変
+// SearchDataService の公開 API が不変
 //
 // 撤去は「内部実装の入れ替え」であって「契約の変更」ではない。呼び出し側
 // （MapDataService / AppDataService / ipc 経由）を壊していないことを、
@@ -106,33 +106,33 @@ function grepRepo(pattern, dirs) {
     /async searchExtent\(extent: number\[\], kind: 'map' \| 'poi-source' \| 'app' = 'map'\): Promise<string\[\]>/,
   ];
   for (const re of CONTRACT) {
-    assert.match(src, re, `case 5: SearchDataService の公開 API が変わっている: ${re}`);
+    assert.match(src, re, `SearchDataService の公開 API が変わっている: ${re}`);
   }
   // searchExtent は SQLite 委譲になり、旧 DuckDB 経路の機能欠損（kind!=='map' で空配列）が消えたこと
   assert.doesNotMatch(
     src, /kind !== 'map'/,
-    'case 5: kind!==map を空配列で返す旧 DuckDB 経路の欠損が残っている'
+    'kind!==map を空配列で返す旧 DuckDB 経路の欠損が残っている'
   );
-  console.log('  [3/8] case 5 公開 API の不変性: PASS');
+  console.log('  [3/8] 公開 API の不変性: PASS');
 }
 
 // ───────────────────────────────────────────────
-// case 10: 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去が記録されている（親のワークスペースの決定記録）
+// 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去が記録されている（親のワークスペースの決定記録）
 // ───────────────────────────────────────────────
 {
   const adr = path.resolve(projectRoot, '../docs/adr/0001-sqlite-write-store-with-duckdb-search.md');
   if (existsSync(adr)) {
     const txt = readFileSync(adr, 'utf8');
     assert.match(txt, /Update \(2026-08-09, m18-t8\): the DuckDB path is removed\./,
-      'case 10: 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去の追記が無い');
-    console.log('  [4/8] case 10 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりの追記: PASS');
+      '書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりに撤去の追記が無い');
+    console.log('  [4/8] 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まりの追記: PASS');
   } else {
-    console.log(`  [4/8] case 10 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まり: SKIP（親のワークスペースが見えない実行位置: ${adr}）`);
+    console.log(`  [4/8] 書き込みは SQLite の Write Store に集め、検索は別の層で行う決まり: SKIP（親のワークスペースが見えない実行位置: ${adr}）`);
   }
 }
 
 // ───────────────────────────────────────────────
-// case 7 / case 8: ビルド済み asar の中身
+// ビルド済み asar の中身
 //
 // **ここが本丸**である。上の静的検査は「そう書いたこと」しか証明しない。
 // 実際に推移依存が同梱されるかは、生成物を開いて確かめるほかない。
@@ -174,8 +174,8 @@ function findAsar() {
 {
   const asar = findAsar();
   if (!asar) {
-    // 黙って通さない。何が未検証かを明示する（case 7/case 8 は root でのビルド後に確定させる）
-    console.log('  [5/8] case 7/case 8 asar の中身: **SKIP — ビルド生成物が無い**');
+    // 黙って通さない。何が未検証かを明示する（asar の中身は root でのビルド後に確定させる）
+    console.log('  [5/8] asar の中身: **SKIP — ビルド生成物が無い**');
     console.log('        推移依存の同梱は静的検査では証明できない。root（完全 workspace）で');
     console.log('        `pnpm run dist:mac:arm64` 等を実行してから本 smoke を再実行すること。');
   } else {
@@ -186,30 +186,30 @@ function findAsar() {
       const [scope, rest] = name.split('/');
       return rest in (nm[scope]?.files ?? {});
     };
-    // case 7: 直接依存ではない＝推移依存であるものが実在すること
+    // 直接依存ではない＝推移依存であるものが実在すること
     const TRANSITIVE = ['@jimp/js-bmp', '@jimp/core', 'graceful-fs', 'jsonfile', 'universalify', 'conf', 'ajv'];
     const missing = TRANSITIVE.filter((n) => !has(n));
     assert.deepEqual(
       missing, [],
-      `case 7: 推移依存が asar に入っていない: ${missing.join(', ')}\n`
+      `推移依存が asar に入っていない: ${missing.join(', ')}\n`
         + `  （asar: ${path.relative(projectRoot, asar)}／electron-builder が pnpm レイアウトを辿れていない）`
     );
-    // case 8: DuckDB が消えていること
-    assert.ok(!('@duckdb' in nm), 'case 8: asar に @duckdb が残っている');
+    // DuckDB が消えていること
+    assert.ok(!('@duckdb' in nm), 'asar に @duckdb が残っている');
 
     const count = Object.entries(nm).reduce(
       (n, [k, v]) => n + (k.startsWith('@') ? Object.keys(v.files ?? {}).length : 1), 0
     );
     assert.ok(
       count > 100,
-      `case 7: asar の node_modules が ${count} 件しかない（直接依存のみ＝29 件前後なら収集が壊れている）`
+      `asar の node_modules が ${count} 件しかない（直接依存のみ＝29 件前後なら収集が壊れている）`
     );
-    console.log(`  [5/8] case 7/case 8 asar の中身: PASS（${count} パッケージ／@duckdb 不在）`);
+    console.log(`  [5/8] asar の中身: PASS（${count} パッケージ／@duckdb 不在）`);
   }
 }
 
 // ───────────────────────────────────────────────
-// case 12: 単独 lockfile が package.json と一致すること
+// 単独 lockfile が package.json と一致すること
 //
 // CI は monorepo ではなく**各リポジトリを単独 clone** し、リポジトリ自身の
 // pnpm-lock.yaml を frozen-lockfile で使う。∴ ワークスペースルートの lock だけを
@@ -221,9 +221,9 @@ function findAsar() {
   const lock = read('pnpm-lock.yaml');
   // importers の "." ブロックだけを切り出す（他 importer があっても混ざらないように）
   const impStart = lock.indexOf('\nimporters:');
-  assert.ok(impStart >= 0, 'case 12: pnpm-lock.yaml に importers セクションが無い');
+  assert.ok(impStart >= 0, 'pnpm-lock.yaml に importers セクションが無い');
   const dotStart = lock.indexOf('\n  .:', impStart);
-  assert.ok(dotStart >= 0, 'case 12: pnpm-lock.yaml に importers["."] が無い');
+  assert.ok(dotStart >= 0, 'pnpm-lock.yaml に importers["."] が無い');
   // 次の同階層 importer（2スペース + 非空白）またはトップレベルキーまで
   const rest = lock.slice(dotStart + 1);
   const endRel = rest.slice(1).search(/\n(?:  \S|\S)/);
@@ -252,14 +252,14 @@ function findAsar() {
     .filter(([k, v]) => lockSpecs.has(k) && lockSpecs.get(k) !== specOf(k, v))
     .map(([k, v]) => `${k}（manifest: ${specOf(k, v)} / lock: ${lockSpecs.get(k)}）`);
 
-  assert.deepEqual(missing, [], `case 12: lockfile に無い依存: ${missing.join(', ')}`);
-  assert.deepEqual(extra, [], `case 12: package.json から消えたのに lockfile に残る依存: ${extra.join(', ')}`);
-  assert.deepEqual(mismatched, [], `case 12: specifier 不一致: ${mismatched.join(' / ')}`);
-  console.log(`  [6/8] case 12 単独 lockfile の整合（${lockSpecs.size} 依存）: PASS`);
+  assert.deepEqual(missing, [], `lockfile に無い依存: ${missing.join(', ')}`);
+  assert.deepEqual(extra, [], `package.json から消えたのに lockfile に残る依存: ${extra.join(', ')}`);
+  assert.deepEqual(mismatched, [], `specifier 不一致: ${mismatched.join(' / ')}`);
+  console.log(`  [6/8] 単独 lockfile の整合（${lockSpecs.size} 依存）: PASS`);
 }
 
 // ───────────────────────────────────────────────
-// case 13: override と依存の宣言範囲が衝突していないこと（jimp × file-type）
+// override と依存の宣言範囲が衝突していないこと（jimp × file-type）
 //
 // 以前に入れたセキュリティ override `file-type: "^21.3.1"` は、宣言範囲を無視して
 // 全経路へ 21.x を強制する。ところが:
@@ -276,12 +276,12 @@ function findAsar() {
 {
   const lock = read('pnpm-lock.yaml');
   const m = lock.match(/\n {2}jimp@(\d+)\.(\d+)\.(\d+)[^\n:]*:/);
-  assert.ok(m, 'case 13: 単独 lockfile に jimp の解決が見つからない');
+  assert.ok(m, '単独 lockfile に jimp の解決が見つからない');
   const [maj, min, pat] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const ge161 = maj > 1 || (maj === 1 && (min > 6 || (min === 6 && pat >= 1)));
   assert.ok(
     ge161,
-    `case 13: jimp が ${maj}.${min}.${pat} に解決されている。`
+    `jimp が ${maj}.${min}.${pat} に解決されている。`
       + ' 1.6.0 は file-type ^16 前提で file-type/core.js を import するため、'
       + ' セキュリティの override（file-type ^21.3.1）と衝突して起動時に'
       + ' ERR_PACKAGE_PATH_NOT_EXPORTED で落ちる。1.6.1 以上であること'
@@ -289,12 +289,12 @@ function findAsar() {
   // 対になる前提: override が 21.x を当てていること（外れたら本検査の根拠も変わる）
   const ft = lock.match(/\n {2}file-type@(\d+)\./);
   assert.ok(ft && Number(ft[1]) >= 21,
-    `case 13: file-type の解決が 21.x でない（${ft?.[1] ?? '不明'}）。override の前提が変わっている`);
-  console.log(`  [7/8] case 13 override 衝突なし（jimp ${maj}.${min}.${pat} / file-type ${ft[1]}.x）: PASS`);
+    `file-type の解決が 21.x でない（${ft?.[1] ?? '不明'}）。override の前提が変わっている`);
+  console.log(`  [7/8] override 衝突なし（jimp ${maj}.${min}.${pat} / file-type ${ft[1]}.x）: PASS`);
 }
 
 // ───────────────────────────────────────────────
-// case 6 の補助: 本 smoke が package.json へ結線されていること
+// 補助: 本 smoke が package.json へ結線されていること
 // ───────────────────────────────────────────────
 {
   const scripts = pkg.scripts ?? {};

@@ -12,7 +12,7 @@
 //           **maps/<slug>.json が参照する pois/* と imgs/* が ZIP に全て実在する**ことを固定する。
 //           これは「黙殺」の一般形を捕まえる assert である — 原因が何であれ、
 //           参照だけがあって実体が無い ZIP を出したらここで落ちる
-//           （import 側 case 7 の「欠損 entry は Error」の搬出側の鏡）
+//           （import 側の「欠損 entry は Error」の搬出側の鏡）
 //   Part C  コピー不能な実体の契約を**実際に発火させて**確認する。
 //           manifest 段（実体を解決できない）＝ warning、コピー段（実体を読めない）＝ Error
 import assert from 'node:assert/strict';

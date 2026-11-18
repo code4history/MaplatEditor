@@ -2,7 +2,7 @@
 // case 16: maplibre マスタを style URL 付きで保存でき、そのマスタを含むアプリの
 //       プレビュー HTML に maplibre-gl CDN（link+script, SRI 付き）が ol.js より前に注入される。
 //       maplibre を含まないアプリには注入されない（条件付き注入）。
-// case 19 側（spec 更新）と分担: 本 spec は保存 → プレビュー HTML の実配線を見る。
+// レンダー側の spec と分担: 本 spec は保存 → プレビュー HTML の実配線を見る。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import http from 'node:http';
@@ -14,7 +14,7 @@ import { assertRowThumbnailRendered } from './helpers/resourceThumbnail';
 import { PROVIDER_GL_CDN } from '../../electron/services/providerGlCdn';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
-// （45782）・開発者実行中（41781）と衝突しない固定ポート
+// 別の spec（45782）・開発者実行中（41781）と衝突しない固定ポート
 const PREVIEW_PORT = 45784;
 const MAPLIBRE_STYLE = 'https://tile.openstreetmap.jp/styles/osm-bright/style.json';
 

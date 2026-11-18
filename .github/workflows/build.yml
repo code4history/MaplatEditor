@@ -1197,7 +1197,7 @@ jobs:
           WIN_SIGN_MODE: collect
         run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never --win nsis --arm64 --prepackaged release/${{ env.VERSION }}/win-arm64-unpacked
 
-      # 前の phase（uninstaller）の would-sign が残っていたら赤（作り直したアンインストーラーが署名済みに差し替えられない＝U-1 不成立）
+      # 前の phase（uninstaller）の would-sign が残っていたら赤（作り直したアンインストーラーが署名済みに差し替えられない＝署名の差し替え失敗）
       - name: Collect the installers to sign
         run: node scripts/win-sign/collect-sign-set.mjs --phase installer --record release/win-sign/record-pack2.jsonl --collect-dir release/win-sign/collect-pack2 --out win-sign-in --manifest release/win-sign/manifest-installer.json
 

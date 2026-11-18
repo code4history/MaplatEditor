@@ -139,18 +139,18 @@ try {
       const TARGET_UID_1 = 'bbbbbbbb-1111-4111-8111-111111111111';
       const gen1 = await generateMercFor(SRC_MAP_UID, TARGET_UID_1);
       const mercDir1 = path.join(${JSON.stringify(dataDir)}, 'merc', TARGET_UID_1);
-      assert.ok(await fse.pathExists(mercDir1), 'case 1: merc/{targetBaseMapUid} ディレクトリが作られるはず');
-      assert.ok(!(await fse.pathExists(path.join(${JSON.stringify(dataDir)}, 'wmts'))), 'case 1: 旧 wmts/ ディレクトリは作られないはず');
+      assert.ok(await fse.pathExists(mercDir1), 'merc/{targetBaseMapUid} ディレクトリが作られるはず');
+      assert.ok(!(await fse.pathExists(path.join(${JSON.stringify(dataDir)}, 'wmts'))), '旧 wmts/ ディレクトリは作られないはず');
       const tileJsonOnDisk = await fse.readJson(path.join(mercDir1, 'tilejson.json'));
-      assert.equal(tileJsonOnDisk.tilejson, '3.0.0', 'case 2: TileJSON version は 3.0.0 のはず');
-      assert.deepEqual(tileJsonOnDisk.tiles, ['{z}/{x}/{y}.png'], 'case 2: 生成時点の tiles は自己参照の相対パスのはず');
+      assert.equal(tileJsonOnDisk.tilejson, '3.0.0', 'TileJSON version は 3.0.0 のはず');
+      assert.deepEqual(tileJsonOnDisk.tiles, ['{z}/{x}/{y}.png'], '生成時点の tiles は自己参照の相対パスのはず');
       assert.equal(typeof tileJsonOnDisk.minzoom, 'number');
       assert.equal(typeof tileJsonOnDisk.maxzoom, 'number');
-      assert.equal(tileJsonOnDisk.bounds.length, 4, 'case 2: bounds は [west, south, east, north] の4要素のはず');
+      assert.equal(tileJsonOnDisk.bounds.length, 4, 'bounds は [west, south, east, north] の4要素のはず');
       const [w, s, e, n] = tileJsonOnDisk.bounds;
-      assert.ok(w < e, 'case 2: bounds の west < east のはず');
-      assert.ok(s < n, 'case 2: bounds の south < north のはず');
-      assert.ok(w > 130 && e < 145, 'case 2: bounds が対象GCP(東経139度付近)の妥当な範囲にあるはず');
+      assert.ok(w < e, 'bounds の west < east のはず');
+      assert.ok(s < n, 'bounds の south < north のはず');
+      assert.ok(w > 130 && e < 145, 'bounds が対象GCP(東経139度付近)の妥当な範囲にあるはず');
       console.log('ok: (A) WmtsGeneratorService.generate(): merc/{targetBaseMapUid} + TileJSON 3.0.0 ');
 
       // ============================================================
@@ -180,10 +180,10 @@ try {
       const masterItem = { uid: catalogItem.uid, mapID: catalogItem.slug, data: catalogItem.data || {} };
       const lookup = createBaseMapMasterLookup([masterItem]);
       const appSource = createAppSourceFromBaseMap(masterItem, 'ja');
-      assert.equal(appSource.baseMapUid, TARGET_UID_1, 'case 5: baseMapUid（マスタ参照）を持つはず');
-      assert.deepEqual(appSource.overrides ?? {}, {}, 'case 5: 差分モデルでは全コピーせず上書きは空');
+      assert.equal(appSource.baseMapUid, TARGET_UID_1, 'baseMapUid（マスタ参照）を持つはず');
+      assert.deepEqual(appSource.overrides ?? {}, {}, '差分モデルでは全コピーせず上書きは空');
       const settingFile = composeBaseMapSettingFile(masterItem, appSource.role);
-      assert.equal(settingFile.url, 'merc/merc-source-a/{z}/{x}/{y}.png', 'case 5: 設定ファイルの url はマスタの現在 slug から導出されるはず');
+      assert.equal(settingFile.url, 'merc/merc-source-a/{z}/{x}/{y}.png', '設定ファイルの url はマスタの現在 slug から導出されるはず');
       console.log('ok: (B) createAppSourceFromBaseMap + 設定ファイル: merc の url 導出 ');
 
       // 差分保持形の往復（保存 → 読み込み）
@@ -195,10 +195,10 @@ try {
       assert.equal(normalized.baseMapUid, TARGET_UID_1, 'baseMapUid はトップレベルの正規キーとして往復する');
       // アプリ JSON 側には baseMapUid も kind も出さない
       const viewerOut = composeViewerSource(normalized, { lang: 'ja', lookup });
-      assert.equal('baseMapUid' in viewerOut, false, 'case 6: アプリ JSON に baseMapUid が含まれないはず');
-      assert.equal('kind' in viewerOut, false, 'case 6 (回帰): kind も出ないはず');
-      assert.equal('baseMapUid' in settingFile, false, 'case 6: 設定ファイルにも baseMapUid は出ないはず');
-      assert.equal('sourceMapUid' in settingFile, false, 'case 6: 出自メモ（sourceMapUid）も設定ファイルに出ないはず');
+      assert.equal('baseMapUid' in viewerOut, false, 'アプリ JSON に baseMapUid が含まれないはず');
+      assert.equal('kind' in viewerOut, false, '(回帰): kind も出ないはず');
+      assert.equal('baseMapUid' in settingFile, false, '設定ファイルにも baseMapUid は出ないはず');
+      assert.equal('sourceMapUid' in settingFile, false, '出自メモ（sourceMapUid）も設定ファイルに出ないはず');
       console.log('ok: (B) baseMapUid はエディタ内部表現に留まり viewer 出力の双方から除去される ');
 
       // ============================================================
@@ -217,15 +217,15 @@ try {
       // ズーム/x/yの厳密一致より、ディレクトリ配下にファイルが存在することを確認する(タイル数は非決定)
       const zipEntries = zipC.getEntries().map((e) => e.entryName);
       const mercEntries = zipEntries.filter((name) => name.startsWith('merc/merc-source-a/'));
-      assert.ok(mercEntries.length > 1, 'case 7: merc/{アプリソースのurlディレクトリ名}/ 配下にタイル+tilejson.jsonがコピーされるはず: ' + JSON.stringify(mercEntries));
+      assert.ok(mercEntries.length > 1, 'merc/{アプリソースのurlディレクトリ名}/ 配下にタイル+tilejson.jsonがコピーされるはず: ' + JSON.stringify(mercEntries));
       const tileJsonEntry = zipC.getEntry('merc/merc-source-a/tilejson.json');
-      assert.ok(tileJsonEntry, 'case 7: tilejson.json がコピーされるはず');
+      assert.ok(tileJsonEntry, 'tilejson.json がコピーされるはず');
       const exportedTileJson = JSON.parse(zipC.readAsText(tileJsonEntry));
-      assert.deepEqual(exportedTileJson.tiles, ['merc-source-a/{z}/{x}/{y}.png'], 'case 7: tiles[] が書き出し時ディレクトリ名へ差し替わるはず（3者一致）');
+      assert.deepEqual(exportedTileJson.tiles, ['merc-source-a/{z}/{x}/{y}.png'], 'tiles[] が書き出し時ディレクトリ名へ差し替わるはず（3者一致）');
       console.log('ok: (C) AppExportService.exportApp: merc/{dirName} コピー + tiles[] 差し替え ');
 
       // ============================================================
-      // (D) dirName 衝突は**構造的に到達不能**になった (case 8 の再定義)
+      // (D) dirName 衝突は**構造的に到達不能**になった (dirName の再定義)
       // ============================================================
       // 旧モデルでは dirName が「アプリへ追加した時点の slug」としてアプリ文書に凍結されていたため、
       // 別のマスタを同じ dirName で参照する状態が作れた。アプリのソースを差分で持つ形への変更の後は dirName を
@@ -259,22 +259,22 @@ try {
       assert.equal(exportedD.result, 'Success');
       assert.ok(
         !exportedD.warnings.includes(MERC_NAME_COLLISION_WARNING),
-        'case 8: 差分モデルでは dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
+        '差分モデルでは dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
       );
       const zipD = new AdmZip(zipPathD);
       const namesD = zipD.getEntries().map((e) => e.entryName);
-      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-a/')), 'case 8: 1件目は自分の slug 名でコピーされるはず');
-      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-b/')), 'case 8: 2件目も自分の slug 名でコピーされるはず（旧モデルでは失われていた）');
-      assert.ok(namesD.includes('maps/merc-source-a.json'), 'case 8: 各ベースマップの設定ファイルが出るはず ');
-      assert.ok(namesD.includes('maps/merc-source-b.json'), 'case 8: 各ベースマップの設定ファイルが出るはず ');
-      console.log('ok: (D) dirName はマスタの現在 slug から導出され、衝突が構造的に消える (case 8 再定義)');
+      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-a/')), '1件目は自分の slug 名でコピーされるはず');
+      assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-b/')), '2件目も自分の slug 名でコピーされるはず（旧モデルでは失われていた）');
+      assert.ok(namesD.includes('maps/merc-source-a.json'), '各ベースマップの設定ファイルが出るはず ');
+      assert.ok(namesD.includes('maps/merc-source-b.json'), '各ベースマップの設定ファイルが出るはず ');
+      console.log('ok: (D) dirName はマスタの現在 slug から導出され、衝突が構造的に消える (dirName の再定義)');
 
       // ============================================================
       // (E) SqliteDataService.deleteUserBaseMap: merc タイル削除。他 kind は非発火
       // ============================================================
       assert.ok(await fse.pathExists(mercDir1), '前提: 削除前は merc タイルが存在するはず');
       await SqliteDataService.deleteUserBaseMap(TARGET_UID_1);
-      assert.ok(!(await fse.pathExists(mercDir1)), 'case 9: merc ベースマップ削除で merc/{uid} が削除されるはず');
+      assert.ok(!(await fse.pathExists(mercDir1)), 'merc ベースマップ削除で merc/{uid} が削除されるはず');
 
       const { uid: tmsUid } = await SqliteDataService.saveUserBaseMap({
         slug: 'tms-unrelated', create: true,
@@ -283,7 +283,7 @@ try {
       const mercDir2 = path.join(${JSON.stringify(dataDir)}, 'merc', TARGET_UID_2);
       assert.ok(await fse.pathExists(mercDir2), '前提: TARGET_UID_2 の merc タイルはまだ存在するはず');
       await SqliteDataService.deleteUserBaseMap(tmsUid);
-      assert.ok(await fse.pathExists(mercDir2), 'case 9: 他 kind (tms) の削除では merc/ に一切触れないはず（無関係な merc タイルが残る）');
+      assert.ok(await fse.pathExists(mercDir2), '他 kind (tms) の削除では merc/ に一切触れないはず（無関係な merc タイルが残る）');
       console.log('ok: (E) SqliteDataService.deleteUserBaseMap: merc タイル削除は kind===merc のみ発火 ');
 
       // ============================================================
@@ -303,9 +303,9 @@ try {
       assert.ok(await fse.pathExists(mercDirF), '前提: F の merc タイルが存在するはず');
       const { deleteMapWithTrash } = await import(${JSON.stringify(path.join(projectRoot, 'electron/services/MapDeleteTrashService.ts'))});
       await deleteMapWithTrash(sourceMapForF);
-      assert.ok(await fse.pathExists(mercDirF), 'case 11: 元地図(sourceMapUid参照先)を削除しても merc/{uid} は無傷のはず');
+      assert.ok(await fse.pathExists(mercDirF), '元地図(sourceMapUid参照先)を削除しても merc/{uid} は無傷のはず');
       const stillRegistered = await SqliteDataService.findBaseMapByUid(TARGET_UID_F);
-      assert.ok(stillRegistered, 'case 11: merc ベースマップ自体も削除されないはず（参照整合性を課さない出自メモ）');
+      assert.ok(stillRegistered, 'merc ベースマップ自体も削除されないはず（参照整合性を課さない出自メモ）');
       console.log('ok: (F) 元地図削除は merc タイル/ベースマップに一切影響しない ');
 
       // ============================================================

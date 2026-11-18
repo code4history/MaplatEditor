@@ -1,5 +1,5 @@
 // #110・B の smoke: 書き出し物のスプラッシュは slug 名 `img/{appID}_splash.{ext}`。
-// （書き出し物の行）・・case 12。
+// 書き出し物の行の名前を確かめる。
 //
 //   書き出した zip のスプラッシュ・app JSON の splash・og:image に内部名（UUID）が出ず、`{appID}_splash.{ext}` である。
 //   名前は 1 箇所の関数 exportedSplashName で導く（3 箇所で組み立てない）。
@@ -122,19 +122,19 @@ await writeFile(
       const zip = await exportOnce(appID, siteUrl);
       const names = zip.getEntries().map((e) => e.entryName);
       const expected = 'img/' + appID + '_splash.jpg';
-      assert.ok(names.includes(expected), 'case 12: スプラッシュは ' + expected + ': ' + JSON.stringify(names.filter((n) => n.startsWith('img/'))));
-      assert.equal(names.some((n) => UUID_RE.test(n)), false, 'case 12: エントリ名に UUID が出ない');
+      assert.ok(names.includes(expected), 'スプラッシュは ' + expected + ': ' + JSON.stringify(names.filter((n) => n.startsWith('img/'))));
+      assert.equal(names.some((n) => UUID_RE.test(n)), false, 'エントリ名に UUID が出ない');
       const entryHash = createHash('sha256').update(zip.getEntry(expected).getData()).digest('hex');
-      assert.equal(entryHash, createHash('sha256').update(await fs.readFile(splashPath)).digest('hex'), 'case 12: 中身は内部名のファイルと同じ');
+      assert.equal(entryHash, createHash('sha256').update(await fs.readFile(splashPath)).digest('hex'), '中身は内部名のファイルと同じ');
       const appJson = JSON.parse(zip.getEntry('apps/' + appID + '.json').getData().toString('utf8'));
-      assert.equal(appJson.splash, appID + '_splash.jpg', 'case 12: app JSON の splash は書き出し名');
+      assert.equal(appJson.splash, appID + '_splash.jpg', 'app JSON の splash は書き出し名');
       const html = zip.getEntry('index.html').getData().toString('utf8');
       const og = /<meta property="og:image" content="([^"]+)">/.exec(html);
-      assert.ok(og, 'case 12: og:image がある');
-      assert.equal(og[1], (siteUrl ? siteUrl : '') + 'img/' + appID + '_splash.jpg', 'case 12: og:image は書き出し名');
-      assert.equal(UUID_RE.test(html), false, 'case 12: index.html に UUID が出ない');
-      assert.equal(UUID_RE.test(JSON.stringify(appJson)), false, 'case 12: app JSON に UUID が出ない');
-      console.log('ok: case 12 書き出しのスプラッシュは ' + expected + (siteUrl ? '（siteUrl あり）' : ''));
+      assert.ok(og, 'og:image がある');
+      assert.equal(og[1], (siteUrl ? siteUrl : '') + 'img/' + appID + '_splash.jpg', 'og:image は書き出し名');
+      assert.equal(UUID_RE.test(html), false, 'index.html に UUID が出ない');
+      assert.equal(UUID_RE.test(JSON.stringify(appJson)), false, 'app JSON に UUID が出ない');
+      console.log('ok: 書き出しのスプラッシュは ' + expected + (siteUrl ? '（siteUrl あり）' : ''));
     }
     console.log('export splash name smoke (bundle part): ALL PASS');
   `,

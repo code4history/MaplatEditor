@@ -1,6 +1,6 @@
 // ベースマップマスタを IPC で1件 seed する E2E 共通ハーネス。
 //
-// / app-source-diff-model / app-source-human-check の3スペックが**同一実装**を
+// app-source-editor-behavior / app-source-diff-model / app-source-human-check の3スペックが**同一実装**を
 // それぞれ持っていたところへ、api-key-tiers が4本目を必要としたため、複製せずここへ移した
 // （恒久指示「同一扱い処理は共通実装へ徹底」。mapPackage.ts と同じ理由）。
 //

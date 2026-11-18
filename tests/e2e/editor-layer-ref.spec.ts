@@ -2,15 +2,15 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // Editor が URLレイヤ・上書きレイヤを読み書きできるようにする — E2E
 //
 // 検証範囲:
-//   case 2: 上書きレイヤ行に viewer-fatal 注記（poiref-key-missing）が出ない
-//   case 3: 上書きレイヤ行のバッジ・注記が「外部ファイル参照」になる
-//   case 4: 上書きレイヤ行で上書き（hide / title）を編集でき、保存形に載る
-//   case 5: 裸 URL 行の「上書きを追加」で {layer:URL} へ変わり、上書き編集が開く
-//   case 6: 単独形（URL 文字列）が read-only にならず警告も出ない（spec と分担）
-//   case 7: 単独形の文書は要素数1のままなら単独形で保存される（配列化しない）
-//   case 9: 単独形 URL の文書で POI が黙って消えない
+//   上書きレイヤ行に viewer-fatal 注記（poiref-key-missing）が出ない
+//   上書きレイヤ行のバッジ・注記が「外部ファイル参照」になる
+//   上書きレイヤ行で上書き（hide / title）を編集でき、保存形に載る
+//   裸 URL 行の「上書きを追加」で {layer:URL} へ変わり、上書き編集が開く
+//   単独形（URL 文字列）が read-only にならず警告も出ない（spec と分担）
+//   単独形の文書は要素数1のままなら単独形で保存される（配列化しない）
+//   単独形 URL の文書で POI が黙って消えない
 //
-// 【/ case 8 の実測による訂正】設計は「単独形 URL の文書で POI を追加 → 可能。
+// 【実測による訂正】設計は「単独形 URL の文書で POI を追加 → 可能。
 // 元の URL は要素として残り配列化して2要素になる」としていたが、**UI からこの経路には到達
 // できない**。PoiReferenceEditor の hasNonReferenceEntries（:356）が非参照要素の存在で真に
 // なり、POI ソース選択ペインが inline-poi-preserve-convert の既存制約（poiref.add_blocked_note）で無効化される
@@ -134,27 +134,27 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       const wrapperCard = cards.nth(1);
 
-      // ---- case 2: viewer-fatal 注記が出ない（以前はここが誤警告の発生点だった）----
+      // ---- viewer-fatal 注記が出ない（以前はここが誤警告の発生点だった）----
       await expect(
         poisPane.getByTestId('poiref-key-missing'),
-        'case 2: 上書きレイヤに viewer 全損の誤警告が出ない',
+        '上書きレイヤに viewer 全損の誤警告が出ない',
       ).toHaveCount(0);
 
-      // ---- case 3: バッジ・注記が「外部ファイル参照」になる（「地図内定義POI」ではない）----
-      await expect(wrapperCard, 'case 3: 上書きレイヤのバッジは外部ファイル参照').toContainText('外部ファイル参照');
-      await expect(wrapperCard, 'case 3: 旧分類（地図内定義POI）へ落ちない').not.toContainText('地図内定義POI');
+      // ---- バッジ・注記が「外部ファイル参照」になる（「地図内定義POI」ではない）----
+      await expect(wrapperCard, '上書きレイヤのバッジは外部ファイル参照').toContainText('外部ファイル参照');
+      await expect(wrapperCard, '旧分類（地図内定義POI）へ落ちない').not.toContainText('地図内定義POI');
 
-      // ---- case 4: 上書き（hide）を編集でき、保存形に載る ----
+      // ---- 上書き（hide）を編集でき、保存形に載る ----
       const hide = wrapperCard.getByTestId('poiref-hide-override');
-      await expect(hide, 'case 4: 上書きレイヤ行に hide 上書きの UI が開いている').toHaveCount(1);
+      await expect(hide, '上書きレイヤ行に hide 上書きの UI が開いている').toHaveCount(1);
       await hide.locator('input[type="checkbox"]').check();
       await saveEditor(page);
 
       const saved: any = await readSavedMapPois(page, uid);
-      expect(Array.isArray(saved), 'case 4: 配列のまま保存される').toBe(true);
-      expect(saved[1], 'case 4: 上書きがラッパーへ載る（参照先の中身は変えない）')
+      expect(Array.isArray(saved), '配列のまま保存される').toBe(true);
+      expect(saved[1], '上書きがラッパーへ載る（参照先の中身は変えない）')
         .toEqual({ layer: URL_A, hide: true });
-      expect(saved[0]?.id, 'case 4: 先頭の生 FC は変わらない').toBe('layer-a');
+      expect(saved[0]?.id, '先頭の生 FC は変わらない').toBe('layer-a');
     } finally {
       await quitElectronApplication(app);
     }
@@ -182,17 +182,17 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       await first.getByTestId('poiref-add-override').click();
 
-      // ---- case 5: ラッパーへ変わり、上書き編集ブロックが開く ----
+      // ---- ラッパーへ変わり、上書き編集ブロックが開く ----
       await expect(
         cards.nth(0).getByTestId('poiref-hide-override'),
-        'case 5: 上書きを追加すると上書き編集が開く',
+        '上書きを追加すると上書き編集が開く',
       ).toHaveCount(1, { timeout: 10000 });
-      await expect(cards.nth(0), 'case 5: バッジも外部ファイル参照へ変わる').toContainText('外部ファイル参照');
-      await expect(cards.nth(1), 'case 5: 他の行は裸 URL のまま').toContainText('外部URL参照');
+      await expect(cards.nth(0), 'バッジも外部ファイル参照へ変わる').toContainText('外部ファイル参照');
+      await expect(cards.nth(1), '他の行は裸 URL のまま').toContainText('外部URL参照');
 
       await saveEditor(page);
       const saved: any = await readSavedMapPois(page, uid);
-      expect(saved, 'case 5: 保存形は先頭だけがラッパーになる').toEqual([{ layer: URL_A }, URL_B]);
+      expect(saved, '保存形は先頭だけがラッパーになる').toEqual([{ layer: URL_A }, URL_B]);
     } finally {
       await quitElectronApplication(app);
     }
@@ -236,32 +236,32 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       const { poisPane, cards } = await openMapPoisTab(page, uid, slug);
 
-      // ---- case 6（再掲）: 単独形は read-only にならず警告も出ない ----
-      await expect(cards, 'case 6: 単独形が1件のカードとして編集可能に出る').toHaveCount(1, { timeout: 30000 });
+      // ---- 単独形は read-only にならず警告も出ない（再掲）----
+      await expect(cards, '単独形が1件のカードとして編集可能に出る').toHaveCount(1, { timeout: 30000 });
       await expect(
         poisPane.locator('.editor-diagnostic__message'),
-        'case 6: 未対応形式の警告は出ない',
+        '未対応形式の警告は出ない',
       ).toHaveCount(0);
 
-      // ---- case 7: 要素数1のままの編集は単独形で保存される（配列化しない）----
+      // ---- 要素数1のままの編集は単独形で保存される（配列化しない）----
       await saveEditor(page);
-      expect(await readSavedMapPois(page, uid), 'case 7: 単独形のまま保存される').toBe(URL_A);
+      expect(await readSavedMapPois(page, uid), '単独形のまま保存される').toBe(URL_A);
 
-      // ---- case 9(a): POI 追加による上書き喪失の経路が存在しない ----
+      // ---- (a): POI 追加による上書き喪失の経路が存在しない ----
       // 非参照要素（ここでは URLレイヤ）がある間は POI ソースの追加自体が塞がれている
       // （inline-poi-preserve-convert の既存制約。この spec が解除するのは readOnly だけ）
       await page.getByTestId('map-tab-pois').click();
       await expect(cards, '前提: カードは1件のまま').toHaveCount(1, { timeout: 30000 });
       await expect(
         poisPane.locator('.poi-selector-disabled'),
-        'case 9(a): 非参照要素がある間は POI ソース選択が無効化される（追加で上書きされる経路が無い）',
+        '(a): 非参照要素がある間は POI ソース選択が無効化される（追加で上書きされる経路が無い）',
       ).toHaveCount(1);
       const rows = poisPane.locator('.source-pane .resource-master-row');
       await expect(rows.first(), '前提: 一覧には登録済み POI ソースが出ている').toBeVisible({ timeout: 30000 });
       await rows.first().click({ force: true });
-      await expect(cards, 'case 9(a): クリックしてもカードは増えない').toHaveCount(1);
+      await expect(cards, '(a): クリックしてもカードは増えない').toHaveCount(1);
 
-      // ---- case 9(b): 削除は確認ダイアログを経る明示操作である ----
+      // ---- (b): 削除は確認ダイアログを経る明示操作である ----
       const confirmation = await captureNativeConfirmation(app);
       await poisPane.locator('.selected-source .btn-outline-danger').first().click();
       const prompt = await confirmation.wait();

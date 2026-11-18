@@ -1,11 +1,11 @@
-// スモーク: export の POI 外部ファイル化 。
+// スモーク: export の POI 外部ファイル化。
 // poi-reference-resolver-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // 純関数と AppExportService.exportApp の実出力を behavioral に検証する。
 //
-// Part A: poiExportFileName の表駆動 (sanitize / 一意化)                                      … case 6
-// Part B: externalizePoisArray の要素変換規則 E1〜E7 (正本表)                     … case 3/case 5/case 7/case 8/case 9
+// Part A: poiExportFileName の表駆動 (sanitize / 一意化)
+// Part B: externalizePoisArray の要素変換規則 E1〜E7 (正本表)
 // Part C: exportApp の実出力 (zip 展開) — pois/ 実在・両 JSON の参照化・上書き非焼き込み・
-//         icon 実体同梱・app と map で1ファイルへ畳む・sanitize が pois/ の外へ出さない        … case 1/case 2/case 3/case 4/case 5/case 6
+//         icon 実体同梱・app と map で1ファイルへ畳む・sanitize が pois/ の外へ出さない
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -270,7 +270,7 @@ try {
         assert.equal(result.warnings.filter((k: string) => k === MISSING_KEY).length, 1,
           'E7: missing 警告は1回だけ');
 
-        // --- インライン FC が出力に一切現れない (case 1 の関数版) ---
+        // --- インライン FC が出力に一切現れない (関数版) ---
         for (const entry of result.pois) {
           assert.notEqual((entry as any)?.type, 'FeatureCollection',
             '出力 pois にインライン FC が残ってはいけない: ' + JSON.stringify(entry));
@@ -383,7 +383,7 @@ try {
       const { uid: mapUid } = await SqliteDataService.createMap('fxmap', {
         title: { ja: 'fx地図' },
         attr: { ja: '© Example' },
-        // app と同じ POI ソース A を参照する (case 5: 1ファイルへ畳む)
+        // app と同じ POI ソース A を参照する (1ファイルへ畳む)
         pois: [{ poiUid: uidA, hide: true }],
       });
       assert.ok(mapUid, '地図 fixture の作成');
@@ -413,7 +413,7 @@ try {
       const exportDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract');
       new AdmZip(exported.outDir).extractAllTo(exportDir, true);
 
-      // --- case 1: apps/{appID}.json ---
+      // --- apps/{appID}.json ---
       const appJson = JSON.parse(await fsReadFile(nodePath.join(exportDir, 'apps', 'fx_app.json'), 'utf8'));
       assert.equal(appJson.pois.length, 3);
       for (const entry of appJson.pois) {
@@ -429,7 +429,7 @@ try {
       assert.equal(appJson.pois[1].layer, 'pois/nara-poi.geojson');
       assert.deepEqual(appJson.pois[2], { layer: 'https://example.com/external.geojson' });
 
-      // --- case 2: maps/{slug}.json ---
+      // --- maps/{slug}.json ---
       // **地図 JSON は搬出種別を問わず minify** である。
       // マイルストーン設計 I-5 は「アプリ JSON は pretty / 地図 ZIP の maps/<slug>.json は minify」と
       // **パッケージ単位**で書かれていたが、人間の指示は 再設計時から一貫して
@@ -470,7 +470,7 @@ try {
         'map JSON も同じ外部ファイルを参照するはず ');
       assert.equal(mapJson.pois[0].hide, true, 'map 側の hide 上書きが wrapper に載る');
 
-      // --- case 1: pois/ の実体 ---
+      // --- pois/ の実体 ---
       const poiFiles = (await fsReaddir(nodePath.join(exportDir, 'pois'))).sort();
       assert.deepEqual(poiFiles, ['kyoto-poi.geojson', 'nara-poi.geojson'],
         'app と map が同じソースを参照しても外部ファイルは1つに畳まれるはず : ' + poiFiles.join(','));
@@ -479,14 +479,14 @@ try {
       assert.equal(poiFileA.type, 'FeatureCollection');
       assert.equal(poiFileA.id, 'kyoto-poi');
       assert.equal(poiFileA.name, '京都POI',
-        '外部ファイルの name はソース側のまま (app 側の title 上書きを焼き込まない — case 3)');
+        '外部ファイルの name はソース側のまま (app 側の title 上書きを焼き込まない)');
       assert.equal(poiFileA.properties?.hide, undefined,
         '外部ファイルに map 側の hide が焼き込まれていないはず ');
       assert.equal(poiFileA.properties?.icon, 'imgs/icons/builtin/defaultpin.png',
         '外部ファイル内の icon 参照は従来どおり imgs/ へ解決されるはず');
       assert.equal(poiFileA.features[0].properties.name, '京都POIの点');
 
-      // --- case 4: icon 実体の同梱 ---
+      // --- icon 実体の同梱 ---
       const bundledAsset = await fsReadFile(nodePath.join(exportDir, 'imgs', 'temple-mark.png'));
       assert.ok(bundledAsset.equals(assetBytes), 'wrapper icon の実体が zip に同梱されるはず');
       const bundledBuiltin = await fsReadFile(

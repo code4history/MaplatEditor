@@ -17,7 +17,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   });
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
-  // case 15: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
+  // 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
   const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
   if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
     throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
@@ -112,15 +112,15 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
 
     await openHash(page, '#/maplist', '[data-resource-list="map"]');
 
-    // case 2: 統一された ＋新規追加
+    // 統一された ＋新規追加
     await expect(page.locator('[data-resource-new]')).toContainText('新規追加');
     // MapList の import ボタン文言は「インポート」（「地図インポート」ではない）
     await expect(page.locator('[data-resource-import]')).toHaveText('インポート');
-    // case 5: pager ボタンが存在せず sentinel がある
+    // pager ボタンが存在せず sentinel がある
     await expect(page.locator('[data-resource-sentinel]')).toHaveCount(1);
     await expect(page.locator('button', { hasText: /^[<>]$/ })).toHaveCount(0);
 
-    // case 9: card に title と Slug(=mapID)
+    // card に title と Slug(=mapID)
     const card = page.locator(`[data-resource-uid="${uid}"]`);
     await expect(card).toBeVisible();
     await expect(card.locator('.resource-item__title')).toBeVisible();
@@ -130,12 +130,12 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await expect(card).toHaveCSS('border-top-width', '1px');
 
-    // case 4改(2026-07-16 件数表示統一・人間指示): backend が total を返すため
+    // 2026-07-16 の件数表示統一（人間指示）: backend が total を返すため
     // 「全N件」(完載) または「全N件中 M件表示」(部分表示) 形式になる
     const count = page.locator('[data-resource-count]');
     await expect(count).toContainText('全15件');
 
-    // case 10: ⋮ click → menu、Escape で閉じ trigger へ focus 復帰、aria-expanded トグル
+    // ⋮ click → menu、Escape で閉じ trigger へ focus 復帰、aria-expanded トグル
     const trigger = card.locator('[data-resource-action-trigger]');
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await trigger.click();
@@ -146,7 +146,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await page.keyboard.press('Escape');
     await expect(page.locator('[role="menu"]')).toHaveCount(0);
     await expect(trigger).toBeFocused();
-    // case 10: 右クリックでも同 menu（card 中心の明示座標で検証）
+    // 右クリックでも同 menu（card 中心の明示座標で検証）
     const cardBox = await card.boundingBox();
     expect(cardBox).not.toBeNull();
     await card.click({ button: 'right' });
@@ -155,7 +155,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
       await expectMenuAt(page, cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);
     }
     await page.keyboard.press('Escape');
-    // case 10: Shift+F10 でも同 menu
+    // Shift+F10 でも同 menu
     await trigger.focus();
     await page.keyboard.press('Shift+F10');
     await expect(page.locator('[role="menu"]')).toBeVisible();
@@ -180,7 +180,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(page.locator('[role="menu"]')).toBeVisible();
     await expectMenuNearTrigger(page, lastTrigger);
 
-    // case 11: menu の 削除 → 共通 DeleteConfirmDialog 承認 → card（scroll test で開いた末尾card）が消える
+    // menu の 削除 → 共通 DeleteConfirmDialog 承認 → card（scroll test で開いた末尾card）が消える
     // window.confirm ではなく共通ダイアログを承認する
     const confirmation = await captureNativeConfirmation(app);
     await page.locator('[role="menuitem"][data-resource-action="delete"]').click();
@@ -188,7 +188,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await confirmation.restore();
     await expect(page.locator(`[data-resource-uid="${lastCardUid}"]`)).toHaveCount(0);
 
-    // case 4 empty: 一致しない検索で empty 状態
+    // empty: 一致しない検索で empty 状態
     await page.locator('[data-resource-search]').fill('zzz-no-such-map-xyz');
     await expect(page.locator('[data-resource-status][data-state="empty"]')).toBeVisible();
   } finally {
@@ -209,10 +209,10 @@ test('poi list shows real total, keeps Import in secondary slot, and hides flag-
 
     await openHash(page, '#/poisources', '[data-resource-list="poi-source"]');
 
-    // case 4: POI は実 total → 「全N件・…」
+    // POI は実 total → 「全N件・…」
     await expect(page.locator('[data-resource-count]')).toContainText('全');
 
-    // case 12: Import は toolbar secondary slot にあり、Remote 登録ボタンは DOM に無い（フラグ抑制 D13）
+    // Import は toolbar secondary slot にあり、Remote 登録ボタンは DOM に無い（フラグ抑制 D13）
     // 旧 [data-poi-import]+プレビューモーダルは解体され、共通 ImportSlot([data-resource-import])
     // + file picker 直行フローに統一（クリック→エディタ遷移の実効検証は取り込みの導線の e2e が担う）。
     const toolbar = page.locator('[data-resource-toolbar]');
@@ -236,10 +236,10 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await approveConfirm(page);
 
     await openHash(page, '#/basemaps', '[data-master-detail="base-map"]');
-    // case 2: master も resource_list.new_item（新規追加）
+    // master も resource_list.new_item（新規追加）
     await expect(page.getByTestId('basemap-new')).toContainText('新規追加');
 
-    // case 17: builtin 行（osm）は ⋮ トリガーを持たない
+    // builtin 行（osm）は ⋮ トリガーを持たない
     const builtinRow = page.getByTestId('basemap-row-osm');
     await expect(builtinRow).toBeVisible();
     await expect(builtinRow.locator('[data-resource-action-trigger]')).toHaveCount(0);
@@ -267,7 +267,7 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });
 
-    // case 11(master): user 行の ⋮ → 削除 → 行が消える
+    // (master): user 行の ⋮ → 削除 → 行が消える
     const userRow = page.getByTestId('basemap-row-e2e-user-basemap');
     await expect(userRow).toBeVisible();
     const userTrigger = userRow.locator('[data-resource-action-trigger]');
@@ -297,7 +297,7 @@ test('base map master: builtin rows expose no action menu, user row deletes via 
     await confirmation.restore();
     await expect(page.getByTestId('basemap-row-e2e-user-basemap')).toHaveCount(0);
 
-    // case 16: 範囲で絞り込むボタン→ modal→ 適用が現行どおり動く（filterBaseMapCatalog 温存）
+    // 範囲で絞り込むボタン→ modal→ 適用が現行どおり動く（filterBaseMapCatalog 温存）
     await page.getByTestId('basemap-range-filter').click();
     await expect(page.locator('.modal')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -329,13 +329,13 @@ test('infinite scroll replaces the pager and Back restores query and scroll (gri
     await page.locator('[data-resource-content="map"] [data-resource-sentinel]').scrollIntoViewIfNeeded();
     await expect.poll(async () => cards.count(), { timeout: 15_000 }).toBe(22);
 
-    // case 8: q を付けて（batches=2 の状態を残し）card へ遷移 → Back で復元
+    // q を付けて（batches=2 の状態を残し）card へ遷移 → Back で復元
     const anchorUid = await cards.nth(15).getAttribute('data-resource-uid');
     await page.locator('[data-resource-content="map"]').evaluate((el) => { el.scrollTop = 400; });
     const beforeScroll = await page.locator('[data-resource-content="map"]').evaluate((el) => el.scrollTop);
     await page.locator(`[data-resource-uid="${anchorUid}"] a`).first().click();
     await expect(page).toHaveURL(/\/mapedit/);
-    // case 8: エディタの戻るボタン（実経路）で戻る。goBack は直前履歴が '/maplist' 始まりなら
+    // エディタの戻るボタン（実経路）で戻る。goBack は直前履歴が '/maplist' 始まりなら
     // router.back()（クエリ保持）で戻るため backCache 復元条件が成立する
     await expect(page.getByTestId('editor-back')).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('editor-back').click();

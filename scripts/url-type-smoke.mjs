@@ -1,4 +1,4 @@
-// case 6: `url` を多言語オブジェクトとして扱う経路が新たに生じていないことの回帰。
+// `url` を多言語オブジェクトとして扱う経路が新たに生じていないことの回帰。
 //
 // なぜ必要か（マイルストーン不変条件 I-1）:
 //   `HistMapStore.url` の型宣言は `LangResource`（= string | Record<string,string>）だったが、
@@ -43,42 +43,42 @@ try {
 
       const TILE_URL = 'https://t.example.jp/ext/{z}/{x}/{y}.jpg';
 
-      // --- case 6-1: url は言語別フィールドの集合に属さない ---
+      // --- url は言語別フィールドの集合に属さない ---
       assert.ok(
         Array.isArray(MAP_LANG_ATTRS) && MAP_LANG_ATTRS.length > 0,
         'MAP_LANG_ATTRS は非空の配列のはず'
       );
       assert.equal(
         MAP_LANG_ATTRS.includes('url'), false,
-        'case 6-1: MAP_LANG_ATTRS に url が含まれてはいけない（不変条件 I-1）。実際: ' + JSON.stringify(MAP_LANG_ATTRS)
+        'MAP_LANG_ATTRS に url が含まれてはいけない（不変条件 I-1）。実際: ' + JSON.stringify(MAP_LANG_ATTRS)
       );
-      console.log('ok: case 6-1 MAP_LANG_ATTRS does not contain url');
+      console.log('ok: MAP_LANG_ATTRS does not contain url');
 
-      // --- case 6-2: 内部形への正規化で url が畳み込まれない ---
+      // --- 内部形への正規化で url が畳み込まれない ---
       // 言語別フィールド (title) はオブジェクトへ正規化されるのに対し、url は文字列のまま素通しになる。
       // 「url だけが対象外である」ことを、同じ入力の中で対比して固定する
       const normalized = normalizeMapLangFields({ lang: 'ja', title: 'T', url: TILE_URL });
       assert.deepEqual(
         normalized.title, { ja: 'T' },
-        'case 6-2: 言語別フィールド title は内部形（オブジェクト）へ正規化されるはず'
+        '言語別フィールド title は内部形（オブジェクト）へ正規化されるはず'
       );
       assert.strictEqual(
         normalized.url, TILE_URL,
-        'case 6-2: url は正規化されず文字列のまま素通しするはず。実際: ' + JSON.stringify(normalized.url)
+        'url は正規化されず文字列のまま素通しするはず。実際: ' + JSON.stringify(normalized.url)
       );
-      console.log('ok: case 6-2 normalizeMapLangFields leaves url untouched while folding title');
+      console.log('ok: normalizeMapLangFields leaves url untouched while folding title');
 
-      // --- case 6-3: 交換形への畳み込みでも url が変換されない ---
+      // --- 交換形への畳み込みでも url が変換されない ---
       const compacted = compactMapLangFields({ lang: 'ja', title: { ja: 'T' }, url: TILE_URL });
       assert.strictEqual(
         compacted.title, 'T',
-        'case 6-3: 言語別フィールド title は交換形（プレーン文字列）へ畳み込まれるはず'
+        '言語別フィールド title は交換形（プレーン文字列）へ畳み込まれるはず'
       );
       assert.strictEqual(
         compacted.url, TILE_URL,
-        'case 6-3: url は交換形でも文字列のまま素通しするはず。実際: ' + JSON.stringify(compacted.url)
+        'url は交換形でも文字列のまま素通しするはず。実際: ' + JSON.stringify(compacted.url)
       );
-      console.log('ok: case 6-3 compactMapLangFields leaves url untouched while folding title');
+      console.log('ok: compactMapLangFields leaves url untouched while folding title');
 
       console.log('url type smoke passed');
       process.exit(0);

@@ -1,5 +1,5 @@
 // swiper 12 系への更新 — preview 到達 E2E
-// case 13: preview iframe 内で複数画像 POI の swiper が生成され、スライド数が seed の画像数と一致する。
+// preview iframe 内で複数画像 POI の swiper が生成され、スライド数が seed の画像数と一致する。
 //
 // なぜ必要か:
 //   swiper は POI の画像が2枚以上のときだけ生成される。MaplatEditor は Maplat の静的 POI を
@@ -158,7 +158,7 @@ test.describe('swiper 12 — preview 到達', () => {
       expect(dispatched.ok, `clickMarkers を発火できること（${dispatched.reason ?? ''}）`).toBe(true);
       expect(dispatched.images, 'viewer に届いた datum が seed した画像数を保っていること').toBe(IMAGES.length);
 
-      // 6. swiper の生成とスライド数を assert（case 13 の本体）
+      // 6. swiper の生成とスライド数を assert
       const swiper = frame.locator('cc-swiper').first();
       await expect(swiper).toBeAttached({ timeout: 30000 });
       const slideCount = await frame.evaluate(() =>

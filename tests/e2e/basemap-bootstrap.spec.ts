@@ -21,7 +21,7 @@ async function readJson(p: string): Promise<any> {
   return JSON.parse(await readFile(p, 'utf8'));
 }
 
-// 5 テーブルの件数・uid 集合スナップショット（case 32-6/7 検証用）
+// 5 テーブルの件数・uid 集合スナップショット（検証用）
 interface TableSnapshot {
   counts: { maps: number; base_maps: number; apps: number; poi_sources: number; assets: number };
   uids: { maps: string[]; base_maps_user: string[]; apps: string[]; poi_sources: string[]; assets: string[] };
@@ -79,7 +79,7 @@ const LEGACY_MARKER = '2026-07-04-sqlite-write-store-legacy-import';
 test.describe('ベースマップ重複修正', () => {
   test.setTimeout(240_000);
 
-  test('シナリオ1（case 32-1/2）: 全く新規の空フォルダで起動 — 残骸 tmsList があってもユーザー定義 0 件', async () => {
+  test('シナリオ1: 全く新規の空フォルダで起動 — 残骸 tmsList があってもユーザー定義 0 件', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-basemap-bootstrap-s1-'));
     const fixture = await readJson(fixturePath);
     const builtinCatalog = await readJson(builtinPath);
@@ -121,7 +121,7 @@ test.describe('ベースマップ重複修正', () => {
     }
   });
 
-  test('シナリオ2（case 32-5/6/8）: 設定済みフォルダ → 空フォルダ切替 → 復帰。ドラフト全消去・保存済み不変', async () => {
+  test('シナリオ2: 設定済みフォルダ → 空フォルダ切替 → 復帰。ドラフト全消去・保存済み不変', async () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-basemap-bootstrap-s2-'));
     const fixture = await readJson(fixturePath);
     const builtinCatalog = await readJson(builtinPath);
@@ -201,7 +201,7 @@ test.describe('ベースマップ重複修正', () => {
       expect(bMaps.filter((b) => b.scope === 'builtin').length, 'B: builtin カタログ件数').toBe(builtinCount);
       const bList: any = await page.evaluate(() => (window as any).maplist.request('', 1, 50));
       expect(bList.docs.length, 'B: 地図 0 件').toBe(0);
-      // ドラフト全消去（IPC 経由で store を直接検証 — case 32-8 の確実な確認）
+      // ドラフト全消去（IPC 経由で store を直接検証 — 確実な確認）
       const bDrafts: any[] = await page.evaluate(() => (window as any).assetDrafts.list());
       expect(bDrafts.length, 'B: ドラフト index 空（全消去）').toBe(0);
       await expect.poll(

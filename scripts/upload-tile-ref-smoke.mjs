@@ -5,12 +5,12 @@
 //   Part A: MapSaveResult 型定義 (StorageAdapter.ts / src/electron.d.ts) に url?: string が
 //           同期して追加されていること (恒久回帰防止)
 //   Part B: tmpCheck 分岐 (新規原本アップロード) は恒久タイルURLを url として返し、
-//           {z}/{x}/{y}.ext サフィックスが保持される (case 2/case 3 の main process 側根拠)
+//           {z}/{x}/{y}.ext サフィックスが保持される (main process 側根拠)
 //   Part C: 置換文字列 $ 特殊シーケンスハザード回帰 —
 //           saveFolder パスに $& が含まれても恒久 URL が破損しない
-//   Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (case 1 無回帰)
+//   Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (無回帰)
 //   Part E: clone は url を含むようになった  — 複製先タイルパスを指す恒久URLを返す
-//   Part F: rename (改名、tmpCheck=false) は url を含まない (case 6 無回帰)
+//   Part F: rename (改名、tmpCheck=false) は url を含まない (無回帰)
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -236,11 +236,11 @@ try {
           path.join(tileFolder, UID_C1),
           '$ を含む saveFolder でも url は恒久タイルフォルダの実パスへ復号されるはず: ' + saveC1.url
         );
-        console.log('ok: (Part C) $ characters in saveFolder path do not corrupt the permanent tile url (regex replacement hazard, review Minor1)');
+        console.log('ok: (Part C) $ characters in saveFolder path do not corrupt the permanent tile url (regex replacement hazard)');
       }
 
       // ============================================================
-      // Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (case 1 無回帰)
+      // Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (無回帰)
       // ============================================================
       {
         setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-d'))});
@@ -263,7 +263,7 @@ try {
         });
         assert.equal(updateD1.result, 'Success', '通常更新は成功するはず: ' + JSON.stringify(updateD1));
         assert.equal(updateD1.url, undefined, '画像差し替えを伴わない通常更新は url を含まないはず ');
-        console.log('ok: (Part D) normal update without a fresh upload omits url (case 1 no-regression)');
+        console.log('ok: (Part D) normal update without a fresh upload omits url (no-regression)');
       }
 
       // ============================================================
@@ -318,7 +318,7 @@ try {
       }
 
       // ============================================================
-      // Part F: rename (改名、tmpCheck=false) は url を含まない (case 6 無回帰)
+      // Part F: rename (改名、tmpCheck=false) は url を含まない (無回帰)
       // ============================================================
       {
         setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-f'))});
@@ -344,7 +344,7 @@ try {
         });
         assert.equal(renameF1.result, 'Success', 'rename は成功するはず: ' + JSON.stringify(renameF1));
         assert.equal(renameF1.url, undefined, 'rename (tmpCheck=false) は url を含まないはず ');
-        console.log('ok: (Part F) rename omits url (case 6 no-regression)');
+        console.log('ok: (Part F) rename omits url (no-regression)');
       }
 
       console.log('upload tile ref smoke passed');

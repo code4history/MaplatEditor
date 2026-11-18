@@ -1,6 +1,5 @@
 // 地図 / ベースマップ / アプリ管理の画面内 UI 微修正。
 //
-//
 //   S1    defaultApp の httpSettings は現行値のまま（②読み込み時の欠落補完を動かさない）
 //   S2    新既定は NEW_APP_HTTP_OVERRIDES 1 箇所に集約され、適用点は newAppDocument だけ
 //   S3    AppEdit.vue の <ContextHelp タグ数 = 14（アプリの書き出しを小窓にした変更で +1）
@@ -107,14 +106,14 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 {
   for (const [key, value] of Object.entries(DEFAULT_HTTP_SETTINGS)) {
     const m = defaultHttpBlock.match(new RegExp(`(^|\\n)\\s*${key}\\s*:\\s*([^,\\n]+)`));
-    assert.ok(m, `S1/case 5: defaultApp().httpSettings must keep the key ${key}`);
+    assert.ok(m, `S1/defaultApp().httpSettings must keep the key ${key}`);
     assert.equal(
       m[2].trim(),
       value,
-      `S1/case 5: defaultApp().httpSettings.${key} must stay ${value} (② 読み込み時の欠落補完を動かさない)`,
+      `S1/defaultApp().httpSettings.${key} must stay ${value} (② 読み込み時の欠落補完を動かさない)`,
     );
   }
-  console.log("  [S1/case 5] defaultApp().httpSettings が現行値のまま（11 キー）: PASS");
+  console.log("  [S1] defaultApp().httpSettings が現行値のまま（11 キー）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -124,22 +123,22 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   assert.equal(
     count(appEditVue, "const NEW_APP_HTTP_OVERRIDES"),
     1,
-    "S2/case 6: NEW_APP_HTTP_OVERRIDES must be declared exactly once",
+    "S2/NEW_APP_HTTP_OVERRIDES must be declared exactly once",
   );
   assert.equal(
     count(appEditVue, "const newAppDocument"),
     1,
-    "S2/case 6: newAppDocument() must be declared exactly once",
+    "S2/newAppDocument() must be declared exactly once",
   );
   assert.equal(
     count(appEditVue, "ref<AppDocument>(newAppDocument())"),
     2,
-    "S2/case 6: newAppDocument() must be the initializer of both appData and originalAppData",
+    "S2/newAppDocument() must be the initializer of both appData and originalAppData",
   );
   assert.equal(
     count(appEditVue, "ref<AppDocument>(defaultApp())"),
     0,
-    "S2/case 6: no ref<AppDocument>(defaultApp()) may remain (新既定の適用点は newAppDocument() だけ)",
+    "S2/no ref<AppDocument>(defaultApp()) may remain (新既定の適用点は newAppDocument() だけ)",
   );
   // 新既定の 3 値（要望 B: PWA/キャッシュ 既定オフ・要望 C: マーカー一覧 既定オン）
   const ovStart = appEditVue.indexOf("const NEW_APP_HTTP_OVERRIDES");
@@ -149,10 +148,10 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     assert.match(
       ovBlock,
       new RegExp(`${key}\\s*:\\s*${value}\\b`),
-      `S2/case 6: NEW_APP_HTTP_OVERRIDES.${key} must be ${value}`,
+      `S2/NEW_APP_HTTP_OVERRIDES.${key} must be ${value}`,
     );
   }
-  console.log("  [S2/case 6] 新既定 3 値が NEW_APP_HTTP_OVERRIDES 1 箇所へ集約 / 適用点は newAppDocument() のみ: PASS");
+  console.log("  [S2] 新既定 3 値が NEW_APP_HTTP_OVERRIDES 1 箇所へ集約 / 適用点は newAppDocument() のみ: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -169,9 +168,9 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 // ---------------------------------------------------------------------------
 {
   const cases = [
-    [APP_EDIT, appEditVue, 15, "S3/case 8"],
-    [MAP_EDIT, mapEditVue, 25, "S4/case 9"],
-    [BASE_MAP_EDIT, baseMapEditVue, 13, "S5/case 10"],
+    [APP_EDIT, appEditVue, 15, "S3"],
+    [MAP_EDIT, mapEditVue, 25, "S4"],
+    [BASE_MAP_EDIT, baseMapEditVue, 13, "S5"],
   ];
   for (const [rel, source, expected, label] of cases) {
     const actual = count(source, "<ContextHelp");
@@ -198,7 +197,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   };
   await walk(path.join(projectRoot, "src"));
   assert.equal(total, 80, `S3-S5: src 全体の <ContextHelp タグ数は 80 であること（上の注記の 56 + UI 文法の 17 + #85 の 1 + Google の帰属表記の 2 + IIIF の 4） (got ${total})`);
-  console.log("  [S3-S5/case 8-case 10] ContextHelp タグ数 AppEdit 15 / MapEdit 25 / BaseMapEdit 13 / src 計 80: PASS");
+  console.log("  [S3-S5] ContextHelp タグ数 AppEdit 15 / MapEdit 25 / BaseMapEdit 13 / src 計 80: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない
@@ -210,14 +209,14 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   );
   assert.ok(
     !/<p class="text-muted small">\{\{\s*t\("merc\.tab_description"\)\s*\}\}<\/p>/.test(mapEditVue),
-    'S4/case 9: MapEdit.vue must not render merc.tab_description as a plain <p class="text-muted small">',
+    'S4/MapEdit.vue must not render merc.tab_description as a plain <p class="text-muted small">',
   );
   assert.match(
     mapEditVue,
     /<ContextHelp :title="t\('merc\.tab_title'\)" :text="t\('merc\.tab_description'\)"/,
-    "S4/case 9: merc カードヘッダに merc.tab_description の ContextHelp があること",
+    "S4/merc カードヘッダに merc.tab_description の ContextHelp があること",
   );
-  console.log("  [S4/case 9] merc タブ: <p> 廃止 → カードヘッダの ContextHelp へ移設: PASS");
+  console.log("  [S4] merc タブ: <p> 廃止 → カードヘッダの ContextHelp へ移設: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -237,17 +236,17 @@ const FIELD_HELP_TRANSFER = [
 {
   for (const lang of langs) {
     const j = locales[lang];
-    assert.ok(j.field_help, `S6/case 11: ${lang} must have a top-level "field_help" section`);
+    assert.ok(j.field_help, `S6/${lang} must have a top-level "field_help" section`);
     for (const [newKey, oldKey] of FIELD_HELP_TRANSFER) {
       const v = j.field_help[newKey];
       assert.ok(
         typeof v === "string" && v.trim() !== "",
-        `S6/case 11: ${lang}.field_help.${newKey} must be a non-empty string`,
+        `S6/${lang}.field_help.${newKey} must be a non-empty string`,
       );
       assert.equal(
         j.mapedit?.[oldKey],
         undefined,
-        `S6/case 11: ${lang}.mapedit.${oldKey} must be removed (移送元は残さない)`,
+        `S6/${lang}.mapedit.${oldKey} must be removed (移送元は残さない)`,
       );
     }
   }
@@ -256,7 +255,7 @@ const FIELD_HELP_TRANSFER = [
     assert.equal(
       locales.ja.field_help[newKey],
       jaValue,
-      `S6/case 11: ja.field_help.${newKey} must be transferred verbatim`,
+      `S6/ja.field_help.${newKey} must be transferred verbatim`,
     );
   }
   // 参照側: MapEdit.vue の 7 箇所が field_help.* を見ており、mapedit.map_*_desc の 7 キーは 0 参照。
@@ -266,20 +265,20 @@ const FIELD_HELP_TRANSFER = [
     assert.equal(
       count(mapEditVue, `mapedit.${oldKey}'`),
       0,
-      `S6/case 11: MapEdit.vue must not reference mapedit.${oldKey} anymore`,
+      `S6/MapEdit.vue must not reference mapedit.${oldKey} anymore`,
     );
     assert.equal(
       count(mapEditVue, `field_help.${newKey}'`),
       2,
-      `S6/case 11: MapEdit.vue must reference field_help.${newKey} twice (:text と :ariaLabel)`,
+      `S6/MapEdit.vue must reference field_help.${newKey} twice (:text と :ariaLabel)`,
     );
     assert.equal(
       count(baseMapEditVue, `field_help.${newKey}'`),
       2,
-      `S6/case 11: BaseMapEdit.vue must reference field_help.${newKey} twice (:text と :ariaLabel)`,
+      `S6/BaseMapEdit.vue must reference field_help.${newKey} twice (:text と :ariaLabel)`,
     );
   }
-  console.log("  [S6/case 11] field_help.* 7 キー 1 本化（11 言語・値不変・両画面が同一キーを参照）: PASS");
+  console.log("  [S6] field_help.* 7 キー 1 本化（11 言語・値不変・両画面が同一キーを参照）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +289,7 @@ const FIELD_HELP_TRANSFER = [
     const v = locales[lang].appedit.manifest_settings;
     assert.ok(
       !/manifest/i.test(v),
-      `S7/case 12: ${lang}.appedit.manifest_settings must not contain the latin word "manifest" (got ${JSON.stringify(v)})`,
+      `S7/${lang}.appedit.manifest_settings must not contain the latin word "manifest" (got ${JSON.stringify(v)})`,
     );
   }
   // ラテン文字圏 6 言語は変更しない
@@ -298,16 +297,16 @@ const FIELD_HELP_TRANSFER = [
     assert.match(
       locales[lang].appedit.manifest_settings,
       /manifest/i,
-      `S7/case 12: ${lang}.appedit.manifest_settings は変更しない（借用語として機能している）`,
+      `S7/${lang}.appedit.manifest_settings は変更しない（借用語として機能している）`,
     );
   }
   // Web App Manifest のフィールド名そのものは原語のまま
   for (const lang of langs) {
     for (const k of ["manifest_display", "manifest_start_url", "manifest_scope"]) {
-      assert.ok(locales[lang].appedit[k] !== undefined, `S7/case 12: ${lang}.appedit.${k} は残すこと`);
+      assert.ok(locales[lang].appedit[k] !== undefined, `S7/${lang}.appedit.${k} は残すこと`);
     }
   }
-  console.log("  [S7/case 12] manifest_settings: 非ラテン 5 言語からラテン語 manifest が消滅 / 6 言語は不変: PASS");
+  console.log("  [S7] manifest_settings: 非ラテン 5 言語からラテン語 manifest が消滅 / 6 言語は不変: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -332,7 +331,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
       const v = locales[lang].appedit[key];
       assert.ok(
         typeof v === "string" && v.trim() !== "",
-        `S8/case 13: ${lang}.appedit.${key} must be a non-empty string`,
+        `S8/${lang}.appedit.${key} must be a non-empty string`,
       );
     }
   }
@@ -341,10 +340,10 @@ const NEW_APPEDIT_NOTE_KEYS = [
     assert.equal(
       count(appEditVue, `appedit.${key}`),
       2,
-      `S8/case 13: AppEdit.vue must reference appedit.${key} twice (:text と :ariaLabel)`,
+      `S8/AppEdit.vue must reference appedit.${key} twice (:text と :ariaLabel)`,
     );
   }
-  console.log(`  [S8/case 13] 新設 ${NEW_APPEDIT_NOTE_KEYS.length} キー × ${langs.length} 言語が非空 / 全キー参照済み: PASS`);
+  console.log(`  [S8] 新設 ${NEW_APPEDIT_NOTE_KEYS.length} キー × ${langs.length} 言語が非空 / 全キー参照済み: PASS`);
 }
 
 // ---------------------------------------------------------------------------
@@ -353,24 +352,24 @@ const NEW_APPEDIT_NOTE_KEYS = [
 {
   assert.ok(
     !/\.preview-lang\s*\{/.test(appEditVue),
-    "S9/case 15: AppEdit.vue must not keep the .preview-lang CSS rule (絶対配置を廃止)",
+    "S9/AppEdit.vue must not keep the .preview-lang CSS rule (絶対配置を廃止)",
   );
   assert.equal(
     count(appEditVue, 'class="preview-lang'),
     0,
-    "S9/case 15: AppEdit.vue must not keep the .preview-lang wrapper",
+    "S9/AppEdit.vue must not keep the .preview-lang wrapper",
   );
   assert.match(
     appEditVue,
     /data-testid="app-preview-toolbar"/,
-    "S9/case 15: タブ直下の 1 行メニューバー（app-preview-toolbar）があること",
+    "S9/タブ直下の 1 行メニューバー（app-preview-toolbar）があること",
   );
   assert.equal(
     count(appEditVue, 'id="previewLang"'),
     1,
-    "S9/case 15: #previewLang は 1 箇所で維持すること（preview-restart.spec.ts が依存）",
+    "S9/#previewLang は 1 箇所で維持すること（preview-restart.spec.ts が依存）",
   );
-  console.log("  [S9/case 15] 言語切替の移設: .preview-lang 絶対配置の廃止 / #previewLang 生存: PASS");
+  console.log("  [S9] 言語切替の移設: .preview-lang 絶対配置の廃止 / #previewLang 生存: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -383,14 +382,14 @@ const NEW_APPEDIT_NOTE_KEYS = [
     assert.equal(
       count(guide, stale),
       0,
-      `S10/case 16: ${HUMAN_CHECK} の案内文に凍結前 UI の記述「${stale}」が残っている`,
+      `S10/${HUMAN_CHECK} の案内文に凍結前 UI の記述「${stale}」が残っている`,
     );
   }
-  assert.match(guide, /【追加】ベースマップ編集の帰属・ライセンス・表示ラベル 7 欄/, "S10/case 16: 案内文に追加分の見てほしい項目があること");
+  assert.match(guide, /【追加】ベースマップ編集の帰属・ライセンス・表示ラベル 7 欄/, "S10/案内文に追加分の見てほしい項目があること");
   // seed 部分（masterDoc / ソース選択導線）は変更しない
-  assert.match(humanCheck, /const masterDoc = \(suffix: string\) => \(\{/, "S10/case 16: masterDoc は変更しない");
-  assert.match(humanCheck, /human-check-tms/, "S10/case 16: seed 導線は変更しない");
-  console.log("  [S10/case 16] 人間検証ハーネスの案内文が凍結後 UI に追随: PASS");
+  assert.match(humanCheck, /const masterDoc = \(suffix: string\) => \(\{/, "S10/masterDoc は変更しない");
+  assert.match(humanCheck, /human-check-tms/, "S10/seed 導線は変更しない");
+  console.log("  [S10] 人間検証ハーネスの案内文が凍結後 UI に追随: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -405,11 +404,11 @@ const NEW_APPEDIT_NOTE_KEYS = [
       assert.equal(
         count(source, attr),
         0,
-        `S11/case 17: ${rel} must not spell the frozen attribute name as a literal (断片結合を使うこと)`,
+        `S11/${rel} must not spell the frozen attribute name as a literal (断片結合を使うこと)`,
       );
     }
   }
-  console.log("  [S11/case 17] 新設 2 ファイルに凍結属性名リテラル 0 件: PASS");
+  console.log("  [S11] 新設 2 ファイルに凍結属性名リテラル 0 件: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -423,17 +422,17 @@ const NEW_APPEDIT_NOTE_KEYS = [
   assert.deepEqual(
     declaredKeys.sort(),
     Object.keys(DEFAULT_HTTP_SETTINGS).sort(),
-    "S12/case 18 (a): defaultApp().httpSettings のキー集合は 11 キーのまま（属性の増減ゼロ）",
+    "S12 (a): defaultApp().httpSettings のキー集合は 11 キーのまま（属性の増減ゼロ）",
   );
 
   const ovStart = appEditVue.indexOf("const NEW_APP_HTTP_OVERRIDES");
   const ovBlock = appEditVue.slice(ovStart, appEditVue.indexOf("}", ovStart));
   const ovKeys = [...ovBlock.matchAll(/(^|\n)\s*([A-Za-z][A-Za-z0-9_]*)\s*:/g)].map((m) => m[2]);
-  assert.ok(ovKeys.length > 0, "S12/case 18 (b): NEW_APP_HTTP_OVERRIDES のキーを読み取れること");
+  assert.ok(ovKeys.length > 0, "S12 (b): NEW_APP_HTTP_OVERRIDES のキーを読み取れること");
   for (const k of ovKeys) {
     assert.ok(
       k in DEFAULT_HTTP_SETTINGS,
-      `S12/case 18 (b): NEW_APP_HTTP_OVERRIDES.${k} は httpSettings の既存キーでなければならない（新属性を持ち込まない）`,
+      `S12 (b): NEW_APP_HTTP_OVERRIDES.${k} は httpSettings の既存キーでなければならない（新属性を持ち込まない）`,
     );
   }
 
@@ -454,23 +453,23 @@ const NEW_APPEDIT_NOTE_KEYS = [
     assert.equal(
       actual,
       expectedOccurrences,
-      `S12/case 18 (c): ${rel} の凍結属性名の出現回数は ${expectedOccurrences} のまま（range-vocabulary-smoke の baseline を動かさない。got ${actual}）`,
+      `S12 (c): ${rel} の凍結属性名の出現回数は ${expectedOccurrences} のまま（range-vocabulary-smoke の baseline を動かさない。got ${actual}）`,
     );
     const lines = source.split("\n").filter((l) => l.includes(FROZEN_RANGE_ATTRS[0])).length;
     assert.equal(
       lines,
       expectedLines,
-      `S12/case 18 (c): ${rel} の凍結属性名を含む行数は ${expectedLines} のまま（grep -c 実測値。got ${lines}）`,
+      `S12 (c): ${rel} の凍結属性名を含む行数は ${expectedLines} のまま（grep -c 実測値。got ${lines}）`,
     );
   }
   // locales には凍結属性名が 1 件も無い（i18n 移送が baseline に影響し得ないことの直接確認）
   for (const lang of langs) {
     const raw = await readSrc(`public/locales/${lang}/translation.json`);
     for (const attr of FROZEN_RANGE_ATTRS) {
-      assert.equal(count(raw, attr), 0, `S12/case 18 (c): public/locales/${lang}/translation.json に ${attr} は無いこと`);
+      assert.equal(count(raw, attr), 0, `S12 (c): public/locales/${lang}/translation.json に ${attr} は無いこと`);
     }
   }
-  console.log("  [S12/case 18] スキーマ属性の増減ゼロ（httpSettings 11 キー不変 / 上書きは既存キーのみ / MC7b 11-3-8-1）: PASS");
+  console.log("  [S12] スキーマ属性の増減ゼロ（httpSettings 11 キー不変 / 上書きは既存キーのみ / MC7b 11-3-8-1）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -489,52 +488,52 @@ const NEW_APPEDIT_NOTE_KEYS = [
   assert.equal(
     count(codeOnly, "watch(pwaEnabled"),
     0,
-    "S13/case 4: watch(pwaEnabled) を使ってはならない（4 点）",
+    "S13/watch(pwaEnabled) を使ってはならない（4 点）",
   );
   assert.match(
     codeOnly,
     /v-model="appData\.httpSettings\.pwaManifest"[^>]*@change="onPwaToggle"/,
-    "S13/case 4: PWA チェックボックスの @change は onPwaToggle であること",
+    "S13/PWA チェックボックスの @change は onPwaToggle であること",
   );
   assert.equal(
     count(codeOnly, '@change="onPwaToggle"'),
     1,
-    "S13/case 4: onPwaToggle は PWA チェックボックス 1 箇所だけに結線すること",
+    "S13/onPwaToggle は PWA チェックボックス 1 箇所だけに結線すること",
   );
 
   const fnStart = codeOnly.indexOf("function onPwaToggle()");
-  assert.notEqual(fnStart, -1, "S13/case 4: function onPwaToggle() が存在すること");
+  assert.notEqual(fnStart, -1, "S13/function onPwaToggle() が存在すること");
   const fnEnd = codeOnly.indexOf("\n}", fnStart);
   const body = codeOnly.slice(fnStart, fnEnd);
   const coerceAt = body.search(/enableCache\s*=\s*false/);
   const recordAt = body.indexOf("recordHistory()");
-  assert.ok(coerceAt !== -1, "S13/case 4: onPwaToggle 内で enableCache = false を行うこと");
-  assert.ok(recordAt !== -1, "S13/case 4: onPwaToggle 内で recordHistory() を呼ぶこと");
+  assert.ok(coerceAt !== -1, "S13/onPwaToggle 内で enableCache = false を行うこと");
+  assert.ok(recordAt !== -1, "S13/onPwaToggle 内で recordHistory() を呼ぶこと");
   assert.ok(
     coerceAt < recordAt,
-    "S13/case 4: enableCache = false は recordHistory() より前に書くこと（2 つの変化を 1 レコードへ畳む）",
+    "S13/enableCache = false は recordHistory() より前に書くこと（2 つの変化を 1 レコードへ畳む）",
   );
   assert.equal(
     count(body, "recordHistory()"),
     1,
-    "S13/case 4: onPwaToggle は recordHistory() を 1 回だけ呼ぶこと",
+    "S13/onPwaToggle は recordHistory() を 1 回だけ呼ぶこと",
   );
 
   // 表示従属（v-if / :disabled）は pwaEnabled computed に集約する
   assert.match(
     codeOnly,
     /const pwaEnabled = computed\(\(\) => appData\.value\.httpSettings\.pwaManifest\)/,
-    "S13/case 4: PWA 従属 UI の唯一の判定点 pwaEnabled computed があること",
+    "S13/PWA 従属 UI の唯一の判定点 pwaEnabled computed があること",
   );
   assert.match(
     codeOnly,
     /<section v-if="pwaEnabled"/,
-    "S13/case 4: マニフェスト設定欄の v-if は pwaEnabled を見ること",
+    "S13/マニフェスト設定欄の v-if は pwaEnabled を見ること",
   );
   assert.match(
     codeOnly,
     /v-model="appData\.httpSettings\.enableCache"[^>]*:disabled="translationMode \|\| !pwaEnabled"/,
-    "S13/case 4: キャッシュのチェックボックスは PWA オフ時に disabled になること",
+    "S13/キャッシュのチェックボックスは PWA オフ時に disabled になること",
   );
   // テンプレート形（appData.httpSettings.pwaManifest）の直接参照は v-model の 1 箇所だけ。
   //   旧実装は v-if でも同じ式を書いていた（:1486）。それを pwaEnabled 経由へ寄せたので
@@ -543,9 +542,9 @@ const NEW_APPEDIT_NOTE_KEYS = [
   assert.equal(
     count(codeOnly, "appData.httpSettings.pwaManifest"),
     1,
-    "S13/case 4: pwaManifest のテンプレート直接参照は v-model の 1 箇所だけ（v-if は pwaEnabled 経由）",
+    "S13/pwaManifest のテンプレート直接参照は v-model の 1 箇所だけ（v-if は pwaEnabled 経由）",
   );
-  console.log("  [S13/case 4] キャッシュの PWA 従属: onPwaToggle 1 レコード化 / 判定点は pwaEnabled 1 つ: PASS");
+  console.log("  [S13] キャッシュの PWA 従属: onPwaToggle 1 レコード化 / 判定点は pwaEnabled 1 つ: PASS");
 }
 
 // ContextHelp の Popover はフェードを使わない。フェード中に部品が外れると、Bootstrap の完了処理が

@@ -1,13 +1,13 @@
 /**
- * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査（case 1）。
+ * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査。
  *
  * 実署名は CI（build.yml の dispatch・承認つき）でしか走らないため、ここでは Windows も課金も要らない部分を固める:
- *   [1] 署名者の正本（scripts/win-sign/signer-identity.{json,cjs}）— case 1 (c)(d)(e)
- *   [2] win-sign.cjs の collect・同じ実行の署名済みでの差し替え・fail-closed — case 1 (f) の一部・(o)(p)
- *   [3] collect-sign-set.mjs・apply-signed.mjs の phase の規則と照合 —
- *   [4] build.yml の静的検査 — case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
- *   [5] 祖先の確認の shell を fixture のリポジトリで実行 — case 1 (h)
- *   [6] 変異の自己検査 — case 1 (m)
+ *   [1] 署名者の正本（scripts/win-sign/signer-identity.{json,cjs}）
+ *   [2] win-sign.cjs の collect・同じ実行の署名済みでの差し替え・fail-closed
+ *   [3] collect-sign-set.mjs・apply-signed.mjs の phase の規則と照合
+ *   [4] build.yml の静的検査
+ *   [5] 祖先の確認の shell を fixture のリポジトリで実行
+ *   [6] 変異の自己検査
  *
  * 実行: node scripts/signing-pipeline-smoke.mjs（rtk を付けない）
  */
@@ -57,7 +57,7 @@ const ES_CHAIN = [
   { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, C=US', thumbprint: '2222222222222222222222222222222222222222' },
   { subject: 'CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US', thumbprint: ES_ROOT },
 ];
-// eSigner の実物（U-1・run 38369214775 の artifact u1-esigner-identity/esigner-identity.json の chain）
+// eSigner の実物（実測した署名チェーン・run 38369214775 の artifact u1-esigner-identity/esigner-identity.json の chain）
 const ES_REAL_CHAIN = [
   { subject: 'CN="NAYUTA, INC.", O="NAYUTA, INC.", L=Osaka, S=Ōsaka Prefecture, C=JP', thumbprint: '7625D11EF2D21CB8133CF1E60A2DBEC2B33938B6' },
   { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, L=Houston, S=Texas, C=US', thumbprint: 'BC1E0FF366EEAD57F872622A0A5903706B7420F4' },
@@ -80,7 +80,7 @@ const FIXTURE_IDENTITY = {
 };
 
 // ───────────────────────────────────────────────
-// [1] 署名者の正本 — case 1 (c)(d)(e)
+// [1] 署名者の正本
 // ───────────────────────────────────────────────
 {
   assert.ok(existsSync(SIGNER_JSON), '[1] scripts/win-sign/signer-identity.json がある');
@@ -142,15 +142,15 @@ const FIXTURE_IDENTITY = {
   assert.deepEqual(as.issuerAllow.map((a) => a.thumbprint).sort(), [AS_CHAIN[2].thumbprint, AS_CHAIN[3].thumbprint].sort(),
     '[1] artifact-signing.issuerAllow は H-B1 の chain の index ≥ 2（PCA とルート）');
   assert.equal(si.checkSigner({ subject: AS_SUBJECT, chain: AS_CHAIN }, 'artifact-signing'), null, '[1] 正本で H-B1 の実物が通る');
-  // 値の実在（U-1 の実測）: eSigner は run 38369214775 の measure-esigner-identity（v1.1.0 の x64 Setup.exe）の
+  // 値の実在（署名チェーンの実測）: eSigner は run 38369214775 の measure-esigner-identity（v1.1.0 の x64 Setup.exe）の
   // 葉の Subject と chain の index 2（SSL.com Root）。index 1（Intermediate）は 規則で issuerAllow に入れない
   const es = identity.esigner;
-  assert.equal(es.publisherSubject, ES_REAL_CHAIN[0].subject, '[1] esigner.publisherSubject は U-1 の SignerCertificate.Subject そのもの');
+  assert.equal(es.publisherSubject, ES_REAL_CHAIN[0].subject, '[1] esigner.publisherSubject は実物の SignerCertificate.Subject そのもの');
   assert.deepEqual(es.issuerAllow.map((a) => a.thumbprint), [ES_REAL_CHAIN[2].thumbprint],
-    '[1] esigner.issuerAllow は U-1 の chain の index 2（SSL.com Root Certification Authority RSA）だけ');
-  assert.match(es.source, /38369214775/, '[1] esigner.source は U-1 の run を指す');
+    '[1] esigner.issuerAllow は実物の chain の index 2（SSL.com Root Certification Authority RSA）だけ');
+  assert.match(es.source, /38369214775/, '[1] esigner.source は 実測の run を指す');
   assert.equal(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN }, 'esigner'), null,
-    '[1] 正本の esigner で U-1 の実物（SSL.com のチェーン）が通る');
+    '[1] 正本の esigner で実測した署名者（SSL.com のチェーン）が通る');
   assert.match(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN.slice(0, 2) }, 'esigner') ?? '', /上位/,
     '[1] 正本の esigner でも Root が無いチェーンは落ちる');
 
@@ -257,7 +257,7 @@ const readRecord = (f) => readFileSync(f, 'utf8').trim().split('\n').filter(Bool
 const OLD = new Date('2020-01-02T03:04:05Z');
 
 // ───────────────────────────────────────────────
-// [2] win-sign.cjs の collect・差し替え・fail-closed — case 1 (f)(o)(p)
+// [2] win-sign.cjs の collect・差し替え・fail-closed
 // ───────────────────────────────────────────────
 {
   // (f) collect はキャッシュを引かない（WIN_SIGN_CACHE_URL・CACHE_DIR・SIMULATE_DIR があっても見ない）
@@ -527,10 +527,10 @@ const OLD = new Date('2020-01-02T03:04:05Z');
   assert.deepEqual(r1.errors, [], '[3] pack-win-1: 差し替え済みのプラグインとアンインストーラー・インストーラーは正常');
   assert.deepEqual(r1.selected.map((s) => s.name), [path.basename(files.uninst[0])], '[3] pack-win-1: アンインストーラーだけを並べる');
   assert.equal(r1.later, 1, '[3] pack-win-1: インストーラーは後の phase');
-  // pack-win-2（installer）: アンインストーラーの would-sign が残る＝U-1 不成立 → 赤
+  // pack-win-2（installer）: アンインストーラーの would-sign が残る＝署名の差し替え失敗 → 赤
   const pack2Bad = writeRec('rec-pack2-bad.jsonl', [entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
   assert.ok(run('installer', pack2Bad, 'p2bad').errors.some((x) => /前の phase/.test(x) && /__uninstaller/.test(x)),
-    '[3] installer でアンインストーラーの would-sign が残れば赤（U-1 不成立の検出）');
+    '[3] installer でアンインストーラーの would-sign が残れば赤（署名の差し替え失敗の検出）');
   // どの phase にも属さない would-sign・並べるものが 0 本・収集した複写が無い → 赤
   const stray = writeRec('rec-stray.jsonl', [{ file: path.join(d, 'stray', 'foo.exe'), name: 'foo.exe', sha256: 'f'.repeat(64), decision: 'would-sign' }, entry('setup', 'would-sign')]);
   assert.ok(run('installer', stray, 'stray').errors.some((x) => /どの phase/.test(x)), '[3] どの phase にも属さない would-sign は赤');
@@ -631,7 +631,7 @@ const OLD = new Date('2020-01-02T03:04:05Z');
 }
 
 // ───────────────────────────────────────────────
-// [4] build.yml の静的検査 — case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
+// [4] build.yml の静的検査
 // ───────────────────────────────────────────────
 const { checkSigningJob, checkPnpmPin, ENDPOINT } = await import('./win-sign/signing-job-rules.mjs');
 const SIGN_JOBS = { 'sign-win-payload': '26', 'sign-win-uninstaller': '2', 'sign-win-installer': '2' };
@@ -644,7 +644,7 @@ const usesOf = (st) => (typeof st?.uses === 'string' ? st.uses : '');
 const needsOf = (job) => (job?.needs == null ? [] : [].concat(job.needs));
 const EB_RE = /(^|[\s;&|(])electron-builder\s/m;
 
-/** case 1 の build.yml の違反の一覧（空なら合格） */
+/** build.yml の違反の一覧（空なら合格） */
 function checkBuildWorkflow(wf) {
   const v = [];
   const jobs = wf?.jobs ?? {};
@@ -854,7 +854,7 @@ const wfText = readFileSync(WORKFLOW, 'utf8');
 const wf = yaml.load(wfText);
 {
   const v = checkBuildWorkflow(wf);
-  assert.deepEqual(v, [], `case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
+  assert.deepEqual(v, [], `build.yml の違反:\n  ${v.join('\n  ')}`);
   assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は固定した版の PIN');
   // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
   {
@@ -865,11 +865,11 @@ const wf = yaml.load(wfText);
     assert.ok(checkPnpmPin(wfText.replace(pinLine, `pnpm/action-setup@${'0'.repeat(40)}`)).length > 0,
       '[4] 自己検査: pnpm/action-setup を別の SHA にしても違反が出ない');
   }
-  console.log('  [4/6] build.yml の静的検査（case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)）: PASS');
+  console.log('  [4/6] build.yml の静的検査: PASS');
 }
 
 // ───────────────────────────────────────────────
-// [5] 祖先の確認の shell を fixture のリポジトリで実行 — case 1 (h)
+// [5] 祖先の確認の shell を fixture のリポジトリで実行
 // ───────────────────────────────────────────────
 {
   const prep = wf.jobs.prepare.steps;
@@ -907,7 +907,7 @@ const wf = yaml.load(wfText);
 }
 
 // ───────────────────────────────────────────────
-// [6] 変異の自己検査 — case 1 (m)
+// [6] 変異の自己検査
 // ───────────────────────────────────────────────
 {
   const steps = (w, job) => w.jobs[job].steps;

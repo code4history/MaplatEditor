@@ -636,7 +636,7 @@ async function prepareSignedNsisToolset(packagerLike) {
   fs.rmSync(root, { recursive: true, force: true });
   const nsisDst = path.join(root, 'nsis');
   // preserveTimestamps: NSIS は File で入れるファイルの日時を保存する（SetDateSave 既定 on）。複写で mtime が
-  // 実行ごとに変わるとアンインストーラーのバイト列が変わる（U-1 の主な原因の候補・決定的にする手当て (a)）
+  // 実行ごとに変わるとアンインストーラーのバイト列が変わる（署名に使う値を決定的にする手当て）
   fs.cpSync(nsisSrc, nsisDst, { recursive: true, preserveTimestamps: true });
   // ELECTRON_BUILDER_NSIS_RESOURCES_DIR は <dir>/plugins か <dir>/windows/Plugins を探す（toolsets/windows.js）
   let resDst = nsisDst;

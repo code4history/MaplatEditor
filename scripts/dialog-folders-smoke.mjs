@@ -14,21 +14,21 @@ const live = raw.filter(line => !line.split(':').slice(2).join(':').trimStart().
 const sites = new Set();
 for (const line of live) {
  const [file, number] = line.split(':');
- assert.ok(files.includes(file), `case 1 未列挙ダイアログ: ${file}`);
+ assert.ok(files.includes(file), `未列挙ダイアログ: ${file}`);
  const lines = fs.readFileSync(path.join(root, file), 'utf8').split('\n');
  const n = Number(number) - 1;
  const near = lines.slice(Math.max(0, n - 6), n + 7).join('\n');
  const expectedPurpose = file.endsWith('SettingsService.ts') ? 'saveFolder'
   : file.includes('assets-images') || file.includes('AppAssetService') || file.includes('MapUploadService') ? 'image'
   : line.includes('showSaveDialog') ? 'export' : 'import';
- assert.ok(near.includes(`dialogDefaultPath('${expectedPurpose}'`), `case 1 ${file}:${number} 用途が異なる`);
- assert.match(near, /dialogDefaultPath\(/, `case 1 ${file}:${number} が助けを通らない`);
+ assert.ok(near.includes(`dialogDefaultPath('${expectedPurpose}'`), `${file}:${number} 用途が異なる`);
+ assert.match(near, /dialogDefaultPath\(/, `${file}:${number} が助けを通らない`);
  const defaultIndex = lines.findIndex((l, i) => i >= n - 6 && i <= n + 6 && l.includes('defaultPath:'));
  assert.ok(defaultIndex >= 0);
  sites.add(`${file}:${defaultIndex}`);
  if (!file.endsWith('SettingsService.ts')) {
   const after = lines.slice(n, n + 25).join('\n');
-  assert.match(after, /canceled[\s\S]*rememberDialogPath\(/, `case 1 ${file}:${number} 取消の後に記憶する経路なし`);
+  assert.match(after, /canceled[\s\S]*rememberDialogPath\(/, `${file}:${number} 取消の後に記憶する経路なし`);
  } else assert.match(near, /dialogDefaultPath\(['"]saveFolder['"]\)/);
 }
 assert.equal(raw.length - live.length, 1);
@@ -70,12 +70,12 @@ for (const purpose of Object.keys(folders)) {
 }
 assert.equal(dialogDefaultPath('export','sample.zip'),path.join(folders.export,'sample.zip'));
 const restarted = new Settings.constructor();
-assert.deepEqual(restarted.get('lastDialogFolders'),folders,'case 2 新しいStore instanceへ再読込');
+assert.deepEqual(restarted.get('lastDialogFolders'),folders,'新しいStore instanceへ再読込');
 const config = JSON.parse(fs.readFileSync(path.join(fixture,'runtime/electron-store/settings/config.json'),'utf8'));
 assert.deepEqual(config.lastDialogFolders,folders);
 assert.deepEqual(Object.keys(config.lastDialogFolders).sort(),['export','image','import']);
 for (const v of Object.values(config.lastDialogFolders)) { assert.ok(path.isAbsolute(v)); assert.ok(fs.statSync(v).isDirectory()); }
-console.log('case 2/case 3: 3用途を分離・再読込で保持・JSONはフォルダ絶対パスのみ');
+console.log('3用途を分離・再読込で保持・JSONはフォルダ絶対パスのみ');
 for (const bad of ['relative', 12, path.join(folders.export,'export.txt'), path.join(fixture,'missing')]) {
  Settings.set('lastDialogFolders',{import:bad}); assert.equal(dialogDefaultPath('import'),documents);
 }
@@ -83,7 +83,7 @@ Settings.set('lastDialogFolders',null);assert.equal(dialogDefaultPath('import'),
 Settings.set('lastDialogFolders',folders);
 assert.ok(folders.import.startsWith(fixture+path.sep),'今回作成fixtureの包含確認');
 assert.deepEqual(fs.readdirSync(folders.import),['import.txt'],'消す内容は自己生成fixtureのみ');
-fs.rmSync(folders.import,{recursive:true}); // 設計case 2の「消えたフォルダ」。自己生成1ディレクトリだけ。
+fs.rmSync(folders.import,{recursive:true}); // 設計の「消えたフォルダ」。自己生成1ディレクトリだけ。
 assert.equal(dialogDefaultPath('import'),documents);
 Settings.set('saveFolder',folders.export);assert.equal(dialogDefaultPath('saveFolder'),folders.export);
 const before=Settings.get('lastDialogFolders');rememberDialogPath('saveFolder',documents,'directory');
@@ -91,5 +91,5 @@ assert.deepEqual(Settings.get('lastDialogFolders'),before);
 // SettingsService.set(saveFolder)は自動作成するので、壊れた設定ファイル相当を実Storeへ直接入れる。
 Settings.store.set('saveFolder',path.join(fixture,'missing'));assert.equal(dialogDefaultPath('saveFolder'),documents);
 rememberDialogPath('image','relative/file.png','file');assert.deepEqual(Settings.get('lastDialogFolders'),before);
-console.log('case 2: 消失/ファイル/相対/数値/nullは書類へ・保存フォルダは現在値・取消相当では記憶を変えない');
+console.log('消失/ファイル/相対/数値/nullは書類へ・保存フォルダは現在値・取消相当では記憶を変えない');
 console.log('fixture残置:',fixture);

@@ -58,7 +58,7 @@ export function createBaseMapVisibilityListAdapter(
       }
       if (bbox) {
         // チェック済み（表示ON）は空間絞り込みをバイパスし、一覧に残す。
-        // これにより、遠隔地のON済みベースマップも絞り込み中にオフにできる（HV-R2、MapEdit.vue:2494-2496 と同一方針）
+        // 遠隔地の選択済みベースマップも絞り込み中にオフにできる（MapEdit.vue:2494-2496 と同じ方針）
         filtered = filtered.filter((item) => {
           if (item.enabled) return true;
           return coverageIntersects(item.data?.coverageLngLats, bbox);

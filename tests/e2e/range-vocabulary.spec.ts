@@ -1,6 +1,5 @@
 // 存在範囲 / 利用範囲 / アプリ対象範囲 / 絞り込み範囲 の語彙と提示の統一。
 //
-//
 //   E1: ベースマップ編集の「存在範囲」ラベルと「？」本文（②への言及を含む）
 //   E2: アプリ編集メタデータの app-coverage-label が「アプリ対象範囲」（(参考) を含まない）
 //   E3: アプリ編集の地図タブで app-source-envelope-help を開き、3 概念が 1 段落に並ぶ
@@ -11,7 +10,7 @@
 //   E6: **手動の絞り込み範囲を確定すると、リストが実際にその範囲で絞られる**
 //
 // ---------------------------------------------------------------------------
-// E6 が本 spec の主眼である（警告 /）。
+// E6 が本 spec の主眼である。
 //
 // MapEdit.vue の `baseMapSpatialContext` は
 //     if (manual) { return { bbox: manual, enabled: true }; }
@@ -224,9 +223,9 @@ test.describe('範囲語彙の統一', () => {
       await help.click();
       const popover = page.locator('.popover');
       await expect(popover).toBeVisible({ timeout: 5000 });
-      // case 13: 本文に確定呼称 3 語が含まれる
+      // 本文に確定呼称 3 語が含まれる
       for (const name of [NAME.coverage, NAME.usage, NAME.appTarget]) {
-        await expect(popover, `case 13: ②の説明に「${name}」が含まれる`).toContainText(name);
+        await expect(popover, `②の説明に「${name}」が含まれる`).toContainText(name);
       }
     } finally {
       await quitElectronApplication(app);
@@ -313,7 +312,7 @@ test.describe('範囲語彙の統一', () => {
   });
 
   // -------------------------------------------------------------------------
-  // case 15 / E6 — 本 spec の主眼。ファイル冒頭の長いコメントを参照のこと。
+  // E6 — 本 spec の主眼。ファイル冒頭の長いコメントを参照のこと。
   // -------------------------------------------------------------------------
   test('E6: 手動の絞り込み範囲を確定すると、リストが実際にその範囲で絞られる', async () => {
     test.setTimeout(240_000);
@@ -357,7 +356,7 @@ test.describe('範囲語彙の統一', () => {
       await page.locator('.envelope-modal .btn-close').first().click();
       await expect(page.locator('.envelope-modal')).not.toBeVisible();
 
-      // --- case 15 の本体: **ボタン文言ではなくリストの中身**を見る ---
+      // --- **ボタン文言ではなくリストの中身**を見る ---
       //
       // ここでボタン文言だけを見ると、395 行を行ごと削除した壊れた実装でも緑になる。
       // baseMapRangeState は baseMapFilterRegion を直接読むため、絞り込みが壊れていても
@@ -369,13 +368,13 @@ test.describe('範囲語彙の統一', () => {
       const manualUids = await visibleSelectorUids(page);
       expect(
         manualUids,
-        'case 15: 手動の絞り込み範囲（大阪）に入る遠方ベースマップが一覧に現れる。'
+        '手動の絞り込み範囲（大阪）に入る遠方ベースマップが一覧に現れる。'
         + ' ここが落ちる場合、baseMapSpatialContext の if (manual) 経路が死んでいる'
         + '（MapEdit.vue の 395 行を行ごと削除すると起きる）',
       ).toContain(farUid);
       expect(
         manualUids,
-        'case 15: 手動の絞り込み範囲の外にある近傍ベースマップは一覧から消える。'
+        '手動の絞り込み範囲の外にある近傍ベースマップは一覧から消える。'
         + ' ここが落ちる場合、手動範囲が握り潰されて GCP 自動範囲へフォールスルーしている',
       ).not.toContain(nearUid);
     } finally {

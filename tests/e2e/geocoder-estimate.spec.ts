@@ -19,7 +19,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 // strictMode を引数化した。既定は 'strict' で、既存呼び出し5箇所の挙動は一切変わらない。
 // seedMapAndApp だけが 'loose' を渡す（理由は seedMapAndApp のコメントを参照）。
-// GCP 定義を1箇所に保つのが目的である — case 4 の homeLng/homeLat 期待値（139.75 / 35.65）は
+// GCP 定義を1箇所に保つのが目的である — homeLng/homeLat 期待値（139.75 / 35.65）は
 // この GCP から導かれるため、seed を複製すると両者が将来ずれ得る。
 async function createMapWithGcps(page: Page, strictMode: 'strict' | 'loose' = 'strict'): Promise<string> {
   // T12-4: DB 直書きを防ぐため、素体 save 後に window.mapedit.updateTin で compiled を生成し、
@@ -173,11 +173,11 @@ async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid:
     // strict_status: 'strict_error'（かつ kinks_points 4件）になり、AppDataService.saveApp が
     // DB 書き込み分岐より前の MapPurposeService.assertViewerRuntimeAllowed で maplat 参照を
     // 拒否するため、下の appedit.save が result: 'Error' で落ちる（実測 2026-08-02）。
-    // case 4 の期待値（下記 homeLng/homeLat）は compiled.vertices_points から作られる
+    // 期待値（下記 homeLng/homeLat）は compiled.vertices_points から作られる
     // maps_rtree の bbox 由来だが、その bbox は 'strict' / 'loose' で同一であることを実測済み。
     const mapUid = await createMapWithGcps(page, 'loose');
 
-    // case 4 / HV-2 は auto coverage を待つ。coverage は maps_rtree 行が無いと null になり
+    // auto coverage を待つ。coverage は maps_rtree 行が無いと null になり
     // 推定ボタンが disabled のままになるため、seed 時点で行の存在を確かめて原因を明示する。
     const seedBbox = await page.evaluate((uid) => window.search.resourceBbox('map', uid), mapUid);
     if (!seedBbox) {
@@ -383,7 +383,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
-  test('HV-2 regression: clearing inside envelope modal and confirming emits null (AppEdit coverage)', async () => {
+  test('clearing inside envelope modal and confirming emits null (AppEdit coverage)', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-coverage-clear-'));
     const { mapUid, appUid } = await seedMapAndApp(e2eRoot);
@@ -421,7 +421,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     expect(afterClearCoverage).toBeNull();
 
     // 既存の手動値を持って開いてクリア→確定すると、null が emit されて手動値が削除される。
-    // これがないと、HV-2 対応で入ったガードによりクリアが無視されて手動値が残る。
+    // これがないと、クリア処理のガードによりクリアが無視されて手動値が残る。
     await page.evaluate(() => {
       (window as any).testDebug.appData.value.coverageLngLats = [
         [139.74, 35.64],
@@ -459,9 +459,9 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
-  test('HV-2: region modal shows auto GCP range as a guide without overriding auto', async () => {
+  test('region modal shows auto GCP range as a guide without overriding auto', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-hv2-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-guide-only-'));
     const { app, page } = await launch(e2eRoot);
 
     const uid = await createMapWithGcps(page);
@@ -507,9 +507,9 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
-  test('HV-3: outlier GCP uses intersects (not contains) so local base map still listed', async () => {
+  test('outlier GCP uses intersects (not contains) so local base map still listed', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-hv3-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-outlier-intersection-'));
     const { app, page } = await launch(e2eRoot);
 
     const { title } = await createTestBaseMap(page);
@@ -526,7 +526,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
-  test('HV-R2: checked base map outside filter region stays visible so it can be unchecked', async () => {
+  test('checked base map outside the filter region stays visible so it can be unchecked', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-r2-checked-'));
     const { app, page } = await launch(e2eRoot);

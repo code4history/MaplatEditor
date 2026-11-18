@@ -19,7 +19,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
     const page = await app.firstWindow();
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForLoadState('domcontentloaded');
-    // case 14: 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
+    // 実ユーザーデータへ接続せず、隔離 root 外なら test 開始前に throw する
     const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
     if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
       throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
@@ -321,7 +321,7 @@ test('five edits share SlugField with unified head order and tabs', async () => 
     await expectSlugField(page, 'map-slug');
     await expectHeadOrder(page, 'タイトル');
     await expectSlugInputAlignment(page, 'map-slug', 'map-title');
-    // case 9: tab 語彙 + role/aria。画像未登録 seed のため対応点編集は disabled
+    // tab 語彙 + role/aria。画像未登録 seed のため対応点編集は disabled
     const mapTabs = page.locator('.nav-tabs [role="tab"]');
     // NOTE (既存RED吸収): (90da8c5) が merc タブ(map-tab-merc)を無条件で追加したため
     // MapEdit のタブは 5 枚。本 assert は 以降ずっと RED だった（AppEdit 側は 4 枚のまま）。
@@ -423,7 +423,7 @@ test('map rename keeps the uid, passes renameFromSlug, and never shows copy_or_m
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await page.getByTestId('editor-save').click();
 
-    // case 5: 保存後も同一 uid のまま mapID が更新される(request は uid 正準)
+    // 保存後も同一 uid のまま mapID が更新される(request は uid 正準)
     await expect.poll(async () =>
       page.evaluate(async (uid) => (await window.mapedit.request(uid))?.mapID, mapUid),
     { timeout: 20_000 }).toBe('slug-reservation-map-renamed');
@@ -456,12 +456,12 @@ test('diagnostics use field and operation scopes without legacy banners', async 
     await openHash(page, `#/mapedit?uid=${mapBUid}`, '#mapDocumentLanguage');
     const slugInput = page.getByTestId('map-slug');
 
-    // case 8 field: 不正 slug で SlugField の field 診断 + is-invalid
+    // field: 不正 slug で SlugField の field 診断 + is-invalid
     await slugInput.fill('bad slug!');
     await expect(page.locator('[data-diagnostic-scope="field"]').first()).toBeVisible();
     await expect(slugInput).toHaveClass(/is-invalid/);
 
-    // case 8 operation: field 可用確認後〜保存直前に別 uid が同slugを予約する実レースを作る
+    // operation: field 可用確認後〜保存直前に別 uid が同slugを予約する実レースを作る
     const raceSlug = 'slug-reservation-map-race';
     await slugInput.fill(raceSlug);
     await expect(page.getByTestId('editor-save')).toBeEnabled();
@@ -486,8 +486,8 @@ test('diagnostics use field and operation scopes without legacy banners', async 
   }
 });
 
-// case 6: 新規作成の順序保証 — UID採番 → slug予約成功 → 初期draft即時保存 → save(create:true + uid)
-// 予約失敗時は asset 本体も draft も残さない(D7/case 6)。
+// 新規作成の順序保証 — UID採番 → slug予約成功 → 初期draft即時保存 → save(create:true + uid)
+// 予約失敗時は asset 本体も draft も残さない(D7)。
 test('new base map creation mints uid, reserves slug, and persists initial draft before save', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-slug-reservation-'));
@@ -517,7 +517,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
         { slug, uid: newUid }),
     { timeout: 15_000 }).toBe('available');
 
-    // case 6: 予約成功後、初期draftが即時保存されている(GC保護リンケージ確立)
+    // 予約成功後、初期draftが即時保存されている(GC保護リンケージ確立)
     await expect.poll(async () =>
       page.evaluate(async (uid) => (await window.assetDrafts.get('base-map', uid!)) != null, newUid),
     { timeout: 10_000 }).toBe(true);
@@ -526,7 +526,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
     // NOTE (既存RED吸収): (ecc2c3d) が attr を必須化した（validateBaseMapDocument の
     // attr-required）ため、attr 未入力だと editor-save が disabled のままになる。
     // master-detail は af691aa、shell-tokens は 9c2815e で同じ吸収を済ませているので、それに揃える。
-    await page.getByTestId('basemap-title').fill('case 6新規ベースマップ');
+    await page.getByTestId('basemap-title').fill('新規ベースマップ');
     await page.getByTestId('basemap-title').press('Tab');
     await page.getByTestId('basemap-attr').fill('テスト帰属');
     await page.getByTestId('basemap-attr').press('Tab');
@@ -555,7 +555,7 @@ test('new base map creation mints uid, reserves slug, and persists initial draft
   }
 });
 
-// case 6: 他instanceが予約中のslugで保存しようとすると、asset本体もdraftも作られない
+// 他instanceが予約中のslugで保存しようとすると、asset本体もdraftも作られない
 test('new base map save fails cleanly when slug is reserved by another owner', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-slug-reservation-'));
@@ -585,7 +585,7 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
     await expect(field.locator('[role="status"]')).toHaveText('他で使用中です');
 
     // 保存を試みる → confirmForSaveが拒否 → assetは作成されない
-    await page.getByTestId('basemap-title').fill('case 6 Clash');
+    await page.getByTestId('basemap-title').fill('Clash');
     await page.getByTestId('basemap-title').press('Tab');
     // attr の必須化（上記 NOTE）。attr を埋めておかないと保存ボタンの disabled が
     // 「slug が他所で予約済み」ではなく「attr 未入力」由来になり、下の分岐が常に false 側へ落ちる。
@@ -600,11 +600,11 @@ test('new base map save fails cleanly when slug is reserved by another owner', a
       await saveButton.click();
       await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
     }
-    // case 6: asset本体は作成されていない
+    // asset本体は作成されていない
     const assetCreated = await page.evaluate(async (slug) =>
       (await window.baseMaps.list()).some((row) => row.mapID === slug), clashSlug);
     expect(assetCreated).toBe(false);
-    // case 6: draftも作成されていない
+    // draftも作成されていない
     const draftCreated = await page.evaluate(async (uid) =>
       (await window.assetDrafts.get('base-map', uid)) != null, newUid);
     expect(draftCreated).toBe(false);
@@ -660,7 +660,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
       runtime.page.evaluate(async (assetUid) => (await window.assetDrafts.get('base-map', assetUid!)) != null, uid),
     { timeout: 15_000 }).toBe(true);
 
-    // Undo で checkpoint clean → case 10: store から即時除去(D9)
+    // Undo で checkpoint clean → store から即時除去(D9)
     await runtime.page.getByTestId('editor-undo').click();
     const draftImmediatelyAfterUndo = await runtime.page.evaluate(async (assetUid) =>
       window.assetDrafts.get('base-map', assetUid!), uid);
@@ -681,7 +681,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
   }
 });
 
-// / case 4: preload→IPC→SettingsService→SqliteDataService.saveUserBaseMap の実経路を通し、
+// preload→IPC→SettingsService→SqliteDataService.saveUserBaseMap の実経路を通し、
 // foreign reservationによるpromote conflictがregistry/body双方をrollbackすることを証明する。
 test('actual base map save service rolls back registry and body on promote conflict', async () => {
   test.setTimeout(300_000);
@@ -707,7 +707,7 @@ test('actual base map save service rolls back registry and body on promote confl
         create: true,
         uid: targetUid,
         slug,
-        tms: { mapID: slug, title: { ja: 'case 4 conflict' }, attr: { ja: '© Example' }, url: 'https://example.test/{z}/{x}/{y}.png' },
+        tms: { mapID: slug, title: { ja: 'conflict' }, attr: { ja: '© Example' }, url: 'https://example.test/{z}/{x}/{y}.png' },
       }), { slug, targetUid });
     expect(result).toEqual({ result: 'Exist' });
 

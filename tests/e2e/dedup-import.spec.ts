@@ -1,7 +1,7 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 複製・削除action・Import統合 E2E Test
-// case 1/case 2/case 3/case 5/case 6/case 7/case 8/case 9/case 10/case 11/case 12 を実効検証する。
-// case 4(copyFromUidのタイル複製)・case 13/case 14(失敗経路)はコード検査+人間検証。
+// 複製・削除・Import の主要な経路を実効検証する。
+// copyFromUid のタイル複製と失敗経路はコード検査+人間検証。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
@@ -91,12 +91,12 @@ test.describe('Dedup/Import', () => {
       await openHash(page, '#/applist');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
 
-      // case 1: ⋮ メニューに「複製」
+      // ⋮ メニューに「複製」
       const card = page.locator(`[data-resource-uid="${seeded.uid}"]`);
       await card.locator('[data-resource-action-trigger]').click();
       await expect(page.locator('[role="menuitem"]:has-text("複製")')).toBeVisible({ timeout: 3000 });
 
-      // case 2+case 12: 複製 → エディタが予約slug(-copy)と複製内容で開き、DB行は増えない
+      // 複製 → エディタが予約slug(-copy)と複製内容で開き、DB行は増えない
       await page.locator('[role="menuitem"]:has-text("複製")').click();
       await expect(page.getByTestId('app-id')).toHaveValue(`${seeded.slug}-copy`, { timeout: 10000 });
       await expect(page.getByTestId('app-title')).toHaveValue('T10 App');
@@ -112,14 +112,14 @@ test.describe('Dedup/Import', () => {
         (await page.evaluate(async () => (await (window as any).search.apps({ page: 1, pageSize: 50 })).total)),
       { timeout: 15000 }).toBe(2);
 
-      // case 3: 同じ元からもう一度複製 → -copy は保存済み(registry taken)なので -copy2 が採番される
+      // 同じ元からもう一度複製 → -copy は保存済み(registry taken)なので -copy2 が採番される
       // (check 前置がないと registry を見ずに -copy を再予約してしまう回帰の検出を兼ねる)
       await openHash(page, '#/applist');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await clickCardAction(page, seeded.uid, '複製');
       await expect(page.getByTestId('app-id')).toHaveValue(`${seeded.slug}-copy2`, { timeout: 10000 });
 
-      console.log('  case 1+case 2+case 3+case 12: PASS');
+      console.log('  App複製と採番: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -133,7 +133,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('.modal-title:has-text("POI")')).toHaveCount(0);
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 5000 });
-      console.log('  case 7+case 8: PASS');
+      console.log('  モーダル不在と Import ボタン: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -150,7 +150,7 @@ test.describe('Dedup/Import', () => {
       const confirmation = await captureNativeConfirmation(app);
       await clickCardAction(page, poi.uid, '削除');
 
-      // case 5: 共通確認 dialog
+      // 共通確認 dialog
       const prompt = await confirmation.wait();
       expect(prompt.detail).toContain('この操作は取り消せません。');
       expect(prompt.message).toContain('T10 POI');
@@ -160,7 +160,7 @@ test.describe('Dedup/Import', () => {
       const total = await page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total);
       expect(total).toBe(0);
 
-      console.log('  case 5+case 6: PASS');
+      console.log('  削除と一覧更新: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -178,7 +178,7 @@ test.describe('Dedup/Import', () => {
       await openHash(page, '#/poisources');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
 
-      // case 1: 新規追加 → 未作成モード（/poisources/new）。行も下書きもまだ作られない
+      // 新規追加 → 未作成モード（/poisources/new）。行も下書きもまだ作られない
       await page.locator('[data-resource-new]').click();
       await expect(page.locator('.poi-side-pane')).toBeVisible({ timeout: 15000 });
       const hashAfterCreate = await page.evaluate(() => location.hash);
@@ -187,7 +187,7 @@ test.describe('Dedup/Import', () => {
         page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total),
       { timeout: 10000 }).toBe(0);
 
-      // case 2: slug 入力（blur で commit）→ 保存ボタンが enabled（draftDirty）→ 保存で行作成 + ルート正準化
+      // slug 入力（blur で commit）→ 保存ボタンが enabled（draftDirty）→ 保存で行作成 + ルート正準化
       await page.getByTestId('poi-slug').fill('t10b-new-poi');
       await page.getByTestId('poi-slug').press('Tab');
       const saveButton = page.getByTestId('editor-save');
@@ -202,7 +202,7 @@ test.describe('Dedup/Import', () => {
       // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
       await expectNoFailureNotice(page);
 
-      console.log('  case 1+case 2: PASS');
+      console.log('  POI 新規追加の作成: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -244,7 +244,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
         .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
 
-      console.log('  case 6: PASS');
+      console.log('  POI Import の作成とキャンセル: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -418,12 +418,12 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-dup-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      // case 11: MapList toolbar にインポートボタン
+      // MapList toolbar にインポートボタン
       await openHash(page, '#/maplist');
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 5000 });
 
-      // case 3: POI複製 → 未作成モード（/poisources/new?duplicateFrom=...）で dirty に開き、保存まで行は増えない
+      // POI複製 → 未作成モード（/poisources/new?duplicateFrom=...）で dirty に開き、保存まで行は増えない
       await app.evaluate(async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
@@ -455,7 +455,7 @@ test.describe('Dedup/Import', () => {
       { timeout: 15000 }).toBe(2);
       await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
 
-      console.log('  case 3+case 11: PASS');
+      console.log('  POI 複製と Import ボタン: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -480,7 +480,7 @@ test.describe('Dedup/Import', () => {
       const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
       expect(draftUid).not.toBeNull();
 
-      // case 4: 保存せず戻る（hot-exit flush）→ 一覧に下書きカード
+      // 保存せず戻る（hot-exit flush）→ 一覧に下書きカード
       await page.getByTestId('editor-back').click();
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       const draftCard = page.locator(`[data-resource-uid="${draftUid}"]`);
@@ -498,7 +498,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
 
-      // case 5: 下書きカードを削除 → 予約ごと解放され、再複製で -copy が再採番される
+      // 下書きカードを削除 → 予約ごと解放され、再複製で -copy が再採番される
       await page.getByTestId('editor-back').click();
       await expect(page.locator(`[data-resource-uid="${draftUid}"]`)).toBeVisible({ timeout: 15000 });
       const draftConfirmation = await captureNativeConfirmation(app);
@@ -512,7 +512,7 @@ test.describe('Dedup/Import', () => {
       await clickCardAction(page, poi.uid, '複製');
       await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
 
-      console.log('  case 4+case 5: PASS');
+      console.log('  複製放棄と予約解放: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -540,7 +540,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(() => page.evaluate(() => location.hash), { timeout: 10000 }).toContain(`draftUid=${draftUid}`);
       await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-takeover', { timeout: 10000 });
 
-      console.log('  case 7: PASS');
+      console.log('  POI 新規下書きの引き継ぎ: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -555,7 +555,7 @@ test.describe('Dedup/Import', () => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
 
-      // case 13: blur 前の Cmd+S が live slug で作成する（古い session slug を送らない）
+      // blur 前の Cmd+S が live slug で作成する（古い session slug を送らない）
       await openHash(page, '#/poisources/new');
       await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
       await page.getByTestId('poi-slug').click();
@@ -567,9 +567,9 @@ test.describe('Dedup/Import', () => {
       const savedSlugs = await page.evaluate(async () =>
         ((await (window as any).search.poiSources({ page: 1, pageSize: 50 })).docs as Array<{ slug: string }>).map((d) => d.slug));
       expect(savedSlugs).toContain('t10b-live-save');
-      console.log('  case 13: PASS');
+      console.log('  blur 前の Cmd+S が live slug で作成: PASS');
 
-      // case 14: blur 前に focus を維持したまま flush → live slug 入りの下書きが残り復元される
+      // blur 前に focus を維持したまま flush → live slug 入りの下書きが残り復元される
       await openHash(page, '#/poisources/new');
       await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
       await page.getByTestId('poi-slug').click();
@@ -590,7 +590,7 @@ test.describe('Dedup/Import', () => {
       await draftCard.click();
       await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-live-draft', { timeout: 10000 });
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
-      console.log('  case 14: PASS');
+      console.log('  focus 維持の flush で下書き復元: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -674,7 +674,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('.poi-feature-row')).toHaveCount(2, { timeout: 10000 });
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
 
-      console.log('  case 10: PASS');
+      console.log('  未作成編集の draftUid 復元: PASS');
     } finally {
       await quitElectronApplication(app);
     }

@@ -323,7 +323,7 @@ test.describe('ベースマップ位置合わせモード', () => {
     }
   });
 
-  test('〜case 14/case 16/case 21: P0→P1→P2→確定の全相フローと反復適用', async () => {
+  test('case 6〜case 14/case 16/case 21: P0→P1→P2→確定の全相フローと反復適用', async () => {
     test.setTimeout(360_000);
     const { app, page, errors } = await bootstrap('maplat-fx-flow-');
     try {

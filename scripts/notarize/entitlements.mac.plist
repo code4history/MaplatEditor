@@ -10,7 +10,7 @@
          で自死する（1.0.0-rc1 の公証済み .app で実測・2026-08-09）。
          electron-builder.config.cjs の entitlements / entitlementsInherit の両方が
          本ファイルを指すため、ヘルパー（Renderer/GPU/Plugin）にも同じ権限が渡る。
-         回帰止めは scripts/release-workflow-smoke.mjs の case 12。 -->
+         回帰止めは scripts/release-workflow-smoke.mjs の JIT entitlements 検査。 -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>

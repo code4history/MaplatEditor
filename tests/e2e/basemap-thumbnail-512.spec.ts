@@ -1,13 +1,13 @@
 // E2E: ベースマップ管理のサムネイル操作を地図管理と同型にする（512px/52px）。
 //
 //   T1 サムネイル管理セクションの表示（512px/52px プレビュー・置換 2 本・チェック）
-//      ＋ derive52 の強制 ON（checked かつ disabled）           -> case 6
-//   T2 512px 置換でプレビューが ?v= で更新され、実ファイルが更新される -> case 6
-//   T3 52px 置換で 52px が更新され document.thumbnail が 52px を指す   -> case 6
-//   T4 未保存の新規ベースマップ → 保存で 512px も uid 名へ寄る          -> case 7（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 A）
-//   T5 ビルトインは 512px プレビューが出て置換ボタンが disabled         -> case 6
-//   T6 サムネイル未存在時に placeholder が出る（null 連結退行の回帰）   -> case 6
-//   T7 derive52 OFF の 512px 単独置換で document.thumbnail が不変       -> case 15(b)
+//      ＋ derive52 の強制 ON（checked かつ disabled）
+//   T2 512px 置換でプレビューが ?v= で更新され、実ファイルが更新される
+//   T3 52px 置換で 52px が更新され document.thumbnail が 52px を指す
+//   T4 未保存の新規ベースマップ → 保存で 512px も uid 名へ寄る（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 A）
+//   T5 ビルトインは 512px プレビューが出て置換ボタンが disabled
+//   T6 サムネイル未存在時に placeholder が出る（null 連結退行の回帰）
+//   T7 derive52 OFF の 512px 単独置換で document.thumbnail が不変
 //
 // 参照実装は tests/e2e/thumbnail-512.spec.ts（地図側）。fixture 作成手順を踏襲する。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -271,7 +271,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
 
       // 保存前に書かれた名前が保存後の uid と同じ
       expect(uid).toBe(preSaveKey);
-      // case 7: 512px も uid 名で在り、slug 名の取り残しが無い
+      // 512px も uid 名で在り、slug 名の取り残しが無い
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}.png`))).toBe(true);
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512.webp`))).toBe(true);
       expect(await exists(path.join(saveFolder, 'tmbs', `${slug}_512.webp`))).toBe(false);

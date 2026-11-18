@@ -1,5 +1,5 @@
 // #109 の E2E: 移行前の下書きが、移行後に開くと衝突にならず自動で復元され、保存できる。
-// 確かめる条件は case 10（2 回保存）・case 11。
+// 確かめるのは、下書きの復元・保存と、2 回目の保存で img/・pwa/ のファイル数が増えないこと。
 //
 // 新しいコードでは保存の IPC で旧名の行を作れない（保存の入口で正規化される）ので、次の順でシードする:
 //   1. 1 回目の起動: 空の保存フォルダ（本移行は対象 0 件で印を付ける）で、アプリ 1 件・ベースマップ 1 件を、
@@ -217,7 +217,7 @@ test('移行前の下書きは移行後に衝突にならず復元・保存で�
       expect(savedApp.manifestSettings.iconSource).toMatch(new RegExp(`^pwa/${UUID}\\.png$`));
       await expect(page.getByText(CONFLICT_TITLE_JA)).toHaveCount(0);
 
-      // --- case 10: もう 1 回保存しても img/・pwa/ のファイル数が増えない（imageRefs の反映）---
+      // --- もう 1 回保存しても img/・pwa/ のファイル数が増えない（imageRefs の反映）---
       const count = async () => ({
         img: (await readdir(path.join(saveFolder, 'img'))).length,
         pwa: (await readdir(path.join(saveFolder, 'pwa'))).length,

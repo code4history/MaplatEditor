@@ -166,7 +166,7 @@ const identity = JSON.parse(read('scripts/win-sign/signer-identity.json'));
   assert.ok(keys.length >= 2 && keys.some((k) => k !== 'CN'), `publisherName のキーが CN だけ（${keys.join(',')}）`);
   // (iii) electron-updater の判定そのもの
   assert.equal(realJudge(pub.publisherName, want), true, 'publisherName と publisherSubject が electron-updater の判定で一致しない');
-  // .NET 形で S= を含む fixture は eSigner の名義（signer-identity.json の esigner.publisherSubject・U-1 の実測）。
+  // .NET 形で S= を含む fixture は eSigner の名義（signer-identity.json の esigner.publisherSubject・署名チェーンの実測）。
   // 署名者の文字列は正本にだけ置く（smoke [1](c)）ので、ここでは正本から読む
   const esignerLike = identity.esigner.publisherSubject;
   assert.match(esignerLike, /, S=/, 'eSigner の名義の fixture が S= を含まない（S／ST の罠を確かめられない）');

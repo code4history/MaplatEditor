@@ -5,7 +5,7 @@
 //        凍結形（廃止属性なし・title/label が辞書形）である
 //   case 2 同じ時点で、ユーザーベースマップ行が lang / label を持つ
 //   case 3 0.7.0 fixture から migrate() を 1 回走らせた結果が、変更前実装の結果と一致する
-//        （ゴールデン。ビルトイン行も比較対象に含める = 設計レビュー v1 MNR-2）
+//        （ゴールデン。ビルトイン行も比較対象に含める = ゴールデン比較の境界）
 //   case 4 0.7.0 取込後の schema_migrations に残る marker が保持 5 件だけである
 //        （= 中間段を 1 つも通っていないことの直接の機械証明。3 件目は asset UUID 名の移行の
 //        画像の内部名の移行の印で、取込の段ではない一回限りの移行。取込の中間段を通っていない
@@ -74,7 +74,7 @@ const LEGACY_MAPS =
   }) +
   // (c) 廃止属性が空文字（実データ 174 件のパターン。値ではなくキーの在否でゲートする根拠）
   legacyMapDoc('empty-exact', { title: '江戸切絵図', officialTitle: '' }) +
-  // (d) 廃止属性のキーそのものが無い文書（設計レビュー v1 MNR-1 の境界）。
+  // (d) 廃止属性のキーそのものが無い文書（廃止属性キーの有無による境界）。
   //     0.7.0 の MapEdit はキーを必ず初期化するため実データには存在しない（実測 244/244 が保持）が、
   //     旧経路（全行無条件写像 → label を title から補充）と新経路（キー在時のみ発火 → 非補充）で
   //     結果が食い違う唯一の入力なので、仕様として固定する。下の INTENTIONAL_DIVERGENCE を参照
@@ -91,7 +91,7 @@ const LEGACY_TMS_LIST = [
 ];
 
 // ---------------------------------------------------------------------------
-// ゴールデン比較における**意図的な差分**（設計レビュー v1 MNR-1 の回答）
+// ゴールデン比較における**意図的な差分**（廃止属性キーの有無についての説明）
 //
 // 仕様: 廃止属性のキーを持たない文書は写像の対象外とする（label を title から補充しない）。
 //   根拠: 写像は「0.7.0 の廃止属性を 1.0.0 の語彙へ移す」ものであって、
@@ -414,7 +414,7 @@ try {
   const result = JSON.parse(await readFile(resultFile, 'utf8'));
   const { probe, final, reopened, withOrphanMarkers, removedMarkers } = result;
 
-  // --- ビルトイン行は件数が多いので digest で固定する（MNR-2: 前提を機械固定する）---
+  // --- ビルトイン行は件数が多いので digest で固定する（ビルトイン行の前提を機械固定する）---
   const { createHash } = await import('node:crypto');
   const digestOf = (obj) =>
     createHash('sha256')
@@ -515,7 +515,7 @@ try {
     builtin: {
       count: Object.keys(final.baseMapsBuiltin).length,
       digest: digestOf(final.baseMapsBuiltin),
-      // MNR-2: S3 削除後のビルトイン行の凍結形は builtin_base_maps.json 自身の正規性に依存する。
+      // S3 削除後のビルトイン行の凍結形は builtin_base_maps.json 自身の正規性に依存する。
       // その前提（全件が lang / label / 辞書形 title を持つ）を機械で固定する
       allNormalized: Object.values(final.baseMapsBuiltin).every(
         (d) =>

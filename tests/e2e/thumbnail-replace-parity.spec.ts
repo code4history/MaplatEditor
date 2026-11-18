@@ -1,13 +1,13 @@
 // E2E: サムネイル置換の永続化セマンティクスを地図とベースマップで統一する。
 //
-//   E1 ベースマップ K1（thumbnail が tmbs/…）: 512px 置換で保存 disabled のまま・undo 非活性 -> case 1
+//   E1 ベースマップ K1（thumbnail が tmbs/…）: 512px 置換で保存 disabled のまま・undo 非活性
 //   E2 ベースマップ K2（thumbnail がプリセット）: 指し先が動き保存が有効／undo で指し先は戻らない
-//      ＋ 保存 → 再オープンで残る                                                        -> case 2 / case 2-impl / case 3
-//   E3 地図管理: 512px 置換で保存 disabled のまま・undo 非活性（＝ E1 と同一の見え方）   -> case 4
+//      ＋ 保存 → 再オープンで残る
+//   E3 地図管理: 512px 置換で保存 disabled のまま・undo 非活性（＝ E1 と同一の見え方）
 //   E4 規則 writeTarget() が null のときだけ disabled＋理由。thumbnail 空でも
-//      slug があれば enabled                                                              -> case 5
-//   E5 規則 T1 の注記が両画面に同一文言で出る                                             -> case 6
-//   E6 K2（指し先がプリセット）で derive52 が checked かつ disabled                       -> case 6b
+//      slug があれば enabled
+//   E5 規則 T1 の注記が両画面に同一文言で出る
+//   E6 K2（指し先がプリセット）で derive52 が checked かつ disabled
 //
 // 参照実装は tests/e2e/basemap-thumbnail-512.spec.ts（fixture 作成手順を踏襲する）。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -170,7 +170,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
     }
   });
 
-  test('E2: ベースマップ K2 の 512px 置換は指し先を動かし保存を要するが、undo では戻らない（case 2-impl）', async () => {
+  test('E2: ベースマップ K2 の 512px 置換は指し先を動かし保存を要するが、undo では戻らない', async () => {
     test.setTimeout(240_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-e2-'));
     const { app, page } = await launch(e2eRoot);
@@ -183,7 +183,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
       await openHash(page, `#/basemaps?uid=${uid}`);
       await expect(page.getByTestId('basemap-editor')).toBeVisible({ timeout: 15000 });
 
-      // case 2-impl: 置換の前に先行編集を 1 回入れて undo を活性化しておく。
+      // 置換の前に先行編集を 1 回入れて undo を活性化しておく。
       // さもないと「undo が押せない」と「undo しても戻らない」が区別できない。
       const title = page.getByTestId('basemap-title');
       await title.fill('edited title');
@@ -215,7 +215,7 @@ test.describe('サムネイル置換の永続化セマンティクス統一', ()
       // dirty も解除されない（指し先が未保存のままであるため）
       await expect(page.getByTestId('editor-save')).toBeEnabled();
 
-      // (5) case 3: 保存 → 一覧 → 再オープンで指し先が永続化されている
+      // (5) 保存 → 一覧 → 再オープンで指し先が永続化されている
       await page.getByTestId('editor-save').click();
       await expect.poll(async () => readBaseMapThumbnail(page, uid), { timeout: 30_000 }).toBe(`tmbs/${uid}.png`);
       await openHash(page, '#/basemaps');

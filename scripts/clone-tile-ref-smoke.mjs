@@ -9,7 +9,7 @@
 //   Part C : 複製先地図を MapEditService.request(savedUid) で再オープンした場合も、
 //                      (disk-scan 経路により) 正しく複製先自身のタイルパスを指す url_ が構築される
 //   Part D : 複製元タイルが存在しない場合、url は含まれない (既存ガードの無回帰)
-//   Part E (設計レビュー v1 Minor1 回帰): startsWith 境界チェック厳密化 — 複製元 uid が別 uid の
+//   Part E (UID 接頭辞境界の回帰): startsWith 境界チェック厳密化 — 複製元 uid が別 uid の
 //                      文字列プレフィックスに一致してしまう異常な url_ に対して、誤った URL を
 //                      構築せず url を省略する (壊れた URL を返すくらいなら省略する安全側)
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -166,35 +166,35 @@ try {
           create: true,
         });
         assert.equal(saveADest.result, 'Success', '複製保存は Success のはず: ' + JSON.stringify(saveADest));
-        assert.ok(typeof saveADest.url === 'string', 'case 2: clone 保存成功時、MapSaveResult.url が定義されるはず: ' + JSON.stringify(saveADest));
+        assert.ok(typeof saveADest.url === 'string', 'clone 保存成功時、MapSaveResult.url が定義されるはず: ' + JSON.stringify(saveADest));
 
         const expectedDestPrefix = localFileUrl(path.join(tileFolder, UID_A_DEST));
         assert.ok(
           saveADest.url.startsWith(expectedDestPrefix),
-          'case 2: url は複製先(' + UID_A_DEST + ')のタイルパスを指すはず: ' + saveADest.url
+          'url は複製先(' + UID_A_DEST + ')のタイルパスを指すはず: ' + saveADest.url
         );
         assert.ok(
           !saveADest.url.includes(UID_A_SRC),
-          'case 2: url は複製元(' + UID_A_SRC + ')のパスを含まないはず: ' + saveADest.url
+          'url は複製元(' + UID_A_SRC + ')のパスを含まないはず: ' + saveADest.url
         );
         assert.ok(
           saveADest.url.endsWith('/{z}/{x}/{y}.jpg'),
           'url は {z}/{x}/{y}.ext サフィックスを保持するはず: ' + saveADest.url
         );
 
-        // case 3: 実際にディスク上に存在するファイルを指す ({z}/{x}/{y} を実在座標 0/0/0 に置換して解決)
+        // 実際にディスク上に存在するファイルを指す ({z}/{x}/{y} を実在座標 0/0/0 に置換して解決)
         // url は app://bundle/__local（#105）。復号は配信側と同じ appUrlToLocalPath で行う
         assert.ok(saveADest.url.startsWith('app://bundle/__local/'), 'url は app://bundle/__local の契約に従うはず (#105): ' + saveADest.url);
         const resolvedPath = appUrlToLocalPath(saveADest.url.replace('/{z}/{x}/{y}', '/0/0/0'));
-        assert.ok(resolvedPath !== null, 'case 3: url は app://bundle/__local として復号できるはず: ' + saveADest.url);
+        assert.ok(resolvedPath !== null, 'url は app://bundle/__local として復号できるはず: ' + saveADest.url);
         assert.ok(
           await fs.pathExists(resolvedPath),
-          'case 3: url が指す実体ファイルがディスク上に存在するはず: ' + resolvedPath
+          'url が指す実体ファイルがディスク上に存在するはず: ' + resolvedPath
         );
         assert.equal(
           await fs.readFile(resolvedPath, 'utf8'),
           'real-tile-bytes-a-src',
-          'case 3: 複製先の実体ファイルは複製元からコピーされた内容と一致するはず'
+          '複製先の実体ファイルは複製元からコピーされた内容と一致するはず'
         );
         console.log('ok: (Part A) clone save returns a permanent url pointing to the destination tile path, backed by a real file on disk ');
       }
@@ -211,16 +211,16 @@ try {
 
         assert.ok(
           !(await fs.pathExists(path.join(tileFolderPartA, UID_A_SRC))),
-          'case 4 前提: 複製元の tiles/' + UID_A_SRC + ' は削除されているはず(trash退避なしの直接削除)'
+          '前提: 複製元の tiles/' + UID_A_SRC + ' は削除されているはず(trash退避なしの直接削除)'
         );
         assert.ok(
           await fs.pathExists(destTileFile),
-          'case 4: 複製元削除後も複製先タイル実体(tiles/' + UID_A_DEST + '/...) は影響を受けず存在し続けるはず'
+          '複製元削除後も複製先タイル実体(tiles/' + UID_A_DEST + '/...) は影響を受けず存在し続けるはず'
         );
         assert.equal(
           await fs.readFile(destTileFile, 'utf8'),
           'real-tile-bytes-a-src',
-          'case 4: 複製先タイル実体の内容も変化しないはず'
+          '複製先タイル実体の内容も変化しないはず'
         );
         console.log('ok: (Part B) deleting the clone source does not affect the destination tile files that already exist on disk ');
       }
@@ -232,15 +232,15 @@ try {
       // ============================================================
       {
         const reloaded = await MapEditService.request(UID_A_DEST);
-        assert.ok(typeof reloaded.url_ === 'string', 'case 5: request() は url_ を構築するはず: ' + JSON.stringify(reloaded.url_));
+        assert.ok(typeof reloaded.url_ === 'string', 'request() は url_ を構築するはず: ' + JSON.stringify(reloaded.url_));
         const expectedDestPrefix = localFileUrl(path.join(tileFolderPartA, UID_A_DEST));
         assert.ok(
           reloaded.url_.startsWith(expectedDestPrefix),
-          'case 5: 再オープン時の url_ は複製先自身(' + UID_A_DEST + ')のタイルパスを指すはず(自己修復の無回帰): ' + reloaded.url_
+          '再オープン時の url_ は複製先自身(' + UID_A_DEST + ')のタイルパスを指すはず(自己修復の無回帰): ' + reloaded.url_
         );
         assert.ok(
           !reloaded.url_.includes(UID_A_SRC),
-          'case 5: 再オープン時の url_ は(既に削除済みの)複製元(' + UID_A_SRC + ')を含まないはず: ' + reloaded.url_
+          '再オープン時の url_ は(既に削除済みの)複製元(' + UID_A_SRC + ')を含まないはず: ' + reloaded.url_
         );
         console.log('ok: (Part C) reopening the clone destination via request() correctly rebuilds url_ from its own tiles via disk-scan, independent of the (now-deleted) source ');
       }
@@ -271,13 +271,13 @@ try {
           create: true,
         });
         assert.equal(saveDDest.result, 'Success', '複製元タイル未生成でも clone 保存自体は成功するはず(既存動作)');
-        assert.equal(saveDDest.url, undefined, 'case 7: 複製元タイルが存在しない場合 url は含まれないはず');
+        assert.equal(saveDDest.url, undefined, '複製元タイルが存在しない場合 url は含まれないはず');
         assert.ok(!(await fs.pathExists(path.join(tileFolder, UID_D_DEST))), '複製先にもタイルは作られないはず(コピー元が無いため)');
-        console.log('ok: (Part D) clone with a missing source tile directory omits url (case 7 no-regression)');
+        console.log('ok: (Part D) clone with a missing source tile directory omits url (no-regression)');
       }
 
       // ============================================================
-      // Part E (設計レビュー v1 Minor1 回帰): startsWith 境界チェック厳密化。
+      // Part E (UID 接頭辞境界の回帰): startsWith 境界チェック厳密化。
       // 複製元 uid が別 uid の文字列プレフィックスに一致してしまう異常な url_ に対して、
       // 誤った(壊れた)URL を構築せず url を省略する(区切り文字込みで判定すべき)
       // ============================================================
@@ -327,14 +327,14 @@ try {
         assert.equal(
           saveEDest.url,
           undefined,
-          '設計レビュー v1 Minor1: 区切り文字を跨がない前方一致(UID_E_SRC が UID_E_OTHER の文字列プレフィックス)の' +
+          'UID 接頭辞境界: 区切り文字を跨がない前方一致(UID_E_SRC が UID_E_OTHER の文字列プレフィックス)の' +
             '場合、壊れたURLを構築するくらいなら url を省略すべき: ' + JSON.stringify(saveEDest)
         );
         assert.ok(
           await fs.pathExists(path.join(tileFolder, UID_E_DEST)),
           '複製先タイルフォルダ自体は(url省略とは独立して)作られているはず(既存動作)'
         );
-        console.log('ok: (Part E) a source uid that is a bare string-prefix (no separator) of another tile url does not corrupt the destination url; it is safely omitted (design review v1 Minor1)');
+        console.log('ok: (Part E) a source uid that is a bare string-prefix (no separator) of another tile url does not corrupt the destination url; it is safely omitted (UID prefix-boundary)');
       }
 
       console.log('clone tile ref smoke passed');

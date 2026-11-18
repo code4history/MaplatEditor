@@ -1,7 +1,7 @@
-// case 8: 実 UI（MapList のインポート）から **同名 slug の** ZIP を取り込む。
+// 実 UI（MapList のインポート）から **同名 slug の** ZIP を取り込む。
 //
 // 固定する受け入れ条件:
-//   case 8  実 UI から同名 ZIP を取り込み、base-2 の地図が一覧に現れ preview まで通る
+// 実 UI から同名 ZIP を取り込み、base-2 の地図が一覧に現れ preview まで通る
 //
 // 【map-package-roundtrip の確認との違い】
 // map-package-roundtrip は ZIP の slug を **書き換えてから**取り込んだ（同名は 'Exist' で弾かれる仕様だった）。
@@ -119,7 +119,7 @@ test.describe('実 UI からの同名 slug 取込', () => {
       expect(previewSource).toBeTruthy();
       expect(JSON.stringify(previewSource)).not.toContain('pois/');
 
-      console.log(`  case 8: PASS（同名取込 → ${expectedSlug} → 一覧2件 → preview）`);
+      console.log(`  PASS（同名取込 → ${expectedSlug} → 一覧2件 → preview）`);
     } finally {
       await quitElectronApplication(app);
     }
@@ -147,7 +147,7 @@ test.describe('実 UI からの同名 slug 取込', () => {
         expect(doc.mapID).toBe(slug);
       }
 
-      console.log('  case 8-b: PASS（連続同名取込で base-2 → base-3）');
+      console.log('  PASS（連続同名取込で base-2 → base-3）');
     } finally {
       await quitElectronApplication(app);
     }

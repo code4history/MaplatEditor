@@ -1,13 +1,12 @@
 // smoke: ジオコーダ応答（Nominatim の display_name）のエスケープ是正。
-// case 3。
 //
-//   case 3(a): nominatim.js のソースに row.address.name の生補間が現れない
-//   case 3(b): OSM 分岐が共有プリミティブ template( を通る
-//   case 3(c): helpers/dom.js の template() を実際に import して起動し、HTML がエスケープされることを確認
+// (a): nominatim.js のソースに row.address.name の生補間が現れない
+// (b): OSM 分岐が共有プリミティブ template( を通る
+// (c): helpers/dom.js の template() を実際に import して起動し、HTML がエスケープされることを確認
 //           （テスト内でエスケープ処理を再現しない。実関数を呼ぶ）
 //
 // dom.js は './mix' を拡張子なしで import するため node から直接 import できない。
-// 他の smoke（等）と同じく vite の ssr build で束ねてから実行する。
+// 他の smoke と同じく vite の ssr build で束ねてから実行する。
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -20,45 +19,45 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const nominatimPath = path.join(projectRoot, 'src/libs/ol-geocoder/nominatim.js');
 const domPath = path.join(projectRoot, 'src/libs/ol-geocoder/helpers/dom.js');
 
-// ---- case 3(a)(b): ソース検査 -------------------------------------------------
+// ---- (a)(b): ソース検査 -------------------------------------------------
 
 const nominatim = await readFile(nominatimPath, 'utf8');
 
 // createList() の switch から OSM 分岐の本体を切り出す。
 // 行番号ではなく構造（case PROVIDERS.OSM: 〜 break;）で取るため、周辺の編集に強い。
 const osmCaseMatch = nominatim.match(/case PROVIDERS\.OSM:\s*([\s\S]*?)\bbreak;/u);
-assert.ok(osmCaseMatch, 'case 3: createList の OSM 分岐（case PROVIDERS.OSM）が見つからない');
+assert.ok(osmCaseMatch, 'createList の OSM 分岐（case PROVIDERS.OSM）が見つからない');
 const osmBranch = osmCaseMatch[1];
 
 assert.doesNotMatch(
   nominatim,
   /\$\{\s*row\.address\.[A-Za-z_$][\w$]*\s*\}/u,
-  'case 3(a): 応答由来の row.address.* をテンプレートリテラルへ生補間してはならない（エスケープを迂回する）',
+  '(a): 応答由来の row.address.* をテンプレートリテラルへ生補間してはならない（エスケープを迂回する）',
 );
-console.log('ok: case 3(a) no raw interpolation of row.address.* in nominatim.js');
+console.log('ok: (a) no raw interpolation of row.address.* in nominatim.js');
 
 assert.match(
   osmBranch,
   /\btemplate\(/u,
-  'case 3(b): OSM 分岐は共有エスケープ primitive template() を通ること',
+  '(b): OSM 分岐は共有エスケープ primitive template() を通ること',
 );
-console.log('ok: case 3(b) OSM branch goes through template()');
+console.log('ok: (b) OSM branch goes through template()');
 
 // 既定分岐（addressTemplate）も従来どおり template() を通り続けること（非退行）
 assert.match(
   nominatim,
   /return template\(html\.join\('<br>'\), address\);/u,
-  'case 3(b): 既定分岐 addressTemplate() の template() 経由が維持されていること',
+  '(b): 既定分岐 addressTemplate() の template() 経由が維持されていること',
 );
-console.log('ok: case 3(b) default branch still goes through template()');
+console.log('ok: (b) default branch still goes through template()');
 
 // template / htmlEscape が dom.js 側に存在し続けること（移設・改名の検知）
 const dom = await readFile(domPath, 'utf8');
-assert.match(dom, /export function template\(/u, 'case 3: helpers/dom.js に template() が存在すること');
-assert.match(dom, /export function htmlEscape\(/u, 'case 3: helpers/dom.js に htmlEscape() が存在すること');
-console.log('ok: case 3 shared escape primitives present in helpers/dom.js');
+assert.match(dom, /export function template\(/u, 'helpers/dom.js に template() が存在すること');
+assert.match(dom, /export function htmlEscape\(/u, 'helpers/dom.js に htmlEscape() が存在すること');
+console.log('ok: shared escape primitives present in helpers/dom.js');
 
-// ---- case 3(c): template() の実起動 -------------------------------------------
+// ---- (c): template() の実起動 -------------------------------------------
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
@@ -79,25 +78,25 @@ await writeFile(
     const attack = '<img src=x onerror="window.__fxXss=1">';
     const rendered = render(attack);
     assert.ok(!/<img/u.test(rendered),
-      'case 3(c): 応答由来の値から img タグが生成されてはならない: ' + rendered);
+      '(c): 応答由来の値から img タグが生成されてはならない: ' + rendered);
     assert.ok(rendered.includes('&lt;img'),
-      'case 3(c): < は &lt; へエスケープされること: ' + rendered);
+      '(c): < は &lt; へエスケープされること: ' + rendered);
     assert.ok(rendered.includes('&quot;') && !/onerror="/u.test(rendered),
-      'case 3(c): 属性区切りの " もエスケープされること: ' + rendered);
+      '(c): 属性区切りの " もエスケープされること: ' + rendered);
     assert.ok(rendered.startsWith('<span class="gcd-road">') && rendered.endsWith('</span>'),
-      'case 3(c): テンプレート側の静的マークアップは残ること: ' + rendered);
-    console.log('ok: case 3(c) template() escapes response-derived value');
+      '(c): テンプレート側の静的マークアップは残ること: ' + rendered);
+    console.log('ok: (c) template() escapes response-derived value');
 
     // & ' > も含めた全数（htmlEscape の契約）
     assert.equal(htmlEscape('&<>"\\''), '&amp;&lt;&gt;&quot;&#039;',
-      'case 3(c): htmlEscape が & < > " \\' をすべて実体参照へ変換すること');
-    console.log('ok: case 3(c) htmlEscape covers all five characters');
+      '(c): htmlEscape が & < > " \\' をすべて実体参照へ変換すること');
+    console.log('ok: (c) htmlEscape covers all five characters');
 
     // 設計レビュー 置換値は再走査されないため {…} を含む応答でも二重展開しない
     const braced = render('{name} 通り');
     assert.equal(braced, '<span class="gcd-road">{name} 通り</span>',
-      'case 3(c): 置換値に含まれる {…} は再展開されないこと: ' + braced);
-    console.log('ok: case 3(c) substituted value is not re-scanned (design review)');
+      '(c): 置換値に含まれる {…} は再展開されないこと: ' + braced);
+    console.log('ok: (c) substituted value is not re-scanned (design review)');
 
     console.log('geocoder escape smoke: ALL PASS');
   `,

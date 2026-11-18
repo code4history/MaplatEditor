@@ -4,7 +4,7 @@
  * case 1: package.json の devDependencies に @types/file-url が存在しない
  * case 8: file-url import の**直上行**に @ts-ignore が復活していない
  *
- * case 8 の検査を「import 直上」限定にする理由（軸4 / レビュー round2 Info 1）:
+ * case 8 の検査を「import 直上」限定にする理由（軸4 / 以前のレビュー）:
  *   前例 `prohibit-raw-ipc-smoke.mjs:80-84` は MapList.vue に対して
  *   「ファイル全体に @ts-ignore が無い」を検査している。しかし本タスクの対象
  *   `electron/ipc/mapedit.ts` には csv-parser / proj4 / @maplat/tin の**正当な**

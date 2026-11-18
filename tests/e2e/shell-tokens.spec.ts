@@ -82,25 +82,25 @@ test('shell font, header vocabulary, and header offset use tokens', async () => 
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-shell-tokens-'));
   const { app, page } = await launch(e2eRoot);
   try {
-    // case 2: 通常 UI の computed font が system-ui スタック（Inter/Avenir でない）
+    // 通常 UI の computed font が system-ui スタック（Inter/Avenir でない）
     const bodyFont = await page.evaluate(() => getComputedStyle(document.querySelector('#app') as Element).fontFamily);
     expect(bodyFont.toLowerCase()).not.toContain('inter');
     expect(bodyFont.toLowerCase()).not.toContain('avenir');
 
-    // case 6: 黒 header が 5管理語彙 + 設定（ja）
+    // 黒 header が 5管理語彙 + 設定（ja）
     await forceJapanese(page);
     await openHash(page, '#/maplist', '.main-content');
     for (const label of ['地図管理', 'POI管理', 'ベースマップ管理', 'アプリ管理', 'アセット管理', '設定']) {
       await expect(page.locator('.navbar-nav .nav-link', { hasText: label })).toBeVisible();
     }
 
-    // case 6: route / nav 遷移が不変
+    // route / nav 遷移が不変
     await page.locator('.navbar-nav .nav-link', { hasText: 'ベースマップ管理' }).click();
     await expect(page).toHaveURL(/\/basemaps/);
     await page.locator('.navbar-nav .nav-link', { hasText: 'アセット管理' }).click();
     await expect(page).toHaveURL(/\/assets/);
 
-    // case 7: header 高さと main-content offset が一致
+    // header 高さと main-content offset が一致
     const headerHeight = await page.evaluate(() => (document.querySelector('.navbar') as HTMLElement).offsetHeight);
     const contentOffset = await page.evaluate(() => parseInt(getComputedStyle(document.querySelector('.main-content') as Element).marginTop, 10));
     expect(headerHeight).toBe(50);
@@ -137,14 +137,14 @@ test('base map pilot: unified help, field diagnostics, immediate summary, and no
     await page.getByTestId('basemap-kind-tms').click(); // 新規ベースマップは種別選択が最初の編集
     await expect(page.locator('[data-testid="basemap-editor"]')).toBeVisible();
 
-    // case 3: slug 入力が monospace（computed font に mono が含まれる）
+    // slug 入力が monospace（computed font に mono が含まれる）
     const slugFont = await page.getByTestId('basemap-slug').evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase());
     expect(slugFont).toMatch(/mono|menlo|consolas|courier|sfmono|liberation/);
 
     // F7: master-detail のヘッダーに「< 一覧へ」back ボタンが無い
     await expect(page.getByTestId('editor-back')).toHaveCount(0);
 
-    // case 10 / F6: slug help（title なし）が focus と hover の双方で同じ editor-ui-help-popover カードを開く
+    // F6: slug help（title なし）が focus と hover の双方で同じ editor-ui-help-popover カードを開く
     const slugHelp = page.locator('[data-editor-help]').first();
     await slugHelp.focus();
     await expect(page.locator('.editor-ui-help-popover')).toBeVisible();
@@ -155,7 +155,7 @@ test('base map pilot: unified help, field diagnostics, immediate summary, and no
     await page.mouse.move(5, 5); // hover 離脱で閉じる
     await expect(page.locator('.editor-ui-help-popover')).toHaveCount(0);
 
-    // case 10 / F6: coverage help（title 付き）も同じカード・同じ挙動
+    // F6: coverage help（title 付き）も同じカード・同じ挙動
     const coverageHelp = page.locator('[data-editor-help]').last();
     await coverageHelp.focus();
     await expect(page.locator('.editor-ui-help-popover')).toBeVisible();

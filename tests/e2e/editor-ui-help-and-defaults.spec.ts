@@ -1,6 +1,5 @@
 // 地図 / ベースマップ / アプリ管理の画面内 UI 微修正。
 //
-//
 //   E1    新規アプリで PWA・キャッシュが未チェック / マーカー一覧 UI がチェック済み /
 //              マニフェスト設定欄は出ない。PWA をチェックすると現れる
 //   E2    既存アプリ（全キー明示）を開くと保存値のまま表示される
@@ -141,11 +140,11 @@ test.describe('アプリ管理の既定値と説明', () => {
       // ---- E2 : 既存アプリ（全キー明示）は保存値のまま ----
       await openAppViaList(page, uidFull);
       await expect(page.getByTestId('app-id')).toHaveValue(slugFull, { timeout: 30000 });
-      await expect(toggle(page, 'PWA'), 'E2/case 2: 保存値 true を維持').toBeChecked();
-      await expect(toggle(page, 'キャッシュ'), 'E2/case 2: 保存値 true を維持').toBeChecked();
+      await expect(toggle(page, 'PWA'), 'E2/保存値 true を維持').toBeChecked();
+      await expect(toggle(page, 'キャッシュ'), 'E2/保存値 true を維持').toBeChecked();
       await expect(
         toggle(page, 'マーカー一覧UI'),
-        'E2/case 2: 保存値 false を維持（新既定 true が既存アプリへ漏れない）',
+        'E2/保存値 false を維持（新既定 true が既存アプリへ漏れない）',
       ).not.toBeChecked();
 
       // ---- E2b : httpSettings: {} の解釈が変わらない（② 不変） ----
@@ -155,15 +154,15 @@ test.describe('アプリ管理の既定値と説明', () => {
       await expect(page.getByTestId('app-id')).toHaveValue(slugEmpty, { timeout: 30000 });
       await expect(
         toggle(page, 'PWA'),
-        'E2b/case 3: キーなし保存形は従来どおり PWA オンとして読まれる（②の欠落補完は不変）',
+        'E2b/キーなし保存形は従来どおり PWA オンとして読まれる（②の欠落補完は不変）',
       ).toBeChecked();
       await expect(
         page.getByTestId('app-manifest-name'),
-        'E2b/case 3: ∴ マニフェスト設定欄も従来どおり出る（editor-shell.spec.ts の依存元）',
+        'E2b/∴ マニフェスト設定欄も従来どおり出る（editor-shell.spec.ts の依存元）',
       ).toBeVisible();
       await expect(
         toggle(page, 'マーカー一覧UI'),
-        'E2b/case 3: キーなし保存形のマーカー一覧 UI は従来どおり false',
+        'E2b/キーなし保存形のマーカー一覧 UI は従来どおり false',
       ).not.toBeChecked();
 
       // ---- E1 : 新規アプリ（人間要望 B / C の中核） ----
@@ -175,13 +174,13 @@ test.describe('アプリ管理の既定値と説明', () => {
       const cache = toggle(page, 'キャッシュ');
       const markerList = toggle(page, 'マーカー一覧UI');
 
-      await expect(pwa, 'E1/case 1: 新規アプリの PWA は既定オフ（要望 B）').not.toBeChecked();
-      await expect(cache, 'E1/case 1: 新規アプリのキャッシュは既定オフ（要望 B）').not.toBeChecked();
-      await expect(markerList, 'E1/case 1: 新規アプリのマーカー一覧 UI は既定オン（要望 C）').toBeChecked();
-      await expect(cache, 'E1/case 4: PWA オフのときキャッシュは操作できない').toBeDisabled();
+      await expect(pwa, 'E1/新規アプリの PWA は既定オフ（要望 B）').not.toBeChecked();
+      await expect(cache, 'E1/新規アプリのキャッシュは既定オフ（要望 B）').not.toBeChecked();
+      await expect(markerList, 'E1/新規アプリのマーカー一覧 UI は既定オン（要望 C）').toBeChecked();
+      await expect(cache, 'E1/PWA オフのときキャッシュは操作できない').toBeDisabled();
       await expect(
         page.getByTestId('app-manifest-name'),
-        'E1/case 1: PWA が既定オフなのでマニフェスト設定欄は出ない',
+        'E1/PWA が既定オフなのでマニフェスト設定欄は出ない',
       ).toBeHidden();
 
       // PWA をチェックするとマニフェスト設定欄が現れる（意図した帰結）
@@ -224,9 +223,9 @@ test.describe('アプリ管理の既定値と説明', () => {
 
       // PWA をオフ → キャッシュも同時にオフ + disabled
       await pwa.uncheck();
-      await expect(pwa, 'E3/case 4: PWA オフ').not.toBeChecked();
-      await expect(cache, 'E3/case 4: キャッシュも false へ落ちる').not.toBeChecked();
-      await expect(cache, 'E3/case 4: キャッシュは操作不能になる').toBeDisabled();
+      await expect(pwa, 'E3/PWA オフ').not.toBeChecked();
+      await expect(cache, 'E3/キャッシュも false へ落ちる').not.toBeChecked();
+      await expect(cache, 'E3/キャッシュは操作不能になる').toBeDisabled();
       await expect(
         page.getByTestId('app-manifest-name'),
         'E3: マニフェスト設定欄も同じ判定点（pwaEnabled）で消える',
@@ -234,17 +233,17 @@ test.describe('アプリ管理の既定値と説明', () => {
 
       // Undo 1 回で **両方同時に** 復帰する（履歴が 2 レコードに割れていないことの証明）
       await undo(page);
-      await expect(pwa, 'E3/case 4: Undo 1 回で PWA が復帰').toBeChecked({ timeout: 5000 });
+      await expect(pwa, 'E3/Undo 1 回で PWA が復帰').toBeChecked({ timeout: 5000 });
       await expect(
         cache,
-        'E3/case 4: **同じ Undo 1 回で** キャッシュも復帰する（禁止中間状態を経由しない）',
+        'E3/**同じ Undo 1 回で** キャッシュも復帰する（禁止中間状態を経由しない）',
       ).toBeChecked();
-      await expect(cache, 'E3/case 4: 復帰後は操作可能に戻る').toBeEnabled();
+      await expect(cache, 'E3/復帰後は操作可能に戻る').toBeEnabled();
 
       // Redo 1 回で再び両方オフ（redo スタックが壊れていないこと）
       await redo(page);
-      await expect(pwa, 'E3/case 4: Redo 1 回で PWA が再びオフ').not.toBeChecked({ timeout: 5000 });
-      await expect(cache, 'E3/case 4: Redo でキャッシュも再びオフ（redo スタックが健全）').not.toBeChecked();
+      await expect(pwa, 'E3/Redo 1 回で PWA が再びオフ').not.toBeChecked({ timeout: 5000 });
+      await expect(cache, 'E3/Redo でキャッシュも再びオフ（redo スタックが健全）').not.toBeChecked();
     } finally {
       await quitElectronApplication(app);
     }
@@ -264,34 +263,34 @@ test.describe('アプリ管理の既定値と説明', () => {
       await expect(descLabel).toBeVisible();
       await expect(
         await openHelp(page, descLabel),
-        'E4/case 7: 「説明」の ？ が出力先（OGP / meta description）を述べる',
+        'E4/「説明」の ？ が出力先（OGP / meta description）を述べる',
       ).toContainText(JA.descriptionNote);
 
       const extraLabel = page.locator('label.form-label', { hasText: '他情報' }).first();
       await expect(extraLabel).toBeVisible();
       await expect(
         await openHelp(page, extraLabel),
-        'E4/case 7: 「他情報」の ？ が「エディタ内メモ」であることを述べる',
+        'E4/「他情報」の ？ が「エディタ内メモ」であることを述べる',
       ).toContainText(JA.extraInfoNote);
 
       // ---- E5 : HTTP 設定の 8 チェックボックス ----
       await expect(
         page.locator('.toggle-grid [data-editor-help]'),
-        'E5/case 8: HTTP 設定の 8 トグルすべてに ？ がある',
+        'E5/HTTP 設定の 8 トグルすべてに ？ がある',
       ).toHaveCount(8);
       const cacheLabel = page.locator('.toggle-grid label.form-check', { hasText: 'キャッシュ' }).first();
       await expect(
         await openHelp(page, cacheLabel),
-        'E5/case 8: キャッシュの ？ が Service Worker 同梱と PWA 前提を述べる',
+        'E5/キャッシュの ？ が Service Worker 同梱と PWA 前提を述べる',
       ).toContainText(JA.cacheNote);
 
       // ---- E8 : プレビュー言語切替がタブ下のバーへ移り、地図 iframe と重ならない ----
       await page.locator('[data-testid="app-preview-toolbar"]').waitFor({ state: 'hidden' });
       await page.getByRole('tab', { name: 'プレビュー' }).click();
       const toolbar = page.getByTestId('app-preview-toolbar');
-      await expect(toolbar, 'E8/case 14: プレビュータブでバーが現れる').toBeVisible({ timeout: 30000 });
+      await expect(toolbar, 'E8/プレビュータブでバーが現れる').toBeVisible({ timeout: 30000 });
       const select = toolbar.locator('#previewLang');
-      await expect(select, 'E8/case 14: #previewLang はバーの中で生存する').toBeVisible();
+      await expect(select, 'E8/#previewLang はバーの中で生存する').toBeVisible();
 
       // 地図領域との非干渉。iframe（.preview-map）はプレビューサーバが起動して
       // previewUrl が入るまで描画されないため、常に存在する地図領域のペイン
@@ -300,15 +299,15 @@ test.describe('アプリ管理の既定値と説明', () => {
       // この assert は移設前なら必ず落ちる（= 移設の番人になっている）
       const selectBox = await select.boundingBox();
       const paneBox = await page.getByTestId('app-preview-pane').boundingBox();
-      expect(selectBox, 'E8/case 14: #previewLang の矩形が取れること').not.toBeNull();
-      expect(paneBox, 'E8/case 14: 地図領域の矩形が取れること').not.toBeNull();
+      expect(selectBox, 'E8/#previewLang の矩形が取れること').not.toBeNull();
+      expect(paneBox, 'E8/地図領域の矩形が取れること').not.toBeNull();
       if (paneBox && selectBox) {
         const overlaps =
           selectBox.x < paneBox.x + paneBox.width &&
           selectBox.x + selectBox.width > paneBox.x &&
           selectBox.y < paneBox.y + paneBox.height &&
           selectBox.y + selectBox.height > paneBox.y;
-        expect(overlaps, 'E8/case 14: 言語切替が地図領域と重ならない').toBe(false);
+        expect(overlaps, 'E8/言語切替が地図領域と重ならない').toBe(false);
       }
     } finally {
       await quitElectronApplication(app);
@@ -350,11 +349,11 @@ test.describe('地図 / ベースマップ管理の説明', () => {
 
       await expect(
         pane.locator('p.text-muted.small'),
-        'E6/case 9: 旧 <p> の説明文は残っていない',
+        'E6/旧 <p> の説明文は残っていない',
       ).toHaveCount(0);
       await expect(
         await openHelp(page, pane.locator('.card-header')),
-        'E6/case 9: 見出しの ？ が「ベースマップとして登録」を述べる',
+        'E6/見出しの ？ が「ベースマップとして登録」を述べる',
       ).toContainText(JA.mercNote);
     } finally {
       await quitElectronApplication(app);
@@ -403,10 +402,10 @@ test.describe('地図 / ベースマップ管理の説明', () => {
         'データライセンス補足',
       ]) {
         const host = page.locator('label.form-label', { hasText: label }).first();
-        await expect(host, `E7/case 10: 「${label}」のラベルがある`).toBeVisible();
+        await expect(host, `E7/「${label}」のラベルがある`).toBeVisible();
         await expect(
           host.locator('[data-editor-help]'),
-          `E7/case 10: 「${label}」に ？ がある`,
+          `E7/「${label}」に ？ がある`,
         ).toHaveCount(1);
       }
 
@@ -414,13 +413,13 @@ test.describe('地図 / ベースマップ管理の説明', () => {
       const labelHost = page.locator('label.form-label', { hasText: '表示ラベル' }).first();
       await expect(
         await openHelp(page, labelHost),
-        'E7/case 11: 表示ラベルの説明は地図管理と同一文（field_help.display_label）',
+        'E7/表示ラベルの説明は地図管理と同一文（field_help.display_label）',
       ).toContainText(JA.displayLabelHelp);
 
       const attrHost = page.locator('label.form-label', { hasText: '地図画像帰属' }).first();
       await expect(
         await openHelp(page, attrHost),
-        'E7/case 11: 地図画像帰属の説明は地図管理と同一文（field_help.image_attribution）',
+        'E7/地図画像帰属の説明は地図管理と同一文（field_help.image_attribution）',
       ).toContainText(JA.imageAttrHelp);
     } finally {
       await quitElectronApplication(app);

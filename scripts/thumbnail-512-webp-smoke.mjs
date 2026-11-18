@@ -1,12 +1,12 @@
 // smoke: 512px サムネイルの webp 統一。
 //
-// 対象パートと対応 AC:
-//   A  THUMB_512_EXT === 'webp' / THUMB_512_TMP_BASENAME の派生                       -> case 1
-//   B  ビルトイン 512px 資産が 335 件・全 webp・合計 45,000,000 B 未満                -> case 2
-//   C  静的検査（インライン派生の集約・符号化点の単一性・読み込み側 fallback の不在） -> case 3 / case 4 / case 10 / case 13
-//   D  単一変化点の不変条件（THUMB_512_EXT を null へ戻すとパスも符号化も戻る）       -> case 9
+// 対象パート:
+//   A  THUMB_512_EXT === 'webp' / THUMB_512_TMP_BASENAME の派生
+//   B  ビルトイン 512px 資産が 335 件・全 webp・合計 45,000,000 B 未満
+//   C  静的検査（インライン派生の集約・符号化点の単一性・読み込み側 fallback の不在）
+//   D  単一変化点の不変条件（THUMB_512_EXT を null へ戻すとパスも符号化も戻る）
 //   M  既存ユーザデータ移行は **移行の一気通貫化で撤去**（migration ごと削除。理由は当該箇所のコメント）
-//   R  relocate 堅牢化の回帰（順序 + 中止 / ロールバック / 正常系）                    ->
+//   R  relocate 堅牢化の回帰（順序 + 中止 / ロールバック / 正常系）
 //
 // basemap-thumbnail-512-smoke と同型 harness（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir）で、
 // 実サービス（SqliteDataService / thumbnail512Codec）を直接呼ぶ。
@@ -38,7 +38,7 @@ const appAssetServicePath = path.join(projectRoot, 'electron/services/AppAssetSe
 const mapUploadServicePath = path.join(projectRoot, 'electron/services/MapUploadService.ts');
 const stitchPath = path.join(projectRoot, 'electron/utils/thumbnail512Stitch.ts');
 
-// case 9 の写し（製品ファイルは書き換えない。THUMB_512_EXT を null へ戻した複製を別ディレクトリへ作る）
+// 写し（製品ファイルは書き換えない。THUMB_512_EXT を null へ戻した複製を別ディレクトリへ作る）
 const revertDir = path.join(workDir, 'revert');
 await mkdir(revertDir, { recursive: true });
 const revertedPathsFile = path.join(revertDir, 'thumbnailPaths.ts');
@@ -56,22 +56,22 @@ const icon52Dir = path.join(projectRoot, 'public/basemap_icons');
   let total = 0;
   for (const f of files) total += (await stat(path.join(icon512Dir, f))).size;
 
-  assert.equal(files.length, 335, `case 2: ビルトイン 512px は 335 件（実測 ${files.length}）`);
-  assert.deepEqual(exts, ['webp'], `case 2: 512px は全件 webp（実測 ${JSON.stringify(exts)}）`);
+  assert.equal(files.length, 335, `ビルトイン 512px は 335 件（実測 ${files.length}）`);
+  assert.deepEqual(exts, ['webp'], `512px は全件 webp（実測 ${JSON.stringify(exts)}）`);
   assert.ok(
     total < 45_000_000,
-    `case 2: 512px 合計サイズが 45,000,000 B 未満（実測 ${total} B）`,
+    `512px 合計サイズが 45,000,000 B 未満（実測 ${total} B）`,
   );
 
   // 52px は据え置き（凍結契約 拡張子非対称）。basename 集合は 512px と一致する
   const files52 = await readdir(icon52Dir);
   const exts52 = [...new Set(files52.map((f) => f.split('.').pop()))];
-  assert.deepEqual(exts52, ['png'], `case 2: 52px は据え置き（png のまま。実測 ${JSON.stringify(exts52)}）`);
+  assert.deepEqual(exts52, ['png'], `52px は据え置き（png のまま。実測 ${JSON.stringify(exts52)}）`);
   const stem = (f) => f.slice(0, f.lastIndexOf('.'));
   assert.deepEqual(
     files512Stems(files),
     files512Stems(files52),
-    'case 2: 52px と 512px の basename 集合が一致する',
+    '52px と 512px の basename 集合が一致する',
   );
   function files512Stems(list) {
     return [...list.map(stem)].sort();
@@ -86,9 +86,9 @@ const icon52Dir = path.join(projectRoot, 'public/basemap_icons');
 const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).length;
 
 {
-  // ---- case 3: `_512.` を含む製品コードが src/utils/thumbnailPaths.ts の 1 ファイルだけ ----
+  // ---- `_512.` を含む製品コードが src/utils/thumbnailPaths.ts の 1 ファイルだけ ----
   // 集約先そのもの（派生規約のコメントと THUMB_512_TMP_BASENAME のテンプレートリテラル）は除外できないため、
-  // 「ゼロ件」ではなく「ファイル数 1」を条件とする（case 3 の注記）。
+  // 「ゼロ件」ではなく「ファイル数 1」を条件とする。
   const { stdout: grepOut } = await execFileAsync(
     'grep',
     ['-rIl', '_512\\.', 'electron', 'src'],
@@ -98,44 +98,44 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
   assert.deepEqual(
     hits,
     ['src/utils/thumbnailPaths.ts'],
-    `case 3: _512. を含む製品コードは派生規約の 1 ファイルのみ（実測 ${JSON.stringify(hits)}）`,
+    `_512. を含む製品コードは派生規約の 1 ファイルのみ（実測 ${JSON.stringify(hits)}）`,
   );
-  console.log('ok: C/case 3 製品コードのインライン 512px 派生は集約先 1 ファイルのみ');
+  console.log('ok: C 製品コードのインライン 512px 派生は集約先 1 ファイルのみ');
 }
 
 {
-  // ---- case 4: 512px を書く経路がすべて writeImageByExt を通る ----
+  // ---- 512px を書く経路がすべて writeImageByExt を通る ----
   // 対象はW1 / W4 / W8。各関数の本体を切り出し、writeImageByExt( の出現と
   // 生の .write( の不在を assert する（ソーステキスト assert 軸。軸 4 と同型）。
   const sliceFn = (src, startNeedle, endNeedle, label) => {
     const s = src.indexOf(startNeedle);
-    assert.ok(s >= 0, `case 4: ${label} の開始位置を特定できる（needle: ${startNeedle}）`);
+    assert.ok(s >= 0, `${label} の開始位置を特定できる（needle: ${startNeedle}）`);
     const e = src.indexOf(endNeedle, s + startNeedle.length);
-    assert.ok(e > s, `case 4: ${label} の終了位置を特定できる（needle: ${endNeedle}）`);
+    assert.ok(e > s, `${label} の終了位置を特定できる（needle: ${endNeedle}）`);
     return src.slice(s, e);
   };
 
   const assetSrc = await readFile(appAssetServicePath, 'utf8');
   const w1 = sliceFn(assetSrc, 'private async writeThumbnail(', '\n  // 非ビルトインTMS', 'W1 writeThumbnail');
-  assert.equal(countMatches(w1, /writeImageByExt\(/), 1, 'case 4/W1: writeThumbnail が writeImageByExt を 1 回呼ぶ');
-  assert.equal(countMatches(w1, /\.write\(/), 0, 'case 4/W1: writeThumbnail に生の .write( が残っていない');
+  assert.equal(countMatches(w1, /writeImageByExt\(/), 1, 'W1: writeThumbnail が writeImageByExt を 1 回呼ぶ');
+  assert.equal(countMatches(w1, /\.write\(/), 0, 'W1: writeThumbnail に生の .write( が残っていない');
 
   // W4（取り込み）と W8（起動時の補完）は 1 つの実装 stitchThumbnail512 を呼ぶ。
   // 両経路がそれを呼び、旧来の個別実装が残っていないことも確かめる
   const stitchSrc = await readFile(stitchPath, 'utf8');
   const w48 = sliceFn(stitchSrc, 'export async function stitchThumbnail512(', '\n}\n', 'W4/W8 stitchThumbnail512');
-  assert.equal(countMatches(w48, /writeImageByExt\(/), 1, 'case 4/W4・W8: stitchThumbnail512 が writeImageByExt を 1 回呼ぶ');
-  assert.equal(countMatches(w48, /\.write\(/), 0, 'case 4/W4・W8: stitchThumbnail512 に生の .write( が残っていない');
+  assert.equal(countMatches(w48, /writeImageByExt\(/), 1, 'W4・W8: stitchThumbnail512 が writeImageByExt を 1 回呼ぶ');
+  assert.equal(countMatches(w48, /\.write\(/), 0, 'W4・W8: stitchThumbnail512 に生の .write( が残っていない');
   const uploadSrc = await readFile(mapUploadServicePath, 'utf8');
   const sqliteSrc = await readFile(sqlitePath, 'utf8');
-  assert.equal(countMatches(uploadSrc, /stitchThumbnail512\(/), 1, 'case 4/W4: 取り込みが stitchThumbnail512 を呼ぶ');
-  assert.equal(countMatches(sqliteSrc, /stitchThumbnail512\(/), 1, 'case 4/W8: 起動時の補完が stitchThumbnail512 を呼ぶ');
-  assert.equal(countMatches(uploadSrc, /function makeThumbnail512\(/), 0, 'case 4/W4: 取り込み側に個別の縫い合わせが残っていない');
-  assert.equal(countMatches(sqliteSrc, /generateThumbnail512FromTiles\(/), 0, 'case 4/W8: 補完側に個別の縫い合わせが残っていない');
+  assert.equal(countMatches(uploadSrc, /stitchThumbnail512\(/), 1, 'W4: 取り込みが stitchThumbnail512 を呼ぶ');
+  assert.equal(countMatches(sqliteSrc, /stitchThumbnail512\(/), 1, 'W8: 起動時の補完が stitchThumbnail512 を呼ぶ');
+  assert.equal(countMatches(uploadSrc, /function makeThumbnail512\(/), 0, 'W4: 取り込み側に個別の縫い合わせが残っていない');
+  assert.equal(countMatches(sqliteSrc, /generateThumbnail512FromTiles\(/), 0, 'W8: 補完側に個別の縫い合わせが残っていない');
 
   // R1: 破損シグネチャ判定は readImageMeta を通る（webp を読めないと catch に落ちて自己修復が黙って死ぬ）
   const r1 = sliceFn(sqliteSrc, 'private async isBrokenThumbnail512(', '\n  // maps/appsへの書き込み', 'R1 isBrokenThumbnail512');
-  assert.equal(countMatches(r1, /readImageMeta\(/), 1, 'case 4/R1: isBrokenThumbnail512 が 512px を readImageMeta で読む');
+  assert.equal(countMatches(r1, /readImageMeta\(/), 1, 'R1: isBrokenThumbnail512 が 512px を readImageMeta で読む');
 
   // 符号化点の単一性: 製品コード（electron / src）で webp 符号化器を握るのは codec 1 ファイルだけ。
   // （オフライン生成器 scripts/generate-builtin-basemaps.mjs は配布物の資産を作る別系統であり、
@@ -149,13 +149,13 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
   assert.deepEqual(
     encHits,
     ['electron/utils/thumbnail512Codec.ts'],
-    `case 4: 製品コードで webp 符号化器を握るのは codec 1 ファイルのみ（実測 ${JSON.stringify(encHits)}）`,
+    `製品コードで webp 符号化器を握るのは codec 1 ファイルのみ（実測 ${JSON.stringify(encHits)}）`,
   );
-  console.log('ok: C/case 4 512px の符号化点は writeImageByExt / 復号点は readImageMeta に集約');
+  console.log('ok: C 512px の符号化点は writeImageByExt / 復号点は readImageMeta に集約');
 }
 
 {
-  // ---- case 10: 読み込み側に旧形式 fallback が無い ----
+  // ---- 読み込み側に旧形式 fallback が無い ----
   // `_512.jpg` / `_512.png` を **探す** コードが electron / src に存在しないこと。
   // 唯一の例外は C7（取り込み）の候補走査であり、そこは「交換形式の過去の正規形式を受容して
   // 正規形（webp）へ書き直す」書き込み側の正規化である。
@@ -164,12 +164,12 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
     ['-rIn', '-E', '_512\\.(jpe?g|png)', 'electron', 'src'],
     { cwd: projectRoot },
   ).catch((e) => ({ stdout: e.stdout ?? '', stderr: e.stderr ?? '' }));
-  assert.equal(stderr, '', 'case 10: grep が正常終了する');
+  assert.equal(stderr, '', 'grep が正常終了する');
   const lines = stdout.split('\n').filter(Boolean);
   assert.deepEqual(
     lines,
     [],
-    `case 10: 読み込み側に旧形式（_512.jpg / _512.png）を探す分岐が 1 つも無い（実測 ${JSON.stringify(lines)}）`,
+    `読み込み側に旧形式（_512.jpg / _512.png）を探す分岐が 1 つも無い（実測 ${JSON.stringify(lines)}）`,
   );
 
   // C7 の候補走査は「拡張子リストを持つ書き込み側正規化」であり、許可リストとして明示的に検査する
@@ -177,27 +177,27 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
   assert.equal(
     countMatches(dataUploadSrc, /^const THUMB_512_IMPORT_EXT_CANDIDATES/m),
     1,
-    'case 10: C7 の候補リストの宣言は 1 箇所のみ（取り込み時に正規形へ書き直す。読み込み側分岐ではない）',
+    'C7 の候補リストの宣言は 1 箇所のみ（取り込み時に正規形へ書き直す。読み込み側分岐ではない）',
   );
   assert.equal(
     countMatches(dataUploadSrc, /for \(const ext of THUMB_512_IMPORT_EXT_CANDIDATES\)/),
     1,
-    'case 10: 候補走査は 1 箇所のみ（取り込み経路以外へ広がっていない）',
+    '候補走査は 1 箇所のみ（取り込み経路以外へ広がっていない）',
   );
   assert.equal(
     countMatches(dataUploadSrc, /transcodeImage\(/),
     1,
-    'case 10: C7 は webp 以外の候補を transcodeImage で正規形へ書き直す',
+    'C7 は webp 以外の候補を transcodeImage で正規形へ書き直す',
   );
-  console.log('ok: C/case 10 読み込み側の旧形式 fallback は 0 件（C7 の受容は書き込み側正規化）');
+  console.log('ok: C 読み込み側の旧形式 fallback は 0 件（C7 の受容は書き込み側正規化）');
 }
 
 {
-  // ---- case 13 : 新規検証スクリプトが package.json に結線されている ----
+  // ---- 新規検証スクリプトが package.json に結線されている ----
   const pkg = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
   assert.ok(
     typeof pkg.scripts['smoke:thumbnail-512-webp'] === 'string',
-    'case 13: smoke:thumbnail-512-webp が package.json へ結線されている',
+    'smoke:thumbnail-512-webp が package.json へ結線されている',
   );
   // 新規依存が dependencies に宣言されている
   assert.ok(
@@ -209,7 +209,7 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
     typeof pkg.scripts['smoke:editor-locale-parity'] === 'string',
     'smoke:editor-locale-parity が実在する（新規 i18n キーの 11 言語パリティ検証）',
   );
-  console.log('ok: C/case 13 結線と依存宣言');
+  console.log('ok: C 結線と依存宣言');
 }
 
 {
@@ -222,7 +222,7 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
   );
   assert.ok(
     /thumbnail512Codec/.test(src),
-    '注釈が符号化側の対（thumbnail512Codec）に言及している（case 9 の不変条件と一致する文言）',
+    '注釈が符号化側の対（thumbnail512Codec）に言及している（不変条件と一致する文言）',
   );
   console.log('ok: C/冒頭注釈の是正（レビューの指摘）');
 }
@@ -231,14 +231,14 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
 // Part A / D / M / R: 実体を叩く（vite SSR バンドル経由）
 // ============================================================================
 
-// case 9: THUMB_512_EXT を null へ戻した写しを作る（製品ファイルは書き換えない）
+// THUMB_512_EXT を null へ戻した写しを作る（製品ファイルは書き換えない）
 {
   const src = await readFile(thumbnailPathsFile, 'utf8');
   const reverted = src.replace(
     /export const THUMB_512_EXT: string \| null = 'webp';/,
     "export const THUMB_512_EXT: string | null = null;",
   );
-  assert.notEqual(reverted, src, 'case 9: THUMB_512_EXT の宣言を写しの上で null へ戻せる（宣言が 1 箇所であることの証明）');
+  assert.notEqual(reverted, src, 'THUMB_512_EXT の宣言を写しの上で null へ戻せる（宣言が 1 箇所であることの証明）');
   await writeFile(revertedPathsFile, reverted, 'utf8');
 }
 
@@ -303,26 +303,26 @@ await writeFile(
 
     // ============ Part A: 契約 ============
     {
-      assert.equal(THUMB_512_EXT, 'webp', 'case 1: THUMB_512_EXT === "webp"');
+      assert.equal(THUMB_512_EXT, 'webp', 'THUMB_512_EXT === "webp"');
       assert.equal(THUMB_512_TMP_BASENAME, 'thumbnail_512.webp',
-        'case 1: 中間ファイル名も同じ 1 定数から導かれる（実測 ' + THUMB_512_TMP_BASENAME + '）');
+        '中間ファイル名も同じ 1 定数から導かれる（実測 ' + THUMB_512_TMP_BASENAME + '）');
       // 派生規約は変えていない（拡張子だけが変わる）
-      assert.equal(thumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.webp', 'case 1: tmbs 接尾辞規則 + webp');
-      assert.equal(thumb512PathFor('tmbs/a.png'), 'tmbs/a_512.webp', 'case 1: 入力拡張子によらず webp');
-      assert.equal(thumb512PathFor('basemap_icons/x.png'), 'basemap_icons_512/x.webp', 'case 1: ディレクトリ差替え規則 + webp');
-      assert.equal(thumb512PathFor('img/x.png'), null, 'case 1: 定義域外は null のまま');
-      assert.equal(thumb52PathFor('abc', 'jpg'), 'tmbs/abc.jpg', 'case 1: 52px は据え置き（拡張子非対称）');
+      assert.equal(thumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.webp', 'tmbs 接尾辞規則 + webp');
+      assert.equal(thumb512PathFor('tmbs/a.png'), 'tmbs/a_512.webp', '入力拡張子によらず webp');
+      assert.equal(thumb512PathFor('basemap_icons/x.png'), 'basemap_icons_512/x.webp', 'ディレクトリ差替え規則 + webp');
+      assert.equal(thumb512PathFor('img/x.png'), null, '定義域外は null のまま');
+      assert.equal(thumb52PathFor('abc', 'jpg'), 'tmbs/abc.jpg', '52px は据え置き（拡張子非対称）');
       console.log('ok: A THUMB_512_EXT=webp / 派生規約は不変');
     }
 
     // ============ Part D: 単一変化点の不変条件 ============
     {
       // (1) パス: THUMB_512_EXT を null へ戻した写しは入力拡張子を引き継ぐ挙動へ戻る
-      assert.equal(REVERTED_EXT, null, 'case 9: 写しの THUMB_512_EXT は null');
+      assert.equal(REVERTED_EXT, null, '写しの THUMB_512_EXT は null');
       assert.equal(revertedThumb512PathFor('tmbs/a.jpg'), 'tmbs/a_512.jpg',
-        'case 9(1): 定数を戻すとパス派生が旧挙動（入力拡張子の引き継ぎ）へ戻る');
+        '定数を戻すとパス派生が旧挙動（入力拡張子の引き継ぎ）へ戻る');
       assert.equal(revertedThumb512PathFor('basemap_icons/x.png'), 'basemap_icons_512/x.png',
-        'case 9(1): ディレクトリ差替え規則も旧挙動へ戻る');
+        'ディレクトリ差替え規則も旧挙動へ戻る');
 
       // (2) 符号化: codec は「512px か否か」を判定せず、宛先拡張子だけで符号化器を選ぶ。
       //     ∴ 定数が戻ってパスが .jpg になれば、符号化も自動的に Jimp 経路へ戻る。
@@ -333,19 +333,19 @@ await writeFile(
       await writeImageByExt(img, destWebp);
       await writeImageByExt(img, destJpg);
       await writeImageByExt(img, destPng);
-      assert.ok(isWebpBuffer(await fse.readFile(destWebp)), 'case 9(2): .webp 宛先は wasm 符号化器（RIFF/WEBP）');
-      assert.ok(!isWebpBuffer(await fse.readFile(destJpg)), 'case 9(2): .jpg 宛先は Jimp 経路（webp ではない）');
-      assert.equal((await fse.readFile(destJpg)).toString('ascii', 6, 10), 'JFIF', 'case 9(2): .jpg は JPEG である');
-      assert.equal((await fse.readFile(destPng)).toString('ascii', 1, 4), 'PNG', 'case 9(2): .png は PNG である');
+      assert.ok(isWebpBuffer(await fse.readFile(destWebp)), '.webp 宛先は wasm 符号化器（RIFF/WEBP）');
+      assert.ok(!isWebpBuffer(await fse.readFile(destJpg)), '.jpg 宛先は Jimp 経路（webp ではない）');
+      assert.equal((await fse.readFile(destJpg)).toString('ascii', 6, 10), 'JFIF', '.jpg は JPEG である');
+      assert.equal((await fse.readFile(destPng)).toString('ascii', 1, 4), 'PNG', '.png は PNG である');
 
       // 寸法が保存されること（両経路とも）
-      assert.deepEqual(await readImageMeta(destWebp), { width: 8, height: 6 }, 'case 9(2): webp を復号して寸法が読める');
-      assert.deepEqual(await readImageMeta(destPng), { width: 8, height: 6 }, 'case 9(2): 非 webp も同じ API で寸法が読める');
-      assert.equal(await readImageMeta(nodePath.join(workDir, 'nope.webp')), null, 'case 9(2): 不在は null');
+      assert.deepEqual(await readImageMeta(destWebp), { width: 8, height: 6 }, 'webp を復号して寸法が読める');
+      assert.deepEqual(await readImageMeta(destPng), { width: 8, height: 6 }, '非 webp も同じ API で寸法が読める');
+      assert.equal(await readImageMeta(nodePath.join(workDir, 'nope.webp')), null, '不在は null');
 
       // 品質値の宣言が 1 箇所であること（lossless への切替が 1 定数で済む形）
-      assert.equal(typeof THUMB_512_WEBP_QUALITY, 'object', 'case 9: 品質は符号化オプション 1 定数として宣言される');
-      assert.equal(THUMB_512_WEBP_QUALITY.quality, 85, 'case 9: 採用値は q85');
+      assert.equal(typeof THUMB_512_WEBP_QUALITY, 'object', '品質は符号化オプション 1 定数として宣言される');
+      assert.equal(THUMB_512_WEBP_QUALITY.quality, 85, '採用値は q85');
 
       console.log('ok: D 単一変化点（パス派生と符号化が同じ 1 定数で切り替わる）');
     }

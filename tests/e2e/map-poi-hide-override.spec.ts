@@ -11,7 +11,7 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 //        map 側 namespaceID は `${mapID}#${FC.id}` = normalize_pois:192-193 + mixin:420-424）
 //   10. undo / redo
 //
-// 待機はすべて状態ベース（固定スリープ禁止 = の教訓）。
+// 待機はすべて状態ベース（固定スリープ禁止）。
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
