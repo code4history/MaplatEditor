@@ -79,7 +79,7 @@ for (const { id, synthetic, expected: e } of cases) {
     const copy = copyIiifMetadata(manifest, canvas.id, e.lang, options);
     assert.equal(copy.ok, true);
     assert.deepEqual(copy.values.title, e.titleValue);
-    assert.notDeepEqual(copy.values.title, e.canvasLabel);
+    if (e.canvasLabel !== undefined) assert.notDeepEqual(copy.values.title, e.canvasLabel);
     assert.deepEqual(copy.copiedValues.title, { [e.lang]: e.title });
     assert.deepEqual(Object.keys(copy.bindings).sort(), [...e.bindingKeys].sort());
     assert.equal(copy.values.license, e.license ?? undefined);

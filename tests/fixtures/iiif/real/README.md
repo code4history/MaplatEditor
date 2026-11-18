@@ -31,12 +31,12 @@
 - **Wellcome Collection**: Wellcome 自作のメタデータは CC0。対象の画像・本文は CC BY-NC 4.0 だが、ここには画像も本文も保存しない。書誌と画像サービスの技術情報のみ。 [確認先](https://developers.wellcomecollection.org/docs/catalogue)。クレジット: Wellcome Collection
 - **J. Paul Getty Museum**: requiredStatement と公式規約でテキストは CC BY 4.0。rights の CC0 は画像の条件。両者を混同しない。 [確認先](https://www.getty.edu/legal/terms-of-use/)。クレジット: © J. Paul Getty Trust. Text: CC BY 4.0. https://creativecommons.org/licenses/by/4.0/
 - **National Library of Wales**: 図書館が作成したメタデータ・説明文は CC0。対象は同館の目録で、第三者権利の記載なし。 [確認先](https://www.library.wales/copyright)。クレジット: Llyfrgell Genedlaethol Cymru – The National Library of Wales
-- **山形大学附属博物館（山形アーカイブ）**: [二次利用の申し合わせ](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)は画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の利用報告・営利目的の事前許可を求める。原文の転載を避け、Manifest は thumbnail と「備考」の行（解説の文章）を除いた**抜粋（加工あり）**として保存した。残したのは題名・URL・寸法・帰属の名前などの事実だけで、値は原文のまま。info.json は画像の技術情報だけなので原文のまま。原文の SHA-256 は `originalSha256` に残した。クレジット: 山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」の Manifest より抜粋（加工あり）。
+- **山形大学附属博物館（山形アーカイブ）**: [二次利用の申し合わせ](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)は画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の報告と成果物等の提出・営利目的の事前許可を求める。原文の転載を避け、Manifest は thumbnail と「備考」の行（解説の文章）を除いた**抜粋（加工あり）**として保存した。残したのは題名・URL・寸法・帰属の名前などの事実だけで、値は原文のまま。info.json は画像の技術情報だけなので原文のまま。原文の SHA-256 は `originalSha256` に残した。クレジット: 山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」の Manifest より抜粋（加工あり）。
 - **Ghent University Library**: 目録の記述メタデータは CC0。Manifest の requiredStatement は PUBLIC DOMAIN。 [確認先](https://www.lib.ugent.be/nl/disclaimer/)。クレジット: Universiteitsbibliotheek Gent
 
 ## Yamagata University Museum fixture — attribution and terms
 
-**Material**: `[Map] Mogami-jidai Yamagata-jōka ezuku` (〔地図〕最上時代山形城下絵図), a historical map of the castle town of Yamagata during the Mogami period.
+**Material**: `[Map] Mogami-jidai Yamagata-jōka ezu` (〔地図〕最上時代山形城下絵図), a historical map of the castle town of Yamagata during the Mogami period.
 
 **Held by**: Yamagata University Museum (山形大学附属博物館).
 
@@ -44,7 +44,7 @@
 
 **Attribution**: Held by Yamagata University Museum. Excerpted (with modifications) from the IIIF Manifest of "Yamagata Archives" produced by Yamagata University Museum.
 
-**Terms of use**: The [museum's reuse guidelines](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm) require attribution of the holding institution, disclosure of any modifications, prior reporting for web publication, and prior permission for commercial use. This fixture is stored as an **excerpt** (thumbnail and descriptive note removed, kept values verbatim). The original SHA-256 is recorded in `amane.source.json`. The fixture is used for non-commercial purposes (open-source software testing). This fixture is **not** covered by the repository's software license; the museum's terms apply.
+**Terms of use**: The [museum's reuse guidelines](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm) require attribution of the holding institution, disclosure of any modifications, reporting and submission of deliverables upon web publication, and prior permission for commercial use. This fixture is stored as an **excerpt** (thumbnail and descriptive note removed, kept values verbatim). The original SHA-256 is recorded in `amane.source.json`. The fixture is used for non-commercial purposes (open-source software testing). This fixture is **not** covered by the repository's software license; the museum's terms apply.
 
 ## 自作の再現 fixture
 

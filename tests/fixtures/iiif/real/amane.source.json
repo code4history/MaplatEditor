@@ -13,9 +13,9 @@
     "access-control-allow-origin": "*",
     "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\""
   },
-  "terms": "山形大学附属博物館の二次利用の申し合わせは、画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の利用報告・営利目的の事前許可を求める。原文の転載を避け、Manifest は文章を含む行を除いた抜粋（加工あり）、info.json は画像の技術情報のみ。画像は保存しない。",
+  "terms": "山形大学附属博物館の二次利用の申し合わせは、画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の報告と成果物等の提出・営利目的の事前許可を求める。原文の転載を避け、Manifest は文章を含む行を除いた抜粋（加工あり）、info.json は画像の技術情報のみ。画像は保存しない。",
   "termsUrl": "https://www.lib.yamagata-u.ac.jp/museum/copyright.htm",
-  "attribution": "山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」の Manifest より抜粋（加工あり）。",
+  "attribution": "山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」（AMANE Archives で公開）の IIIF Manifest より抜粋（加工あり：サムネイルと「備考」の項目を削除し、整形）。",
   "modifications": "Manifest から thumbnail・metadata の「備考」の行（解説の文章）を除き、2 字下げで整形して保存。残した項目の値は原文のまま。info.json は取得した本文をそのまま保存。",
   "excerpt": {
     "manifest": [
