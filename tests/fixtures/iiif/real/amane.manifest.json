@@ -1,0 +1,55 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@type": "sc:Manifest",
+  "@id": "https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json",
+  "label": "〔地図〕最上時代山形城下絵図",
+  "metadata": [
+    {
+      "label": "タイトル（名称）",
+      "value": "〔地図〕最上時代山形城下絵図"
+    },
+    {
+      "label": "manifest URI",
+      "value": "https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json"
+    }
+  ],
+  "description": "",
+  "viewingDirection": "left-to-right",
+  "viewingHint": "paged",
+  "license": "https://cherry.yum-archives.net/yamagata-archive/about",
+  "attribution": "山形大学附属博物館",
+  "sequences": [
+    {
+      "@type": "sc:Sequence",
+      "canvases": [
+        {
+          "@id": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/canvas/1",
+          "@type": "sc:Canvas",
+          "label": "page 1",
+          "width": 6000,
+          "height": 6000,
+          "images": [
+            {
+              "@id": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/ano",
+              "@type": "oa:Annotation",
+              "motivation": "sc:painting",
+              "resource": {
+                "@id": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/full/full/0/default.jpg",
+                "@type": "dctypes:Image",
+                "format": "image/jpeg",
+                "width": 6000,
+                "height": 6000,
+                "service": {
+                  "@context": "http://iiif.io/api/image/2/context.json",
+                  "@id": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif",
+                  "profile": "http://iiif.io/api/image/2/level1.json"
+                }
+              },
+              "on": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/canvas/1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

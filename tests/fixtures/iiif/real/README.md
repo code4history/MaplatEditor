@@ -18,6 +18,7 @@
 | Wellcome Collection | 3 | `Wunder der Vererbung / von Fritz Bolle.` | 36 | 2569×3543 | [Manifest](https://iiif.wellcomecollection.org/presentation/v3/b18035723) / [info.json](https://iiif.wellcomecollection.org/image/b18035723_0001.JP2/info.json) |
 | J. Paul Getty Museum | 3 | `[ ]` | 1 | 3942×5728 | [Manifest](https://media.getty.edu/iiif/manifest/bff54470-38c3-4865-bd58-b550f19b715e) / [info.json](https://media.getty.edu/iiif/image/3bb42b25-96e0-4412-b4da-1dee64694e41/info.json) |
 | National Library of Wales | 2 | `Papyri from Oxyrhynchus, 2-4 cents` | 16 | 7304×6496 | [Manifest](https://damsssl.llgc.org.uk/iiif/2.0/4398332/manifest.json) / [info.json](https://iiif.llyfrgell.cymru/iiif/4398333/info.json) |
+| 山形大学附属博物館（山形アーカイブ・AMANE） | 2 | `〔地図〕最上時代山形城下絵図`（canvas の label は `page 1`） | 1 | 11959×12961（canvas は仮の 6000×6000） | [Manifest](https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json) / [info.json](https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/info.json) |
 | Ghent University Library | 3 | `[print] Beer, leeuw, struisvogel en dromedaries ` | 2 | 2526×3880 | [Manifest](https://adore.ugent.be/IIIF/v3/manifests/archive.ugent.be:ACB41F1C-F681-11E9-9639-C36B765DA7FD) / [info.json](https://eu-img02.ext.exlibrisgroup.com/iiif/2/eyJyZWdpb24iOiJldS1jZW50cmFsLTEiLCJidWNrZXQiOiJldS1zdDAxLmV4dC5leGxpYnJpc2dyb3VwLmNvbSIsImtleSI6IjMyUlVHX0lOU1Qvc3RvcmFnZS9hbG1hLzMzLzBFLzIyLzFBLzY5LzU1LzUzL0JEL0RDLzgyL0QzL0IzLzRGLzcwL0UzLzk1LzkxMDAwMDQyMjA2NV8yMDE5XzAwMDFfTUEuanBnIiwicmVwX2lkIjoiMTIyOTA5NzQwODAwMDkxNjEiLCJpbnN0YW5jZSI6ImV1MDYiLCJpbnN0aXR1dGlvbiI6IjMyUlVHX0lOU1QiLCJ3aWR0aCI6IjI1MjYiLCJoZWlnaHQiOiIzODgwIiwid21LZXkiOm51bGwsIndtV2lkdGgiOm51bGwsIndtSGVpZ2h0IjpudWxsLCJ3bVBvc2l0aW9uIjpudWxsLCJ3bVJlcGVhdCI6ZmFsc2UsIm5hOTEiOm51bGx9/info.json) |
 
 ## 利用条件の確認
@@ -30,7 +31,20 @@
 - **Wellcome Collection**: Wellcome 自作のメタデータは CC0。対象の画像・本文は CC BY-NC 4.0 だが、ここには画像も本文も保存しない。書誌と画像サービスの技術情報のみ。 [確認先](https://developers.wellcomecollection.org/docs/catalogue)。クレジット: Wellcome Collection
 - **J. Paul Getty Museum**: requiredStatement と公式規約でテキストは CC BY 4.0。rights の CC0 は画像の条件。両者を混同しない。 [確認先](https://www.getty.edu/legal/terms-of-use/)。クレジット: © J. Paul Getty Trust. Text: CC BY 4.0. https://creativecommons.org/licenses/by/4.0/
 - **National Library of Wales**: 図書館が作成したメタデータ・説明文は CC0。対象は同館の目録で、第三者権利の記載なし。 [確認先](https://www.library.wales/copyright)。クレジット: Llyfrgell Genedlaethol Cymru – The National Library of Wales
+- **山形大学附属博物館（山形アーカイブ）**: [二次利用の申し合わせ](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)は画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の利用報告・営利目的の事前許可を求める。原文の転載を避け、Manifest は thumbnail と「備考」の行（解説の文章）を除いた**抜粋（加工あり）**として保存した。残したのは題名・URL・寸法・帰属の名前などの事実だけで、値は原文のまま。info.json は画像の技術情報だけなので原文のまま。原文の SHA-256 は `originalSha256` に残した。クレジット: 山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」の Manifest より抜粋（加工あり）。
 - **Ghent University Library**: 目録の記述メタデータは CC0。Manifest の requiredStatement は PUBLIC DOMAIN。 [確認先](https://www.lib.ugent.be/nl/disclaimer/)。クレジット: Universiteitsbibliotheek Gent
+
+## Yamagata University Museum fixture — attribution and terms
+
+**Material**: `[Map] Mogami-jidai Yamagata-jōka ezuku` (〔地図〕最上時代山形城下絵図), a historical map of the castle town of Yamagata during the Mogami period.
+
+**Held by**: Yamagata University Museum (山形大学附属博物館).
+
+**Published via**: Yamagata Archives (山形アーカイブ), served on AMANE Archives.
+
+**Attribution**: Held by Yamagata University Museum. Excerpted (with modifications) from the IIIF Manifest of "Yamagata Archives" produced by Yamagata University Museum.
+
+**Terms of use**: The [museum's reuse guidelines](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm) require attribution of the holding institution, disclosure of any modifications, prior reporting for web publication, and prior permission for commercial use. This fixture is stored as an **excerpt** (thumbnail and descriptive note removed, kept values verbatim). The original SHA-256 is recorded in `amane.source.json`. The fixture is used for non-commercial purposes (open-source software testing). This fixture is **not** covered by the repository's software license; the museum's terms apply.
 
 ## 自作の再現 fixture
 
@@ -53,7 +67,7 @@
 
 ## 保存しなかった資料
 
-- [山形 amane](https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json): Presentation 2、題名 `〔地図〕最上時代山形城下絵図`、canvas 1 枚、canvas/body は 6000×6000、label は `page 1`。[所蔵館の条件](https://www.lib.yamagata-u.ac.jp/museum/copyright.htm)に利用報告と営利利用時の事前許可があるため、まだ保存していない。利用報告の後に足す予定。それまでは、同じ形を自作の再現 fixture（`synthetic-p2-page1`）で試す。
+- 山形 amane は、最初は利用条件のため保存しなかった。canvas の仮の寸法（6000×6000）と info.json の実画素数（11959×12961、縦横比も違う）が食い違う唯一の実例で、題名が `page 1` になった不具合の元の資料でもあるため、抜粋で保存し直した（上記）。
 - [Harvard Art Museums](https://iiif.harvardartmuseums.org/manifests/object/299843): Presentation 2、`Self-Portrait Dedicated to Paul Gauguin`、7 枚。[API 規約](https://github.com/harvardartmuseums/api-docs#terms-of-use)に原則 2 週間超の保存禁止があり、保存しなかった。
 - [京都大学](https://rmda.kulib.kyoto-u.ac.jp/iiif/metadata_manifest/RB00007683/manifest.json): Presentation 3、`Newe Zeyttung auss der Insel Japonien`、5 枚。先頭 canvas は 6463×5880、info.json は 6464×5880。[利用条件](https://rmda.kulib.kyoto-u.ac.jp/reuse)で画像の二次利用条件は確認できたが、Manifest の長期再配布への適用を確定できないため保存しなかった。
 - [Princeton](https://figgy.princeton.edu/concern/scanned_resources/8d8b3997-d323-4b1c-aaca-1670a3181566/manifest): Presentation 2、41 枚。rights は No Known Copyright だが、メタデータの再配布許諾を確定できず保存しなかった。

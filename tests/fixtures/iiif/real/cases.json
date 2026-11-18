@@ -407,5 +407,45 @@
         "kind": "deliverable"
       }
     }
+  },
+  {
+    "id": "amane",
+    "expected": {
+      "version": "2",
+      "lang": "ja",
+      "title": "〔地図〕最上時代山形城下絵図",
+      "titleValue": "〔地図〕最上時代山形城下絵図",
+      "canvasCount": 1,
+      "canvasIndex": 0,
+      "canvasId": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/canvas/1",
+      "canvasLabel": "page 1",
+      "canvasSize": {
+        "width": 6000,
+        "height": 6000
+      },
+      "imageSize": {
+        "width": 11959,
+        "height": 12961
+      },
+      "imageService": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif",
+      "deliveryServiceUrl": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif",
+      "imageVersion": "2",
+      "level": 1,
+      "bindingKeys": [
+        "title",
+        "attr",
+        "license"
+      ],
+      "metadataCount": 2,
+      "firstMetadata": {
+        "from": "manifest",
+        "label": "タイトル（名称）",
+        "value": "〔地図〕最上時代山形城下絵図"
+      },
+      "license": "Custom",
+      "verdict": {
+        "kind": "deliverable"
+      }
+    }
   }
 ]

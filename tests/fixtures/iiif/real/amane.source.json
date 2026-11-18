@@ -1,0 +1,33 @@
+{
+  "provider": "山形大学附属博物館（山形アーカイブ・AMANE Archives）",
+  "retrievedOn": "2026-11-11",
+  "manifestUrl": "https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json",
+  "manifestFinalUrl": "https://ourarchives.amane-project.jp/iiif/img/yamagata/maps_org/manifest/001-002-00001.json",
+  "infoUrl": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/info.json",
+  "infoFinalUrl": "https://ourarchives.amane-project.jp/iipsrv/iipsrv.fcgi?IIIF=/img/yamagata/maps_org/tif/001-002-00001a.tif/info.json",
+  "infoRequestHeaders": {
+    "origin": "https://example.org",
+    "accept": "application/json, application/ld+json, image/*;q=0.9, */*;q=0.1"
+  },
+  "infoResponseHeaders": {
+    "access-control-allow-origin": "*",
+    "content-type": "application/ld+json;profile=\"http://iiif.io/api/image/2/context.json\""
+  },
+  "terms": "山形大学附属博物館の二次利用の申し合わせは、画像・テキスト等のあらゆるコンテンツについて、出典の明記・加工の明示・Web 公開時の利用報告・営利目的の事前許可を求める。原文の転載を避け、Manifest は文章を含む行を除いた抜粋（加工あり）、info.json は画像の技術情報のみ。画像は保存しない。",
+  "termsUrl": "https://www.lib.yamagata-u.ac.jp/museum/copyright.htm",
+  "attribution": "山形大学附属博物館所蔵。山形大学附属博物館制作「山形アーカイブ」の Manifest より抜粋（加工あり）。",
+  "modifications": "Manifest から thumbnail・metadata の「備考」の行（解説の文章）を除き、2 字下げで整形して保存。残した項目の値は原文のまま。info.json は取得した本文をそのまま保存。",
+  "excerpt": {
+    "manifest": [
+      "thumbnail",
+      "metadata の「備考」の行（解説の文章）"
+    ]
+  },
+  "originalSha256": {
+    "manifest": "f8b7e8a4cdd39b6e4291c5db434f4ff2904439b0ff7ddfd843a705bd57f60e10"
+  },
+  "sha256": {
+    "manifest": "2cd65957072578254abcc1dc5053ea86c95d2d2e083534b5ef076612a910159c",
+    "info": "840c37922d963f18fa3154f982aa7f396f33a03f57421a3adb52c0ce32ceb3cf"
+  }
+}

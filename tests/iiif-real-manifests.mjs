@@ -79,6 +79,7 @@ for (const { id, synthetic, expected: e } of cases) {
     const copy = copyIiifMetadata(manifest, canvas.id, e.lang, options);
     assert.equal(copy.ok, true);
     assert.deepEqual(copy.values.title, e.titleValue);
+    assert.notDeepEqual(copy.values.title, e.canvasLabel);
     assert.deepEqual(copy.copiedValues.title, { [e.lang]: e.title });
     assert.deepEqual(Object.keys(copy.bindings).sort(), [...e.bindingKeys].sort());
     assert.equal(copy.values.license, e.license ?? undefined);
@@ -205,6 +206,42 @@ test('自作の再現 fixture: page 1・仮の 6000×6000 の canvas と info.js
   assert.equal(entry.synthetic, true);
   assert.equal(source.synthetic, true);
   assert.ok(readFileSync(path.join(directory, 'README.md'), 'utf8').includes('synthetic-p2-page1'));
+  // 題名の既定は Manifest の label で、canvas の page 1 にならない。
+  const listed = listIiifCanvases(manifest);
+  assert.equal(listed.ok, true);
+  assert.equal(listed.canvases.length, 1);
+  assert.equal(listed.canvases[0].label, 'page 1');
+  const copy = copyIiifMetadata(manifest, e.canvasId, 'ja', options);
+  assert.equal(copy.ok, true);
+  assert.equal(copy.values.title, e.title);
+  assert.notEqual(copy.values.title, 'page 1');
+  // 大きさは info.json の値で判定し、canvas の 6000×6000 と照合すると不一致。
+  assert.deepEqual({ width: listed.canvases[0].width, height: listed.canvases[0].height }, { width: 6000, height: 6000 });
+  const facts = {
+    requestedUrl: source.infoUrl,
+    finalUrl: source.infoFinalUrl,
+    accessControlAllowOrigin: source.infoResponseHeaders['access-control-allow-origin'],
+    infoJson: info,
+  };
+  const verdict = verdictOf({ facts });
+  assert.equal(verdict.kind, 'deliverable');
+  assert.deepEqual({ width: verdict.info.width, height: verdict.info.height }, { width: 11959, height: 12961 });
+  assert.deepEqual(verdictOf({ facts, expected: { width: 6000, height: 6000 } }), {
+    kind: 'metadata-only', reason: 'size-mismatch', message: 'iiif_import.reason.size-mismatch',
+  });
+});
+
+test('山形 amane: canvas の label が page 1 で仮の 6000×6000（実在・抜粋）', () => {
+  const entry = cases.find(item => item.id === 'amane');
+  const e = entry.expected;
+  const manifest = read('amane.manifest.json');
+  const info = read('amane.info.json');
+  const source = read('amane.source.json');
+  // 抜粋であることを cases.json と source.json に記録する。
+  assert.ok(source.excerpt);
+  assert.ok(source.excerpt.manifest.length > 0);
+  assert.match(source.originalSha256.manifest, /^[0-9a-f]{64}$/);
+  assert.ok(readFileSync(path.join(directory, 'README.md'), 'utf8').includes('amane'));
   // 題名の既定は Manifest の label で、canvas の page 1 にならない。
   const listed = listIiifCanvases(manifest);
   assert.equal(listed.ok, true);
