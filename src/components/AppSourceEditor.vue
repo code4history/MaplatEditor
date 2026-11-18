@@ -58,7 +58,7 @@ import {
   round6,
   type CoordField,
 } from "../utils/envelopeCoordInput";
-import { isProviderKind, resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
+import { baseMapProviderKindOf, resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
 import { lacksRequiredAttribution } from "../utils/attributionRequirement";
 import type { LangResource } from "../utils/langResource";
 
@@ -193,8 +193,11 @@ const attributionMissing = computed(() => {
   return lacksRequiredAttribution(master.value);
 });
 
+// kind を持たない古い保存形の Google（maptype が google_*）も provider とみなすため、
+// 判定は baseMapProviderKindOf に寄せる（kind だけを見ると組み込み・tms と同じ扱いになる）
 const showNoCache = computed(() =>
-  props.source.sourceType === "maplat" || (!masterMissing.value && !isProviderKind(master.value.kind)),
+  props.source.sourceType === "maplat" ||
+  (!masterMissing.value && baseMapProviderKindOf(master.value) === null),
 );
 // IIIF のまま配る地図は、Viewer がもともとオフライン表示（キャッシュ）の対象にしない（MaplatCore は
 // delivery が iiifImage の地図を Weiwudi へ登録しない）。外す意味が無いので押せなくし、理由を ? に出す。

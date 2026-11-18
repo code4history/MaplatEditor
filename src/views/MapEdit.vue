@@ -3256,7 +3256,7 @@ const exchangeTileSource = async (): Promise<any> => {
     try {
         const source = await mapSourceFactory(options, {});
         // ui-map-overlay-proposal §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
-        // （innerHTML で描かれるので escape する。applyIllstAttribution の注記）
+        // （innerHTML で描かれるので textAttributions でサニタイズする）
         source.setAttributions?.(illstAttributions());
         illstSource = source;
         illstMap.exchangeSource(source);
@@ -3616,8 +3616,8 @@ const setSwitchableBaseMaps = (allowed: 'all' | 'none' | { exclude: string }) =>
 };
 
 // 帰属表示とベースマップの名前を、地図の著作権表示の欄の書き換えと言語の切り替えに追随させる。
-// OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描かれる。著作権表示・ベースマップの
-// 名前は利用者の入力・取り込んだデータから来るので、HTML としては解釈させず escape して文字で出す。
+// OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描かれる。帰属表示は Core の
+// 許可表で安全な HTML にし、ベースマップ名は escape して文字で出す。
 const illstAttributions = (): string[] =>
     textAttributions(localizeTitle(mapData.value.attr, currentLang.value));
 
@@ -3998,7 +3998,7 @@ const setupBaseMaps = async () => {
         // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
         // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
         // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）。
-        // 帰属表示は innerHTML で描かれるので escape して渡す。
+        // 帰属表示は innerHTML で描かれるので Core の許可表でサニタイズして渡す。
         // Google の源には載せない: ol/source/Google は session の後に帰属（利用条件で必須）を
         // 自分で設定するため、ここで上書きするとそれが消え得る
         if (!(source instanceof GoogleSource)) {
