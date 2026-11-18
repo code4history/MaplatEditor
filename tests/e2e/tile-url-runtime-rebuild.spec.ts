@@ -224,7 +224,7 @@ test.describe('編集済みタイルURLのランタイムタイル源再構築',
       expect((await mapUrlPair(page)).url_).toBe(EXT_URL);
 
       // case 15b: もう一度 Undo してから同じ値を再入力する。
-      // v1.0 の「入力欄の直前値」設計ではここで早期 return し、url=EXT_URL / url_=ローカル
+      // 「入力欄の直前値」設計ではここで早期 return し、url=EXT_URL / url_=ローカル
       // という不整合になった（本タスクが直すはずの症状そのもの）。
       await waitHistoryQuiet(page);
       await pressUndo(page);

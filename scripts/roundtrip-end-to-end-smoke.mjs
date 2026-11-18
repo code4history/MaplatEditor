@@ -295,7 +295,7 @@ try {
     assert.ok(zip3Names.includes('tmbs/' + copySlug + '_512.webp'), 'Step6: 512px サムネイルが出ること');
     assert.ok(zip3Names.some((n: string) => n.startsWith('tiles/' + copySlug + '/')), 'Step6: タイルが出ること');
 
-    // 参照と実体の整合（case 5 Part B と同じ一般形の不変条件を再搬出でも張る）
+    // 参照と実体の整合（一般形の不変条件を再搬出でも張る）
     const map3 = JSON.parse(zip3.getEntry('maps/' + copySlug + '.json').getData().toString('utf8'));
     const referenced: string[] = [];
     for (const entry of map3.pois ?? []) {

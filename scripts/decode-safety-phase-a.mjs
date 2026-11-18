@@ -183,7 +183,7 @@ await writeFile(
       assert.equal(safety.maxDecoderHeapMB, Math.floor(safety.heapSizeLimitMB * 0.75 - 128));
     });
 
-    // ---- case 6: 期待値を式から導出する（機体依存 assert を書かない・v1.1 Minor3）
+    // ---- case 6: 期待値を式から導出する（機体依存 assert を書かない）
     // 最悪ケース 4:4:4 は 1 画素あたり 3/64 ブロック。1 ブロック 120 B。
     const derivedMaxMP = (safety.maxDecoderHeapMB * 1024 * 1024 / 120) * 64 / 3 / 1e6;
     check('case 6-a maxResolutionMP が maxDecoderHeapMB から式で導出された値と一致する', () => {

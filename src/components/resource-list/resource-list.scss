@@ -31,7 +31,7 @@
   min-height: 0;
 }
 
-/* v2.0: 行コンテナ共通クラス。全 Master 行（selector / master-detail / 管理一覧）の唯一の間隔正本。
+/* 行コンテナ共通クラス。全 Master 行（selector / master-detail / 管理一覧）の唯一の間隔正本。
    各画面の scoped CSS で gap を個別定義することは禁止（C1 対応）。 */
 .resource-list__rows {
   display: flex;
@@ -67,7 +67,7 @@
   min-width: 10rem;
 }
 
-/* item surface: 行表面の唯一の正本（v2.0）。
+/* item surface: 行表面の唯一の正本。
    background #fff / border 1px / radius 4px / padding 0.5rem 1rem / gap で分離
    hover は薄い背景変化、selected は #0d6efd 枠 + 青淡背景。
    ResourceMasterRow の scoped CSS は全廃し、この global 正本のみで描画する（C1 対応）。

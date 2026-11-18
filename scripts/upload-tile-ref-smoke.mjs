@@ -3,10 +3,10 @@
 // MapEditService.save() の tmpCheck 分岐が返す MapSaveResult.url を behavioral に検証する。
 // シナリオ:
 //   Part A: MapSaveResult 型定義 (StorageAdapter.ts / src/electron.d.ts) に url?: string が
-//           同期して追加されていること (設計レビュー v1 Major1 の恒久回帰防止)
+//           同期して追加されていること (恒久回帰防止)
 //   Part B: tmpCheck 分岐 (新規原本アップロード) は恒久タイルURLを url として返し、
 //           {z}/{x}/{y}.ext サフィックスが保持される (case 2/case 3 の main process 側根拠)
-//   Part C: 置換文字列 $ 特殊シーケンスハザード回帰 (設計レビュー v2 Minor1) —
+//   Part C: 置換文字列 $ 特殊シーケンスハザード回帰 —
 //           saveFolder パスに $& が含まれても恒久 URL が破損しない
 //   Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (case 1 無回帰)
 //   Part E: clone は url を含むようになった  — 複製先タイルパスを指す恒久URLを返す
@@ -191,7 +191,7 @@ try {
       }
 
       // ============================================================
-      // Part C: 置換文字列 $ 特殊シーケンスハザード回帰 (設計レビュー v2 Minor1)
+      // Part C: 置換文字列 $ 特殊シーケンスハザード回帰
       // ============================================================
       {
         // workDir 自体が '$&' を含む (スクリプト冒頭で意図的に混入済み)。

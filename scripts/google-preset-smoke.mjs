@@ -226,7 +226,7 @@ try {
     await assertDimensions(icon, 52, `google_${suffix}.png (52px)`);
   }
 
-  // ---- case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
+  // ---- 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
   for (const suffix of ["roadmap", "satellite", "hybrid", "terrain"]) {
     const icon512 = path.join(projectRoot, "public/basemap_icons_512", `google_${suffix}.webp`);
     const stat512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));

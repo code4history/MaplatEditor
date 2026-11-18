@@ -117,7 +117,7 @@ test('maplibre マスタ保存 → プレビュー HTML へ maplibre-gl CDN が�
     // mapbox 行の既定サムネイルが実描画される
     await assertRowThumbnailRendered(page, 'e2e-fx-mapbox-thumb');
 
-    // 保存データに maptype/style が載っている（case 2 の永続化側）
+    // 保存データに maptype/style が載っている（永続化側）
     const master = await page.evaluate(async () => {
       const list = await (window as any).baseMaps.list();
       const items = Array.isArray(list) ? list : list?.items || list?.result || [];
@@ -196,7 +196,7 @@ test('maplibre マスタ保存 → プレビュー HTML へ maplibre-gl CDN が�
   }
 });
 
-// case 12（v1.3）: provider 3種別は MapEdit 背景選択の左右両ペインに表示されない
+// provider 3種別は MapEdit 背景選択の左右両ペインに表示されない
 // （loadBaseMapVisibility の単一投入点で除外。人間判断 2026-08-05「選択肢に非表示」）
 test('provider マスタは MapEdit 背景選択の両ペインに表示されない', async () => {
   test.setTimeout(240_000);

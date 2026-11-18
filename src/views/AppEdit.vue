@@ -600,7 +600,7 @@ onMounted(async () => {
       appCoverageAuto.refresh();
     }
   } else {
-    // duplicateFrom がある場合は元アプリから内容を複製（設計v3.1 案A: エディタ側ロード）。
+    // duplicateFrom がある場合は元アプリから内容を複製（エディタ側ロード）。
     // 複製浄化: normalizeAppDocument は uid/revision を写さない。slug(appID) は予約値で上書き
     const dupFrom = typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : "";
     if (dupFrom) {
@@ -1072,7 +1072,7 @@ async function saveApp(): Promise<boolean> {
     return false;
   }
   // pois は配列のまま永続化する（正準形式でない場合は生値をそのまま温存する。
-  // 旧 Editor 内部表現は型からも撤去済み — v1.2）
+  // 旧 Editor 内部表現は型からも撤去済み）
   const document = cloneDocument(appData.value);
   // sources参照はuid (maplat)なので startFrom もuidで永続化する
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
@@ -1359,7 +1359,7 @@ function sourceIdLabel(source: AppSource): string {
   return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
-// v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// selector 左ペインの行を ResourceMasterRow へ統一。
 // added 判定（追加済み=青=selected=true）・disabledReason（previewDisabled 理由表示）・
 // スラッグ重複除去（metadata から mapID を除外、slug 行が表示するため）を反映。
 function isMapSourceAdded(uid: string): boolean {

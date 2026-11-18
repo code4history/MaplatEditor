@@ -158,7 +158,7 @@ try {
   console.log('[5/7] setupBaseMaps 末尾の切替制限復元 OK');
 
   // ---------------------------------------------------------------- [6/7]
-  // case 4 / case 23: 保持値は編集環境ストア以外へ書かない（2026-08-21 改訂・人間の判断で永続化に変わった。
+  // case 4: 保持値は編集環境ストア以外へ書かない（2026-08-21 改訂・人間の判断で永続化に変わった。
   // 永続化は map_base_map_shift（編集環境ストア）だけが担い、地図文書（Save 対象）・
   // BaseMapEditDocument・MapEditHistoryState（undo）には増えていないことを検査する
   {
@@ -167,13 +167,13 @@ try {
       'case 4: BaseMapEditDocument にシフトフィールドが増えている（C-3 違反）');
     assert.equal(countOf(baseMapDoc, 'baseMapShifts'), 0,
       'case 4: BaseMapEditDocument が保持値に触れている（C-3 違反）');
-    // MapEditHistoryState 型ブロック（case 23: undo 対象へ足さない）
+    // MapEditHistoryState 型ブロック（undo 対象へ足さない）
     const typeStart = mapEdit.indexOf('type MapEditHistoryState');
     assert.ok(typeStart >= 0, 'MapEditHistoryState 型が見つからない');
     const typeBody = mapEdit.slice(typeStart, mapEdit.indexOf('};', typeStart));
     for (const forbidden of ['baseMapShifts', 'alignPhase', 'alignTarget', 'alignReference', 'alignGroundTruth']) {
       assert.equal(countOf(typeBody, forbidden), 0,
-        `case 23: MapEditHistoryState に位置合わせ状態 ${forbidden} が増えている`);
+        `MapEditHistoryState に位置合わせ状態 ${forbidden} が増えている`);
     }
     // 保存経路（mapedit.save の payload 組み立て）に保持値が乗っていない
     assert.equal(countOf(mapEdit, 'baseMapShifts') > 0, true, 'baseMapShifts が実装されていない');
@@ -184,7 +184,7 @@ try {
         'case 4: 保存呼び出しの近傍に baseMapShifts が現れる（地図文書への書込の疑い）');
     }
   }
-  console.log('[6/7] case 4/case 23: 編集環境ストア以外へ書かない・undo 非対象の静的確認 OK');
+  console.log('[6/7] case 4: 編集環境ストア以外へ書かない・undo 非対象の静的確認 OK');
 
   // ---------------------------------------------------------------- [7/7]
   // case 18: i18n 9 キー × 11 言語・空値なし・末尾改行・appedit との文言一致

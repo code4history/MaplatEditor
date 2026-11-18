@@ -518,7 +518,7 @@ try {
     console.log('ok: 差分保持形の廃止キー濾過');
   }
 
-  // ============ case 28（v1.4・IR-H-2）: 操作子種別がマスタ編集フォームと一致し、共通部品の既定値が変わらない ============
+  // ============ 操作子の種別がマスタ編集フォームと一致すること: 共通部品の既定値が変わらない ============
   {
     const appSourceEditor = await read('src/components/AppSourceEditor.vue');
     const baseMapEdit = await read('src/components/basemap/BaseMapEdit.vue');
@@ -528,43 +528,43 @@ try {
     // (a) 言語別6欄は LangResourceInput（マスタ編集フォームと同じ部品）で描く
     assert.match(
       appSourceEditor, /import LangResourceInput from/,
-      'case 28: 言語別欄はマスタ編集フォームと同じ LangResourceInput を使う',
+      '操作子の種別がマスタ編集フォームと一致すること: 言語別欄はマスタ編集フォームと同じ LangResourceInput を使う',
     );
     // 手書き input + LangValueChips の組が残っていないこと（共通実装へ寄せた証明）
     assert.doesNotMatch(
       appSourceEditor, /<LangValueChips/,
-      'case 28: LangValueChips の直接使用は LangResourceInput の内部へ移る',
+      '操作子の種別がマスタ編集フォームと一致すること: LangValueChips の直接使用は LangResourceInput の内部へ移る',
     );
 
     // (b) ライセンス2欄（LicenseSelect）は AppSourceEditor から撤去した。
     //     マスタ編集フォーム（BaseMapEdit）側の LicenseSelect は無改修で生き続ける
-    assert.match(baseMapEdit, /import LicenseSelect from/, 'case 28(前提): マスタ編集フォームは LicenseSelect を使い続ける');
+    assert.match(baseMapEdit, /import LicenseSelect from/, '操作子の種別がマスタ編集フォームと一致すること（前提）: マスタ編集フォームは LicenseSelect を使い続ける');
 
     // (c) 共通部品の追加 prop は**既定値が現行挙動と同一**（BaseMapEdit を無改修に保つ前提）
-    assert.match(langInput, /clearable\?: boolean/, 'case 28: LangResourceInput に clearable prop');
-    assert.match(langInput, /placeholder\?: string/, 'case 28: LangResourceInput に placeholder prop');
-    assert.match(langInput, /clearable: false/, 'case 28: clearable の既定は false（BaseMapEdit は type=text のまま）');
-    assert.match(licenseSelect, /unsetLabelKey\?: string/, 'case 28: LicenseSelect に unsetLabelKey prop');
+    assert.match(langInput, /clearable\?: boolean/, '操作子の種別がマスタ編集フォームと一致すること: LangResourceInput に clearable prop');
+    assert.match(langInput, /placeholder\?: string/, '操作子の種別がマスタ編集フォームと一致すること: LangResourceInput に placeholder prop');
+    assert.match(langInput, /clearable: false/, '操作子の種別がマスタ編集フォームと一致すること: clearable の既定は false（BaseMapEdit は type=text のまま）');
+    assert.match(licenseSelect, /unsetLabelKey\?: string/, '操作子の種別がマスタ編集フォームと一致すること: LicenseSelect に unsetLabelKey prop');
     assert.match(
       licenseSelect, /unsetLabelKey: "mapedit\.license_unset"/,
-      'case 28: unsetLabelKey の既定は現行のハードコード値と同一（MapEdit/BaseMapEdit の表示を変えない）',
+      '操作子の種別がマスタ編集フォームと一致すること: unsetLabelKey の既定は現行のハードコード値と同一（MapEdit/BaseMapEdit の表示を変えない）',
     );
     // BaseMapEdit は無改修＝新 prop を1つも渡していない
     for (const prop of ['clearable', 'unset-label-key', 'unsetLabelKey']) {
       assert.equal(
         baseMapEdit.includes(prop), false,
-        `case 28: BaseMapEdit は無改修（${prop} を渡していない）`,
+        `操作子の種別がマスタ編集フォームと一致すること: BaseMapEdit は無改修（${prop} を渡していない）`,
       );
     }
-    console.log('ok: case 28 操作子種別の一致と共通部品の既定値互換');
+    console.log('ok: 操作子の種別がマスタ編集フォームと一致すること（共通部品の既定値互換）');
   }
 
   // ============ case 7: 操作子と定数の一致（明示アンカーで機械照合）============
   {
     const editorSrc = await readFile(path.join(projectRoot, 'src/components/AppSourceEditor.vue'), 'utf8');
-    // アンカーは**ソーステキストのリテラル**を要求する（動的バインドだと照合から漏れる。
-    // 設計レビュー round4 Info 1）。LangResourceInput へは input-testid prop で素通しするため、
-    // v1.4 で input-testid も同じリテラル形として受け付ける。
+    // アンカーは**ソーステキストのリテラル**を要求する（動的バインドだと照合から漏れる）。
+    // LangResourceInput へは input-testid prop で素通しするため、
+    // input-testid も同じリテラル形として受け付ける。
     const anchors = new Set(
       [...editorSrc.matchAll(/(?:data|input)-testid="app-source-override-([a-zA-Z]+)"/g)].map((m) => m[1]),
     );

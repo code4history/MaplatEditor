@@ -131,7 +131,7 @@ test('正式版だけを拾い・壊れた zip を拒み・古い版では更新
   const feedJson = JSON.stringify({ provider: 'github', owner: OWNER, repo: REPO, host: `127.0.0.1:${feed.port}`, protocol: 'http' });
   const app = await launch(root, feedJson);
   try {
-    // 実 main の autoUpdater の設定（case 1 を実物でも確かめる）
+    // 実 main の autoUpdater の設定（設定値そのものを確かめる）
     const settings = await hook.inspect(app);
     expect(settings).toEqual({
       autoDownload: false, autoInstallOnAppQuit: false, allowPrerelease: false, allowDowngrade: false,

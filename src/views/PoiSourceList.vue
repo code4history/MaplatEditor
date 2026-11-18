@@ -190,7 +190,7 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   }
 }
 
-// --- Duplicate（遅延作成・設計v1.2）: reserveCopySlug で採番・予約した slug/uid で
+// --- Duplicate（遅延作成）: reserveCopySlug で採番・予約した slug/uid で
 // エディタの未作成モードを開き、内容複製と作成はエディタ側が担う（Map/App と同じ文法）。
 // 保存まで行は増えない。remote元もローカル複製になる ---
 async function duplicateByVm(vm: ResourceListItemViewModel): Promise<void> {

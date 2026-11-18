@@ -434,7 +434,7 @@ const builtinThumbnails: Record<string, string> = {
     gsi_ortho: gsiOrthoThumb,
 };
 
-// v2.0: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
+// selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
 // 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
 // adapter の bbox 絞り込みに使う。UI は ResourceRangeFilterButton へ一本化（spatial-toggle は #range-filter slot で排他）。
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -459,16 +459,16 @@ const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     activeLang: () => mapData.value.lang || 'ja',
 });
 
-// v2.0: 右ペイン（選択済み）= enabled なベースマップ一覧
+// 右ペイン（選択済み）= enabled なベースマップ一覧
 const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
 
-// v2.0: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
+// 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
 // builtin の同梱リソースは builtinThumbnails で確実に解決（AppEdit.vue:1042-1044 と同形式）
 function baseMapThumbnail(item: BaseMapVisibilityItem): string {
     return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
 }
 
-// v2.0: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
+// 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
 function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     return resolveBaseMapSelectorText(
         { mapID: item.mapID, ...(item.data || {}) },
@@ -520,7 +520,7 @@ async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean):
     }
 }
 
-// v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
+// baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
 // :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
 // ※ 楽観更新中（item.enabled 変更のみ）は配列参照が不変のため watch は発火せず、in-place で更新される。
 //   初回 IPC 読込完了時のみ配列参照が差し替わり watch が発火。
@@ -530,9 +530,9 @@ watch(() => baseMapVisibilityList.value, () => {
     void baseMapSelectorListRef.value?.reload();
 }, { deep: false });
 
-// v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
+// ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
-// v1.3: provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
+// provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
 // ここでの個別 disabled 制御は持たない
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
@@ -3491,7 +3491,7 @@ const loadBaseMapVisibility = async () => {
     baseMapVisibilityError.value = '';
     try {
         const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(baseMapVisibilityMapRef());
-        // v1.3: provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
+        // provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
         // 単一投入点で除外する（人間判断 2026-08-05「選択肢に非表示」）。
         // 左右両ペイン（adapter / enabledBaseMaps）と背景レイヤ生成（enabledBaseMapData）の
         // 3消費者すべてにここで効かせる。adapter 側には置かない（二重適用防止）
@@ -4658,7 +4658,7 @@ const downloadSavedMap = async (): Promise<boolean> => {
         }
         return false;
     } catch (e) {
-        // 防御的catch(v1.2追加: t1 review v2 Minor2対応)。
+        // 防御的catch。
         // MapPurposeService.downloadSavedMap()は契約上reject しないが、
         // ipcRenderer.invoke('mapedit:download-saved', ...)自体はIPC基盤レベル
         // (HMRによるhandler未登録の隙間等)で reject し得るため、その場合に

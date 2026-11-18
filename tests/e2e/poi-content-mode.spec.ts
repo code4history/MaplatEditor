@@ -95,7 +95,7 @@ test.describe('POI Content Mode', () => {
       await confirmation.answer(0);
       await expect(standardTab).toHaveClass(/active/);
 
-      // case 8: undo returns to previous mode
+      // undo returns to previous mode
       await page.locator('[data-editor-action="undo"]').click();
       await expect(htmlTab).toHaveClass(/active/);
 
@@ -105,7 +105,7 @@ test.describe('POI Content Mode', () => {
       await expect(urlTab).toHaveClass(/active/);
       await expect(page.locator('label:has-text("画像")')).toHaveCount(0);
 
-      // case 15(表示層): javascript: URL のライブエラーが i18n 文言で表示される
+      // javascript: URL のライブエラーが i18n 文言で表示される
       // (人間検証Round1: 生コード "content-mode-url-format" が表示されていた回帰防止)
       const urlInput = page.locator('label:has-text("URL") + div input').first();
       await urlInput.fill('javascript:alert(1)');
@@ -113,7 +113,7 @@ test.describe('POI Content Mode', () => {
       await expect(page.getByText(/URLに http\/https 以外のプロトコル/)).toBeVisible({ timeout: 5000 });
       await expect(page.getByText('content-mode-url-format')).toHaveCount(0);
 
-      console.log('  case 1-case 8+case 16: PASS');
+      console.log('  case 1-case 7+case 16: PASS');
     } finally {
       await quitElectronApplication(app);
     }

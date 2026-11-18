@@ -145,7 +145,7 @@ export const normalizeGoogleMaptype = (
   return GOOGLE_MAPTYPES.includes(value as GoogleMapType) ? (value as GoogleMapType) : null;
 };
 
-// v1.3: provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
+// provider 種別の原子述語（google/mapbox/maplibre）。MapEdit 背景除外・
 // appSourceModel の maptype 判定など、同一扱いは本述語へ一元化する（恒久指示）
 export const PROVIDER_BASE_MAP_KINDS = ["google", "mapbox", "maplibre"] as const;
 export function isProviderKind(value: unknown): boolean {
@@ -161,7 +161,7 @@ export function requiresProviderKey(value: unknown): boolean {
   return (PROVIDER_KEY_REQUIRED_KINDS as readonly unknown[]).includes(value);
 }
 
-// v1.3: MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
+// MapEdit 背景選択から除外する判定。kind（editor 軸）を優先し、
 // 欠落時は maptype（viewer 軸）を見る（旧保存形の保険）
 export function isProviderBaseMapData(
   data: { kind?: unknown; maptype?: unknown } | null | undefined,

@@ -138,7 +138,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeDisabled();
 
-      console.log('  case 1: PASS');
+      console.log('  新規の derive52 強制 ON: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -175,7 +175,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 二重派生が起きていない
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
-      console.log('  case 2: PASS');
+      console.log('  512px 置換: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -205,7 +205,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 52px 置換は 512px を触らない（地図側と同挙動）
       expect(await exists(path.join(saveFolder, 'tmbs', `${uid}_512_512.webp`))).toBe(false);
 
-      console.log('  case 3: PASS');
+      console.log('  52px 置換: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -278,7 +278,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       expect(await exists(path.join(saveFolder, 'tmbs', `${slug}.png`))).toBe(false);
       expect(await readBaseMapThumbnail(page, uid)).toBe(`tmbs/${uid}.png`);
 
-      console.log('  case 4: PASS');
+      console.log('  保存で 512px も uid 名へ: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -333,7 +333,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       // 52px の実体も uid 名で解決できる ⇒ 強制 ON に落ちない
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeEnabled({ timeout: 15000 });
 
-      console.log('  case 8: PASS');
+      console.log('  512px プレビューと derive52: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -362,7 +362,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-replace-512')).toBeDisabled();
       await expect(page.getByTestId('basemap-thumbnail-replace-52')).toBeDisabled();
 
-      console.log('  case 5: PASS');
+      console.log('  placeholder と derive52 強制 ON: PASS');
     } finally {
       await quitElectronApplication(app);
     }

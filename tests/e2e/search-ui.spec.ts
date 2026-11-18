@@ -140,7 +140,7 @@ test('WGS84 search adapters and selector contexts share FTS, bbox, remount, and 
     await page.evaluate((uid) => { location.hash = `#/mapedit?uid=${uid}`; }, seeded.mapUid);
     await expect(page.getByTestId('map-tab-pois')).toBeVisible();
     await page.getByTestId('map-tab-pois').click();
-    // v2.0: MapEdit POI 選択は #range-filter slot で ResourceRangeFilterButton を使用（spatial-toggle は非表示）
+    // MapEdit POI 選択は #range-filter slot で ResourceRangeFilterButton を使用（spatial-toggle は非表示）
     await expect(page.locator('.resource-selector-list:visible .resource-range-filter-button')).toBeVisible();
     await page.getByRole('tab').first().click();
     await page.getByTestId('map-tab-pois').click();

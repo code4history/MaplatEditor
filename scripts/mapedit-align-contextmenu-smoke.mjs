@@ -32,7 +32,7 @@ try {
   const ctxGrids = await read('src/libs/ol-contextmenu/sass/partials/_grids.scss');
 
   // ---------------------------------------------------------------- [1/6]
-  // case 1 / case 3: 折り返しと上限幅の是正は共有ライブラリ側にある
+  // case 3: 折り返しと上限幅の是正は共有ライブラリ側にある
   assert.doesNotMatch(
     ctxGrids,
     /white-space:\s*nowrap/,
@@ -101,7 +101,7 @@ try {
       `${name} に white-space の指定がある（case 3: 折り返しは共有ライブラリ側で行う）`,
     );
   }
-  console.log('  [1/6] case 1/case 3 共有ライブラリ側の折り返し・上限幅: PASS');
+  console.log('  [1/6] case 3 共有ライブラリ側の折り返し・上限幅: PASS');
 
   // ---------------------------------------------------------------- [2/6]
   // case 4: フィーチャ命中分岐の相判定順が F1 → F2 → F0

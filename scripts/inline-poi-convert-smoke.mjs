@@ -490,7 +490,7 @@ try {
       }
       console.log('smoke Part G (未対応形式時温存 case 6-9): OK');
 
-      // ---- Part I: poisLayerStructure — 完全分割表のテスト機械導出 (v1.3) ----
+      // ---- Part I: poisLayerStructure — 完全分割表のテスト機械導出 ----
       {
         const { poisEntryShape, poisLayerMode, hasMixedPoisShapes, hasPoisLayerKey } =
           await import(${JSON.stringify(poisLayerStructurePath)});
@@ -699,7 +699,7 @@ try {
       ['poiref', 'convert_too_large'],
       ['poiref', 'add_blocked_note'],
       ['poiref', 'delete_external_body'],
-      // v1.2/v1.3 (G3): バッジ/注記2種化 + レイヤ警告の新規 7 キー
+      // バッジ/注記2種化 + レイヤ警告の新規 7 キー
       ['poiref', 'inline_data'],
       ['poiref', 'external_url'],
       ['poiref', 'inline_note'],
@@ -712,7 +712,7 @@ try {
       // poi_heal_failed → poi_format_unsupported へ改名（意味も「復元失敗」→「正準形式でない」へ変更）
       ['appedit', 'poi_format_unsupported'],
     ];
-    // v1.2 (G3): 旧キーは 11 locale から削除済みであること (旧契約の残置禁止)
+    // 旧キーは 11 locale から削除済みであること (旧契約の残置禁止)
     // poi_heal_failed も同様に旧契約として削除済みであること
     const REMOVED = [
       ['poiref', 'external_data'],

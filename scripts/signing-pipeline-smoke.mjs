@@ -855,7 +855,7 @@ const wf = yaml.load(wfText);
 {
   const v = checkBuildWorkflow(wf);
   assert.deepEqual(v, [], `case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
-  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は固定した版の PIN（case 4）');
+  assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は固定した版の PIN');
   // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
   {
     const pinLine = 'pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413';

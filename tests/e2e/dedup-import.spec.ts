@@ -1,7 +1,7 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 複製・削除action・Import統合 E2E Test
 // case 1/case 2/case 3/case 5/case 6/case 7/case 8/case 9/case 10/case 11/case 12 を実効検証する。
-// case 4(copyFromUidのタイル複製)・case 13/case 14(失敗経路)はコード検査+人間検証(設計v3.2)。
+// case 4(copyFromUidのタイル複製)・case 13/case 14(失敗経路)はコード検査+人間検証。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
@@ -605,7 +605,7 @@ test.describe('Dedup/Import', () => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
 
-      // case 16: slug 入力（予約成立）→ 空欄へ戻す → 同じ slug が即時 available
+      // slug 入力（予約成立）→ 空欄へ戻す → 同じ slug が即時 available
       await openHash(page, '#/poisources/new');
       await expect(page.getByTestId('poi-slug')).toBeVisible({ timeout: 15000 });
       await page.getByTestId('poi-slug').fill('t10b-revert');
@@ -619,9 +619,9 @@ test.describe('Dedup/Import', () => {
       await expect.poll(async () =>
         page.evaluate(async (slug) => window.slugReservations.check({ slug }), 't10b-revert'),
       { timeout: 15000 }).toBe('available');
-      console.log('  case 16: PASS');
+      console.log('  予約 slug の即時解放: PASS');
 
-      // case 15: 下書き復元状態から画面内破棄 → 下書きと予約が解放される
+      // 下書き復元状態から画面内破棄 → 下書きと予約が解放される
       await page.getByTestId('poi-slug').fill('t10b-discard');
       await page.getByTestId('poi-slug').press('Tab');
       const draftUid = await page.evaluate(() => new URLSearchParams(location.hash.split('?')[1] ?? '').get('draftUid'));
@@ -640,7 +640,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(async () =>
         page.evaluate(async (slug) => window.slugReservations.check({ slug }), 't10b-discard'),
       { timeout: 15000 }).toBe('available');
-      console.log('  case 15: PASS');
+      console.log('  画面内破棄で下書きと予約が解放される: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -719,7 +719,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
       await expect(page.locator('text=revision').or(page.locator('[data-diagnostic-scope="operation"]', { hasText: /conflict|競合/ }))).toHaveCount(0);
 
-      console.log('  case 17: PASS');
+      console.log('  保存後の追加編集と下書き復元: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -762,7 +762,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(async () => page.evaluate(async (uid) =>
         (await window.assetDrafts.get('poi', uid!)) != null, draftUid), { timeout: 15000 }).toBe(false);
 
-      console.log('  case 18: PASS');
+      console.log('  保存後の下書き残置なし: PASS');
     } finally {
       await quitElectronApplication(app);
     }
