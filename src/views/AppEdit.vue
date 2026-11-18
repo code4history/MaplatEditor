@@ -103,7 +103,7 @@ interface ManifestSettings {
 }
 
 interface AppDocument {
-  appID: string; // slug編集欄の値 (ADR-0007: 正本キーはappUid)
+  appID: string; // slug編集欄の値 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: 正本キーはappUid)
   appName: Record<string, string>;
   title: Record<string, string>;
   description: Record<string, string>;
@@ -117,11 +117,11 @@ interface AppDocument {
   httpSettings: HttpSettings;
   appSettings: AppRuntimeSettings;
   manifestSettings: ManifestSettings;
-  // POI データ (43 §2.4): {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
-  // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。editor 正準形は配列のみ (M12-T30)。
+  // POI データ: {poiUid, cachedTitle?, icon?, selectedIcon?} 参照要素と
+  // 生要素 (URL 文字列 / FC 埋め込み) の混在配列。editor 正準形は配列のみ。
   // acceptDocumentPois が形式判定と受け入れ (温存を含む) を行い、保存形は pois 配列のみ。
-  // M3-T6 §5.8: 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
-  // M4-T1: 表示用配列と read-only は共通 composable usePoisFormatGuard から取る (MapEdit と同一実装)
+  // 未対応形式時は生値 (非配列) を温存するため unknown へ広げる (黙って消えない原則)。
+  // 表示用配列と read-only は共通 composable usePoisFormatGuard から取る (MapEdit と同一実装)
   pois: unknown;
   startFrom?: string;
   status?: string;
@@ -131,7 +131,7 @@ interface AppDocument {
 }
 
 interface MapListItem {
-  uid: string; // Asset UID: sources参照の正本キー (ADR-0007)
+  uid: string; // Asset UID: sources参照の正本キー (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   mapID: string; // slug (表示用)
   title: string;
   image: string | null;
@@ -140,7 +140,7 @@ interface MapListItem {
 }
 
 interface BaseMapItem {
-  // m6-t8: 実行時には BaseMapCatalogItem 由来の値が既に渡ってきているが、型定義に uid が
+  // 実行時には BaseMapCatalogItem 由来の値が既に渡ってきているが、型定義に uid が
   // 欠落していたため実態に合わせる（既存の型不一致。実害なし・merc の baseMapUid 導出に必要）
   uid: string;
   mapID: string;
@@ -201,11 +201,11 @@ const defaultApp = (): AppDocument => ({
   coverageLngLats: null,
 });
 
-// m19-t4b (人間要望 2026-08-10): 【新規作成時のみ効く既定値】。
+// 【新規作成時のみ効く既定値】。
 //   defaultApp() は「新規アプリの初期値」と「読み込み時の欠落キー補完」(httpSettings は
 //   src/utils/appHttpSettings.ts の defaultAppHttpSettings() を両方が使う) の 2 つを兼ねている。∴ defaultApp() の値を
 //   変えると既存アプリ・取り込みアプリの解釈まで変わる (:182-183 の既存コメントが述べる不変条件。
-//   tests/e2e/m11-t3-editor-shell.spec.ts が httpSettings: {} で seed して依存している)。
+//   tests/e2e/editor-shell.spec.ts が httpSettings: {} で seed して依存している)。
 //   1.0.0 データスキーマは凍結済みであり、既存データの値も解釈も書き換えない。
 //   ∴ この表は「新規ドキュメントを組み立てる瞬間」にしか適用しない。
 //   新既定は 3 箇所へ散らさずこの 1 表へ集約し、適用も newAppDocument() 1 関数に閉じる
@@ -224,7 +224,7 @@ const newAppDocument = (): AppDocument => {
 
 const appData = ref<AppDocument>(newAppDocument());
 const originalAppData = ref<AppDocument>(newAppDocument());
-// m19-t4b: PWA に従属する UI の唯一の判定点。マニフェスト設定欄の表示 (v-if) と
+// PWA に従属する UI の唯一の判定点。マニフェスト設定欄の表示 (v-if) と
 //   キャッシュの可否 (:disabled) が同じ 1 つの式を見る (恒久指示: 同一扱いは共通実装へ寄せる)。
 const pwaEnabled = computed(() => appData.value.httpSettings.pwaManifest);
 // #85: 地図ごとの「オフライン表示から外す」が効くかの唯一の判定点。Viewer は PWA がオフなら
@@ -243,7 +243,7 @@ const currentLang = ref<LangCode>("ja");
 const selectEditorLanguage = (language: LangCode) => {
   currentLang.value = language;
 };
-// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 3)。
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // 以下の3値の正本は handle の ref に一本化する:
 //   uid(=appUid): 不変の正本キー。undefined = 未保存の新規アプリ
 //   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
@@ -256,7 +256,7 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   onStart: clearOperationNotice,
   send: async ({ uid, expectedRevision }) => {
     const { document } = pendingSave!;
-    // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ dispatch する
+    // 新規は事前採番 uid + create 明示合図(b)で create 経路へ dispatch する
     // (予約帰属 asset_uid と行 uid を一致させ promote を成立させる)
     const result = await window.appedit.save({
       document: JSON.parse(JSON.stringify(document)),
@@ -276,15 +276,15 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
     appSaveSucceeded = true;
     // uid/revision/confirmedSlug は composable が保存結果から反映済み。以下は画面固有処理
     appData.value = normalizeAppDocument({ ...pendingSave!.document, appID: result.slug });
-    // nov26-m6-t5 §4.3: 保存の入口で UUID 名へ寄せた画像の参照を画面の文書へ反映する。
-    // 反映しないと画面が旧名を持ち続け、次の保存のたびに新しい複製ができる（AC10 の 2 回保存）
+    // 保存の入口で UUID 名へ寄せた画像の参照を画面の文書へ反映する。
+    // 反映しないと画面が旧名を持ち続け、次の保存のたびに新しい複製ができる（2 回保存したとき）
     if (result.imageRefs?.splash) appData.value.appSettings.splash = result.imageRefs.splash;
     if (result.imageRefs?.iconSource) appData.value.manifestSettings.iconSource = result.imageRefs.iconSource;
     await hydrateSourceThumbnails();
     markHistorySaved();
     await draftLifecycle.markSaved();
-    // M12-T29: 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を
-    // 保存済み行の (uid, revision) へ再構成する（PoiEdit.vue m11-t10b と同パターン）。
+    // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、identity を
+    // 保存済み行の (uid, revision) へ再構成する（PoiEdit.vue と同パターン）。
     // これを怠ると旧 draftUid でドラフトが取り残され、正式データと同一 slug のドラフトが並ぶ。
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
@@ -314,11 +314,11 @@ const saveHandle = useRevisionedAssetSave<AppSaveResult>({
   },
 });
 const { uid: appUid, revision, confirmedSlug, performSave, saving } = saveHandle;
-// M11-T7: appID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne/appIDError の
+// appID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne/appIDError の
 // 手動一意性確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugFieldState = ref<SlugFieldState>("idle");
-// 新規アプリの事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
+// 新規アプリの事前採番 uid : draft キーと保存 create uid を兼ねる。既存 draftUid が
 // route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
 const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
   ? ""
@@ -326,7 +326,7 @@ const newAppUid = (typeof route.query.uid === "string" && route.query.uid)
 const saveOperationError = ref<string | null>(null);
 // 保存前バリデーション(MapEdit の saveError computed と同型、全エディタ統一 2026-07-16):
 // スラッグ未入力の間は保存ボタンを常時 disabled にする(形式・一意性は SlugField/バックエンドが担保)
-// M11-T10 (人間検証R4): アプリ名も必須。空のまま保存できると一覧のタイトルが slug 代用になる
+// アプリ名も必須。空のまま保存できると一覧のタイトルが slug 代用になる
 const appTitleMissing = computed(() => {
   const hasValue = (record: Record<string, string> | undefined) =>
     Object.values(record ?? {}).some((value) => value && value.trim());
@@ -338,10 +338,10 @@ const saveValidationError = computed<string | null>(() => {
   if (!id || !id.trim()) return t("appedit.no_appid");
   return null;
 });
-// pois がエディタ正準形式 (配列) でないかどうか (M12-T30: 復元ではなく形式判定)。
+// pois がエディタ正準形式 (配列) でないかどうか (復元ではなく形式判定)。
 // true のまま保存しても data_json の生値は温存されるが (黙って消えない原則)、
 // このタブでの編集は無効化され preview/export には反映されないため、POIデータタブに警告を出す。
-// M4-T1: 判定は MapEdit と共通の usePoisFormatGuard へ寄せた。computed なので
+// 判定は MapEdit と共通の usePoisFormatGuard へ寄せた。computed なので
 // 受け入れ関所を通らない履歴 undo/redo (performUndo/performRedo) でも実態に追随する
 const poisGuard = usePoisFormatGuard(() => appData.value);
 const { unsupported: poisUnsupported, pois: poisForEditor } = poisGuard;
@@ -352,7 +352,7 @@ const previewUrl = ref("");
 const historyStack = ref<UndoStack<AppDocument> | null>(null);
 const historyApplying = ref(false);
 
-// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug(appID) 代用はしない(M11-T10)
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug(appID) 代用はしない
 const displayTitle = computed(() => localized(appData.value.title) || localized(appData.value.appName));
 const translationMode = computed(() =>
   isTranslationMode(currentLang.value, appData.value.lang),
@@ -375,7 +375,7 @@ const draftLifecycle = useAssetDraftLifecycle<AppDocument>({
   },
 });
 
-// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+// 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
 useInitialDraftPersist({
   slugState: slugFieldState,
   isNewAsset: () => !appUid.value,
@@ -426,7 +426,7 @@ const keywordsText = createAppLangComputed("keywords");
 const manifestNameText = createManifestLangComputed("name");
 const manifestShortNameText = createManifestLangComputed("shortName");
 
-// m6-t10 (§3.4): ベースマップマスタの解決器。差分保持モデルでは、フォームの
+// ベースマップマスタの解決器。差分保持モデルでは、フォームの
 // プレースホルダ（上書きしなかった場合に効く値）も一覧の表示名もマスタ側から引く。
 // main プロセスと同一の構築実装（createBaseMapMasterLookup）を共有する。
 const baseMapMasters = ref<Array<{ uid: string; mapID: string; data: any }>>([]);
@@ -550,7 +550,7 @@ async function confirmMaplibreExport(saved: any): Promise<boolean> {
   return response === 0;
 }
 
-// nov26-m6-t4（#108）: Maplat 地図のソースのラベル欄のプレースホルダ用に、地図の文書から
+// #108: Maplat 地図のソースのラベル欄のプレースホルダ用に、地図の文書から
 // 言語別の label と lang だけを引いておく（viewer はアプリの label が無ければ地図の設定の label を
 // 使う）。引けなかった地図は入れない（resolveMaplatFallbackCenter と同じくベストエフォート）。
 // 読み込み・下書きの復帰・Undo/Redo・地図の追加のどれでソースが変わっても拾えるよう、
@@ -590,7 +590,7 @@ function masterDataOf(source: AppSource): Record<string, any> | null {
 
 onMounted(async () => {
   await refreshBaseMapMasters();
-  // アプリ編集はuid正準で開く (ADR-0007): /appedit?uid=<uid>。uid未指定は新規作成
+  // アプリ編集はuid正準で開く (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): /appedit?uid=<uid>。uid未指定は新規作成
   const uid = typeof route.query.uid === "string" ? route.query.uid : "";
   if (uid) {
     const loaded = await window.appedit.request(uid);
@@ -600,7 +600,7 @@ onMounted(async () => {
       appCoverageAuto.refresh();
     }
   } else {
-    // M11-T10: duplicateFrom がある場合は元アプリから内容を複製（設計v3.1 案A: エディタ側ロード）。
+    // duplicateFrom がある場合は元アプリから内容を複製（設計v3.1 案A: エディタ側ロード）。
     // 複製浄化: normalizeAppDocument は uid/revision を写さない。slug(appID) は予約値で上書き
     const dupFrom = typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : "";
     if (dupFrom) {
@@ -620,12 +620,12 @@ onMounted(async () => {
   currentLang.value = appData.value.lang;
   await Promise.all([hydrateSourceThumbnails(), hydrateAssetPreviews()]);
   resetHistoryBase();
-  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
+  // 複製内容はどこにも永続化されていないため dirty 扱いにする
   // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
   if (!uid && typeof route.query.duplicateFrom === "string" && route.query.duplicateFrom) {
     historyStack.value?.markDirty();
   }
-  // M11-T7: 新規の draft キー = 事前採番 uid(newAppUid)。予約帰属・create uid と一致させる
+  // 新規の draft キー = 事前採番 uid(newAppUid)。予約帰属・create uid と一致させる
   const draftUid = uid || newAppUid;
   if (!uid && route.query.draftUid !== draftUid) {
     await router.replace({ query: { ...route.query, draftUid } });
@@ -674,7 +674,7 @@ async function hydrateAssetPreviews() {
 
 async function uploadSplash() {
   assetUploadError.value = null;
-  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-3】undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
+  // undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
   previewGeneration++;
   const result = await window.appAssets.uploadSplash();
   if (result.err === "Canceled") return;
@@ -689,7 +689,7 @@ async function uploadSplash() {
 
 async function uploadPwaIcon() {
   assetUploadError.value = null;
-  // 【NOV26-IR-EDITOR-FEAT2-0461 MINOR-3】undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
+  // undo/redo の後着の hydrate が、いま選ぶ画像の表示を上書きしないよう世代を進める
   previewGeneration++;
   if (!appData.value.appID.trim()) {
     assetUploadError.value = t("appedit.no_appid");
@@ -779,12 +779,12 @@ function estimateHomeFromSources() {
 }
 
 // 保存済みアプリのソースにUI表示用サムネイルURLを補完する。
-// maplatのサムネイル実体はuidパス tmbs/{uid}.jpg (ADR-0007)
+// maplatのサムネイル実体はuidパス tmbs/{uid}.jpg (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
 async function hydrateSourceThumbnails() {
   for (const source of appData.value.sources) {
     if (source.thumbnail) continue;
-    // m6-t10: マスタ由来値はアプリ文書に無いためマスタから引く。
-    // m19-t3: サムネイルの上書きは廃止したためマスタ（と命名規約）だけを見る
+    // マスタ由来値はアプリ文書に無いためマスタから引く。
+    // サムネイルの上書きは廃止したためマスタ（と命名規約）だけを見る
     const rel = source.sourceType === "maplat"
       ? `tmbs/${source.mapUid}.jpg`
       : String(masterDataOf(source)?.thumbnail || `tmbs/${source.mapUid}_menu.jpg`);
@@ -798,7 +798,7 @@ onBeforeUnmount(() => {
   removeMainProcessListener?.();
   removeMainProcessListener = undefined;
   destroyPreview();
-  // M1-T6 (d-2): 画面離脱時にプレビューサーバを解放する。
+  // 画面離脱時にプレビューサーバを解放する。
   // onBeforeUnmount は同期なので await できない。順序は main 側の operation queue が保証する
   void window.appedit.stopPreview();
 });
@@ -808,7 +808,7 @@ watch(activeTab, async (tab) => {
     await renderPreview();
   } else {
     destroyPreview();
-    // M1-T6 (d-2): プレビュータブから離れたらサーバを止める。
+    // プレビュータブから離れたらサーバを止める。
     // renderPreview 冒頭の destroyPreview() からは呼ばない（描画のたびに close→listen の
     // 往復が起きるため）。旧セッションの失効は prepare() 側の sessions.clear() が担う
     await window.appedit.stopPreview();
@@ -821,7 +821,7 @@ function cloneDocument(value: AppDocument): AppDocument {
 
 function normalizeAppDocument(value: any): AppDocument {
   const normalized = defaultApp();
-  // appID欄はslug編集欄 (ADR-0007)
+  // appID欄はslug編集欄 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   normalized.appID = value.appID || value.slug || value._id || "";
   normalized.lang = value.lang || "ja";
   normalized.appName = normalizeLangObject(value.appName || value.title, normalized.lang);
@@ -844,10 +844,10 @@ function normalizeAppDocument(value: any): AppDocument {
   if (!normalized.manifestSettings.iconSource && typeof value.httpSettings?.iconSource === "string") {
     normalized.manifestSettings.iconSource = value.httpSettings.iconSource;
   }
-  // pois (配列) のみが editor 正準形式 (M12-T30: 復元は行わず形式判定のみ)。
-  // M3-T6 §5.8 (H-5(d)): 未対応形式の場合は pois: [] を document へ書き込まず、
+  // pois (配列) のみが editor 正準形式 (復元は行わず形式判定のみ)。
+  // (H-5(d)): 未対応形式の場合は pois: [] を document へ書き込まず、
   // 元の生値を温存する (保存しても data_json から消えない — 黙って消えない原則)。
-  // M4-T1: 受け入れ (温存を含む) は MapEdit と共通の acceptDocumentPois が唯一の実装であり、
+  // 受け入れ (温存を含む) は MapEdit と共通の acceptDocumentPois が唯一の実装であり、
   // MapEdit は setMapDocument から同じ関数を呼ぶ。判定表示は poisGuard (computed) が担う。
   // 温存生値は preview/export では readAppDocumentPois により従来どおり空扱い
   // (回帰ではない — 警告文言にも明記)。
@@ -860,7 +860,7 @@ function normalizeAppDocument(value: any): AppDocument {
 }
 
 // 対応全言語のキーを持つレコードへ正規化する。プレーン文字列は
-// デフォルト言語の値として受容する(ADR-0005の交換形)
+// デフォルト言語の値として受容する(多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの交換形)
 function normalizeLangObject(value: any, defaultLang?: string): Record<string, string> {
   const record = emptyLangRecord();
   if (typeof value === "string") {
@@ -877,13 +877,13 @@ function normalizeSource(value: any, defaultLang?: string): AppSource {
   const source = normalizeAppSource(value, defaultLang) as AppSource;
   if (!source.title) {
     const fallbackID = source.mapSlug || source.mapUid;
-    // m19-t3: title の上書きは廃止したため、表示名は label か fallback だけを見る
+    // title の上書きは廃止したため、表示名は label か fallback だけを見る
     const title = source.label || fallbackID;
     source.title = typeof title === "string"
       ? title
       : localizedWithLang(title, defaultLang || "ja") || fallbackID;
   }
-  // m6-t10 hotfix (2026-08-07): 旧「label/title 強制補完」はここに残っていた最後の1箇所。
+  // hotfix (2026-08-07): 旧「label/title 強制補完」はここに残っていた最後の1箇所。
   // 差分保持モデルでは label は「上書き分のみ・未上書いならキー不在」であり、title からの
   // 補完はロードのたびに title 由来の値を上書きとして実体化させる（保存→再読込で復活する
   // 見かけ上のバグの原因）。保存済み label は normalizeAppSource(pickLabel) が保持するため、
@@ -945,7 +945,7 @@ function localizedWithLang(value: any, lang: string): string {
 
 async function goBack() {
   await draftLifecycle.flush();
-  // m12-t31: 一覧への遷移は navigateBackToList（router.push 一本）に統一する
+  // 一覧への遷移は navigateBackToList（router.push 一本）に統一する
   // （preview iframe 内の Maplat viewer が joint session history を汚染するため）。
   await navigateBackToList(router, "/applist");
 }
@@ -966,12 +966,12 @@ function recordHistory() {
   historyStack.value.push(next);
 }
 
-// m19-t4b: PWA と、それに従属するキャッシュの変更を 1 つの履歴レコードへ畳む。
+// PWA と、それに従属するキャッシュの変更を 1 つの履歴レコードへ畳む。
 //   v-model (vModelCheckbox ディレクティブ) の change リスナは created フックで登録されるため
 //   テンプレートの @change より先に走る。∴ ここに来た時点で pwaManifest は更新済みである
 //   (既存の @change="recordHistory" が変更後の値を記録しているのと同じ前提)。
 //
-//   watch(pwaEnabled) を使わない理由 (設計 §4.3.3):
+//   watch(pwaEnabled) を使わない理由 :
 //     1. @change は同期 push・watch の既定 flush は 'pre' ∴ 履歴が 2 レコードに割れる
 //     2. ∴ Undo 1 回で禁止中間状態 (PWA オフ・キャッシュオン = disabled なのに checked) へ戻る
 //     3. performUndo/performRedo は historyApplying を同期ブロック内で true→false へ戻すため、
@@ -998,7 +998,7 @@ function performUndo() {
   historyStack.value.undo();
   appData.value = cloneDocument(historyStack.value.current());
   historyApplying.value = false;
-  // feat2: 文書だけ戻すと画像は新しいまま残る（設計 §3.4-2）。戻したパスのプレビューを解決し直す
+  // feat2: 文書だけ戻すと画像は新しいまま残る。戻したパスのプレビューを解決し直す
   void hydrateAssetPreviews();
 }
 
@@ -1042,8 +1042,8 @@ function onMainProcessMessage(message: string) {
   else if (message === "menu:redo") performRedo();
 }
 
-// slug(appID欄) の live 入力 (M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵
-// (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。
+// slug(appID欄) の live 入力。可用性確認・予約 lifecycle は SlugField 内蔵
+// (excludeUid=自 uid で自分の現 slug は「空き」判定 = 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの継承)。
 // 旧実装の @input 毎 recordHistory と同じ履歴文法を保つ。
 function onAppIDLiveInput(value: string): void {
   saveOperationError.value = null;
@@ -1052,7 +1052,7 @@ function onAppIDLiveInput(value: string): void {
 }
 
 /**
- * 保存 (ADR-0007: uid正準 + revision楽観ロック)
+ * 保存 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: uid正準 + revision楽観ロック)
  * 既存アプリは uid 宛の upsert、新規は uid なしの create。
  * conflict(読み直す/上書き)・成功反映・Exist等の共通処理は
  * useRevisionedAssetSave (saveHandle) が担う
@@ -1064,7 +1064,7 @@ async function saveApp(): Promise<boolean> {
     saveOperationError.value = t("appedit.no_appid");
     return false;
   }
-  // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
+  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断。
   // registry 重複は backend の unique 制約(Exist)が最終防衛
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
@@ -1072,7 +1072,7 @@ async function saveApp(): Promise<boolean> {
     return false;
   }
   // pois は配列のまま永続化する（正準形式でない場合は生値をそのまま温存する。
-  // 旧 Editor 内部表現は型からも撤去済み — M12-T30 v1.2）
+  // 旧 Editor 内部表現は型からも撤去済み — v1.2）
   const document = cloneDocument(appData.value);
   // sources参照はuid (maplat)なので startFrom もuidで永続化する
   document.startFrom = appData.value.sources.find((source) => source.startFrom)?.mapUid || appData.value.startFrom;
@@ -1120,7 +1120,7 @@ async function discardRestoredDraft() {
       message: t("editor_ui.delete_draft_confirm", { name }),
     });
     if (result.response !== 0) return;
-    // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（nov26-m6-t1 #117 E3）
+    // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（#117 E3）
     await draftLifecycle.discard({ endSession: true });
     await router.push("/applist");
     return;
@@ -1136,7 +1136,7 @@ async function discardRestoredDraft() {
   await draftLifecycle.discard();
   await reloadFromStore();
   // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
-  // 下書きに残す。nov26-m6-t1 実装レビュー B19-MAJ-1）
+  // 下書きに残す）
   draftLifecycle.endDiscardGuard();
 }
 
@@ -1159,7 +1159,7 @@ async function chooseAppExport(hasSaved: boolean) {
   return "cancel" as const;
 }
 
-// m6-t6 (§3.2): 書き出し前チェック。アプリの sources から鍵が要る provider（google/mapbox）を
+// 書き出し前チェック。アプリの sources から鍵が要る provider（google/mapbox）を
 // 集め、各 kind についてアプリ単位キー・設定ページ既定公開用キーの両方が空かを判定する
 // （renderer は既にどちらの値も参照可能 — 新規 IPC 不要）。
 // 戻り値: undefined = プロンプト不要 / null = ユーザーがキャンセル / object = 入力値（空欄可）
@@ -1178,7 +1178,7 @@ async function resolveExportOverrideKeys(
 ): Promise<{ googleApiKey?: string; mapboxToken?: string } | null | undefined> {
   const kinds = new Set<"google" | "mapbox">();
   for (const raw of document.sources || []) {
-    // m6-t10: kind は差分保持モデルではアプリ側に無いためマスタから引く
+    // kind は差分保持モデルではアプリ側に無いためマスタから引く
     const source = normalizeSource(raw, document.lang);
     if (source.sourceType === "maplat") continue;
     const resolved = resolveAppSource(source, baseMapLookup.value);
@@ -1204,9 +1204,9 @@ async function resolveExportOverrideKeys(
   });
 }
 
-// nov26-editor-appexport-dialog（人間決定「ボタン => 確認ダイアログ => 実施、と、地図のエクスポートと
+// editor-appexport-dialog（人間決定「ボタン => 確認ダイアログ => 実施、と、地図のエクスポートと
 // 揃えてもらえないですか？」）: アプリの書き出しも地図の書き出しと同じく小窓で中身を選んでから実施する。
-// 開くたびに既定（タイルを含める）へ戻し、選んだ内容を覚えない（nov26-m6-t8 の HR-19 と同じ扱い）。
+// 開くたびに既定（タイルを含める）へ戻し、選んだ内容を覚えない（地図の書き出しの選択肢と同じ扱い）。
 // 地図側の askMapExportOptions / mapExportOptions / closeMapExportOptions（src/views/MapEdit.vue）と同型。
 const appExportOptionsVisible = ref(false);
 const appExportOptions = ref<{ includeTiles: boolean }>({ includeTiles: true });
@@ -1290,7 +1290,7 @@ async function addMapSource(item: MapListItem) {
     previewError.value = t(item.previewDisabledReason || "appedit.preview.unavailable");
     return;
   }
-  // sources参照はuid正準 (ADR-0007)。表示用にslug(mapSlug)/titleを併せて保持する
+  // sources参照はuid正準 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。表示用にslug(mapSlug)/titleを併せて保持する
   if (appData.value.sources.some((source) => source.mapUid === item.uid && source.sourceType === "maplat")) return;
   appData.value.sources.push({
     sourceType: "maplat",
@@ -1308,10 +1308,10 @@ async function addMapSource(item: MapListItem) {
 
 function addBaseMapSource(item: BaseMapItem) {
   if (appData.value.sources.some((source) => source.mapUid === item.mapID && source.sourceType !== "maplat")) return;
-  // m6-t10 (ADR-0018): マスタの全コピーはやめ、参照（baseMapUid）＋空の上書きだけを持つ。
+  // マスタの全コピーはやめ、参照（baseMapUid）＋空の上書きだけを持つ。
   // マスタ由来値（url / zoom / 帰属 / ライセンス / サムネイル）は書き出し・プレビュー時に
-  // マスタから読む。∴ merc の url 導出も選択時点ではなく composeBaseMapSettingFile が行い
-  // （§3.5.4）、旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
+  // マスタから読む。∴ merc の url 導出も選択時点ではなく composeBaseMapSettingFile が行い、
+  // 旧形にあった「選択時点 slug が取り残される」乖離が構造的に消える。
   const source = createAppSourceFromBaseMap(
     { uid: item.uid, mapID: item.mapID, data: item.data || {} },
     appData.value.lang,
@@ -1354,14 +1354,14 @@ function sourceTitle(source: AppSource): string {
   return source.title || sourceIdLabel(source);
 }
 
-// 選択済みソースのID表示: maplatはuidではなく表示用slugを出す (ADR-0007)
+// 選択済みソースのID表示: maplatはuidではなく表示用slugを出す (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
 function sourceIdLabel(source: AppSource): string {
   return source.sourceType === "maplat" ? source.mapSlug || source.mapUid : source.mapUid;
 }
 
-// M12-T10 v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
-// added 判定（HM6: 追加済み=青=selected=true）・disabledReason（HM4: previewDisabled 理由表示）・
-// スラッグ重複除去（HM10: metadata から mapID を除外、slug 行が表示するため）を反映。
+// v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// added 判定（追加済み=青=selected=true）・disabledReason（previewDisabled 理由表示）・
+// スラッグ重複除去（metadata から mapID を除外、slug 行が表示するため）を反映。
 function isMapSourceAdded(uid: string): boolean {
   return appData.value.sources.some((source) => source.mapUid === uid && source.sourceType === "maplat");
 }
@@ -1378,11 +1378,11 @@ function asResourceListRowFromMap(item: MapListRow): ResourceListItemViewModel {
     thumbnailUrl: item.image ?? null,
     metadata: [],
     badges: [],
-    // HM6: 追加済み=selected=true（青）。disabled より selected を優先
+    // 追加済み=selected=true（青）。disabled より selected を優先
     selected: added,
     hasDraft: false,
     actions: [],
-    // HM4: previewDisabled 理由を常時表示（added でない場合のみ）
+    // previewDisabled 理由を常時表示（added でない場合のみ）
     disabledReason: !added && previewDisabled ? t(item.previewDisabledReason || "appedit.preview.unavailable") : undefined,
   };
 }
@@ -1399,10 +1399,10 @@ function asResourceListRowFromBaseMap(item: BaseMapCatalogItem): ResourceListIte
     slug: String(item.mapID),
     title,
     thumbnailUrl: item.thumbnailUrl ?? null,
-    // HM10: スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
+    // スラッグ重複除去。slug 行が mapID を表示するため scope のみ残す（存在する場合）
     metadata: item.scope ? [item.scope] : [],
     badges: [],
-    // HM6: 追加済み=selected=true（青）
+    // 追加済み=selected=true（青）
     selected: added,
     hasDraft: false,
     actions: [],
@@ -1468,12 +1468,12 @@ function createPreviewDocument(): AppDocument {
   return document;
 }
 
-// --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
+// --- POIデータタブ配線  ---
 // 真実の器は appData.pois 配列 1 つ。順番変更/上書き/解除/追加は PoiReferenceEditor が
 // 配列ごと差し替えの update:pois で返すので、ここでは反映 + 履歴記録だけを行う。
-// M4-T1: 冒頭のガードは MapEdit と同一形。read-only は UI の入口を閉じるだけなので、
+// 冒頭のガードは MapEdit と同一形。read-only は UI の入口を閉じるだけなので、
 // 書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
-// M4-T4: 保存形の決定 (空ならキー削除 / 単独形の維持 / 素ラッパーの退化) は両画面で
+// 保存形の決定 (空ならキー削除 / 単独形の維持 / 素ラッパーの退化) は両画面で
 // 完全に同一なので、書き込み側の関所 writeDocumentPois へ寄せた (恒久指示: 同一扱い処理は
 // 共通実装へ徹底)。読み込み側の acceptDocumentPois と対称の位置づけ。
 // 履歴記録の方式 (AppEdit は明示 recordHistory / MapEdit は deep-watch) は所属先の差。
@@ -1527,7 +1527,7 @@ function onPoisChange(next: unknown[]) {
     </EditorActionHeader>
     <OperationNotice />
 
-    <!-- M11-T7/AC8 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
+    <!-- 同型(MapEdit): 保存 operation エラーはアクションヘッダ直下に常時可視で表示する。
          旧配置(メタデータフォーム最下部)ではスクロールしないと見えず、保存失敗が伝わらなかった -->
     <DiagnosticFeedback
       v-if="saveOperationError"
@@ -1537,7 +1537,7 @@ function onPoisChange(next: unknown[]) {
       @dismiss="saveOperationError = null"
     />
 
-    <!-- M11-T7/AC9: EditorTabs primitive + §9 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->
+    <!-- EditorTabs primitive + 語彙(メタデータ編集/地図選択/POI選択/プレビュー) -->
     <div class="px-4 mt-2">
       <EditorTabs
         :model-value="activeTab"
@@ -1551,12 +1551,12 @@ function onPoisChange(next: unknown[]) {
       />
     </div>
 
-    <!-- m19-t4b: タブ直下の 1 行メニューバー。地図領域（iframe）の外に置く操作 UI の置き場。
+    <!-- タブ直下の 1 行メニューバー。地図領域（iframe）の外に置く操作 UI の置き場。
          現在の住人はプレビュー言語切替のみだが、将来の追加操作 UI もここへ足す。
          旧実装は .preview-lang の絶対配置で iframe に重なり、viewer のコンパス UI と
-         同じ場所を奪い合っていた（設計 §6.5.1）。
+         同じ場所を奪い合っていた。
          バーはプレビュータブでのみ表示する（他タブで空のバーが縦幅を食うのを避ける）。
-         #previewLang は tests/e2e/m1-t6-preview-restart.spec.ts が使うため必ず維持する -->
+         #previewLang は tests/e2e/preview-restart.spec.ts が使うため必ず維持する -->
     <!-- NOTE: d-flex は使わない。Bootstrap の .d-flex は display:flex !important であり、
          v-show が付けるインライン display:none に勝ってしまう（他タブでバーが消えなくなる）。
          ∴ flex 化は下の scoped style（.editor-tabbar-actions）で行う -->
@@ -1578,14 +1578,14 @@ function onPoisChange(next: unknown[]) {
     <div class="flex-grow-1 position-relative overflow-hidden bg-white border-top">
       <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
         <form class="container-fluid" @submit.prevent>
-          <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
+          <!-- Row 1 (b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
           <div class="row g-1 mb-2">
             <div class="col-md-4">
               <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("appedit.app_name") }} <LangValueChips :model-value="appData.title" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /></div>
               <input data-testid="app-title" v-model="titleText" type="text" class="form-control form-control-sm" :class="appTitleMissing ? 'is-invalid' : ''" @input="recordHistory">
               <DiagnosticFeedback v-if="appTitleMissing" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: t('appedit.no_app_name') }]" />
             </div>
-            <!-- App ID フィールド (M11-T7/AC1): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
+            <!-- App ID フィールド : 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                  手動一意性確認ボタンは撤去(debounce 自動確認 + 保存時 confirmForSave へ機構置換) -->
             <div class="col-md-5">
               <SlugField
@@ -1682,8 +1682,8 @@ function onPoisChange(next: unknown[]) {
               <div class="col-md-10">
                 <label class="form-label small fw-bold">{{ t("appedit.http_toggles") }}</label>
                 <div class="toggle-grid">
-                  <!-- m19-t4b: 8 トグルへ ContextHelp を追加。PWA は @change="onPwaToggle" で
-                       キャッシュの強制を 1 履歴レコードへ畳む（設計 §4.3.2）。
+                  <!-- 8 トグルへ ContextHelp を追加。PWA は @change="onPwaToggle" で
+                       キャッシュの強制を 1 履歴レコードへ畳む。
                        キャッシュは PWA 従属（判定点は pwaEnabled computed 1 つ） -->
                   <label class="form-check"><input v-model="appData.httpSettings.pwaManifest" type="checkbox" class="form-check-input" data-testid="app-pwa-toggle" :disabled="translationMode" @change="onPwaToggle"> {{ t("appedit.pwa_manifest") }} <ContextHelp :text="t('appedit.pwa_manifest_note')" :ariaLabel="t('appedit.pwa_manifest_note')" /></label>
                   <label class="form-check"><input v-model="appData.httpSettings.overlay" type="checkbox" class="form-check-input" :disabled="translationMode" @change="recordHistory"> {{ t("appedit.overlay_ui") }} <ContextHelp :text="t('appedit.overlay_ui_note')" :ariaLabel="t('appedit.overlay_ui_note')" /></label>
@@ -1753,7 +1753,7 @@ function onPoisChange(next: unknown[]) {
             </div>
           </section>
 
-          <!-- m19-t4b: PWA 従属 UI の判定点は pwaEnabled computed 1 つ（キャッシュの :disabled と共有） -->
+          <!-- PWA 従属 UI の判定点は pwaEnabled computed 1 つ（キャッシュの :disabled と共有） -->
           <section v-if="pwaEnabled" class="settings-section mt-3">
             <h5>{{ t("appedit.manifest_settings") }}</h5>
             <div class="row g-2">
@@ -1796,7 +1796,7 @@ function onPoisChange(next: unknown[]) {
                   <input v-model="appData.manifestSettings.iconSource" data-testid="appedit-icon-source" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': !!assetUploadError }" readonly>
                   <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-testid="appedit-icon-upload" :disabled="translationMode" @click="uploadPwaIcon">{{ t("appedit.upload") }}</button>
                 </div>
-                <!-- M12-T11 (R3/C32): inline text-danger から DF field へ -->
+                <!-- inline text-danger から DF field へ -->
                 <DiagnosticFeedback v-if="assetUploadError" scope="field" :items="[{ key: 'pwa-icon', severity: 'danger', message: assetUploadError }]" />
                 <img v-if="iconPreviewUrl" :src="iconPreviewUrl" class="asset-preview mt-1" data-testid="appedit-icon-preview" alt="icon">
               </div>
@@ -1875,7 +1875,7 @@ function onPoisChange(next: unknown[]) {
                 </div>
               </div>
               <div class="row g-2 mt-2 align-items-center">
-                <!-- m6-t10 §3.8-6: label の操作子は AppSourceEditor.vue へ移設した。
+                <!-- label の操作子は AppSourceEditor.vue へ移設した。
                      旧実装の v-if="… && source.label" は「上書きが無い＝キー不在」を正とする
                      差分保持モデルでは操作子ごと消えてしまう。加えて label はプレースホルダ
                      （マスタ値の提示）と解除ボタンの対象であり、それらを実装する masterData の
@@ -1912,7 +1912,7 @@ function onPoisChange(next: unknown[]) {
         </template>
       </ResourceSelector>
 
-      <!-- Tab: POIデータ (Phase 8 Task 2)。器は appData.pois 配列、履歴は onPoisChange の
+      <!-- Tab: POIデータ。器は appData.pois 配列、履歴は onPoisChange の
            recordHistory 明示 (AppEdit の既存方式) -->
       <!-- NOTE: v-show を d-flex と同じ div に置くと Bootstrap の display:flex!important に負けて
            v-show が効かず、後続タブ(プレビュー)を覆い隠す (MapEdit settings と同じ罠、2026-07-12)。
@@ -1920,14 +1920,14 @@ function onPoisChange(next: unknown[]) {
       <div v-show="activeTab === 'pois'" class="h-100" data-testid="app-pois-tab-pane">
       <div class="h-100 overflow-hidden p-3 d-flex flex-column">
         <DiagnosticFeedback v-if="poisUnsupported" :items="[{ key: 'h', severity: 'warning', message: t('appedit.poi_format_unsupported') }]" scope="section" class="flex-shrink-0" />
-        <!-- M3-T6 §5.8 / M12-T30 / M4-T1: 未対応形式中は表示ガード (poisForEditor — MapEdit と同一の
+        <!-- 未対応形式中は表示ガード (poisForEditor — MapEdit と同一の
              共通 composable) + read-only で、生値温存を空配列表示の編集が上書きする経路を塞ぐ。
-             §5.4: hostSlug/hostTitle は変換 slug/title 基底 -->
+             hostSlug/hostTitle は変換 slug/title 基底 -->
         <PoiReferenceEditor class="flex-grow-1" heading-key="poiref.selected_list_app" :pois="poisForEditor" :read-only="poisUnsupported" :host-slug="appData.appID" :host-title="appData.appName" :active-lang="currentLang" :default-lang="appData.lang" :language-options="SUPPORTED_LANGUAGES" :spatial-context="appPoiSpatialView" @toggle-spatial-context="appPoiSpatialContext.toggle" @select-language="selectEditorLanguage" @update:pois="onPoisChange" />
       </div>
       </div>
 
-      <!-- m19-t4b: 地図領域。言語切替バーがこの矩形と重ならないことを E2E が見る（AC14） -->
+      <!-- 地図領域。言語切替バーがこの矩形と重ならないことを E2E が見る -->
       <div v-show="activeTab === 'preview'" class="h-100 position-relative" data-testid="app-preview-pane">
         <iframe v-if="previewUrl" class="preview-map" :src="previewUrl" />
         <!-- 5 系のアプリで 6 系が要るベースマップがあるとき。プレビューは止めない（5 系で表示する） -->
@@ -1935,8 +1935,8 @@ function onPoisChange(next: unknown[]) {
           <DiagnosticFeedback scope="section" :items="appMaplibreFindings.needs" />
           <button type="button" class="btn btn-sm btn-primary mt-1" data-testid="app-maplibre-version-switch-6" :disabled="translationMode" @click="confirmSwitchToMaplibre6">{{ t("appedit.maplibre_version_switch_6") }}</button>
         </div>
-        <!-- m19-t4b: 言語切替はタブ直下の 1 行メニューバーへ移した（設計 §6.5） -->
-        <!-- M11-T7/AC8: section 診断(警告)へ移行(絶対配置の overlay 位置は .preview-error が担う) -->
+        <!-- 言語切替はタブ直下の 1 行メニューバーへ移した -->
+        <!-- section 診断(警告)へ移行(絶対配置の overlay 位置は .preview-error が担う) -->
         <DiagnosticFeedback
           v-if="previewError"
           class="preview-error"
@@ -1971,7 +1971,7 @@ function onPoisChange(next: unknown[]) {
       @submit="onExportKeyPromptSubmit"
     />
 
-    <!-- nov26-editor-appexport-dialog: 書き出す中身の選択。地図の書き出し（MapEdit.vue の
+    <!-- editor-appexport-dialog: 書き出す中身の選択。地図の書き出し（MapEdit.vue の
          mapExportOptions）と同じマークアップ・同じ書き方。ビジー表示（z-index 1040）より前面の .modal（1055） -->
     <div v-if="appExportOptionsVisible" class="modal show d-block" tabindex="-1" role="dialog" aria-modal="true"
          data-testid="app-export-options">
@@ -2020,7 +2020,7 @@ function onPoisChange(next: unknown[]) {
   gap: 6px;
   min-height: 0;
 }
-/* .source-row の基底スタイルは ResourceSelectorList の :slotted に集約 (m11-t8b) */
+/* .source-row の基底スタイルは ResourceSelectorList の :slotted に集約  */
 .selected-source-thumb {
   width: 40px;
   height: 40px;
@@ -2077,7 +2077,7 @@ function onPoisChange(next: unknown[]) {
   right: 12px;
   z-index: 5;
 }
-/* m19-t4b: タブ直下の 1 行メニューバー。display は !important を持たない宣言で与える
+/* タブ直下の 1 行メニューバー。display は !important を持たない宣言で与える
    （Bootstrap の .d-flex を使うと v-show のインライン display:none に勝ってしまう） */
 .editor-tabbar-actions {
   display: flex;

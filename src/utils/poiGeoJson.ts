@@ -15,7 +15,7 @@ import {
 } from "./editorLanguages";
 import { estimateContentMode } from "./poiContentMode";
 
-// POI editor の default 言語 (ADR-0005 既定)。title / feature の LangResource フィールドを
+// POI editor の default 言語 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの既定)。title / feature の LangResource フィールドを
 // 交換形へ collapse する際にこの言語のみなら string 化する。各公開関数は optional な
 // defaultLang 引数でこの既定を上書きできる。raw ペイン (PoiRawPane) の Apply 側正規化も
 // 同じ既定を共有するため export する。
@@ -32,12 +32,12 @@ export function resolvePoiSourceLanguage(
   return resolveEditorLanguage(candidate);
 }
 
-// ADR-0005 の LangResource を適用する feature property (POI-135)。viewer が translate() を
+// 多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの LangResource を適用する feature property。viewer が translate() を
 // 通すフィールド。image / icon は LangResource ではないので対象外。
 const LANG_FIELDS = ["name", "desc", "html", "address", "url"] as const;
 
 // 旧POIオブジェクト形式 (normalizeLegacyPoi の旧オブジェクト分岐) で properties から除外するキー。
-// 座標系5キーは geometry.coordinates へ、id は Feature.id へ移すため除外する (M3-T5)。
+// 座標系5キーは geometry.coordinates へ、id は Feature.id へ移すため除外する。
 const LEGACY_EXCLUDED_KEYS = new Set<string>([
   "lnglat",
   "lng",
@@ -47,16 +47,16 @@ const LEGACY_EXCLUDED_KEYS = new Set<string>([
   "id",
 ]);
 
-// 表示 ID (Feature.id) の文字種: slug と同じ (POI-140)。viewer の namespaceID が {mapID}#{id}
+// 表示 ID (Feature.id) の文字種: slug と同じ。viewer の namespaceID が {mapID}#{id}
 // 結合のため # 等を許すと壊れる。属性フォームの入力検証 (PoiAttributeForm) からも参照するため export。
 export const DISPLAY_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-// 規模 warning (POI-121) / raw ペイン read-only ガード (POI-141) の閾値。
+// 規模 warning / raw ペイン read-only ガード の閾値。
 // raw ペイン (PoiRawPane) が同じ閾値で read-only 判定するため export する (再定義禁止)。
 export const SCALE_FEATURE_COUNT = 1000;
 export const SCALE_BYTE_SIZE = 5 * 1024 * 1024;
 
-// export 座標の丸め桁 (POI-143, ≈1cm / RFC 7946 精度指針)。
+// export 座標の丸め桁 (≈1cm / RFC 7946 精度指針)。
 const COORD_DECIMALS = 7;
 
 export interface PoiValidationIssue {
@@ -140,7 +140,7 @@ function coerceDisplayId(id: unknown): string {
   return "";
 }
 
-// LangResource フィールドを内部形 {lang: text} へ (POI-135)。数値は String 化してから正規化する
+// LangResource フィールドを内部形 {lang: text} へ。数値は String 化してから正規化する
 // (name:5 が「欠落」でなく "5" になる)。normalizeLangResource は空エントリを除去する。
 function toInternalLang(
   value: unknown,
@@ -167,7 +167,7 @@ function internalizeLangFields(
 }
 
 // props 内の LangResource フィールドを交換形へ collapse する (in-place)。
-// default 言語のみ→string / 複数言語→object / 空→フィールド削除 (ADR-0005)。
+// default 言語のみ→string / 複数言語→object / 空→フィールド削除 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
 function externalizeLangFields(
   props: Record<string, unknown>,
   defaultLang: string,
@@ -252,7 +252,7 @@ export function isValidDirectgo(value: unknown): boolean {
   return !isDangerousUrlString(href);
 }
 
-// feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか (POI-108)。
+// feature が「コンテンツ」(desc/html/address/url/image のいずれか非空) を持つか。
 function hasContent(props: Record<string, unknown>): boolean {
   for (const key of ["desc", "html", "address", "url", "image"]) {
     const v = props[key];
@@ -270,7 +270,7 @@ function hasContent(props: Record<string, unknown>): boolean {
   return false;
 }
 
-// name property が非空か (POI-107)。LangResource(内部形 object / 交換形 string) 双方を許容。
+// name property が非空か。LangResource(内部形 object / 交換形 string) 双方を許容。
 function hasName(props: Record<string, unknown>): boolean {
   const name = props.name;
   if (typeof name === "string") return name.trim() !== "";
@@ -309,7 +309,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
     const id = coerceDisplayId(raw.id);
     const props = isRecord(raw.properties) ? raw.properties : {};
 
-    // geometry: Point のみ (POI-104)
+    // geometry: Point のみ
     const geometry = raw.geometry;
     if (!isRecord(geometry) || geometry.type !== "Point") {
       issues.push({ level: "error", code: "geometry-not-point", featureId: id });
@@ -335,12 +335,12 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
       }
     }
 
-    // name 必須 (POI-107)
+    // name 必須
     if (!hasName(props)) {
       issues.push({ level: "error", code: "name-required", featureId: id });
     }
 
-    // 表示 ID 一意 (ソース内) + 文字種 (POI-140)
+    // 表示 ID 一意 (ソース内) + 文字種
     if (id !== "") {
       if (seenIds.has(id)) {
         if (!dupReported.has(id)) {
@@ -366,7 +366,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 
     if (hasContent(props)) anyContent = true;
 
-    // --- Content Mode 検証 (M11-T9) ---
+    // --- Content Mode 検証  ---
     const mode = props._maplatContentMode;
     if (mode === 'html') {
       // html mode で html が空 → warning
@@ -411,12 +411,12 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
     }
   }
 
-  // 無コンテンツ warning (POI-108): ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning
+  // 無コンテンツ warning: ソース全体が無コンテンツ (かつ 1 件以上) の時に単一 warning
   if (features.length > 0 && !anyContent) {
     issues.push({ level: "warning", code: "no-content" });
   }
 
-  // 規模 warning (POI-121)
+  // 規模 warning
   if (features.length > SCALE_FEATURE_COUNT) {
     issues.push({ level: "warning", code: "scale-feature-count" });
   }
@@ -436,7 +436,7 @@ export function validateFeatureCollection(fc: unknown): PoiValidationIssue[] {
 // 旧POIオブジェクト形式 (glossary) → 内部形 Feature へ正規化。
 // coordinates: lnglat があればそのまま、無ければ [lng||longitude, lat||latitude]。
 // 座標キー(lnglat/lng/lat/longitude/latitude)と id 以外の全キーを properties へ透過する
-// (M3-T5: 旧 whitelist を撤廃し FC 経路と同形化。parity 正本 = MaplatCore normalizePoi)。
+// (旧 whitelist を撤廃し FC 経路と同形化。parity 正本 = MaplatCore normalizePoi)。
 // _maplat* プレフィックスは fromExportForm と同じ規律で剥がし、再採番に委ねる (identity spoofing 防止)。
 // display id / _maplatUid は採番しない (ensureDisplayIds/ensureFeatureUids の担当)。
 // ただし既に id を持つ旧オブジェクトはその id を維持する。
@@ -581,7 +581,7 @@ export function ensureDisplayIds(features: PoiEditorFeature[]): {
   return { features: out, assigned };
 }
 
-// properties._maplatUid が無い feature に UUID を採番。既存は維持 (POI-134)。
+// properties._maplatUid が無い feature に UUID を採番。既存は維持。
 export function ensureFeatureUids(
   features: PoiEditorFeature[],
 ): PoiEditorFeature[] {
@@ -614,7 +614,7 @@ export function roundCoord(n: number): number {
 }
 
 // editor 内部形 → export/raw 表示形。_maplat* property を剥離し、FC.id=slug / FC.name=title 交換形
-// (ADR-0005 collapse)。roundCoordinates:true の時のみ座標を 7 桁丸め (POI-143, package export 経路限定)。
+// (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりによる collapse)。roundCoordinates:true の時のみ座標を 7 桁丸め (package export 経路限定)。
 // raw ペイン表示は roundCoordinates:false で呼ぶこと (丸めた表示を Apply で書き戻すと Write Store
 // 内の座標が静かに劣化するため)。
 export function toExportForm(
@@ -631,7 +631,7 @@ export function toExportForm(
     for (const [key, value] of Object.entries(f.properties ?? {})) {
       if (!isInternalProp(key)) props[key] = value;
     }
-    // feature 単位 LangResource (name/desc/html/address/url) を交換形へ collapse (POI-135)。
+    // feature 単位 LangResource (name/desc/html/address/url) を交換形へ collapse。
     externalizeLangFields(props, defaultLang);
 
     let geometry: Point = f.geometry;
@@ -650,9 +650,9 @@ export function toExportForm(
     };
   });
 
-  // layer metadata（icon/selectedIcon/hide/poiTemplate 等、§2.3）は FC.properties
-  // の直下へ書く（m18-t5 正本位置。viewer は FC.properties を cluster へ展開する）。
-  // FC.id（slug）/ FC.name（title）/ FC.lang は例外でトップレベルのまま（§5.4）。
+  // layer metadata（icon/selectedIcon/hide/poiTemplate 等）は FC.properties
+  // の直下へ書く（正本位置。viewer は FC.properties を cluster へ展開する）。
+  // FC.id（slug）/ FC.name（title）/ FC.lang は例外でトップレベルのまま。
   const out: Record<string, unknown> = {
     type: "FeatureCollection",
     id: slug,
@@ -680,10 +680,10 @@ export function toExportForm(
 }
 
 // raw Apply 用: export 形 FeatureCollection (object) → 内部形。Feature.id で previous と照合し
-// _maplatUid を引継ぎ、無ければ新規採番 (POI-136)。同時に validate で issue を収集する。
+// _maplatUid を引継ぎ、無ければ新規採番。同時に validate で issue を収集する。
 // 構造不正 (FeatureCollection でない) 場合は not-feature-collection error を返す。
 // UID 照合の後に ensureDisplayIds を適用し、id 欠落 feature を素通りさせず importFile/save 側の
-// prepare() (PoiSourceService.prepare) と同じ規律で採番する (Phase 5 品質レビュー MAJOR)。
+// prepare() (PoiSourceService.prepare) と同じ規律で採番する (品質レビューの指摘)。
 // 1 件以上採番した場合は warning issue (display-id-assigned, message=採番数) を追加する。
 export function fromExportForm(
   parsed: unknown,
@@ -723,7 +723,7 @@ export function fromExportForm(
       if (isInternalProp(key)) delete props[key];
     }
 
-    // 交換形 (string) / 内部形 (object) 双方を受容し内部形へ正規化 (ADR-0005, POI-135)。
+    // 交換形 (string) / 内部形 (object) 双方を受容し内部形へ正規化 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
     internalizeLangFields(props, defaultLang);
 
     const prev = id !== "" ? prevByDisplayId.get(id) : undefined;
@@ -752,7 +752,7 @@ export function fromExportForm(
 
   // UID 照合の後に採番規律を適用する (importFile/save 側 prepare と同じ ensureDisplayIds)。
   // これにより id 欠落 feature が採番されずに Apply されて slug 相当の識別子を欠く不変条件
-  // 違反を防ぐ (Phase 5 品質レビュー MAJOR)。
+  // 違反を防ぐ (品質レビューの指摘)。
   const { features: withIds, assigned } = ensureDisplayIds(features);
   if (assigned.length > 0) {
     issues.push({

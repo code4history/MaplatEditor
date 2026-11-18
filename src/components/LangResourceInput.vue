@@ -12,9 +12,9 @@
         :disabled="disabled"
         @change="onConfirm(($event.target as HTMLTextAreaElement).value)"
       />
-      <!-- m6-t10 v1.4 (§3.8-2): clearable のとき type="search" にして
+      <!-- v1.4: clearable のとき type="search" にして
            ブラウザ native の×（検索バーと同一デザイン）を出す。
-           native × は **change を発火しない**（§3.8-2a の実測）ため search も購読する。
+           native × は **change を発火しない**（a の実測）ため search も購読する。
            search は type="search" 専用で×と Enter でのみ発火するので、change の
            blur 確定セマンティクス（= 1 Undo 単位）を壊さずに×だけを拾える -->
       <input
@@ -38,7 +38,7 @@
       />
     </div>
 
-    <!-- M12-T11 (R5/D7): form-text 警告から DF field(warning) へ。黄色三角アイコンで danger と区別 -->
+    <!-- form-text 警告から DF field(warning) へ。黄色三角アイコンで danger と区別 -->
     <DiagnosticFeedback v-if="warning && hasAnyValue" scope="field" :items="[{ key: 'warning', severity: 'warning', message: warning }]" />
   </div>
 </template>
@@ -66,9 +66,9 @@ const props = withDefaults(defineProps<{
   disabled?: boolean;
   invalid?: boolean;
   inputTestid?: string;
-  // m6-t10 v1.4 (§4.1a): 未上書き時に効く値の提示（アプリソース編集のプレースホルダ）
+  // v1.4 (a): 未上書き時に効く値の提示（アプリソース編集のプレースホルダ）
   placeholder?: string;
-  // m6-t10 v1.4 (§4.1a): type="search" にして native × を出す。
+  // v1.4 (a): type="search" にして native × を出す。
   // 「空にする＝既定へ戻る」という意味が成り立つ欄でのみ true にする
   clearable?: boolean;
 }>(), {
@@ -112,7 +112,7 @@ const hasAnyValue = computed(() => {
 });
 
 // native × / Enter で発火する。値が空になったときだけ確定を流す
-// （Enter は値が残っているため無害。§3.8-2a）
+// （Enter は値が残っているため無害。a）
 function onSearch(raw: string): void {
   if (raw !== "") return;
   onConfirm(raw);

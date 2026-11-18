@@ -1,10 +1,10 @@
-// PoiSourceSaveResult の Error コード / 検証 issue code → i18n キーの共有写像 (Phase 4 Task 5)。
-// Phase 3 で PoiSourceList.vue 内にあった写像を PoiEdit.vue と共用するため移設した (挙動不変)。
+// PoiSourceSaveResult の Error コード / 検証 issue code → i18n キーの共有写像。
+// 以前 PoiSourceList.vue 内にあった写像を PoiEdit.vue と共用するため移設した (挙動不変)。
 // i18next には依存せず、t() は呼び出し側から受け取る (useRevisionedAssetSave と同じ方針)。
 import type { PoiSourceErrorCode, PoiValidationIssue } from "../electron";
 
-// poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は POI-104 専用文言。
-// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch (POI-121) が返す
+// poiGeoJson.ts の検証 code → i18n key の写像。非 Point (geometry-not-point) は専用文言。
+// unsupported-scheme / payload-too-large は PoiSourceService の remote fetch が返す
 export const ISSUE_CODE_KEYS: Record<string, string> = {
   "geometry-not-point": "poisource.errors.non_point",
   "not-feature-collection": "poisource.errors.not_feature_collection",
@@ -18,7 +18,7 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
   "scale-byte-size": "poisource.errors.scale_byte_size",
   "unsupported-scheme": "poisource.errors.unsupported_scheme",
   "payload-too-large": "poisource.errors.payload_too_large",
-  // M11-T9: Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
+  // Content Mode 検証 (人間検証Round1: i18n未登録で生コード表示だった)
   "content-mode-url-format": "poisource.errors.content_mode_url_format",
   "content-mode-html-missing-content": "poisource.errors.content_mode_html_missing_content",
   // directgo（リンクの形）の値が不正（href が無い・拒否される URL・blank が真偽値でない）
@@ -62,7 +62,7 @@ export const ISSUE_CODE_KEYS: Record<string, string> = {
 };
 
 // PoiSourceSaveResult の Error variant (electron.d.ts) の code → i18n key。
-// invalid-request は「引数不正」だが利用者向けには検証エラーと同じ文言を出す (Phase 3 踏襲)
+// invalid-request は「引数不正」だが利用者向けには検証エラーと同じ文言を出す (以前の扱いを踏襲)
 export const ERROR_CODE_KEYS: Record<PoiSourceErrorCode, string> = {
   network: "poisource.errors.network",
   "http-status": "poisource.errors.http_status",
@@ -70,7 +70,7 @@ export const ERROR_CODE_KEYS: Record<PoiSourceErrorCode, string> = {
   "not-found": "poisource.errors.not_found",
   "invalid-request": "poisource.errors.invalid",
   internal: "poisource.errors.internal",
-  // nov26-m6-t3 (#98・#116): ZIP の取り込みの失敗は固定文（adm-zip の原文を出さない）
+  // ZIP の取り込みの失敗は固定文（adm-zip の原文を出さない）
   "zip-too-large": "poisource.errors.zip_too_large",
   "zip-corrupt": "poisource.errors.zip_corrupt",
   "zip-too-many-entries": "poisource.errors.zip_too_many_entries",

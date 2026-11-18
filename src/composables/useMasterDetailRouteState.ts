@@ -10,7 +10,7 @@ export function useMasterDetailRouteState() {
     await router.push({ query: mergeMasterDetailQuery(route.query, { uid, isNew }) });
   };
 
-  // M11-T10: 複製オープン(BaseMap/Asset の master-detail 共通)。reserveCopySlug の結果を
+  // 複製オープン(BaseMap/Asset の master-detail 共通)。reserveCopySlug の結果を
   // 受け、duplicateFrom/slug ワンショットクエリ付きの new 選択として遷移する。
   const selectDuplicate = async (sourceUid: string, reserved: { uid: string; slug: string }) => {
     await router.push({

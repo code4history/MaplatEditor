@@ -1,12 +1,12 @@
-// nov26-m6-t8（#113・HR-19）: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
+// #113: 書き出す中身の選択と、地図の書き出し物の目録（export-manifest.json）。
 //
 // main（electron/）と renderer（src/）の両方が import する唯一の窓口。
 // 既定値・正規化・目録の生成と読み取りをここに集め、二重の定義を作らない。
 //
-// 地図の 3 つの中身の割り当て（タスク設計 §3.1）:
+// 地図の 3 つの中身の割り当て:
 //   json      = maps/{slug}.json・pois/*.geojson・imgs/…（地図の設定と、それが参照する POI・アイコン）
 //   tiles     = tiles/{slug}/…・tmbs/{slug}.jpg・512px のサムネイル（サムネイルはタイルから作るもの）
-//   originals = originals/{slug}.{ext}（原画像。既定では入れない＝OD-M6-T8-DEFAULT）
+//   originals = originals/{slug}.{ext}（原画像。既定では入れない）
 
 export interface MapExportOptions {
   tiles: boolean;
@@ -18,7 +18,7 @@ export interface AppExportOptions {
   includeTiles: boolean;
 }
 
-/** 地図の書き出しの既定。現行（t8 より前）と同じ中身＝タイルと JSON。原画像は選んだときだけ */
+/** 地図の書き出しの既定。書き出しの選択肢を入れる前と同じ中身＝タイルと JSON。原画像は選んだときだけ */
 export const DEFAULT_MAP_EXPORT_OPTIONS: Readonly<MapExportOptions> = Object.freeze({
   tiles: true,
   json: true,
@@ -111,7 +111,7 @@ export function hasAnyMapExportContent(options: MapExportOptions): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// 目録（T8-MIN-1）
+// 目録
 // ---------------------------------------------------------------------------
 
 export const EXPORT_MANIFEST_NAME = 'export-manifest.json';

@@ -5,7 +5,7 @@
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
-// M11-T6 共通 List primitives CSS — Bootstrap 後に読み込み、
+// 共通 List primitives CSS — Bootstrap 後に読み込み、
 // .dropdown-menu{position:absolute} や list-group-item 既定値を確実に上書きする。
 @import "../../components/resource-list/resource-list.scss";
 

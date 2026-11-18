@@ -68,7 +68,7 @@ export function resolveBaseMapThumbnailWriteTarget(input: WriteTargetInput): Bas
   const parts = parseThumbnailKey(input.thumbnail);
   // 従来の K1（規則 K）。自分の uid 名を指しているときは今までどおり thumbnail から採る。
   if (parts && parts.fileKey === input.ownKey) return parts;
-  // 規則 K0: slug 未入力なら書かない（従来の K2 と同じガード）
+  // 規則 slug 未入力なら書かない（従来の K2 と同じガード）
   if (!parts && !input.slug) return null;
   const target: BaseMapThumbnailTarget = {
     // K1'（複製直後・旧 slug 名）も K2（同梱画像・URL・空）も、書き込み先は自分の uid 名。
@@ -92,7 +92,7 @@ export interface ForceDerive52Input {
 }
 
 /**
- * 512px 置換のときに 52px の派生を強制するか（§6.5）。
+ * 512px 置換のときに 52px の派生を強制するか。
  *
  * 従来の述語は「K1 かつ 52px の実体あり」のときだけ強制を外していた。しかし
  * `thumbnail` が他者のファイルを指している間は、52px の実体があっても**自分のものではない**。

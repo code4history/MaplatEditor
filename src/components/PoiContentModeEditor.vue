@@ -1,5 +1,5 @@
 <template>
-  <!-- POI Content Mode 選択タブ (M11-T9)。
+  <!-- POI Content Mode 選択タブ。
        EditorTabs の DOM 構成（ul.nav.nav-tabs.nav-fill）に準拠しつつ、
        非互換フィールドがある場合の確認ダイアログを内蔵する。 -->
   <ul v-if="tabItems.length" class="nav nav-tabs nav-fill bg-white flex-shrink-0 editor-ui-content-mode-tabs" role="tablist">

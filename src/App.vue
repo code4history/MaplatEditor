@@ -28,7 +28,7 @@ let removeTaskProgressListener: (() => void) | null = null;
 let removeMigrationReportListener: (() => void) | null = null;
 let removeMenuTextUndoListener: (() => void) | null = null;
 
-// レガシー移行レポート (ADR-0007): 移行を実行した起動で一度だけ届き、
+// レガシー移行レポート (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): 移行を実行した起動で一度だけ届き、
 // slug改名(ID衝突のサフィックス解消)と警告件数を一覧表示する
 interface MigrationRenamedSlug { kind: string; from: string; to: string }
 const migrationReportVisible = ref(false);

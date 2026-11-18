@@ -1,6 +1,6 @@
 import { ref, type Ref } from "vue";
 
-// maps/apps/poi_sources 共通の revision 楽観ロック保存フロー (Phase 4 Task 1, ADR-0007)。
+// maps/apps/poi_sources 共通の revision 楽観ロック保存フロー (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // MapEdit.vue / AppEdit.vue の performSave（conflict → 読み直す/上書き、部分成功 Error{revision}
 // の引き継ぎ）を挙動不変で共通化する。画面固有の処理（status 更新・router.replace・
 // ダイアログ表示等）は send / applySuccess / onFailure クロージャに残す。
@@ -129,7 +129,7 @@ export function useRevisionedAssetSave<TResult extends RevisionedSaveResult>(
           return;
         }
 
-        // DBコミット後のファイル操作失敗はuid/slug/revision付きで返る (ADR-0007)。
+        // DBコミット後のファイル操作失敗はuid/slug/revision付きで返る (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
         // 確定値へ補正してから onFailure に渡し、再試行が偽のrevision-conflictや'Exist'に
         // ならないようにする（MapEdit performSave の部分成功引き継ぎの移植）
         if (r.result === "Error" && r.revision != null) {

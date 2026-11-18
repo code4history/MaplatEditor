@@ -2,7 +2,7 @@
 import { reactive, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 
-// m6-t6 (§3.2): 書き出し時、鍵が2段（アプリ単位→設定ページ既定公開用）とも解決できない
+// 書き出し時、鍵が2段（アプリ単位→設定ページ既定公開用）とも解決できない
 // provider があるとき、一時的な値の入力を求める。値はどのストアにも書き込まない
 // （SettingsService.set を呼ばない・emit で親へ渡すのみ）
 const props = defineProps<{

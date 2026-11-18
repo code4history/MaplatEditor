@@ -55,7 +55,7 @@ export interface MapOverlayControlLabels {
 
 /**
  * 地図の上の OL の部品の名前を渡した `controlDefaults` を作る。
- * 小窓も同じ名前に揃える（§5-3）。
+ * 小窓も同じ名前に揃える。
  */
 export function mapOverlayControlDefaults(labels: MapOverlayControlLabels): Collection<Control> {
   return controlDefaults({
@@ -76,7 +76,7 @@ export function mapOverlayControlDefaults(labels: MapOverlayControlLabels): Coll
 }
 
 /**
- * 地図の上の部品を §4.2 の配置へ並べ替える。
+ * 地図の上の部品を 配置へ並べ替える。
  * 左上にズーム・回転のリセット・住所検索を一列にまとめ、
  * 右下の余白（`toolsEl`）の最下段に帰属表示を置く。
  * OL の部品の `title` を `aria-label` に写し、住所検索の拡大鏡を Bootstrap Icons にする。
@@ -124,7 +124,7 @@ export function layoutMapOverlayControls(
   });
 }
 
-// ---- 編集中・参考の図形の縁取り（§4.2） ----
+// ---- 編集中・参考の図形の縁取り ----
 
 type PixelCoordinates = Parameters<RenderFunction>[0];
 
@@ -171,7 +171,7 @@ function underlayStyle(width: number, color: string, zIndex: number, dash?: numb
 
 /**
  * 線の外側に白 1.5px の halo、さらに外に濃い灰の細線を重ねたスタイル（編集中の図形）。
- * `outline: false` のときは白の halo だけにする（参考の図形。§4.2）。
+ * `outline: false` のときは白の halo だけにする（参考の図形。ui-map-overlay-proposal §4.2）。
  * 当たり判定は色の線と塗りだけで行う（縁取りでは広げない）。
  */
 export function haloLineStyles(
@@ -239,7 +239,7 @@ export function handleStyles(color: string): Style[] {
 
 /**
  * `Modify` / `Draw` の `style` に渡す関数。
- * 頂点は取っ手の色、線分は編集中の図形の色にそろえる（§5-7）。
+ * 頂点は取っ手の色、線分は編集中の図形の色にそろえる。
  */
 export function editSketchStyleFunction(color: string, lineWidth = 2): StyleFunction {
   const vertex = handleStyles(color);
@@ -247,7 +247,7 @@ export function editSketchStyleFunction(color: string, lineWidth = 2): StyleFunc
   return (feature) => (feature.getGeometry()?.getType() === 'Point' ? vertex : line);
 }
 
-// ---- ベースマップの切り替え（§4.2 表示の切り替え） ----
+// ---- ベースマップの切り替え（表示の切り替え） ----
 
 export interface BaseMapSwitcher {
   control: MapBaseMapSwitcherControl;
@@ -261,7 +261,7 @@ let switcherSeq = 0;
  * 今の選択の名前を札に出し、クリックで開くベースマップの切り替え。
  * 全部の地図（MapEdit・POI・ホーム位置と範囲の小窓）で同じ部品を使う。
  *
- * ol-layerswitcher の 'click' モードに次を足す（§4.2 表示の切り替え）。
+ * ol-layerswitcher の 'click' モードに次を足す（表示の切り替え）。
  * - 選んだら閉じる（ポインタで選んだとき・Enter）。矢印キーで選び直している間は開いたまま
  * - 地図を押したとき・Esc で閉じる
  * - 札に aria-expanded、読み上げ名に今の選択の名前を含める

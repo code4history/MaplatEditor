@@ -1,5 +1,5 @@
 <template>
-  <!-- M11-T10: Resource List の #secondary slot 用 Import button。
+  <!-- Resource List の #secondary slot 用 Import button。
        MapList / PoiSourceList の toolbar に配置する共通部品 -->
   <button
     v-if="kind"

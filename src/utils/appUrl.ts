@@ -1,11 +1,11 @@
 /**
- * appUrl.ts (#105 / oct26-m4-t2) — renderer 側の app:// URL ビルダー。
+ * appUrl.ts (#105) — renderer 側の app:// URL ビルダー。
  *
  * electron 側の正本は `electron/utils/appScheme.ts`。あちらは node:path に依存し、
  * renderer（vite バンドル）から import できないため、同一のエンコード規約を
  * こちらに小さく複製する。**エンコード規約を変更するときは必ず両方を同期させること**。
  *
- * oct26-m4-t2ff: ローカルリソースは renderer と同一 origin の `app://bundle/__local/<abs>` で表す
+ * ローカルリソースは renderer と同一 origin の `app://bundle/__local/<abs>` で表す
  * （別 origin の `app://local` は MaplatCore の crossOrigin 読込が CORS 拒否される。理由の詳細は appScheme.ts）。
  * 旧 `app://local` は既存データ互換のため復号だけ受理する。
  *
@@ -44,16 +44,16 @@ const LEGACY_LOCAL_URL_PREFIX = `${APP_SCHEME}://${LOCAL_HOST}`;
 const TILE_TEMPLATE_SUFFIX = /^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/;
 
 /**
- * タイル源に渡す URL を、renderer が読める現行形へ変換する（oct26-m4-t2s2）。**表示専用で、url_ 自体は書き換えない。**
+ * タイル源に渡す URL を、renderer が読める現行形へ変換する。**表示専用で、url_ 自体は書き換えない。**
  *
  * 更新前の版で作った未保存下書きは url_ が旧形のまま復元される:
  *   - v1.0.0（公開版）: `file:///<userData>/draft-tiles/<uid>/{z}/{x}/{y}.<ext>`（webSecurity 下の renderer は file:// を読めない）
- *   - m4-t2 期（未公開ビルド）: `app://local/<abs>/…`（renderer と別 origin のため CORS 拒否）
- * そのままタイル源に渡すと保存するまで対応点編集の左ペインが真っ白になる（IR2 Minor-2）。保存時の正規化は main の
- * `normalizeLegacyTileUrl`（oct26-m4-t2s）が担うので、ここでは表示のときだけ同じ形へ写す。
+ *   - 期（未公開ビルド）: `app://local/<abs>/…`（renderer と別 origin のため CORS 拒否）
+ * そのままタイル源に渡すと保存するまで対応点編集の左ペインが真っ白になる（実装レビューで実測）。保存時の正規化は main の
+ * `normalizeLegacyTileUrl`が担うので、ここでは表示のときだけ同じ形へ写す。
  *
  * 規則は main の `migrateLegacyFileUrl`（electron/utils/appScheme.ts）と同じ出力になるよう複製する
- * （renderer は node:url の fileURLToPath を使えない。一致は scripts/oct26-m4-t2ff-app-scheme-same-origin-smoke.mjs [6] が固定する）:
+ * （renderer は node:url の fileURLToPath を使えない。一致は scripts/app-scheme-same-origin-smoke.mjs [6] が固定する）:
  *   - 旧 `app://local/…` → `app://bundle/__local/…`（経路部分は無加工）
  *   - `file://…/{z}/{x}/{y}.<ext>` → テンプレート手前を実パスへ復号し `localFileUrl` で再符号化（テンプレートは literal のまま）
  *   - それ以外（新形・http(s)・テンプレートの無い file:// 等）と文字列以外はそのまま

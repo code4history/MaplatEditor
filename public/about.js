@@ -1,5 +1,5 @@
-// About ウィンドウのスクリプト（oct26-m4-t6: about.html のインライン script を CSP のため外出しした）。
-// m19-t4a (§6/§7.4): main プロセスから loadURL の query で受け取る
+// About ウィンドウのスクリプト（about.html のインライン script を CSP のため外出しした）。
+// main プロセスから loadURL の query で受け取る
 // （preload なし・contextBridge なし・IPC なし。露出面ゼロ）。
 // 値は HTML 文字列として差し込まず、DOM を組み立てて textContent で入れる。
 (() => {
@@ -18,7 +18,7 @@
   } catch (e) {
     const err = document.createElement('div');
     // CSSOM による設定は style-src の対象外（style 属性をマークアップに書くと拒否される）。
-    // m19-t4a の e2e が赤字要素（style*="color: red"）を数えるので、従来と同じく赤字にする
+    // e2e が赤字要素（style*="color: red"）を数えるので、従来と同じく赤字にする
     err.style.color = 'red';
     err.textContent = 'Error: ' + e.message;
     versions.replaceChildren(err);

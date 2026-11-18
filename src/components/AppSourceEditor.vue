@@ -3,26 +3,26 @@
 // - maplat: 表示ラベルのみ（他のメタデータは map.json 側で設定する想定）
 // - builtin(osm/gsi/gsi_ortho) / tms: 同一のフォーム
 //
-// m6-t10 (ADR-0018): 保持するのは「マスタ値からの上書き差分」だけである。
+// 保持するのは「マスタ値からの上書き差分」だけである。
 // 未上書きのフィールドは入力欄が空で、placeholder にマスタの実効値を薄く出す。
 //
-// m19-t3 (m19 §4.4 の凍結契約): アプリ文書がベースマップマスタに対して持てる上書きは
+// アプリ文書がベースマップマスタに対して持てる上書きは
 // **表示ラベル 1 個**へ縮んだ。表題・帰属・ライセンス・ズーム範囲・サムネイルはマスタが正本
 // であり、アプリごとに固定するとマスタ側の訂正（とくにライセンス表記）が既存アプリへ届かない。
 // ∴ 操作子ごと撤去した。残るのは表示ラベル（唯一の上書き）と、マスタに対応物が無い
 // アプリ所有 3 キー（利用範囲 / mercator シフト 2 欄）だけである。
 //
-// url の上書き欄は m6-t10 §3.3 で撤去済みで、その旨の注記（appedit.source_url_master_note /
-// data-testid="app-source-url-note"）が残っていたが、**人間の指示により削除した**（m19-t3）。
+// url の上書き欄は で撤去済みで、その旨の注記（appedit.source_url_master_note /
+// data-testid="app-source-url-note"）が残っていたが、**人間の指示により削除した**。
 // 上書き欄がすべて消えた画面では「変更できない」注記だけが浮き、隣接する欄の説明と誤読される。
-// 代替の説明は UI へ置かない。url がマスタ管理であることは ADR-0018 と ADR-0017 が正本である。
+// 代替の説明は UI へ置かない。url がマスタ管理であることは ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まりと 地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まりが正本である。
 //
 // 提示モデルは「入力があればそれを指定、消せば既定＝マスタ値」。独立した「マスタに戻す」
 // ボタンは置かない。× は MapList/AppList の既存デザインを欄の種別ごとに踏襲する:
 //   - 言語別テキスト → 検索バー方式（type="search" の native ×。LangResourceInput の clearable）
 //   - 利用範囲 → 範囲フィルタ方式（値があるときだけ隣に bi-x-lg ボタン）
 //
-// **translationMode の適用範囲（m19-t3・人間検証 AC15）**: 翻訳モード（活性言語 ≠ 文書の既定言語）
+// **translationMode の適用範囲（人間検証）**: 翻訳モード（活性言語 ≠ 文書の既定言語）
 // で無効化するのは**言語に依存しない構造的な値だけ**である。言語別テキスト（表示ラベル）は
 // 翻訳モードでこそ編集する対象なので無効化してはならない。これはリポジトリ共通の規律であり、
 // BaseMapEdit.vue が構造的な欄（structuralDisabled = readOnly || translationMode || …）と
@@ -31,12 +31,12 @@
 // disabled を持たない。本コンポーネントだけが表示ラベルへ translationMode を掛けており、
 // 「チップは出るのに翻訳を入力できない」欠陥になっていた（base 74c3806 から存在）。
 //
-// m6-t10 (ADR-0017): builtin の文字列出力を廃止したため、builtin への上書きも
+// builtin の文字列出力を廃止したため、builtin への上書きも
 // viewer へ届くようになった。∴ tms と別扱いする理由が無くなり、フォームを共通化した。
 //
 // 上書き可能フィールドの正本は appSourceModel の APP_SOURCE_OVERRIDABLE_KEYS /
 // APP_SOURCE_OWNED_KEYS。各操作子に data-testid="app-source-override-<key>" を付け、
-// smoke（AC7）が宣言テーブルとの一致を機械照合する。
+// smokeが宣言テーブルとの一致を機械照合する。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import EnvelopeEditorModal from "./EnvelopeEditorModal.vue";
@@ -70,15 +70,15 @@ const props = defineProps<{
   fallbackCenter?: [number, number];
   // アプリ対象範囲。利用範囲ピッカーの薄緑ガイド+スナップ対象
   appCoverageLngLats?: [number, number][] | null;
-  // m6-t10: マスタの生 data。**プレースホルダ（上書きしなかった場合に効く値）専用**であり、
-  // マージ結果ではない。null = マスタ欠落（§3.6 で欠落表示になる）
+  // マスタの生 data。**プレースホルダ（上書きしなかった場合に効く値）専用**であり、
+  // マージ結果ではない。null = マスタ欠落（で欠落表示になる）
   masterData?: Record<string, any> | null;
   // #85: アプリのオフライン表示（キャッシュ）が働くか。判定は親（AppEdit の cacheUsable）の 1 か所だけ。
   // 偽のとき「オフライン表示から外す」は不活性にし、理由を ? で出す（値は消さない）
   cacheEnabled?: boolean;
 }>();
 const emit = defineEmits<{
-  // nov26-m6-t4（#26）: source は prop なので子からは書き換えない。変更は新しいオブジェクトを
+  // #26: source は prop なので子からは書き換えない。変更は新しいオブジェクトを
   // 組んで親へ渡す（v-model:source 相当。親は v-for の別名なので @update:source で受ける）
   (e: "update:source", value: AppSource & { thumbnail?: string }): void;
   (e: "change"): void;
@@ -105,12 +105,12 @@ function masterText(key: string): string {
     masterLang.value,
   );
 }
-// ---- 上書きの書き込み（label だけは歴史的にトップレベル。設計 §3.1）----
-// m19-t3: 読み出し側の `readOverride` は唯一の利用者だった isOverridden / scalarValue が
-// 廃止されて未使用になった（vue-tsc の noUnusedLocals が検出）。§4.5 (a) と同じ判断で削除する。
+// ---- 上書きの書き込み（label だけは歴史的にトップレベル）----
+// 読み出し側の `readOverride` は唯一の利用者だった isOverridden / scalarValue が
+// 廃止されて未使用になった（vue-tsc の noUnusedLocals が検出）。と同じ判断で削除する。
 // 読み出しは template が `overrides.xxx` / `source.label` を直接見る形へ一本化されている。
 //
-// nov26-m6-t4（#26）: prop を直接書き換えず、新しいオブジェクトを update:source で渡してから
+// #26: prop を直接書き換えず、新しいオブジェクトを update:source で渡してから
 // change を出す（親の recordHistory が変更後の値を記録する順序は直す前と同じ）。
 // 直す前の形に合わせる: 直す前は builtin / tms の分岐を描くたびに computed が overrides: {} を
 // 生やしていた ∴ maplat 以外のソースは書き込み後に必ず overrides を持つ（空なら {}）。
@@ -135,12 +135,12 @@ function clearOverride(key: string) {
   else if (next.overrides) delete next.overrides[key];
   commitSource(next);
 }
-// 言語別フィールド（m19-t3 以後は label のみ）は LangResourceInput が現在言語で読み書きする
-// （マスタ編集フォームと同一部品・§3.8-8）。保存は編集した言語のみ（設計 §3.5.5）。
+// 言語別フィールド（以後は label のみ）は LangResourceInput が現在言語で読み書きする
+// （マスタ編集フォームと同一部品）。保存は編集した言語のみ。
 // 出力側でマスタとマージされる。
 type LangKey = "label";
 
-// 全言語が空になったら上書きごと解除する（空文字の上書きに意味が無いため。設計 §3.8-2）。
+// 全言語が空になったら上書きごと解除する（空文字の上書きに意味が無いため）。
 // LangResourceInput は全言語が空のとき {} または "" を返すので、そこで解除へ倒す。
 function setLangResource(key: LangKey, value: string | Record<string, string> | undefined) {
   const isEmpty =
@@ -153,7 +153,7 @@ function setLangResource(key: LangKey, value: string | Record<string, string> | 
   }
   // **上書きは必ず言語オブジェクトで保存する。** LangResourceInput は「現在言語＝既定言語 かつ
   // 既存値が文字列でない」ときプレーン文字列を emit するが、それをそのまま保存してはならない。
-  // 交換形の平文は「その文書の既定言語の値」を意味し（ADR-0005・設計 §3.5.5）、
+  // 交換形の平文は「その文書の既定言語の値」を意味し（多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり）、
   // アプリ側の上書きの既定言語は**アプリ文書の lang**、出力時の解釈基準は**マスタの lang** である。
   // 両者が違うソース（例: アプリ ja / builtin osm は lang: "en"）では、平文で保存すると
   // 出力側が en の値として解釈し、ja を上書きしたつもりが en を書き換えてしまう。
@@ -318,9 +318,9 @@ function onEnvelopeUpdate(value: [number, number][] | null) {
   else clearOverride("envelopeLngLats");
 }
 
-// m19-t3: 「存在範囲からコピー」。マスタの存在範囲（coverageLngLats）を利用範囲へ写す。
-// ADR-0004 が退けたのは coverage の**自動継承**であり、ユーザーの明示操作は想定内である
-// （ADR 自身が「usage = coverage は 1 回の大きなドラッグ」と述べている。t3 はそれを 1 クリックにする）。
+// 「存在範囲からコピー」。マスタの存在範囲（coverageLngLats）を利用範囲へ写す。
+// 存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まりが退けたのは coverage の**自動継承**であり、ユーザーの明示操作は想定内である
+// （ADR 自身が「usage = coverage は 1 回の大きなドラッグ」と述べている。この操作子はそれを 1 クリックにする）。
 // 活性条件は BaseMapEdit の「存在範囲から生成」（basemap.generate_icon）の先例に揃え、
 // v-if ではなく :disabled にする（存在範囲を登録すれば使えることを見せる必要があるため）。
 const coverageAvailable = computed(
@@ -343,13 +343,13 @@ function copyCoverageToEnvelope() {
 <template>
   <div>
     <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
-         m6-t10 hotfix (2026-08-07): §3.8-6 の label 操作子移設で maplat 分岐が空になり、
+         hotfix (2026-08-07): label 操作子の移設で maplat 分岐が空になり、
          maplat ソースの label 編集が消えていた退行の復旧。
-         nov26-m6-t4（#108）: maplat にはベースマップのマスタは無いが、viewer はアプリの label が
+         #108: maplat にはベースマップのマスタは無いが、viewer はアプリの label が
          無ければ地図の設定の label を使う。∴ 親が masterData に地図の文書（label / lang）を渡し、
          ベースマップの分岐と同じくその label をプレースホルダに出す。空にする＝label を外す
          （viewer は地図の label へフォールバックする）。testid は override- 接頭辞にしない
-         （AC7 の照合集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
+         （操作子と定数の照合の集合は「マスタ対応の上書き可フィールド」であり、maplat の label は
          マスタとの差分ではないため） -->
     <div v-if="source.sourceType === 'maplat'" class="row g-2 mt-1">
       <div class="col-md-6">
@@ -385,7 +385,7 @@ function copyCoverageToEnvelope() {
       </div>
     </div>
 
-    <!-- m6-t10 §3.6: マスタが引けないソース。削除以外の操作を無効化する -->
+    <!-- マスタが引けないソース。削除以外の操作を無効化する -->
     <DiagnosticFeedback
       v-else-if="masterMissing"
       scope="field"
@@ -395,10 +395,10 @@ function copyCoverageToEnvelope() {
     <!-- builtin / tms: 共通のピンポイント設定 -->
     <div v-else class="row g-2 mt-1">
       <!-- 言語別テキスト欄と帰属・ライセンス欄。**配置順はマスタ編集フォーム（BaseMapEdit:175-250）
-           に揃える**（§3.8-8）: attr → dataAttr → license → licenseNote → dataLicense → dataLicenseNote。
-           clearable = 検索バーと同じ native ×（§3.8-2）。空にする＝マスタへ戻る。
-           アンカーは v-for で回さず**リテラルで書く**（AC7 の抽出は文字列リテラルを要求するため、
-           動的バインドにすると照合から漏れる。設計レビュー round4 Info 1） -->
+           に揃える**（設計の決定）: attr → dataAttr → license → licenseNote → dataLicense → dataLicenseNote。
+           clearable = 検索バーと同じ native ×。空にする＝マスタへ戻る。
+           アンカーは v-for で回さず**リテラルで書く**（操作子と定数の照合の抽出は文字列リテラルを要求するため、
+           動的バインドにすると照合から漏れる。設計レビューの指摘） -->
       <div class="col-md-6">
         <label class="form-label small mb-0">{{ t("appedit.source_label") }}</label>
         <LangResourceInput
@@ -426,10 +426,10 @@ function copyCoverageToEnvelope() {
         </div>
       </template>
 
-      <!-- 利用範囲(envelopeLngLats): base/overlay共通。既定は空で、設定時のみViewerへ渡る(ADR-0004)。
-           m6-t10 §3.8-4: プレースホルダにマスタの存在範囲(coverageLngLats)は出さない。
+      <!-- 利用範囲(envelopeLngLats): base/overlay共通。既定は空で、設定時のみViewerへ渡る(存在範囲はエディタ専用のメタデータとし、利用範囲は明示したときだけ viewer へ渡す決まり)。
+           プレースホルダにマスタの存在範囲(coverageLngLats)は出さない。
            存在範囲と利用範囲は別概念であり、未設定時に効くのは「範囲指定なし」であって存在範囲ではない。
-           v1.4 §3.8-2: 解除は範囲フィルタ方式の×へ揃える（MapList/AppList の範囲フィルタ解除と同型） -->
+           解除は範囲フィルタ方式の×へ揃える（MapList/AppList の範囲フィルタ解除と同型） -->
       <div class="col-12">
         <label class="form-label small mb-0 d-flex align-items-center gap-1">
           {{ t("appedit.envelope") }}
@@ -513,10 +513,10 @@ function copyCoverageToEnvelope() {
           <button type="button" class="btn btn-sm btn-outline-primary" :disabled="translationMode" @click="showEnvelopeModal = true">
             {{ t("appedit.envelope_pick") }}
           </button>
-          <!-- m19-t3: マスタの存在範囲を利用範囲へ写す。存在範囲が未登録でもボタンは見せ、
+          <!-- マスタの存在範囲を利用範囲へ写す。存在範囲が未登録でもボタンは見せ、
                :disabled で不活性にする（BaseMapEdit の「存在範囲から生成」と同じ形）。
                接頭辞は app-source-copy- — envelopeLngLats の補助操作であって独立キーではないため、
-               AC7 の照合集合（app-source-override-*）へは混入させない -->
+               操作子と定数の照合の集合（app-source-override-*）へは混入させない -->
           <button
             type="button"
             class="btn btn-sm btn-outline-primary"
@@ -536,7 +536,7 @@ function copyCoverageToEnvelope() {
     </div>
 
     <!-- #85: オフライン表示から外す（Maplat の地図とベースマップで同じ 1 つの欄）。
-         アプリ所有の値なので testid は override- 接頭辞にしない（AC7 の照合集合に入れない）。
+         アプリ所有の値なので testid は override- 接頭辞にしない（操作子と定数の照合の集合に入れない）。
          アプリのキャッシュが働かないときは不活性にする。? は説明の 1 つだけで、使える条件は説明の文の末尾に書く
          （同じ画面の「オフライン表示（キャッシュ）」の欄と同じ形。赤字にしない） -->
     <div v-if="showNoCache" class="row g-2 mt-1">

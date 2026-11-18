@@ -1,9 +1,9 @@
-// m6-t4b: Google プリセット選択時の帰属・ライセンス・ズーム既定値
+// Google プリセット選択時の帰属・ライセンス・ズーム既定値
 // Vue / i18next 非依存の純粋モジュール。smoke から直接検証する。
 //
 // Minor 吸収:
-// - m1: minZoom / maxZoom はフィールド独立に null のときだけ埋める
-// - m3: 既定 Note 全文は本モジュールの言語テーブルに持ち、isGoogleDefaultNote は全言語分と照合する
+// - minZoom / maxZoom はフィールド独立に null のときだけ埋める
+// - 既定 Note 全文は本モジュールの言語テーブルに持ち、isGoogleDefaultNote は全言語分と照合する
 //       （実行時 t() は現在言語しか返さないため、比較用セットを i18n に依存させない）
 
 import type { LangCode } from "./editorLanguages";
@@ -78,7 +78,7 @@ export function isGoogleDefaultAttr(text: string | undefined | null): boolean {
 
 /**
  * 空文字は「埋めてよい」。非空は全言語の既定 Note のいずれかと一致すれば Google 既定とみなす。
- * （UI 言語切替後も再上書き抑止が効く — design review Minor m3）
+ * （UI 言語切替後も再上書き抑止が効く — design review）
  */
 export function isGoogleDefaultNote(
   text: string | undefined | null,
@@ -106,8 +106,8 @@ export function buildGooglePresetDefaults(defaultLang: LangCode): GooglePresetDe
 }
 
 /**
- * §4.2 上書きポリシーで defaults を doc へマージする。
- * zoom は min/max をフィールド独立に判定する（Minor m1: min のみ null なら min だけ埋める）。
+ * 上書きポリシーで defaults を doc へマージする。
+ * zoom は min/max をフィールド独立に判定する（min のみ null なら min だけ埋める）。
  */
 export function applyGooglePresetDefaults(
   doc: BaseMapEditDocument,
@@ -153,7 +153,7 @@ export function applyGooglePresetDefaults(
     };
   }
 
-  // m1: per-field
+  // per-field
   if (doc.minZoom === null) {
     next.minZoom = defaults.minZoom;
   }

@@ -46,16 +46,16 @@ import { isProviderBaseMapData, isGoogleEditorBasemap, baseMapProviderKindOf, go
 import { computeMercatorShift, applyShiftOverwrite, effectiveShiftOf, isZeroShift, type MercatorShift } from '../utils/basemapAlign';
 import { reserveSequencedSlug } from '../composables/useResourceDuplicate';
 import { isEditableElement } from '../utils/nativeTextUndo';
-// t1 HR-3: Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（§8.1 契約表）。
+// Source 生成時に MaplatCore へ渡す thumbnail の単一解決実装（契約表）。
 // 未指定だと mixin が相対仮置き fetch を行い file:// 配布物で必ず死ぬため
 import { resolveSourceThumbnail } from '../utils/sourceThumbnail';
-// oct26-m4-t2s2: 更新前の版の下書きに残る旧形 url_（file:// / app://local）を、タイル源に渡すときだけ現行形へ
+// 更新前の版の下書きに残る旧形 url_（file:// / app://local）を、タイル源に渡すときだけ現行形へ
 import { displayTileUrl } from '../utils/appUrl';
 import { DEFAULT_MAP_EXPORT_OPTIONS, hasAnyMapExportContent, type MapExportOptions } from '../utils/exportOptions';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
-// m19-t12: サムネイル置換はベースマップ管理と共有する単一実装を通す
+// サムネイル置換はベースマップ管理と共有する単一実装を通す
 import { useThumbnailReplace } from '../composables/useThumbnailReplace';
 import {
     SUPPORTED_LANGUAGES,
@@ -132,7 +132,7 @@ const MERC_CROSSMATRIX = [
 
 // 保存済みslug (基盤設定など旧slugキーのIPCが参照する)。表示中のslug編集値は mapData.mapID
 const mapID = ref('');
-// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (ADR-0007, Phase 4 Task 2)。
+// 保存フロー (revision 楽観ロック) は useRevisionedAssetSave に共通化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // 以下の3値の正本は handle の ref に一本化する:
 //   uid(=mapUid): 不変の正本キー。undefined = 未保存の新規地図
 //   revision: 楽観ロック用。保存時に expectedRevision として送り、保存結果で更新する
@@ -151,7 +151,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     onStart: clearOperationNotice,
     send: async ({ expectedRevision }) => {
         const { saveValue, tins, sendUid, copyFromUid } = pendingSave!;
-        // M11-T7/D5改: UID 維持改名は明示フィールド renameFromSlug で原本(slugキー)改名の
+        // UID 維持改名は明示フィールド renameFromSlug で原本(slugキー)改名の
         // 残作業を引き継ぐ。起点は「最後に完全成功した保存の slug」(mapID ref = applySuccess
         // でのみ更新)であり、DBコミット後のファイル操作失敗→再試行でも失われない。
         const renameFromSlug =
@@ -160,8 +160,8 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         const result = await window.mapedit.save({
             mapObject: JSON.parse(JSON.stringify(saveValue)),
             tins: JSON.parse(JSON.stringify(tins)),
-            // M11-T7/AC6: 新規は事前採番 uid + create 明示合図(§7.2b)で create 経路へ。
-            // M11-T10: 複製(copyFromUid)も同じ create 経路に乗せる。一覧側の slug 予約は
+            // 新規は事前採番 uid + create 明示合図(b)で create 経路へ。
+            // 複製(copyFromUid)も同じ create 経路に乗せる。一覧側の slug 予約は
             // asset_uid=newMapUid 帰属のため、uid を送らない旧 copy 経路(server採番)だと
             // 自分の予約に isSlugAvailable が弾かれて Exist になる(複製保存の自己衝突)。
             uid: sendUid ?? (newMapUid || undefined),
@@ -172,7 +172,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
             ...(sendUid == null && newMapUid ? { create: true } : {}),
         });
         if (!result) {
-            // IPC が結果を返さなかった: エラーを operation 診断へ(M11-T7/AC8)
+            // IPC が結果を返さなかった: エラーを operation 診断へ
             console.error('[saveMap] Save error:', result);
             saveOperationError.value = t('mapedit.error_saving');
             return null;
@@ -196,18 +196,18 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         mapData.value.uid = result.uid;
         mapData.value.revision = result.revision;
         mapData.value.status = 'Update';
-        // M12-T17: 新規原本アップロード直後の保存(tmpCheck)はバックエンドが恒久タイルURLを
+        // 新規原本アップロード直後の保存(tmpCheck)はバックエンドが恒久タイルURLを
         // result.url として返す。originalMapData の cloneDeep(次行)・markHistorySaved(165行)
         // より前に代入しないと、保存済みスナップショットに新しい url_ が反映されず
-        // 保存直後から恒久的に dirty になる(設計レビューv1 Major2 / v2 §1 で実挙動と整合確認済み)
+        // 保存直後から恒久的に dirty になる(設計レビューの指摘。実挙動と整合確認済み)
         if (result.url) mapData.value.url_ = result.url;
         originalMapData.value = cloneDeep(mapData.value);
         markHistorySaved();
         await draftLifecycle.markSaved();
-        // M12-T29: 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、
+        // 複製・新規作成で result.uid が事前採番 draftUid と異なるとき、
         // identity を保存済み行の (uid, revision) へ再構成しないと、その後の編集が
         // 旧 draftUid で persist され、正式データと同一 slug のドラフトが取り残される。
-        // PoiEdit.vue の m11-t10b で確立した markSaved → rebase → flush パターンと同一。
+        // PoiEdit.vue で確立した markSaved → rebase → flush パターンと同一。
         draftLifecycle.rebase(result.uid, result.revision);
         await draftLifecycle.flush();
         // 新規作成・複製で編集対象uidが変わった場合、リロード時に正しい地図を
@@ -215,7 +215,7 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
         if (route.query.uid !== result.uid) {
             router.replace({ query: { ...route.query, uid: result.uid } });
         }
-        // M12-T17: タイル参照が恒久URLへ切り替わったので、タイルソースのみを再生成して
+        // タイル参照が恒久URLへ切り替わったので、タイルソースのみを再生成して
         // 表示に反映する(loadMapTiles() 全体は使わない。exchangeTileSource() の理由は
         // 定義側コメント参照)。url_ 代入・cloneDeep・markHistorySaved 完了後なので dirty 判定は汚さない
         if (result.url) await exchangeTileSource();
@@ -225,18 +225,18 @@ const saveHandle = useRevisionedAssetSave<MapSaveResult>({
     onFailure: async (result) => {
         if (result.result === 'Exist') {
             // 保存レースで slug を先取りされた(field 表示は SlugField が担う)。
-            // M11-T7/AC8: operation 診断へ(旧 info ダイアログ撤去)
+            // operation 診断へ(旧 info ダイアログ撤去)
             saveOperationError.value = t('mapedit.error_duplicate_id');
         } else if ('errorKey' in result && result.errorKey) {
-            // M13-T2 (§5.3/§7, レビュー v1 Minor 5): originals 未対応拡張子など、main 側が
+            // originals 未対応拡張子など、main 側が
             // 契約した errorKey を優先して専用メッセージを表示する(DB未到達の reject はこの分岐)
             console.error('[saveMap] Save error:', result);
             saveOperationError.value = t(result.errorKey);
         } else {
-            // DBコミット後のファイル操作失敗 (Error{revision付き}, ADR-0007) は composable が
+            // DBコミット後のファイル操作失敗 (Error{revision付き}, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり) は composable が
             // uid/revision/confirmedSlug を取り込み済み(偽のrevision-conflict防止)。ここでは通知のみ。
             // 原本改名の残作業は mapID ref(applySuccess でのみ更新)由来の renameFromSlug が
-            // 再試行に引き継ぐ(M11-T7/D5改)
+            // 再試行に引き継ぐ
             console.error('[saveMap] Save error:', result);
             saveOperationError.value = t('mapedit.error_saving');
         }
@@ -293,7 +293,7 @@ const defaultMapData = () => ({
 const mapData = ref<any>({});
 const originalMapData = ref<any>({}); // isDirty 比較用ディープクローン
 
-// M4-T1: Map 側の文書受け入れ関所。外部 (DB / ファイル / 複製元) から来た文書はすべてここを通す。
+// Map 側の文書受け入れ関所。外部 (DB / ファイル / 複製元) から来た文書はすべてここを通す。
 // 現時点で Map は文書の正規化を行わないが、将来ここに正規化を挟んでも pois の温存は
 // acceptDocumentPois が保証する (AppEdit の normalizeAppDocument と同一の関数)。
 // 履歴復帰 (restoreHistoryState) は受け入れ済み文書の内部クローンなのでここを通さない
@@ -301,34 +301,34 @@ const originalMapData = ref<any>({}); // isDirty 比較用ディープクロー�
 // その経路の判定漏れは下の poisGuard (computed) が塞ぐ。
 function setMapDocument(incoming: any): void {
     mapData.value = acceptDocumentPois(incoming, incoming);
-    // M5-T7: main 側で導出済みの url_ と対になる url を記録する（設計 §5.3 の初期化）
+    // main 側で導出済みの url_ と対になる url を記録する（初期化）
     markRuntimeTileUrlDerived();
 }
 
 // pois がエディタ正準形式 (配列) でないかどうか。判定・表示・read-only・書き込み可否は
-// AppEdit と共通の usePoisFormatGuard が唯一の実装 (M4-T1)
+// AppEdit と共通の usePoisFormatGuard が唯一の実装
 const poisGuard = usePoisFormatGuard(() => mapData.value);
 const { unsupported: poisUnsupported, pois: poisForEditor } = poisGuard;
-// M11-T7: mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
+// mapID 欄は共通 SlugField(可用性・予約 lifecycle 内蔵)。旧 onlyOne の手動一意性
 // 確認機構は撤去し、保存時 confirmForSave(予約再確認)へ機構置換した。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugFieldState = ref<SlugFieldState>('idle');
-// M11-T7/AC8: 保存 operation エラー(ID 重複/予約 conflict/保存失敗)。旧 error ダイアログから
+// 保存 operation エラー(ID 重複/予約 conflict/保存失敗)。旧 error ダイアログから
 // DiagnosticFeedback scope="operation" へ移行。編集(履歴 snapshot)で自動的に解消する(F4 同型)
 const saveOperationError = ref<string | null>(null);
-// 新規地図の事前採番 uid (AC6): draft キーと保存 create uid を兼ねる。既存 draftUid が
+// 新規地図の事前採番 uid : draft キーと保存 create uid を兼ねる。既存 draftUid が
 // route にあれば引き継ぐ(hot exit 復元で予約 claim も同じ帰属になる)
 const newMapUid = (typeof route.query.uid === 'string' && route.query.uid && route.query.uid !== 'new')
     ? ''
     : (typeof route.query.draftUid === 'string' ? route.query.draftUid : crypto.randomUUID());
-const copyFromUidSource = ref<string | undefined>(undefined); // M11-T10: 複製元UID
+const copyFromUidSource = ref<string | undefined>(undefined); // 複製元UID
 const mappingUIRow = ref('layer');
-// m1-t2: ベースマップ位置合わせモードの状態（タスク設計 §5.2）。
-// baseMapShifts（保持値）は編集環境ストア map_base_map_shift と同期する（m1-t4・HR-6・C-3 v1.2。
-// HR-4.3 の「非永続」は人間により明示的に逆転された）: 入場時に loadBaseMapShifts が読み込み、
+// ベースマップ位置合わせモードの状態。
+// baseMapShifts（保持値）は編集環境ストア map_base_map_shift と同期する（
+// 以前の「非永続」の方針は人間の判断で逆転された）: 入場時に loadBaseMapShifts が読み込み、
 // 確定・リセットの 2 箇所だけが persistBaseMapShift 経由で即時書き込む（Save 不要）。
 // 相・対象・基準点・Ground Truth はセッション限りのメモリのまま。
-// MapEditHistoryState へは追加しない（undo / redo の対象にしない。AC23）。
+// MapEditHistoryState へは追加しない（undo。redo の対象にしない）。
 const baseMapShifts = ref<Record<string, MercatorShift>>({});     // 保持値。未計測は未登録＝ 0 扱い
 const alignPhase = ref<'P0' | 'P1' | 'P2'>('P0');                 // 相（P0 通常 / P1 基準点 / P2 Ground Truth）
 const alignTargetMapID = ref<string | null>(null);                // P1/P2 の対象ベースマップ
@@ -411,7 +411,7 @@ const currentBaseMapID = ref('osm');
 const baseMapVisibilityList = ref<BaseMapVisibilityItem[]>([]);
 const baseMapVisibilityLoading = ref(false);
 const baseMapVisibilityError = ref('');
-// nov26-editor-feat3: 編集用ベースマップに google を出すための 4 つの状態。
+// google-editor-basemap: 編集用ベースマップに google を出すための 4 つの状態。
 // - editorGoogleKey: エディタで使える Google Maps API キー（未解決は null）
 // - editorGoogleKeyResolved: 「まだ読んでいない」と「読んだがキーが無い」を区別する
 // - rawBaseMapVisibility: フィルタ前の IPC 生返却。キー未設定で隠した google の存在を注記に使う
@@ -425,7 +425,7 @@ const baseMapSearchText = ref('');
 const baseMapFilterRegion = ref<[number, number][] | null>(null);
 const showBaseMapRegionModal = ref(false);
 
-// M12-T10: builtin ベースマップアイコン（OSM/GSI/GSI_ORTHO）の同梱リソース。
+// builtin ベースマップアイコン（OSM/GSI/GSI_ORTHO）の同梱リソース。
 // IPC が basemap_icons/ を resolveBaseMapListImage で解決済みだが、
 // 同梱リソースは vite import で確実にロードできるためフォールバックとして併用（AppEdit.vue:136-140 と同形式）
 const builtinThumbnails: Record<string, string> = {
@@ -434,7 +434,7 @@ const builtinThumbnails: Record<string, string> = {
     gsi_ortho: gsiOrthoThumb,
 };
 
-// M12-T10 v2.0: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
+// v2.0: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
 // 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
 // adapter の bbox 絞り込みに使う。UI は ResourceRangeFilterButton へ一本化（spatial-toggle は #range-filter slot で排他）。
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -451,7 +451,7 @@ const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
 });
 // stable インスタンス（computed で再生成しない）。source() が reactive に最新を返すため、
 // ResourceSelectorList の spatialContext / query watch で再 load される。
-// HM1: 楽観更新で baseMapVisibilityList の item.enabled を in-place 更新するため、
+// 楽観更新で baseMapVisibilityList の item.enabled を in-place 更新するため、
 // adapter の source() は常に最新の reactivity を返す（remount なし）。
 const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     source: () => baseMapVisibilityList.value,
@@ -459,16 +459,16 @@ const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     activeLang: () => mapData.value.lang || 'ja',
 });
 
-// M12-T10 v2.0: 右ペイン（選択済み）= enabled なベースマップ一覧
+// v2.0: 右ペイン（選択済み）= enabled なベースマップ一覧
 const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
 
-// M12-T10 v2.0: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
+// v2.0: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
 // builtin の同梱リソースは builtinThumbnails で確実に解決（AppEdit.vue:1042-1044 と同形式）
 function baseMapThumbnail(item: BaseMapVisibilityItem): string {
     return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
 }
 
-// M12-T10 v2.0: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
+// v2.0: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
 function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     return resolveBaseMapSelectorText(
         { mapID: item.mapID, ...(item.data || {}) },
@@ -476,16 +476,16 @@ function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     );
 }
 
-// M12-T15 (R5): サムネイル管理（512px/52px の置換アップロード + 512px→52px 流用）。
+// サムネイル管理（512px/52px の置換アップロード + 512px→52px 流用）。
 // プレビューは appAssets.fileUrl で 52px / 512px の各所在を解決する（存在しなければ placeholder）。
-// m19-t5: 拡張子は非対称（52px は地図の .jpg 規約のまま / 512px は THUMB_512_EXT が決める）。
+// 拡張子は非対称（52px は地図の .jpg 規約のまま / 512px は THUMB_512_EXT が決める）。
 //
-// m19-t12: 実装本体は useThumbnailReplace（ベースマップ管理と共有する**単一実装**）へ移した。
+// 実装本体は useThumbnailReplace（ベースマップ管理と共有する**単一実装**）へ移した。
 // ここが持つのは注入値だけである。地図は「指し先」を持たない（52px の所在は mapUid からの
-// 規約パス）ため、規則 T2（onPointerMoved）の事例が存在しない。∴ 規則は 1 つ・実装は 1 つで、
+// 規約パス）ため、「指し先の移動は undo の対象にしない」規則（onPointerMoved）の事例が存在しない。∴ 規則は 1 つ・実装は 1 つで、
 // 事例の有無だけが 2 画面の差である。
-//   - 規則 T1: 置換は即時反映の資源操作。保存・undo の対象ではない（地図側は従来からこの意味論）
-//   - 規則 T3: mapUid 未確定（未保存の新規地図）は書き込み先が決まらないため、無言 return を
+//   - 規則 置換は即時反映の資源操作。保存・undo の対象ではない（地図側は従来からこの意味論）
+//   - 規則 mapUid 未確定（未保存の新規地図）は書き込み先が決まらないため、無言 return を
 //              やめて disabled + 理由表示にする
 const {
     thumbnail512Url,
@@ -505,7 +505,7 @@ const {
 });
 watch(mapUid, () => { void refreshThumbnails(); }, { immediate: true });
 
-// M12-T10 v2.0 HM1: 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
+// 楽観更新。旧 setBaseMapVisible と同型（in-place で item.enabled を更新、scroll 保持）。
 // :key remount・baseMapReloadNonce は廃止。エラー時のみ loadBaseMapVisibility() で再取得。
 async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean): Promise<void> {
     if (item.locked || !baseMapVisibilityMapRef()) return;
@@ -520,8 +520,8 @@ async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean):
     }
 }
 
-// M12-T10 v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
-// HM1: :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
+// v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
+// :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
 // ※ 楽観更新中（item.enabled 変更のみ）は配列参照が不変のため watch は発火せず、in-place で更新される。
 //   初回 IPC 読込完了時のみ配列参照が差し替わり watch が発火。
 const baseMapSelectorListRef = ref<{ reload: () => Promise<void> } | null>(null);
@@ -530,22 +530,22 @@ watch(() => baseMapVisibilityList.value, () => {
     void baseMapSelectorListRef.value?.reload();
 }, { deep: false });
 
-// M12-T10 v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
+// v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
-// m6-t5 v1.3: provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
+// v1.3: provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
 // ここでの個別 disabled 制御は持たない
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
 }
 
-// M12-T10 v2.0 HM3: 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
+// 範囲コントロールの状態。manual 設定時 'manual' / GCP auto 存在時 'auto' / それ以外 'none'
 const baseMapRangeState = computed<"none" | "auto" | "manual">(() => {
     if (baseMapFilterRegion.value) return "manual";
     if (gcpAutoRange.bbox.value) return "auto";
     return "none";
 });
 
-// M12-T10 v2.0 HM8: POI 選択の範囲コントロール（ベースマップ選択と同一方針）
+// POI 選択の範囲コントロール（ベースマップ選択と同一方針）
 const poiFilterRegion = ref<[number, number][] | null>(null);
 const showPoiRegionModal = ref(false);
 const poiSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -612,7 +612,7 @@ const kinksCount = computed(() => {
     return tin.kinks?.bakw?.features?.length ?? 0;
 });
 
-// M12-T11 (R4/D1): GCP タブ footer のエラーステータス文言。「エラーなし」(strict) は null で非表示。
+// GCP タブ footer のエラーステータス文言。「エラーなし」(strict) は null で非表示。
 // 文言キーは旧 span 表示のものをそのまま DF section バナーへ移す
 const gcpErrorStatusMessage = computed(() => {
     switch (errorStatus.value) {
@@ -673,7 +673,7 @@ const selectEditorLanguage = (language: LangCode) => {
 };
 
 type MapEditHistoryState = {
-    // M11-T10: 複製元UID (undefined=複製ではない)。保存時のタイル/サムネイル複製と
+    // 複製元UID (undefined=複製ではない)。保存時のタイル/サムネイル複製と
     // draft 復元後の複製継続の両方が依存する
     copyFromUid?: string;
     mapData: any;
@@ -690,7 +690,7 @@ type MapEditHistoryState = {
 const historyStack = ref<UndoStack<MapEditHistoryState> | null>(null);
 const historyReady = ref(false);
 
-// m1-t6-hotfix-1: 履歴診断（E2E 専用）。製品実行時はコストを持ち込まない（設計 §6.5）
+// 履歴診断（E2E 専用）。製品実行時はコストを持ち込まない
 // 露出ゲートは testDebug（:987）と同じ window.isE2E に揃える。
 // preload.ts:242 が MAPLAT_E2E_ROOT の有無で立てるため、製品実行時は常に false になる。
 const historyDiagEnabled = Boolean(import.meta.env.DEV)
@@ -720,7 +720,7 @@ const watchedSnapshotForDiag = (): Record<string, unknown> => ({
 });
 
 /**
- * 履歴ジャーナルへ1件記録する（設計 §6.2）。
+ * 履歴ジャーナルへ1件記録する。
  * 記録主体は常に MapEdit 側であり、useHistorySuppression は onDiagnostic で
  * 事実を報告するだけで journal を直接書かない（INV-6）。
  */
@@ -756,7 +756,7 @@ const journal = (kind: string, originTags: string[] | null, extra: Record<string
     if (historyJournalBuf.length > HISTORY_JOURNAL_LIMIT) historyJournalBuf.shift();
 };
 
-// route query からの初期無効タグ注入（設計 §5.2「初期無効タグの注入経路」）。
+// route query からの初期無効タグ注入（「初期無効タグの注入経路」）。
 // setup 時点で解決するため W3/W4（onMounted 内で走る）にも間に合う。
 // 製品実行時は診断が無効なので query に何が付いていても無視する。
 const initialDisabledScopeTags = (() => {
@@ -768,7 +768,7 @@ const initialDisabledScopeTags = (() => {
 
 const historySuppression = useHistorySuppression({
     disabledTags: initialDisabledScopeTags,
-    // C7: 有効スコープ push の直前に保留中の編集を確定させる（設計 §5.6.2a）。
+    // 有効スコープ push の直前に保留中の編集を確定させる（a）。
     // ここで catch してはならない（composable が捕捉して onDiagnostic で返す契約）。
     onBeforeFirstScope: () => {
         const pending = historySuppression.cancelPendingSnapshot();
@@ -776,7 +776,7 @@ const historySuppression = useHistorySuppression({
         recordHistorySnapshot(historySuppression.mergeOrigin(pending, ['(flush)']));
         journal('flush', pending);
     },
-    // composable → MapEdit の唯一の報告経路（設計 §5.6.6）。journal を書くのはこちら側
+    // composable → MapEdit の唯一の報告経路。journal を書くのはこちら側
     onDiagnostic: (e) => {
         if (e.type === 'schedule') {
             journal('schedule', e.origin, { scopeStack: e.scopeStack });
@@ -794,7 +794,7 @@ const { withoutHistory, withoutHistoryAsync, cancelPendingSnapshot, mergeOrigin,
 const historyRestoring = historySuppression.suppressed;
 
 const captureHistoryState = (): MapEditHistoryState => ({
-    // M11-T10: 複製元UID。draft 経由(hot-exit→復元→保存)でもタイル/サムネイル複製を失わない
+    // 複製元UID。draft 経由(hot-exit→復元→保存)でもタイル/サムネイル複製を失わない
     copyFromUid: copyFromUidSource.value,
     mapData: cloneDeep(mapData.value),
     sub_maps: cloneDeep(sub_maps.value),
@@ -808,7 +808,7 @@ const captureHistoryState = (): MapEditHistoryState => ({
 });
 
 const restoreHistoryState = async (state: MapEditHistoryState) => await withoutHistoryAsync('W1', async () => {
-    // W1（設計 §5.3.1）: 復元。源が復元スナップショットで宛先が ref = 読み込み・再同期（S2）
+    // W1: 復元。源が復元スナップショットで宛先が ref = 読み込み・再同期（S2）
     copyFromUidSource.value = state.copyFromUid;
     mapData.value = cloneDeep(state.mapData);
     sub_maps.value = cloneDeep(state.sub_maps);
@@ -831,13 +831,13 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     // here is only valid for Undo/Redo after the map runtime is ready; initial
     // draft rendering is performed by loadMapTiles() below.
     if (illstMap && mercMap && illstSource) {
-        // M5-T7: 復元された url に対して url_ を作り直してからキーを比較する。
+        // 復元された url に対して url_ を作り直してからキーを比較する。
         // スナップショットが url 編集の途中（url は新しいが url_ は古い）で取られていた場合の
-        // 補正であり、あわせて lastDerivedUrl を復元後の url へ更新する（設計 §5.3(b)）。
+        // 補正であり、あわせて lastDerivedUrl を復元後の url へ更新する。
         // 交換の判断と実行は下に残す（exchange: false）。
         await refreshRuntimeTileUrl((mapData.value?.url ?? '') as string, { applyUrl: false, exchange: false });
-        // m1-t6-hotfix-2: 復元した mapData が指すタイルと表示中のタイルが異なるなら
-        // ソースを再構築する（設計 v1.1 §5.4）。gcpsToMarkers()/updateTin() は
+        // 復元した mapData が指すタイルと表示中のタイルが異なるなら
+        // ソースを再構築する。gcpsToMarkers()/updateTin() は
         // illstSource の座標変換を使うため、必ずそれらより前に行う。
         // 本関数は W1 抑止スコープの内側なので、再構築に伴う書き戻しは履歴へ入らない。
         if (tileIdentityKey(mapData.value) !== illstSourceKey) {
@@ -854,14 +854,14 @@ const initializeHistoryStack = () => {
 };
 
 const resetHistoryBase = () => {
-    // C1（設計 §5.6.2）: 終端廃棄。履歴世代を作り直すため前世代の origin を持ち越さない
+    // 終端廃棄。履歴世代を作り直すため前世代の origin を持ち越さない
     cancelPendingSnapshot();
     initializeHistoryStack();
     if (historyStack.value) historyStack.value.save();
 };
 
 /**
- * 履歴スナップショットを記録する（設計 §5.6.3）。
+ * 履歴スナップショットを記録する。
  * origin は呼び出し側が確定させて渡す（取得と消費の責務分離 = INV-3）。
  * 本関数は composable のタイマー origin を一切参照しない。
  * すべての early return もジャーナルへ記録する（origin は take 済みで残留しえないため、
@@ -878,7 +878,7 @@ const recordHistorySnapshot = (origin: string[]) => {
 };
 
 /**
- * 非同期に着地した編集を、デバウンスを待たずにその場で確定させる（設計 §5.5・§5.6.2 の C3）。
+ * 非同期に着地した編集を、デバウンスを待たずにその場で確定させる。
  * スコープ内から呼んではならない（recordHistorySnapshot は suppressed を尊重するため）。
  */
 const commitHistorySnapshot = () => {
@@ -888,7 +888,7 @@ const commitHistorySnapshot = () => {
 };
 
 const markHistorySaved = () => {
-    // C2（設計 §5.6.2）: 直接確定。保留 origin は破棄せず引き継ぐ
+    // 直接確定。保留 origin は破棄せず引き継ぐ
     const pending = cancelPendingSnapshot();
     recordHistorySnapshot(mergeOrigin(pending, ['(direct)', ...snapshotScope()]));
     if (historyStack.value) historyStack.value.save();
@@ -905,13 +905,13 @@ const draftLifecycle = useAssetDraftLifecycle<MapEditHistoryState>({
     },
 });
 
-// M12-T20 (§6.4): 復元時ガード。draft 復元完了後に mapedit:stagingStatus を照会し、
+// 復元時ガード。draft 復元完了後に mapedit:stagingStatus を照会し、
 // タイル参照先（staging/tmp）が実在しなければ警告ダイアログを表示する。
 // 文言は分岐: savedTilesExist かつ conflict 分岐適用 → draft_already_saved（保存確定直後
 // クラッシュでは保存成功済みのため喪失警告は誤誘導）/ それ以外 → draft_tiles_lost（断定形を
-// 避けた喪失告知 + 再アップロード誘導）。**mapData は書き換えない**（表示のみ。sp-0006:
+// 避けた喪失告知 + 再アップロード誘導）。**mapData は書き換えない**（表示のみ。
 // 読み込み側でのデータ改変はしない。下書き自体も破棄しない — GCP・メタデータは再アップロードで
-// 完全復旧できる。m3-t6「黙って消えない」原則）
+// 完全復旧できる。「黙って消えない」原則）
 const warnIfDraftTilesLost = async (viaConflictApply: boolean) => {
     const url_ = mapData.value?.url_ as string | undefined;
     if (!url_) return;
@@ -930,13 +930,13 @@ const warnIfDraftTilesLost = async (viaConflictApply: boolean) => {
     }
 };
 
-// M12-T20 (§6.4): conflict 分岐の適用は復元時ガードを viaConflictApply=true で通す
+// conflict 分岐の適用は復元時ガードを viaConflictApply=true で通す
 const applyConflictDraft = async () => {
     await draftLifecycle.resolveConflict('apply');
     void warnIfDraftTilesLost(true);
 };
 
-// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+// 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
 useInitialDraftPersist({
     slugState: slugFieldState,
     isNewAsset: () => !mapUid.value,
@@ -944,11 +944,11 @@ useInitialDraftPersist({
 });
 
 const scheduleHistorySnapshot = () => {
-    // F4 同型: 文書の変更で保存時 operation 診断を解消する(M11-T7/AC8)
-    // 抑止中は scheduleWithOrigin が C4（終端廃棄）として処理し fn を呼ばない
+    // F4 同型: 文書の変更で保存時 operation 診断を解消する
+    // 抑止中は scheduleWithOrigin が終端廃棄として処理し fn を呼ばない
     if (!historyRestoring.value && saveOperationError.value) saveOperationError.value = null;
-    // C4（抑止中の終端廃棄）と C5（非抑止時の再スケジュール = origin 合成）は
-    // composable 側が担う（設計 §5.6.2）。発火時に take-and-clear 済みの origin が届く
+    // 抑止中の終端廃棄と、非抑止時の再スケジュール（origin 合成）は
+    // composable 側が担う。発火時に take-and-clear 済みの origin が届く
     historySuppression.scheduleWithOrigin((origin) => recordHistorySnapshot(origin));
 };
 
@@ -1085,7 +1085,7 @@ class Drag extends Pointer {
     }
 }
 
-// 言語別フィールドの内部表現は常にオブジェクト {lang: text} (ADR-0005)。
+// 言語別フィールドの内部表現は常にオブジェクト {lang: text} (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
 // ロード/保存側(SqliteDataService)で正規化されるが、新規作成直後の初期値や
 // 旧形式データに備えてプレーン文字列(=デフォルト言語の値)も防御的に受容する
 const localedGet = (key: string) => {
@@ -1280,7 +1280,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         homePosition,
         mercZoom,
         gcps,
-        // M12-T1: edge 分割 E2E の状態検証と右クリック座標計算用
+        // edge 分割 E2E の状態検証と右クリック座標計算用
         edges,
         illstMapInfo: () => ({ map: illstMap, source: illstSource }),
         mercMapInfo: () => ({ map: mercMap, source: illstSource }),
@@ -1292,9 +1292,9 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         currentEditingLayer,
         baseMapFilterRegion,
         estimateHomeFromGcps,
-        // m1-t6-hotfix-2: タイルソース診断（設計 v1.1 §5.4a）
+        // タイルソース診断（a）
         tileSourceDebug: () => ({ exchangeCount: illstSourceExchangeCount, key: illstSourceKey }),
-        // --- m1-t6-hotfix-1: 履歴診断（設計 §6.1・§6.2） ---
+        // --- 履歴診断 ---
         // UndoStack の pointer/history は private のため、公開 API snapshot() から導出する
         historyDebug: () => {
             const snap = historyStack.value?.snapshot();
@@ -1311,7 +1311,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         historyJournal: () => historyJournalBuf.map((e) => ({ ...e })),
         historyJournalClear: () => { historyJournalBuf.length = 0; },
         historyMark: (label: string) => { historyPhase = label; },
-        // 注入結果の検証用（設計 §6.3。基点測定前にアサートする）
+        // 注入結果の検証用（基点測定前にアサートする）
         historyScopeState: () => ({
             W1: historySuppression.isScopeEnabled('W1'),
             W2: historySuppression.isScopeEnabled('W2'),
@@ -1323,7 +1323,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         // mount 後の補助切り替え。基点測定の主経路ではない（W3/W4 には間に合わない）
         setHistoryScopeEnabled: (tag: string, enabled: boolean) =>
             historySuppression.setScopeEnabled(tag, enabled),
-        // --- m1-t2: ベースマップ位置合わせの E2E 検証用（読み取りスナップショット） ---
+        // --- ベースマップ位置合わせの E2E 検証用（読み取りスナップショット） ---
         basemapAlignDebug: () => {
             const rootLayer = mercMap?.getLayers?.()?.item?.(0);
             const layers = rootLayer?.get?.('layers') || rootLayer?.getLayers?.();
@@ -1351,11 +1351,11 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
                     : [],
             };
         },
-        // 保持値の seed（AC3/AC11 の分離観測用。表示・適用経路は本物を通る）
+        // 保持値の seed（e2e での分離観測用。表示・適用経路は本物を通る）
         seedBaseMapShifts: (shifts: Record<string, { x: number; y: number }>) => {
             baseMapShifts.value = { ...shifts };
         },
-        // AC16 / MIN-3 のレイヤ再構築駆動用
+        // レイヤ再構築駆動用
         refreshBaseMapLayers: () => refreshBaseMapLayers(),
     };
 }
@@ -1371,33 +1371,33 @@ watch(
     { deep: true, flush: 'post' }
 );
 
-// slug(mapID欄) の live 入力 (M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵
-// (excludeUid=自 uid で自分の現 slug は「空き」判定 = ADR-0007 継承)。履歴・draft は
+// slug(mapID欄) の live 入力。可用性確認・予約 lifecycle は SlugField 内蔵
+// (excludeUid=自 uid で自分の現 slug は「空き」判定 = 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの継承)。履歴・draft は
 // mapData の deep watch が拾う(既存の文法どおり)。
 function onMapIDLiveInput(value: string): void {
     mapData.value.mapID = value;
 }
 
-// --- POIデータタブ配線 (Phase 8 Task 2, 43 §2.4) ---
+// --- POIデータタブ配線  ---
 // 器は mapData.pois 配列 (無ければ undefined)。順番変更/上書き/解除/追加は
 // PoiReferenceEditor が配列ごと差し替えの update:pois で返す。書き込みは mapData の
 // deep-watch (scheduleHistorySnapshot) が履歴を拾うため明示 recordHistory は不要。
 // undo/redo/reload による mapData 差し替えは :pois prop 経由で表示へそのまま反映される
 const poiRefEditor = ref<InstanceType<typeof PoiReferenceEditor> | null>(null);
-// M12-T10 v2.0 Min2: mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
+// mapCanonicalBbox / refreshMapCanonicalBbox は dead code として削除
 // （POI spatial は poiSpatialContext へ移行済み、consumer なし）
 
-// M4-T1: 冒頭のガードは AppEdit と同一形。read-only は UI の入口を閉じるだけなので、
+// 冒頭のガードは AppEdit と同一形。read-only は UI の入口を閉じるだけなので、
 // 書き込みの唯一の出口であるここでも未対応形式を弾く (二重防御)。
-// M4-T4: 保存形の決定は AppEdit と完全に同一なので、書き込み側の関所 writeDocumentPois
+// 保存形の決定は AppEdit と完全に同一なので、書き込み側の関所 writeDocumentPois
 // へ寄せた (恒久指示: 同一扱い処理は共通実装へ徹底)。
 function onPoisChange(next: unknown[]) {
     if (!poisGuard.acceptsWrite()) return;
     writeDocumentPois(mapData.value, next, mapData.value.pois);
 }
 
-// m1-t6-hotfix-1: 保留中の編集は「ポインタを動かす前」に確定させる。
-// C7（onBeforeFirstScope）は W1 スコープ進入直前に flush するが、undo/redo 経路では
+// 保留中の編集は「ポインタを動かす前」に確定させる。
+// onBeforeFirstScope は W1 スコープ進入直前に flush するが、undo/redo 経路では
 // その時点で既に historyStack.undo()/redo() がポインタを動かしているため、flush が
 // 移動後の枝へ push して redo 枝を切り捨ててしまう（基点測定で実測）。
 // ここで先に確定させれば、undo は「確定済みの直前状態」へ正しく戻る。
@@ -1422,7 +1422,7 @@ const performRedo = async () => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質レビュー MAJOR-1)
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     if (!(event.metaKey || event.ctrlKey)) return;
     const key = event.key.toLowerCase();
     if (key === 's') {
@@ -1447,7 +1447,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (Phase 8 品質レビュー MAJOR-1)
+    if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
     // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
     if (isEditableElement(document.activeElement)) return;
@@ -1461,7 +1461,7 @@ const onMainProcessMessage = (message: string) => {
 
 /**
  * 旧実装 computed.displayTitle 相当（map.js L.123）
- * タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)へ一元化(M11-T10)
+ * タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)へ一元化
  */
 const displayTitle = computed(() => {
     const title = mapData.value.title;
@@ -1471,8 +1471,8 @@ const displayTitle = computed(() => {
     return title[lang] || '';
 });
 
-// m19-t1: 旧実装由来の zenHankakuLength（全角=2/半角=1 で最大30=全角15文字）は削除した。
-// 1.0.0 の凍結契約 §4.1 によりタイトルの文字数制限を撤廃したため参照が 0 になる。
+// 旧実装由来の zenHankakuLength（全角=2/半角=1 で最大30=全角15文字）は削除した。
+// 1.0.0 の凍結契約 によりタイトルの文字数制限を撤廃したため参照が 0 になる。
 
 /**
  * 旧実装 computed.blockingGcpsError 相当（map.js L.289）
@@ -1500,7 +1500,7 @@ const saveError = computed(() => {
     }
 
     // --- title（タイトル必須）---
-    // m19-t1: 長さ制限（全角15文字）は 1.0.0 の凍結契約 §4.1 により撤廃した。必須検証のみ残す。
+    // 長さ制限（全角15文字）は 1.0.0 の凍結契約 により撤廃した。必須検証のみ残す。
     // 表示ラベル(label)は任意項目であり検証しない
     const rawTitle = mapData.value.title;
     const lang = mapData.value.lang || 'ja';
@@ -1539,7 +1539,7 @@ const imageExtensionCalc = computed(() => {
 });
 
 // mainLayerHash: 旧実装 map.js L.248-254 に準拠（crypto-browserify polyfill 経由で SHA1）
-// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
+// 休眠パネル専用（削除禁止・地図からのタイル生成へ転用予定）
 const mainLayerHash = computed(() => {
     const tin = tinObjects.value[0];
     if (!tin || typeof tin === 'string') return undefined;
@@ -1551,11 +1551,11 @@ const mainLayerHash = computed(() => {
 });
 
 // 旧実装 map.js L.211-213
-// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
+// 休眠パネル専用（削除禁止・地図からのタイル生成へ転用予定）
 const wmtsDirty = computed(() => mapData.value.wmtsHash !== mainLayerHash.value);
 
 // 旧実装 map.js L.172-175 (Tin.STATUS_STRICT = 'strict')
-// M12-T22: 休眠パネル専用（削除禁止・M4-(2)へ転用予定）
+// 休眠パネル専用（削除禁止・地図からのタイル生成へ転用予定）
 const wmtsEditReady = computed(() => {
     const tin = tinObjects.value[0];
     return !!(mainLayerHash.value && wmtsDirty.value &&
@@ -1563,7 +1563,7 @@ const wmtsEditReady = computed(() => {
 });
 
 // 旧実装 map.js L.431-439: csvUploadUiValue 初期値
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const csvUploadUiValue = ref({
     pixXColumn: 1,
     pixYColumn: 2,
@@ -1575,7 +1575,7 @@ const csvUploadUiValue = ref({
 });
 
 // 旧実装 map.js L.176-194
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const csvUpError = computed(() => {
     const uiValue = csvUploadUiValue.value;
     if (uiValue.pixXColumn === uiValue.pixYColumn || uiValue.pixXColumn === uiValue.lngColumn ||
@@ -1594,8 +1594,8 @@ const csvUpError = computed(() => {
     return false as const;
 });
 
-// M12-T11 (R3/C31): CSV インポート状態エラーは DF field へ。コード→文言の写像を一元化
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// CSV インポート状態エラーは DF field へ。コード→文言の写像を一元化
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const csvUpErrorMessage = computed(() => {
     switch (csvUpError.value) {
         case 'column_dup': return t('dataio.csv_error_column_dup');
@@ -1607,7 +1607,7 @@ const csvUpErrorMessage = computed(() => {
 });
 
 // 旧実装 map.js L.198-207
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const csvProjPreset = computed({
     get: () => {
         const projText = csvUploadUiValue.value.projText;
@@ -1681,7 +1681,7 @@ let illstMap: any = null;
 let illstSource: any = null;
 let mercMap: any = null;
 // let mercSource: any = null;
-// m1-t2: 地図面の contextmenu とベースマップの切り替えはモード制御（§5.4 / §6.3）で
+// 地図面の contextmenu とベースマップの切り替えはモード制御で
 // 実行時に enable/disable・renderPanel を呼ぶため、インスタンス参照を保持する
 let illstContextMenu: any = null;
 let baseMapSwitcher: BaseMapSwitcher | null = null;
@@ -1804,7 +1804,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         
         const illst1 = illstSource.xy2SysCoord(gcp1[0]);
         const illst2 = illstSource.xy2SysCoord(gcp2[0]);
-        // §5-7: 対応線（編集中の図形）に縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 対応線（編集中の図形）に縁取りを付ける
         const style = haloLineStyles('red', 2);
 
         const mercCoords = [gcp1[1]];
@@ -2054,7 +2054,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
   }
 };
 
-// m1-t1 (AC5a): 未確定 GCP（gcpIndex === 'new'）の待機解除を、面に依存しない共通実装 1 本へ寄せる。
+// 未確定 GCP（gcpIndex === 'new'）の待機解除を、面に依存しない共通実装 1 本へ寄せる。
 // 未確定マーカーは片面にしか存在しない（gcpsToMarkers の addMarkerToMap は座標が入っている面にしか
 // setMarker しない）ため、待っている側の面で map.getSource('marker') から 'new' を引くと undefined が
 // 返り、removeMarker 先頭の marker.get('gcpIndex') が TypeError になっていた。
@@ -2068,7 +2068,7 @@ const cancelPendingNewGcp = () => {
     gcpsToMarkers();
 };
 
-// m1-t1 (HR-3 / AC6 / AC7): 旧実装 old/frontend/src/mapedit.js:328-343 pairingMarker の parity 復元。
+// 旧実装 old/frontend/src/mapedit.js:328-343 pairingMarker の parity 復元。
 // 両面のビューを当該 GCP の対応点へセンタリングする（ズームは illst = maxZoom - 1 / merc = 17）。
 // 表示専用であり GCP データを変更しない（既存前例: showHomePosition）。
 const pairingMarker = (arg: any) => {
@@ -2089,7 +2089,7 @@ const removeMarker = (arg: any) => {
   const marker = arg.data.marker;
   const gcpIndex = marker.get('gcpIndex');
   if (gcpIndex === 'new') {
-    // m1-t1: 改修後、この分岐へ到達する UI 経路は無い（マーカー削除は F0 × 確定済みマーカーに
+    // 改修後、この分岐へ到達する UI 経路は無い（マーカー削除は F0 × 確定済みマーカーに
     // しか出ず、'new' は必ず F1 / F2 に入る）。黙って消さず、共通実装への委譲として残す。
     cancelPendingNewGcp();
     return;
@@ -2150,7 +2150,7 @@ const removeEdge = (arg: any) => {
     }
 };
 
-// M12-T1: 対応線上への対応点作成（旧版 mapedit.js:405-489 addMarkerOnEdge の移植）。
+// 対応線上への対応点作成（旧版 mapedit.js:405-489 addMarkerOnEdge の移植）。
 // 計算部は src/utils/edgeSplitMath.ts の純粋関数へ分離し、ここでは座標丸め・
 // エラー診断・gcps/edges mutation・再描画を担う。現行契約への適合差分:
 // (a) gcps は3要素 [illst, mercator, layer]、(b) syncLayerData() で永続化、
@@ -2167,7 +2167,7 @@ const addMarkerOnEdge = (arg: any, map: any) => {
     const startEnd = edgeGeom.get('startEnd');
     const edgeIndex = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
     if (edgeIndex < 0) {
-        console.warn('[m12-t1 edge-split] EDGE_NOT_FOUND', startEnd);
+        console.warn('[edge-split] EDGE_NOT_FOUND', startEnd);
         edgeOperationError.value = t('mapedit.edge_error_not_found');
         return;
     }
@@ -2185,10 +2185,10 @@ const addMarkerOnEdge = (arg: any, map: any) => {
     });
     if (!result.ok) {
         if (result.code === 'EDGE_ZERO_LENGTH') {
-            console.warn('[m12-t1 edge-split] EDGE_ZERO_LENGTH', startEnd);
+            console.warn('[edge-split] EDGE_ZERO_LENGTH', startEnd);
             edgeOperationError.value = t('mapedit.edge_error_zero_length');
         } else {
-            console.error('[m12-t1 edge-split] INVALID_COORDINATE_ARRAY', startEnd);
+            console.error('[edge-split] INVALID_COORDINATE_ARRAY', startEnd);
         }
         return;
     }
@@ -2196,13 +2196,13 @@ const addMarkerOnEdge = (arg: any, map: any) => {
         isIllst ? xy : result.thatXy,
         isIllst ? result.thatXy : xy,
     ];
-    // 座標丸め衝突（Minor-2）: 丸め後の新 GCP が既存 GCP と同座標なら mutation なし
+    // 座標丸め衝突: 丸め後の新 GCP が既存 GCP と同座標なら mutation なし
     const collision = gcps.value.some((gcp) =>
         Math.hypot(gcp[0][0] - newGcpPoint[0][0], gcp[0][1] - newGcpPoint[0][1]) < 1e-8 &&
         Math.hypot(gcp[1][0] - newGcpPoint[1][0], gcp[1][1] - newGcpPoint[1][1]) < 1e-8,
     );
     if (collision) {
-        console.warn('[m12-t1 edge-split] GCP_COLLISION', newGcpPoint[0], newGcpPoint[1]);
+        console.warn('[edge-split] GCP_COLLISION', newGcpPoint[0], newGcpPoint[1]);
         return;
     }
     gcps.value.push([newGcpPoint[0], newGcpPoint[1], currentEditingLayer.value]);
@@ -2245,9 +2245,9 @@ const createContextMenu = (map: any) => {
   contextmenu.on('open', (evt: any) => {
     contextmenu.clear();
 
-    // m1-t2 §6.1: P1 / P2 の間は地理面の右クリックが F0 / F1 / F2 のいずれよりも優先する。
+    // P1 / P2 の間は地理面の右クリックが F0 / F1 / F2 のいずれよりも優先する。
     // GCP マーカー・対応線に命中した場合も 1 項目のみ ∴ フィーチャ判定より前に早期 return する
-    // （HR-4.6(f) / HR-4.7(g) の「のみ」）。地図面は §6.2 で操作不可 ∴ 項目を出さない
+    // （要件の「のみ」）。地図面は位置合わせ中は操作不可 ∴ 項目を出さない
     if (alignPhase.value !== 'P0') {
       if (map !== mercMap) return;
       contextmenu.push({
@@ -2268,9 +2268,7 @@ const createContextMenu = (map: any) => {
     });
 
 
-     // m1-t1: フィーチャ命中時の項目構成の正本は
-     // docs/superpowers/specs/2026-08-21-m1-mapedit-contextmenu-and-basemap-align-milestone-design.md §6.1.1
-     // の相別契約表である。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
+     // フィーチャ命中時の項目構成は、設計の相別契約表に従う。相の判定順は旧実装（old/frontend/src/mapedit.js:1016, 1025, 1027）と同じく
      // F1（対応線作図中）→ F2（対応点待機中）→ F0（通常）。F1 / F2 はフィーチャ種別を問わず 1 項目。
      if (feature) {
        const isLine = feature.getGeometry()?.getType() === 'LineString';
@@ -2303,7 +2301,7 @@ const createContextMenu = (map: any) => {
               data: { startEnd: edgeStartEnd },
               callback: (e: any) => removeEdge(e)
           });
-          // M12-T1: 対応線上への対応点作成（旧版は removeEdge と両方 push していた）
+          // 対応線上への対応点作成（旧版は removeEdge と両方 push していた）
           contextmenu.push({
               text: t('mapedit.context_marker_on_line'),
               data: { edge: feature },
@@ -2335,7 +2333,7 @@ const createContextMenu = (map: any) => {
   return contextmenu;
 };
 
-// M11-T10 (人間検証R6): request が添付する compiled 由来の tins を mapData から切り離して取り出す
+// request が添付する compiled 由来の tins を mapData から切り離して取り出す
 const extractCompiledTins = (data: any): any[] | null => {
     const tins = Array.isArray(data?.compiledTins) ? data.compiledTins : null;
     if (data && 'compiledTins' in data) delete data.compiledTins;
@@ -2374,7 +2372,7 @@ let isUnmounted = false;
 let stopActiveTabWatch: (() => void) | undefined;
 
 onMounted(async () => {
-    // 地図編集はuid正準で開く (ADR-0007): /mapedit?uid=<uid>。uid未指定は新規作成
+    // 地図編集はuid正準で開く (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): /mapedit?uid=<uid>。uid未指定は新規作成
     const uid = route.query.uid as string | undefined;
     const isNew = !uid || uid === 'new';
     let requestCompiledTins: any[] | null = null;
@@ -2386,13 +2384,13 @@ onMounted(async () => {
 
     if (isNew) {
         // 新規地図: defaultMap で初期化
-        // M11-T10: duplicateFrom がある場合は元地図から内容を複製
+        // duplicateFrom がある場合は元地図から内容を複製
         const dupFrom = route.query.duplicateFrom as string | undefined;
         if (dupFrom) {
           try {
             const source = await (window as any).mapedit.request(dupFrom);
             if (source) {
-              // M11-T10 (R6): 複製元の compiled tins を種付け用に確保(再計算なしで即保存可能に)
+              // 複製元の compiled tins を種付け用に確保(再計算なしで即保存可能に)
               requestCompiledTins = extractCompiledTins(source);
               // 複製浄化: uid/revision 除去、予約slugで上書き
               delete source.uid;
@@ -2401,7 +2399,7 @@ onMounted(async () => {
               if (!source.status) source.status = 'New';
               const fresh = source;
               fresh.lang = fresh.lang || resolveEditorLanguage(i18next.language);
-              // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+              // W4: mount 時の初期状態構築（S3）
               withoutHistory('W4', () => {
                 setMapDocument(fresh);
                 originalMapData.value = cloneDeep(mapData.value);
@@ -2412,7 +2410,7 @@ onMounted(async () => {
               // fallback to default
               const fresh: any = defaultMapData();
               fresh.lang = resolveEditorLanguage(i18next.language);
-              // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+              // W4: mount 時の初期状態構築（S3）
               withoutHistory('W4', () => {
                 setMapDocument(fresh);
                 originalMapData.value = cloneDeep(mapData.value);
@@ -2422,7 +2420,7 @@ onMounted(async () => {
             console.error("Failed to duplicate map", e);
             const fresh: any = defaultMapData();
             fresh.lang = resolveEditorLanguage(i18next.language);
-            // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+            // W4: mount 時の初期状態構築（S3）
             withoutHistory('W4', () => {
               setMapDocument(fresh);
               originalMapData.value = cloneDeep(mapData.value);
@@ -2457,7 +2455,7 @@ onMounted(async () => {
           fresh.lang = resolveEditorLanguage(i18next.language);
           // 取り込みの中身を入れる前の、空の新規地図を保存済み判定の基準にする。
           // 取り込んだだけでは何も保存していない ∴ 未保存として扱う。
-          // W4（設計 §5.3.1）: mount 時の初期状態構築（S3）
+          // W4: mount 時の初期状態構築（S3）
           withoutHistory('W4', () => {
             setMapDocument(fresh);
             originalMapData.value = cloneDeep(mapData.value);
@@ -2499,7 +2497,7 @@ onMounted(async () => {
               iiifImportWarnings.push(...draftPayload.warnings);
             }
           }
-          // M11-T10 (AC11): MapList のインポート導線から遷移した場合、
+          // MapList のインポート導線から遷移した場合、
           // 新規初期化後に既存の importMap フロー(ファイル選択→展開)を自動起動する
           if (route.query.import === '1') {
             void nextTick(() => { void importMap(); });
@@ -2514,7 +2512,7 @@ onMounted(async () => {
         try {
             const data = await (window as any).mapedit.request(uid);
             if (data) {
-                // M11-T10 (R6): compiled tins を種付け用に確保(compiled 持ちは初回再計算を省く)
+                // compiled tins を種付け用に確保(compiled 持ちは初回再計算を省く)
                 requestCompiledTins = extractCompiledTins(data);
                 // 配れない配信先は地図の源に渡さない（配れない地図として扱う）
                 const delivery = deliveryForSource(data);
@@ -2524,7 +2522,7 @@ onMounted(async () => {
                 if (!data.status) data.status = 'Update';
                 adoptLoaded({ uid: data.uid ?? uid, slug: data.mapID, revision: data.revision });
                 mapID.value = data.mapID;
-                // W4（設計 §5.3.1）: 永続化済み内容の読み込み（S3）
+                // W4: 永続化済み内容の読み込み（S3）
                 withoutHistory('W4', () => {
                     setMapDocument(data);
                     originalMapData.value = cloneDeep(mapData.value);
@@ -2552,7 +2550,7 @@ onMounted(async () => {
     // NOTE: mapData と originalMapData 両方に設定しないと isDirty が常に true になる
     try {
         const wmtsFolder = await (window as any).mapedit.getWmtsFolder();
-        // W3（設計 §5.3.1）: 実行環境のパス注入。originalMapData も同時更新している
+        // W3: 実行環境のパス注入。originalMapData も同時更新している
         // ことがコード上の signature S1（＝編集ではない）である
         withoutHistory('W3', () => {
             mapData.value.wmtsFolder = wmtsFolder;
@@ -2561,7 +2559,7 @@ onMounted(async () => {
     } catch (_e) { /* 取得失敗時はデフォルト空文字のまま */ }
     if (isUnmounted) return;
 
-    // W4（設計 §5.3.1）: mount 時の初期状態構築。起点にユーザ操作が無い（S3）
+    // W4: mount 時の初期状態構築。起点にユーザ操作が無い（S3）
     withoutHistory('W4', () => {
         sub_maps.value = cloneDeep(mapData.value.sub_maps || []);
         gcps.value = cloneDeep(mapData.value.gcps || []);
@@ -2574,16 +2572,16 @@ onMounted(async () => {
     });
     // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
     tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
-    // M11-T10 (R6): compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
+    // compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
     seedTinObjects(requestCompiledTins);
     initializeHistoryStack();
-    // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする
+    // 複製内容はどこにも永続化されていないため dirty 扱いにする
     // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
     if (copyFromUidSource.value) historyStack.value?.markDirty();
     // IIIF の取り込みで中身を入れた新規の地図は、まだ何も保存していない ∴ 未保存として扱う
     // (履歴の起点は取り込む前の空の新規地図。保存するまで保存ボタンを押せる)
     if (iiifImportApplied) historyStack.value?.markDirty();
-    // M11-T7: 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
+    // 新規の draft キー = 事前採番 uid(newMapUid)。予約帰属・create uid と一致させる
     const draftUid = uid && uid !== 'new' ? uid : newMapUid;
     if (isNew && route.query.draftUid !== draftUid) {
         await router.replace({ query: { ...route.query, draftUid } });
@@ -2592,7 +2590,7 @@ onMounted(async () => {
     // open の await 中に unmount された場合は、閉じた画面への下書きの復元適用もしない（PoiEdit と同じ shouldApply）
     const restoreDecision = await draftLifecycle.open(draftUid, revision.value ?? null, { shouldApply: () => !isUnmounted });
     if (isUnmounted) return;
-    // M12-T20 (§6.4): auto-apply で復元された場合の復元時ガード（conflict 分岐は
+    // auto-apply で復元された場合の復元時ガード（conflict 分岐は
     // applyConflictDraft が担う）。表示のみのため mount 続行をブロックしない
     if (restoreDecision === 'auto-apply') void warnIfDraftTilesLost(false);
     window.addEventListener('keydown', onHistoryKeydown);
@@ -2617,15 +2615,15 @@ onMounted(async () => {
                 mercMap?.updateSize();
             });
         } else if (newTab === 'settings') {
-            // nov26-editor-feat3: キーは設定画面（設定 > ベースマップ）で変わるため、タブ切替の
-            // たびに解決してから一覧を作る（設計 §4.3。既存 site と同じ契機に並置する）
+            // google-editor-basemap: キーは設定画面（設定 > ベースマップ）で変わるため、タブ切替の
+            // たびに解決してから一覧を作る（既存 site と同じ契機に並置する）
             void (async () => {
                 await loadEditorGoogleKey();
                 await loadBaseMapVisibility();
             })();
-            void loadBaseMapShifts();  // m1-t4 (HR-6): visibility と同じ site から並置で再読込
+            void loadBaseMapShifts();  // visibility と同じ site から並置で再読込
         }
-        // M12-T10 v2.0 Min2: pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
+        // pois タブの refreshMapCanonicalBbox 呼出は dead code のため削除
     });
 });
 
@@ -2633,7 +2631,7 @@ onBeforeUnmount(() => {
     isUnmounted = true;
     stopActiveTabWatch?.();
     stopActiveTabWatch = undefined;
-    // C6（設計 §5.6.2）: 終端廃棄
+    // 終端廃棄
     cancelPendingSnapshot();
     window.removeEventListener('keydown', onHistoryKeydown);
     removeMainProcessListener?.();
@@ -2718,10 +2716,10 @@ const edgeModifyCondition = (e: any) => {
 const tinStyle = (feature: any) => {
     const type = feature.getGeometry()?.getType();
     if (type === 'Polygon') {
-        // §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
+        // ui-map-overlay-proposal §5-7: TIN の網（参考の図形）。線を 1.5px 以上にして白の縁取りだけを付ける（濃い灰の外線は編集中の図形だけ）
         return haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)', outline: false });
     } else if (type === 'LineString') {
-        // §5-7: 対対応線（編集中の図形）に縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 対対応線（編集中の図形）に縁取りを付ける
         return haloLineStyles('red', 2);
     }
     // Point: kinks（交差エラー点）を黄色ダイヤ型アイコンで表示
@@ -2813,7 +2811,7 @@ const tinResultUpdate = () => {
     }
 };
 
-// M11-T10: 進行中の TIN 計算を保存が待てるように件数を追跡する。
+// 進行中の TIN 計算を保存が待てるように件数を追跡する。
 // 複製直後は dirty で即保存できるため、worker 計算完了前に tins を収集すると
 // compiled が失われ store が gcps 素体へ劣化する(store2HistMap の compiledRequired 警告)。
 let tinComputeActive = 0;
@@ -2883,7 +2881,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
         if (tinComputeActive === 0) tinComputeWaiters.splice(0).forEach((resolve) => resolve());
     }
     tinResultUpdate();
-    // M11-T11 HV-M1: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
+    // 人間検証で見つかった件: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
     // homePosition がある場合は gcpsToMarkers() をもう一度呼び出す。
     // illstSource 未ロード時(保存時force計算等)は edges 描画で落ちるためガードする。
     if (homePosition.value && illstSource) gcpsToMarkers();
@@ -2990,7 +2988,7 @@ x="0px" y="0px" width="10px" height="15px" viewBox="0 0 10 15" enable-background
 
 const initMaps = async () => {
 
-    // 地図の上の部品の名前（aria-label / title）を i18n で渡す（§5-3）
+    // 地図の上の部品の名前（aria-label / title）を i18n で渡す
     const controlLabels = {
         zoomIn: t('mapedit.control_zoom_in'),
         zoomOut: t('mapedit.control_zoom_out'),
@@ -3008,7 +3006,7 @@ const initMaps = async () => {
         ]),
         controls: mapOverlayControlDefaults(controlLabels)
     });
-    // m1-t2 §6.3: P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
+    // P1/P2 で contextmenu.disable() を呼ぶためインスタンスを保持する
     illstContextMenu = createContextMenu(illstMap);
     illstMap.addControl(illstContextMenu);
 
@@ -3017,7 +3015,7 @@ const initMaps = async () => {
     illstBoundsSource = illstBoundsVSrc;
     const illstBoundsLayer = new VectorLayer({
         source: illstBoundsVSrc,
-        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        // ui-map-overlay-proposal §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
         style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     illstBoundsLayer.set('name', 'bounds');
@@ -3052,7 +3050,7 @@ const initMaps = async () => {
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
         condition: edgeModifyCondition,
-        // §5-7: 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
+        // ui-map-overlay-proposal §5-7: 取っ手を編集中の図形の色（赤）にそろえ、縁取りを付ける
         style: editSketchStyleFunction('red')
     });
     illstEdgeModify.on('modifystart', edgeModifyStart);
@@ -3080,8 +3078,8 @@ const initMaps = async () => {
             new Drag()
         ]),
         controls: mapOverlayControlDefaults(controlLabels).extend([
-            // m1-t2 §5.4: setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する。
-            // §5-4: 今の選択の名前を札に出し、クリックで開く
+            // setSwitchableBaseMaps が renderPanel() を呼ぶためインスタンスを保持する。
+            // ui-map-overlay-proposal §5-4: 今の選択の名前を札に出し、クリックで開く
             (baseMapSwitcher = createBaseMapSwitcher({
                 tipLabel: t('mapedit.control_basemap'),
                 labelOf: currentBaseMapLabel
@@ -3095,7 +3093,7 @@ const initMaps = async () => {
     mercBoundsSource = mercBoundsVSrc;
     const mercBoundsLayer = new VectorLayer({
         source: mercBoundsVSrc,
-        // §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
+        // ui-map-overlay-proposal §5-7: 外郭は縁取り付き（白 1.5px の halo と濃い灰の細線）
         style: haloLineStyles('red', 2, { fill: 'rgba(0,0,0,0)' })
     });
     mercBoundsLayer.set('name', 'bounds');
@@ -3124,7 +3122,7 @@ const initMaps = async () => {
     }
     // checkレイヤーはトップレベルに追加
     mercMap.getLayers().push(mercCheckLayer);
-    // m1-t2 C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
+    // C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
     // createContextMenu の layerFilter は marker/edges のみを拾う ∴ このレイヤ上の
     // マーカーを右クリックしても GCP 分岐へ落ちない
     const mercAlignVSrc = new VectorSource({ wrapX: false });
@@ -3188,7 +3186,7 @@ const initMaps = async () => {
     // ベースマップの初期設定
     await setupBaseMaps();
 
-    // 地図の上に重ねる部品を §4.2 の配置へ並べる（左上の一列・右下の帰属表示）
+    // 地図の上に重ねる部品を 配置へ並べる（左上の一列・右下の帰属表示）
     const overlayLabels = { searchAddress: t('mapedit.control_search_address') };
     layoutMapOverlayControls(document.getElementById('illstMap'), document.querySelector('[data-testid="map-overlay-tools-illst"]'), overlayLabels);
     layoutMapOverlayControls(document.getElementById('mercMap'), document.querySelector('[data-testid="map-overlay-tools-merc"]'), overlayLabels);
@@ -3196,21 +3194,21 @@ const initMaps = async () => {
 
 // ... (imports)
 
-// M12-T17 (設計レビューv2 Minor2): mapSourceFactory + exchangeSource のみを行う軽量ヘルパー。
+// mapSourceFactory + exchangeSource のみを行う軽量ヘルパー。
 // loadMapTiles() 全体はこの後 gcps/edges/homePosition 等を「レイヤー0のデータ」として
 // mapData.value から無条件に再代入する(2566行以降、syncLayerData 参照)。保存成功時の
 // タイル参照リフレッシュ(applySuccess)はレイヤー文脈を保ったまま呼ばれる初のケースであり、
 // loadMapTiles() をそのまま使うとサブレイヤー編集中(currentEditingLayer > 0)の gcps.value を
 // レイヤー0データで意図せず上書きしてしまう。タイルソースの差し替えだけが目的の呼び出しは
 // 本ヘルパーを使う(gcps/edges/ビュー中心/updateTin 等には一切触れない)
-// m1-t6-hotfix-2: タイルソースの同一性管理（設計 v1.1 §5.2・§5.3）
+// タイルソースの同一性管理
 // 拡張子の解決を1関数へ集約する。旧実装は mapData.extension を読んでいたが、
-// 当該キーはどこからも書かれず常に undefined だった（latent な死引数。設計 §3.3）。
+// 当該キーはどこからも書かれず常に undefined だった（latent な死引数）。
 const resolveImageExtension = (md: any): string => md?.imageExtension || 'jpg';
 
 // タイル実体の同一性を決めるキー。mapID（スラッグ）と attr（帰属表示）は含めない。
 // 拡張子成分は url_ がある通常経路では冗長だが、url_ 不在で tiles/{mapID}/… を
-// 組み立てる経路では独立した同一性要素になるため残す（設計 §5.2 の注記）。
+// 組み立てる経路では独立した同一性要素になるため残す（注記）。
 // IIIF から配信する地図のキー（url_ を混ぜない。IIIF でなければ null）
 const iiifTileIdentityKey = (md: any): string | null => {
     const delivery = deliveryForSource(md);
@@ -3220,9 +3218,9 @@ const tileIdentityKey = (md: any): string =>
     iiifTileIdentityKey(md) ?? [md?.url_, md?.width, md?.height, resolveImageExtension(md)].join('|');
 
 // 現在 illstSource が構築された時点のキー。exchangeTileSource() の成功時のみ更新する
-// （呼び出し元は :189 保存成功 / loadMapTiles 冒頭 / restoreHistoryState の3経路。設計 §4.1）
+// （呼び出し元は :189 保存成功。loadMapTiles 冒頭。restoreHistoryState の3経路）
 let illstSourceKey: string | null = null;
-// E2E 診断用の成功回数カウンタ（設計 §5.4a）
+// E2E 診断用の成功回数カウンタ（a）
 let illstSourceExchangeCount = 0;
 
 const exchangeTileSource = async (): Promise<any> => {
@@ -3237,10 +3235,10 @@ const exchangeTileSource = async (): Promise<any> => {
         attr: mapData.value.attr,
         noload: true, // HistMap/HistMap_tin を直接生成するためのフラグ
         imageExtension: resolveImageExtension(mapData.value),
-        // t1 HR-3: thumbnail 未指定だと MaplatCore mixin が相対仮置き fetch を行う
+        // thumbnail 未指定だと MaplatCore mixin が相対仮置き fetch を行う
         // （file:// では dist/tmbs/ 宛に解決され必ず失敗）。絶対 URL / noImage を渡して通さない。
         // 同一性キー（tileIdentityKey）には含めない — 同一性は url_/width/height/imageExtension
-        // で決まる現行契約を維持（ADR-0007/0017/0018）
+        // で決まる現行契約を維持（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり・地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり・ベースマップのマスタを正本とし、アプリのソースは上書き差分だけを保存する決まり）
         thumbnail: await resolveSourceThumbnail(mapUid.value || mapID.value)
     };
     if (delivery) {
@@ -3253,12 +3251,12 @@ const exchangeTileSource = async (): Promise<any> => {
     }
     try {
         const source = await mapSourceFactory(options, {});
-        // §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
+        // ui-map-overlay-proposal §5-8: 編集中の地図自身の帰属（mapedit.map_copyright）もソースに載せる
         // （innerHTML で描かれるので escape する。applyIllstAttribution の注記）
         source.setAttributions?.(illstAttributions());
         illstSource = source;
         illstMap.exchangeSource(source);
-        // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる（設計 §5.4）
+        // 成功時のみ更新する。失敗時は key を据え置き、次回の復元で再試行させる
         illstSourceKey = tileIdentityKey(mapData.value);
         illstSourceExchangeCount++;
         return source;
@@ -3268,14 +3266,14 @@ const exchangeTileSource = async (): Promise<any> => {
     }
 };
 
-// M5-T7: url（交換形）→ url_（ランタイム専用）の再導出。
+// url（交換形）→ url_（ランタイム専用）の再導出。
 //
-// なぜ main へ問い合わせるか（設計 §4）: url が空のとき url_ はタイル実体から組み立てる
-// 必要があり、renderer に持ち込むと m5-t3 が1本化した deriveRuntimeTileUrl が3箇所目として
+// なぜ main へ問い合わせるか: url が空のとき url_ はタイル実体から組み立てる
+// 必要があり、renderer に持ち込むと、URL の導出の統一で1本化した deriveRuntimeTileUrl が3箇所目として
 // 復活する。∴ 導出は main（mapedit:deriveRuntimeTileUrl）に閉じたまま呼ぶ。
 //
-// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない
-// （設計 §5.3）。入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
+// lastDerivedUrl は「url_ を最後に導出したときの url」であって「入力欄の直前値」ではない。
+// 入力欄基準にすると履歴復元で失効し、同じ値を再入力したときに早期 return して
 // url と url_ が食い違う ＝ 本タスクが直すはずの症状を新経路で再導入してしまう。
 // ∴ 更新は本関数の中だけで行い、経路 (a)(b) のどちらを通っても必ず更新される形にする。
 let lastDerivedUrl: string | null = null;
@@ -3362,7 +3360,7 @@ const loadMapTiles = async () => {
 
         // 旧実装の mapDataCommon フロー（vueMap.setInitialMap(json) 相当）:
         // mapData から gcps/edges/homePosition を反映
-        // W2（設計 §5.3.1）: 源が mapData・宛先が ref の再同期（S2）。編集ではない。
+        // W2: 源が mapData・宛先が ref の再同期（S2）。編集ではない。
         // setTimeout(...,100) 起動 + タイル source 待ちで着地時刻が不定なため、
         // 抑止しないと undo と redo の間に割り込んで redo 枝を破棄しうる（本不具合の主火種）
         withoutHistory('W2', () => {
@@ -3412,7 +3410,7 @@ const loadMapTiles = async () => {
 
         // マーカーを描画しTINを計算・表示（旧実装の gcpsToMarkers() + tinResultUpdate() 相当）
         gcpsToMarkers();
-        // M11-T10 (R6): compiled 種付け済みレイヤーは再計算せず描画のみ行う
+        // compiled 種付け済みレイヤーは再計算せず描画のみ行う
         // (compiled は再計算を省くための保存形式。無い/素体文字列のときだけ計算する)
         if (!tinObject.value || typeof tinObject.value === 'string') updateTin();
         else tinResultUpdate();
@@ -3449,15 +3447,15 @@ const getVisibleBaseMapID = (): string | null => {
     return visibleLayer?.get?.('mapID') || null;
 };
 
-// 表示設定APIの地図参照 (ADR-0007): 保存済みならuid、未保存はslug(暫定キー。
+// 表示設定APIの地図参照 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): 保存済みならuid、未保存はslug(暫定キー。
 // 初回保存時にmain側がuidキーへ引き継ぐ)
 const baseMapVisibilityMapRef = (): string => mapUid.value || mapID.value;
 
-// nov26-editor-feat3: エディタ用 Google Maps API キーの解決（設計 §4.3）。
+// google-editor-basemap: エディタ用 Google Maps API キーの解決。
 // 地図管理はアプリに属さないため、main の resolvePreviewKey の 3 段から「アプリ単位」を除いた
 // 2 段（editorGoogleApiKey → defaultPublishGoogleApiKey）で解決する。空文字・空白のみは未設定
 // とみなす（electron/services/providerKeyResolution.ts:36-38 の asNonEmpty と同じ規則）。
-// キーの値はログへ出さない（設計 §8）
+// キーの値はログへ出さない
 const asNonEmptyKey = (value: unknown): string | null =>
     typeof value === 'string' && value.trim() ? value.trim() : null;
 
@@ -3480,32 +3478,32 @@ const loadEditorGoogleKey = async () => {
     }
 };
 
-// キー未設定で選択肢から隠している google があるか（理由の注記を出す条件。設計 §4.4）
+// キー未設定で選択肢から隠している google があるか（理由の注記を出す条件）
 const googleHiddenByMissingKey = computed(() =>
     !editorGoogleKey.value
     && rawBaseMapVisibility.value.some((item) => baseMapProviderKindOf(item?.data) === 'google'));
 
 const loadBaseMapVisibility = async () => {
     if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.getBaseMapVisibilityOfMapID) return;
-    // 入場時に未解決なら先に読む（設計 §4.3）。タブ切替では呼び出し側が読み直す
+    // 入場時に未解決なら先に読む。タブ切替では呼び出し側が読み直す
     if (!editorGoogleKeyResolved.value) await loadEditorGoogleKey();
     baseMapVisibilityLoading.value = true;
     baseMapVisibilityError.value = '';
     try {
         const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(baseMapVisibilityMapRef());
-        // m6-t5 v1.3: provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
+        // v1.3: provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
         // 単一投入点で除外する（人間判断 2026-08-05「選択肢に非表示」）。
         // 左右両ペイン（adapter / enabledBaseMaps）と背景レイヤ生成（enabledBaseMapData）の
         // 3消費者すべてにここで効かせる。adapter 側には置かない（二重適用防止）
         //
-        // nov26-editor-feat3（人間依頼 2026-10-21）: 上の人間判断の前提（エディタ背景に使えない）が
+        // google-editor-basemap（人間依頼 2026-10-21）: 上の人間判断の前提（エディタ背景に使えない）が
         // Google については解消したため、規則を「mapbox/maplibre は除外のまま・google はキーが
         // 解決できるときだけ通す」へ改める。除外を 1 か所に閉じる形は変えない
         const raw = Array.isArray(list) ? list : [];
         rawBaseMapVisibility.value = raw;
         baseMapVisibilityList.value = raw
             .filter((item: BaseMapVisibilityItem) =>
-                // 【NOV26-IR-EDITOR-FEAT3-0459 MINOR-1】旧い保存形（kind が無く maptype が google_*）は
+                // 旧い保存形（kind が無く maptype が google_*）は
                 // isProviderBaseMapData に当たらないので、google は provider の判定と別に、キーの条件だけで通す
                 (!isProviderBaseMapData(item?.data) && baseMapProviderKindOf(item?.data) !== 'google')
                 || isGoogleEditorBasemap(item?.data, !!editorGoogleKey.value));
@@ -3517,15 +3515,15 @@ const loadBaseMapVisibility = async () => {
     }
 };
 
-// m22-t1: 実行時専用の url_ は item レベルに来るため、data だけを取り出すと落ちる。
+// 実行時専用の url_ は item レベルに来るため、data だけを取り出すと落ちる。
 // 載せ替えは共通ヘルパー（PoiEditMap.vue と同一実装）に寄せる。
 const enabledBaseMapData = () => baseMapVisibilityList.value
     .filter((item) => item.enabled)
     .map(toBaseMapLayerData);
 
 // =========================================================
-// m1-t2: ベースマップ位置合わせモード（タスク設計 §5〜§6）
-// モード遷移・ボタン文言・バー表示値の正本はマイルストーン設計 §6.2 / §6.2.1
+// ベースマップ位置合わせモード（〜）
+// モード遷移・ボタン文言・バー表示値の正本はマイルストーン/
 // =========================================================
 
 // 地理面ベースマップ Group のレイヤ Collection を返す（group 指定時は未装着の Group を走査できる）
@@ -3536,15 +3534,15 @@ const getBaseMapLayerCollection = (group?: any) => {
 };
 
 // C-4: シフトのソースへの適用は単一実装へ集約する。呼び出し元は
-// (1) setupBaseMaps 末尾（レイヤ再生成後） (2) 確定時（HR-4.8） (3) 相遷移時 のすべて。
-// P1/P2 では対象ベースマップの「実効値」だけを 0 にする。保持値 baseMapShifts は変えない（§5.1）
+// (1) setupBaseMaps 末尾（レイヤ再生成後） (2) 確定時 (3) 相遷移時 のすべて。
+// P1/P2 では対象ベースマップの「実効値」だけを 0 にする。保持値 baseMapShifts は変えない
 const applyBaseMapShifts = (group?: any) => {
     const layers = getBaseMapLayerCollection(group);
     if (!layers) return;
     layers.getArray().forEach((layer: any) => {
         const mapID = layer.get?.('mapID');
         if (!mapID) return;
-        // nov26-editor-feat3（設計レビュー 2026-10-21 MINOR b・設計 §4.5 R3）: Google 源は
+        // google-editor-basemap（設計レビュー 2026-10-21 MINOR b）: Google 源は
         // ol/source/Google がタイル URL を組む（カスタムタイル関数ではない）ため、
         // mercatorXShift を書いても位置は変わらない。11 月は「シフトが効かない」を受け入れ、
         // 保持値を源へ書き込まない（効かない値を載せて「効いている」と誤読させない）
@@ -3559,12 +3557,12 @@ const applyBaseMapShifts = (group?: any) => {
         source.mercatorXShift = shift.x;
         source.mercatorYShift = shift.y;
         // refresh() は revision を進めるだけで、タイル破棄は renderer 側の revision 比較で起きる
-        // （マイルストーン設計 §3.4.1 の 4 段機構。MaplatCore は変更しない = C-7）
+        // （マイルストーン4 段機構。MaplatCore は変更しない = C-7）
         source.refresh();
     });
 };
 
-// m1-t4 (HR-6): 編集環境ストア map_base_map_shift から保持値を読み込む（前例 loadBaseMapVisibility の相似形。
+// 編集環境ストア map_base_map_shift から保持値を読み込む（前例 loadBaseMapVisibility の相似形。
 // 呼び出し site も loadBaseMapVisibility と同じ 2 箇所に並置する）。行が無いベースマップは未登録 = 0 扱い
 const loadBaseMapShifts = async () => {
     if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.getBaseMapShiftsOfMapID) return;
@@ -3574,12 +3572,12 @@ const loadBaseMapShifts = async () => {
             (Array.isArray(rows) ? rows : []).map((r: any) => [String(r.mapID), { x: Number(r.x), y: Number(r.y) }]));
         applyBaseMapShifts();
     } catch (e) {
-        // §4.2 の逸脱宣言: エラー UI は足さない（メモリ値は失敗しても正しい。次回入場時に最後の成功値へ戻るだけ）
+        // 逸脱宣言: エラー UI は足さない（メモリ値は失敗しても正しい。次回入場時に最後の成功値へ戻るだけ）
         console.error('[loadBaseMapShifts] Failed:', e);
     }
 };
 
-// m1-t4 (HR-6): 即時書込。書く side は「確定」と「リセット」の 2 箇所だけ（§5.1）。
+// 即時書込。書く side は「確定」と「リセット」の 2 箇所だけ。
 // メモリ更新（applyShiftOverwrite）が先・IPC は後の楽観更新で、0,0 は main 側が行 DELETE で表現する
 const persistBaseMapShift = (baseMapID: string, shift: MercatorShift) => {
     if (!baseMapVisibilityMapRef() || !(window as any).mapedit?.setBaseMapShiftForMapID) return;
@@ -3587,7 +3585,7 @@ const persistBaseMapShift = (baseMapID: string, shift: MercatorShift) => {
         .catch((e: any) => console.error('[persistBaseMapShift] Failed:', e));
 };
 
-// §5.4: ベースマップ切替候補の制御は title 退避 + renderPanel() の単一機構に寄せる。
+// ベースマップ切替候補の制御は title 退避 + renderPanel() の単一機構に寄せる。
 // ol-layerswitcher の renderLayers_ は if (l.get('title')) で偽値タイトルの層をスキップする
 // （dist/ol-layerswitcher.js:503 実測）∴ title を空にすればラジオごと消える。
 // disabled クラスは見た目にすぎず input を無効化しない（案 γ の却下理由）
@@ -3647,7 +3645,7 @@ watch(() => [mapData.value.attr, currentLang.value], applyIllstAttribution, { de
 watch(currentLang, applyBaseMapTexts);
 
 // 現在の相に応じた切替候補（P0=全許可 / P1=全禁止 / P2=対象以外許可）。
-// setupBaseMaps 末尾からも呼び直す（設計レビュー MIN-3: P1/P2 中の再構築で
+// setupBaseMaps 末尾からも呼び直す（P1/P2 中の再構築で
 // title 退避が失われ切替禁止が解けるのを防ぐ。C-4 と同型の結線）
 const applySwitchableBaseMapsForPhase = () => {
     setSwitchableBaseMaps(
@@ -3656,13 +3654,13 @@ const applySwitchableBaseMapsForPhase = () => {
         : { exclude: alignTargetMapID.value || '' });
 };
 
-// §6.3: 地図面の操作不可（HR-4.6(a) の literal な読み: パン・ズームも止める）。
+// 地図面の操作不可（要件の文字どおりの読み: パン・ズームも止める）。
 // 前例: PoiEditMap.vue の readOnly 処理（modify.setActive(false) + contextmenu.disable()）。
 // MapEdit.vue に setActive の既存呼び出しは無く illstMap の interaction はすべて既定 active
 // ∴ forEach(setActive(true)) で正しく戻る。
-// 呼び出し相（設計レビュー MIN-5 の決着）: P0→P1 で無効化し、P2 でも解除せず、
-// P0 復帰（確定時）で再有効化する。HR-4.6(b) の逐語「完了まで」と
-// マイルストーン設計 §6.2 モード表（P2 の地図面 = 操作不可）に整合させた
+// 呼び出し相（設計レビューで決めた形）: P0→P1 で無効化し、P2 でも解除せず、
+// P0 復帰（確定時）で再有効化する。要件の逐語「完了まで」と
+// マイルストーンモード表（P2 の地図面 = 操作不可）に整合させた
 const setIllstMapInteractive = (on: boolean) => {
     if (!illstMap) return;
     illstMap.getInteractions().forEach((i: any) => i.setActive(on));
@@ -3671,8 +3669,8 @@ const setIllstMapInteractive = (on: boolean) => {
     }
 };
 
-// §6.2: 位置合わせマーカー。同じ alignKind の既存フィーチャを消してから置く
-// ∴ 常に最後の 1 点のみが残る（HR-4.6(g) / HR-4.7(h)）
+// 位置合わせマーカー。同じ alignKind の既存フィーチャを消してから置く
+// ∴ 常に最後の 1 点のみが残る
 const alignMarkerStyle = (kind: 'reference' | 'groundTruth') => {
     const color = kind === 'reference' ? '#1E64C8' : '#C81E1E';
     const svg = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20px" height="24px" viewBox="0 0 20 24" xml:space="preserve">
@@ -3698,7 +3696,7 @@ const clearAlignMarkers = () => {
     mercMap.getSource('basemapAlign')?.clear();
 };
 
-// P1/P2 の地理面右クリックメニュー（1 項目のみ）から呼ばれる（§6.1）
+// P1/P2 の地理面右クリックメニュー（1 項目のみ）から呼ばれる
 const selectAlignPoint = (coordinate: number[]) => {
     const point = [coordinate[0], coordinate[1]];
     if (alignPhase.value === 'P1') {
@@ -3710,8 +3708,8 @@ const selectAlignPoint = (coordinate: number[]) => {
     }
 };
 
-// ベースマップの可視レイヤをプログラム的に切り替える（HR-4.7(b) の OSM 強制と確定時の復帰に使う）。
-// setVisible は §5.7 の change:visible 購読を発火させ currentBaseMapID が追随する
+// ベースマップの可視レイヤをプログラム的に切り替える（OSM 強制と確定時の復帰に使う）。
+// setVisible は OL レイヤの change:visible 購読を発火させ currentBaseMapID が追随する
 const setVisibleBaseMapLayer = (mapID: string) => {
     const layers = getBaseMapLayerCollection();
     if (!layers) return;
@@ -3721,7 +3719,7 @@ const setVisibleBaseMapLayer = (mapID: string) => {
     });
 };
 
-// バー表示（§6.2.1）: 常に「対象ベースマップの保持値」を出す。実効値は出さない。
+// バー表示: 常に「対象ベースマップの保持値」を出す。実効値は出さない。
 // P0 では表示中のベースマップ、P1/P2 では対象ベースマップのもの
 const alignBarMapID = computed(() =>
     alignPhase.value === 'P0' ? currentBaseMapID.value : alignTargetMapID.value);
@@ -3743,41 +3741,41 @@ const alignPhaseButtonDisabled = computed(() =>
     : alignPhase.value === 'P1' ? alignReferencePoint.value === null
     : alignGroundTruth.value === null);
 
-const startBasemapAlign = () => {                       // P0 → P1（HR-4.6）
+const startBasemapAlign = () => {                       // P0 → P1
     if (currentBaseMapID.value === 'osm') return;       // Q1: ボタン disabled と二重の防御
-    alignTargetMapID.value = currentBaseMapID.value;    // Info-5: P0→P1 遷移で現在値を写す（HR-4.6(e)「その時のベースマップ」）
+    alignTargetMapID.value = currentBaseMapID.value;    // P0→P1 遷移で現在値を写す（「その時のベースマップ」）
     alignReferencePoint.value = null;
     alignGroundTruth.value = null;
     alignPhase.value = 'P1';
-    setIllstMapInteractive(false);                      // HR-4.6(a)
-    applySwitchableBaseMapsForPhase();                  // HR-4.6(c)
-    applyBaseMapShifts();                               // HR-4.6(e): 対象の実効値を 0 へ
+    setIllstMapInteractive(false);
+    applySwitchableBaseMapsForPhase();
+    applyBaseMapShifts();                               // 対象の実効値を 0 へ
 };
 
-const finishReferencePhase = () => {                    // P1 → P2（HR-4.7）
+const finishReferencePhase = () => {                    // P1 → P2
     if (alignReferencePoint.value === null) return;
     alignPhase.value = 'P2';
-    setVisibleBaseMapLayer('osm');                      // HR-4.7(b): osm は強制常時有効 ∴ 必ず存在する
-    applySwitchableBaseMapsForPhase();                  // HR-4.7(c): 対象以外へは切替可
-    applyBaseMapShifts();                               // HR-4.7(d): 非対象には保持値・対象は 0 のまま
+    setVisibleBaseMapLayer('osm');                      // osm は強制常時有効 ∴ 必ず存在する
+    applySwitchableBaseMapsForPhase();                  // 対象以外へは切替可
+    applyBaseMapShifts();                               // 非対象には保持値・対象は 0 のまま
 };
 
-// m1-t4 (AC7・恒久指示「同一扱いは共通実装へ」): P1/P2 を離れて P0 へ戻る後始末の単一実装。
+// P1/P2 を離れて P0 へ戻る後始末の単一実装。
 // 確定（finishGroundTruthPhase）とキャンセル（cancelBasemapAlign）の両方がこの 1 本を呼ぶ。
-// 内容は m1-t2 の finishGroundTruthPhase 後半（P0 復帰 8 要素）をそのまま関数抽出したもの
+// 内容は位置合わせモード導入時の finishGroundTruthPhase 後半（P0 復帰 8 要素）をそのまま関数抽出したもの
 const leaveAlignEditPhases = (restoreMapID: string | null) => {
     alignPhase.value = 'P0';
-    clearAlignMarkers();                                // 両マーカーを消す（§6.2）
+    clearAlignMarkers();                                // 両マーカーを消す
     alignReferencePoint.value = null;
     alignGroundTruth.value = null;
-    setIllstMapInteractive(true);                       // MIN-5: P0 復帰で再有効化
+    setIllstMapInteractive(true);                       // P0 復帰で再有効化
     applySwitchableBaseMapsForPhase();
     if (restoreMapID) setVisibleBaseMapLayer(restoreMapID);  // 対象ベースマップへ表示を戻す（P2 の OSM から）
-    applyBaseMapShifts();                               // 保持値の実効値を反映（HR-4.8）
+    applyBaseMapShifts();                               // 保持値の実効値を反映
     alignTargetMapID.value = null;
 };
 
-const finishGroundTruthPhase = () => {                  // P2 → P0（確定。HR-4.8）
+const finishGroundTruthPhase = () => {                  // P2 → P0（確定）
     const reference = alignReferencePoint.value;
     const groundTruth = alignGroundTruth.value;
     const target = alignTargetMapID.value;
@@ -3786,17 +3784,17 @@ const finishGroundTruthPhase = () => {                  // P2 → P0（確定。
     const shift = computeMercatorShift(reference, groundTruth);
     baseMapShifts.value = applyShiftOverwrite(baseMapShifts.value, target, shift);
     leaveAlignEditPhases(target);
-    persistBaseMapShift(target, shift);                 // m1-t4 (HR-6): 確定で即時永続化（メモリが先・IPC は後）
+    persistBaseMapShift(target, shift);                 // 確定で即時永続化（メモリが先・IPC は後）
 };
 
-// m1-t4 (HR-5.3): 編集中（P1/P2）のキャンセル。基準点指定作業を終了して P0 へ戻るだけで、
+// 編集中（P1/P2）のキャンセル。基準点指定作業を終了して P0 へ戻るだけで、
 // シフトの計算・上書き・永続化は一切行わない（保持値不変）
 const cancelBasemapAlign = () => {
     if (alignPhase.value === 'P0') return;
     leaveAlignEditPhases(alignTargetMapID.value);
 };
 
-// m1-t4 (HR-5.2): 非編集時（P0）のリセット。表示中ベースマップの保持値を 0,0 へ（メモリ上書き →
+// 非編集時（P0）のリセット。表示中ベースマップの保持値を 0,0 へ（メモリ上書き →
 // 単一適用 → 即時永続化。0,0 の永続化は main 側で行 DELETE になる = 再入場後も 0）
 const resetBaseMapShift = () => {
     const target = alignBarMapID.value;
@@ -3812,10 +3810,10 @@ const onAlignPhaseButton = () => {
     else finishGroundTruthPhase();
 };
 
-// m1-t4 (HR-5): 第 2 ボタン（相ボタンの一つ左隣）。P0 = リセット / P1・P2 = キャンセル（§5.2 の表が正本）
+// 第 2 ボタン（相ボタンの一つ左隣）。P0 = リセット / P1・P2 = キャンセル（表が正本）
 const alignSecondButtonLabel = computed(() =>
     alignPhase.value === 'P0' ? t('mapedit.basemap_align_reset') : t('mapedit.basemap_align_cancel'));
-// HR-5.2: P0 では保持値 0,0（未登録含む）なら無効。HR-5.3: P1/P2 のキャンセルは常に押せる
+// P0 では保持値 0,0（未登録含む）なら無効。P1/P2 のキャンセルは常に押せる
 // （相ボタンが disabled でも独立して効く）
 const alignSecondButtonDisabled = computed(() => {
     if (alignPhase.value !== 'P0') return false;
@@ -3834,7 +3832,7 @@ const refreshBaseMapLayers = async () => {
     await setupBaseMaps();
 };
 
-// nov26-editor-feat3（設計レビュー 2026-10-21 指示2）: ol/source/Google は constructor から
+// google-editor-basemap（設計レビュー 2026-10-21 指示2）: ol/source/Google は constructor から
 // createSession_() を await せずに開始し、失敗を setState('error') で非同期に扱う
 // （node_modules/ol/source/Google.js:244-252）。∴ createSession_ 内の fetch が reject すると
 // 誰も受け取らず未処理 reject になる（オフライン時にプロセスを汚す）。fetchSessionToken を
@@ -3852,7 +3850,7 @@ const fetchGoogleSessionTokenSafely = async (url: string, config: RequestInit): 
     }
 };
 
-// 失敗文言からキーと URL を伏せる（設計 §8・指示2）。Google の API 応答本文にはキーの値は
+// 失敗文言からキーと URL を伏せる（指示2）。Google の API 応答本文にはキーの値は
 // 載らないが、fetch の失敗メッセージには URL が載り得るため機械的に落とす
 const sanitizeGoogleError = (value: unknown): string =>
     String((value as any)?.message ?? value ?? '')
@@ -3867,7 +3865,7 @@ const watchGoogleSourceState = (source: any, mapID: string) => {
     const onStateChange = () => {
         if (source?.getState?.() !== 'error') return;
         const detail = sanitizeGoogleError(source.getError?.());
-        // コンソールにもキー・URL を出さない（設計 §8）
+        // コンソールにもキー・URL を出さない
         console.warn(`[setupBaseMaps] Google base map failed: ${mapID}${detail ? ` (${detail})` : ''}`);
         googleBaseMapFailure.value = `${t('mapedit.base_map_google_failed')}${detail ? ` ${detail}` : ''}`;
     };
@@ -3883,7 +3881,7 @@ const setupBaseMaps = async () => {
 
     if (baseMapVisibilityList.value.length === 0 && baseMapVisibilityMapRef()) {
         await loadBaseMapVisibility();
-        await loadBaseMapShifts();  // m1-t4 (HR-6): 入場時に編集環境ストアから保持値を読み込む（visibility と並置）
+        await loadBaseMapShifts();  // 入場時に編集環境ストアから保持値を読み込む（visibility と並置）
     }
 
     if (baseMapVisibilityList.value.length > 0) {
@@ -3914,7 +3912,7 @@ const setupBaseMaps = async () => {
         
         // 2. 常時表示ベースマップへフォールバック（PoiEditMap setupBaseMaps の1段目と同一実装。
         //    旧2段目の dev 専用 fetch（ルート直下の一覧 JSON・file:// 配布物で常に死ぬ）は撤去
-        //    （t1 設計 §7.2.1 決着: mapID 無し時の出るべきものは always 一覧＝osm/gsi/gsi_ortho。
+        //    （決着: mapID 無し時の出るべきものは always 一覧＝osm/gsi/gsi_ortho。
         //    恒久指示『同一扱いの処理は共通実装へ徹底』に従い preload API baseMaps.list() を共有）
         if (baseMapList.value.length === 0) {
             try {
@@ -3937,7 +3935,7 @@ const setupBaseMaps = async () => {
         }
     }
 
-    // nov26-editor-feat3: レイヤを作り直すので前回の失敗表示は捨てる（新しい源の失敗で再び立つ）
+    // google-editor-basemap: レイヤを作り直すので前回の失敗表示は捨てる（新しい源の失敗で再び立つ）
     googleBaseMapFailure.value = '';
 
     const layers = await Promise.all([...baseMapList.value].reverse().map(async (tms) => {
@@ -3947,7 +3945,7 @@ const setupBaseMaps = async () => {
             if (['osm', 'gsi', 'gsi_ortho'].includes(tms.mapID)) {
                 source = await mapSourceFactory(tms.mapID, {});
             } else if (isGoogleEditorBasemap(tms, !!editorGoogleKey.value)) {
-                // nov26-editor-feat3（設計 §4.5）: Google はタイル URL を持たない。
+                // google-editor-basemap: Google はタイル URL を持たない。
                 // maptype（google_*）とキーを渡し、ol/source/Google に createSession を開始させる。
                 // url を渡すと baseUrl が汚染され createSession が別ホストへ出る（source_ex.ts:110-116）。
                 // thumbnail も渡さない（Google 源は相対 thumbnail 補完の対象外）
@@ -3970,14 +3968,14 @@ const setupBaseMaps = async () => {
             } else {
                  source = await mapSourceFactory({
                      mapID: tms.mapID || 'custom',
-                     // m22-t1: merc は url が空で保存される。実行時専用の url_ があればそれを使う
+                     // merc は url が空で保存される。実行時専用の url_ があればそれを使う
                      // （空だと MaplatCore が tiles/{mapID}/…jpg を誤補完して 404 になる）
                      url: tms.url_ || tms.url,
                      attr: localizedMeta.attr,
                      maptype: 'base',
                      maxZoom: tms.maxZoom || 18,
                      minZoom: tms.minZoom || 0,
-                     // t1 HR-3: thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
+                     // thumbnail 未指定だと mixin の相対仮置き fetch が発火するため注入。
                      // osm/gsi/gsi_ortho 経由（上の分岐）は source_ex 側で thumbnail 同梱のため不要
                      thumbnail: await resolveSourceThumbnail(tms.mapID)
                  }, {});
@@ -3989,7 +3987,7 @@ const setupBaseMaps = async () => {
 
         if (!source) return null;
 
-        // §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
+        // ui-map-overlay-proposal §5-8: 帰属をソースに載せないと OL の帰属表示が空になり、コントロールごと消える。
         // 旧実装の source.setAttributions(attr) は「mapSourceFactory 側で通常処理される」と
         // 注記して消されていたが、@maplat/core は attr を metadata として持つだけで
         // ol/source の attributions には載せない（source_ex.ts / source/mixin.ts を確認）。
@@ -4010,7 +4008,7 @@ const setupBaseMaps = async () => {
             },
             visible: tms.mapID === (currentBaseMapID.value || 'osm')
         });
-        // m1-t2 §5.7: LayerSwitcher による切替を currentBaseMapID へ追随させる（HR-4.4）。
+        // LayerSwitcher による切替を currentBaseMapID へ追随させる。
         // これは currentBaseMapID の意味を「setupBaseMaps 時点の値」から「現在値」へ変える是正であり、
         // 既存の読み手 2 箇所（再構築時のフォールバック判定・初期 visible 判定）にも現在値のほうが正しい
         tileLayer.on('change:visible', () => {
@@ -4028,8 +4026,8 @@ const setupBaseMaps = async () => {
         layers: validLayers
     });
 
-    // m1-t2 C-4: シフトの実効値を setAt より前に載せる（設計レビュー MIN-4 の決着は
-    // §5.3 の INF-A 注記側 = 「代入した後で setAt する」。差し替え初回の renderFrame が
+    // シフトの実効値を setAt より前に載せる（設計レビューで決めた形は
+    // 「代入した後で setAt する」。差し替え初回の renderFrame が
     // 既に値の載ったソースを読むため、この経路は refresh() の revision 機構に依存しない。
     // レビュアー実測ではどちらの順でも同一同期ブロック内で renderFrame は挟まらないが、
     // 依存を消せる側へ寄せた）
@@ -4039,8 +4037,8 @@ const setupBaseMaps = async () => {
     // インデックス0（デフォルトベースレイヤー）をグループに置き換え
     mapLayers.setAt(0, layerGroup);
 
-    // m1-t2 設計レビュー MIN-3: レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
-    // 再構築が起きると切替禁止（HR-4.6(c)/HR-4.7(c)）が解ける。相に応じて呼び直す
+    // レイヤ再構築は title を新たに載せ直す ∴ P1/P2 中に
+    // 再構築が起きると切替禁止が解ける。相に応じて呼び直す
     applySwitchableBaseMapsForPhase();
     baseMapSwitcher?.refreshLabel();
 };
@@ -4058,7 +4056,7 @@ const changeBaseMap = async () => {
 // =========================================================
 const modalVisible = ref(false);
 const modalText = ref('');
-// M5-T6: modalText と対になる i18n 補間パラメータ。
+// modalText と対になる i18n 補間パラメータ。
 // 更新は必ず**オブジェクトごと差し替える**（プロパティ単位で書き換えると ref の参照が
 // 変わらず ProgressModal 側の computed が再評価されない）
 const modalTextParams = ref<Record<string, unknown> | undefined>(undefined);
@@ -4085,7 +4083,7 @@ const modalProgress = (textKey: string, percent: number, progressText: string, p
 /** vueModal.finish(text) 相当 — 処理完了時に呼ぶ */
 const modalFinish = (textKey: string, params?: Record<string, unknown>) => {
     modalText.value = textKey;
-    // オブジェクトごと差し替える（§10 のリアクティビティ設計）
+    // オブジェクトごと差し替える（リアクティビティ設計）
     modalTextParams.value = params;
     modalEnableClose.value = true;
 };
@@ -4127,7 +4125,7 @@ const mapUpload = async () => {
 
     try {
         // 旧実装: window.mapupload.showMapSelectDialog(t('mapupload.map_image'))
-        // M12-T20 (§5.1): 下書きの asset uid（3529行の asset-uid / 1988行の draft キーと同一値）を
+        // 下書きの asset uid（3529行の asset-uid / 1988行の draft キーと同一値）を
         // 渡し、staging を <draftTileRoot>/<assetUid> に per-draft 化する
         const invokeUpload = (confirmed?: boolean) =>
             (window as any).mapupload.showMapSelectDialog(
@@ -4137,7 +4135,7 @@ const mapUpload = async () => {
             );
         let arg = await invokeUpload();
 
-        // M5-T8 (§5.6/§5.7): 取り込み前の確認。**同じ IPC へ confirmed を載せて再送**する
+        // 取り込み前の確認。**同じ IPC へ confirmed を載せて再送**する
         // （useRevisionedAssetSave の revision 衝突と同形）。main が選択を保持しているため
         // ファイル選択ダイアログは再表示されない。この時点でデコードもタイル化も、
         // staging dir のクリアすらまだ起きていないので、キャンセルの後始末は不要である。
@@ -4160,13 +4158,13 @@ const mapUpload = async () => {
         if (arg.err) {
             if (arg.err !== 'Canceled') {
                 console.error('[mapUpload] Error:', arg.err);
-                // M5-T6 (§6.1): 分岐鍵は arg.prediction の有無。
+                // 分岐鍵は arg.prediction の有無。
                 // prediction は「全部入りか無しか」なので、あれば数値は揃っている。
                 // 無い場合（予測できなかった失敗）は従来どおり汎用文言へ落とす。
                 // 英文メッセージの文字列 parse は renderer では行わない（main 側で errorCode 化済み）。
                 if (arg.errorCode === 'jpeg_machine_limit') {
-                    // M5-T8: この機械では構造的に扱えない。machine は「全部入りか無しか」で
-                    // あり、この errorCode のときは必ず揃っている（設計 §6.2）
+                    // この機械では構造的に扱えない。machine は「全部入りか無しか」で
+                    // あり、この errorCode のときは必ず揃っている
                     modalFinish('mapedit.error_image_machine_limit', {
                         megapixels: Math.round(arg.machine.megapixels),
                         required: arg.machine.requiredHeapMB,
@@ -4203,7 +4201,7 @@ const mapUpload = async () => {
             } else {
                 mapData.value.imageExtension = arg.imageExtension;
             }
-            // U17（設計 §5.5）: await を跨いで着地した編集。直後に W2 を内包する
+            // U17: await を跨いで着地した編集。直後に W2 を内包する
             // loadMapTiles() へ入るため、ここで明示確定しないと履歴に残らない
             commitHistorySnapshot();
             // 旧実装: reflectIllstMap() → gcpsToMarkers() → updateTin()
@@ -4217,9 +4215,9 @@ const mapUpload = async () => {
 };
 
 /**
- * 旧実装: vueMap.$on('saveMap') 相当 (ADR-0007: uid正準 + revision楽観ロック)
+ * 旧実装: vueMap.$on('saveMap') 相当 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: uid正準 + revision楽観ロック)
  * 1. 確認ダイアログ
- * 2. 予約再確認 (M11-T7 confirmForSave。改名は UID 維持の slug 付け替え = AC5、
+ * 2. 予約再確認 (confirmForSave。改名は UID 維持の slug 付け替え =、
  *    複製化確認ダイアログは撤去。複製は T10 の専用導線が copyFromUid 経路を再利用する)
  * 3. mapedit:save IPC を { mapObject, tins, uid?, slug, expectedRevision?, copyFromUid?,
  *    renameFromSlug?, create? } で呼ぶ
@@ -4227,7 +4225,7 @@ const mapUpload = async () => {
  *    useRevisionedAssetSave (saveHandle) が共通処理する
  */
 let mapSaveSucceeded = false;
-// M11-T10 (人間検証R6): 確認後〜performSave 開始までの準備区間(予約再確認・TIN計算待ち)も
+// 確認後〜performSave 開始までの準備区間(予約再確認・TIN計算待ち)も
 // Busy カバー対象にする。saving(useRevisionedAssetSave) は performSave 中しか立たないため
 const preparingSave = ref(false);
 const saveMap = async (): Promise<boolean> => {
@@ -4252,15 +4250,15 @@ const saveMap = async (): Promise<boolean> => {
 };
 
 const saveMapAfterConfirm = async (): Promise<boolean> => {
-    // 2. M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
+    // 2. 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) {
-        // M11-T7/AC8: 予約 conflict は operation 診断で保存中断(D7)
+        // 予約 conflict は operation 診断で保存中断
         saveOperationError.value = t('mapedit.error_duplicate_id');
         return false;
     }
 
-    // M11-T10 (人間検証R5): 複製直後は dirty 即保存が可能なため、TIN 計算完了前に保存すると
+    // 複製直後は dirty 即保存が可能なため、TIN 計算完了前に保存すると
     // compiled が失われ store が gcps 素体へ劣化する。未計算なら現在レイヤーの計算を起動し、
     // 進行中の計算の完了を待ってから tins を収集する。
     if (tinObject.value == null && (gcps.value?.length ?? 0) >= 3) {
@@ -4274,7 +4272,7 @@ const saveMapAfterConfirm = async (): Promise<boolean> => {
     // uid正準の宛先: 既存地図は uid 宛の upsert(改名も同一 uid の slug 付け替え)、
     // 新規は create。copyFromUid 保存経路は温存(導線は T10 複製で再利用)
     const sendUid: string | undefined = mapUid.value ?? undefined;
-    // M11-T10: duplicateFrom で複製した場合、copyFromUid に元地図 UID を設定
+    // duplicateFrom で複製した場合、copyFromUid に元地図 UID を設定
     const copyFromUid: string | undefined = copyFromUidSource.value || undefined;
 
     // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
@@ -4331,7 +4329,7 @@ const reloadFromStore = async () => {
         await nextTick();
         if (data.url_) await loadMapTiles();
         gcpsToMarkers();
-        // M11-T10 (R6): compiled 種付け済みなら再計算せず描画のみ
+        // compiled 種付け済みなら再計算せず描画のみ
         if (!tinObject.value || typeof tinObject.value === 'string') updateTin();
         else tinResultUpdate();
     } catch (e) {
@@ -4354,7 +4352,7 @@ const discardRestoredDraft = async () => {
             message: t('editor_ui.delete_draft_confirm', { name }),
         });
         if (result.response !== 0) return;
-        // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（nov26-m6-t1 #117 E3）
+        // endSession: 遷移で unmount するまでの間の文書の変化で下書きを書き戻さない（#117 E3）
         await draftLifecycle.discard({ endSession: true });
         await router.push({ name: 'MapList' });
         return;
@@ -4370,7 +4368,7 @@ const discardRestoredDraft = async () => {
     await draftLifecycle.discard();
     await reloadFromStore();
     // 保存版を読み直し履歴の基点を戻し終えたので、破棄済みの印を解く（以後の最初の 1 回の編集も
-    // 下書きに残す。nov26-m6-t1 実装レビュー B19-MAJ-1）
+    // 下書きに残す）
     draftLifecycle.endDiscardGuard();
 };
 
@@ -4467,7 +4465,7 @@ const downPriority = () => {
     normalizePriority(arr);
 };
 // 旧実装 map.js L.460-468: QGIS GeoReferencer のデフォルト設定を適用
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const csvQgisSetting = () => {
     csvUploadUiValue.value = Object.assign({}, csvUploadUiValue.value, {
         pixXColumn: 1,
@@ -4480,7 +4478,7 @@ const csvQgisSetting = () => {
 };
 
 // 旧実装: vueMap._updateWholeGcps(gcps) 相当
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 // CSV/インポートで GCP を一括設定する
 const updateWholeGcps = (newGcps: any[]) => {
     if (currentEditingLayer.value === 0) {
@@ -4516,16 +4514,16 @@ const importMap = async () => {
             } else if (arg.err === 'NoTmb') {
                 modalFinish('dataupload.error_no_tmb');
             } else if (arg.err === 'NoJson') {
-                // nov26-m6-t8 (#113): 地図の設定（JSON）を外して書き出した zip
+                // 地図の設定（JSON）を外して書き出した zip
                 modalFinish('dataupload.error_no_json');
             } else if (arg.err === 'TooLarge') {
-                // nov26-m6-t3 (#98): 2 GiB 超。理由の分かる固定文（原文は main のログ）
+                // 2 GiB 超。理由の分かる固定文（原文は main のログ）
                 modalFinish('dataupload.error_too_large');
             } else if (arg.err === 'TooManyEntries') {
                 // 件数か中央ディレクトリの大きさが上限を超えた ZIP（末尾の記録で判定）
                 modalFinish('dataupload.error_too_many_entries');
             } else if (arg.err === 'Corrupt') {
-                // nov26-m6-t3 (#116): adm-zip・zlib の読み取りの例外。原文は出さない
+                // adm-zip・zlib の読み取りの例外。原文は出さない
                 modalFinish('dataupload.error_corrupt');
             } else {
                 console.error('[importMap]', arg.err);
@@ -4535,7 +4533,7 @@ const importMap = async () => {
             modalFinish('dataupload.success_upload');
             // 旧実装: mapDataCommon(arg[0], arg[1]) 相当
             const { mapData: histMap, tins: compiledTins } = arg;
-            // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (ADR-0007)
+            // インポートで新規作成された地図のuid/revision/slugを正本として追跡 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
             adoptLoaded({ uid: histMap.uid, slug: histMap.mapID, revision: histMap.revision });
             mapID.value = histMap.mapID;
             setMapDocument(histMap);
@@ -4561,7 +4559,7 @@ const importMap = async () => {
             // タイル・マーカー反映
             if (histMap.url_) await loadMapTiles();
             gcpsToMarkers();
-            // M3-T6 §5.2 (AC6-2): 非参照 object 要素 (地図内定義型 POI) を含む zip のインポート
+            // 非参照 object 要素 (地図内定義型 POI) を含む zip のインポート
             // 成功時にアラートを出す (既存 info ダイアログ文法)。検出は object のみ — URL 文字列は
             // 変換導線が存在しないため対象外 (案内先のない要素で出すのは誤誘導になる)。
             // 既存 DB 内データへの遡及通知は行わない (zip インポート時のみ)
@@ -4570,7 +4568,7 @@ const importMap = async () => {
                     type: 'info', message: t('mapedit.import_inline_poi_alert')
                 });
             }
-            // M5-T4B (人間検証 2026-08-03): 取込のホストになった新規エディタの下書きを畳む。
+            // 取込のホストになった新規エディタの下書きを畳む。
             //
             // 取込導線は /mapedit?new=1&import=1 で **新規エディタ**を開くため、mount 時に
             // newMapUid が採番され draftLifecycle がその identity で開かれる。取込が成功すると
@@ -4579,7 +4577,7 @@ const importMap = async () => {
             // 取り込んだ地図とは別に baseRevision:null の下書き（＝一覧に下書きカードとして出る）
             // が1件生まれていた。実測では取込完了の約1.8秒後に出現する。
             //
-            // 保存経路 (:174-183) が M12-T29 で確立した
+            // 保存経路 (:174-183) が保存後の後片付けの整理で確立した
             //   originalMapData 更新 → markHistorySaved → markSaved → rebase → flush
             // と同一手順を踏む。originalMapData は上で更新済みのため残り4つをここで行う。
             // markHistorySaved を省くと dirty が残り、rebase 後の identity で
@@ -4614,11 +4612,11 @@ const chooseMapExport = async (hasSaved: boolean) => {
 };
 
 // 保存済み正本だけを入力にし、編集中state/draftを直接出力しない。
-// M13-T1 (§2.8): previewSource()(strict throw あり)+download() の2段呼び出しから、
+// previewSource()(strict throw あり)+download() の2段呼び出しから、
 // strict-freeな新IPC mapedit:download-saved(mapRef) の単一呼び出しへ切替える。
 // tins組み立てロジックはserver側(MapPurposeService.downloadSavedMap())へ移管したため削除
-// nov26-m6-t8（#113・HR-19）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
-// （選択を覚えない。HR-19「まずはこの形。改善は使ってから」）
+// （#113）: 書き出す中身の選択。開くたびに既定（タイル・JSON あり、原画像なし）へ戻す
+// （選択を覚えない。人間の判断「まずはこの形。改善は使ってから」）
 const mapExportOptionsVisible = ref(false);
 const mapExportOptions = ref<MapExportOptions>({ ...DEFAULT_MAP_EXPORT_OPTIONS });
 const mapExportOptionsSelectable = computed(() => hasAnyMapExportContent(mapExportOptions.value));
@@ -4691,7 +4689,7 @@ const exportMap = async () => {
     }
 };
 
-// m6-t8 §3.8/§3.9: メルカトルタイル生成フロー本体（targetBaseMapUid 確定後の実処理）。
+// メルカトルタイル生成フロー本体（targetBaseMapUid 確定後の実処理）。
 interface MercGenerationTarget {
     mode: 'new' | 'existing';
     uid: string;
@@ -4704,9 +4702,9 @@ const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
 const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
-// 実装レビュー round3 M-6: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
+// 実装レビューの指摘: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
 const mercDefaultAttr = computed(() => attr.value);
-// 実装レビュー round3 M-3: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
+// 実装レビューの指摘: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
 // 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
 const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
 const MERC_SLUG_SUFFIX = '-merc';
@@ -4721,7 +4719,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
         modalProgress(progress.text, progress.percent, progress.progress);
     });
     try {
-        // m6-t8 §3.3: targetBaseMapUid は引数列の末尾（design review m-1: 隣接 string 引数との取り違え防止）
+        // targetBaseMapUid は引数列の末尾（design review m-1: 隣接 string 引数との取り違え防止）
         const arg = await window.wmtsGen.generate(
             mapData.value.uid,
             mapData.value.mapID,
@@ -4734,7 +4732,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
         );
         if (arg.err || !arg.tileJson) {
             console.error('[generateMercTileSet]', arg.err);
-            // 実装レビュー M-2: JPEG デコード予算超過を、画像アップロード（:3311-3333）と同型で
+            // 実装レビューの指摘: JPEG デコード予算超過を、画像アップロード（:3311-3333）と同型で
             // 差別化表示する。分岐鍵は arg.errorCode（未知/未設定は従来どおり汎用文言）
             if (arg.errorCode === 'jpeg_machine_limit' && arg.machine) {
                 modalFinish('mapedit.error_image_machine_limit', {
@@ -4759,14 +4757,14 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
             }
             return;
         }
-        // 旧実装 wmtsGenerate() と同じ: wmtsHash フィールド名は不変(ADR-0015)。U22 (§5.5) の
+        // 旧実装 wmtsGenerate() と同じ: wmtsHash フィールド名は不変(公開するパスは merc と呼び、エディタのコードは wmts の綴りを残す決まり)。旧実装の
         // await 跨ぎ確定パターンも踏襲する
         mapData.value.wmtsHash = arg.hash;
         commitHistorySnapshot();
         const coverageLngLats = bboxToEnvelope(arg.tileJson.bounds);
         const lang = mapData.value.lang || 'ja';
         if (target.mode === 'new') {
-            // 実装レビュー round3 M-6: 元地図の帰属・ライセンスを既定値として継承する
+            // 実装レビューの指摘: 元地図の帰属・ライセンスを既定値として継承する
             // （BaseMapEdit.vue の既存編集フォームで差し替え可能）。attr のみモーダルに手入力欄が
             // あるため、非空ならその言語スロットだけ上書きし、他言語スロットは元地図の値を保つ
             const inheritedAttr = cloneDeep(mapData.value.attr) || {};
@@ -4821,11 +4819,11 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
 }
 
 // 旧実装: vueMap.$on('wmtsGenerate') 相当
-// M12-T22: 本ロジックはm6-t8でMapEdit.vueの新規「メルカトルタイル」タブから到達可能になった
-// （M12-T22が転用予定としていたM4-(2)に対応）。関数名(wmtsGenerate)は維持し、呼び出し元の
-// ボタンのみ休眠inoutタブから新規mercタブへ移設した（設計 §3.2）。有効条件: wmtsEditReady
+// 本ロジックはMapEdit.vueの新規「メルカトルタイル」タブから到達可能になった
+// （以前から転用を予定していた地図からのタイル生成に対応）。関数名(wmtsGenerate)は維持し、呼び出し元の
+// ボタンのみ休眠inoutタブから新規mercタブへ移設した。有効条件: wmtsEditReady
 // 「生成」ボタン押下時: 既存 merc マスタ(この地図由来)を window.baseMaps.list() のclient-side
-// フィルタで取得する(新規IPCなし。m6-t9の前例に倣う)。0件なら黙って新規作成、1件以上ならモーダルで選ばせる
+// フィルタで取得する(新規IPCなし。provider-followups の前例に倣う)。0件なら黙って新規作成、1件以上ならモーダルで選ばせる
 async function wmtsGenerate(): Promise<void> {
     if (!mapData.value.uid) return;
     const list = await window.baseMaps.list();
@@ -4837,7 +4835,7 @@ async function wmtsGenerate(): Promise<void> {
         slug: item.mapID,
     }));
     if (matched.length === 0) {
-        // 実装レビュー round3 M-4: モーダルを介さない自動作成経路には SlugField の
+        // 実装レビューの指摘: モーダルを介さない自動作成経路には SlugField の
         // 生存中衝突検査が無い。base_maps.slug は TEXT NOT NULL UNIQUE のため、
         // slugSequence の既存4系統目として "-merc" を使い、衝突時は連番（-merc2…）へ回す
         // （(a) "-copy" / (b) "-poi" / (c) import 衝突採番と同じ reserveSequencedSlug 実装を共有）。
@@ -4874,7 +4872,7 @@ async function onMercCreateNew(payload: { uid: string; slug: string; title: stri
 }
 
 // 旧実装: vueMap.$on('uploadCsv') 相当
-// M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+// 休眠パネル専用（削除禁止・あとで再編予定）
 const uploadCsv = async () => {
     // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
@@ -4911,7 +4909,7 @@ const uploadCsv = async () => {
 
 const goBack = async () => {
     await draftLifecycle.flush();
-    // m12-t31: 一覧への遷移は navigateBackToList（router.push 一本）に統一する
+    // 一覧への遷移は navigateBackToList（router.push 一本）に統一する
     // （preview iframe 内の Maplat viewer が joint session history を汚染するため）。
     await navigateBackToList(router, '/maplist');
 };
@@ -4936,7 +4934,7 @@ const goBack = async () => {
             :enable-close="modalEnableClose"
             @close="modalHide"
         />
-        <!-- nov26-m6-t8（#113・HR-19）: 書き出す中身の選択。ビジー表示（z-index 1040）より前面の .modal（1055） -->
+        <!-- （#113）: 書き出す中身の選択。ビジー表示（z-index 1040）より前面の .modal（1055） -->
         <div v-if="mapExportOptionsVisible" class="modal show d-block" tabindex="-1" role="dialog" aria-modal="true"
              data-testid="map-export-options">
             <div class="modal-dialog modal-dialog-centered">
@@ -4949,7 +4947,7 @@ const goBack = async () => {
                             <input id="mapExportOptionTiles" type="checkbox" class="form-check-input"
                                    data-testid="map-export-option-tiles" v-model="mapExportOptions.tiles" />
                             <label class="form-check-label" for="mapExportOptionTiles">{{ t('mapedit.export_option_tiles') }}</label>
-                            <!-- nov26-editor-export-wording: 「タイル」の説明は既存の ? ヘルプ（ContextHelp）で出す -->
+                            <!-- 「タイル」の説明は既存の ? ヘルプ（ContextHelp）で出す -->
                             <ContextHelp
                                 :text="t('mapedit.export_option_tiles_help')"
                                 :ariaLabel="t('mapedit.export_option_tiles_help')"
@@ -4984,7 +4982,7 @@ const goBack = async () => {
             </div>
         </div>
         <div v-if="mapExportOptionsVisible" class="modal-backdrop show"></div>
-        <!-- M11-T10 (R6): 保存準備区間(予約再確認・TIN計算待ち)もカバーする -->
+        <!-- 保存準備区間(予約再確認・TIN計算待ち)もカバーする -->
         <EditorBusyOverlay
             :visible="saving || preparingSave || exporting"
             :label="saving || preparingSave ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
@@ -5022,7 +5020,7 @@ const goBack = async () => {
         </EditorActionHeader>
     <OperationNotice />
 
-        <!-- M11-T7/AC8: 保存 operation エラー(予約 conflict/ID 重複/保存失敗)は
+        <!-- 保存 operation エラー(予約 conflict/ID 重複/保存失敗)は
              DiagnosticFeedback scope="operation"(旧 error ダイアログから移行) -->
         <DiagnosticFeedback
             v-if="saveOperationError"
@@ -5031,7 +5029,7 @@ const goBack = async () => {
             :items="[{ key: 'save-error', severity: 'danger', message: saveOperationError }]"
             @dismiss="saveOperationError = null"
         />
-        <!-- M12-T1: 対応線操作のエラー（EDGE_NOT_FOUND/ZERO_LENGTH）は operation 診断で表示 -->
+        <!-- 対応線操作のエラー（EDGE_NOT_FOUND/ZERO_LENGTH）は operation 診断で表示 -->
         <DiagnosticFeedback
             v-if="edgeOperationError"
             scope="operation"
@@ -5040,7 +5038,7 @@ const goBack = async () => {
             @dismiss="edgeOperationError = null"
         />
 
-        <!-- 2. Tabs (M11-T7/AC9: EditorTabs primitive + §9 語彙。gcpsEditReady の
+        <!-- 2. Tabs (EditorTabs primitive + 共通の語彙。gcpsEditReady の
              disabled/aria/tabindex は EditorTabs の disabled 機構が担う) -->
         <div class="px-4 mt-2">
             <EditorTabs
@@ -5062,15 +5060,15 @@ const goBack = async () => {
             <!-- Tab: Metadata (Full Page Form) -->
             <div v-show="activeTab === 'metadata'" class="h-100 overflow-auto p-3">
                 <form class="container-fluid" @submit.prevent>
-                    <!-- Row 1 (M11-T7/AC7・§18b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
+                    <!-- Row 1 (b決定2): 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-5">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_title_label") }} <LangValueChips :model-value="mapData.title" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_title_desc')" :ariaLabel="t('mapedit.map_title_desc')" /></div>
                             <input data-testid="map-title" type="text" class="form-control form-control-sm" :class="saveError?.title ? 'is-invalid' : ''" v-model="title" :placeholder="t('mapedit.map_title_pf')">
-                            <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
+                            <!-- field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.title" scope="field" :items="[{ key: 'title-required', severity: 'danger', message: saveError.title }]" />
                         </div>
-                        <!-- Map ID フィールド (M11-T7/AC1/AC5): 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
+                        <!-- Map ID フィールド : 共通 SlugField(可用性診断+予約 lifecycle 内蔵)。
                              手動一意性確認ボタンは撤去。改名は UID 維持の slug 付け替え(保存時に
                              renameFromSlug で原本改名の残作業を引き継ぐ) -->
                         <div class="col-md-4">
@@ -5138,7 +5136,7 @@ const goBack = async () => {
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_display_label") }} <LangValueChips :model-value="mapData.label" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.display_label')" :ariaLabel="t('field_help.display_label')" /></div>
                             <input data-testid="map-label" type="text" class="form-control form-control-sm" v-model="label">
                         </div>
-                        <!-- m19-t1: 正式名欄(廃止属性)は削除した。空いた列に他の欄を繰り上げない
+                        <!-- 正式名欄(廃止属性)は削除した。空いた列に他の欄を繰り上げない
                              (レイアウト再編は別タスクの射程であり、本タスクは名称の統一に限る) -->
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_author") }} <LangValueChips :model-value="mapData.author" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('mapedit.map_author_desc')" :ariaLabel="t('mapedit.map_author_desc')" /></div>
@@ -5167,12 +5165,12 @@ const goBack = async () => {
                         </div>
                     </div>
 
-                    <!-- Row 4 (m6-t2): 地図画像の帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
+                    <!-- Row 4 : 地図画像の帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_copyright") }} <LangValueChips :model-value="mapData.attr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.image_attribution')" :ariaLabel="t('field_help.image_attribution')" /></div>
                             <input data-testid="map-attr" type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
-                            <!-- M11-T10 (人間検証R4): field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
+                            <!-- field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
                         </div>
                         <div class="col-md-4">
@@ -5185,7 +5183,7 @@ const goBack = async () => {
                         </div>
                     </div>
 
-                    <!-- Row 4b (m6-t2): データの帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
+                    <!-- Row 4b : データの帰属・ライセンス・補足（レビュー指摘で 2行×3列 に再構成） -->
                     <div class="row g-1 mb-2">
                         <div class="col-md-4">
                             <div class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_gcp_copyright") }} <LangValueChips :model-value="mapData.dataAttr" :active-lang="currentLang" :default-lang="mapData.lang || 'ja'" :language-options="SUPPORTED_LANGUAGES" @select-language="selectEditorLanguage" /> <ContextHelp :text="t('field_help.data_attribution')" :ariaLabel="t('field_help.data_attribution')" /></div>
@@ -5246,7 +5244,7 @@ const goBack = async () => {
                         </div>
                     </div>
 
-                    <!-- M12-T15 (R5): サムネイル管理セクション -->
+                    <!-- サムネイル管理セクション -->
                     <div class="row g-2 mt-2">
                         <div class="col-12">
                             <div class="card">
@@ -5272,12 +5270,12 @@ const goBack = async () => {
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-512" :disabled="thumbnailReplaceDisabled" @click="replaceThumbnail('512')">{{ t("mapedit.thumbnail_replace_512") }}</button>
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="thumbnail-replace-52" :disabled="thumbnailReplaceDisabled" @click="replaceThumbnail('52')">{{ t("mapedit.thumbnail_replace_52") }}</button>
                                             </div>
-                                            <!-- m19-t12 規則 T3: 書き込み先キーが未確定な理由を、押す前に見せる -->
+                                            <!-- 規則 書き込み先キーが未確定な理由を、押す前に見せる -->
                                             <DiagnosticFeedback v-if="thumbnailReplaceDisabledReason" scope="section" :items="[{ key: 'thumb-disabled', severity: 'info', message: thumbnailReplaceDisabledReason }]" />
                                             <DiagnosticFeedback v-if="thumbnailError" scope="section" :items="[{ key: 'thumb-error', severity: 'danger', message: thumbnailError }]" />
                                         </div>
                                     </div>
-                                    <!-- m19-t12 規則 T1: ベースマップ管理と同一の i18n キーで同一文言を出す -->
+                                    <!-- 規則 ベースマップ管理と同一の i18n キーで同一文言を出す -->
                                     <DiagnosticFeedback scope="field" :items="[{ key: 'thumbnail-immediate', severity: 'warning', message: t('editor_ui.thumbnail_immediate_note') }]" data-testid="thumbnail-immediate-note" />
                                 </div>
                             </div>
@@ -5298,7 +5296,7 @@ const goBack = async () => {
                             <!-- Function Select -->
                             <div class="col-md-2">
                                 <label class="small fw-bold mb-0">{{ t("mapedit.map_function_select") }}</label>
-                                <!-- m1-t2 HR-4.6(b): P1/P2 の間は完了まで他の機能に変わらないよう操作不可（P2 でも解除しない） -->
+                                <!-- P1/P2 の間は完了まで他の機能に変わらないよう操作不可（P2 でも解除しない） -->
                                 <select class="form-select form-select-sm" v-model="mappingUIRow" :disabled="alignPhase !== 'P0'">
                                     <option value="layer">{{ t("mapedit.edit_layer") }}</option>
                                     <option value="coordinate">{{ t("mapedit.edit_coordinate") }}</option>
@@ -5365,7 +5363,7 @@ const goBack = async () => {
                                  </div>
                              </div>
 
-                             <!-- m1-t2: Base Map Align Row（タスク設計 §5.5。既存 2 行の前例に倣いインライン・ContextHelp なし） -->
+                             <!-- Base Map Align Row（既存 2 行の前例に倣いインライン・ContextHelp なし） -->
                              <div class="col-md-10" v-if="mappingUIRow === 'basemap_align'">
                                  <div class="row g-2 align-items-end">
                                      <div class="col-md-2">
@@ -5377,14 +5375,14 @@ const goBack = async () => {
                                          <input type="text" class="form-control form-control-sm" disabled :value="alignShiftDisplay.y" data-testid="mapedit-align-shift-y">
                                      </div>
                                      <div class="col-md-4"></div>
-                                     <!-- m1-t4: 第 2 ボタン（相ボタンの一つ左隣 = HR-5.1）。P0 はリセット（0,0 なら無効 = HR-5.2）、
-                                          P1/P2 はキャンセル（常に押せる = HR-5.3） -->
+                                     <!-- 第 2 ボタン（相ボタンの一つ左隣）。P0 はリセット（0,0 なら無効）、
+                                          P1/P2 はキャンセル（常に押せる） -->
                                      <div class="col-md-2">
                                          <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-second-button"
                                              :disabled="alignSecondButtonDisabled"
                                              @click="onAlignSecondButton">{{ alignSecondButtonLabel }}</button>
                                      </div>
-                                     <!-- バー右端の相ボタン（HR-4.5。文言は相で切替、対象 OSM のときは無効 = Q1） -->
+                                     <!-- バー右端の相ボタン（文言は相で切替、対象 OSM のときは無効） -->
                                      <div class="col-md-2">
                                          <button class="btn btn-sm btn-outline-secondary w-100" data-testid="mapedit-align-phase-button"
                                              :disabled="alignPhaseButtonDisabled"
@@ -5470,7 +5468,7 @@ const goBack = async () => {
                                  </div>
                              </div>
 
-                             <!-- Column 3: Error Status (M12-T11/R4: footer 素表示から DF section バナーへ。
+                             <!-- Column 3: Error Status (footer 素表示から DF section バナーへ。
                                   「エラーなし」(strict) は非表示) -->
                              <div class="col-md-3">
                                  <DiagnosticFeedback v-if="gcpErrorStatusMessage" scope="section" :items="[{ key: 'gcp-error', severity: 'danger', message: gcpErrorStatusMessage }]" />
@@ -5491,17 +5489,16 @@ const goBack = async () => {
             <!-- Tab: Data IO -->
             <!-- 旧実装 mapedit.html L.274-375 の wmtsTab に完全準拠 -->
             <!--
-              M12-T22: 本ブロックへのUI導線はM11-T3で意図的に撤去済み（activeTabを'inout'へ
-              設定する経路が存在しない）。CSV GCPインポート部分のロジックは削除禁止 — M12-T23で
-              再編復帰予定。WMTS生成部分（旧実装 mapedit.html の同タブ下部）はm6-t8で新規
-              「メルカトルタイル」タブへ分離・移設済み（M4-(2)対応）。本ブロックが参照する i18n
+              本ブロックへのUI導線は意図的に撤去済み（activeTabを'inout'へ
+              設定する経路が存在しない）。CSV GCPインポート部分のロジックは削除禁止 — あとで
+              再編復帰予定。WMTS生成部分（旧実装 mapedit.html の同タブ下部）は新規
+              「メルカトルタイル」タブへ分離・移設済み（地図からのタイル生成）。本ブロックが参照する i18n
               キー（public/locales/*/translation.json の dataio.* 全28キー・
               mapedit.export_map_data）も削除禁止（JSON側にコメント記載不可のため本注記が
-              唯一の防御線。§3.4参照）。実装レビューM-1（m6-t8）: ユーザー向け文言はADR-0015に
+              唯一の防御線）。ユーザー向け文言は、公開するパスを merc と呼ぶ決まり（エディタのコードは wmts の綴りを残す）に
               従いwmtsgenerate.*ではなくmerc.*を使う（新規mercタブの生成中モーダル・完了/エラー表示
               とも merc.* を参照）。wmtsgenerate.* 5キーはコードから参照されなくなったが、
-              JSON定義自体はM12-T22の休眠保全対象として削除しない。
-              詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
+              JSON定義自体は休眠保全の対象として削除しない。
             -->
             <div v-show="activeTab === 'inout'" class="h-100 overflow-auto p-4">
                 <div class="card mb-4">
@@ -5523,7 +5520,7 @@ const goBack = async () => {
                                     <label class="fw-bold">{{ t("dataio.import_csv") }}</label>
                                 </div>
                                 <div class="col-md-5">
-                                    <!-- CSV エラーステータス (M12-T11/R3: inline span から DF field へ) -->
+                                    <!-- CSV エラーステータス (inline span から DF field へ) -->
                                     <label>{{ t("dataio.import_csv_status") }}:</label>
                                     <DiagnosticFeedback v-if="csvUpErrorMessage" scope="field" :items="[{ key: 'csv-import', severity: 'danger', message: csvUpErrorMessage }]" />
                                 </div>
@@ -5621,11 +5618,11 @@ const goBack = async () => {
                 </div>
             </div>
 
-            <!-- Tab: Mercator Tile Set (m6-t8 §3.2: 休眠inoutタブのWMTS生成部分をここへ分離・移設。
+            <!-- Tab: Mercator Tile Set (休眠inoutタブのWMTS生成部分をここへ分離・移設。
                  CSVインポートはinoutタブ側に残す。生成ロジック自体(wmtsGenerate)は不変・呼び出し元のみ移動) -->
             <div v-show="activeTab === 'merc'" class="h-100 overflow-auto p-4" data-testid="map-merc-tab-pane">
                 <div class="card">
-                    <!-- m19-t4b: 説明文の提示形式を <p> から ContextHelp へ移した（値は不変） -->
+                    <!-- 説明文の提示形式を <p> から ContextHelp へ移した（値は不変） -->
                     <div class="card-header bg-light fw-bold d-flex align-items-center gap-1">
                         {{ t("merc.tab_title") }}
                         <ContextHelp :title="t('merc.tab_title')" :text="t('merc.tab_description')" :ariaLabel="t('merc.tab_description')" />
@@ -5698,13 +5695,13 @@ const goBack = async () => {
                     <div v-if="baseMapVisibilityLoading" class="small text-muted">
                         {{ t("applist.loading") }}
                     </div>
-                    <!-- M11-T7/AC8: section 診断へ移行 -->
+                    <!-- section 診断へ移行 -->
                     <DiagnosticFeedback
                         v-else-if="baseMapVisibilityError"
                         scope="section"
                         :items="[{ key: 'basemap-visibility', severity: 'danger', message: baseMapVisibilityError }]"
                     />
-                    <!-- nov26-editor-feat3 §4.4: キーが無いために出していない google があるとき、
+                    <!-- google-editor-basemap : キーが無いために出していない google があるとき、
                          出さない理由を添える（「出すが選べない」形へは戻さない） -->
                     <DiagnosticFeedback
                         v-else-if="googleHiddenByMissingKey"
@@ -5712,7 +5709,7 @@ const goBack = async () => {
                         scope="section"
                         :items="[{ key: 'basemap-google-key-missing', severity: 'info', message: t('mapedit.base_map_google_key_missing') }]"
                     />
-                    <!-- nov26-editor-feat3 指示2: Google 源の読込失敗（createSession の非同期失敗）。
+                    <!-- google-editor-basemap 指示2: Google 源の読込失敗（createSession の非同期失敗）。
                          getError() の文言は載せるが、キーと URL は sanitizeGoogleError で伏せている -->
                     <DiagnosticFeedback
                         v-if="googleBaseMapFailure"
@@ -5747,7 +5744,7 @@ const goBack = async () => {
                                     </div>
                                 </div>
                                 <div class="btn-group btn-group-sm">
-                                    <!-- HM2: locked は × ではなく lock アイコン -->
+                                    <!-- locked は × ではなく lock アイコン -->
                                     <span v-if="item.locked" class="text-secondary d-flex align-items-center px-2" :title="t('mapedit.base_map_always_visible')">
                                         <i class="bi bi-lock-fill" aria-hidden="true"></i>
                                     </span>
@@ -5778,10 +5775,10 @@ const goBack = async () => {
             </div>
             </div>
 
-            <!-- Tab: POIデータ (Phase 8 Task 2)。器は mapData.pois 配列、履歴は mapData の
+            <!-- Tab: POIデータ。器は mapData.pois 配列、履歴は mapData の
                  deep-watch (scheduleHistorySnapshot) が拾う (MapEdit の既存方式) -->
             <div v-show="activeTab === 'pois'" class="h-100 p-4 overflow-hidden" data-testid="map-pois-tab-pane">
-                <!-- M4-T1: 未対応形式の警告。機構 (DiagnosticFeedback + read-only) は AppEdit と
+                <!-- 未対応形式の警告。機構 (DiagnosticFeedback + read-only) は AppEdit と
                      共通で、文言キーだけ画面別 — App は preview/export へ反映されないが Map は
                      生値がそのまま出力されるため (人間判断 2026-08-02) -->
                 <div class="h-100 d-flex flex-column">

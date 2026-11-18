@@ -1,7 +1,7 @@
 /**
- * POI-139 icon 参照文法 resolver（純関数 + registry）。
+ * icon 参照文法 resolver（純関数 + registry）。
  *
- * `icon` / `selectedIcon` の値は次の3形式のいずれか（43-poi-editor-spec.md §7 が正本）:
+ * `icon` / `selectedIcon` の値は次の3形式のいずれか（43-poi-editor-spec.md が正本）:
  *   1. Icon set 参照 `{setId}:{iconId}` — setId は登録済み icon set の小文字英数 ID（`[a-z][a-z0-9-]*`）。
  *   2. Asset UID — UUID（コロンを含まない）。Assets タブの image asset を参照。
  *   3. URL — `://` を含む絶対 URL、`data:`、または相対パス。
@@ -11,7 +11,7 @@
  * 未登録の setId のコロン形式は { kind: "iconset" } として返し isRegisteredIconSet(setId) = false
  * となる（URL とはみなさない）。呼び出し側（PoiAttributeForm 等）がこれを「未解決 icon set」警告として扱う。
  *
- * builtin icon set の実体は `public/icons/builtin/*.{png,svg}`（POI-126 の version 管理準拠：
+ * builtin icon set の実体は `public/icons/builtin/*.{png,svg}`（version 管理の取り決めに準拠：
  * icons は追加のみ・既存 id の意味を変えない）。
  * 例外: `defaultpin` のみ 2026-07-11 のユーザー決定「ビルトインをビューア標準ピンに整合させる」
  * に基づき、旧・青 SVG から MaplatCore/parts/defaultpin.png（ビューア標準の青バルーン）へ
@@ -27,7 +27,7 @@ export type IconRef =
 // UUID_PATTERN と同じ形（renderer からは import できないため値を揃えてここに再定義する）。
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// setId として許容する文字種（仕様 §7）。
+// setId として許容する文字種（仕様）。
 const SET_ID_PATTERN = /^[a-z][a-z0-9-]*$/;
 
 // setId として予約禁止の scheme（URL 判別より先に「setId 予約」として弾く）。
@@ -56,11 +56,11 @@ export interface IconSetDef {
   icons: IconEntry[];
   /** icons から導出した id 一覧（既存呼び出し側の存在チェック用に維持） */
   iconIds: string[];
-  /** エディタ内プレビュー URL（picker サムネ・badge 用）。export 解決（POI-117）は Phase 7 */
+  /** エディタ内プレビュー URL（picker サムネ・badge 用）。export での解決は main 側 */
   previewUrl(iconId: string): string;
 }
 
-// builtin セットの構成（Phase 8 Task 4, ユーザー決定 2026-07-11「ビューア標準に整合」）:
+// builtin セットの構成（ユーザーの決定 2026-07-11「ビューア標準に整合」）:
 //   defaultpin          = ビューア標準の青バルーン (MaplatCore/parts/defaultpin.png のコピー)
 //   defaultpin-selected = ビューアの選択中ピン (MaplatCore/parts/defaultpin_selected.png のコピー)
 //   defaultpin-blue     = 旧 defaultpin の青 SVG を温存 (アート選択肢を失わないボーナストラック)
@@ -126,7 +126,7 @@ export function parseIconRef(value: string): IconRef {
       return { kind: "url", url: value };
     }
 
-    // `scheme://...` 形の絶対 URL は setId 判定より先に url と判別する（仕様 §7 の判別順序:
+    // `scheme://...` 形の絶対 URL は setId 判定より先に url と判別する（仕様 判別順序:
     // URL パターン → 登録済み setId → UUID）。`ftp://`/`s3://` のような予約外 scheme でも
     // `//` を伴う絶対 URL 形は setId 参照とみなさない。
     if (rest.startsWith("//")) {

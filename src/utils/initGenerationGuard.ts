@@ -1,4 +1,4 @@
-// M12-T2: POI 未作成初期化の generation guard 完結（T10b 残課題）。
+// POI 未作成初期化の generation guard 完結（T10b 残課題）。
 // 世代 token（isCurrent）を非同期境界の前後で確認し、stale な初期化・import が
 // 新しい session を上書きするのを防ぐ。PoiEdit.vue の duplicateFrom 元消失経路と
 // importAutoRun が使う、UI/Vue 非依存の純粋関数群。
@@ -28,7 +28,7 @@ export type GuardedImportOutcome =
 
 // 世代 guard 付き import フロー（PoiEdit importAutoRun の本体）。
 // 各ステップ間で isCurrent を確認し、stale なら以降の副作用（load/replace/診断）を行わない。
-// 残留物ポリシー（Min2）: importFile 成功・失敗に関わらず世代切替済みなら、
+// 残留物ポリシー: importFile 成功・失敗に関わらず世代切替済みなら、
 // 「自世代 uid の draft cleanup（removeDraft）」は新 session を上書きしないため実行する。
 // 作成済み source は一覧へ残す（許容。削除はユーザー判断）。
 export async function runGuardedPoiImport(opts: {

@@ -5,7 +5,7 @@ import { useTranslation } from 'i18next-vue';
 import SlugField from '../editor-ui/SlugField.vue';
 import EditorField from '../editor-ui/EditorField.vue';
 
-// m6-t8 §3.8: 既存 merc マスタが1件以上あるときのみ開く（0件は呼び出し側が黙って新規作成する）。
+// 既存 merc マスタが1件以上あるときのみ開く（0件は呼び出し側が黙って新規作成する）。
 // ExportKeyPromptModal.vue と同型の Vue モーダル（値をどこにも保存せず emit で親へ渡すのみ）。
 export interface MercExistingEntry {
   uid: string;
@@ -18,7 +18,7 @@ const props = defineProps<{
   existingEntries: readonly MercExistingEntry[];
   defaultTitle: string;
   defaultSlug: string;
-  // 実装レビュー round3 M-6: 元地図の帰属（現在言語）を新規作成フォームの既定値として渡す
+  // 実装レビューの指摘: 元地図の帰属（現在言語）を新規作成フォームの既定値として渡す
   defaultAttr: string;
   // 新規作成モード用に事前採番された UID（SlugField の予約 lifecycle に必要）
   newUid: string;

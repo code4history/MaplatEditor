@@ -31,7 +31,7 @@
           :disabled="readOnly"
           @change="onDisplayIdChange"
         />
-        <!-- M12-T11 (R3/C28): inline text-danger から DF field へ -->
+        <!-- inline text-danger から DF field へ -->
         <DiagnosticFeedback v-if="displayIdError" scope="field" :items="[{ key: 'display-id', severity: 'danger', message: displayIdError }]" />
       </div>
 
@@ -46,7 +46,7 @@
           @update:model-value="onNameUpdate"
           @select-language="(code) => emit('selectLanguage', code)"
         />
-        <!-- M12-T11 (R3/C29): inline text-danger から DF field へ -->
+        <!-- inline text-danger から DF field へ -->
         <DiagnosticFeedback v-if="nameError" scope="field" :items="[{ key: 'name-required', severity: 'danger', message: nameError }]" />
       </div>
 
@@ -300,7 +300,7 @@
             />
           </div>
         </div>
-        <!-- M12-T11 (R3/C30): inline text-danger から DF field へ -->
+        <!-- inline text-danger から DF field へ -->
         <DiagnosticFeedback v-if="coordError" scope="field" :items="[{ key: 'coord-range', severity: 'danger', message: coordError }]" />
       </div>
 

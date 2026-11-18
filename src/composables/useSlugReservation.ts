@@ -1,4 +1,4 @@
-// SlugField 内部で使う予約 lifecycle composable (M11-T7/D6改)。
+// SlugField 内部で使う予約 lifecycle composable。
 // window.slugReservations を叩き、available 確定時に reserve/move、originalSlug 復帰や
 // draft 破棄で release、保存直前に confirmForSave で予約成立を再確認する。
 import { ref } from 'vue';
@@ -29,7 +29,7 @@ export function useSlugReservation(opts: {
 }) {
   let reserved: HeldReservation | null = null;
   let generation = 0;
-  // M11-T12: confirmForSave(保存直前の予約再確認)進行中の slug。この間、同一 slug への
+  // confirmForSave(保存直前の予約再確認)進行中の slug。この間、同一 slug への
   // debounce済み onAvailable は抑止する。無条件の generation++ が進行中の確認を stale 化し
   // 保存が「ID重複」で中断される競合の根治(保存側の確認が UI 側の live 確認に優先する)
   let confirmInFlightSlug: string | null = null;
@@ -39,7 +39,7 @@ export function useSlugReservation(opts: {
   // Counter-based pending tracking: increment on start, decrement on finish.
   // reservationPendingCount > 0 iff any reserve/release operation is in flight.
   let reservationPendingCount = 0;
-  // release失敗/保留を SlugField に伝える reactive 状態(Major-2/Major-D)。
+  // release失敗/保留を SlugField に伝える reactive 状態。
   // plain boolean だと Vue computed が再評価されないため ref を使う。
   const releasePending = ref(false);
   const releaseFailed = ref(false);
@@ -144,11 +144,11 @@ export function useSlugReservation(opts: {
 
   // debounce 確認成功(available)時に呼ぶ。既に別 slug を予約中なら move、なければ reserve。
   // Counter-based pending: reservationPendingCount を increment/decrement し、
-  // 旧 request の finally が新 request の pending を解除しないようにする(Major-C)。
+  // 旧 request の finally が新 request の pending を解除しないようにする。
   async function onAvailable(slug: string): Promise<SlugReservationFieldState | null> {
-    // M11-T12: 保存側の確認が進行中の slug への live 確認は抑止(上記コメント参照)
+    // 保存側の確認が進行中の slug への live 確認は抑止(上記コメント参照)
     if (confirmInFlightSlug === slug) return null;
-    // M11-T12: 既に同一 identity で同じ slug を保持しているなら再claimは不要。
+    // 既に同一 identity で同じ slug を保持しているなら再claimは不要。
     // 無条件に generation を進めると、進行中の confirmForSave (保存直前の予約再確認) を
     // stale 化して null(=保存中断「ID重複」)にしてしまう競合があった(並列負荷時、
     // debounce された可用性チェックが保存クリック後に着弾するケース)。
@@ -170,8 +170,8 @@ export function useSlugReservation(opts: {
   }
 
   // originalSlug 復帰・draft 破棄で予約を解放する。
-  // reserved は release 成功後にのみクリアする(Major-2)。
-  // release失敗時は reject を維持し、呼出元の close/reset を止める(Major-D)。
+  // reserved は release 成功後にのみクリアする。
+  // release失敗時は reject を維持し、呼出元の close/reset を止める。
   async function releaseIfHeld(): Promise<void> {
     invalidate();
     releaseFailed.value = false;
@@ -190,8 +190,8 @@ export function useSlugReservation(opts: {
   }
 
   // 保存直前はcheckだけで終えず、変更slugのreserve/moveを再確立する。
-  // DB上の自己予約と予約なしを区別し、stale heldでも再reserveしてDB ownershipを再確立する(Major-2)。
-  // 未変更slugもDB確認で他者予約を検出し、自己所有なら冪等claimする(AC15)。
+  // DB上の自己予約と予約なしを区別し、stale heldでも再reserveしてDB ownershipを再確立する。
+  // 未変更slugもDB確認で他者予約を検出し、自己所有なら冪等claimする。
   async function confirmForSave(currentSlug: string): Promise<SlugReservationConfirmation | null> {
     confirmInFlightSlug = currentSlug;
     try {
@@ -207,13 +207,13 @@ export function useSlugReservation(opts: {
     const token = ++generation;
     latestSlug = currentSlug;
 
-    // slug未変更: held一致なら即成功。それ以外はDB確認で自己所有判定(AC15)。
+    // slug未変更: held一致なら即成功。それ以外はDB確認で自己所有判定。
     if (currentSlug === originalSlug) {
       // held一致: 既に予約済み。generation increment なしで成功。
       if (reserved && reserved.slug === currentSlug && sameIdentity(reserved, identity)) {
         return { ok: true, state: 'available' };
       }
-      // heldあり but 不一致 → releaseしてからDB確認。release失敗はcheck-failed(Major-2)。
+      // heldあり but 不一致 → releaseしてからDB確認。release失敗はcheck-failed。
       // releaseIfHeld は invalidate で generation を進めるため、直接 release 操作を行う。
       if (reserved) {
         const held = reserved;
@@ -247,7 +247,7 @@ export function useSlugReservation(opts: {
     // slug変更: 常にacquire()でDB ownershipを再確立する。
     // stale held → release + 新 reserve/claim。DB上の他者予約 → reserved-by-other。
     // DB上の自己予約(再試行時) → 冪等claim。DB上の予約なし → 新規reserve。
-    // acquire() の前にDB checkを行い、他者予約を検出したら即座にreturnする(Major-2)。
+    // acquire() の前にDB checkを行い、他者予約を検出したら即座にreturnする。
     // acquire() はstale heldを解放する際、DB上の他者予約も巻き込んで消す場合があるため。
     releaseFailed.value = false;
     releasePending.value = false;
@@ -284,7 +284,7 @@ export function useSlugReservation(opts: {
     }
   }
 
-  // release失敗/保留を SlugField に伝える(Major-2/Major-D)。
+  // release失敗/保留を SlugField に伝える。
   // ref なので Vue computed が再評価され、check-failed 表示が保証される。
   function hasFailedRelease(): boolean {
     return releaseFailed.value || releasePending.value;

@@ -1,5 +1,5 @@
-// §7.3 kind 語彙写像の renderer 複製。
-// electron 側の electron/services/slugReservationKind.ts と同値表(§7.3)を保つ。
+// kind 語彙写像の renderer 複製。
+// electron 側の electron/services/slugReservationKind.ts と同値表を保つ。
 // renderer から electron ファイルを import すると build 境界を跨ぐため、5 行の写像は
 // DRY より境界分離を優先して複製する(smoke Part A が electron 側の写像を検証済み)。
 

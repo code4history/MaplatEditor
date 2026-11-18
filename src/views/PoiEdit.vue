@@ -10,7 +10,7 @@
       {{ t("poisource.loading") }}
     </div>
 
-    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 (M11-T7/AC8: operation 診断) -->
+    <!-- Load error (not found 等): エラー表示 + 一覧へ戻る導線 (operation 診断) -->
     <div v-else-if="loadError" class="p-4">
       <DiagnosticFeedback
         scope="operation"
@@ -82,7 +82,7 @@
             <div v-else class="form-control-plaintext py-0">{{ displayTitle }}</div>
           </div>
           <div class="col-4">
-            <!-- M11-T7/AC1: 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
+            <!-- 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
                  入力中は slugInput(live 可用性確認)、blur 確定(@change)で session.commit -->
             <SlugField
               ref="slugField"
@@ -129,7 +129,7 @@
             {{ t("poiio.import_button") }}
           </button>
         </div>
-        <!-- M17-T1: layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
+        <!-- layer metadata 編集フィールド (icon/selectedIcon) + featureCount/rawPane 統合 -->
         <div class="mt-1 mb-1">
           <span class="fw-bold small text-muted">{{ t("poiedit.layer_metadata") }}</span>
         </div>
@@ -166,7 +166,7 @@
         </div>
       </div>
 
-      <!-- 診断領域 (内容があるときのみ表示)。M11-T7/AC8: T5 の DiagnosticFeedback 文法
+      <!-- 診断領域 (内容があるときのみ表示)。共通の DiagnosticFeedback 文法
            (section=検証まとめ・operation=保存エラー、即時表示)へ移行 -->
       <div
         v-if="readOnly || saveError || saveIssues.length || liveErrors.length || liveWarningItems.length || missingAssetWarningItems.length"
@@ -189,16 +189,16 @@
              フォームはエラー値も commit するため保存前に理由をライブ可視化する) -->
         <DiagnosticFeedback v-if="saveIssueItems.length" scope="section" :items="saveIssueItems" />
         <DiagnosticFeedback v-if="liveErrorItems.length" scope="section" :items="liveErrorItems" />
-        <!-- POI-108 無コンテンツ警告 / POI-121 規模警告 -->
+        <!-- 無コンテンツ警告 / 規模警告 -->
         <DiagnosticFeedback v-if="liveWarningItems.length" scope="section" :items="liveWarningItems" />
-        <!-- M11-T9 AC14: Asset Reference 欠落警告（欠落UIDがある場合のみ表示） -->
+        <!-- Asset Reference 欠落警告（欠落UIDがある場合のみ表示） -->
         <DiagnosticFeedback v-if="missingAssetWarningItems.length" scope="section" :items="missingAssetWarningItems" />
       </div>
 
-      <!-- 地図ペイン (主役、仕様 §3.3) + 右カラム: 属性フォーム (Task 7) の下に
+      <!-- 地図ペイン (主役) + 右カラム: 属性フォーム (Task 7) の下に
            feature 一覧 (Task 8) の上下分割。一覧は残り高さで flex (min-height 確保) -->
       <div class="flex-grow-1 d-flex overflow-hidden">
-        <!-- 中央カラム: 地図 (主役) + 下部の折りたたみ raw GeoJSON ペイン (POI-136)。
+        <!-- 中央カラム: 地図 (主役) + 下部の折りたたみ raw GeoJSON ペイン。
              raw ペインは v-show で mount を維持 (閉→開でローカル編集を失わない)。
              閉時の表示再生成停止は PoiRawPane が :visible で自律制御する -->
         <div class="flex-grow-1 d-flex flex-column overflow-hidden">
@@ -351,11 +351,11 @@
 import ContextHelp from "../components/editor-ui/ContextHelp.vue";
 import OperationNotice from "../components/editor-ui/OperationNotice.vue";
 import { useOperationNotice } from "../composables/useOperationNotice";
-// POI エディタ (Phase 4 Task 5-8, 仕様 43 §3.3/§4/§5/§6)。
+// POI エディタ 。
 // 地図ペインは PoiEditMap (base map selector + マーカー + contextmenu 追加/削除 +
 // Modify ドラッグ移動 + クリック選択)。右カラムは属性フォーム (PoiAttributeForm) +
 // feature 一覧 (PoiFeatureList: フィルタ + 自前 windowing + 選択同期)。
-// 保存は useRevisionedAssetSave (revision 楽観ロック、ADR-0007)、編集は usePoiEditSession
+// 保存は useRevisionedAssetSave (revision 楽観ロック、資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)、編集は usePoiEditSession
 // (明示 commit = 1 Undo 単位) に委譲する。
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -422,7 +422,7 @@ const translationMode = computed(() =>
   isTranslationMode(currentLang.value, editState.value?.lang),
 );
 
-// M17-T1: layer metadata 編集フィールド (icon/selectedIcon/hide)
+// layer metadata 編集フィールド (icon/selectedIcon/hide)
 const layerIconFieldRef = ref<InstanceType<typeof IconRefField> | null>(null);
 const layerSelectedIconFieldRef = ref<InstanceType<typeof IconRefField> | null>(null);
 
@@ -444,7 +444,7 @@ const onLayerSelectedIconChange = (value: string): void => {
   patchLayerMeta({ selectedIcon: value });
 };
 
-// M17-T1: pickerOpen 中のグローバルキー抑止
+// pickerOpen 中のグローバルキー抑止
 const isIconPickerOpen = computed(
   () =>
     !!layerIconFieldRef.value?.pickerOpen ||
@@ -470,7 +470,7 @@ const mapSession: PoiEditSession = {
   },
 };
 
-// raw GeoJSON ペイン (POI-136) の開閉。開閉で地図高さが変わるため OL へ updateSize を通知する
+// raw GeoJSON ペイン の開閉。開閉で地図高さが変わるため OL へ updateSize を通知する
 const rawPaneOpen = ref(false);
 function toggleRawPane(): void {
   rawPaneOpen.value = !rawPaneOpen.value;
@@ -484,20 +484,20 @@ const saveError = ref<string | null>(null);
 const saveIssues = ref<PoiValidationIssue[]>([]);
 const cloning = ref(false);
 
-// --- slug 入力 (M11-T7: 共通 SlugField。可用性確認・予約 lifecycle は SlugField 内蔵) ---
+// --- slug 入力 (共通 SlugField。可用性確認・予約 lifecycle は SlugField 内蔵) ---
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 const slugInput = ref("");
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugFieldState = ref<SlugFieldState>("idle");
 
-// M11-T10b: 未作成モードの事前採番 uid（draft キーと保存 create uid を兼ねる。
+// 未作成モードの事前採番 uid（draft キーと保存 create uid を兼ねる。
 // MapEdit の newMapUid と同型）。初期化（onMounted / 同一コンポーネントでの new 再突入）
 // ごとに採番し直すため ref で持ち、既存 draftUid が route にあれば引き継ぐ。
 // newModeActive は「未作成モードとして初期化済み」のフラグで、既存→新規の再初期化判定に使う
 const newPoiUid = ref("");
 const newModeActive = ref(false);
 
-// M11-T10b (順序契約 #2): 文書操作系 dirty。Undo 履歴の isDirty とは分離し、
+// 文書操作系 dirty。Undo 履歴の isDirty とは分離し、
 // slug live 入力の diverged（session 未 commit）も「保存すべき変更」として扱う。
 // 保存ボタン / Cmd+S / saveState / export / draft persist の全入口をこれに揃える
 const draftDirty = computed(
@@ -510,7 +510,7 @@ const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
   kind: "poi",
   serialize: () => {
     if (!editState.value) throw new Error("POI draft requested before load");
-    // M11-T10b (順序契約 #3): draft の slug は live 値を正本とする
+    // draft の slug は live 値を正本とする
     // （予約 slug と下書きカード表示・復元内容を一致させる）
     return { ...structuredClone(editState.value), slug: slugInput.value };
   },
@@ -525,7 +525,7 @@ const draftLifecycle = useAssetDraftLifecycle<PoiEditState>({
   },
 });
 
-// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+// 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
 useInitialDraftPersist({
   slugState: slugFieldState,
   isNewAsset: () => !saveHandle.uid.value,
@@ -549,7 +549,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     // saveSource が pendingSave を設定した後にしか到達しない
     const { payload } = pendingSave!;
     if (uid == null) {
-      // M11-T10b: 未作成モードの初回保存は createLocal(fc付き) で単一作成。
+      // 未作成モードの初回保存は createLocal(fc付き) で単一作成。
       // （空行を作ってから save する2段書き込みは行わない。予約 promote は createSource 経路で成立）
       const created = await window.poiSources.createLocal({
         slug: payload.slug,
@@ -582,7 +582,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     if (editState.value === pendingSave!.capturedState) {
       session.markSaved();
     }
-    // M11-T10b（実装レビュー Major/再）: markSaved → rebase → flush の順序。
+    // （実装レビュー Major/再）: markSaved → rebase → flush の順序。
     // ① markSaved: 復元下書きが保存で消費されたため draftRestored/conflictDraft を必ずリセットし、
     //    旧 identity の下書きを store から除去（復元表示と破棄操作が残らない）
     // ② rebase: identity を保存済み行の (uid, revision) へ再構成（restore 判定なし。
@@ -597,7 +597,7 @@ const saveHandle = useRevisionedAssetSave<PoiSourceSaveResult>({
     // slug 欄を保存結果 (confirmedSlug) に同期。ただし markSaved と同じ snapshot 同一性判定を
     // 通した場合のみ: 保存中に editState が差し替わっていたら (raw pane Apply 等の新編集)、
     // ここで上書きすると乖離した slug を表示してしまうため editState.slug watch の追随に
-    // 委ねる (Phase 5 品質レビュー MINOR)
+    // 委ねる (品質レビューの指摘)
     if (editState.value === pendingSave!.capturedState) {
       slugInput.value = result.slug;
     }
@@ -649,7 +649,7 @@ const exporting = ref(false);
 async function discardRestoredDraft() {
   const uid = saveHandle.uid.value;
   if (!draftLifecycle.draftRestored.value) return;
-  // M11-T10b: 未作成（保存済み行なし）下書きの破棄は完全削除（MapEdit 型）。
+  // 未作成（保存済み行なし）下書きの破棄は完全削除（MapEdit 型）。
   // 予約 teardown: ① slugField.release() 成功後にのみ進む（失敗時は診断して中止）→
   // ② 一覧由来の未 acquire 予約を direct API で冪等解放 → ③ draft 削除 → 一覧へ
   if (!uid) {
@@ -685,7 +685,7 @@ async function discardRestoredDraft() {
   await load(uid);
 }
 
-// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない(M11-T10)
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない
 const displayTitle = computed(() => {
   const state = editState.value;
   if (!state) return "";
@@ -721,7 +721,7 @@ const liveErrors = computed<PoiValidationIssue[]>(() =>
 );
 
 
-// M11-T9 AC14: Asset Reference 欠落診断。
+// Asset Reference 欠落診断。
 // HTML内の maplat-asset:<UID> (collectAssetRefsInFc) と、画像欄のアセットUID直接参照
 // (collectImageAssetUids、人間検証Round1で標準表示の画像が未検査だった穴を解消) と、
 // アイコン (POI ごと・レイヤの icon/selectedIcon) のアセットUID (collectIconAssetUids) を合算し、
@@ -777,7 +777,7 @@ const missingAssetWarningItems = computed<DiagnosticItem[]>(() => {
   }];
 });
 
-// M11-T7/AC8: 診断領域の DiagnosticFeedback items(T5 文法 DiagnosticItem = {key, severity, message})
+// 診断領域の DiagnosticFeedback items(T5 文法 DiagnosticItem = {key, severity, message})
 const saveIssueItems = computed<DiagnosticItem[]>(() =>
   saveIssues.value.map((issue, index) => ({
     key: `save-issue-${index}`,
@@ -792,7 +792,7 @@ const liveErrorItems = computed<DiagnosticItem[]>(() =>
     message: issueMessage(issue, t),
   })),
 );
-// warning レベル: POI-108 無コンテンツ / POI-121 規模 (>1000 features or serialize >5MB) /
+// warning レベル: 無コンテンツ / 規模 (>1000 features or serialize >5MB) /
 // directgo が空白だけ・{ href: "" }（POI ごと。どの POI かが分かるよう issueMessage で ID を前に付ける）
 const liveWarningItems = computed<DiagnosticItem[]>(() => {
   const issues = liveIssues.value;
@@ -815,7 +815,7 @@ const liveWarningItems = computed<DiagnosticItem[]>(() => {
 });
 
 // --- 読込 ---
-// M11-T10b（実装レビュー Minor）: 世代 token。既存→new 再初期化や連続した load の間に
+// （実装レビュー Minor）: 世代 token。既存→new 再初期化や連続した load の間に
 // 遅い旧応答が新しい session を上書きするのを防ぐ
 let loadGeneration = 0;
 
@@ -835,7 +835,7 @@ async function load(sourceId: string): Promise<void> {
     }
     saveHandle.adoptLoaded({ uid: detail.uid, slug: detail.slug, revision: detail.revision });
     readOnly.value = detail.readOnly;
-    // fc は Phase 2 get 経由で _maplatUid 付与済みの内部形
+    // fc は get 経由で _maplatUid 付与済みの内部形
     session.load({
       lang: resolveEditorLanguage(detail.lang || i18next.language),
       slug: detail.slug,
@@ -871,7 +871,7 @@ watch(
     if (typeof next !== "string" || next === "") return;
     if (next === "new") {
       // 既に未作成モードとして初期化済みなら何もしない（draftUid replace 等の自己遷移）。
-      // 既存→新規の再突入は initializeEditor で再初期化する（M11-T10b）
+      // 既存→新規の再突入は initializeEditor で再初期化する
       if (!newModeActive.value) void initializeEditor();
       return;
     }
@@ -880,7 +880,7 @@ watch(
   },
 );
 
-// --- title / slug (どちらも session.commit 経由 = 1 Undo 単位、仕様 §5) ---
+// --- title / slug (どちらも session.commit 経由 = 1 Undo 単位) ---
 function onTitleUpdate(value: string | Record<string, string> | undefined): void {
   if (readOnly.value) return;
   session.commit((draft) => {
@@ -895,7 +895,7 @@ function onDefaultLanguageChange(event: Event): void {
   currentLang.value = lang;
 }
 
-// slug の live 入力(M11-T7)。可用性確認・予約 lifecycle は SlugField 内蔵のため、
+// slug の live 入力。可用性確認・予約 lifecycle は SlugField 内蔵のため、
 // ここでは保存 operation 診断の解消と live 値の保持のみ行う
 function onSlugLiveInput(value: string): void {
   saveError.value = null;
@@ -923,7 +923,7 @@ watch(
   },
 );
 
-// M11-T10b（設計レビュー Minor）: 新規で予約成立後に live 入力を空欄へ戻した場合、
+// （設計レビュー Minor）: 新規で予約成立後に live 入力を空欄へ戻した場合、
 // draftDirty は false（draft は除去される）のに held 予約だけが lease/GC まで残る孤児になる。
 // 空欄復帰で予約を即時解放し、同じ slug がすぐ available へ戻るようにする。
 // 既存行は SlugField の元 slug 復帰 release が担うため対象外（新規のみ）。
@@ -955,7 +955,7 @@ async function saveSource(): Promise<boolean> {
   if (readOnly.value || saving.value) return false;
   saveError.value = null;
   saveIssues.value = []; // 前回 Invalid の issues を持ち越さない
-  // M11-T10b (順序契約 #6): live slug を session へ確定してから捕捉する。
+  // live slug を session へ確定してから捕捉する。
   // blur 前の Cmd+S / 保存クリックが古い session slug を送ることを防ぐ（1 Undo 単位）
   const liveSlug = slugInput.value.trim();
   if (editState.value && liveSlug !== "" && liveSlug !== editState.value.slug) {
@@ -967,7 +967,7 @@ async function saveSource(): Promise<boolean> {
     saveError.value = slugError.value;
     return false;
   }
-  // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)
+  // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断
   const slugOk = await slugField.value?.confirmForSave() ?? true;
   if (!slugOk) {
     saveError.value = t("poisource.errors.slug_taken");
@@ -1177,7 +1177,7 @@ async function onMergeImportSubmit(mode: PoiMergeMode | null): Promise<void> {
   mapPane.value?.fitInitialView();
 }
 
-// --- ReadOnly (remote) → ローカル複製 (Phase 3 cloneToLocal) して新 uid へ遷移 ---
+// --- ReadOnly (remote) → ローカル複製 (cloneToLocal) して新 uid へ遷移 ---
 async function cloneSourceToLocal(): Promise<void> {
   if (cloning.value) return;
   const uid = saveHandle.uid.value;
@@ -1187,7 +1187,7 @@ async function cloneSourceToLocal(): Promise<void> {
   saveError.value = null;
   try {
     // 空き slug を探索して自動提案 (ローカル側の slug はエディタでいつでも変更できる)。
-    // M5-T9: 候補生成は useResourceDuplicate へ移設した ("-copy" / "-poi" と同じ場所)。
+    // 候補生成は useResourceDuplicate へ移設した ("-copy" / "-poi" と同じ場所)。
     // view に残すと service 層のテストから到達できず、実際に off-by-one が
     // 長く検出されなかった。base の正規化も含めて向こう側の責務である。
     const candidate = await findLocalCloneSlug(confirmedSlug.value || state.slug, "poi");
@@ -1215,13 +1215,13 @@ async function cloneSourceToLocal(): Promise<void> {
 }
 
 // --- feature 一覧 (Task 8): 選択・新規作成の実行責務は PoiEdit 側に置く ---
-// 行クリック = 選択 + 地図 pan (仕様 §3.3。可視範囲内でも明示 pan する)
+// 行クリック = 選択 + 地図 pan (仕様。可視範囲内でも明示 pan する)
 function onListSelect(uid: string): void {
   session.selectedUid.value = uid;
   mapPane.value?.panTo(uid);
 }
 
-// 一覧の「新規作成」= 地図中央に配置 + フォームフォーカス (仕様 §3.3)。
+// 一覧の「新規作成」= 地図中央に配置 + フォームフォーカス。
 // 必ず mapSession (wrapper) の addFeature を使う (生 session では name フォーカスが飛ばない)
 function createPoiAtMapCenter(): void {
   if (readOnly.value) return;
@@ -1256,7 +1256,7 @@ const isInputTarget = (event: KeyboardEvent): boolean => {
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   if (!(event.metaKey || event.ctrlKey)) return;
   const key = event.key.toLowerCase();
   if (key === "s") {
@@ -1280,10 +1280,10 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
   }
 };
 
-// 選択中 feature の Delete キー削除 (仕様 §4)。ReadOnly では無効。
+// 選択中 feature の Delete キー削除。ReadOnly では無効。
 // macOS のフルキーボードでない Delete キーは event.key === "Backspace" なので両方受ける
 const onDeleteKeydown = (event: KeyboardEvent) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   if (saveHandle.saving.value || exporting.value || cloning.value) return; // Busy中は編集操作を抑止
   if (event.key !== "Delete" && event.key !== "Backspace") return;
   if (isInputTarget(event)) return;
@@ -1297,7 +1297,7 @@ const onDeleteKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
-  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (Phase 6 品質レビュー MAJOR-2 + M17-T1)
+  if (attrForm.value?.pickerOpen || isIconPickerOpen.value) return; // picker 表示中はグローバルキーを抑止 (品質レビューの指摘)
   // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
   // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
   if (isEditableElement(document.activeElement)) return;
@@ -1312,7 +1312,7 @@ const onMainProcessMessage = (message: string) => {
 // --- 離脱確認 (goBack ボタン方式、ルートガードは使わない) ---
 async function goBack(): Promise<void> {
   await draftLifecycle.flush();
-  // m12-t31: 一覧への遷移は navigateBackToList（router.push 一本）に統一する
+  // 一覧への遷移は navigateBackToList（router.push 一本）に統一する
   // （preview iframe 内の Maplat viewer が joint session history を汚染するため）。
   await navigateBackToList(router, "/poisources");
 }
@@ -1324,7 +1324,7 @@ onMounted(() => {
   void initializeEditor();
 });
 
-// M11-T10b: 未作成モード（/poisources/new）の初期化分岐。
+// 未作成モード（/poisources/new）の初期化分岐。
 // 空 / 複製（duplicateFrom）/ インポート（import=1）/ 下書き復元（draftUid）の4経路。
 // onMounted 初回と、同一コンポーネントのまま既存→新規へ遷移した場合の再初期化の双方で呼ばれる
 async function initializeEditor(): Promise<void> {
@@ -1372,7 +1372,7 @@ async function initializeEditor(): Promise<void> {
       currentLang.value = lang;
     } else {
       // 元消失（並行削除等）: 予約を解放してから空初期化 + operation 診断（予約 teardown 契約）。
-      // M12-T2: release の await 前後で generation を確認し、stale なら解放後の
+      // release の await 前後で generation を確認し、stale なら解放後の
       // （空初期化 + duplicate_failed 診断）副作用を行わない（新 session の上書き防止）
       await guardedReleaseThenFallback({
         isCurrent: () => generation === loadGeneration,
@@ -1386,7 +1386,7 @@ async function initializeEditor(): Promise<void> {
   } else {
     initializeEmptySession();
   }
-  // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（M11-T7 と同型）
+  // 新規の draft キー = 事前採番 uid。予約帰属・create uid と一致させる（slug の予約と同型）
   if (route.query.draftUid !== newPoiUid.value) {
     await router.replace({ query: { ...route.query, draftUid: newPoiUid.value } });
   }
@@ -1435,7 +1435,7 @@ async function releaseReservedSlugForNew(): Promise<void> {
 // --- インポート自動起動（/poisources/new?import=1）---
 const importing = ref(false);
 
-// M12-T2: generation 引数化。スケジュール後の世代切替（stale）では picker 表示・importFile・
+// generation 引数化。スケジュール後の世代切替（stale）では picker 表示・importFile・
 // loadSaved/replaceRoute を行わない（runGuardedPoiImport が各ステップ間で isCurrent を確認する。
 // 残留物ポリシー: importFile 成功後 stale でも自世代 uid の draft cleanup のみ実行される）
 async function importAutoRun(generation: number): Promise<void> {
@@ -1499,7 +1499,7 @@ onBeforeUnmount(() => {
   width: 340px;
 }
 
-/* フォーム優先の固定分配 (Phase 8 Task 1): 旧 flex: 0 1 auto + min-height: 0 は
+/* フォーム優先の固定分配: 旧 flex: 0 1 auto + min-height: 0 は
    大量 feature 時に一覧 (flex-grow) がフォームを 0 まで押し潰していた。
    フォームは内容高さ基準で伸び、最大 55% で内部スクロール (overflow-auto は template 側)。
    一覧は残り高さを取り、min-height でフォームが大きくても常に操作可能を保証する */
@@ -1513,7 +1513,7 @@ onBeforeUnmount(() => {
   min-height: 160px;
 }
 
-/* raw GeoJSON ペイン (POI-136): 開時は地図の下に ~40% (地図が主役の比率維持) */
+/* raw GeoJSON ペイン: 開時は地図の下に ~40% (地図が主役の比率維持) */
 .poi-raw-pane {
   height: 40%;
   flex-shrink: 0;

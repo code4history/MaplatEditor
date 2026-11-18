@@ -1,7 +1,7 @@
-// ライセンス語彙の正本 (m6-t2)。
+// ライセンス語彙の正本。
 // 保存値 (ASCII)・表示 i18n キー・画像/データ側の出し分けを単一のテーブルで持つ。
 // MapEdit と BaseMapEdit の両方がこの正本から選択肢を供給される (LicenseSelect 経由)。
-// アイコン解決規則 (§4.3): 保存値の toLowerCase + 空白→アンダースコアがファイル名になる。
+// アイコン解決規則: 保存値の toLowerCase + 空白→アンダースコアがファイル名になる。
 
 export interface LicenseOption {
   /** 保存値 (ASCII)。そのまま DB/交換形へ書かれる */
@@ -14,7 +14,7 @@ export interface LicenseOption {
   forData: boolean;
 }
 
-// §4.1 の語彙表。PD の image/data 非対称は既存仕様を温存する。
+// 語彙表。PD の image/data 非対称は既存仕様を温存する。
 export const LICENSE_VOCABULARY: readonly LicenseOption[] = [
   { value: "All right reserved", labelKey: "mapedit.cc_allright_reserved", forImage: true, forData: true },
   { value: "CC BY", labelKey: "mapedit.cc_by", forImage: true, forData: true },
@@ -37,5 +37,5 @@ export const DATA_LICENSE_OPTIONS: readonly LicenseOption[] = LICENSE_VOCABULARY
   (option) => option.forData,
 );
 
-/** アイコンを持たない語彙の保存値 (Custom)。ビューアではアイコン無しで Note 文章だけを出す (§4.3) */
+/** アイコンを持たない語彙の保存値 (Custom)。ビューアではアイコン無しで Note 文章だけを出す */
 export const LICENSE_WITHOUT_ICON = "Custom";

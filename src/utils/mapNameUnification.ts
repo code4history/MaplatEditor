@@ -1,19 +1,19 @@
-// m19-t1: 地図の名称属性を 1.0.0 の語彙へ移す写像と、その取込境界での受容。
-// タスク設計 `docs/superpowers/specs/2026-08-09-m19-t1-map-name-unification-design.md` v1.2 §4.1
-// 上位契約: マイルストーン設計 v1.6 §4.2（1.0.0 データスキーマ凍結契約）
+// 地図の名称属性を 1.0.0 の語彙へ移す写像と、その取込境界での受容。
+//
+// 上位契約: 1.0.0 のデータスキーマの凍結
 //
 //   旧 title (地図名称(表示用)・必須) -> label (表示ラベル・任意)
 //   旧 officialTitle (地図名称(正確)・任意) -> title (タイトル・必須)
 //     ※ 正確名を持たない言語キーは旧 title で必須制約を満たす（移行時の一時措置であり、
 //        実行時の代替表示ではない。表示側にフォールバックは実装しない）
 //
-// ★不変条件（絶対・m19-t7 で更新）: (A) unifyMapNameFields は「移行の写像」であって
+// ★不変条件（絶対・移行の一気通貫化で更新）: (A) unifyMapNameFields は「移行の写像」であって
 //   「正規化」ではない。呼んでよいのは **下記 adoptDeprecatedMapNames の 1 箇所だけ** である。
 //   そして adoptDeprecatedMapNames を呼んでよいのは、書き込み側の唯一の正規化点
 //   SqliteDataService.normalizeMapDocument の 1 箇所だけである。
 //   読み込み側（mapRowToDocument）から呼んではならない。
 //
-//   m19-t7 以前は呼び出し可能点が 2 つあった（marker 保護下の one-shot migration
+//   以前は呼び出し可能点が 2 つあった（marker 保護下の one-shot migration
 //   applyMapNameUnificationMigration と、本ファイルの取込境界ゲート）。
 //   0.7.0 → 1.0.0 を一気通貫化した際に前者を撤去したので、写像の呼び出し点は 1 つになった。
 //   併せて「レガシー取込は写像を持たず行を作るだけ」という旧規律も撤去した。その規律は
@@ -29,14 +29,14 @@
 //   正しい不変条件は「2 回目は既存の言語キーの値を 1 つも変えない。label の欠損言語キーの
 //   補充だけは起こりうる」である（旧 officialTitle にのみ存在した言語キーは 1 回目で title に
 //   入り、素の (A) を 2 回当てれば label へ補充されうる）。
-//   m19-t7 以降、唯一の入口 (B) は**キーの在否でゲートするため完全に冪等**であり
+//   以降、唯一の入口 (B) は**キーの在否でゲートするため完全に冪等**であり
 //   （1 回目でキーが消えるので 2 回目は no-op）、marker による保護は不要になった。
 //   ∴ marker 喪失で二重適用される経路そのものが存在しない。
 //   実データでの補充発生は 0 件（実ユーザ DB 264 件・0.7.0 公開 map.json 14 件のいずれにも
 //   「廃止属性にのみ存在する言語キー」を持つ地図は無い）。
 //
-// ★写像は文書単位ではなく **言語キー単位** で取る（ADR-0005 の per-language 前提）。
-//   ベースマップ側の参照実装（SqliteDataService.normalizeLegacyBaseMapDocument。m19-t7 で
+// ★写像は文書単位ではなく **言語キー単位** で取る（多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの per-language 前提）。
+//   ベースマップ側の参照実装（SqliteDataService.normalizeLegacyBaseMapDocument。移行の一気通貫化で
 //   起動時 migration から取込側へ移設したもの）の whole-object 判定
 //   （Object.keys(label).length > 0 ? label : {...title}）は参照実装であって規範ではない。
 //   文書単位だと title={ja,en} / 正確名={ja} の地図で英語のタイトルが消える。
@@ -88,7 +88,7 @@ export function unifyMapNameFields<T extends Record<string, any>>(document: T): 
 }
 
 /**
- * (B) 取込境界での受容（sp-0006 の「過去の正規形式の受容」の許容側）。
+ * (B) 取込境界での受容（「過去の正規形式は受け入れる」方針の許容側）。
  *
  * 廃止属性のキーが在るとき **だけ** (A) を適用し、無ければ何もしない（非破壊で返す）。
  * 0.7.0 が公開した交換形を 1.0.0 の語彙へ写すためのもので、1.0.0 のエディタが書き出す
@@ -102,12 +102,12 @@ export function unifyMapNameFields<T extends Record<string, any>>(document: T): 
  *   空文字のものだけ label が埋まらず、結果が入力の些細な違いで割れる。
  *
  * ★キーそのものを持たない文書は写像の対象外である（label を title から補充しない）。
- *   移すものが無いのだから移さない、というだけの規則である。m19-t7 以前は marker 保護下の
+ *   移すものが無いのだから移さない、というだけの規則である。以前は marker 保護下の
  *   one-shot migration が全行へ無条件に (A) を当てていたため、キー無し文書でも label が
  *   title から生えていた。この差は 0.7.0 の実 corpus では発生しない
  *   （0.7.0 の MapEdit は廃止属性を必ず空文字で初期化するため。人間の実データ 244/244 が
  *   キーを保持することを実測済み）。title は必ず残るのでデータ喪失でもない。
- *   この仕様は scripts/m19-t7-migration-passthrough-smoke.mjs の
+ *   この仕様は scripts/migration-passthrough-smoke.mjs の
  *   INTENTIONAL_DIVERGENCE が fixture で機械固定している。
  */
 export function adoptDeprecatedMapNames<T extends Record<string, any>>(document: T): T {

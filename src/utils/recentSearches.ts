@@ -1,6 +1,5 @@
 // 一覧トップの検索条件の記憶（直近の検索条件）— 純関数だけを置く。
 //
-// 設計: .nayuta/2026-10-21-nov26-editor-feat1-design.md（v1.0）§4.2・§4.4・§4.9
 // 保存先は electron-store の設定ファイル（キー `recentSearches`）。ここは I/O を持たず、
 // 値の正規化・重複排除・上限で切る処理だけを担う（window.settings を扱うのは
 // src/composables/useRecentSearches.ts だけ）。
@@ -16,7 +15,7 @@ export interface RecentSearchEntry {
 export type RecentSearches = Partial<Record<ResourceListKind, RecentSearchEntry[]>>;
 
 /**
- * 件数上限。**画面の形（グリッド／左右ペイン）ではなく kind で固定する**（設計 §4.1）。
+ * 件数上限。**画面の形（グリッド／左右ペイン）ではなく kind で固定する**。
  * 形が将来変わっても履歴の上限が勝手に変わらない。
  */
 export const RECENT_SEARCH_LIMIT: Record<ResourceListKind, number> = {
@@ -27,13 +26,13 @@ export const RECENT_SEARCH_LIMIT: Record<ResourceListKind, number> = {
   "image-asset": 5,
 };
 
-/** 入力の停止から記録するまでの遅延（設計 §4.3、テストで固定する値）。 */
+/** 入力の停止から記録するまでの遅延（テストで固定する値）。 */
 export const RECENT_SEARCH_RECORD_DELAY_MS = 800;
 
 /** electron-store のキー（1 本だけ足す）。 */
 export const RECENT_SEARCH_STORE_KEY = "recentSearches";
 
-/** タグとして読めず URL も長くなるため、これを超える q は記録しない（設計 §4.4）。 */
+/** タグとして読めず URL も長くなるため、これを超える q は記録しない。 */
 export const RECENT_SEARCH_MAX_QUERY_LENGTH = 200;
 
 /**
@@ -52,7 +51,7 @@ export function normalizeQueryForHistory(q: string): string | null {
 /**
  * 重複判定キー。SQLite の LIKE は ASCII について大文字小文字を区別しないため
  * （electron/services/SqliteDataService.ts の `raw LIKE ?`）、`Tokyo` と `tokyo` は
- * 実質同じ検索である（設計 §4.4）。表示は入力どおりの表記を残す。
+ * 実質同じ検索である。表示は入力どおりの表記を残す。
  */
 export function sameSearchKey(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
@@ -60,7 +59,7 @@ export function sameSearchKey(a: string, b: string): boolean {
 
 /**
  * 1 件記録する。同じ条件が既にあれば件数を増やさず**先頭へ移動**し、
- * 上限を超えた分は末尾から落とす（設計 §4.3-5/6・§4.5）。
+ * 上限を超えた分は末尾から落とす。
  *
  * @param limit 省略時は無制限（呼び出し側が `RECENT_SEARCH_LIMIT[kind]` を渡す）。
  */
@@ -76,13 +75,13 @@ export function insertRecentSearch(
   return [{ q: normalized, at: now }, ...rest].slice(0, limit);
 }
 
-/** 該当 1 件だけを消す（× ボタン）。現在の検索条件には触れない（設計 §4.5）。 */
+/** 該当 1 件だけを消す（× ボタン）。現在の検索条件には触れない。 */
 export function removeRecentSearch(list: RecentSearchEntry[], q: string): RecentSearchEntry[] {
   return list.filter((entry) => !sameSearchKey(entry.q, q));
 }
 
 /**
- * 読み込み時の正規化（設計 §4.9）。設定ファイルは利用者が手で編集できる JSON なので、
+ * 読み込み時の正規化。設定ファイルは利用者が手で編集できる JSON なので、
  * 未知の形・壊れた値を受けても落ちないようにする。**正規化は読み込み時にしか行わない。**
  *
  * - 配列でなければ []

@@ -15,7 +15,7 @@
       <template #range><slot name="range"></slot></template>
     </ResourceListToolbar>
 
-    <!-- nov26-editor-feat1 §4.7: チップ行は検索入力の直下（入力と同じ行に並べると狭い幅で入力欄が潰れる） -->
+    <!-- recent-search-chips : チップ行は検索入力の直下（入力と同じ行に並べると狭い幅で入力欄が潰れる） -->
     <RecentSearchChips
       :entries="recentSearches ?? []"
       :active-query="recentActiveQuery"
@@ -54,7 +54,7 @@ const props = defineProps<{
   variant?: "grid" | "master";
   // optional: kindNameKey 構築の検索 placeholder を上書きする完全なキー（toolbar へ中継）
   searchPlaceholderKey?: string;
-  // nov26-editor-feat1: 直近の検索条件（新しい順）。空のときはチップ行を出さない
+  // recent-search-chips: 直近の検索条件（新しい順）。空のときはチップ行を出さない
   recentSearches?: ReadonlyArray<{ q: string }>;
   // 現在の検索語（一致するチップを active にする）
   recentActiveQuery?: string;
@@ -69,7 +69,7 @@ const emit = defineEmits<{
   "composition-end": [];
   retry: [];
   "load-more": [];
-  // nov26-editor-feat1: チップの適用・削除
+  // recent-search-chips: チップの適用・削除
   "apply-recent": [q: string];
   "remove-recent": [q: string];
 }>();

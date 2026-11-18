@@ -1,4 +1,4 @@
-// M12-T1: 対応線上への対応点作成（addMarkerOnEdge）の edge 分割計算部。
+// 対応線上への対応点作成（addMarkerOnEdge）の edge 分割計算部。
 // 旧版 frontend/src/mapedit.js:405-489 の計算ロジックを OL・Vue 非依存の純粋関数へ移植した。
 // 旧版の式（垂直距離・nearestLength・比率補間・slice 規則）を逐語維持する（quirks も含む、parity 方針）。
 //

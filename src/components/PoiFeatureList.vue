@@ -1,5 +1,5 @@
 <template>
-  <!-- feature 一覧 (Phase 4 Task 8, 仕様 §3.3 POI-127/128)。
+  <!-- feature 一覧。
        フィルタ (表示 ID / name / desc、全言語 lowercase 部分一致) + 自前の固定行高 windowing。
        行クリック / 新規作成は emit のみで、選択書き込み・pan・addFeature は PoiEdit が担う -->
   <div class="poi-feature-list d-flex flex-column">
@@ -16,7 +16,7 @@
         {{ t("poiedit.feature_count", { filtered: filteredRows.length, total: allRows.length }) }}
       </span>
       <!-- 新規作成 (地図中央に配置 + フォームフォーカスは PoiEdit の mapSession 経由)。
-           M11-T9/AC18: Resource List の + アクションと同一の文法（アイコン・ボタンclass）に統一。
+           /Resource List の + アクションと同一の文法（アイコン・ボタンclass）に統一。
            ReadOnly では非表示 -->
       <button
         v-if="!readOnly"
@@ -50,12 +50,12 @@
 </template>
 
 <script setup lang="ts">
-// POI feature 一覧 (Phase 4 Task 8, 仕様 §3.3)。
+// POI feature 一覧。
 // - フィルタ: 表示 ID / name / desc を対象に全言語の値 (LangResource は string と
 //   Record 双方) を lowercase 部分一致。表示のみで session 状態には影響しない。
 // - windowing: 依存追加なしの自前実装。固定行高 ROW_HEIGHT、scrollTop から可視 slice +
 //   OVERSCAN 行を v-for し、上下 spacer div で総高さを確保する。
-// - 選択同期 (POI-127/128): selectedUid の外部変化 (地図クリック等) で該当行を
+// - 選択同期: selectedUid の外部変化 (地図クリック等) で該当行を
 //   ハイライトし、可視範囲外のときのみ scroll-to-selected (フィルタで非表示なら何もしない)。
 // - 行クリック (選択 + pan) と新規作成 (地図中央 addFeature + フォームフォーカス) の実行
 //   責務は PoiEdit 側に置き、本コンポーネントは emit するだけ。
@@ -183,7 +183,7 @@ const bottomSpacerHeight = computed(
   () => (filteredRows.value.length - endIndex.value) * ROW_HEIGHT,
 );
 
-// --- scroll-to-selected (POI-128): 可視範囲外のときのみスクロール。
+// --- scroll-to-selected: 可視範囲外のときのみスクロール。
 // フィルタで非表示 (filteredRows に無い) の場合はスクロールしない ---
 const scrollToSelected = (uid: string): void => {
   const el = scroller.value;

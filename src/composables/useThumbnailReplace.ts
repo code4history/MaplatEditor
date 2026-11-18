@@ -1,23 +1,23 @@
-// m19-t12: サムネイル置換の**単一実装**。
+// サムネイル置換の**単一実装**。
 //
 // 地図管理（MapEdit.vue）とベースマップ管理（BaseMapEdit.vue）は、これまで構造が同型の
 // 置換ロジックを 2 本持っていた（プレビュー state / nonce / refreshThumbnails /
 // replaceThumbnail / エラー）。同一扱いの処理は「挙動を似せる」のではなく**同一実装へ寄せる**
-// （人間の恒久指示・M11-T10 由来）ため、本モジュールへ集約し、差分だけをホストが注入する。
+// （人間の恒久指示・由来）ため、本モジュールへ集約し、差分だけをホストが注入する。
 //
-// 【確定した意味論】（タスク設計 §4.1。UI にも同じ言葉で出す）
-//   規則 T1: サムネイル画像そのものの置換は**即時反映の資源操作**である。保存の対象ではなく、
+// 【確定した意味論】（UI にも同じ言葉で出す）
+//   規則 サムネイル画像そのものの置換は**即時反映の資源操作**である。保存の対象ではなく、
 //            元に戻す（undo）の対象でもない。戻したい場合は再度置換する。
-//   規則 T2: 文書が「どのファイルをサムネイルとするか」を保持している場合（ベースマップの
+//   規則 文書が「どのファイルをサムネイルとするか」を保持している場合（ベースマップの
 //            `thumbnail`）、その**指し先の移動は文書編集**であり保存して初めて確定する。
 //            ただし指し先は undo/redo の対象にしない（画像は戻らないため、戻すと食い違う）。
 //            本モジュールは移動の検出だけを行い、履歴の扱いはホストの `onPointerMoved` に委ねる。
-//   規則 T3: 書き込み先のキーが確定していないときは置換ボタンを disabled にして理由を示す。
+//   規則 書き込み先のキーが確定していないときは置換ボタンを disabled にして理由を示す。
 //            無言の no-op にしない。
 //
 // 【不変条件 INV-T】52px の所在（`rel52()`）が正本であり、512px の所在は
 // `thumb512PathFor(rel52())` からのみ導く。**このモジュールを含め、512px パスの文字列を
-// 手で組み立ててはならない**（m19-t5 が置いた拡張子の単一変化点を迂回してしまうため）。
+// 手で組み立ててはならない**（WebP 化で置いた拡張子の単一変化点を迂回してしまうため）。
 import { computed, ref, type ComputedRef, type Ref, type WritableComputedRef } from "vue";
 import i18next from "i18next";
 import { thumb512PathFor } from "../utils/thumbnailPaths";
@@ -33,7 +33,7 @@ export interface ThumbnailReplaceHost {
   rel52: () => string | null;
   /**
    * 置換の**書き込み先キーと拡張子**。null = キー未確定。
-   * **規則 T3 のゲートはこの 1 つだけに依存する**（設計 §4.3.1）。
+   * **規則 T3 のゲートはこの 1 つだけに依存する**。
    * `copy512From` は 52px 単独置換のとき、512px の実体を引き継ぐ元の 52px パス
    * （issue #192。書き込み先が他者のファイルから自分の uid 名へ変わる場合だけ設定される）。
    */
@@ -42,7 +42,7 @@ export interface ThumbnailReplaceHost {
   disabledReason: () => string;
   /**
    * derive52 チェックボックスを強制 ON にするか。
-   * `exists52` は本モジュールが算出して**引数で渡す**（ホストは自前で解決しない。設計 §4.3.2）。
+   * `exists52` は本モジュールが算出して**引数で渡す**（ホストは自前で解決しない）。
    */
   forceDerive52: (ctx: { exists52: boolean }) => boolean;
   /**
@@ -51,7 +51,7 @@ export interface ThumbnailReplaceHost {
    *     新しい URL を**この ref へ書き戻す**。`rel52()` からの再解決は行わない
    *   - 与えない場合: `rel52()` から毎回 `fileUrl` で解決する
    * ベースマップは**与える**（一覧 IPC が持つレガシー補完 `tmbs/{mapID}_menu.jpg` を温存する
-   * m19-t2 §5.7 の決定を壊さないため）。地図は与えない（設計 §4.3.3）。
+   * 決定を壊さないため）。地図は与えない。
    */
   raw52UrlRef?: Ref<string | null>;
   /**
@@ -66,12 +66,12 @@ export interface ThumbnailReplace {
   thumbnail52Url: ComputedRef<string | null>;
   thumbnailError: Ref<string>;
   thumbnailNonce: Ref<number>;
-  /** 52px の実体が rel52() の位置に存在するか。**所有権は本モジュールにある**（設計 §4.3.2） */
+  /** 52px の実体が rel52() の位置に存在するか。**所有権は本モジュールにある** */
   exists52: Ref<boolean>;
   /** v-model 用。derive52Forced が真なら常に true を返し set を無視する */
   derive52Model: WritableComputedRef<boolean>;
   derive52Forced: ComputedRef<boolean>;
-  /** 規則 T3。`writeTarget() === null` と等価（設計 §4.3.1） */
+  /** 規則 T3。`writeTarget() === null` と等価 */
   replaceDisabled: ComputedRef<boolean>;
   replaceDisabledReason: ComputedRef<string>;
   refreshThumbnails: () => Promise<void>;
@@ -102,8 +102,8 @@ export function useThumbnailReplace(host: ThumbnailReplaceHost): ThumbnailReplac
     set: (value: boolean) => { derive52FromUpload.value = value; },
   });
 
-  // 規則 T3。rel52() を混ぜてはならない（設計 §4.3.1。混ぜると thumbnail 空の新規ベースマップで
-  // 置換が塞がれ、m19-t2 の T4 / T8 / AC7 が RED になる＝機能が落ちる）
+  // 規則 T3。rel52() を混ぜてはならない（混ぜると thumbnail 空の新規ベースマップで
+  // 置換が塞がれ、サムネイルの e2e が RED になる＝機能が落ちる）
   const replaceDisabled = computed(() => host.writeTarget() === null);
   const replaceDisabledReason = computed(() => (replaceDisabled.value ? host.disabledReason() : ""));
 
@@ -131,7 +131,7 @@ export function useThumbnailReplace(host: ThumbnailReplaceHost): ThumbnailReplac
 
   async function replaceThumbnail(kind: "512" | "52"): Promise<void> {
     const target = host.writeTarget();
-    // 規則 T3 / 規則 K0: 書き込み先キーが未確定なら 1 バイトも書かない。
+    // 規則 T3 / 規則 書き込み先キーが未確定なら 1 バイトも書かない。
     // UI 側はこの状態でボタンを disabled にして理由を常時表示しているため通常は到達しないが、
     // 「無言の no-op」を残さないために理由を出す。
     if (!target) { thumbnailError.value = host.disabledReason(); return; }

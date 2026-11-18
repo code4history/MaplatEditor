@@ -133,8 +133,8 @@ export function addMenuEntries({
             const ul = document.createElement('ul')
 
             ul.classList.add(CSS_CLASSES.container)
-            // m1-t1 (HR-1 / 設計 §5.3 #3): submenu も同じ扱い（上限幅 + 内容幅）へそろえる。
-            // 本サイクルの 2 画面は submenu を使っていないため実害の是正ではないが、
+            // submenu も同じ扱い（上限幅 + 内容幅）へそろえる。
+            // 今回の 2 画面は submenu を使っていないため実害の是正ではないが、
             // 同一扱いの処理を別実装のまま残さない。
             ul.style.width = 'max-content'
             ul.style.maxWidth = `${menuWidth}px`

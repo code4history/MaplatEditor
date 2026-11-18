@@ -1,4 +1,4 @@
-// image asset の一覧検索 + サムネイル解決の共用 composable (Phase 6 Task 4)。
+// image asset の一覧検索 + サムネイル解決の共用 composable。
 // AssetList.vue で実装した「search + 後着優先トークンガード + getFilePath の file:// URL
 // 並行解決 + 個別失敗の noImage フォールバック」を AssetPicker と共用するため抽出した
 // (挙動は AssetList 時代と不変)。
@@ -26,7 +26,7 @@ export function useAssetThumbnails(): AssetThumbnails {
   const error = ref<string | null>(null);
   const searchQuery = ref("");
   const thumbUrls = reactive<Record<string, string>>({});
-  // 一覧再読込の後着優先トークン (Phase 3 MINOR-2): 検索連打で古い応答が後から返って
+  // 一覧再読込の後着優先トークン : 検索連打で古い応答が後から返って
   // きても、最新の呼び出し以外は状態に反映しない (一覧系の generation guard と同方式)
   let loadToken = 0;
 

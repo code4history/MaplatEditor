@@ -1,5 +1,5 @@
-// POI エディタの編集セッション composable (Phase 4 Task 4)。
-// 仕様 §5: UndoStack<PoiEditState> を流用し、明示 commit() のみが 1 Undo 単位として push する
+// POI エディタの編集セッション composable。
+// 仕様 : UndoStack<PoiEditState> を流用し、明示 commit() のみが 1 Undo 単位として push する
 // (MapEdit のデバウンス deep-watch 方式は使わない)。snapshot は slug/title/features/layerMeta を
 // 含むセッション全体で、未変更 feature オブジェクトは snapshot 間で共有する (structural sharing)。
 // selectedUid は Undo 対象外。表示 ID 採番は poiGeoJson の ensureDisplayIds を再利用する。
@@ -31,7 +31,7 @@ export interface PoiEditSession {
   canRedo: ComputedRef<boolean>;
   load(detail: { lang: LangCode; slug: string; title: LangResource; fc: PoiEditorFC }, opts?: { dirty?: boolean }): void;
   reset(state: PoiEditState, restoredDraft?: boolean): void;
-  /** 仕様 §5 の 1 Undo 単位 = commit 1 回。draft は state の shallow copy (features は新配列)。
+  /** 1 Undo 単位 = commit 1 回。draft は state の shallow copy (features は新配列)。
    * mutate 内で feature を変更する場合は clone してから書くこと (未変更 feature は共有のまま)。
    * slug/title/layerMeta の変更は値・オブジェクトごと差し替えで書く。 */
   commit(mutate: (draft: PoiEditState) => void): void;
@@ -54,7 +54,7 @@ function featureUid(feature: PoiEditorFeature): unknown {
   return feature.properties?._maplatUid;
 }
 
-// fc → PoiEditState 変換の共通純関数 (M3-T6 §5.4 手順4)。load() と inline POI 変換
+// fc → PoiEditState 変換の共通純関数 (手順4)。load() と inline POI 変換
 // (utils/inlinePoiConvert) の双方が同一実装を使う (恒久指示「同一扱い処理は共通実装へ」)。
 // fc の features 以外のトップレベルを layerMeta として保持し、type/lang は除外する (挙動不変)。
 export function toPoiEditState(detail: {
@@ -135,9 +135,9 @@ export function usePoiEditSession(): PoiEditSession {
     opts?: { dirty?: boolean },
   ): void => {
     reset(
-      // M3-T6: fc→state 変換は toPoiEditState (共通純関数) へ委譲 (挙動不変)
+      // fc→state 変換は toPoiEditState (共通純関数) へ委譲 (挙動不変)
       toPoiEditState(detail),
-      // M11-T10b: 複製の dirty-open（即保存可能・hot-exit で下書き化）に使う
+      // 複製の dirty-open（即保存可能・hot-exit で下書き化）に使う
       opts?.dirty ?? false,
     );
   };

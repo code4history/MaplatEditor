@@ -1,8 +1,8 @@
 <!--
   直近の検索条件のチップ（表示専用の primitive）。
 
-  設計: .nayuta/2026-10-21-nov26-editor-feat1-design.md §4.7
-  設計レビュー NOV26-DR-EDITOR-FEATURES-0456 指示 4・5:
+  
+  設計レビュー 指示 4・5:
     - 現在の q と一致するチップに active を付ける
     - 表示専用に保つ（ブラウザのグローバルは呼ばない。保存の窓口は useRecentSearches が担う）
 -->

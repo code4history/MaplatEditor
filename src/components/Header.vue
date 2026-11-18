@@ -86,7 +86,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useTranslation } from "i18next-vue";
 
-// nov26-m6-t4（#26）: vue/multi-word-component-names。ファイル名・import は変えない
+// #26: vue/multi-word-component-names。ファイル名・import は変えない
 defineOptions({ name: "AppHeader" });
 
 const { t } = useTranslation();

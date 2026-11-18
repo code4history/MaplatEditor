@@ -43,7 +43,7 @@
         @draft-state="onDraftState"
       />
       <div v-else-if="notFound" class="h-100">
-        <!-- M12-T11 (R3/C47): alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
+        <!-- alert から ResourceEmptyState 寄せ（アイコン+文言+戻るボタン） -->
         <ResourceEmptyState icon-class="bi bi-images" :message="t('assetlist.master_detail.not_found')">
           <template #actions>
             <button type="button" class="btn btn-sm btn-outline-secondary" @click="closeEditor">{{ t("editor_ui.back") }}</button>
@@ -58,13 +58,13 @@
       </div>
     </div>
 
-    <!-- M11-T10: 共通削除確認 dialog（参照情報つき） -->
+    <!-- 共通削除確認 dialog（参照情報つき） -->
     <DeleteConfirmDialog
       :visible="deletion.dialog.visible" :title="deletion.dialog.title"
       :references="deletion.dialog.references" :references-unavailable="deletion.dialog.refsUnavailable"
       :deleting="deletion.deleting.value" @confirm="deletion.confirm" @cancel="deletion.cancel"
     />
-    <!-- M12-T11 (R3/C49-C50): 削除/複製失敗は DF operation フローティングバナーで表示（他一覧と同文法） -->
+    <!-- 削除/複製失敗は DF operation フローティングバナーで表示（他一覧と同文法） -->
     <div v-if="deletion.error.value" class="position-fixed bottom-0 start-0 end-0 p-2" style="z-index: 1055;">
       <DiagnosticFeedback scope="operation" dismissible
         :items="[{ key: 'list-op-error', severity: 'danger', message: deletion.error.value }]"
@@ -97,7 +97,7 @@ const route = useRoute();
 const router = useRouter();
 const { select, selectDuplicate, clearSelection, selectSavedAfterReload } = useMasterDetailRouteState();
 const { draftUids, draftSummaries, latestNewDraft, refreshDrafts } = useAssetDraftBadges("image-asset");
-// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+// recent-search-chips: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
   items: recentItems,
   error: recentError,
@@ -127,7 +127,7 @@ const selectedItem = computed(() =>
 const notFound = computed(() => !!selectedUid.value && !isNew.value && listReady.value && selectedResolved.value && !selectedItem.value);
 
 // F8: Edit 側の live な下書き状態を List バッジへ即時反映する（store の永続化遅延を待たない）。
-// 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する（Major-1対応）。
+// 行切替を跨いでも uid ごとの override を保持し、store と一致した項目だけ回収する。
 // store 未反映の live 状態（persist throttle 中の編集など）は回収せず優先し続ける。
 const liveDraftOverrides = ref<Map<string, boolean>>(new Map());
 const effectiveDraftUids = computed(() => {
@@ -189,7 +189,7 @@ async function updateQuery(value: string): Promise<void> {
   recordRecent(value);
   await router.replace({ query: { ...route.query, q: value || undefined } });
 }
-// チップの適用: 選択中の uid を保ったまま q だけ書き換える（設計 §4.6 / AC9）
+// チップの適用: 選択中の uid を保ったまま q だけ書き換える
 function onApplyRecent(q: string): void {
   void applyRecent(q);
   void updateQuery(q);
@@ -222,7 +222,7 @@ function refreshDraftsSoon(): void {
   draftRefreshTimer = setTimeout(() => { void refreshDraftsNow(); }, 2300);
 }
 
-// M11-T10: 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）+ 参照情報表示
+// 共通確認 dialog（native confirm 全廃、useResourceDelete へ委譲）+ 参照情報表示
 const deletion = useResourceDelete({
   confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
   references: async (uid) => {
@@ -241,13 +241,13 @@ const deletion = useResourceDelete({
     await masterList.value?.reload();
     await refreshDraftsNow();
   },
-  // M12-T11 (R3/C49): native alert() を廃止。error ref は DF operation バナーで表示（他一覧と同文法）
+  // native alert() を廃止。error ref は DF operation バナーで表示（他一覧と同文法）
 });
 async function requestDeleteAsset(row: ImageAssetRow): Promise<void> {
   await deletion.request({ uid: row.uid, title: localizeTitle(row.title, activeLang.value) || row.slug });
 }
 
-// M11-T10 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
+// 複製（案A）: reserveCopySlug（check前置+新規UID採番）→ duplicateFrom/slug クエリ付きで new モードを開く
 const duplicateFrom = computed(() => (typeof route.query.duplicateFrom === "string" ? route.query.duplicateFrom : ""));
 const presetSlug = computed(() => (typeof route.query.slug === "string" ? route.query.slug : ""));
 const duplicateSourceItem = computed(() =>
@@ -255,7 +255,7 @@ const duplicateSourceItem = computed(() =>
 );
 async function duplicateAsset(row: ImageAssetRow): Promise<void> {
   const reserved = await reserveCopySlug(row.slug, "image-asset", "asset");
-  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }  // M12-T11 (R3/C50): native alert() 廃止
+  if (!reserved) { deletion.error.value = t("resource_list.duplicate_failed"); return; }  // native alert() 廃止
   await selectDuplicate(row.uid, reserved);
 }
 

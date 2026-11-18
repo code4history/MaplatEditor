@@ -11,7 +11,7 @@ export interface PoiPackageEntryInfo {
   isSymlink?: boolean;
 }
 
-// M5-T4: 旧 assertSafePoiPackageEntries は**性質の異なる2種類の検査**を1つのループに
+// 旧 assertSafePoiPackageEntries は**性質の異なる2種類の検査**を1つのループに
 // 混ぜていた。地図 ZIP はタイルを再帰的・無制限に同梱する既存形式のため（mapDownloadZip.ts）、
 // 後者（容量・件数上限）を地図 ZIP 全体へ適用すると**正当な地図が import できなくなる**。
 // ∴ 2つに割り、既存関数は両者の合成として残す（挙動・メッセージとも無変更）。
@@ -193,7 +193,7 @@ export function findPoiDocumentEntry(names: readonly string[]): string {
 type MediaResolver = (value: string) => string | Promise<string>;
 
 /**
- * M5-T4B: `properties.html` に埋め込まれた `imgs/<slug>.<ext>` を asset の正本記法へ戻す解決器。
+ * `properties.html` に埋め込まれた `imgs/<slug>.<ext>` を asset の正本記法へ戻す解決器。
  *
  * `MediaResolver` と分けているのは **正本の記法が違う**ためである。
  * `icon` / `selectedIcon` / `image` の正本は**裸の asset UID**だが、
@@ -275,7 +275,7 @@ async function rewriteProperties(
       changed.image = next;
     }
   }
-  // M5-T4B: html 本文の imgs 参照を maplat-asset: へ戻す（搬出 resolveAssetRefsForExport の逆）。
+  // html 本文の imgs 参照を maplat-asset: へ戻す（搬出 resolveAssetRefsForExport の逆）。
   // resolveHtmlAssetRef 未指定の呼び出し側は従来どおり html を触らない
   if (resolveHtmlAssetRef && 'html' in properties) {
     const rewritten = await rewriteHtmlAssetRefs(properties.html, resolveHtmlAssetRef);
@@ -296,7 +296,7 @@ export async function rewritePoiMediaReferences<T>(
   const fc = document as Record<string, unknown>;
   let output = await rewriteProperties(fc, resolve, resolveHtmlAssetRef);
 
-  // m18-t5: FC.properties（layer metadata の正本位置）の icon 参照書き換え
+  // FC.properties（layer metadata の正本位置）の icon 参照書き換え
   const fcProps = fc.properties;
   if (fcProps && typeof fcProps === 'object' && !Array.isArray(fcProps)) {
     const changedProps = await rewriteProperties(fcProps as Record<string, unknown>, resolve, resolveHtmlAssetRef);

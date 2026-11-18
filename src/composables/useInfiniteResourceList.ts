@@ -77,7 +77,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     loadingCursorKey = cursorKey(null);
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor: null, limit, signal: controller.signal });
-      if (gen !== generation) return; // 古い応答は破棄（AC6）
+      if (gen !== generation) return; // 古い応答は破棄
       items.value = dedupeAppend([], batch.items);
       total.value = batch.total;
       nextCursor.value = batch.nextCursor;
@@ -98,7 +98,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     if (nextCursor.value == null) return;
     const cursor = nextCursor.value;
     const key = cursorKey(cursor);
-    if (loadingCursorKey === key) return; // 同一cursor多重取得禁止（AC6）
+    if (loadingCursorKey === key) return; // 同一cursor多重取得禁止
     loadingCursorKey = key;
     const gen = generation;
     state.value = "appending";
@@ -106,7 +106,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     try {
       const batch = await adapter.load({ filter: sources.filter(), cursor, limit, signal: controller?.signal ?? new AbortController().signal });
       if (gen !== generation) return;
-      items.value = dedupeAppend(items.value, batch.items); // UID dedupe（AC6）
+      items.value = dedupeAppend(items.value, batch.items); // UID dedupe
       if (batch.total != null) total.value = batch.total;
       nextCursor.value = batch.nextCursor;
       consumedCursors.value = [...consumedCursors.value, cursor];
@@ -114,7 +114,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
       settleState();
     } catch (error) {
       if (gen !== generation) return;
-      state.value = "append-error"; // 取得済み item は保持（AC7）
+      state.value = "append-error"; // 取得済み item は保持
       failure.value = failureOf(error);
     } finally {
       if (gen === generation && loadingCursorKey === key) loadingCursorKey = null;
@@ -126,7 +126,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     else if (state.value === "append-error") await loadMore();
   }
 
-  // D9: 削除成功後、UID を除去し最終取得済み cursor を再取得して繰上りズレを dedupe 回収する。
+  // 削除成功後、UID を除去し最終取得済み cursor を再取得して繰上りズレを dedupe 回収する。
   // 再取得 batch には削除済み uid が（backend 反映遅延等で）残り得るため除外する。
   // client-side batch 系（master）は host 側が loadFirst で再スライスするため本メソッドを使わない。
   async function applyDeletion(uid: string): Promise<void> {
@@ -156,7 +156,7 @@ export function useInfiniteResourceList<T extends { uid: string }, Cursor = stri
     }
   }
 
-  // P6/D12: Back 復元。保存 batch 数まで loadFirst→loadMore を再生する。
+  // P6/Back 復元。保存 batch 数まで loadFirst→loadMore を再生する。
   async function restore(targetBatches: number): Promise<void> {
     await loadFirst();
     let guard = 0;

@@ -134,7 +134,7 @@ const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore
 );
 const shellRef = ref<InstanceType<typeof ResourceListShell> | null>(null);
 const backCache = useResourceListBackCache("map");
-// nov26-editor-feat1: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
+// recent-search-chips: 直近の検索条件（electron-store の `recentSearches` を画面ごとに記憶）
 const {
   items: recentItems,
   error: recentError,
@@ -158,7 +158,7 @@ function firstVisibleUid(): string | null {
   return null;
 }
 onBeforeRouteLeave(() => {
-  // nov26-editor-feat1: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
+  // recent-search-chips: 離れる直前に未記録の q を確定させる（既存ハンドラの中から呼ぶ）
   flushRecent();
   const root = shellRef.value?.contentRef ?? null;
   backCache.save({ q: query.value, bbox: bboxQuery.value, batches: batchesLoaded.value, anchorUid: firstVisibleUid(), scrollTop: root?.scrollTop ?? 0 });
@@ -201,12 +201,12 @@ function onApplyRecent(q: string): void {
 function onRemoveRecent(q: string): void {
   void removeRecent(q);
 }
-// M11-T10 (人間検証R4): 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
+// 既存の新規下書きがあれば引き継いで開く(master-detail と同じ文法)
 function createNewMap(): void {
   const pending = latestNewDraft.value;
   void router.push(pending ? `/mapedit?draftUid=${pending.assetUid}` : "/mapedit");
 }
-// M11-T10 (AC11): インポート導線 — MapEdit の新規モードで既存 importMap フローを自動起動
+// インポート導線 — MapEdit の新規モードで既存 importMap フローを自動起動
 function onImportMap(): void { void router.push("/mapedit?new=1&import=1"); }
 
 async function onAction(key: string, vm: ResourceListItemViewModel): Promise<void> {
@@ -215,7 +215,7 @@ async function onAction(key: string, vm: ResourceListItemViewModel): Promise<voi
   await deletion.request(vm);
 }
 
-// M11-T10: 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
+// 削除 (useResourceDelete) + 複製 (reserveCopySlug) — 共通 composable に委譲
 const deletion = useResourceDelete({
   confirmTitle: (title) => t("resource_list.delete_confirm_title", { title }),
   onDelete: async (uid) => {
@@ -232,7 +232,7 @@ async function duplicateByVm(vm: ResourceListItemViewModel) {
 
 let unsubscribe: (() => void) | null = null;
 onMounted(() => {
-  // m11-t12: refresh イベントは restoreOrLoad() 中に発行される可能性があるため、
+  // refresh イベントは restoreOrLoad() 中に発行される可能性があるため、
   // リスナー登録を先に行い、イベントを取りこぼさないようにする。
   unsubscribe = window.maplist.onRefresh(() => { void loadFirst(); void refreshDrafts(); });
   void (async () => {

@@ -1,4 +1,4 @@
-// 多言語リソース(LangResource)の表現仕様 (ADR-0005):
+// 多言語リソース(LangResource)の表現仕様 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり):
 // - 内部/DB保存形: 常にオブジェクト {lang: text}。空文字エントリは持たない
 // - 交換形(エクスポート/インポート): デフォルト言語のみの場合はプレーン文字列に
 //   畳み込む(人間が編集しやすい簡便形)。インポート/ロードは両形式を受容する
@@ -7,7 +7,7 @@
 export type LangResource = string | Record<string, string>;
 
 // MapEditの言語別編集対象フィールド(MapEdit.vue langAttrと一致させること)
-// m19-t1: 廃止属性(0.7.0 の地図名称(正確))はここから外した。∴ normalizeMapLangFields は
+// 廃止属性(0.7.0 の地図名称(正確))はここから外した。∴ normalizeMapLangFields は
 // それを正規化しない。レガシー取込で保持される値はプレーン文字列のまま行に入りうるため、
 // 移行の写像と取込境界の受容 (src/utils/mapNameUnification.ts) は必ず
 // normalizeLangResource(…, lang) を通してから読むこと。
@@ -26,7 +26,7 @@ export const MAP_LANG_ATTRS = [
   "description",
 ] as const;
 
-// ベースマップ文書の言語別フィールドの正本 (m6-t2)。
+// ベースマップ文書の言語別フィールドの正本。
 // title/attr は既存、dataAttr/licenseNote/dataLicenseNote は本タスクで新設。
 // label を含めない: label は compactLangObject を使う別経路 (appSourceModel) であり、
 // fromBaseMapCatalogItem でも label || title のフォールバックを持つ特別扱いだから。
@@ -38,8 +38,8 @@ export const BASE_MAP_LANG_ATTRS = [
   "dataLicenseNote",
 ] as const;
 
-// nov26-m6-t6: 任意の出典情報。必須5属性と分け、未設定の旧文書へ空キーを足さない。
-// 地図のreferenceは単一文字列だが、ベースマップはJ-M6-3により言語別とする。
+// 任意の出典情報。必須5属性と分け、未設定の旧文書へ空キーを足さない。
+// 地図のreferenceは単一文字列だが、ベースマップは人間の判断により言語別とする。
 export const BASE_MAP_META_LANG_ATTRS = [
   "createdAt", "era", "contributor", "mapper", "reference", "description",
 ] as const;
@@ -100,7 +100,7 @@ export function compactMapLangFields<T extends Record<string, any>>(document: T)
 }
 
 // 地図ドキュメントの IIIF の書誌の写し (iiif.copiedMetadata) の label・value を
-// 交換形に畳み込む(非破壊)。書き出した maps/{slug}.json は交換形(ADR-0005) ∴
+// 交換形に畳み込む(非破壊)。書き出した maps/{slug}.json は交換形(多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり) ∴
 // デフォルト言語だけの行はプレーン文字列にする。多言語の行は表のまま残す。
 // 写し直しの比較に言語が要る iiif.copiedValues は畳まない。
 export function compactIiifCopiedMetadata<T extends Record<string, any>>(document: T): T {

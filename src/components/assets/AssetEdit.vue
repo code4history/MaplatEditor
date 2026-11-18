@@ -25,7 +25,7 @@
       @discard-draft="discardDraft"
     />
 
-    <!-- M11-T10 (人間検証R3): 全量サマリバナーは廃止し Map/App と同じ
+    <!-- 全量サマリバナーは廃止し Map/App と同じ
          「field 診断 + バナーは操作エラーのみ」の文法へ統一 -->
     <DiagnosticFeedback
       v-if="error"
@@ -55,9 +55,9 @@
             />
           </EditorField>
         </div>
-        <!-- M11-T7/AC7・§18b決定2: 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
+        <!-- /・b決定2: 先頭は タイトル → スラッグ (ID) → デフォルト言語 -->
         <div class="col-12 col-xl-5">
-          <!-- M11-T7/AC1: 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
+          <!-- 共通 SlugField(内蔵 label/help/可用性診断+予約 lifecycle)。
                入力中は slugLive(live 可用性確認)、blur 確定(@change)で従来どおり履歴 commit -->
           <SlugField
             ref="slugField"
@@ -182,9 +182,9 @@ const props = withDefaults(defineProps<{
   isNew: boolean;
   item: ImageAssetRow | null;
   backVisible?: boolean;
-  /** M11-T10 複製(案A): 新規モードで複製元の row を受け取り、エディタ側で複製浄化して初期化する */
+  /** 複製(案A): 新規モードで複製元の row を受け取り、エディタ側で複製浄化して初期化する */
   duplicateSourceItem?: ImageAssetRow | null;
-  /** M11-T10 複製: 一覧側で予約済みの slug（複製浄化で元slugを上書きする） */
+  /** 複製: 一覧側で予約済みの slug（複製浄化で元slugを上書きする） */
   presetSlug?: string;
 }>(), {
   backVisible: true,
@@ -205,7 +205,7 @@ const volatileSource = shallowRef<VolatileSource | null>(null);
 let history = new UndoStack<AssetEditHistoryState>({ document: clone(initialDocument), volatileSource: null });
 const historyVersion = ref(0);
 const revision = ref<number | null>(props.item?.revision ?? null);
-// M11-T7: SlugField 連携。slugLive=入力中の live 値(可用性確認用)、originalSlug=保存済み slug
+// SlugField 連携。slugLive=入力中の live 値(可用性確認用)、originalSlug=保存済み slug
 // (未変更判定・元 slug 復帰 release 用。保存成功まで更新しない)。
 const slugField = ref<InstanceType<typeof SlugField> | null>(null);
 const slugLive = ref(initialDocument.slug);
@@ -243,13 +243,13 @@ const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "title-required": "assetlist.errors.title_required",
   "source-required": "assetlist.master_detail.reselect_required",
 };
-// field 診断（danger）への変換は共通 validationFieldDiagnostics(M11-T10)。全項目を即時表示（dirtyゲートなし）。
+// field 診断（danger）への変換は共通 validationFieldDiagnostics。全項目を即時表示（dirtyゲートなし）。
 // slug-required/slug-invalid は SlugField(required + 形式診断内蔵)が field 側で表示する。
 const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
   validationFieldDiagnostics(validation.value.errors, VALIDATION_MESSAGE_KEYS, t, codes);
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const sourceDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["source-required"]));
-// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない(M11-T10)
+// タイトル空のフォールバックは EditorActionHeader 共通(editor_ui.untitled)。slug 代用はしない
 const displayTitle = computed(() => localizeTitle(document.value.title, activeLang.value));
 const saveState = computed<EditorSaveState>(() => saving.value ? "saving" : draftLifecycle.draftRestored.value ? "draft-restored" : dirty.value ? "dirty" : "saved");
 const dimensions = computed(() => document.value.width !== null && document.value.height !== null ? `${document.value.width}×${document.value.height}` : "-");
@@ -268,13 +268,13 @@ const draftLifecycle = useAssetDraftLifecycle<ReturnType<typeof toImageAssetDraf
   shouldPersist: () => dirty.value,
 });
 
-// M11-T10 複製浄化: uid は新規採番値へ、slug は予約値へ上書き
+// 複製浄化: uid は新規採番値へ、slug は予約値へ上書き
 function duplicateInitialDoc(source: ImageAssetRow, uid: string): ImageAssetEditDocument {
   const doc = fromImageAssetRow(source);
   return { ...doc, uid, slug: props.presetSlug || `${doc.slug}-copy` };
 }
 
-// M11-T10 複製: 元アセットの実体ファイルを volatileSource として流し込む
+// 複製: 元アセットの実体ファイルを volatileSource として流し込む
 // (新規保存(add)は複製元の uid を main へ渡し、main が実体を引いて複製する。ここでは実体の有無だけを確かめる)
 async function prefillDuplicateSource(source: ImageAssetRow): Promise<void> {
   try {
@@ -304,7 +304,7 @@ function resetSession(item: ImageAssetRow | null, uid: string): void {
   volatileSource.value = null;
   if (!item && props.isNew && props.duplicateSourceItem) void prefillDuplicateSource(props.duplicateSourceItem);
   history = new UndoStack({ document: clone(next), volatileSource: null });
-  // M11-T10: 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
+  // 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
   if (!item && props.isNew && props.duplicateSourceItem) history.markDirty();
   historyVersion.value++;
   revision.value = item?.revision ?? null;
@@ -331,7 +331,7 @@ watch(
     sessionTransition = sessionTransition.then(async () => {
       if (sessionOpened) {
         await draftLifecycle.flush();
-        // F8 Major-1: flush で store が確定した後に List のバッジ再照会契機を作る。
+        // F8 flush で store が確定した後に List のバッジ再照会契機を作る。
         emit("flushed");
       }
       if (uid !== props.uid || itemRevision !== props.item?.revision || isNew !== props.isNew) return;
@@ -367,7 +367,7 @@ watch(
         });
         document.value = clone(history.current().document);
         volatileSource.value = null;
-        // 表示は保存済み実体（app://）へ切り替える（AC5: 「保存前のプレビュー」を消す）
+        // 表示は保存済み実体（app://）へ切り替える（「保存前のプレビュー」を消す）
         await refreshPreview();
         historyVersion.value++;
         await draftLifecycle.open(uid, itemRevision);
@@ -390,7 +390,7 @@ watch(
   { immediate: true },
 );
 
-// AC6: 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
+// 新規 asset の slug 予約成功時に初期 draft を即時保存し、予約のGC保護を確立する。
 useInitialDraftPersist({
   slugState: slugFieldState,
   isNewAsset: () => revision.value === null,
@@ -398,7 +398,7 @@ useInitialDraftPersist({
 });
 
 // document.slug の外部変化(Undo/Redo/draft 復元/セッション切替/自動提案)を SlugField の live 値へ
-// 同期する。元 slug へ復帰した場合は SlugField 内部の予約 release が発火する(AC15)。
+// 同期する。元 slug へ復帰した場合は SlugField 内部の予約 release が発火する。
 watch(() => document.value.slug, (slug) => {
   if (slugLive.value.trim() !== slug) slugLive.value = slug;
 });
@@ -441,12 +441,12 @@ function applyHistory(): void {
 function undo(): void { history.undo(); applyHistory(); }
 function redo(): void { history.redo(); applyHistory(); }
 
-// M3-T6 (§6.3 方針(i)): 局所実装を共有 suggestSlug へ統合。前処理 (NFKD + 不許可文字ラン →
+// (方針(i)): 局所実装を共有 suggestSlug へ統合。前処理 (NFKD + 不許可文字ラン →
 // ハイフン置換) で記号 → ハイフンの局所挙動 (map(1).png → map-1) を保存する。残余差分は
-// ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認 — 設計 §16-6)
+// ハイフン連続圧縮 (a-@b → 旧 a--b / 新 a-b) と 100 切詰めの追加のみ (安全側容認)
 const suggestSlug = (name: string) => sharedSuggestSlug(name.normalize("NFKD").replace(/[^A-Za-z0-9._\s-]+/g, "-"), "");
 
-// feat2: いま表示すべき画像を優先順で決める（設計 §4.3）。
+// feat2: いま表示すべき画像を優先順で決める。
 //   1. picked    … 今回選んだファイル。token で main から一次画像を読み data: URL にする
 //   2. duplicate … 複製元アセット。元 uid の実体（app://）
 //   3. 保存済み   … 自分の uid の実体（app://）
@@ -550,7 +550,7 @@ async function discardDraft(): Promise<void> {
   }
   await draftLifecycle.discard();
   // F5: 新規 draft の破棄は draft store から削除して選択解除（新規作成前の空状態）へ戻す。
-  // F8 Major-1: discard は store を即時変更するため、List のバッジ再照会も即時に行う。
+  // F8 discard は store を即時変更するため、List のバッジ再照会も即時に行う。
   emit("flushed");
   if (props.item) resetSession(props.item, props.uid);
   else emit("back");
@@ -589,7 +589,7 @@ async function save(): Promise<void> {
   error.value = "";
   saving.value = true;
   try {
-    // M11-T7: 保存直前の予約再確認(§7.1 confirmForSave)。他者予約なら保存中断(D7)。
+    // 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断。
     // registry 重複は backend の unique 制約(Exist)が最終防衛。
     const slugOk = await slugField.value?.confirmForSave() ?? true;
     if (!slugOk) { error.value = t("assetlist.errors.slug_taken"); return; }
@@ -606,7 +606,7 @@ async function save(): Promise<void> {
         ...(volatileSource.value.previewKind === "picked"
           ? { token: volatileSource.value.token }
           : { duplicateFrom: volatileSource.value.duplicateFromUid }),
-        // AC6: 新規 = 事前採番 uid(予約帰属 asset_uid と行 uid を一致させる)
+        // 新規 = 事前採番 uid(予約帰属 asset_uid と行 uid を一致させる)
         uid: document.value.uid,
       });
     } else {
@@ -632,10 +632,10 @@ async function save(): Promise<void> {
       history.save();
       historyVersion.value++;
     }
-    // M12-T29: draftLifecycle cleanup は保存成功時常に実行（capturedVersion に関わらず）。
+    // draftLifecycle cleanup は保存成功時常に実行（capturedVersion に関わらず）。
     // 旧 draftUid のドラフト削除（markSaved）→ 新 (uid, revision) へ identity 再構成（rebase）
     // → flush。保存中に別編集が入った場合 shouldPersist が true なので新 uid で persist される。
-    // PoiEdit.vue m11-t10b と同じ markSaved → rebase → flush パターン。
+    // PoiEdit.vue と同じ markSaved → rebase → flush パターン。
     await draftLifecycle.markSaved();
     draftLifecycle.rebase(result.uid, result.revision);
     await draftLifecycle.flush();
@@ -690,7 +690,7 @@ onBeforeUnmount(() => {
 
 // F8: dirty（下書きが存在する状態）の変化を「セッション確立済みの uid」に対してのみ通知する。
 // Undo で checkpoint clean に戻れば dirty=false となりバッジが即時に消える。
-// uid 切替中は旧 session の dirty を新 uid へ流さない（Major-1: transient誤バッジ防止）。
+// uid 切替中は旧 session の dirty を新 uid へ流さない（transient誤バッジ防止）。
 let draftStateUid: string | null = null;
 watch(dirty, (hasDraft) => {
   if (draftStateUid !== null) emit("draft-state", draftStateUid, hasDraft);

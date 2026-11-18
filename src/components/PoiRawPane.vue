@@ -27,7 +27,7 @@
     </div>
 
     <!-- 診断領域: 規模ガード / 構文エラー / validation エラー / 適用後 warning -->
-    <!-- M12-T11 (R3/C36-C40, R5/D3): alert 直書きから DF section へ。warning は黄色三角で danger と区別 -->
+    <!-- alert 直書きから DF section へ。warning は黄色三角で danger と区別 -->
     <div
       v-if="localDirty || sizeGuard || parseError || applyError || applyIssues.length || applyWarnings.length"
       class="px-3 py-1 flex-shrink-0 overflow-auto poi-raw-diagnostics"
@@ -52,7 +52,7 @@
       />
     </div>
 
-    <!-- raw GeoJSON 本体。規模ガード (POI-141) / remote ReadOnly では readonly -->
+    <!-- raw GeoJSON 本体。規模ガード / remote ReadOnly では readonly -->
     <textarea
       v-model="text"
       class="form-control flex-grow-1 font-monospace rounded-0 border-0 poi-raw-textarea"
@@ -64,14 +64,14 @@
 </template>
 
 <script setup lang="ts">
-// raw GeoJSON 双方向ペイン (Phase 5 Task 2, 仕様 §3.3 POI-136/141)。
+// raw GeoJSON 双方向ペイン。
 // 表示: session snapshot → toExportForm (roundCoordinates:false — 丸めた表示を書き戻すと
 // Write Store の座標が静かに劣化するため) を pretty JSON で textarea へ。snapshot watch で
 // 再生成するが、ユーザー編集中 (localDirty) は上書きせず、非表示 (visible=false) 中は
 // 大規模 FC の JSON.stringify を毎 commit 走らせないため再生成を止める。
 // Apply: ①JSON.parse ②fromExportForm (level==='error' があれば適用不可、warning のみは
 // 適用可 + 警告表示) ③parsed.id→slug / parsed.name→title / 他→layerMeta
-// （FC.properties を優先で重ねる・m18-t5） ④session.commit 1 回 (= 1 Undo、仕様 §5)。
+// （FC.properties を優先で重ねる） ④session.commit 1 回 (= 1 Undo)。
 import { computed, ref, watch } from "vue";
 import { useTranslation } from "i18next-vue";
 import type { PoiEditSession, PoiEditState } from "../composables/usePoiEditSession";
@@ -100,7 +100,7 @@ const props = defineProps<{
 
 const { t } = useTranslation();
 
-// slug 文字種 (PoiEdit / PoiSourceList と同一ルール、仕様 §6)
+// slug 文字種 (PoiEdit / PoiSourceList と同一ルール)
 const SLUG_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 const text = ref("");
@@ -108,7 +108,7 @@ const text = ref("");
 const localDirty = ref(false);
 // localDirty 化した時点の snapshot 参照 (shallowRef のオブジェクト同一性判定用)。以後 session.state.value
 // が別参照に差し替わったら (= エディタ側で undo/redo・他ペイン編集等が起きた) stale notice を出す
-// (Phase 5 品質レビュー MINOR)。Apply 自体は許可のまま、上書きのリスクだけを警告する
+// (品質レビューの指摘)。Apply 自体は許可のまま、上書きのリスクだけを警告する
 const dirtySnapshot = ref<PoiEditState | null>(null);
 const editorUpdatedSinceDirty = computed(
   () => localDirty.value && props.session.state.value !== dirtySnapshot.value,
@@ -118,7 +118,7 @@ const applyError = ref<string | null>(null);
 const applyIssues = ref<PoiValidationIssue[]>([]);
 const applyWarnings = ref<PoiValidationIssue[]>([]);
 
-// 規模ガード (POI-141): feature 数 or 表示 JSON サイズが POI-121 閾値超で textarea を read-only に。
+// 規模ガード: feature 数 or 表示 JSON サイズが規模の閾値超で textarea を read-only に。
 // 閾値は poiGeoJson の export 定数 (再定義禁止)。判定の byte size は pretty-print された export 形
 // (text.value、インデント込み) の文字列長。validateFeatureCollection 側の compact 内部形基準
 // (JSON.stringify(fc)) より大きく出るため、実データの規模超過より先に安全側で発火する。
@@ -143,7 +143,7 @@ function clearMessages(): void {
 }
 
 // 現在 snapshot → export 形 pretty JSON。toExportForm は layerMeta を FC.properties へ書くため、
-// 表示→Apply の往復で layer metadata は保存される（m18-t5）
+// 表示→Apply の往復で layer metadata は保存される
 function regenerate(): void {
   const state = props.session.state.value;
   if (!state) {
@@ -185,7 +185,7 @@ function discard(): void {
   regenerate();
 }
 
-// Apply (設計コントラクト 4 手順)。成功時は session.commit 1 回 = 1 Undo (仕様 §5)
+// Apply (設計コントラクト 4 手順)。成功時は session.commit 1 回 = 1 Undo
 function apply(): void {
   clearMessages();
   const state = props.session.state.value;
@@ -217,9 +217,9 @@ function apply(): void {
   //    その他 (type/features/id/name 除く) → layerMeta 全置換
   const rec = parsedRecord;
   let slug = state.slug;
-  // id メンバー自体が無ければ現 slug を維持 (非対称: §2.3 の双方向読みで id 欠落=現 slug 維持 /
+  // id メンバー自体が無ければ現 slug を維持 (非対称: 双方向読みで id 欠落=現 slug 維持 /
   // name 欠落=title クリア。name は空 title の正当な表現がある一方、slug 空は不正なため)。
-  // id はあるが string でない場合はエラー化して適用不可にする (Phase 5 品質レビュー MINOR)
+  // id はあるが string でない場合はエラー化して適用不可にする (品質レビューの指摘)
   if ("id" in rec && typeof rec.id !== "string") {
     applyError.value = t("poiedit.raw_id_not_string");
     return;
@@ -249,7 +249,7 @@ function apply(): void {
     }
   }
 
-  // ④ commit 1 回で features/slug/title/layerMeta を差し替え (= 1 Undo、仕様 §5)。
+  // ④ commit 1 回で features/slug/title/layerMeta を差し替え (= 1 Undo)。
   //    slug 変更時は PoiEdit 側の slug 欄 watch (editState.slug) が追随して checkSlug する
   props.session.commit((draft) => {
     draft.features = features;

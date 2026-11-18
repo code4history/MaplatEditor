@@ -1,5 +1,5 @@
 <template>
-  <!-- Edit v1 §9 の tab primitive (M11-T7/AC9)。現行 nav-tabs と同等の DOM
+  <!-- 編集画面の tab primitive。現行 nav-tabs と同等の DOM
        (ul.nav.nav-tabs.nav-fill + li.nav-item > a.nav-link、active/disabled class、
        href="#"、click.prevent)を出力しつつ、role/aria-selected/roving tabindex と
        ArrowLeft/Right/Home/End の focus 移動、disabled 理由 tooltip、狭幅 overflow を
@@ -93,7 +93,7 @@ function onKeydown(event: KeyboardEvent, tab: EditorTabItem): void {
 </script>
 
 <style scoped>
-/* 狭幅では折り返さず横 overflow スクロールにする(§9) */
+/* 狭幅では折り返さず横 overflow スクロールにする */
 .editor-ui-tabs {
   flex-wrap: nowrap;
   overflow-x: auto;

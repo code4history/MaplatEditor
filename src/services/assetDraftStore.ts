@@ -50,7 +50,7 @@ export function validateAssetDraftEnvelope(value: unknown): asserts value is Ass
 
 const storageKey = (kind: AssetDraftKind, assetUid: string) => `${KEY_PREFIX}${kind}:${assetUid}`;
 
-// M12-T20 (§5.1 実装注意/レビュー Info5): storage key `assetDrafts:{kind}:{assetUid}` の逆パース。
+// storage key `assetDrafts:{kind}:{assetUid}` の逆パース。
 // validUid は uid 中の ':' を許容するため単純 split は不可。プレフィックス除去後の**最初の** ':'
 // で kind/uid を分解する（kind 名は固定集合で ':' を含まない）
 function parseStorageKey(key: string): { kind: AssetDraftKind; assetUid: string } | null {
@@ -64,7 +64,7 @@ function parseStorageKey(key: string): { kind: AssetDraftKind; assetUid: string 
   return { kind, assetUid };
 }
 
-// M12-T20 (§5.1): draft 削除の main 側チョークポイント。envelope 削除（remove の
+// draft 削除の main 側チョークポイント。envelope 削除（remove の
 // keepStaging でない経路 / removeKey の隔離削除 — 常に）に同期して staging dir 回収等の
 // 後始末を注入できる。hook の失敗は envelope 削除自体を妨げない
 export interface AssetDraftStoreHooks {
@@ -133,7 +133,7 @@ export class AssetDraftStore {
     }
   }
 
-  // M12-T20 (§5.1): keepStaging=true は envelope のみ削除し onRemoved（staging 物理削除）を
+  // keepStaging=true は envelope のみ削除し onRemoved（staging 物理削除）を
   // 発火しない（dirty→clean 遷移専用。悪用しても「削除しない」方向のみの緩和で、残渣は
   // 起動時孤児 GC が回収するため安全上の新リスクはない）
   remove(kind: AssetDraftKind, assetUid: string, opts?: { keepStaging?: boolean }): void {
@@ -141,7 +141,7 @@ export class AssetDraftStore {
     this.removeKey(storageKey(kind, assetUid), opts?.keepStaging === true);
   }
 
-  // M12-T32 §4.3: データフォルダ切替成功時に全ドラフト（envelope + map staging dir）を消去する。
+  // データフォルダ切替成功時に全ドラフト（envelope + map staging dir）を消去する。
   // 既存の per-draft 削除経路（removeKey → onRemoved → staging fs.remove GC）を反復して通す。
   // index 直接 delete で staging ファイルを孤児化する実装は禁止（回収漏れは起動時孤児 GC が backstop）。
   // list() は index のスナップショットを返すため、反復中の remove による index 変更を安全に横断できる。
@@ -177,7 +177,7 @@ export class AssetDraftStore {
     return summaries.sort((left, right) => left.updatedAt.localeCompare(right.updatedAt));
   }
 
-  // M12-T20 (§5.1): 隔離削除（get/list の validate 失敗）からの直接呼び出しは keepStaging を
+  // 隔離削除（get/list の validate 失敗）からの直接呼び出しは keepStaging を
   // 渡さない = onRemoved を**常に**発火する（壊れた envelope → draft 死亡 → staging はゴミ）
   private removeKey(key: string, keepStaging = false): void {
     this.store.delete(key);
