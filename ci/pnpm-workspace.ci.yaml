@@ -42,6 +42,26 @@ overrides:
   # http-cache-semantics 4.2.0 の high は 4.2.1 で修正。4.3.0 を当てる
   # （経路は electron-builder > app-builder-lib > ... のビルド時のみ）
   http-cache-semantics: "^4.3.0"
+  # plist 3.1.0 が宣言する @xmldom/xmldom は ^0.8.8 で、親ワークスペースの lock では非推奨の
+  # 0.8.13 に解決している（このリポジトリ単独の lock では非推奨表示のない 0.8.15）。
+  # plist 3.1.1 は @xmldom/xmldom を ^0.9.10 へ上げた版で、plist 側の変更は整形と
+  # parseFromString の第 2 引数の明示だけ（3.1.0 と実読で差分確認）。
+  # plist を 3.1.0 に固定している親は app-builder-lib@26 だけなので、その経路に限って寄せる
+  # （@electron/osx-sign と @electron/universal は既に 3.1.1 を解決している）。
+  "app-builder-lib@26>plist@3.1.0": "^3.1.1"
+  # cheerio（pwa-asset-generator 経由）が引く encoding-sniffer 0.2.1 は whatwg-encoding 3.1.1
+  # （非推奨・@exodus/bytes への置換を指示）を引く。encoding-sniffer 1.0.2 は @exodus/bytes を使い、
+  # export（decodeBuffer / DecodeStream / getEncoding）と SnifferOptions の形は 0.2.1 と同一
+  # （型定義の差分が注釈のみであることを確認）。cheerio が使うのも decodeBuffer / DecodeStream
+  # だけであり Node も既定の >=22.12 の範囲に収まる。メジャー更新なので、使う親である
+  # cheerio 1.2.0 の経路に限る。cheerio は ^0.2.1 に留まるため上流待ち（cheeriojs/cheerio#4977）。
+  "cheerio@1.2.0>encoding-sniffer": "^1.0.2"
+  # boolean 3.2.0 と roarr 2 系（いずれも非推奨）は、@electron/get@3 の optional である
+  # global-agent 3 系（その下の boolean・roarr）と roarr 経由で入る。global-agent 4.1.7 は
+  # 非推奨でもなく boolean・roarr も引かないため、@electron/get@3 の経路に限って 4.1.7 へ寄せる。
+  # @electron/get が使う bootstrap() は 4 系にもあり、HTTP プロキシ・HTTPS CONNECT・NO_PROXY の
+  # 挙動を確認済み。
+  "@electron/get@3>global-agent": "4.1.7"
 
 # ---- 恒久 override----
 # 第三者依存の脆弱性。上流の更新を待つしかないため恒久。
