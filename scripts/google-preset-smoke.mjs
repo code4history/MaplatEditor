@@ -185,6 +185,25 @@ try {
     "google_roadmap",
     "case 7: 設定ファイル側が google_roadmap を出力",
   );
+  // Google の地図の設定ファイルには attr を出さない（マスタに以前の版の値が残っていても）。
+  // Viewer は Google が返す著作権の表示を必ず出し、attr はその後に添えるだけなので、勝手な文を出させない
+  const googleSetting = composeBaseMapSettingFile(masterGoogleItem, appSrc.role);
+  assert.equal("attr" in googleSetting, false, "case 7b: Google の地図の設定ファイルに attr を出さない");
+  assert.equal("attr" in composeViewerSource(appSrc, { lookup }), false, "case 7b: アプリ JSON にも attr を出さない");
+  // 旧保存形（kind 無し・maptype が google_*）も同じ
+  const legacyGoogleItem = {
+    uid: "uid-google-legacy",
+    mapID: "google-legacy",
+    data: { mapID: "google-legacy", lang: "ja", title: { ja: "G" }, attr: { ja: "© 旧" }, maptype: "google_hybrid" },
+  };
+  assert.equal("attr" in composeBaseMapSettingFile(legacyGoogleItem, "base"), false, "case 7b: 旧保存形の Google の地図も attr を出さない");
+  // Google 以外の種別の attr は従来どおり出す
+  const tmsItem = {
+    uid: "uid-tms",
+    mapID: "tms-master",
+    data: { mapID: "tms-master", lang: "ja", title: { ja: "T" }, attr: { ja: "© Example" }, kind: "tms", url: "https://example.org/{z}/{x}/{y}.png" },
+  };
+  assert.equal(composeBaseMapSettingFile(tmsItem, "base").attr, "© Example", "case 7b: tms の attr は出す");
   // normalize 経由でも同じ
   const normalized = normalizeAppSource(appSrc);
   assert.equal("maptype" in composeViewerSource(normalized, { lookup }), false, "case 7: normalize→compose でも maptype は出ない");

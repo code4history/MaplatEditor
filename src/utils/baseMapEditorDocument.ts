@@ -189,6 +189,17 @@ export function baseMapProviderKindOf(
   return null;
 }
 
+// Google の地図の帰属表記（attr）は、利用者が入力しない。Viewer（MaplatCore）は Google の地図では
+// Google が返す著作権の表示を全文で出し、Google Maps のロゴも出す（Google の利用条件）。
+// attr があると、その後に添えて出すので、Google の表示と紛らわしい勝手な文を出させないよう、
+// エディタは Google の地図の attr を入力させず、読み込み・保存・書き出しのどこでも持たない。
+// 判定は baseMapProviderKindOf と同じ（kind 優先・旧保存形は maptype の google_* で受ける）
+export function usesGoogleAttribution(
+  data: { kind?: unknown; maptype?: unknown } | null | undefined,
+): boolean {
+  return baseMapProviderKindOf(data) === "google";
+}
+
 // google-editor-basemap: 編集用ベースマップの選択肢に google を出してよいか。
 // 条件は「種別 google」かつ「エディタ用 Google Maps API キーが解決できる」の AND。
 // キーが無いときは出さない（呼び出し側が理由を注記する）。
@@ -317,7 +328,8 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     slug: item.mapID,
     title,
     label: Object.keys(label).length > 0 ? label : { ...title },
-    attr: lang.attr ?? {},
+    // Google の地図に保存済みの attr（以前の版で入力できた値）は読まない。次に保存すると消える
+    attr: kind === "google" ? {} : lang.attr ?? {},
     dataAttr: lang.dataAttr ?? {},
     licenseNote: lang.licenseNote ?? {},
     dataLicenseNote: lang.dataLicenseNote ?? {},
@@ -388,8 +400,8 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
   // 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
-  // kind に関わらず attr は必須（種別の軸の kind チェックとは独立）
-  if (!document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
+  // Google の地図だけは入力させない（帰属表記は Google が返す。usesGoogleAttribution の注記）
+  if (kind !== "google" && !document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
   // url 必須は kind === "tms" のみ（merc はメルカトルタイルの生成が導出、provider は不要。現行の tms 挙動と完全一致）
   if (kind === "tms") {
     if (!document.url.trim()) errors.push("url-required");
@@ -431,7 +443,8 @@ export function toBaseMapSavePayload(
       lang: document.defaultLang,
       title: { ...document.title },
       label: hasExplicitLabel ? { ...document.label } : { ...document.title },
-      attr: { ...document.attr },
+      // Google の地図は attr を持たない（種別を Google へ切り替える前に入れた値も保存しない）
+      attr: document.kind === "google" ? {} : { ...document.attr },
       // 5フィールドを常に出力する (空でも出す。attr と同じ形)
       dataAttr: { ...document.dataAttr },
       license: document.license,

@@ -1,6 +1,6 @@
-// Google プリセット選択時の帰属・ライセンス・ズーム自動入力 E2E
-// case 5: プリセット選択後に attr/license/zoom が入る
-// case 6: 手編集 attr は別プリセット切替後も維持
+// Google プリセット選択時のライセンス・ズーム自動入力 E2E
+// case 5: プリセット選択後に license/zoom が入る。帰属表記は入力できない形で出る（Google が返す表示を使う）
+// case 6: 手編集の license は別プリセット切替後も維持
 // case 7: undo 1 ステップで maptype+defaults がまとめて戻る
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
@@ -31,7 +31,7 @@ async function fillAndCommit(locator: ReturnType<Page['getByTestId']>, value: st
   await locator.press('Tab');
 }
 
-test('Google preset defaults: autofill attr/license/zoom, preserve custom attr, undo once', async () => {
+test('Google preset defaults: autofill license/zoom, keep attribution read-only, undo once', async () => {
   test.setTimeout(180_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-google-preset-defaults-'));
   const { app, page } = await launch(e2eRoot);
@@ -52,7 +52,8 @@ test('Google preset defaults: autofill attr/license/zoom, preserve custom attr, 
     // case 5: プリセット選択 → 既定値
     await page.getByTestId('basemap-google-preset-roadmap').click();
     await expect(page.getByTestId('basemap-google-preset-roadmap')).toHaveClass(/btn-primary/);
-    await expect(page.getByTestId('basemap-attr')).toHaveValue('© Google');
+    await expect(page.getByTestId('basemap-attr')).toHaveCount(0);
+    await expect(page.getByTestId('basemap-attr-google')).toBeDisabled();
     await expect(page.getByTestId('basemap-license')).toHaveValue('All right reserved');
     await expect(page.getByTestId('basemap-data-license')).toHaveValue('All right reserved');
     await expect(page.getByTestId('basemap-min-zoom')).toHaveValue('0');
@@ -62,18 +63,19 @@ test('Google preset defaults: autofill attr/license/zoom, preserve custom attr, 
     await page.getByTestId('editor-undo').click();
     // maptype 未選択に戻ると primary が外れる
     await expect(page.getByTestId('basemap-google-preset-roadmap')).not.toHaveClass(/btn-primary/);
-    // attr も空へ（defaults と maptype が同一 undo）
-    await expect(page.getByTestId('basemap-attr')).toHaveValue('');
+    // license も空へ（defaults と maptype が同一 undo）
+    await expect(page.getByTestId('basemap-license')).toHaveValue('');
 
     // 再選択
     await page.getByTestId('basemap-google-preset-roadmap').click();
-    await expect(page.getByTestId('basemap-attr')).toHaveValue('© Google');
+    await expect(page.getByTestId('basemap-license')).toHaveValue('All right reserved');
 
-    // case 6: 手編集 attr → 別プリセットでも維持
-    await fillAndCommit(page.getByTestId('basemap-attr'), 'My Custom Google Attr');
+    // case 6: 手編集の license → 別プリセットでも維持。帰属表記は入力できないまま
+    await page.getByTestId('basemap-license').selectOption('Custom');
     await page.getByTestId('basemap-google-preset-satellite').click();
     await expect(page.getByTestId('basemap-google-preset-satellite')).toHaveClass(/btn-primary/);
-    await expect(page.getByTestId('basemap-attr')).toHaveValue('My Custom Google Attr');
+    await expect(page.getByTestId('basemap-license')).toHaveValue('Custom');
+    await expect(page.getByTestId('basemap-attr-google')).toBeDisabled();
     // zoom は既に 0/22 が入っているので維持
     await expect(page.getByTestId('basemap-min-zoom')).toHaveValue('0');
     await expect(page.getByTestId('basemap-max-zoom')).toHaveValue('22');
