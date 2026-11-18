@@ -185,7 +185,9 @@ try {
         featureCount: 1,
       }, remoteAssetMissingPoiUid);
 
-      const { uid: normalMapUid } = await SqliteDataService.createMap('diag-normal-map', { title: { ja: '正常地図' }, compiled: { strict_status: 'strict' }, pois: [] });
+      const { uid: normalMapUid } = await SqliteDataService.createMap('diag-normal-map', { title: { ja: '正常地図' }, attr: { ja: '© 正常' }, compiled: { strict_status: 'strict' }, pois: [] });
+      // 帰属表記の無い地図（Viewer は既定値で埋めないので、一覧に印を出す）
+      const { uid: noAttrMapUid } = await SqliteDataService.createMap('diag-no-attr-map', { title: { ja: '帰属表記の無い地図' }, compiled: { strict_status: 'strict' }, pois: [] });
       const { uid: strictMapUid } = await SqliteDataService.createMap('diag-strict-map', { title: { ja: 'strict地図' }, compiled: { strict_status: 'strict_error' }, pois: [] });
       const { uid: subStrictMapUid } = await SqliteDataService.createMap('diag-sub-strict-map', {
         title: { ja: 'sub strict地図' },
@@ -235,10 +237,12 @@ try {
         SqliteDataService.findMapByRef(assetMapUid),
         SqliteDataService.findMapByRef(iconMapUid),
         SqliteDataService.findMapByRef(referencedAssetMapUid),
+        SqliteDataService.findMapByRef(noAttrMapUid),
       ]);
       await attachMapDiagnostics(mapDocs);
-      const [normalMap, strictMap, subStrictMap, missingPoiMap, inlineOnlyMap, assetMap, iconMap, referencedAssetMap] = mapDocs;
-      assert.deepEqual(normalMap.resourceDiagnostics, { kind: 'map', strictError: false, missingPoiRefs: false, missingAssetRefs: false });
+      const [normalMap, strictMap, subStrictMap, missingPoiMap, inlineOnlyMap, assetMap, iconMap, referencedAssetMap, noAttrMap] = mapDocs;
+      assert.deepEqual(normalMap.resourceDiagnostics, { kind: 'map', strictError: false, missingPoiRefs: false, missingAssetRefs: false, missingAttribution: false });
+      assert.equal(noAttrMap.resourceDiagnostics.missingAttribution, true, 'missing attribution');
       assert.equal(strictMap.resourceDiagnostics.strictError, true, 'strict_error');
       assert.equal(subStrictMap.resourceDiagnostics.strictError, true, 'sub_maps strict_error');
       assert.equal(missingPoiMap.resourceDiagnostics.missingPoiRefs, true, 'missing poi');
@@ -420,6 +424,7 @@ try {
         missingPoi: 'POI参照欠損',
         missingAsset: 'アセット欠損',
         poisFormat: 'POI形式未対応',
+        missingAttribution: '帰属表記なし',
       };
       assertBadgeKeys(
         buildResourceDiagnosticsBadges({
@@ -429,13 +434,14 @@ try {
           missingPoiRefs: true,
           missingAssetRefs: true,
           unsupportedPoisFormat: true,
+          missingAttribution: true,
         }, labels),
-        ['map-ref-error', 'missing-base-map', 'missing-poi', 'missing-asset', 'pois-format'],
+        ['map-ref-error', 'missing-base-map', 'missing-poi', 'missing-asset', 'pois-format', 'missing-attribution'],
         'app diagnostics badges',
       );
       assertBadgeKeys(
-        buildResourceDiagnosticsBadges({ kind: 'map', strictError: true, missingPoiRefs: true, missingAssetRefs: true }, labels),
-        ['strict-error', 'missing-poi', 'missing-asset'],
+        buildResourceDiagnosticsBadges({ kind: 'map', strictError: true, missingPoiRefs: true, missingAssetRefs: true, missingAttribution: true }, labels),
+        ['strict-error', 'missing-poi', 'missing-asset', 'missing-attribution'],
         'map diagnostics badges',
       );
       assert.equal(resourceBadgeClass('danger'), 'bg-danger');
