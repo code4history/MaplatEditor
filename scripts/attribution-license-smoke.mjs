@@ -11,6 +11,8 @@
 // case 8  帰属表記が要るのに無い地図・ベースマップ・アプリのソースを見分ける（attributionRequirement）。
 //      Viewer は帰属表記を既定値で埋めないので、エディタが見つけて止める。Google の地図は対象外。
 //      組み込みのベースマップはすべて帰属表記を持つ（勝手に埋めないが、欠けたら気づけるように見張る）。
+// case 9  validateBaseMapDocument の attr-required は「どれかの言語に空でない文があれば足りる」基準。
+//      既定言語だけを見ない（MapEdit.vue・バックエンド・一覧バッジと同じ lacksRequiredAttribution）。
 //
 // master-detail-smoke と同じ harness（vite SSR ビルド + import）。
 import assert from "node:assert/strict";
@@ -272,6 +274,61 @@ try {
   const builtinsWithoutAttr = builtins.filter((item) => lacksRequiredAttribution(item)).map((item) => item.mapID);
   assert.deepEqual(builtinsWithoutAttr, [], "case 8: 組み込みのベースマップはすべて帰属表記を持つ");
   console.log("ok: case 8 attribution requirement (maps, base maps, app sources, built-ins)");
+
+  // --- case 9: validateBaseMapDocument の attr-required は多言語のどれか 1 言語で足りる ---
+  // 既定言語だけを見る判定だと、旧データの英語のみ入力や既定言語だけ消す更新が保存できなくなる
+  const multiBase = {
+    ...fresh,
+    defaultLang: "ja",
+    kind: "tms",
+    slug: "custom",
+    title: { ja: "タイトル" },
+    attr: {},
+    url: "https://x/{z}/{x}/{y}.png",
+  };
+  // (1) 旧データ（defaultLang: 'ja'・attr: {}）に英語だけ出典を足した文書は保存できる
+  const enOnlyAdded = { ...multiBase, attr: { en: "© Added EN Only" } };
+  const enOnlyAddedValidation = validateBaseMapDocument(enOnlyAdded);
+  assert.ok(
+    enOnlyAddedValidation.valid && !enOnlyAddedValidation.errors.includes("attr-required"),
+    "case 9-1: 既定言語が空でも英語に文があれば valid のはず。実際: " + JSON.stringify(enOnlyAddedValidation.errors),
+  );
+  // (2) 保存済みが英語だけ（{ en: ... }・defaultLang: 'ja'）の文書は開いた直後から保存できる
+  const enOnlySaved = { ...multiBase, attr: { en: "© Legacy BM EN" } };
+  const enOnlySavedValidation = validateBaseMapDocument(enOnlySaved);
+  assert.ok(
+    enOnlySavedValidation.valid && !enOnlySavedValidation.errors.includes("attr-required"),
+    "case 9-2: 英語のみの attr の文書に attr-required は付かないはず。実際: " + JSON.stringify(enOnlySavedValidation.errors),
+  );
+  // (3) { ja, en } から ja（既定言語）だけ空にしても en が残っていれば保存できる
+  const jaCleared = { ...multiBase, attr: { ja: "", en: "© BM EN" } };
+  const jaClearedValidation = validateBaseMapDocument(jaCleared);
+  assert.ok(
+    jaClearedValidation.valid && !jaClearedValidation.errors.includes("attr-required"),
+    "case 9-3: 既定言語だけ空でも他言語が残っていれば valid のはず。実際: " + JSON.stringify(jaClearedValidation.errors),
+  );
+  // (4) 全言語を空にする更新は拒否のまま
+  const allEmpty = { ...multiBase, attr: { ja: "", en: "  " } };
+  const allEmptyValidation = validateBaseMapDocument(allEmpty);
+  assert.ok(
+    !allEmptyValidation.valid && allEmptyValidation.errors.includes("attr-required"),
+    "case 9-4: 全言語が空なら attr-required のまま。実際: " + JSON.stringify(allEmptyValidation.errors),
+  );
+  // 画面の判定（validateBaseMapDocument）と main・一覧の判定（lacksRequiredAttribution）が一致する
+  for (const [name, doc] of [["9-1", enOnlyAdded], ["9-2", enOnlySaved], ["9-3", jaCleared], ["9-4", allEmpty]]) {
+    assert.equal(
+      validateBaseMapDocument(doc).errors.includes("attr-required"),
+      lacksRequiredAttribution(doc),
+      `case ${name}: validateBaseMapDocument と lacksRequiredAttribution の判定が一致するはず`,
+    );
+  }
+  // Google の地図は他言語が空でも対象外のまま
+  const googleNoAttr = { ...multiBase, kind: "google", maptype: "google_roadmap", attr: {} };
+  assert.ok(
+    validateBaseMapDocument(googleNoAttr).errors.every((code) => code !== "attr-required"),
+    "case 9-5: Google の地図は attr-required が付かないはず",
+  );
+  console.log("ok: case 9 attr-required accepts any non-empty language (aligned with lacksRequiredAttribution)");
 
   console.log("attribution-license smoke passed");
   process.exit(0);

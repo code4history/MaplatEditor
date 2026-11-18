@@ -6,6 +6,9 @@ import {
   normalizeLangResource,
   type LangResource,
 } from "./langResource";
+// 帰属表記の必須判定は MapEdit.vue・バックエンド・一覧バッジと共通の attributionRequirement に揃える
+// （usesGoogleAttribution を貸す側だが関数本体の中だけで使うので循環参照は安全）
+import { lacksRequiredAttribution } from "./attributionRequirement";
 
 export interface BaseMapCatalogItemLike {
   uid: string;
@@ -410,9 +413,10 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   if (!document.slug.trim()) errors.push("slug-required");
   else if (!/^[A-Za-z0-9_-]+$/.test(document.slug.trim())) errors.push("slug-invalid");
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
-  // 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
+  // 地図画像帰属 (attr) を必須化。MapEdit.vue・バックエンド・一覧バッジと同じ判定に揃え、
+  // 全言語が空なら error（どれかの言語に空でない文があれば足りる）。
   // Google の地図だけは入力させない（帰属表記は Google が返す。usesGoogleAttribution の注記）
-  if (!usesGoogleAttribution(document) && !document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
+  if (lacksRequiredAttribution(document)) errors.push("attr-required");
   // url 必須は kind === "tms" のみ（merc はメルカトルタイルの生成が導出、provider は不要。現行の tms 挙動と完全一致）
   if (kind === "tms") {
     if (!document.url.trim()) errors.push("url-required");

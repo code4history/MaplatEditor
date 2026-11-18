@@ -1089,9 +1089,8 @@ class Drag extends Pointer {
 // 言語別フィールドの内部表現は常にオブジェクト {lang: text} (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
 // ロード/保存側(SqliteDataService)で正規化されるが、新規作成直後の初期値や
 // 旧形式データに備えてプレーン文字列(=デフォルト言語の値)も防御的に受容する
-const localedGet = (key: string) => {
+const localedGet = (key: string, locale: string = currentLang.value) => {
     const lang = mapData.value.lang || 'ja';
-    const locale = currentLang.value;
     const val = mapData.value[key];
     if (typeof val !== 'object' || val === null) {
         return lang === locale ? (val || '') : '';
@@ -4714,9 +4713,11 @@ const mercModalVisible = ref(false);
 const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
-const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
-// 実装レビューの指摘: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
-const mercDefaultAttr = computed(() => attr.value);
+// 初回生成のモーダルの既定値は、表示中の言語ではなく地図の既定言語のスロットから継承する。
+// 保存先（generateMercTileSet の inheritedAttr[lang]）も同じ既定言語スロットなので、
+// 表示中の言語の値で空を判定して別の言語の欄へ書き込むことがなくなる
+const mercDefaultTitle = computed(() => `${localedGet('title', mapData.value.lang || 'ja') || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
+const mercDefaultAttr = computed(() => localedGet('attr', mapData.value.lang || 'ja'));
 // 実装レビューの指摘: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
 // 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
 const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
@@ -4859,7 +4860,8 @@ async function wmtsGenerate(): Promise<void> {
             return;
         }
         mercNewUid.value = reserved.uid;
-        const inheritedAttr = attr.value;
+        // 空の判定も地図の既定言語のスロットで行う（mercDefaultAttr。書き込み先の言語と揃える）
+        const inheritedAttr = mercDefaultAttr.value;
         if (!inheritedAttr.trim()) {
             mercModalVisible.value = true;
             return;
