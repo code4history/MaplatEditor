@@ -116,7 +116,22 @@ export function layoutMapOverlayControls(
 
   if (toolsEl) {
     const attribution = overlay.querySelector<HTMLElement>('.ol-attribution');
-    if (attribution && attribution.parentElement !== toolsEl) toolsEl.appendChild(attribution);
+    if (attribution) {
+      if (attribution.parentElement !== toolsEl) toolsEl.appendChild(attribution);
+      if (attribution.dataset.externalLinkHandler !== 'installed') {
+        attribution.dataset.externalLinkHandler = 'installed';
+        attribution.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          const link = target.closest('a');
+          if (!link || !attribution.contains(link)) return;
+          event.preventDefault();
+          let url: URL;
+          try { url = new URL(link.href); } catch { return; }
+          if (url.protocol === 'https:') void window.externalLinks?.openHttps(url.href);
+        });
+      }
+    }
   }
 
   overlay.querySelectorAll<HTMLElement>('button[title]').forEach((button) => {

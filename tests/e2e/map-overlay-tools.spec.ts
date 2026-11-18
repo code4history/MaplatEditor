@@ -85,6 +85,27 @@ test.describe('地図の上の部品', () => {
       await expect(attribution.locator('a')).toHaveAttribute('href', 'https://example.org/tiles');
       await expect(attribution.locator('a')).toHaveAttribute('target', '_blank');
       await expect(attribution.locator('a')).toHaveAttribute('rel', 'noopener noreferrer');
+      await app.evaluate(({ shell }) => {
+        (globalThis as any).__externalLinkCalls = [];
+        shell.openExternal = async (url: string) => { (globalThis as any).__externalLinkCalls.push(url); };
+      });
+      await attribution.locator('a').click();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      await attribution.evaluate((el) => {
+        for (const [scheme, href] of [
+          ['http', 'http://example.org/unsafe'],
+          ['javascript', 'javascript:alert(1)'],
+          ['file', 'file:///etc/passwd'],
+        ]) {
+          const link = document.createElement('a');
+          link.id = `unsafe-${scheme}`;
+          link.href = href;
+          link.textContent = scheme;
+          el.appendChild(link);
+        }
+      });
+      for (const scheme of ['http', 'javascript', 'file']) await attribution.locator(`#unsafe-${scheme}`).click();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
       await expect(attribution).not.toContainText('<img');
       await expect(attribution).toContainText(AMP_ATTR);
       expect(await page.locator('[data-evil]').count()).toBe(0);

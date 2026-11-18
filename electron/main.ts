@@ -221,6 +221,7 @@ import { registerImageAssetHandlers } from './ipc/assets-images'
 import { registerSlugReservationHandlers } from './ipc/slugReservations'
 import { registerSearchHandlers } from './ipc/search'
 import { registerIiifImportHandlers } from './ipc/iiifimport'
+import { registerExternalLinkHandlers } from './ipc/externalLinks'
 import { registerMcpHandlers, clearCopiedConnectionCommand } from './ipc/mcp'
 import type { McpController } from './mcp/controller'
 
@@ -322,6 +323,7 @@ app.whenReady().then(async () => {
   registerSlugReservationHandlers()
   registerSearchHandlers()
   registerIiifImportHandlers()
+  registerExternalLinkHandlers()
   mcpController = registerMcpHandlers()
   // 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
   await gcOrphanDraftTiles()
