@@ -576,7 +576,10 @@
     "control_zoom_in": "Vergrößern",
     "control_zoom_out": "Verkleinern",
     "control_reset_rotation": "Drehung zurücksetzen",
-    "control_search_address": "Adresse suchen"
+    "control_search_address": "Adresse suchen",
+    "iiif_image_size_help": "Die Größe einer über IIIF bereitgestellten Karte wird durch die info.json des IIIF-Bildes bestimmt.",
+    "iiif_upload_map_reason": "Eine über IIIF bereitgestellte Karte lädt ihr Bild vom IIIF-Bilddienst. Ein anderes Bild würde nicht zur Größe des IIIF-Bildes passen und die Karte beschädigen, daher ist dies nicht verfügbar.",
+    "iiif_map_tile_reason": "Die Kacheln einer über IIIF bereitgestellten Karte werden vom hier angezeigten IIIF-Bilddienst geladen. Der Dienst wird durch das importierte Manifest bestimmt und kann hier nicht eingegeben werden."
   },
   "mapupload": {
     "map_image": "Kartenbild",
@@ -862,7 +865,8 @@
     "envelope_south_name": "Süden",
     "envelope_east_name": "Osten",
     "envelope_north_name": "Norden",
-    "envelope_coord_error_incomplete": "Geben Sie alle vier Werte ein: Westen, Süden, Osten und Norden."
+    "envelope_coord_error_incomplete": "Geben Sie alle vier Werte ein: Westen, Süden, Osten und Norden.",
+    "source_no_cache_iiif_reason": "Der Viewer speichert die Kacheln einer über IIIF bereitgestellten Karte nie auf dem Gerät, sondern lädt sie immer vom IIIF-Bilddienst. Ein Ausnehmen ist hier nicht nötig."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",

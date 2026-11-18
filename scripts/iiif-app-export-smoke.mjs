@@ -6,6 +6,7 @@
 // 見る書き出しの道は 2 つ:
 //   1. アプリの書き出し（AppExportService.exportApp）
 //      - タイルを同梱しない・maps/<slug>.json に delivery と iiif が入り url_ が無い
+//      - 以前の版で手で入れたタイルの URL（url）も出さない（Viewer は delivery を使い url を捨てる）
 //      - 進捗の事前計上が、同梱しない地図のタイルを数えていない（分母が狂わない）
 //   2. 地図 1 枚の ZIP（buildAndWriteMapZip）
 //      - tiles/ の項目が無く、目録があれば tiles:false
@@ -86,6 +87,7 @@ try {
     const { buildAndWriteMapZip } = await import(${p('electron/utils/mapDownloadZip.ts')});
     const { parseExportManifest, EXPORT_MANIFEST_NAME } = await import(${p('src/utils/exportOptions.ts')});
     const { normalizeAppSource, composeViewerSource } = await import(${p('src/utils/appSourceModel.ts')});
+    const { withoutManualTileUrl } = await import(${p('electron/utils/iiifDelivery.ts')});
 
     const put = (rel: string, data: string | Buffer) => {
       const abs = nodePath.join(dataDir, rel);
@@ -98,6 +100,19 @@ try {
     //       置いてあっても書き出さないことを確かめる
     //   B … 書誌だけ IIIF から写した地図（delivery を持たず iiif を持つ）。タイルの実体を 2 枚置く
     const SLUG_A = 'iiifdeliverymap';
+    const MANUAL_TILE_URL = 'https://tiles.example.org/manual/{z}/{x}/{y}.png';
+
+    // 手で入れたタイルの URL を外すのは IIIF のまま配る地図だけ。他の地図は同じオブジェクトをそのまま返す
+    {
+      const plain = { url: MANUAL_TILE_URL, url_: 'app://local/x/{z}/{x}/{y}.png', width: 1 };
+      assert.equal(withoutManualTileUrl(plain), plain, 'IIIF でない地図はそのまま');
+      const stripped = withoutManualTileUrl({ ...plain, delivery: { type: 'iiifImage', url: 'https://iiif.example.org/a' } });
+      assert.equal('url' in stripped, false, 'IIIF の地図の url を外す');
+      assert.equal('url_' in stripped, false, 'IIIF の地図の url_ を外す');
+      assert.equal(stripped.width, 1, '他の値は残す');
+      assert.equal(withoutManualTileUrl(null), null, 'null はそのまま');
+      console.log('ok: without-manual-tile-url');
+    }
     const SLUG_B = 'iiifbookonlymap';
     const deliveryA = { type: 'iiifImage', url: 'https://iiif.example.org/iiif/2/A/info.json' };
     // 書誌の写し: label・value は保存のときは多言語の表。書き出しでは交換形へ畳む。
@@ -122,7 +137,8 @@ try {
       bindings: { title: ['label'] },
     };
     const { uid: uidA } = await SqliteDataService.createMap(SLUG_A, {
-      title: { ja: 'IIIF のまま配る地図' }, attr: { ja: 'a' }, lang: 'ja', url: '',
+      // 以前の版で入力できたタイルの URL が残っている IIIF の地図
+      title: { ja: 'IIIF のまま配る地図' }, attr: { ja: 'a' }, lang: 'ja', url: MANUAL_TILE_URL,
       width: 400, height: 300, gcps: [], edges: [],
       delivery: deliveryA, iiif: iiifA,
     });
@@ -133,6 +149,33 @@ try {
     put('tiles/' + uidA + '/0/0/0.jpg', 'A-TILE-MUST-NOT-BE-EXPORTED');
     put('tiles/' + uidB + '/0/0/0.jpg', 'B-TILE-0');
     put('tiles/' + uidB + '/1/1/1.jpg', 'B-TILE-1');
+
+    // 保存の入口: IIIF のまま配る地図に手で入れたタイルの URL は保存しない
+    {
+      const { default: MapEditService } = await import(${p('electron/services/MapEditService.ts')});
+      const saved = await MapEditService.save({
+        slug: 'iiifsavedmap',
+        mapObject: {
+          mapID: 'iiifsavedmap', title: { ja: '保存する IIIF の地図' }, attr: { ja: 'c' }, lang: 'ja',
+          url: MANUAL_TILE_URL, width: 400, height: 300, gcps: [], edges: [], sub_maps: [],
+          delivery: deliveryA, iiif: iiifA, status: 'New',
+        },
+        tins: [],
+      } as any);
+      assert.equal(saved.result, 'Success', 'IIIF の地図を保存できる: ' + JSON.stringify(saved));
+      const raw = await SqliteDataService.findMapByRef((saved as any).uid);
+      assert.ok(!raw.url, '保存した IIIF の地図に手で入れたタイルの URL が残らない（実際: ' + JSON.stringify(raw.url) + '）');
+      assert.ok(!raw.url_, '保存した IIIF の地図に url_ が残らない');
+      assert.deepEqual(raw.delivery, deliveryA, 'delivery は残る');
+      console.log('ok: save-drops-manual-tile-url');
+
+      // 以前の版の保存形: データベースに手で入れたタイルの URL が残っている地図 A を開く（読み込みの入口）
+      const opened = await MapEditService.request(uidA);
+      assert.ok(!opened.url, '開いた IIIF の地図に手で入れたタイルの URL が無い（実際: ' + JSON.stringify(opened.url) + '）');
+      // url_ は手で入れた URL から作らない（地図 A は内部のタイルの実体を 1 枚持つので、それから作る url_ は従来どおり）
+      assert.notEqual(opened.url_, MANUAL_TILE_URL, '開いた IIIF の地図の url_ が手で入れた URL ではない');
+      console.log('ok: load-drops-manual-tile-url');
+    }
     put('tmbs/' + uidA + '.jpg', 'A-THUMB');
     put('tmbs/' + uidB + '.jpg', 'B-THUMB');
 
@@ -255,6 +298,7 @@ try {
       assert.deepEqual(mapA.delivery, deliveryA, 'maps/<slug>.json に delivery が入る');
       assert.ok(mapA.iiif, 'maps/<slug>.json に iiif が入る');
       assert.equal(mapA.url_, undefined, 'maps/<slug>.json に url_ が入らない');
+      assert.equal('url' in mapA, false, 'maps/<slug>.json に手で入れたタイルの URL が入らない');
       // 是正の見分け: 直す前は 1 行目が { ja: '題名' } のままなので、この 2 行で落ちる
       assert.equal(mapA.iiif.copiedMetadata[0].label, '題名',
         'アプリの書き出しで 1 行目の label が文字列になる');
@@ -297,7 +341,7 @@ try {
     // =====================================================================
     {
       const mapObjectA = {
-        mapID: SLUG_A, title: 'IIIF のまま配る地図', attr: 'a', lang: 'ja',
+        mapID: SLUG_A, title: 'IIIF のまま配る地図', attr: 'a', lang: 'ja', url: MANUAL_TILE_URL,
         gcps: [], edges: [], pois: [], delivery: deliveryA, iiif: iiifA,
       };
       const zipA = nodePath.join(workDir, 'map-a-' + (zipSeq++) + '.zip');
@@ -311,6 +355,7 @@ try {
       assert.equal(a.manifest.tiles, false, '目録が tiles:false を言う');
       const mapJsonA = a.json('maps/' + SLUG_A + '.json');
       assert.deepEqual(mapJsonA.delivery, deliveryA, '地図の JSON に delivery が入る');
+      assert.equal('url' in mapJsonA, false, '地図 1 枚の ZIP に手で入れたタイルの URL が入らない');
       assert.ok(mapJsonA.iiif, '地図の JSON に iiif が入る');
       // 是正の見分け: 直す前は 1 行目が { ja: '題名' } のままなので、この 2 行で落ちる
       assert.equal(mapJsonA.iiif.copiedMetadata[0].label, '題名',

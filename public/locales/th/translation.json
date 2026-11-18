@@ -576,7 +576,10 @@
     "control_zoom_in": "ซูมเข้า",
     "control_zoom_out": "ซูมออก",
     "control_reset_rotation": "รีเซ็ตการหมุน",
-    "control_search_address": "ค้นหาที่อยู่"
+    "control_search_address": "ค้นหาที่อยู่",
+    "iiif_image_size_help": "ขนาดของแผนที่ที่ให้บริการจาก IIIF กำหนดโดย info.json ของภาพ IIIF",
+    "iiif_upload_map_reason": "แผนที่ที่ให้บริการจาก IIIF โหลดภาพจากบริการภาพ IIIF การลงทะเบียนภาพอื่นจะทำให้ขนาดไม่ตรงกับภาพ IIIF และแผนที่เสียหาย จึงใช้ไม่ได้",
+    "iiif_map_tile_reason": "ไทล์ของแผนที่ที่ให้บริการจาก IIIF โหลดจากบริการภาพ IIIF ที่แสดงที่นี่ บริการนี้กำหนดโดย Manifest ที่นำเข้า จึงป้อนที่นี่ไม่ได้"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",
@@ -862,7 +865,8 @@
     "envelope_south_name": "ใต้",
     "envelope_east_name": "ตะวันออก",
     "envelope_north_name": "เหนือ",
-    "envelope_coord_error_incomplete": "กรอกค่าให้ครบทั้งสี่ค่า: ตะวันตก ใต้ ตะวันออก และเหนือ"
+    "envelope_coord_error_incomplete": "กรอกค่าให้ครบทั้งสี่ค่า: ตะวันตก ใต้ ตะวันออก และเหนือ",
+    "source_no_cache_iiif_reason": "โปรแกรมดูไม่เก็บไทล์ของแผนที่ที่ให้บริการจาก IIIF ไว้ในอุปกรณ์ และโหลดจากบริการภาพ IIIF ทุกครั้ง จึงไม่จำเป็นต้องยกเว้นที่นี่"
   },
   "mapmodel": {
     "untitled": "ยังไม่มีชื่อ",
