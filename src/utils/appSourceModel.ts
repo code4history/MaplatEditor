@@ -1,4 +1,4 @@
-import { isProviderKind, resolveBaseMapRuntimeText } from "./baseMapEditorDocument";
+import { isProviderKind, resolveBaseMapRuntimeText, usesGoogleAttribution } from "./baseMapEditorDocument";
 import { BASE_MAP_LANG_ATTRS, BASE_MAP_META_LANG_ATTRS, normalizeLangResource } from "./langResource";
 import type { LangResource } from "./langResource";
 // 書誌の表の出し方の語彙は Core が持つ（Editor に同じ union を書き写さない）。
@@ -684,6 +684,9 @@ export function composeBaseMapSettingFile(
     if (SETTING_FILE_EXCLUDED_KEYS.has(key)) delete data[key];
   }
   delete data.mapID;
+  // Google の地図は attr を出さない。Viewer は Google が返す著作権の表示を必ず出し、attr があると
+  // その後に添えてしまう。以前の版で入力できた値がマスタに残っていても、ここで落とす
+  if (usesGoogleAttribution(masterData)) delete data.attr;
 
   // 言語別フィールドは 多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの交換形へ畳む（言語の解決は viewer 側 ui.translate が行う）。
   // 畳み込みの基準は**この設定ファイル自身の既定言語**（= マスタの lang。data.lang として同梱される）

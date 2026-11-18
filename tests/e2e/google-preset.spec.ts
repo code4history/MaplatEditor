@@ -108,7 +108,9 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
     const slug = `fx-road-${Date.now()}`;
     await fillAndCommit(page.getByTestId('basemap-slug'), slug);
     await fillAndCommit(page.getByTestId('basemap-title'), 'Roadmap');
-    await fillAndCommit(page.getByTestId('basemap-attr'), '© Test Attr');
+    // Google の地図の帰属表記は入力しない（Google が返す表示を使う）。欄は入力できない形で出る
+    await expect(page.getByTestId('basemap-attr')).toHaveCount(0);
+    await expect(page.getByTestId('basemap-attr-google')).toBeDisabled();
     await expect(page.getByTestId('editor-save')).toBeEnabled();
     await page.getByTestId('editor-save').click();
     await expect(page).not.toHaveURL(/new=1/, { timeout: 30_000 });

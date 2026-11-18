@@ -1,5 +1,6 @@
 // Google プリセット既定値 smoke
 // case 1-4: build / apply / 上書きポリシー
+// case 9: Google の地図の帰属表記は埋めず、入力させず、読み込み・保存でも持たない
 // case 8: 11言語 Note キー
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -37,7 +38,6 @@ try {
   });
 
   const {
-    GOOGLE_DEFAULT_ATTR,
     GOOGLE_DEFAULT_LICENSE,
     GOOGLE_DEFAULT_MIN_ZOOM,
     GOOGLE_DEFAULT_MAX_ZOOM,
@@ -46,17 +46,19 @@ try {
     allGoogleDefaultNoteTexts,
     buildGooglePresetDefaults,
     applyGooglePresetDefaults,
-    isGoogleDefaultAttr,
     isGoogleDefaultNote,
     newBaseMapDocument,
     validateBaseMapDocument,
+    fromBaseMapCatalogItem,
+    toBaseMapSavePayload,
+    usesGoogleAttribution,
   } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
   const uid = "33333333-3333-4333-8333-333333333333";
 
   // ---- case 1 ----
   const d = buildGooglePresetDefaults("ja");
-  assert.equal(d.attr.ja, GOOGLE_DEFAULT_ATTR, "case 1: attr © Google");
+  assert.equal("attr" in d, false, "case 1: 帰属表記の既定値は持たない");
   assert.equal(d.license, GOOGLE_DEFAULT_LICENSE, "case 1: license");
   assert.equal(d.dataLicense, GOOGLE_DEFAULT_LICENSE, "case 1: dataLicense");
   assert.equal(d.minZoom, GOOGLE_DEFAULT_MIN_ZOOM, "case 1: minZoom 0");
@@ -69,7 +71,7 @@ try {
   // ---- case 2 ----
   const fresh = newBaseMapDocument(uid, "ja");
   const applied = applyGooglePresetDefaults(fresh, d);
-  assert.equal(applied.attr.ja, GOOGLE_DEFAULT_ATTR, "case 2: attr filled");
+  assert.deepEqual(applied.attr, {}, "case 2: 帰属表記は埋めない");
   assert.equal(applied.license, GOOGLE_DEFAULT_LICENSE, "case 2: license filled");
   assert.equal(applied.dataLicense, GOOGLE_DEFAULT_LICENSE, "case 2: dataLicense filled");
   assert.equal(applied.minZoom, 0, "case 2: minZoom");
@@ -80,22 +82,15 @@ try {
   // validate after maptype + defaults
   const ready = { ...applied, kind: "google", maptype: "google_roadmap", slug: "g1", title: { ja: "G" } };
   const v = validateBaseMapDocument(ready);
-  assert.equal(v.errors.includes("attr-required"), false, "case 2: attr-required cleared");
+  assert.equal(v.errors.includes("attr-required"), false, "case 2: Google の地図は帰属表記が空でも attr-required を出さない");
   assert.equal(v.errors.includes("maptype-required"), false);
 
-  // ---- case 3: custom attr preserved ----
+  // ---- case 3: プリセットの既定値は帰属表記に触れない ----
   const customAttr = applyGooglePresetDefaults(
     { ...fresh, attr: { ja: "My Custom Attr" } },
     d,
   );
-  assert.equal(customAttr.attr.ja, "My Custom Attr", "case 3: custom attr kept");
-
-  // Google default attr is re-applied (still default)
-  const keepDefaultAttr = applyGooglePresetDefaults(
-    { ...fresh, attr: { ja: GOOGLE_DEFAULT_ATTR } },
-    d,
-  );
-  assert.equal(keepDefaultAttr.attr.ja, GOOGLE_DEFAULT_ATTR, "case 3b: default attr still default");
+  assert.equal(customAttr.attr.ja, "My Custom Attr", "case 3: 既定値の適用は attr を書き換えない");
 
   // ---- case 4: non-empty license / non-null zoom preserved; per-field zoom () ----
   const customLicense = applyGooglePresetDefaults(
@@ -138,15 +133,35 @@ try {
     "EN default note text is still treated as Google default and re-applied for defaultLang",
   );
 
-  assert.equal(isGoogleDefaultAttr(""), true);
-  assert.equal(isGoogleDefaultAttr(GOOGLE_DEFAULT_ATTR), true);
-  assert.equal(isGoogleDefaultAttr("x"), false);
   assert.equal(isGoogleDefaultNote(""), true);
   assert.equal(isGoogleDefaultNote(GOOGLE_DEFAULT_LICENSE_NOTE_BY_LANG.ko), true);
   // 用語集で de の文を改めた後も、保存済みの旧既定 Note は Google 既定として認識する
   assert.equal(isGoogleDefaultNote("Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Attribution muss sichtbar bleiben."), true);
   assert.equal(isGoogleDefaultNote("nope"), false);
   assert.ok(allGoogleDefaultNoteTexts().length >= 22, "11 langs × 2 notes");
+
+  // ---- case 9: Google の地図の帰属表記は読み込み・保存で持たない ----
+  // 他の種別では attr-required が残る
+  const tmsDoc = { ...fresh, kind: "tms", url: "https://example.org/{z}/{x}/{y}.png", slug: "t1", title: { ja: "T" } };
+  assert.equal(validateBaseMapDocument(tmsDoc).errors.includes("attr-required"), true, "case 9: tms は帰属表記が必須のまま");
+  // 以前の版で入力できた帰属表記が保存されている Google の地図
+  const savedGoogle = fromBaseMapCatalogItem({
+    uid,
+    scope: "user",
+    mapID: "g-saved",
+    data: { kind: "google", maptype: "google_satellite", lang: "ja", title: { ja: "G" }, attr: { ja: "勝手な帰属表記" } },
+  });
+  assert.deepEqual(savedGoogle.attr, {}, "case 9: 読み込みで保存済みの帰属表記を読まない");
+  // 種別を Google に切り替える前に入れた帰属表記も保存しない
+  const switched = { ...ready, attr: { ja: "切り替える前の帰属表記" } };
+  assert.deepEqual(toBaseMapSavePayload(switched, null).tms.attr, {}, "case 9: 保存で帰属表記を出さない");
+  const tmsPayload = toBaseMapSavePayload({ ...tmsDoc, attr: { ja: "© Example" } }, null);
+  assert.deepEqual(tmsPayload.tms.attr, { ja: "© Example" }, "case 9: tms の帰属表記は保存する");
+  // 判定は kind 優先・旧保存形（kind 無し・maptype が google_*）も Google とみなす
+  assert.equal(usesGoogleAttribution({ kind: "google" }), true);
+  assert.equal(usesGoogleAttribution({ maptype: "google_hybrid" }), true);
+  assert.equal(usesGoogleAttribution({ kind: "tms", maptype: "google_hybrid" }), false);
+  assert.equal(usesGoogleAttribution({ kind: "mapbox" }), false);
 
   // ---- case 8 locales ----
   const localeRoot = path.join(projectRoot, "public/locales");

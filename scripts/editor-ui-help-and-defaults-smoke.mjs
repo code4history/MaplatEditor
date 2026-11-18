@@ -162,12 +162,13 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 //   アプリの「MapLibre GL JS の版」の説明 +1 ∴ AppEdit 15
 //   UI 文法（docs/ui-grammar.md §7）: MapEdit +3（オリジナル画像・押せない理由・写し直しの失敗）∴ 22、
 //   BaseMapEdit +1（MapLibre の style）∴ 11
+//   BaseMapEdit +1（Google の地図の帰属表記を入力できない理由）∴ 12
 // ---------------------------------------------------------------------------
 {
   const cases = [
     [APP_EDIT, appEditVue, 15, "S3/case 8"],
     [MAP_EDIT, mapEditVue, 22, "S4/case 9"],
-    [BASE_MAP_EDIT, baseMapEditVue, 11, "S5/case 10"],
+    [BASE_MAP_EDIT, baseMapEditVue, 12, "S5/case 10"],
   ];
   for (const [rel, source, expected, label] of cases) {
     const actual = count(source, "<ContextHelp");
@@ -181,6 +182,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   //   （PoiEdit 4・MapEdit 3・PoiAttributeForm 2・PoiMergeImportDialog 2・IiifBindingPanel 2・
   //     BaseMapEdit 1・Settings 1・MercTileSetModal 1・ResourceMasterRow 1）
   // #85: ソースの欄の「オフライン表示から外す」の説明で +1 ∴ 74（AppSourceEditor）
+  // Google の地図の帰属表記を入力できない理由で +1 ∴ 75（BaseMapEdit）
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -190,8 +192,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 74, `S3-S5: src 全体の <ContextHelp タグ数は 74 であること（上の注記の 56 + UI 文法の 17 + #85 の 1） (got ${total})`);
-  console.log("  [S3-S5/case 8-case 10] ContextHelp タグ数 AppEdit 15 / MapEdit 22 / BaseMapEdit 11 / src 計 74: PASS");
+  assert.equal(total, 75, `S3-S5: src 全体の <ContextHelp タグ数は 75 であること（上の注記の 56 + UI 文法の 17 + #85 の 1 + Google の帰属表記の 1） (got ${total})`);
+  console.log("  [S3-S5/case 8-case 10] ContextHelp タグ数 AppEdit 15 / MapEdit 22 / BaseMapEdit 12 / src 計 75: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない

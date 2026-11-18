@@ -3954,7 +3954,8 @@ const setupBaseMaps = async () => {
                     mapID: tms.mapID || 'custom',
                     maptype: tms.maptype || 'google_roadmap',
                     key: editorGoogleKey.value,
-                    attr: localizedMeta.attr,
+                    // attr は渡さない（Google の地図の帰属表記は Google が返す表示を使う。
+                    // 以前の版で入れた値がマスタに残っていても使わない）
                     // Google タイルの上限（ol/source/Google.js:12 maxZoom=22）
                     maxZoom: 22,
                     minZoom: 0,
