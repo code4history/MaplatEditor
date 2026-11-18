@@ -42,6 +42,19 @@ overrides:
   # http-cache-semantics 4.2.0 の high は 4.2.1 で修正。4.3.0 を当てる
   # （経路は electron-builder > app-builder-lib > ... のビルド時のみ）
   http-cache-semantics: "^4.3.0"
+  # plist 3.1.0 が引く @xmldom/xmldom 0.8.13 は npm で非推奨（critical issues）。
+  # plist 3.1.1 は @xmldom/xmldom を ^0.9.10 へ上げた版で、plist 側の変更は整形と
+  # parseFromString の第 2 引数の明示だけ（3.1.0 と実読で差分確認）。plist を宣言する親
+  # （app-builder-lib は 3.1.0 に固定・@electron/osx-sign と @electron/universal は ^3 系）は
+  # 3.1.1 でも壊れないため、plist 自体を 3.1.1 へ寄せる。
+  plist: "^3.1.1"
+  # cheerio（pwa-asset-generator 経由）が引く encoding-sniffer 0.2.1 は whatwg-encoding 3.1.1
+  # （非推奨・@exodus/bytes への置換を指示）を引く。encoding-sniffer 1.0.2 は @exodus/bytes を使い、
+  # export（decodeBuffer / DecodeStream / getEncoding）と SnifferOptions の形は 0.2.1 と同一
+  # （型定義の差分が注釈のみであることを確認）。cheerio が使うのも decodeBuffer / DecodeStream
+  # だけであり Node も既定の >=22.12 の範囲に収まる。cheerio は ^0.2.1 に留まるため上流待ち
+  # （cheeriojs/cheerio#4977）。
+  encoding-sniffer: "^1.0.2"
 
 # ---- 恒久 override----
 # 第三者依存の脆弱性。上流の更新を待つしかないため恒久。
