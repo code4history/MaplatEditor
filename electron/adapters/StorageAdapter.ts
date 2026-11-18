@@ -17,7 +17,7 @@ export interface MapListResult {
   pageUpdate?: number;
 }
 
-// uid正準の保存要求 (ADR-0007)。uid無指定は新規作成、copyFromUid指定は複製。
+// uid正準の保存要求 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。uid無指定は新規作成、copyFromUid指定は複製。
 // expectedRevision は楽観ロック(不一致で revision-conflict を返す)
 export interface MapSaveRequest {
   mapObject: any;
@@ -26,28 +26,28 @@ export interface MapSaveRequest {
   slug?: string;
   expectedRevision?: number | null;
   copyFromUid?: string | null;
-  // 新規作成の明示合図 (D11改)。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
+  // 新規作成の明示合図。true=create経路(uid採用)、なし/false=従来のuid有無dispatch
   create?: boolean;
-  // UID維持改名の残作業引き継ぎ (D5改)。Map専用: originals(slugキー)改名の再試行救済
+  // UID維持改名の残作業引き継ぎ。Map専用: originals(slugキー)改名の再試行救済
   renameFromSlug?: string;
 }
 
 export type MapSaveResult =
-  // url (M12-T17): 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
+  // url : 新規原本アップロード(tmpCheck)でタイルが恒久領域へ移動された場合のみ設定される
   // 恒久タイルURL({z}/{x}/{y}.ext パターンのテンプレート文字列)。既存地図の通常更新・clone・
   // rename 経路(tmpCheckが偽)では省略(undefined)。src/electron.d.ts のミラー定義と同期すること
   | { result: 'Success'; uid: string; slug: string; revision: number; url?: string }
   | { result: 'Exist' }
   // uid/slug/revision付きのErrorは「DBコミット済み・ファイル操作のみ失敗」。
   // レンダラはrevision等を補正してから再試行する(偽のrevision-conflict防止)。
-  // errorKey は additive (M13-T2 §5.3/§7): DBに未到達の reject (例: originals 未対応拡張子)
+  // errorKey は additive: DBに未到達の reject (例: originals 未対応拡張子)
   // では uid/slug/revision を伴わず errorKey のみを返す
   | { result: 'Error'; uid?: string; slug?: string; revision?: number; errorKey?: string }
   | { error: 'revision-conflict'; current: number };
 
-// Asset UID (UUIDv4) の形状 (ADR-0007)。slugは英数+ハイフンを許すためUUID形状と
+// Asset UID (UUIDv4) の形状 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。slugは英数+ハイフンを許すためUUID形状と
 // 重なり得る — uid引数の検証と uid優先解決の分岐に使う。
-// (本モジュールは m1 smoke が単一ファイルでtranspileするため、importせずここに定義する)
+// (本モジュールは smoke が単一ファイルでtranspileするため、importせずここに定義する)
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface StorageAdapter {
@@ -105,7 +105,7 @@ export class ServiceBackedStorageAdapter implements StorageAdapter {
     if (!Array.isArray(tins)) {
       throw new TypeError('tins must be an array');
     }
-    // uid正準フィールドの境界検証 (ADR-0007)
+    // uid正準フィールドの境界検証 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
     if (request.slug != null) assertMapID(request.slug);
     if (request.uid != null) assertUid(request.uid, 'uid');
     if (request.copyFromUid != null) assertUid(request.copyFromUid, 'copyFromUid');

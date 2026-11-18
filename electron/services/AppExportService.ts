@@ -21,7 +21,7 @@ import {
   type PwaImageSpec,
 } from '../utils/pwaAssets';
 import { renderImagePng, renderPwaAssets } from '../utils/pwaChromiumRenderer';
-// nov26-editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
+// editor-splash-svg (#462): SVG のスプラッシュは SNS カード用に PNG を描く
 import { isSvgExt } from '../utils/svgSource';
 import { packIco } from '../utils/icoPack';
 import { jsonForScript } from '../utils/scriptJson';
@@ -53,7 +53,7 @@ import {
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
 import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
-// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
+// 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
@@ -68,7 +68,7 @@ import {
   type ProviderKeyKind,
 } from './providerKeyResolution';
 
-/** m6-t6 (§3.2): オンザフライ入力（保存しない・呼び出し単位）*/
+/** オンザフライ入力（保存しない・呼び出し単位）*/
 export type ProviderKeyOverride = {
   googleApiKey?: string;
   mapboxToken?: string;
@@ -77,12 +77,12 @@ export type ProviderKeyOverride = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = process.env.APP_ROOT || path.resolve(__dirname, '..', '..');
 
-// m6-t8 §3.11: merc ソースの書き出しディレクトリ名衝突（同一名で異なる baseMapUid）の警告キー。
+// merc ソースの書き出しディレクトリ名衝突（同一名で異なる baseMapUid）の警告キー。
 // 既存の appedit.warn_* 警告キー群（PROVIDER_KEY_MISSING_WARNING/DUPLICATE_POI_REFERENCE_WARNING 等）
 // の命名規約に合わせる（設計書は appedit.errors.merc_name_collision としていたが、既存の appedit.errors.*
 // 名前空間は存在せず、警告チャネルはすべて appedit.warn_* を使っているため、実装時にこの規約へ揃えた）。
-// m6-t10 (AC9): maps/<slug>.json の出力パス衝突ガード。
-// slug は asset_registry で kind 横断に UNIQUE（ADR-0007）なので、正常系では発火しない。
+// maps/<slug>.json の出力パス衝突ガード。
+// slug は asset_registry で kind 横断に UNIQUE（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり）なので、正常系では発火しない。
 // 発火したら「ベースマップと Maplat 地図が同一 slug を主張している」＝ 不変条件の破れであり、
 // 黙って上書きすると片方の地図がパッケージから消える。∴ warning ではなく throw する。
 export function assertNoMapJsonCollision(written: ReadonlySet<string>, slug: string): void {
@@ -94,7 +94,7 @@ export function assertNoMapJsonCollision(written: ReadonlySet<string>, slug: str
 
 export const MERC_NAME_COLLISION_WARNING = 'appedit.warn_merc_name_collision';
 
-// nov26-m6-t5 (#110): 書き出し物のスプラッシュ名は `{appID}_splash.{ext}`（タスク設計 §2 の書き出し物の行）。
+// 書き出し物のスプラッシュ名は `{appID}_splash.{ext}`（書き出し物の行）。
 // 内部名（UUID。#109）を viewer 向けの出力（zip のエントリ・app JSON の splash・og:image）へ出さない。
 // ext は内部名の拡張子。名前はこの 1 箇所で導き、呼び出し側で組み立てない
 export function exportedSplashName(appID: string, splash: string): string {
@@ -113,7 +113,7 @@ export function resolveSplashSource(saveFolder: string, splash: string): string 
   return path.join(saveFolder, 'img', splash);
 }
 
-// nov26-editor-splash-svg (#462): SNS のカード画像（og:image）。多くの SNS は SVG をカードに描かないので、
+// editor-splash-svg (#462): SNS のカード画像（og:image）。多くの SNS は SVG をカードに描かないので、
 // SVG のスプラッシュは Chromium で同じ図柄の PNG を描いて og:image に使う（人間の決定）。
 // 寸法は OG の標準（1200x630）。今までの og:image はスプラッシュそのもの（寸法は元画像任せ）だったので、
 // PNG 化するときだけこの寸法にする。
@@ -121,14 +121,14 @@ export const OG_IMAGE_WIDTH = 1200;
 export const OG_IMAGE_HEIGHT = 630;
 // 描画に失敗したら og:image を付けない（警告 1 件。名前は既存の appedit.export.* の並びに合わせる）
 export const OG_IMAGE_FAILED_WARNING = 'appedit.export.og_image_failed';
-// NOV26-IM-PWA-ICON-SOURCE-0482: PWA アイコン用の画像 (manifestSettings.iconSource) が未登録、
+// PWA アイコン用の画像 (manifestSettings.iconSource) が未登録、
 // または登録はあるが実体が無く同梱デフォルトへ落ちたときの警告（1 件）。
 // 「実体が無い」を別キーで伝える既存の警告は無い（missing_splash はスプラッシュ、
 // warn_unresolved_icon は POI アイコン）ため、両方とも同じキーで伝える（人間の指示）。
 export const PWA_ICON_DEFAULT_WARNING = 'appedit.export.pwa_icon_default';
 
 /**
- * CSS の背景色を jimp の色（0xRRGGBBAA）にする（NOV26-IM-PWA-ICON-SOURCE-0481 の退避経路）。
+ * CSS の背景色を jimp の色（0xRRGGBBAA）にする（アイコン元画像から作れないときの退避経路）。
  * 読めない書式は既定の背景色（`PWA_DEFAULT_BACKGROUND`）にする。
  */
 function cssColorToRgbaInt(value: unknown): number {
@@ -232,7 +232,7 @@ async function copyTilesWithProgress(
     if (now - lastReportTime >= 200 || sinceLastReport >= 100 || done === total) {
       lastReportTime = now;
       sinceLastReport = 0;
-      // nov26-m6-t3 (#101): 地図ごとの最終件は整数 % が進まないと throttle に落ち、(N/N) が届かない
+      // 地図ごとの最終件は整数 % が進まないと throttle に落ち、(N/N) が届かない
       // （分母は全体・文言は地図ごと）∴ フェーズの最終件だけ updatePhaseEnd で送る。非最終件の throttle は温存
       if (done === total) reporter.updatePhaseEnd(progressState.step, `${slug} (${done}/${total})`);
       else reporter.update(progressState.step, `${slug} (${done}/${total})`);
@@ -281,7 +281,7 @@ async function copyFromPackage(src: string, dest: string): Promise<void> {
 
 type ExportResult = {
   result: 'Success' | 'Canceled' | 'Error';
-  // Success 時はユーザーが選んだ zip ファイルのパス (Phase 8 Task 6 で zip 出力へ統一)
+  // Success 時はユーザーが選んだ zip ファイルのパス (zip 出力へ統一済み)
   outDir?: string;
   warnings: string[];
   message?: string;
@@ -292,7 +292,7 @@ class AppExportService {
     return SettingsService.get('saveFolder') as string;
   }
 
-  // nov26-m6-t8（#113）: options.includeTiles === false のとき、tiles/・merc/ のタイルの実体をコピーしない。
+  // #113: options.includeTiles === false のとき、tiles/・merc/ のタイルの実体をコピーしない。
   // app JSON・地図の設定のタイルの URL は書き出し時と同じ相対パスのまま（利用者が別にタイルを置く構成）
   async exportApp(win: BrowserWindow, document: any, overrideKeys?: ProviderKeyOverride, options?: Partial<AppExportOptions>): Promise<ExportResult> {
     const { includeTiles } = normalizeAppExportOptions(options);
@@ -300,8 +300,8 @@ class AppExportService {
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
 
-    // M13-T1 (§2.7): pre-dialog revalidation。strict_error / missing map を含む maplat 参照は
-    // dialog を開く前に拒否する (AC-T1-2)
+    // pre-dialog revalidation。strict_error / missing map を含む maplat 参照は
+    // dialog を開く前に拒否する
     try {
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(document), 'app-export'
@@ -310,7 +310,7 @@ class AppExportService {
       return { result: 'Error', warnings, message: e?.message || 'appedit.preview.strict_error' };
     }
 
-    // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ (Phase 8 Task 6)。
+    // 地図ダウンロード(mapedit:download)と同じ流儀で zip 保存先を選ぶ。
     // 上書き確認は showSaveDialog のネイティブ確認に任せる(旧フォルダ出力の独自確認は廃止)
     const picked = await dialog.showSaveDialog(win, {
       defaultPath: dialogDefaultPath('export', `${appID}.zip`),
@@ -327,15 +327,15 @@ class AppExportService {
     // (mapedit:download と同方式)。途中失敗時はユーザーの選択先に何も残らない
     const tmpZipPath = `${outDir}.zip`;
 
-    // m6-t6 (§3.2): 鍵が2段（アプリ単位→設定ページ既定公開用）+ オンザフライでも解決できない
+    // 鍵が2段（アプリ単位→設定ページ既定公開用）+ オンザフライでも解決できない
     // provider ソースは、この時点で除外する。sources は以後（maplatSources・composeAppJson・
     // サムネイルコピー・renderIndexHtml の overlay/CDN/startFrom）すべての起点になる単一の
-    // const のため、ここ1箇所を差し替えるだけで全導出に反映される（R21・設計レビュー M4）
-    // m6-t10 (§3.4): ベースマップマスタの解決器。プレビュー側と同一実装を共有する
+    // const のため、ここ1箇所を差し替えるだけで全導出に反映される（設計レビュー）
+    // ベースマップマスタの解決器。プレビュー側と同一実装を共有する
     const baseMapLookup = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
     const sources: AppSource[] = (document.sources || [])
       .map((raw: any) => normalizeAppSource(raw, document.lang || 'ja'))
-      // m6-t10 (§3.6): マスタが引けないソースは除外して警告する（スナップショットを持たない
+      // マスタが引けないソースは除外して警告する（スナップショットを持たない
       // 設計の帰結。人間判断 2026-08-07）。kind をマスタから引くため provider 判定より先に行う
       .filter((source: AppSource) => {
         if (source.sourceType === 'maplat') return true;
@@ -345,7 +345,7 @@ class AppExportService {
       })
       .filter((source: AppSource) => {
         if (source.sourceType === 'maplat') return true;
-        // m6-t10: kind は差分保持モデルではアプリ側に無いためマスタから引く
+        // kind は差分保持モデルではアプリ側に無いためマスタから引く
         const resolvedSource = resolveAppSource(source, baseMapLookup);
         const kind = (resolvedSource.ok ? resolvedSource.master.data.kind : undefined) as
           | ProviderKeyKind
@@ -362,10 +362,10 @@ class AppExportService {
     const maplatSources = sources.filter(source => source.sourceType === 'maplat');
     const baseMapSources = sources.filter(source => source.sourceType !== 'maplat');
 
-    // m6-t8 §3.11: merc ソースの抽出（実装レビュー round3 M-5: AppPreviewService と共有する
-    // 抽出関数へ一本化）。m6-t10: dirName はマスタの現在 slug（§3.5.4）。
+    // merc ソースの抽出（実装レビュー round3 M-5: AppPreviewService と共有する
+    // 抽出関数へ一本化）。dirName はマスタの現在 slug。
     const mercEntries = extractMercSourceRefs(sources, baseMapLookup);
-    // 名前衝突診断: 同一 dirName で異なる baseMapUid を持つエントリを検出 (AC8)
+    // 名前衝突診断: 同一 dirName で異なる baseMapUid を持つエントリを検出
     const mercDirNameToUids = new Map<string, Set<string>>();
     for (const entry of mercEntries) {
       const set = mercDirNameToUids.get(entry.dirName) ?? new Set<string>();
@@ -387,18 +387,18 @@ class AppExportService {
       return true;
     });
 
-    // catch 節でエラー時の進捗モーダル片付け(MINOR-3)に使うため try の外で宣言する
+    // catch 節でエラー時の進捗モーダル片付けに使うため try の外で宣言する
     let reporter: ProgressReporter | undefined;
 
     try {
-      // M13-T1 (§2.7): post-dialog revalidation。dialog 待ち中の strict flip / delete を
-      // pre-dialog の古い判定のまま通さないよう再判定する (AC-T1-3)。outDir/tmpZipPath は
+      // post-dialog revalidation。dialog 待ち中の strict flip / delete を
+      // pre-dialog の古い判定のまま通さないよう再判定する。outDir/tmpZipPath は
       // 失敗時も finally で確実に削除される
       await MapPurposeService.assertViewerRuntimeAllowed(
         MapPurposeService.collectMaplatMapRefs(document), 'app-export'
       );
 
-      // 0) maplatソースのuid参照を地図docへ解決 (ADR-0007)。旧保存形のslug参照も受容する。
+      // 0) maplatソースのuid参照を地図docへ解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。旧保存形のslug参照も受容する。
       //    出力(maps/tiles/tmbs/アプリJSON内mapID)はすべてslug名で行う(viewer互換)
       const maplatDocs = new Map<AppSource, any>();
       for (const source of maplatSources) {
@@ -425,8 +425,8 @@ class AppExportService {
         tileFileCounts.set(source, count);
         totalTileFiles += count;
       }
-      // m6-t8: merc タイル数も進捗の事前計上へ織り込む（名前衝突で実コピーされないエントリは除く）
-      // nov26-m6-t8: タイルを含めないときは数えない（進捗の分母からタイルのコピーの分を除く）
+      // merc タイル数も進捗の事前計上へ織り込む（名前衝突で実コピーされないエントリは除く）
+      // タイルを含めないときは数えない（進捗の分母からタイルのコピーの分を除く）
       for (const entry of includeTiles ? mercEntriesToCopy : []) {
         const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
         totalTileFiles += fs.existsSync(mercDir) ? await countTileFiles(mercDir) : 0;
@@ -434,7 +434,7 @@ class AppExportService {
 
       // 進捗: タイルファイル単位 + 地図ごとの残り作業(JSON書き出し/tmbコピー) + 固定ステップ(アセット/PWA/HTML)
       //       + zip 追加単位(=パッケージ内全ファイル数)。zip 単位はパッケージ完成まで確定しないため、
-      //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する (Phase 8 Task 6)
+      //       支配的なタイル数で見積もっておき、確定後に extendTotal で補正する
       // minPercentDelta:0 でタイルコピー中も1%刻みで送信されるようにする(呼び出し側で200ms/100件throttle済み)
       reporter = new ProgressReporter(
         'app:taskProgress',
@@ -447,9 +447,9 @@ class AppExportService {
       const progressState = { step: 0 };
       reporter.update(progressState.step);
 
-      // 0b) m6-t10 (ADR-0017): ベースマップの定義本体を maps/<slug>.json として組み立てる。
+      // 0b) (地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり): ベースマップの定義本体を maps/<slug>.json として組み立てる。
       //     アプリ JSON 側は参照＋上書き分のみになるため、サムネイル等のマスタ由来値は
-      //     こちらに載る。∴ 出力パスの解決（uid名 → slug名。ADR-0007: viewer互換）も
+      //     こちらに載る。∴ 出力パスの解決（uid名 → slug名。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: viewer互換）も
       //     ここで設定ファイルに対して行う。
       const thumbnailCopies = new Map<string, string>(); // 出力相対パス → コピー元相対パス
       const baseMapSettingFiles = new Map<string, Record<string, unknown>>(); // slug → 設定ファイル
@@ -472,24 +472,24 @@ class AppExportService {
         baseMapSettingFiles.set(master.mapID, settingFile);
       }
 
-      // POI icon 参照解決 (POI-117) の実体コピー要求。app/map の全解決結果を dest キーで畳んで
+      // POI icon 参照解決の実体コピー要求。app/map の全解決結果を dest キーで畳んで
       // 最後に outDir/imgs/... へまとめてコピーする
       const iconFiles = new Map<string, IconFile>();
 
-      // POI の外部ファイル化 (M4-T2)。app JSON と map JSON をまたいで1つのコンテキストを共有し、
+      // POI の外部ファイル化。app JSON と map JSON をまたいで1つのコンテキストを共有し、
       // 同じ POI ソースを両方が参照しても pois/<name>.geojson は1ファイルへ畳む。
       // 処理順は app JSON → maps なので、同名衝突時の連番採番は「app が先に基底名を取る」で決定的
       const poiCtx = createPoiExternalizationContext();
 
-      // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される、M4-T2)
+      // 1) apps/{appID}.json (pois は pois/<name>.geojson への参照 + 上書き属性へ変換される)
       const appJson = await this.composeAppJson(document, sources, viewerMapID, warnings, iconFiles, poiCtx, baseMapLookup);
-      // M5-T4B: pretty の字下げは **2-space**（2026-08-03 人間指示）。
+      // pretty の字下げは **2-space**（2026-08-03 人間指示）。
       // 手編集用途のため pretty を保つが、幅は 4 ではなく 2 とする。
       // POI 単体パッケージの搬出（PoiPackageService:90,93）が既に 2-space であり、
       // アプリ搬出だけ 4-space だったのを揃える
       await fs.outputJson(path.join(outDir, 'apps', `${appID}.json`), appJson, { spaces: 2 });
 
-      // 二重参照検出 (POI-142): app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
+      // 二重参照検出: app pois の {poiUid} 集合 × 各 map pois の集合の積が非空なら警告1回
       const appPoiUids = collectPoiUids(readAppDocumentPois(document).pois);
       let duplicateReference = false;
 
@@ -497,25 +497,25 @@ class AppExportService {
       for (const source of maplatSources) {
         const mapDoc = maplatDocs.get(source)!;
         const slug = String(mapDoc.slug);
-        // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (ADR-0005)
+        // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)
         // IIIF の書誌の写し (iiif.copiedMetadata) も同じ規則で畳む（地図 1 枚の ZIP と同じ関数）
         const mapJson = compactIiifCopiedMetadata(compactMapLangFields({ ...mapDoc }));
         delete (mapJson as any)._id;
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;
         delete (mapJson as any).url_;
-        // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (ADR-0007)
+        // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
         delete (mapJson as any).uid;
         delete (mapJson as any).slug;
         delete (mapJson as any).revision;
-        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過、Phase 7)
-        // M4-T4: 生の Array.isArray ではなく共通の readAppDocumentPois を通す。app 側 (:263,:510)
+        // map data_json の pois 内の {poiUid} 参照を export 形 FC へ解決 (生要素は透過)
+        // 生の Array.isArray ではなく共通の readAppDocumentPois を通す。app 側 (:263,:510)
         // が既にこの関数で読んでいるのに map 側だけ生判定だったため、**単独形 (レイヤ1つを配列に
         // 包まず直接置く形) の地図では POI が export から丸ごと落ちていた**。実データ maps の
-        // 3件がこの形であり、t4 で MapEdit が編集可能にした形でもある ∴ 同一扱いへ寄せる
+        // 3件がこの形であり、MapEdit が上書きレイヤの対応で編集可能にした形でもある ∴ 同一扱いへ寄せる
         // (恒久指示「同一扱い処理は共通実装へ徹底」)。未対応形式は従来どおり空配列になるので、
         // その場合の挙動 (pois を触らない) も変わらない。
-        // M5-T4B: 読み出しと外部化を **地図 ZIP 搬出と共有する唯一の実装** へ寄せる
+        // 読み出しと外部化を **地図 ZIP 搬出と共有する唯一の実装** へ寄せる
         // (externalizeMapDocumentPois)。従来この4行は mapDownloadZip 側にも別々に書かれており、
         // map 側だけ Array.isArray の生判定だったため単独形の地図で POI が素通りしていた。
         // sourcePois は **外部化前** の読み出し結果で、下の二重参照検出に使う
@@ -531,19 +531,19 @@ class AppExportService {
           mergeWarnings(warnings, externalized.warnings);
           mergeIconFiles(iconFiles, externalized.files);
         }
-        // M5-T4B: **地図 JSON は搬出種別を問わず minify** する（地図 ZIP と同じ扱い）。
+        // **地図 JSON は搬出種別を問わず minify** する（地図 ZIP と同じ扱い）。
         // 地図データは容量が大きくなりやすく、整形の空白がそのまま配布サイズに乗る。
         //
-        // マイルストーン設計 I-5 は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
+        // 当初の設計は「アプリ JSON は pretty / **地図 ZIP の** maps/<slug>.json は
         // minify」と**パッケージ単位**で書かれていたため、アプリ ZIP に入る地図 JSON まで
-        // pretty のままになっていた。人間の指示は m5-t4 再設計時から一貫して
+        // pretty のままになっていた。人間の指示は 再設計時から一貫して
         // 「地図 JSON は minify」という**内容種別単位**であり、こちらが正しい（2026-08-03 訂正）。
         // pretty のまま残すのは手編集用途の apps/<appID>.json と pois/*.geojson である。
         await fs.outputJson(path.join(outDir, 'maps', `${slug}.json`), mapJson);
         progressState.step++;
         reporter.update(progressState.step, `${slug} (0/${tileFileCounts.get(source) ?? 0})`);
 
-        // 読み込みは内部のuidパス、出力はslug名 (ADR-0007: viewer互換)。
+        // 読み込みは内部のuidパス、出力はslug名 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: viewer互換)。
         // ファイル単位でコピーしつつ進捗を報告する(まとまった大きな地図でもバーが動き続ける)
         // IIIF のまま配る地図は画像を配信元から読むので、タイルの実体を同梱しない
         // (サムネイルは下で今のまま同梱する)
@@ -555,8 +555,8 @@ class AppExportService {
         if (fs.existsSync(thumb)) {
           await fs.copy(thumb, path.join(outDir, 'tmbs', `${slug}.jpg`));
         }
-        // M12-T15 (G): 512px サムネイルも package に同梱する（読み込みは uid キー、出力は slug 名）。
-        // m19-t5: 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。ADR-0007 整合）
+        // 512px サムネイルも package に同梱する（読み込みは uid キー、出力は slug 名）。
+        // 両辺とも派生規約の単一モジュールから導く（stem は変わらず拡張子だけが従う。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりと整合）
         const src512 = thumb512PathFor(thumb52PathFor(mapDoc.uid, 'jpg'));
         const out512 = thumb512PathFor(thumb52PathFor(slug, 'jpg'));
         if (src512 && out512) {
@@ -567,10 +567,10 @@ class AppExportService {
         }
       }
 
-      // 2z) m6-t10 (ADR-0017): ベースマップの設定ファイルを maps/<slug>.json へ書き出す。
+      // 2z) (地図の定義を maps/<slug>.json の設定ファイルに置き、アプリの sources にはその参照と上書きする値だけを書くという決まり): ベースマップの設定ファイルを maps/<slug>.json へ書き出す。
       //     slug は asset_registry で kind 横断に UNIQUE なので maplat 地図と衝突しないが、
-      //     衝突すれば片方の地図が黙って消えるため、検出したら warning ではなく throw する（AC9）。
-      //     地図 JSON と同じく minify（内容種別単位の規則。m5-t4b）。
+      //     衝突すれば片方の地図が黙って消えるため、検出したら warning ではなく throw する。
+      //     地図 JSON と同じく minify（内容種別単位の規則）。
       const writtenMapJsonSlugs = new Set(maplatSources.map(source => String(maplatDocs.get(source)?.slug ?? '')));
       for (const [slug, settingFile] of baseMapSettingFiles) {
         assertNoMapJsonCollision(writtenMapJsonSlugs, slug);
@@ -579,13 +579,13 @@ class AppExportService {
       }
 
       // 2a) merc ソース: merc/{baseMapUid} → merc/{dirName} へコピーし、tilejson.json の
-      //     tiles[] をディレクトリ名入りへ差し替える (m6-t8 §3.11/§3.4・AC7/AC8)。
+      //     tiles[] をディレクトリ名入りへ差し替える。
       //     衝突した dirName は mercEntriesToCopy の時点で最初の1件のみに絞り込み済み。
       for (const entry of mercEntriesToCopy) {
         const mercDir = path.join(this.saveFolder, 'merc', entry.baseMapUid);
         if (!fs.existsSync(mercDir)) continue; // タイル未生成(異常値)。既存tiles/tmbsと同型のsilent skip
         const mercOutDir = path.join(outDir, 'merc', entry.dirName);
-        // nov26-m6-t8: タイルを含めないときも tilejson.json（タイルの URL の宣言）は下で書く
+        // タイルを含めないときも tilejson.json（タイルの URL の宣言）は下で書く
         if (includeTiles) {
           await copyTilesWithProgress(mercDir, mercOutDir, entry.dirName, reporter, progressState);
         }
@@ -597,17 +597,17 @@ class AppExportService {
         }
       }
 
-      // 2.5) pois/{name}.geojson — app / map から参照される POI 実体 (M4-T2)。
+      // 2.5) pois/{name}.geojson — app / map から参照される POI 実体。
       //      app と map の双方の合成が終わってから一括で書き出す (同一ソースの二重参照は
       //      poiCtx で既に1エントリへ畳まれている)。
-      //      M5-T4B: 書き出し（整形・境界検査）は地図 ZIP 搬出と共有する writePoiDocuments が担う。
+      //      書き出し（整形・境界検査）は地図 ZIP 搬出と共有する writePoiDocuments が担う。
       //      ここに直接書くと、同じ dest の同じ実体が経路によって別物になる
       await writePoiDocuments(outDir, poiCtx.documents.values());
 
       // 3) ベースマップのサムネイル
       //    tmbs/… はデータフォルダから、basemap_icons/… はアプリ同梱リソースからコピーする。
       //    uid名のアイコンはslug名の出力パスへ解決済み(thumbnailCopies)。
-      //    m6-t10: 参照元が source.data から設定ファイル（maps/<slug>.json）へ移った。
+      //    参照元が source.data から設定ファイル（maps/<slug>.json）へ移った。
       //    builtin も同じ経路を通る（文字列出力の廃止により設定ファイルを持つため）。
       for (const settingFile of baseMapSettingFiles.values()) {
         const thumbnail = settingFile.thumbnail;
@@ -619,8 +619,8 @@ class AppExportService {
           } else {
             warnings.push('appedit.export.missing_thumbnail');
           }
-          // M12-T15 (G): ユーザー basemap の 512px も同梱する。
-          // m19-t2 (ADR-0007 違反 B の是正): この時点の `thumbnail` は既に出力側（slug 名）へ
+          // ユーザー basemap の 512px も同梱する。
+          // この時点の `thumbnail` は既に出力側（slug 名）へ
           // 差し替わっている。∴ コピー元を同じ値から導くと saveFolder 側を slug 名で読みに行き、
           // 実体（uid 名）に当たらず黙って同梱されなかった。52px（直上）が既に採っている
           // thumbnailCopies による uid 名への引き戻しと同型にし、出力先とコピー元を分離する。
@@ -642,7 +642,7 @@ class AppExportService {
         }
       }
 
-      // 3b) POI icon 実体 (POI-117): 解決済み参照が指す imgs/... へコピー。
+      // 3b) POI icon 実体: 解決済み参照が指す imgs/... へコピー。
       //     解決時 (resolveIconValue) に存在確認済みだが、レース等で消えていたら警告に落とす
       for (const file of iconFiles.values()) {
         if (fs.existsSync(file.src)) {
@@ -696,16 +696,16 @@ class AppExportService {
       progressState.step++;
       reporter.update(progressState.step);
 
-      // 8) 一時パッケージを zip 化して保存先へ書き出す (Phase 8 Task 6)。
+      // 8) 一時パッケージを zip 化して保存先へ書き出す。
       //    addLocalFolder 一括ではバーが止まるため、ファイル単位で zip へ追加しながら
       //    タイルコピーと同じ 200ms/100件 throttle で進捗を報告する
       const packageFiles = await listTileFiles(outDir);
       // extendTotal 後の確定total(以後 finalTotal)を自前計算しておく: 100%到達を
-      // writeZip+move完了後まで遅らせる(MINOR-1)ための上限値として使う
+      // writeZip+move完了後まで遅らせるための上限値として使う
       const initialTotal = totalTileFiles * 2 + maplatSources.length + 4;
       reporter.extendTotal(packageFiles.length - totalTileFiles);
       const finalTotal = initialTotal + (packageFiles.length - totalTileFiles);
-      // t1 (§4.3): adm-zip の全メモリ方式（原本+圧縮後+連結後の 3 重保持。2.14 GiB で
+      // 以前の adm-zip の全メモリ方式（原本+圧縮後+連結後の 3 重保持。2.14 GiB で
       // Buffer.alloc が RangeError）を、Node 標準 zlib のみのストリーミング書き出しへ差し替える。
       // 進捗の刻み方・文言・finalTotal-1 上限・staging → move は従来のまま保つ
       let zipped = 0;
@@ -714,7 +714,7 @@ class AppExportService {
       await writeZipStreaming(
         tmpZipPath,
         packageFiles.map(rel => ({
-          // adm-zip addLocalFile(abs, zipDir, basename) と同値のエントリ名（§4.3.3 で実測同値）
+          // adm-zip addLocalFile(abs, zipDir, basename) と同値のエントリ名（で実測同値）
           entryName: rel.split(path.sep).filter(segment => segment && segment !== '.').join('/'),
           localPath: path.join(outDir, rel),
         })),
@@ -723,16 +723,16 @@ class AppExportService {
             zipped++;
             sinceLastReport++;
             progressState.step++;
-            // イベントループ解放 (MAJOR-2 踏襲): 50 ファイルごとに1マクロタスク分だけ他イベントへ譲る
+            // イベントループ解放 (踏襲): 50 ファイルごとに1マクロタスク分だけ他イベントへ譲る
             if (zipped % 50 === 0) await new Promise<void>(resolve => setImmediate(resolve));
             const now = Date.now();
             if (now - lastReportTime >= 200 || sinceLastReport >= 100 || zipped === packageFiles.length) {
               lastReportTime = now;
               sinceLastReport = 0;
               // 最終件の update は整数パーセントが進まず ProgressReporter の 1% throttle に
-              // 落とされる(§1.3 の表示欠陥) ∴ 最終件に限り throttle を 1 回だけ無効化する(§4.5)。
+              // 落とされる(表示欠陥) ∴ 最終件に限り throttle を 1 回だけ無効化する。
               // 非最終件は従来どおり update() を呼び、1% 間隔の throttle を温存する（parity）
-              // 100%はzip書き出し(とmove)完了後にのみ到達させる(MINOR-1)。ここでは finalTotal-1 を
+              // 100%はzip書き出し(とmove)完了後にのみ到達させる。ここでは finalTotal-1 を
               // 上限にし、zip 追加完了だけで完了文言(endMsg)が出てしまうのを防ぐ
               if (zipped === packageFiles.length) {
                 reporter!.updatePhaseEnd(
@@ -752,18 +752,18 @@ class AppExportService {
         },
       );
       // ユーザー指定パスへ直接ではなく staging 領域(outDir と同じ temp 配下)の zip パスへ書き、
-      // 成功後に move する(MINOR-2、mapedit:download と同方式)。途中失敗時はユーザーの選択先に
+      // 成功後に move する(mapedit:download と同方式)。途中失敗時はユーザーの選択先に
       // 何も残らない
       await fs.move(tmpZipPath, zipFilePath, { overwrite: true });
 
-      // 100% / 完了文言(appedit.export.done)の送信は zip 書き出し・move が完了してから (MINOR-1)
+      // 100% / 完了文言(appedit.export.done)の送信は zip 書き出し・move が完了してから
       reporter.update(finalTotal);
 
       return { result: 'Success', outDir: zipFilePath, warnings };
     } catch (e: any) {
       console.error('[AppExportService] export failed', e);
       // 進捗モーダルが残留しないよう percent=100 を送って閉じられる状態にする。
-      // 成功文言(endMsg)は出さずエラー専用テキストを表示する (MINOR-3)
+      // 成功文言(endMsg)は出さずエラー専用テキストを表示する
       reporter?.fail('appedit.export.failed');
       return { result: 'Error', warnings, message: e?.message || String(e) };
     } finally {
@@ -774,9 +774,9 @@ class AppExportService {
   }
 
   // Viewer形式の正規アプリJSON（camelCase・ビルトイン=文字列）。
-  // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (ADR-0007)。
+  // viewerMapID: ソースのViewer向けmapID解決(maplatはuid→slug) (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
   // pois は pois/<name>.geojson への参照 + 上書き属性へ変換し、警告 (missing 等) は warnings に
-  // 合流する (M4-T2。poiCtx は map JSON 側と共有して外部ファイルを1つへ畳む)
+  // 合流する (poiCtx は map JSON 側と共有して外部ファイルを1つへ畳む)
   private async composeAppJson(
     document: any,
     sources: AppSource[],
@@ -788,7 +788,7 @@ class AppExportService {
   ) {
     const lang = document.lang || 'ja';
     const out: Record<string, unknown> = {
-      // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (ADR-0005)
+      // 交換形: デフォルト言語のみの多言語フィールドはプレーン文字列に畳み込む (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)
       appName: compactLangObject(document.appName || document.title, lang),
       lang,
       sources: sources.map(source =>
@@ -806,7 +806,7 @@ class AppExportService {
     out.defaultZoom = Number(document.appSettings?.defaultZoom ?? 17);
     // startFromはViewer向けmapID(slug)で出力する。document.startFromはuid(新形)/slug(旧形)
     // のどちらもあり得るため、対応するソースを介して解決する。
-    // m6-t6 (§3.2・M5): 3段照合を resolveStartFromViewerMapID へ共通化。除外されたソースは
+    // 3段照合を resolveStartFromViewerMapID へ共通化。除外されたソースは
     // sources に存在しないため3段目でも一致せず、除外ソースを指す startFrom は自動的に undefined
     // になる（document.startFrom への素通しはしない）
     const startFrom = resolveStartFromViewerMapID(
@@ -821,7 +821,7 @@ class AppExportService {
     if (startFrom) out.startFrom = startFrom;
     const pois = readAppDocumentPois(document).pois;
     if (Array.isArray(pois) && pois.length > 0) {
-      // M4-T2: 外部ファイル化 (icon / asset ref の解決も externalizePoisArray が担う)
+      // 外部ファイル化 (icon / asset ref の解決も externalizePoisArray が担う)
       const externalized = await externalizePoisArray(pois, poiCtx);
       mergeWarnings(warnings, externalized.warnings);
       mergeIconFiles(iconFiles, externalized.files);
@@ -831,7 +831,7 @@ class AppExportService {
   }
 
   /**
-   * og:image のパッケージ相対パスを決め、必要なら PNG を描く（nov26-editor-splash-svg #462）。
+   * og:image のパッケージ相対パスを決め、必要なら PNG を描く（editor-splash-svg #462）。
    * - スプラッシュが PNG などのとき: 従来どおりスプラッシュそのもの（`img/{appID}_splash.{ext}`）
    * - SVG のとき: Chromium（#174 の描画）で同じ図柄の PNG を描き、それを og:image に使う。
    *   縦横比を保って contain し、余白は背景色で埋める
@@ -850,7 +850,7 @@ class AppExportService {
       return `img/${exportedSplashName(appID, splash)}`;
     }
     const ogName = exportedOgImageName(appID);
-    // 【0464 MINOR-4】スプラッシュの実体が無いときは missing_splash だけにし、og:image の警告を重ねない
+    // スプラッシュの実体が無いときは missing_splash だけにし、og:image の警告を重ねない
     if (!fs.existsSync(source)) return undefined;
     try {
       await renderImagePng({
@@ -898,7 +898,7 @@ class AppExportService {
   // が未指定または実体無しの場合は、アプリ同梱のデフォルト SVG (Maplat ロゴ、512x512 viewBox) に
   // フォールバックする。SVG は描画に使う Chromium がそのままラスタライズできるので直接渡す。
   // フォールバックしたか (usedDefault) も返す: 以前は黙って既定ロゴになっていたため、
-  // 呼び出し側が警告 1 件を出せるようにする (NOV26-IM-PWA-ICON-SOURCE-0482)
+  // 呼び出し側が警告 1 件を出せるようにする
   private resolveIconInput(document: any): { input: string; usedDefault: boolean } {
     const iconSourceRel = String(document.manifestSettings?.iconSource || '');
     const userIcon = iconSourceRel ? path.join(this.saveFolder, iconSourceRel) : '';
@@ -915,7 +915,7 @@ class AppExportService {
     warnings: string[],
   ): Promise<{ icons: any[]; htmlMeta: Record<string, string> }> {
     const { input: iconSource, usedDefault } = this.resolveIconInput(document);
-    // NOV26-IM-PWA-ICON-SOURCE-0481: 起動画面（apple-splash）もアイコン元画像から描く。
+    // 起動画面（apple-splash）もアイコン元画像から描く。
     // スプラッシュ画像（appSettings.splash）は Maplat のモーダル用と og:image にだけ使う
     const backgroundColor = document.manifestSettings?.backgroundColor || '#f6f0d3';
     const pagDir = path.join(outDir, 'pwa', appID);
@@ -926,7 +926,7 @@ class AppExportService {
       return { icons: [], htmlMeta: {} };
     }
 
-    // NOV26-IM-PWA-ICON-SOURCE-0482: 未登録（または実体なし）で既定ロゴに落ちたことを黙って隠さない。
+    // 未登録（または実体なし）で既定ロゴに落ちたことを黙って隠さない。
     // 警告は 1 件だけ積む（mergeWarnings で重複を防ぐ）
     if (usedDefault) {
       mergeWarnings(warnings, [PWA_ICON_DEFAULT_WARNING]);
@@ -965,7 +965,7 @@ class AppExportService {
     } catch (e) {
       console.error('[AppExportService] PWA asset rendering failed', e);
       warnings.push('appedit.export.pwa_fallback');
-      // 【NOV26-IR-EDITOR174-0453 MIN-3】途中まで描いた画像を残すと退避のアイコンと混ざって zip に入るので、先に空にする
+      // 途中まで描いた画像を残すと退避のアイコンと混ざって zip に入るので、先に空にする
       await fs.emptyDir(pagDir).catch(() => undefined);
       return await this.generateFallbackIcons(iconSource, pagDir, appID, document.manifestSettings?.backgroundColor);
     }
@@ -986,7 +986,7 @@ class AppExportService {
 
   /**
    * フォールバック: Chromium で描けなかったときに jimp でアイコンを作る。
-   * 【NOV26-IM-PWA-ICON-SOURCE-0481】以前は manifest-icon の 192/512 しか作らず、
+   * 以前は manifest-icon の 192/512 しか作らず、
    * favicon・mstile・apple-icon が zip から丸ごと欠けていた（人間の報告）。
    * 退避でも **アイコン 8 枚すべて**（favicon-196.png・mstile-icon-*・apple-icon-180.png を含む）を作り、
    * index.html の htmlMeta も基準と同じ形にする（favicon.ico は writeFaviconIco が
@@ -1047,7 +1047,7 @@ class AppExportService {
       }
       // jimp は SVG をデコードできないため、SVG 入力は同名の png（無ければ同梱デフォルト）に差し替える。
       // ここは pwaManifest 無効時にも通る favicon 単独の経路なので、既定ロゴへ落ちても警告は出さない
-      // （既定ロゴの警告は PWA の画像を作る generatePwaAssets 側の責務。NOV26-IM-PWA-ICON-SOURCE-0482）
+      // （既定ロゴの警告は PWA の画像を作る generatePwaAssets 側の責務）
       const input = this.rasterIconInput(this.resolveIconInput(document).input);
       if (!input || !fs.existsSync(input)) return;
       const image = await Jimp.read(input);
@@ -1138,7 +1138,7 @@ class AppExportService {
       // maplat/overlay だけのエクスポートでは backTo が null になり初期化時に落ちるため抑止する。
       overlay: Boolean(httpSettings.overlay) && hasBasemap,
       enableHideMarker: Boolean(httpSettings.enableHideMarker),
-      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI 検証 D3
+      // viewer のマーカー一覧 UI (ui_init.ts の appOption.enableMarkerList)。GUI の検証で決めた
       enableMarkerList: Boolean(httpSettings.enableMarkerList),
       enableBorder: Boolean(httpSettings.enableBorder),
       enableCache: Boolean(httpSettings.enableCache),
@@ -1147,7 +1147,7 @@ class AppExportService {
     };
     // #106: キャッシュが無効なら service-worker.js を書き出さない（copyViewerAssets）ので、ビューアに登録もさせない
     if (resolveViewerPwaWorker(httpSettings) === false) viewerOption.pwaWorker = false;
-    // m6-t6 (§3.2): アプリ単位キーの直読みをやめ、2段解決（アプリ単位→既定公開用）
+    // アプリ単位キーの直読みをやめ、2段解決（アプリ単位→既定公開用）
     // + オンザフライ（overrideKeys、保存しない）へ
     const mapboxKey = resolvePublishKey('mapbox', httpSettings, SettingsService) ?? overrideKeys?.mapboxToken;
     const googleKey = resolvePublishKey('google', httpSettings, SettingsService) ?? overrideKeys?.googleApiKey;

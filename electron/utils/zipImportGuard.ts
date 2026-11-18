@@ -1,6 +1,6 @@
-// nov26-m6-t3（#98・#116）: ZIP の取り込みの共通の検査と、読み取りの例外の判定。
+// #98・#116: ZIP の取り込みの共通の検査と、読み取りの例外の判定。
 //
-// - assertZipImportSize: adm-zip は 2 GiB 超の zip を読めない（ERR_FS_FILE_TOO_LARGE。oct26-m4-t1 で実測）。
+// - assertZipImportSize: adm-zip は 2 GiB 超の zip を読めない（ERR_FS_FILE_TOO_LARGE）。
 //   new AdmZip の **前に** 呼び、決定的なエラー（ZipImportError 'too-large'）にする。
 //   地図（DataUploadService.extractZip）と POI 単体（PoiPackageService.importPoiZip）の両方が使う。
 // - assertZipImportable: 大きさに加え、ZIP の末尾（EOCD・ZIP64 EOCD）の件数と中央ディレクトリの大きさを
@@ -10,7 +10,7 @@
 //   adm-zip の例外は util/errors.js の E() により必ず 'ADM-ZIP: ' で始まる。圧縮データの破損は
 //   zlib.inflateRawSync が Node の zlib の例外（code が 'Z_' で始まる、または ERR_ZLIB 系）として投げる。
 //   重複名は PoiPackageService.zipEntryInfos が `Duplicate <kind> entry` へ写したもの。
-//   利用者の操作による失敗（ENOENT・権限等）は判定しない（null）。「壊れた ZIP」と誤って出さない（設計 R1）。
+//   利用者の操作による失敗（ENOENT・権限等）は判定しない（null）。「壊れた ZIP」と誤って出さない。
 //
 // 利用者に見せる文言は i18n の固定文で、例外の原文（ファイルのパスや adm-zip の `{0}` を含みうる）は
 // 呼び出し側が console.error／main のログへだけ出す。

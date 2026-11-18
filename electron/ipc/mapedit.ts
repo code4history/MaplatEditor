@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import path from 'path';
 // #105: タイル URL は file:// から app://local へ移行する
 import { localFileUrl, normalizeLegacyTileUrl } from '../utils/appScheme';
-// M12-T20 (§5.0/§5.1): staging パスの解決・検証は共通バリデータのみを使う
+// staging パスの解決・検証は共通バリデータのみを使う
 import { draftTileRoot, isDraftTileUrl, resolveStagingDirFromUrl, resolveDraftTileDir } from '../services/draftTilePaths';
 // @ts-ignore
 import csvParser from 'csv-parser';
@@ -25,8 +25,8 @@ import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
-// M13-T1 (§2.6): composeDownloadMapJson は mapDownloadZip.ts へ移設した。
-// scripts/m10-t3-mapedit-pois-save-smoke.mjs が electron/ipc/mapedit.ts からの named import で
+// composeDownloadMapJson は mapDownloadZip.ts へ移設した。
+// scripts/mapedit-pois-save-smoke.mjs が electron/ipc/mapedit.ts からの named import で
 // composeDownloadMapJson を直接呼び出すため、移設後も同一の関数オブジェクトを解決できるよう
 // re-export を残す (mapedit.ts → mapDownloadZip.ts の一方向依存のみで循環 import は発生しない)。
 export { composeDownloadMapJson } from '../utils/mapDownloadZip';
@@ -68,7 +68,7 @@ async function createTinFromGcpsAsync(
 }
 
 export const registerMapEditHandlers = () => {
-    // uid正準の読み出し (ADR-0007)。AppEdit等の旧経路がslugで呼ぶ間はslugでも解決される
+    // uid正準の読み出し (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。AppEdit等の旧経路がslugで呼ぶ間はslugでも解決される
     // 読み取りは MCP のツールと同じ窓口を通す（読む経路を 1 つにする）
     ipc.handle('mapedit:request', async (_event, uidOrMapID: string) => {
         try {
@@ -88,12 +88,12 @@ export const registerMapEditHandlers = () => {
         }
     });
 
-    // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (ADR-0007)
+    // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
     ipc.handle('mapedit:save', async (_event, payload: any) => {
         try {
             const result = await StorageAdapter.saveMapForEdit(payload);
             if (result && 'result' in result && result.result === 'Success') {
-                // 地図保存後は MapList を最新化する (app 保存と同様の一貫性: M11-T10 E2E で
+                // 地図保存後は MapList を最新化する (app 保存と同様の一貫性: E2E で
                 // 保存直後の一覧遷移時に新規行が表示されないフレークの根因を解消)
                 BrowserWindow.getAllWindows().forEach(win => {
                     win.webContents.send('maplist:refresh');
@@ -123,12 +123,12 @@ export const registerMapEditHandlers = () => {
         }
     });
 
-    // M12-T20 (§5.1): 復元時ガード用の staging 実在照会。
+    // 復元時ガード用の staging 実在照会。
     // alive: url_ の参照先（staging: バリデータ導出 dir / 後方互換 tmp: tmp/tiles 固定 dir）の実在。
     //        恒久 URL・空は true（ガード非対象）。staging プレフィックス一致かつ導出 null は
-    //        fs に一切触れず alive:false（§5.0 の表 — 表示のみに接続されるため安全側）。
+    //        fs に一切触れず alive:false（表 — 表示のみに接続されるため安全側）。
     // savedTilesExist: uid 指定時に saveFolder/tiles/{uid} の実在（同バリデータ・root 差し替え。
-    //        null または uid 未指定なら false）。保存確定直後クラッシュの誤誘導防止（§6.4）
+    //        null または uid 未指定なら false）。保存確定直後クラッシュの誤誘導防止
     ipc.handle('mapedit:stagingStatus', async (_event, url_: string, uid?: string) => {
         let alive = true;
         if (typeof url_ === 'string' && url_) {
@@ -137,7 +137,7 @@ export const registerMapEditHandlers = () => {
                 alive = stagingDir ? await fs.pathExists(stagingDir) : false;
             } else {
                 const tmpTileFolder = path.join(SettingsService.get('tmpFolder') as string, 'tiles');
-                // oct26-m4-t2s（MAJ-1）: 旧 app://local と v1.0.0 の file:// も新形へ正規化してから判定する
+                // 旧 app://local と v1.0.0 の file:// も新形へ正規化してから判定する
                 if (normalizeLegacyTileUrl(url_).startsWith(localFileUrl(tmpTileFolder) + '/')) {
                     // 後方互換 tmp は固定 dir（url_ 由来の可変部がパス構築に入らないため導出不要）
                     alive = await fs.pathExists(tmpTileFolder);
@@ -154,21 +154,21 @@ export const registerMapEditHandlers = () => {
     });
 
     /**
-     * M5-T7: ランタイム専用タイル URL（url_）の導出。
+     * ランタイム専用タイル URL（url_）の導出。
      *
-     * なぜ IPC が要るか（設計 §4）: url が空のとき url_ はファイルシステム上のタイル実体から
-     * 組み立てる必要がある。renderer に持ち込むと m5-t3 が1本化した deriveRuntimeTileUrl が
+     * なぜ IPC が要るか: url が空のとき url_ はファイルシステム上のタイル実体から
+     * 組み立てる必要がある。renderer に持ち込むと、URL の導出の統一で1本化した deriveRuntimeTileUrl が
      * 3箇所目として復活するため、導出は main に閉じたままここへ問い合わせる。
      *
-     * 探索順は **draft → 保存済み**（設計 §5.2）。draft staging のキーは保存済み uid と同一
+     * 探索順は **draft → 保存済み**。draft staging のキーは保存済み uid と同一
      * （mapUpload が mapUid.value || newMapUid を渡す）なので、draft が無ければそのまま
      * 保存済みへ落ちる＝通常ケースは変わらない。draft がある＝再アップロード保留中であり、
      * そのとき mapData.width/height は新画像の値なので、旧保存タイルを返すと
      * 新寸法×旧タイルの源ができてしまう。
      *
-     * 導出そのものは deriveRuntimeTileUrl（m5-t3 の正本）に委ね、ここは thumbFolder の
+     * 導出そのものは deriveRuntimeTileUrl（URL の導出の正本）に委ね、ここは thumbFolder の
      * 決定だけを行う。パス組み立ては resolveDraftTileDir を通す（'..' 等での親領域参照を
-     * 構造的に排除する。M12-T20 §6.1 と同じ防御）。
+     * 構造的に排除する。下書きのタイルの保全と同じ防御）。
      */
     ipc.handle('mapedit:deriveRuntimeTileUrl', async (_event, url?: string, mapRef?: string) => {
         // url が非空ならタイル実体を見る必要がない（deriveRuntimeTileUrl が url をそのまま返す）
@@ -195,13 +195,13 @@ export const registerMapEditHandlers = () => {
     });
 
     // 旧実装: mapedit_download 相当（ZIP エクスポート）
-    // M13-T1 (§2.6): compose + tmpFile書き出し + targets構築 + tileRoot収集 + ProgressReporter +
+    // compose + tmpFile書き出し + targets構築 + tileRoot収集 + ProgressReporter +
     // AdmZip + fs.move は buildAndWriteMapZip (mapDownloadZip.ts) へ移設した。
     // win 解決・mapDoc/slug/fileKey 解決・dialog/Canceled 判定のみここに残す
     ipc.handle('mapedit:download', async (event, mapObject: any, tins: any[]) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
-        // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (ADR-0007: viewer互換)。
+        // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: viewer互換)。
         // mapObject.uid が正本参照。uid欠落の旧経路にはslugフォールバックで解決する
         const mapDoc = mapObject.uid
             ? await SqliteDataService.findMap(mapObject.uid)
@@ -221,9 +221,9 @@ export const registerMapEditHandlers = () => {
         return 'Success';
     });
 
-    // M13-T1 (§2.1): 保存済み地図専用のstrict-free搬出。strict_error/missing map判定を行わず、
+    // 保存済み地図専用のstrict-free搬出。strict_error/missing map判定を行わず、
     // 例外は全てcatchして'Error'へ写像する薄いラッパー(実処理はMapPurposeService側)
-    // nov26-m6-t8（#113）: options は書き出す中身（省略時は既定＝現行と同じ中身）
+    // #113: options は書き出す中身（省略時は既定＝現行と同じ中身）
     ipc.handle('mapedit:download-saved', async (event, mapRef: string, options?: Partial<MapExportOptions>) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
         return await runGuarded('mapedit:download-saved',
@@ -231,7 +231,7 @@ export const registerMapEditHandlers = () => {
     });
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
-    // M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）
+    // 休眠パネル専用（削除禁止・あとで再編予定）
     ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 

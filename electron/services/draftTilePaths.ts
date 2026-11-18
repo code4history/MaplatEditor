@@ -1,8 +1,8 @@
 /**
- * draftTilePaths.ts (M12-T20)
+ * draftTilePaths.ts
  *
  * 下書きタイルの永続 staging 領域 `<draftTileRoot>/<assetUid>` のパス解決・検証の
- * Single Source of Truth（設計 §5.0）。
+ * Single Source of Truth。
  *
  * `<draftTileRoot>/<assetUid>` およびそれに類するパスを組み立てる**すべての箇所**
  * （upload IPC / AssetDraftService onRemoved / mapedit:stagingStatus / mapedit:save の
@@ -10,7 +10,7 @@
  * コピーしないこと（恒久指示「同一扱いの処理は共通実装へ寄せる」）。
  *
  * 契約: `resolveDraftTileDir` / `resolveStagingDirFromUrl` は解決不能なとき例外を投げず
- * `null` を返す（decode 失敗 = `fileURLToPath` の throw も null へ写像する。設計 §5.0 v1.2）。
+ * `null` を返す（decode 失敗 = `fileURLToPath` の throw も null へ写像する）。
  * 呼び出し側は catch を書かなくてよい。
  */
 import path from 'node:path';
@@ -19,7 +19,7 @@ import { app } from 'electron';
 import { localFileUrl, appUrlToLocalPath, normalizeLegacyTileUrl } from '../utils/appScheme';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 
-/** 非 isolated 環境での staging ルート既定値（設計 §5.1: userData/draft-tiles） */
+/** 非 isolated 環境での staging ルート既定値（userData/draft-tiles） */
 export function defaultDraftTileRoot(): string {
   return path.join(app.getPath('userData'), 'draft-tiles');
 }
@@ -38,7 +38,7 @@ const validSegmentBase = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() === value && value.length > 0 && value.length <= 256 && !/[\u0000-\u001f]/.test(value);
 
 /**
- * `<rootDir>/<segment>` を検証付きで解決する（設計 §5.0 の4条件）。
+ * `<rootDir>/<segment>` を検証付きで解決する（4条件）。
  * 4条件をすべて満たす場合のみ解決済み絶対パスを返し、1つでも欠ければ null（例外は投げない）:
  *   1. validUid 同基準
  *   2. `'.'` / `'..'` の明示拒否（validUid とパス区切り拒否だけでは素通りするため独立条件。
@@ -70,12 +70,12 @@ export function resolveDraftTileDir(rootDir: string, segment: unknown): string |
  * url_ が staging 領域（`localFileUrl(draftTileRoot) + '/'`）を指しているかのプレフィックス判定
  * （セパレータ境界込み）。save の stagingCheck 分岐と stagingStatus が「staging 候補か」の
  * 一次判定に使う（候補だが resolveStagingDirFromUrl が null の場合の挙動は構築点ごとに
- * 設計 §5.0 の表で規定される）。
+ * 表で規定される）。
  */
 export function isDraftTileUrl(stagingRoot: string, url_: unknown): boolean {
   try {
-    // oct26-m4-t2ff: m4-t2 期の旧 app://local も新形へ正規化してから判定する
-    // oct26-m4-t2s（MAJ-1）: v1.0.0 の下書きの file://…/{z}/{x}/{y}.<ext> も同様（境界込み接頭辞の判定は不変）
+    // 期の旧 app://local も新形へ正規化してから判定する
+    // v1.0.0 の下書きの file://…/{z}/{x}/{y}.<ext> も同様（境界込み接頭辞の判定は不変）
     return typeof url_ === 'string' && normalizeLegacyTileUrl(url_).startsWith(localFileUrl(path.resolve(stagingRoot)) + '/');
   } catch {
     return false;
@@ -86,7 +86,7 @@ export function isDraftTileUrl(stagingRoot: string, url_: unknown): boolean {
 const TILE_TEMPLATE_SUFFIX_RE = /\/\{z\}\/\{x\}\/\{y\}\.[^./\\]+$/;
 
 /**
- * url_ から staging dir を導出する唯一の経路（設計 §5.0）。
+ * url_ から staging dir を導出する唯一の経路。
  *   1. staging プレフィックス（セパレータ境界込み）で始まらなければ null
  *   2. `/{z}/{x}/{y}.<ext>` サフィックスを除いた部分を `appUrlToLocalPath` で**実パスへ復号
  *      してから**、`path.relative(root, resolved)` で得たセグメントを `resolveDraftTileDir`

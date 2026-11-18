@@ -20,8 +20,8 @@ function paginate<T>(rawDocs: T[], page: number, pageSize: number): { docs: T[];
   };
 }
 
-// M12-T1-HOTFIX-1: paginate 後の page 分の docs へ画像を添付する。
-// pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ。レビュー Minor-1）。
+// paginate 後の page 分の docs へ画像を添付する。
+// pageSize<=0 の全件経路では添付しない（無制限のファイル I/O を防ぐ）。
 // ただし attachWhenUnbounded=true の handler（search:baseMaps）は例外的に全件添付する
 // （basemap catalog は内蔵329件＋ユーザ定義の有界集合で、basemaps:list も全件解決している
 // 既存挙動のため）。key 引数で添付先フィールドを指定する（maps/apps は `image`、baseMaps は `thumbnailUrl`）。
@@ -71,7 +71,7 @@ async function attachAppListExtras<T extends Record<string, any>>(
   return attachImages(paged, pageSize, resolveAppListImage);
 }
 
-// m22-t1: ベースマップ一覧の item レベル添付を1つの wrapper へ畳む
+// ベースマップ一覧の item レベル添付を1つの wrapper へ畳む
 // （同ファイルの attachMapListExtras / attachAppListExtras と同型）。
 //
 // 契約（落としてはならない挙動）: attachImages は pageSize<=0 && !attachWhenUnbounded で
@@ -79,7 +79,7 @@ async function attachAppListExtras<T extends Record<string, any>>(
 // （全件添付）で呼んでいたため、畳む際にこの真値を落としてはならない。落とすと pageSize<=0 の
 // 全件経路（BaseMapList が使う limit:0）で thumbnailUrl ごと添付が消える。
 //
-// url_ は解決できたときだけ own key として立てる（設計書 §3.3 (3)。undefined own key を作らない）。
+// url_ は解決できたときだけ own key として立てる（(3)。undefined own key を作らない）。
 async function attachBaseMapListExtras<T extends Record<string, any>>(
   paged: { docs: T[]; total: number; prev?: number; next?: number },
   pageSize: number,

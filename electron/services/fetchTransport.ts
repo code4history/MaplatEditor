@@ -1,4 +1,4 @@
-// NOV26-IM-NETFETCH-CONTINGENCY-0483: main プロセスが外へ HTTP を取りに行くときの
+// main プロセスが外へ HTTP を取りに行くときの
 // 「どのスタックで実行するか」だけを持つ差し込み口。
 //
 // なぜ要るか: Node 24.22.1 で修正された CVE-2026-111497（Brotli 展開時の範囲外書き込み）は、
@@ -17,7 +17,7 @@
 // 落とすと CVE を静かに呼び戻すことになり、しかも画面は正常に見えるため、
 // 明示的に失敗させる（e2e と起動時登録のどちらかが壊れたら必ず気付ける）。
 
-// NOV26-IM-NETFETCH-CONTINGENCY-0484: 「http/https 以外の scheme へは取りに行かない」ことを
+// 「http/https 以外の scheme へは取りに行かない」ことを
 // transport 層でも表せるようにする。リダイレクト先が独自スキームだった場合、transport は
 // 通信エラーではなくこの印で失敗し、guardedFetch は原因を `unsupported-scheme` として返す
 // （呼び出し元の既存の写像をそのまま使う。取れなかった場合は従来どおり network でよい）。

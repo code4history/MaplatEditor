@@ -6,11 +6,11 @@ import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
 import { normalizeMapExportOptions, type MapExportOptions } from '../../src/utils/exportOptions';
 
-// M13-T1 (§2.3): App save/preview/export と Viewer runtime ingress の入口ゲート。
+// App save/preview/export と Viewer runtime ingress の入口ゲート。
 // MapEditService.ts の requestPreviewSource() 内 strict throw (保存済み地図読み出し時) や
 // createCompiledFromGcps() 内 strict throw (GCP編集中のTIN再計算) とは呼び出し文脈が異なる
 // (App側の複数map refs一括判定 vs. Map単体の読み出し/TIN計算)。エラーキーは
-// 'appedit.preview.strict_error' を再利用する (§2.3/§1.3)
+// 'appedit.preview.strict_error' を再利用する
 export type ViewerPurpose = 'app-save' | 'app-preview' | 'app-export' | 'viewer-runtime';
 
 class MapPurposeService {
@@ -34,7 +34,7 @@ class MapPurposeService {
     async assertViewerRuntimeAllowed(mapRefs: string[], _purpose: ViewerPurpose): Promise<void> {
         const classified = await this.classifyViewerRuntimeRefs(mapRefs);
         if (classified.missing.length > 0 || classified.strictError.length > 0) {
-            // 不在も strict と同じ拒否理由キーで統一する (§2.3: 呼び出し元 UI は既に
+            // 不在も strict と同じ拒否理由キーで統一する (呼び出し元 UI は既に
             // appedit.preview.strict_error を「選択・表示不可」の一般的な理由文言として使っている)
             throw new Error('appedit.preview.strict_error');
         }
@@ -42,7 +42,7 @@ class MapPurposeService {
 
     // document.sources から sourceType==='maplat' の mapUid を重複排除して収集する共通ユーティリティ
     // (AppDataService.saveApp() / AppPreviewService.prepare() / AppExportService.exportApp() の
-    // 3箇所で重複していた収集ロジックを一元化する。§2.3)
+    // 3箇所で重複していた収集ロジックを一元化する。)
     collectMaplatMapRefs(document: any): string[] {
         const sources = Array.isArray(document?.sources) ? document.sources : [];
         const lang = document?.lang || 'ja';
@@ -59,23 +59,23 @@ class MapPurposeService {
 
     // 保存済み地図を strict-free に ZIP 搬出する。main-owned、dialog を含む。
     // 内部で発生した例外(map not found / too_less_gcps / dialog・fs エラー等)はすべて catch し
-    // 'Error' へ写像する — reject しない (§2.1/§2.3: milestone v2.1 の型契約
+    // 'Error' へ写像する — reject しない (型契約
     // Promise<'Success'|'Canceled'|'Error'> は常にこの3値のいずれかで resolve する契約と解釈)
-    // nov26-m6-t8（#113）: options は書き出す中身。省略時は既定（現行と同じ中身）。
+    // #113: options は書き出す中身。省略時は既定（現行と同じ中身）。
     // 3 つとも false は書かずに 'Error'（画面は選べないようにしているので防御）
     async downloadSavedMap(win: BrowserWindow, mapRef: string, options?: Partial<MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'> {
         try {
             const exportOptions = normalizeMapExportOptions(options);
-            const previewJson = await MapEditService.buildPreviewSource(mapRef); // strict-free（§2.5）
-            // M5-T1: mapDoc の取得を mapObject の合成より前へ移す。
+            const previewJson = await MapEditService.buildPreviewSource(mapRef); // strict-free
+            // mapDoc の取得を mapObject の合成より前へ移す。
             // buildPreviewSource() は preview 用途のために url へ**ランタイム**のタイルURL
             // (store.url_ ?? previewJson.url) を入れて返す。ローカルタイル地図ではこれが
             // file:///Users/<ユーザ名>/… という実行環境の絶対パスになるため、そのまま搬出すると
             // 交換形 JSON に絶対パスが焼き込まれ、再インポートで DB へ永続化されて
-            // 同梱タイルが二度と使われなくなる（設計書 §1.1）。
-            // ∴ **交換形の url は DB 正本**とする（不変条件 I-3）。AppExportService が
+            // 同梱タイルが二度と使われなくなる。
+            // ∴ **交換形の url は DB 正本**とする。AppExportService が
             // DB doc + delete url_ で既に満たしている不変条件へ揃える。
-            // strict-free 読み出し・compiled 整備・tins は buildPreviewSource のまま使う（§1.3）
+            // strict-free 読み出し・compiled 整備・tins は buildPreviewSource のまま使う
             const mapDoc = await SqliteDataService.findMapByRef(mapRef);
             const mapObject = {
                 ...previewJson,

@@ -3,16 +3,16 @@ import AppPreviewService from './services/AppPreviewService'
 // import { createRequire } from 'node:module'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
-// #105 / oct26-m4-t2: renderer を file:// から app:// カスタムスキームへ移し、webSecurity:true
+// #105 / renderer を file:// から app:// カスタムスキームへ移し、webSecurity:true
 // の下でローカルリソースを許可経路の allowlist に限定して配信する
-// oct26-m4-t2ff: ローカルリソースは renderer と同一 origin（app://bundle/__local/）で配信し、corsEnabled を使わない
+// ローカルリソースは renderer と同一 origin（app://bundle/__local/）で配信し、corsEnabled を使わない
 import { APP_SCHEME, appSchemePrivileges, createAppSchemeHandler } from './utils/appScheme'
-// oct26-m16-t2 (F-C1): main window・About ウィンドウの遷移ガード
+// main window・About ウィンドウの遷移ガード
 import { installNavigationGuard } from './navigation-guard'
 import { ipc, trustedDevServerUrl } from './ipc/registry'
 import { decidePermission } from './utils/permissionPolicy'
 import { resolveAppSchemeRoots } from './services/localRoots'
-// NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: main プロセスの外向き fetch を Chromium の
+// /0484: main プロセスの外向き fetch を Chromium の
 // ネットワークスタックへ載せる。IPC ハンドラ登録より前（module のトップレベル）で行うので、
 // どの経路も Node の fetch で外へ出ない。0484 以降は外部取得専用の session
 // （maplat-remote-fetch）で取得し、http/https 以外（リダイレクト先を含む）を拒否する。
@@ -40,11 +40,11 @@ import { installBackendErrorForwarding } from './utils/backendErrorForwarder'
 import { assertOwnedDirectory } from './utils/tmpFolder'
 installBackendErrorForwarding()
 
-// m19-t4a (§7.3): 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
+// 配布物の RC 版以降で開発メニューを隠すための判定（electron 非依存の純関数）
 import { shouldShowDevelopmentMenu } from './utils/releaseChannel'
-// nov26-m7-t5: 自動更新の器。製品のコードからは更新を確かめない（t6 が呼ぶ）。ここでは e2e の口だけを置く
+// 自動更新の器。製品のコードからは更新を確かめない（更新のお知らせの処理が呼ぶ）。ここでは e2e の口だけを置く
 import { installUpdateTestHook } from './services/UpdateService'
-// nov26-m7-t6: 自動更新の形（起動時の確認・メニューの「更新を確認…」・同意で更新）
+// 自動更新の形（起動時の確認・メニューの「更新を確認…」・同意で更新）
 import * as UpdateController from './services/UpdateController'
 import { updateText } from './services/updateMessages'
 
@@ -55,11 +55,11 @@ export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 'public') : RENDERER_DIST
 
-// #105 / oct26-m4-t2: app:// を標準スキームとして登録する。registerSchemesAsPrivileged は
+// #105 / app:// を標準スキームとして登録する。registerSchemesAsPrivileged は
 // app の ready 前に1回だけ呼ぶ必要がある（module のトップレベルに置く）。
 // standard: true で URL として解決され、secure: true で安全コンテキスト扱いになる。
 // supportFetchAPI により renderer から fetch でき、stream により大きいタイルも逐次配信できる。
-// oct26-m4-t2ff: privileges は appSchemePrivileges が唯一の決定点。本番は corsEnabled を付けない
+// privileges は appSchemePrivileges が唯一の決定点。本番は corsEnabled を付けない
 // （付けると任意 origin のページから app:// の中身を読める）。dev server 起動時だけ付く（理由は appScheme.ts）。
 protocol.registerSchemesAsPrivileged([
   {
@@ -68,14 +68,14 @@ protocol.registerSchemesAsPrivileged([
   },
 ])
 
-// HR-1 (t1 設計 §7.1.2): E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
+// E2E 実行時はウィンドウを生成時に表示しない（テストウィンドウの
 // フォーカス奪取を防ぐ）。判別は既存フック MAPLAT_E2E_ROOT をそのまま使う
 // （preload.ts の isE2E / services 各所と同一の env。新しい env を導入しない）。
 // paintWhenInitiallyHidden は既定 true のまま ∴ renderer は通常どおり描画され
 // Canvas / screenshot 系 e2e も影響を受けない
 const isE2EMainProcess = Boolean(process.env['MAPLAT_E2E_ROOT'])
 
-// nov26-m7-t5: 開発時かつ e2e のときだけ globalThis.__maplatUpdateTest を置く（条件は installUpdateTestHook の中でも確かめる）
+// 開発時かつ e2e のときだけ globalThis.__maplatUpdateTest を置く（条件は installUpdateTestHook の中でも確かめる）
 if (isE2EMainProcess) installUpdateTestHook()
 
 let win: BrowserWindow | null
@@ -83,9 +83,9 @@ let win: BrowserWindow | null
 // 旧実装 main.js L.88-93 に準拠: macOS で Cmd+Q が押されるまで force_quit を false に保つ
 let forceQuit = false
 
-// M13-T2 (SI-6/§5.9): 同一 userData profile からの複数 Electron process による
+// 同一 userData profile からの複数 Electron process による
 // DB/filesystem mutation を防ぐ。ロックを取得できなければ即座に quit する。
-// 【既知の限界(タスク設計 §6.5)】 app.requestSingleInstanceLock() は userData path 単位の
+// 【既知の限界】 app.requestSingleInstanceLock() は userData path 単位の
 // ロックであり、--user-data-dir を分離した複数プロセス(= 複数マシンから OneDrive 等で
 // クラウド同期された同一 saveFolder に同時アクセスする運用)は防げない。saveFolder 内
 // ロックファイル方式等の追加対策要否は人間判断待ち(マイルストーン再レビュー要の scope 超過)
@@ -114,15 +114,15 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 640,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    // HR-1 (t1 設計 §7.1.2): E2E 実行時のみ生成時に表示しない（webPreferences ブロックの外。
-    // m19-t4a smoke が webPreferences 内容を assert するためブロック内へ入れない）
+    // E2E 実行時のみ生成時に表示しない（webPreferences ブロックの外。
+    // smoke が webPreferences 内容を assert するためブロック内へ入れない）
     show: !isE2EMainProcess,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
 
-  // oct26-m16-t2 (F-C1): 同梱物（開発時は dev server）以外への main frame の遷移と新規ウィンドウを止める。
+  // 同梱物（開発時は dev server）以外への main frame の遷移と新規ウィンドウを止める。
   // 止めないと、プレビュー内の POI の <a target="_top"> で外部ページが preload（IPC）ごと main window に載る
   installNavigationGuard(win.webContents, VITE_DEV_SERVER_URL)
 
@@ -143,7 +143,7 @@ function createWindow() {
   // 旧実装 main.js L.79-85 に準拠:
   // macOS では×ボタンでウィンドウを隠すだけにする（アプリ状態を保持）
   win.on('close', (e) => {
-    // M1-T6 (d-2): macOS では下の分岐でウィンドウを hide するだけなのでアプリは常駐する。
+    // macOS では下の分岐でウィンドウを hide するだけなのでアプリは常駐する。
     // ここで止めないとプレビューサーバがポートを掴んだまま残る
     void AppPreviewService.shutdown()
     const closingWindow = win
@@ -170,7 +170,7 @@ function createWindow() {
   })
 }
 
-// nov26-m7-t6 (§3.2): 更新の入れ替え（UpdateService の入れ替えの関数）は、electron の
+// 更新の入れ替え（UpdateService の入れ替えの関数）は、electron の
 // autoUpdater が 'before-quit-for-update' を出してから終了する。macOS で × の「隠す」に入らず
 // 終わるよう、その時に forceQuit を立てる（electron-updater の BaseUpdater は setImmediate で
 // electron.autoUpdater に emit する・MacUpdater は nativeUpdater = electron.autoUpdater を使う）
@@ -181,7 +181,7 @@ autoUpdater.on('before-quit-for-update', () => {
 // 旧実装 main.js L.88-93 に準拠: Cmd+Q 等でアプリ終了する場合のみ force_quit を立てる
 app.on('before-quit', () => {
   forceQuit = true
-  // M1-T6 (d-2): アプリ終了時にプレビューサーバを解放する
+  // アプリ終了時にプレビューサーバを解放する
   void AppPreviewService.shutdown()
   void mcpController?.shutdown()
   clearCopiedConnectionCommand()
@@ -230,20 +230,20 @@ let mcpController: McpController | null = null
 import { clearAllIiifDrafts } from './services/iiifImportService'
 
 
-// M13-T3: 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
+// 明示 migration 実行の起動面(menu item)から SqliteDataService.getDb() / runManual() を呼ぶ
 import SqliteDataService from './services/SqliteDataService'
 import { runManual } from './services/OriginalsMigrationService'
 
-// M12-T20 (§5.1/§6.3): 起動時孤児 GC
+// 起動時孤児 GC
 import fs from 'fs-extra'
 import AssetDraftService from './services/AssetDraftService'
 import { draftTileRoot, resolveDraftTileDir } from './services/draftTilePaths'
 
-// M12-T20 (§5.1/§6.3): 下書きタイル staging 領域 (<draftTileRoot>/*) のうち、対応する
+// 下書きタイル staging 領域 (<draftTileRoot>/*) のうち、対応する
 // draft envelope が存在しない孤児 dir を起動時に回収する。ウィンドウ生成前に完了させるため、
-// save と並行して走ることは構造的にない（§6.5 の TOCTOU 受容論拠の前提）。
+// save と並行して走ることは構造的にない（TOCTOU を受け入れる根拠の前提）。
 // 削除パスの構築も共通バリデータ resolveDraftTileDir 経由に統一し、解決不能なエントリは
-// 削除せず warn に留める（誤削除より孤児残置を選ぶ — §5.0 の表）
+// 削除せず warn に留める（誤削除より孤児残置を選ぶ — 表）
 async function gcOrphanDraftTiles(): Promise<void> {
   let entries: string[]
   try {
@@ -260,7 +260,7 @@ async function gcOrphanDraftTiles(): Promise<void> {
     }
     try {
       if (AssetDraftService.get('map', entry)) continue
-      // fs.remove は symlink 非追従（§6.1 の削除プリミティブ契約）
+      // fs.remove は symlink 非追従（削除プリミティブ契約）
       await fs.remove(stagingDir)
     } catch (e) {
       console.warn(`[draft-tiles GC] failed to collect ${stagingDir}:`, e)
@@ -291,14 +291,14 @@ app.whenReady().then(async () => {
     return decidePermission(permission, details.requestingUrl ?? requestingOrigin, trustedDevServerUrl)
   })
 
-  // #105 / oct26-m4-t2: app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
-  // ローカルリソースは許可ルートと候補の両方を realpath した実体で判定し（#138・nov26-m7-t7）、判定した実体を
+  // #105 / app:// のリクエストハンドラを登録する（registerSchemesAsPrivileged の後）。
+  // ローカルリソースは許可ルートと候補の両方を realpath した実体で判定し（#138）、判定した実体を
   // net.fetch で配信し、それ以外は 403。
-  // oct26-m4-t2ff: 解決・失敗 status の写像・防御ヘッダは createAppSchemeHandler（appScheme.ts）が持つ。
+  // 解決・失敗 status の写像・防御ヘッダは createAppSchemeHandler（appScheme.ts）が持つ。
   // ここでは要求ごとの許可ルートと実ファイルの読み方だけを渡す。
   protocol.handle(APP_SCHEME, createAppSchemeHandler({
     getRoots: resolveAppSchemeRoots,
-    // MIN-1 是正: Content-Type は net.fetch(file://…) に依存せず handler 側で mimeFor から明示する
+    // 是正: Content-Type は net.fetch(file://…) に依存せず handler 側で mimeFor から明示する
     fetchFile: (filePath) => net.fetch(pathToFileURL(filePath).toString()),
     warn: (...args) => console.warn(...args),
   }));
@@ -323,11 +323,11 @@ app.whenReady().then(async () => {
   registerSearchHandlers()
   registerIiifImportHandlers()
   mcpController = registerMcpHandlers()
-  // M12-T20 (§6.3): 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
+  // 孤児 staging の回収はウィンドウ生成前に完了させる（save と並行させない）
   await gcOrphanDraftTiles()
   createWindow()
   setupMenu()
-  // nov26-m7-t6: 起動の少し後に 1 回だけ更新を確かめる（設定がオフなら何もしない）
+  // 起動の少し後に 1 回だけ更新を確かめる（設定がオフなら何もしない）
   UpdateController.startAutomaticCheck(() => win)
   // Listens only if the user turned the MCP server on earlier (off by default)
   void mcpController.startIfEnabled().catch((error) => console.log('[mcp] start failed', error instanceof Error ? error.name : 'unknown'))
@@ -531,20 +531,20 @@ function createAboutWindow() {
     maximizable: false,
     title: 'About MaplatEditor',
     autoHideMenuBar: true,
-    // HR-1 (t1 設計 §7.1.2): メインウィンドウと同一の方針（webPreferences ブロックの外）
+    // メインウィンドウと同一の方針（webPreferences ブロックの外）
     show: !isE2EMainProcess,
     webPreferences: {
-      // m19-t4a (§7.4 案2): nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
+      // nodeIntegration/contextIsolation は既定へ戻す。preload も渡さない
       // （contextBridge も IPC も使わない。露出する Node/Electron API はゼロ）。
-      // #105 / oct26-m4-t2: webSecurity は既定(true)へ戻した（file:// 直読みから app:// へ移行）。
+      // #105 / webSecurity は既定(true)へ戻した（file:// 直読みから app:// へ移行）。
     }
   });
   aboutWin.setMenu(null);
-  // oct26-m16-t2 (F-C1): main window と同じ遷移ガード（about.html に外部リンクは無い ∴ 新規ウィンドウは一切開かない）
+  // main window と同じ遷移ガード（about.html に外部リンクは無い ∴ 新規ウィンドウは一切開かない）
   installNavigationGuard(aboutWin.webContents, VITE_DEV_SERVER_URL);
 
   // publicフォルダからabout.htmlを読み込む。バージョン値は preload/contextBridge を使わず
-  // query で渡す（§6 のインタフェース契約。露出面ゼロを保つ唯一の経路）。
+  // query で渡す（インタフェース契約。露出面ゼロを保つ唯一の経路）。
   // #105: file:// 直読みをやめ、app:// スキーム経由で配信する（メインウィンドウと同一方針）。
   const aboutQuery = new URLSearchParams({
     appVersion: app.getVersion(),
@@ -577,7 +577,7 @@ function setupMenu() {
           label: t('menu.about'),
           click: createAboutWindow
         },
-        // nov26-m7-t6: 更新の確認（About の隣）。文言は updateMessages.ts（messages の表は触らない）
+        // 更新の確認（About の隣）。文言は updateMessages.ts（messages の表は触らない）
         {
           id: 'check-updates',
           label: updateText(lang, 'menu.check_updates'),
@@ -607,7 +607,7 @@ function setupMenu() {
     }
   ]
   
-  // 開発メニューを追加（m19-t4a §7.3: 配布物の RC 版以降では出力しない。開発実行・E2E では従来どおり出す）
+  // 開発メニューを追加（配布物の RC 版以降では出力しない。開発実行・E2E では従来どおり出す）
   if (shouldShowDevelopmentMenu(app.getVersion(), app.isPackaged)) {
     template.push({
       label: t('menu.development'),
@@ -626,7 +626,7 @@ function setupMenu() {
               const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
               const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
               const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
-              // v1.1 (レビュー v1 Minor 6): forceQuit パターン(main.ts 33-34行)により
+              // v1.1: forceQuit パターン(main.ts 33-34行)により
               // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
               // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
               if (win) {
@@ -635,7 +635,7 @@ function setupMenu() {
                 await dialog.showMessageBox(options);
               }
             } catch (e: any) {
-              // v1.1: runManual() 自体は per-map failure を吸収するが(§5.1)、
+              // v1.1: runManual() 自体は per-map failure を吸収するが、
               // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
               console.error('[main] manual originals migration failed', e);
               const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };

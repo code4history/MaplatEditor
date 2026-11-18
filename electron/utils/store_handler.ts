@@ -34,9 +34,9 @@ export interface IiifSection {
 
 export interface HistMapStore {
   title: LangResource;
-  // m19-t1: 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。m6-t2 の licenseNote /
-  //  m10-t3 の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
+  // 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。ライセンスの欄の追加の licenseNote /
+  //  地図の POI 保存の pois と同じ穴。ただし前 2 件と違い label は「保存されていた値が落ちるように
   //  なった」のではなく「器そのものが最初から無く一度も保存されたことがない」)
   label: LangResource;
   attr: LangResource;
@@ -49,15 +49,15 @@ export interface HistMapStore {
   era: LangResource;
   license: string;
   dataLicense: string;
-  // m6-t2: ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
-  // (無いと MapEditService.save の histMap2Store で保存時に消える。m10-t3 の pois と同じ穴)
+  // ライセンスの自由記述欄。多言語 (LangResource)。keys へも必ず追加する
+  // (無いと MapEditService.save の histMap2Store で保存時に消える。地図の POI 保存の pois と同じ穴)
   licenseNote: LangResource;
   dataLicenseNote: LangResource;
   contributor: LangResource;
   mapper: LangResource;
   reference: string;
   description: LangResource;
-  // M5-T2 (不変条件 I-1): url は利用者が指定する交換形のタイルURLテンプレート（単一文字列）であり、
+  // url は利用者が指定する交換形のタイルURLテンプレート（単一文字列）であり、
   // 多言語リソースではない。LangResource だったのは MaplatCore 側の i18n 分離時に
   // メタデータの型を一括拡張した際の巻き添えで、それがこの写しにも及んでいた
   url: string;
@@ -71,7 +71,7 @@ export interface HistMapStore {
   sub_maps: SubMap[];
   homePosition: Position;
   mercZoom: number;
-  // POI 配列 (Phase 7 / POI-137): {poiUid, cachedTitle} 参照要素と生要素 (URL/FC) の混在。
+  // POI 配列: {poiUid, cachedTitle} 参照要素と生要素 (URL/FC) の混在。
   // シリアライズ両方向 (histMap2Store / store2HistMap) で素通し保持する
   pois?: unknown[];
   // IIIF から取り込んだ地図の配信情報と結び付きの記録。keys へも必ず追加する

@@ -1,19 +1,19 @@
 /**
- * appScheme.ts (#105 / oct26-m4-t2)
+ * appScheme.ts (#105)
  *
  * renderer を file:// ではなく app:// カスタムスキームで配信し、webSecurity:true の下で
  * ローカルリソース（saveFolder 配下のタイル・サムネイル等）と同梱リソース（dist/public）を
  * 許可経路の allowlist に限定して配信するための、経路解決の純関数と URL ビルダー。
  *
- * 本モジュールは electron を import しない。AC-1 の smoke が
+ * 本モジュールは electron を import しない。app scheme の smoke が
  * `node --experimental-strip-types` で直接 import できることが前提
  * （前例: electron/utils/releaseChannel.ts）。
  *
- * oct26-m4-t2ff（第 2 版）: ローカルリソースは renderer と**同一 origin** の `app://bundle/__local/<abs>` で
- * 配信する。m4-t2 の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
+ * （第 2 版）: ローカルリソースは renderer と**同一 origin** の `app://bundle/__local/<abs>` で
+ * 配信する。以前の `app://local/<abs>` は renderer（app://bundle）と別 origin で、MaplatCore の
  * crossOrigin="Anonymous" のタイル読込が CORS 拒否された。別 origin のまま app: に corsEnabled を付けると
  * Chromium は応答の Access-Control-Allow-Origin を検査せず、プレビュー配信（http://127.0.0.1）や data: 等
- * 任意の origin のページから中身を読めてしまう（実装レビュー IR1 Major-1 で実測）。同一 origin 化すれば
+ * 任意の origin のページから中身を読めてしまう（実装レビューで実測）。同一 origin 化すれば
  * corsEnabled が不要になり、corsEnabled の無い app:// は他 origin からの CORS 読込（fetch・crossOrigin 画像）を
  * 受け付けないので、renderer 以外は読めない。旧 `app://local` は既存データ互換のため受理して新形へ正規化する。
  *
@@ -23,12 +23,12 @@
  *   - URL 経路は先頭 `/` を保証（`C:\...` → `/C:/...`）。
  *   - 復号は `fileURLToPath` と同じく encoded 区切り文字（`%2F` / `%5C`）を拒否して迂回を防ぐ。
  *
- * oct26-m4-t6（#120）: 応答に付ける CSP は `createAppSchemeHandler` の 1 分岐（responseHeadersFor）で決める。
+ * #120: 応答に付ける CSP は `createAppSchemeHandler` の 1 分岐（responseHeadersFor）で決める。
  *   - 同梱の HTML（index.html・about.html）には renderer CSP（RENDERER_CSP）だけを付ける
  *   - ローカルリソース（__local・旧 app://local）には sandbox の CSP＋nosniff（localResponseHeaders）だけを付ける
  *   - 2 本を重ねない（重ねると両方が適用され、sandbox 側の意図と別の制約が混ざる）。同梱の非 HTML には付けない
  *
- * nov26-m7-t7（#138）: ローカルリソースの封じ込めの**最終判定を字面から実体へ**移す。許可ルートの**中**に置かれた
+ * #138: ローカルリソースの封じ込めの**最終判定を字面から実体へ**移す。許可ルートの**中**に置かれた
  * symlink・ジャンクション（Windows）が外を指している場合、従来は path.resolve の前方一致（isUnderRoot）だけで判定していた
  * ため、その先を配信していた。以後は許可ルートと候補の**両方を同じ関数（fs.realpath）で実体にしてから** isUnderRoot を当てる
  * （resolveLocalReal）。許可ルートそのものがリンクの場合は実体同士で比べるので通る（保存フォルダを OneDrive の下に
@@ -44,19 +44,19 @@ import { fileURLToPath } from 'node:url';
 
 export const APP_SCHEME = 'app';
 export const BUNDLE_HOST = 'bundle';
-/** m4-t2 期の旧ローカル host（受理と正規化のみ。新規には生成しない） */
+/** 期の旧ローカル host（受理と正規化のみ。新規には生成しない） */
 export const LOCAL_HOST = 'local';
-/** 同一 origin のローカルリソース経路の接頭辞（oct26-m4-t2ff） */
+/** 同一 origin のローカルリソース経路の接頭辞 */
 export const LOCAL_PATH_PREFIX = '/__local';
 /** ローカルリソース URL の接頭辞（renderer と同一 origin） */
 export const LOCAL_URL_PREFIX = `${APP_SCHEME}://${BUNDLE_HOST}${LOCAL_PATH_PREFIX}`;
 const LEGACY_LOCAL_URL_PREFIX = `${APP_SCHEME}://${LOCAL_HOST}`;
 
 /**
- * app: スキームの privileges（oct26-m4-t2ff）。main.ts の registerSchemesAsPrivileged はここから作る。
+ * app: スキームの privileges。main.ts の registerSchemesAsPrivileged はここから作る。
  *
  * 本番（dev server URL なし・空文字）では corsEnabled を**付けない**。付けると任意 origin のページから
- * app:// の中身を読めるようになる（IR1 Major-1）。ローカルリソースは同一 origin 配信なので不要。
+ * app:// の中身を読めるようになる。ローカルリソースは同一 origin 配信なので不要。
  * 開発起動（VITE_DEV_SERVER_URL あり）だけは renderer が http://localhost:<port> になり同一 origin にならないため
  * 付ける。dev server URL を与えられる主体は main window に任意 URL を読ませられるので、新しい攻撃面ではない。
  */
@@ -83,7 +83,7 @@ function fromUrlPath(urlPath: string): string {
 }
 
 /**
- * ネイティブ絶対パス → `app://bundle/__local/<path>`（oct26-m4-t2ff: renderer と同一 origin）。
+ * ネイティブ絶対パス → `app://bundle/__local/<path>`（renderer と同一 origin）。
  * saveFolder 配下のローカルリソース（タイル・サムネイル・merc・画像アセット等）の表示用 URL。
  */
 export function localFileUrl(absPath: string): string {
@@ -111,7 +111,7 @@ export function isLocalAppUrl(url: unknown): boolean {
 }
 
 /**
- * 旧 `app://local/<path>` を新形 `app://bundle/__local/<path>` へ文字列のまま写す（oct26-m4-t2ff）。
+ * 旧 `app://local/<path>` を新形 `app://bundle/__local/<path>` へ文字列のまま写す。
  * 経路部分（percent-encoding・`{z}/{x}/{y}` テンプレート）は無加工で残す。それ以外の値はそのまま返す。
  */
 export function normalizeLocalAppUrl<T>(url: T): T {
@@ -154,7 +154,7 @@ export function bundleFileUrl(relPath: string): string {
 }
 
 /**
- * 旧 `file://` のタイル URL テンプレートを `app://local` へ補正する（#105 / oct26-m4-t2 MIN-2）。
+ * 旧 `file://` のタイル URL テンプレートを `app://local` へ補正する（#105 /）。
  *
  * 旧実装（file-url ライブラリ + 手組み `/{z}/{x}/{y}.<ext>`）が生成した交換形 url は
  * `file:///abs/path/{z}/{x}/{y}.<ext>` の形で永続データに残り得る。webSecurity:true の下では
@@ -170,7 +170,7 @@ export function bundleFileUrl(relPath: string): string {
  * - `/{z}/{x}/{y}.<ext>` サフィックスを持たない独自形式はそのまま返す（壊すより旧 URL のまま残す）
  */
 export function migrateLegacyFileUrl(url: string): string {
-  // oct26-m4-t2ff: m4-t2 期の旧 app://local も同一 origin の新形へ写す
+  // 期の旧 app://local も同一 origin の新形へ写す
   if (url.startsWith(LEGACY_LOCAL_URL_PREFIX + '/')) return normalizeLocalAppUrl(url);
   if (!url.startsWith('file://')) return url;
   const m = url.match(/^(.*)\/(\{z\}\/\{x\}\/\{y\}\.[^./\\]+)$/);
@@ -184,7 +184,7 @@ export function migrateLegacyFileUrl(url: string): string {
 }
 
 /**
- * 保存・staging 判定の入口で url_ を現行形へ正規化する（oct26-m4-t2s 第 2 版・MAJ-1）。
+ * 保存・staging 判定の入口で url_ を現行形へ正規化する（第 2 版）。
  *
  * 公開済み v1.0.0 で画像を取り込み未保存で終了した hot-exit 下書きは、mapData を丸ごと electron-store に残すため、
  * url_ が `file:///<userData>/draft-tiles/<uid>/{z}/{x}/{y}.<ext>`（v1.0.0 の imageCutter の形）のまま復元される。
@@ -231,7 +231,7 @@ function isUnderRoot(candidate: string, root: string): boolean {
 const LINK_BUDGET = 40;
 
 /**
- * ローカルリソースの**形の検査**（nov26-m7-t7・#138・MAJ-3）。fs に触れない純関数。
+ * ローカルリソースの**形の検査**（#138）。fs に触れない純関数。
  *
  * `realpath` を呼ぶ前に「要求者が URL で選べるパスが、ネットワークの場所や別のドライブを指していないか」を字面だけで
  * 落とす段。UNC（`\\host\share`＝SMB の接続と NTLM の送出）・`\\?\`・`\\.\`・ルートの無いドライブ（Windows）・
@@ -254,7 +254,7 @@ export function localPathShape(
   if (platform === 'win32') {
     // ドライブ文字だけを見る（8.3 名を持たず、大文字小文字だけが揺れる段）
     const driveOf = (p: string): string | undefined => path.win32.resolve(p).match(/^([A-Za-z]):\\/)?.[1]?.toLowerCase();
-    // 【NOV26-IR-M7-T7-0445 MAJOR-1】候補は、fs に渡す生の文字列そのものが「ドライブ文字＋区切り」で始まることを
+    // 候補は、fs に渡す生の文字列そのものが「ドライブ文字＋区切り」で始まることを
     // 必須にする。path.win32.resolve は `/\\host\share\x`（Win32 では UNC）を UNC と見なさず cwd のドライブを
     // 補うので、resolve の後だけを見ると UNC 形が形の検査を抜けて realpath（＝ネットワークへの接続）に届く。
     // 正当な候補は fromUrlPath から常に `C:/…` の形で来るので、これで落ちる正当な要求は無い
@@ -283,10 +283,10 @@ export function localPathShape(
 }
 
 /**
- * ローカルリソースの最終判定（nov26-m7-t7・#138）。許可ルートと候補の**両方を `realpath` で実体にしてから**
+ * ローカルリソースの最終判定（#138）。許可ルートと候補の**両方を `realpath` で実体にしてから**
  * isUnderRoot（境界込み）を当てる。handler から呼ばれ、fs を差し替えられるので smoke で実挙動を測れる。
  *
- * 段（設計 §3.1 の 2 と同じ番号）:
+ * 段（2 と同じ番号）:
  * 1. ルートの実体。`ENOENT`・`ENOTDIR` のルートは**許可から外す**（存在しないルートは許可しない。字面に落とさない）。
  *    それ以外の errno のルートも外し、記録は `deps.warn` に流す
  * 1.5 形の検査（localPathShape・fs に触れない）。落ちたら 403（`outside`・warn しない）
@@ -299,7 +299,7 @@ export function localPathShape(
  * ∴ 外を指すリンクは、先が実在しても（生きたリンク）欠損していても（壊れたリンク）同じ 403 になり、ルートの外の
  * 存在の有無を 404／403 の差で漏らさない。**注**: classifyMissing の形の検査は段 2 の `realpath(候補)` の後なので、
  * 利用者が置いたリンクの先がネットワークの場所を指している場合、その接続は防がない（OS が段 2 で既にたどっている）。
- * 本関数が守るのは**要求者が URL で選べるパス**だけ（設計 §13 の Info）。
+ * 本関数が守るのは**要求者が URL で選べるパス**だけ（Info）。
  */
 export type LocalRealResolution =
   | { ok: true; lexicalPath: string; realPath: string }
@@ -353,7 +353,7 @@ export async function resolveLocalReal(
   const isMissingCode = (code: string | undefined): boolean =>
     code === 'ENOENT' || code === 'ENOTDIR' || code === 'ELOOP';
 
-  // (3): 存在しないパスとリンクを段ごとに分ける（外の欠損も 403 にする・MIN-10）
+  // (3): 存在しないパスとリンクを段ごとに分ける（外の欠損も 403 にする）
   const classifyMissing = async (target: string, rest: string[], budget: number): Promise<LocalRealResolution> => {
     // 3-1. target から上へ、lstat が成功する最も深い段 p を探す（p より下の段を rest に積む）
     let current = target;
@@ -452,7 +452,7 @@ function decodePathname(pathname: string): string {
  * 実体の存在確認は行わない（handler 側が net.fetch で 404 を返す）。ここでは
  * 「解決が許可されるか」と解決先パス・MIME だけを返す。
  *
- * nov26-m7-t7（#138）: **ローカルの最終判定は createAppSchemeHandler の `resolveLocalReal`（実体）が行う。**
+ * #138: **ローカルの最終判定は createAppSchemeHandler の `resolveLocalReal`（実体）が行う。**
  * 本関数のローカル判定は字面（前方一致）のままで、同梱の解決と「他の純関数・smoke が使う検査」に残す
  * （挙動は変えない。handler のローカルの分岐は本関数のローカルの判定を通らない）。
  */
@@ -466,12 +466,12 @@ export function resolveAppUrl(rawUrl: string, roots: AppSchemeRoots): AppUrlReso
   // file:// / http(s):// 等、app: 以外の scheme は一律拒否
   if (u.protocol !== 'app:') return null;
 
-  // oct26-m4-t2ff: ローカルリソース（新形 app://bundle/__local/ と旧 app://local/）は localRoots で判定する。
+  // ローカルリソース（新形 app://bundle/__local/ と旧 app://local/）は localRoots で判定する。
   // bundle host でも __local 接頭辞なら同梱物側へは落とさない（許可外は null）。
   if (localPathnameOf(u) !== null || (u.hostname === BUNDLE_HOST && u.pathname === LOCAL_PATH_PREFIX)) {
     const nativePath = appUrlToLocalPath(rawUrl);
     if (nativePath === null) return null;
-    // MAJ-1 是正: localRoots のいずれかの許可ルート配下かを判定する（旧実装は localRoot 単一で、
+    // 是正: localRoots のいずれかの許可ルート配下かを判定する（旧実装は localRoot 単一で、
     // draftTileRoot / tmpFolder 配下 tiles の下書き・一時タイルが 403 になっていた）。
     if (!roots.localRoots.some((root) => isUnderRoot(nativePath, root))) return null;
     return { filePath: nativePath, mimeType: mimeFor(nativePath), kind: 'local' };
@@ -521,13 +521,13 @@ export function mimeFor(filePath: string): string {
 }
 
 /**
- * renderer（app://bundle の同梱 HTML）に付ける Content-Security-Policy（oct26-m4-t6・#120）。ポリシーの唯一の定義。
+ * renderer（app://bundle の同梱 HTML）に付ける Content-Security-Policy（#120）。ポリシーの唯一の定義。
  *
  * - script-src／worker-src は `'self'` を書かずパスで限定する。Chromium の `'self'` は同一 origin の
  *   `app://bundle/__local/…`（保存フォルダ・下書きタイル）まで含むので、書くと保存フォルダ内の任意ファイルを
- *   スクリプト／Worker として実行できてしまう（設計レビュー MAJ-1）。`app://bundle/assets/` は Vite の既定出力
+ *   スクリプト／Worker として実行できてしまう。`app://bundle/assets/` は Vite の既定出力
  *   （エントリ・chunk・tinComputeWorker）、`app://bundle/about.js` は about ウィンドウの外出し先。
- *   Vite の出力先がこのパスに収まることは oct26-m4-t6-csp smoke が実ビルド物で断言する
+ *   Vite の出力先がこのパスに収まることは csp smoke が実ビルド物で断言する
  * - img-src は利用者登録のタイル URL を列挙できないので https:／http: を許す。connect-src の http はプレビュー配信
  *   （http://localhost）だけ。frame-src もプレビュー iframe だけで、__local の HTML を renderer に埋め込ませない
  * - dev 起動の main window（http://localhost の vite）はこの handler を通らないので付かない（about は付く）
@@ -550,20 +550,20 @@ export const RENDERER_CSP = [
   "frame-ancestors 'none'",
 ].join('; ');
 
-/** 同梱 HTML（renderer の文書）の応答に付けるヘッダ（oct26-m4-t6）。 */
+/** 同梱 HTML（renderer の文書）の応答に付けるヘッダ。 */
 export function bundleDocumentHeaders(): Record<string, string> {
   return { 'content-security-policy': RENDERER_CSP };
 }
 
 /**
- * ローカルリソース応答に付ける防御ヘッダ（oct26-m4-t2ff）。
+ * ローカルリソース応答に付ける防御ヘッダ。
  * 同一 origin 配信にしたことで、saveFolder 内の HTML/SVG を renderer と同じ origin で開けるようになる。
  * CSP `sandbox` でその文書を不透明 origin として開き、スクリプトを走らせない（renderer の DOM・preload API に届かない。
  * 外すと同一 origin の iframe から親の DOM を書き換えられることを e2e AC-FF-7 の変異で実測）。
  * CORP `same-origin` は app:// では効かなかった（付けても他 origin の crossOrigin 無し <img> が表示できた・実測）ので付けない。
- * oct26-m4-t6: nosniff を付ける。効きの経路は renderer からの `<script src>`／`new Worker`（同一 origin なので
+ * nosniff を付ける。効きの経路は renderer からの `<script src>`／`new Worker`（同一 origin なので
  * renderer CSP の origin 単位の許可では止まらない）で、未知拡張子（octet-stream）・.json をスクリプトとして拒否させる
- * （t6 AC7 の e2e で実測）。renderer CSP はここに重ねない。
+ * （e2e で実測）。renderer CSP はここに重ねない。
  */
 export function localResponseHeaders(): Record<string, string> {
   return {
@@ -573,7 +573,7 @@ export function localResponseHeaders(): Record<string, string> {
 }
 
 /**
- * 応答に付ける防御ヘッダを 1 か所で決める（oct26-m4-t6）。kind で排他に分け、ローカルと同梱 HTML に 2 本の CSP を重ねない。
+ * 応答に付ける防御ヘッダを 1 か所で決める。kind で排他に分け、ローカルと同梱 HTML に 2 本の CSP を重ねない。
  */
 function responseHeadersFor(resolution: AppUrlResolution): Record<string, string> {
   if (resolution.kind === 'local') return localResponseHeaders();
@@ -582,7 +582,7 @@ function responseHeadersFor(resolution: AppUrlResolution): Record<string, string
 }
 
 /**
- * ファイル読込失敗の errno → HTTP status（oct26-m4-t2ff・IR1 Minor-2）。
+ * ファイル読込失敗の errno → HTTP status。
  * 404 は「存在しない」（ENOENT・途中がファイルの ENOTDIR）に限る。MaplatCore は範囲外タイルも要求するので
  * 欠損は正常系。権限・ディレクトリ等は 403、それ以外は 500 とし、404 に畳んで原因を隠さない。
  */
@@ -607,18 +607,18 @@ export interface AppSchemeHandlerDeps {
 }
 
 /**
- * protocol.handle(APP_SCHEME, …) に渡す handler を作る（oct26-m4-t2ff）。electron に依存しないので smoke で実挙動を測れる。
- * - ローカルの形の要求は **resolveLocalReal（実体）** で判定する（nov26-m7-t7・#138）。resolveAppUrl の字面の配下判定は
+ * protocol.handle(APP_SCHEME, …) に渡す handler を作る。electron に依存しないので smoke で実挙動を測れる。
+ * - ローカルの形の要求は **resolveLocalReal（実体）** で判定する（#138）。resolveAppUrl の字面の配下判定は
  *   使わない（ルートが 8.3 名・大文字小文字違いで書かれていると前方一致で 403 になり、実体の判定に届かないため）。
  *   ただし fs に触れる前の形の検査（localPathShape）は必ず前にある（要求者が URL で選べるパスで外部へ接続しない）
  * - 許可経路外 → 403。ルートの外の欠損・外を指すリンクの先も 403（存在の有無を漏らさない）。ルート内の欠損のみ 404
  * - MIME は**要求側（字面）のパス**から決める（実体が .html でも要求が .png なら image/png）
- * - スクリプト系 MIME（.js/.mjs）は**字面と実体の両方**で拒否する（oct26-m4-t6・MAJ-1 の案 B を実体側にも広げる）
+ * - スクリプト系 MIME（.js/.mjs）は**字面と実体の両方**で拒否する（CSP の変更で選んだ案 B を実体側にも広げる）
  * - stat / 読取権限の確認 / fetchFile は**実体のパス**に対して行う（判定と読み出しの間の付け替えの窓を狭める。閉じはしない）
  * - stat / 読取権限の確認に失敗 → fsErrorStatus（ENOENT/ENOTDIR 以外は warn）・ディレクトリ → 403＋warn・読込例外 → 500＋warn
- * - Content-Type は mimeFor が導出した値を明示（MIN-1）
+ * - Content-Type は mimeFor が導出した値を明示
  * - ローカルリソースの応答（失敗応答を含む）には localResponseHeaders を付ける。ACAO は付けない
- * - 同梱 HTML の応答には renderer CSP（bundleDocumentHeaders）を付ける（oct26-m4-t6）。同梱（app://bundle/<rel>）の分岐は変えない
+ * - 同梱 HTML の応答には renderer CSP（bundleDocumentHeaders）を付ける。同梱（app://bundle/<rel>）の分岐は変えない
  */
 export function createAppSchemeHandler(deps: AppSchemeHandlerDeps): (request: Request) => Promise<Response> {
   const text = (status: number, body: string, extra: Record<string, string>) =>

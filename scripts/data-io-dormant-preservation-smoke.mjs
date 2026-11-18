@@ -120,7 +120,7 @@ try {
   const wmtsService = await readProjectFile('electron/services/WmtsGeneratorService.ts');
   assert.match(
     wmtsService,
-    /\/\/ M12-T22: 本クラスへのUI導線はM11-T3で撤去されていたが、m6-t8でMapEdit\.vueの[\s\S]{0,400}class WmtsGeneratorService \{/,
+    /\/\/ 本クラスへのUI導線は一度撤去されていたが、その後 MapEdit\.vueの[\s\S]{0,400}class WmtsGeneratorService \{/,
     '#13 WmtsGeneratorService クラスの保全注記が欠落している',
   );
   // tin-v2-mode-smoke が依存する行に保全コメントが割り込んでいないことも同時に確認
@@ -134,7 +134,7 @@ try {
   const wmtsIpc = await readProjectFile('electron/ipc/wmts.ts');
   assert.match(
     wmtsIpc,
-    /\/\/ M12-T22: 本ハンドラ登録自体はmain\.ts:138\(import\)\/229\(起動時呼び出し\)により[\s\S]{0,400}export function registerWmtsHandlers\(\) \{/,
+    /\/\/ 本ハンドラ登録自体はmain\.ts:138\(import\)\/229\(起動時呼び出し\)により[\s\S]{0,400}export function registerWmtsHandlers\(\) \{/,
     '#14 registerWmtsHandlers の保全注記が欠落している',
   );
 
@@ -142,7 +142,7 @@ try {
   const mapeditIpc = await readProjectFile('electron/ipc/mapedit.ts');
   assert.match(
     mapeditIpc,
-    /mapedit_uploadCsv 相当（CSV インポート）\n\s*\/\/ M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）\n\s*ipc\.handle\('mapedit:uploadCsv'/,
+    /mapedit_uploadCsv 相当（CSV インポート）\n\s*\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*ipc\.handle\('mapedit:uploadCsv'/,
     '#15 mapedit:uploadCsv ハンドラの保全注記が欠落している',
   );
 
@@ -150,12 +150,12 @@ try {
   const preload = await readProjectFile('electron/preload.ts');
   assert.match(
     preload,
-    /\/\/ M12-T22: 休眠パネル専用（削除禁止・M12-T23で再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any\) =>/,
+    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any\) =>/,
     '#16 preload.ts uploadCsv bridge の保全注記が欠落している',
   );
   assert.match(
     preload,
-    /\/\/ M12-T22: m6-t8でMapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\ncontextBridge\.exposeInMainWorld\('wmtsGen', \{/,
+    /\/\/ MapEdit\.vueの新規「メルカトルタイル」タブから到達可能になった\ncontextBridge\.exposeInMainWorld\('wmtsGen', \{/,
     '#17 preload.ts wmtsGen bridge の保全注記が欠落している',
   );
 

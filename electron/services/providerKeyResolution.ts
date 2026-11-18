@@ -1,5 +1,5 @@
 /**
- * m6-t6: Google / Mapbox の API キー3段解決（設計書 §2/§3.1/§3.2）。
+ * Google / Mapbox の API キー3段解決。
  *
  * - プレビュー: エディタ用キー → (アプリ単位 → 設定ページ既定公開用) → undefined
  * - パブリッシュ: アプリ単位 → 設定ページ既定公開用 → undefined（オンザフライは呼び出し側で ?? overrideKeys）
@@ -64,7 +64,7 @@ export function resolvePreviewKey(
 }
 
 /** 除外・診断の警告キー（preview/export 共通。warnings チャネルは補間パラメータを持たない） */
-// m6-t10 (§3.6・ADR-0018): ベースマップマスタが解決できないソースは、書き出し・プレビューから
+// ベースマップマスタが解決できないソースは、書き出し・プレビューから
 // 除外して警告する。スナップショットを持たない設計上の帰結（人間判断 2026-08-07）。
 export const BASE_MAP_MASTER_MISSING_WARNING = 'appedit.warn_missing_base_map_master';
 
@@ -74,7 +74,7 @@ export const PROVIDER_KEY_MISSING_WARNING: Record<ProviderKeyKind, string> = {
 };
 
 /**
- * startFrom 解決（設計 §3.1/§3.2・v1.3 M5 是正）。preview の entries と export の sources は
+ * startFrom 解決（v1.3 是正）。preview の entries と export の sources は
  * 形が異なるため、呼び出し側が {startFrom, mapUid, mapSlug, viewerMapID} の候補配列へ写像してから渡す。
  *
  * 3段: (1) startFrom フラグ付きソース (2) mapUid/mapSlug が document.startFrom と一致 (3) viewerMapID が

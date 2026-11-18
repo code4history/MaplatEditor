@@ -1,6 +1,6 @@
-// m6-t7: TileJSON URL からの tms 種別マスタ取り込み。
+// TileJSON URL からの tms 種別マスタ取り込み。
 // fetch → JSON parse → vector tileset 拒否 → 必須項目確認 → フィールドマッピングの
-// 順で処理する（設計書 docs/superpowers/specs/2026-08-06-m6-t7-tilejson-import-design.md §3.2）。
+// 順で処理する。
 import { guardedFetch } from './remoteFetchGuard';
 import { bboxToEnvelope } from '../../src/utils/appSourceModel';
 

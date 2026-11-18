@@ -1,9 +1,9 @@
-// Write Store (ADR-0001): 全ての書き込みと単一レコード読みはSQLite(maplat.sqlite)が担う。
+// Write Store (書き込みは SQLite の Write Store に集め、検索は別の層で行う決まり): 全ての書き込みと単一レコード読みはSQLite(maplat.sqlite)が担う。
 // WALモード+busy_timeoutにより、ロック保持は書き込みトランザクション中のみとなり、
 // 複数エディタインスタンスの同時利用が可能。一覧/全文/位置情報検索は
 // SearchDataService(インメモリDuckDBのsqlite ATTACH)が担当する。
 //
-// schema v2 (ADR-0007): 全アセット(map/app/base_map)の正本キーは不変の uid (UUIDv4)。
+// schema v2 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): 全アセット(map/app/base_map)の正本キーは不変の uid (UUIDv4)。
 // ユーザー編集可能な slug は asset_registry がグローバル一意性を強制する
 // (全ての slug 書込は registerAsset/renameAssetSlug を経由し、アセット表と同一Txで二重書きする)。
 // 全 upsert は revision による楽観ロック。旧schema(v1) の DB ファイルは起動時に
@@ -18,9 +18,9 @@ import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
-// m19-t2: 512px パスの派生は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）
+// 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
-// m19-t5: 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
+// 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
 import { readImageMeta } from '../utils/thumbnail512Codec';
 import {
   isTileFile,
@@ -41,7 +41,7 @@ import { createResettableSingleFlight } from './ResettableSingleFlight';
 import { toDbOpenError } from '../utils/dbOpenFailure';
 import { mercatorBboxToWgs84, type Bbox } from '../utils/webMercator';
 import { runColdBoot } from './OriginalsMigrationService';
-// nov26-m6-t5: 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
+// 画像の内部名を UUID に統一する一回限りの移行（取込の中間段ではない。migrate() の注記を参照）
 import { runAssetUuidNamesColdBoot } from './AssetUuidNamesMigrationService';
 import { runMaplibreVersionColdBoot } from './MaplibreVersionMigrationService';
 import { copyVerified, sameContent } from './assetImageRefs';
@@ -74,9 +74,9 @@ export interface BaseMapVisibilityItem {
   enabled: boolean;
   locked: boolean;
   data: any;
-  // M12-T10: IPC 返却時に resolveBaseMapListImage で付与される表示用フィールド（永続カラムではない）
+  // IPC 返却時に resolveBaseMapListImage で付与される表示用フィールド（永続カラムではない）
   thumbnailUrl?: string | null;
-  // m22-t1: IPC 返却時に resolveBaseMapRuntimeTileUrl で付与される実行時専用フィールド
+  // IPC 返却時に resolveBaseMapRuntimeTileUrl で付与される実行時専用フィールド
   // （永続カラムではない）。merc かつ導出可能なときのみ own key として存在する。
   url_?: string;
 }
@@ -88,11 +88,11 @@ export interface BaseMapCatalogItem {
   data: any;
   alwaysVisible: boolean;
   alwaysLocked: boolean;
-  // m22-t1: BaseMapVisibilityItem.url_ と同じ（IPC 返却時のみ・非永続）
+  // BaseMapVisibilityItem.url_ と同じ（IPC 返却時のみ・非永続）
   url_?: string;
 }
 
-// 楽観ロック(ADR-0007): expectedRevision 指定時に他の書き込みが先行していた場合に投げる
+// 楽観ロック(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): expectedRevision 指定時に他の書き込みが先行していた場合に投げる
 export class RevisionConflictError extends Error {
   readonly kind = 'revision-conflict';
   readonly current: number;
@@ -103,8 +103,8 @@ export class RevisionConflictError extends Error {
   }
 }
 
-// slug 予約の promote 検証(M11-T7/D12)が他 asset_uid の有効予約を検出した場合に投げる。
-// save の withTransaction 内で throw することで本体書込を rollback し、asset を作らない(AC4)。
+// slug 予約の promote 検証が他 asset_uid の有効予約を検出した場合に投げる。
+// save の withTransaction 内で throw することで本体書込を rollback し、asset を作らない。
 export class SlugReservationConflictError extends Error {
   readonly kind = 'slug-reservation-conflict';
   constructor(slug: string) {
@@ -155,7 +155,7 @@ export interface MigrationReport {
   warnings: string[];
 }
 
-// m19-t7: 0.7.0 → 1.0.0 は **一気通貫** で移行する(中間スキーマを通らない)。
+// 0.7.0 → 1.0.0 は **一気通貫** で移行する(中間スキーマを通らない)。
 // ∴ 起動時の marker は 2 つだけである。0.7.0 の入力から到達しない段(SQLite ストアは
 // 未公開であり、その内部の世代差を埋める段は公開版に同梱する意味がない)は撤去した。
 // 撤去した marker ID は既存の開発用 DB の schema_migrations に残るが無害である
@@ -165,45 +165,45 @@ const LEGACY_MIGRATION_ID = '2026-07-04-sqlite-write-store-legacy-import';
 // 常時表示から外せないベースマップ(ビューア/エディタの最終フォールバック基盤)。slug で判定
 const FORCED_ALWAYS_BASE_MAP_IDS = new Set(['osm']);
 
-// 未保存地図の暫定表示設定キーの接頭辞 (ADR-0007)。
+// 未保存地図の暫定表示設定キーの接頭辞 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
 // map_base_map_visibility.map_uid は保存済み地図では uid(UUID) だが、未保存の地図には
 // uid が無いため slug を仮キーとして使う。仮キーには必ずこの接頭辞を付け、uid と
 // 形状衝突し得ない sentinel にする(slug は英数+ハイフンを許すため UUID 形状になり得る)。
 // 初回保存時に adoptProvisionalVisibility が uid キーへ引き継ぎ、放棄された行は
 // sweepStaleProvisionalVisibility が起動時に削除する
 const PROVISIONAL_MAP_KEY_PREFIX = 'slug:';
-// M12-T15 M7: 512px サムネイル起動時マイニング（§C2）の v2 マーカー。レガシー移行後に1回だけ実行する。
+// 512px サムネイル起動時マイニングの v2 マーカー。レガシー移行後に1回だけ実行する。
 // v1（'2026-07-20-thumbnail-512-mining'）は crop 前提が実データで成立しない場合に壊れた 512px を
 // 恒久化したため v2 で自己修復する（v1 の marker 行は既存 DB に残るが無害）。
-// これは「スキーマの移行」ではなくタイルからの **導出** なので m19-t7 でも残る
+// これは「スキーマの移行」ではなくタイルからの **導出** なので移行の一気通貫化の後も残る
 const THUMBNAIL_512_MINING_V2_ID = '2026-07-21-thumbnail-512-mining-v2';
 // 512px サムネイル起動時マイニングの v3 マーカー。v2 はズーム2タイルが無い小さい地図（長辺 512px 以下）を
 // 飛ばしていたため、その地図にだけ最大ズームの段から 512px を作る。v2 とは別に 1 回だけ実行する
 const THUMBNAIL_512_MINING_V3_ID = '2026-11-14-thumbnail-512-mining-v3';
-// nov26-m6-t5 (#109): 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行の印。
+// 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行の印。
 // 取込の段ではない（0.7.0 の取込行に限らず 1.0.0〜1.1.x のすべての行が対象で、到達先は 1.2.0 の命名の契約）。
-// 印の定数はこのファイルの行頭に集める規約に従い、AssetUuidNamesMigrationService へは引数で渡す（T5-R2-MIN-1）
+// 印の定数はこのファイルの行頭に集める規約に従い、AssetUuidNamesMigrationService へは引数で渡す
 const ASSET_UUID_NAMES_V1_ID = '2026-10-11-asset-uuid-names-v1';
 // アプリの MapLibre GL JS の版（文書の最上位の maplibreMajorVersion）を、値の無い既存のアプリに 5 で書き込む
 // 一回限りの移行の印。MaplibreVersionMigrationService へは引数で渡す（印の定数はこのファイルの行頭に集める）
 const MAPLIBRE_VERSION_V1_ID = '2026-12-maplibre-version-v1';
 
-// ベースマップ保存要求 (ADR-0007): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
+// ベースマップ保存要求 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uid あり=既存ユーザーベースマップの更新(slug変更=同一uidの付け替え)、
 // uid なし=新規作成(uid採番)。tms.mapID は保存時に slug で上書きされる。
-// create=true (§7.2b/D11改) は新規作成の明示合図: uid を事前採番 preset として採用する
+// create=true は新規作成の明示合図: uid を事前採番 preset として採用する
 // (slug 予約の帰属 asset_uid と行 uid を一致させ promote を成立させる)。
 // create なし/false の uid 有無 dispatch は従来どおり(update 経路の NotFound throw=復活防止不変)
 export interface BaseMapSavePayload {
   uid?: string;
   slug: string;
-  // 種別軸（m6-t1）。renderer 側の tms.kind を素通しで data_json に書く。
-  // 平行型（src/electron.d.ts と同一）: kind 明示の最小差分（m11-t7:574 の 400 文字窓を維持）。
+  // 種別軸。renderer 側の tms.kind を素通しで data_json に書く。
+  // 平行型（src/electron.d.ts と同一）: kind 明示の最小差分（574 の 400 文字窓を維持）。
   tms: { kind?: string } & Record<string, unknown>;
   expectedRevision?: number;
   create?: boolean;
 }
 
-// POI ソース (ADR-0007): FeatureCollection の blob(editor内部形: _maplatUid 入り)を data_json に持つ。
+// POI ソース (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): FeatureCollection の blob(editor内部形: _maplatUid 入り)を data_json に持つ。
 export type PoiSourceMode = 'local' | 'remote';
 
 export interface PoiSourceInput {
@@ -226,7 +226,7 @@ export interface PoiSourceRecord {
   updatedAt: string;
 }
 
-// 一覧軽量化 (ADR-0007): data blob(dataJson)を含まない
+// 一覧軽量化 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): data blob(dataJson)を含まない
 export interface PoiSourceSummary {
   uid: string;
   slug: string;
@@ -238,7 +238,7 @@ export interface PoiSourceSummary {
   updatedAt: string;
 }
 
-// 画像等アセット (ADR-0007): バイト実体は別管理(tiles/tmbs同様のファイル)で、本テーブルはメタデータのみ持つ。
+// 画像等アセット (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): バイト実体は別管理(tiles/tmbs同様のファイル)で、本テーブルはメタデータのみ持つ。
 export interface AssetInput {
   lang: string;
   sourceName?: string | null;
@@ -479,7 +479,7 @@ function ftsMatchExpression(term: string): string | null {
 }
 
 export function mapRowToDocument(row: any): any {
-  // 正規化導入(ADR-0005)前に保存された行はプレーン文字列の言語別フィールドを
+  // 正規化導入(多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)前に保存された行はプレーン文字列の言語別フィールドを
   // 含みうるため、読み出し時にもオブジェクト形へ正規化する(再マイグレーション不要。
   // 次回保存時にupsertMap経由で正規化済みの形が永続化される)
   const data = normalizeMapLangFields(JSON.parse(row.data_json));
@@ -545,22 +545,22 @@ function assetRowToRecord(row: any): AssetRecord {
   };
 }
 
-// 地図文書の書き込み側の唯一の正規化点。**レガシー取込もここを通る**(m19-t7)。
+// 地図文書の書き込み側の唯一の正規化点。**レガシー取込もここを通る**。
 function normalizeMapDocument(document: any): any {
-  // 言語別フィールドはDB内では常にオブジェクト形 (ADR-0005)。
+  // 言語別フィールドはDB内では常にオブジェクト形 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
   // nedb移行やインポート由来のプレーン文字列(=デフォルト言語の値)もここで正規化される
   const normalized = normalizeMapLangFields({ ...document });
   delete normalized._id;
   delete normalized.mapID;
-  // 行レベルのメタデータは data_json に持たせない (ADR-0007)
+  // 行レベルのメタデータは data_json に持たせない (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   delete normalized.uid;
   delete normalized.slug;
   delete normalized.revision;
-  // m19-t1: 0.7.0 の交換形(廃止された名称属性を持つ map.json)を 1.0.0 の語彙へ写す。
+  // 0.7.0 の交換形(廃止された名称属性を持つ map.json)を 1.0.0 の語彙へ写す。
   // キー在時のみ発火し完全に冪等であるため常設経路に置いてよい。1.0.0 のエディタが
   // 書く文書にキーは存在しないので、v2 の保存経路では一切発火しない。
   //
-  // m19-t7: 0.7.0 の neDB 取込もこの既定経路を通る。以前は取込だけがここを素通りし、
+  // 0.7.0 の neDB 取込もこの既定経路を通る。以前は取込だけがここを素通りし、
   // 同一 migrate() 実行内の後段 applyMapNameUnificationMigration が marker 保護下で
   // 写像していたが、その後段を撤去した。∴ 写像の呼び出し点は本行 1 箇所だけになり、
   // 「取込直後に中間形の行が DB に残る」窓も無くなった。
@@ -569,17 +569,17 @@ function normalizeMapDocument(document: any): any {
   return adoptDeprecatedMapNames(normalized);
 }
 
-// m19-t7: 0.7.0 のユーザーベースマップ(settings/tmsList.json のエントリ)を 1.0.0 の形へ写す。
+// 0.7.0 のユーザーベースマップ(settings/tmsList.json のエントリ)を 1.0.0 の形へ写す。
 // 撤去した起動時 migration applyBaseMapLanguageMigration の写像をそのまま移設したものであり、
 // **挙動は等価に保つ**(BASE_MAP_LANG_ATTRS の 5 属性へ広げない。広げると 0.7.0 に存在しない
 // dataAttr 等の空オブジェクトが新たに生えて文書の形が変わる。0.7.0 の実データに当該キーは 0 件)。
 //
-// 呼び出し元はレガシー取込の insert / update の 2 経路だけである(sp-0006: 正規化は書き込み側へ。
+// 呼び出し元はレガシー取込の insert / update の 2 経路だけである(正規化は書き込み側へ。
 // 読み込み側 baseMapRowToDocument には分岐を一切足さない)。
 //
 // ビルトインは対象外: シードが書く builtin_base_maps.json は全件が lang / label / 辞書形 title を
 // 既に持つ(実測 329/329)ため本関数は no-op であり、かつシードは毎起動で data_json を書き直すので
-// 撤去した段の効果は元々一時的だった。前提は m19-t7 smoke の AC-3 が機械固定する
+// 撤去した段の効果は元々一時的だった。前提は移行の一気通貫化の smoke が機械固定する
 function normalizeLegacyBaseMapDocument(document: any, options: { scope: 'user' | 'builtin' }): any {
   const data = { ...document };
   const lang = typeof data.lang === 'string' && data.lang ? data.lang : options.scope === 'builtin' ? 'en' : 'ja';
@@ -629,7 +629,7 @@ function sendMigrationProgress(text: string, percent: number, progress: string =
 
 class SqliteDataService {
   private db: DatabaseSync | null = null;
-  // slug 予約(M11-T7): instance_id は起動ごとに一度だけ採番(D3)。
+  // slug 予約: instance_id は起動ごとに一度だけ採番。
   private readonly instanceId = globalThis.crypto.randomUUID();
   private slugReservations: SlugReservationService | null = null;
   private slugTimers: { renew?: NodeJS.Timeout; gc?: NodeJS.Timeout } = {};
@@ -682,8 +682,8 @@ class SqliteDataService {
     await this.dbLifecycle.reset();
   }
 
-  // slug 予約 GC(D4): lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
-  // draft 存在判定は asset_kind→draft kind 写像(§7.3)で AssetDraftService を照会する。
+  // slug 予約 GC: lease 失効かつ draft 保護なし・24h 経過の予約を掃除する。
+  // draft 存在判定は asset_kind→draft kind 写像で AssetDraftService を照会する。
   private slugReservationDraftExists(kind: string, draftUid: string | null): boolean {
     if (draftUid == null) return false;
     return AssetDraftService.get(toDraftKind(kind as AssetKind), draftUid) != null;
@@ -765,7 +765,7 @@ class SqliteDataService {
       db.exec('PRAGMA recursive_triggers=ON');
       this.registerSearchFunctions(db);
       await this.migrate(db);
-      // slug 予約 service を同一 DatabaseSync 接続注入で生成し(D13)、起動時 GC +
+      // slug 予約 service を同一 DatabaseSync 接続注入で生成し、起動時 GC +
       // 30 秒 lease renew + 10 分 GC timer を開始する。
       // NOTE: const activeDb を closure 用に確保する(db は let なので finally の null 代入が
       //       後で registryOwner closure 内で null 参照を引き起こすため)
@@ -844,7 +844,7 @@ class SqliteDataService {
       tokenizeForSearch(String(text ?? ''))
     );
     db.function('maplat_map_fts_raw', { deterministic: true }, (dataJson: unknown) =>
-      // m19-t1: 名称語彙の統一にあわせ、ベースマップ側(下記 maplat_base_map_fts_raw)と
+      // 名称語彙の統一にあわせ、ベースマップ側(下記 maplat_base_map_fts_raw)と
       // 同型の列構成へ。検索語の集合は保存される(同じ文字列が別の列から入るだけ)
       ftsRawFromJson(String(dataJson ?? ''), ['title', 'label', 'description'])
     );
@@ -975,12 +975,11 @@ class SqliteDataService {
     if (!assetColumns.has('source_name')) db.exec('ALTER TABLE assets ADD COLUMN source_name TEXT');
     db.exec("UPDATE assets SET lang = 'ja' WHERE lang IS NULL OR trim(lang) = ''");
     this.applySearchIndexSchema(db);
-    // builtin base maps を最初に登録し、レガシー取込より先に clean slug を確保する (ADR-0007)
+    // builtin base maps を最初に登録し、レガシー取込より先に clean slug を確保する (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
     this.applyBuiltinBaseMapSeed(db);
 
-    // M13-T5 §4.1/§5.4: 起動時 migration パイプライン3段階の依存関係・失敗ポリシー
-    // (マイルストーン設計 §2.5・タスク設計 `2026-07-24-m13-t5-migration-pipeline-design.md`
-    // §4.1 準拠。M12-T18: 旧段階3 trash reconcile は独自 trash の廃止 = OS ゴミ箱委譲に
+    // 起動時 migration パイプライン3段階の依存関係・失敗ポリシー
+    // (旧段階3 trash reconcile は独自 trash の廃止 = OS ゴミ箱委譲に
     // 伴い撤去した — 新しい削除順序 (DB delete 先行) では reconcile が対象とした
     // 「退避済みだが DB 未削除」状態が構造的に発生しない。4段階 → 3段階):
     //   段階1 legacy migration (runLegacyMigrationIfNeeded, 下記)
@@ -997,32 +996,32 @@ class SqliteDataService {
     //   段階3 originals UUID migration (runColdBoot, 下記)
     //     best-effort enhancement: 呼び出し元(ここ)で try/catch 済み(二重防御)。
     //     migrate() はいかなる場合も本段階の失敗によって失敗してはならない契約
-    // m19-t7: 0.7.0 の取込は **1 回で凍結形へ到達する**。取込行を後から書き直す段は
+    // 0.7.0 の取込は **1 回で凍結形へ到達する**。取込行を後から書き直す段は
     // すべて撤去した(スキーマの写像は取込側 = 書き込み側の 1 点に集約した)。
     // ∴ ここから下に「取込済みの行を 1.0.0 の形へ直す」段は存在しない。増やさないこと。
     await this.runLegacyMigrationIfNeeded(db);
     // 放棄された暫定表示設定の掃除。marker を持たない**毎起動の掃除**であって migration ではない
     this.sweepStaleProvisionalVisibility(db);
-    // M12-T15 R3: 512px サムネイル起動時マイニング（§C2）。レガシー移行完了後に1回だけ実行。
+    // 512px サムネイル起動時マイニング。レガシー移行完了後に1回だけ実行。
     // スキーマ移行ではなくタイルからの導出であり、出力は最初から正規形（THUMB_512_EXT）
     await this.runThumbnail512MiningIfNeeded(db);
 
-    // 既存(T3): originals UUID migration
-    // M13-T3: slug originals -> UUID originals の one-shot migration/report。
-    // v1.1 (レビュー v1 Major 2c): runColdBoot(db) 呼び出し全体を try/catch で防御する。
+    // 既存: originals UUID migration
+    // slug originals -> UUID originals の one-shot migration/report。
+    // v1.1: runColdBoot(db) 呼び出し全体を try/catch で防御する。
     // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
-    // 記録し継続する設計だが(§5.1)、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
+    // 記録し継続する設計だが、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
     // 近い異常系)が漏れ出す可能性をゼロにはできないため、ここでも二重に防御する。
     // migrate() はいかなる場合も originals migration の失敗によって失敗してはならない
     // (= getDb() のアプリ起動をブロックしてはならない)契約とする。
     try {
-      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止、§4.1)
+      await runColdBoot(db); // OriginalsMigrationService からimport。db を直接渡す(getDb()再入は禁止)
     } catch (e) {
       console.error('[SqliteDataService] originals UUID migration failed unexpectedly; continuing DB initialization without it', e);
     }
 
-    // nov26-m6-t5 (#109・HR-15): 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行。
-    // 本段は 0.7.0 の取込行を 1.0.0 の形へ直す段ではない（nov26-m6-t5 §4.2『m19-t7 との関係』）。
+    // 画像の内部名を UUID（ベースマップは uid）へ複製で移す一回限りの移行。
+    // 本段は 0.7.0 の取込行を 1.0.0 の形へ直す段ではない（取込の中間段ではない）。
     // 原本の移行と同じく、失敗しても migrate() を失敗させない（印が付かず次の起動でやり直す）。
     try {
       await runAssetUuidNamesColdBoot(db, this.folders.saveFolder, ASSET_UUID_NAMES_V1_ID);
@@ -1047,8 +1046,8 @@ class SqliteDataService {
       .get(LEGACY_MIGRATION_ID);
     if (alreadyMigrated) return;
 
-    // M12-T32 §4.1(2): レガシー入力(nedb.db/_nedb.db・settings/_settings)が存在しない
-    // 新規データフォルダでは取り込みを実行しない(ADR-0007: レガシー移行の入力は nedb.db / settings/)。
+    // レガシー入力(nedb.db/_nedb.db・settings/_settings)が存在しない
+    // 新規データフォルダでは取り込みを実行しない(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: レガシー移行の入力は nedb.db / settings/)。
     // marker は記録する: 従来どおり「このフォルダではレガシー移行済み」として扱い、
     // 起動ごとの再スキャンを防ぐ(挙動は従来と同一)。
     const hasInputs = await this.hasLegacyMigrationInputs();
@@ -1089,9 +1088,9 @@ class SqliteDataService {
       }
       // report は移行を実際に実行した時のみ書く(退避アーカイブだけが残る2回目以降の起動では書かない)。
       // report 自体の書き込み失敗も migrate() を失敗させない(移行本体はコミット済みのため)
-      // M13-T5 §5.2: atomic write(temp+fsync+rename)primitive へ差し替え。既存の
+      // atomic write(temp+fsync+rename)primitive へ差し替え。既存の
       // fs.writeJson() 直接呼び出しを廃止(公開契約・失敗時に migrate() を失敗させない
-      // 方針は無変更。§5.1 の非対称ポリシーに従い、既存 report が壊れていても上書き回復する)
+      // 方針は無変更。非対称ポリシーに従い、既存 report が壊れていても上書き回復する)
       await writeLegacyMigrationReport(this.folders.saveFolder, report);
       // 移行を実際に実行した起動でのみレンダラへ通知する(App.vue の一覧モーダル)。
       // ウィンドウ未生成なら送られないが、report ファイルが正本として残る
@@ -1114,7 +1113,7 @@ class SqliteDataService {
        WHERE map_uid LIKE '${PROVISIONAL_MAP_KEY_PREFIX}%'
          AND updated_at < datetime('now', '-7 days')`
     ).run();
-    // m1-t4 (HR-6): シフト値の編集環境ストア map_base_map_shift も同じライフサイクルで掃除する
+    // シフト値の編集環境ストア map_base_map_shift も同じライフサイクルで掃除する
     // （挙動を似せた並行関数は作らず、同一関数の中に両テーブルの処理を並べる = 恒久指示）
     db.prepare(
       `DELETE FROM map_base_map_shift
@@ -1123,7 +1122,7 @@ class SqliteDataService {
     ).run();
   }
 
-  // M12-T15 R3 §C2: 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
+  // 512px サムネイル起動時マイニング（migrate() から見て 1 段）。
   // v2: ズーム2タイルを持つ地図（壊れた 512px の作り直しも含む）。v3: 512px が無い地図すべて。
   // 印は別々で、それぞれ 1 回だけ走る。v2 の印は既に出荷した版で付いているため、v2 の条件を
   // 後から広げても既存の利用者のフォルダでは走らない。v3 はその取りこぼしをまとめて拾う。
@@ -1134,7 +1133,7 @@ class SqliteDataService {
 
   // v2: 「ズーム2タイルは存在するが 512px サムネイルがない地図」を対象に、
   // ズーム2 stitch で 512px サムネイルを生成する。schema_migrations で1回限り実行を保証。
-  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（§C2 個別失敗時継続）。
+  // 個別地図の失敗は warnings へ記録し、バッチ全体は止めない（個別失敗時継続）。
   private async mineThumbnail512FromZoom2(db: DatabaseSync): Promise<void> {
     const alreadyMined = db
       .prepare('SELECT 1 FROM schema_migrations WHERE id = ?')
@@ -1144,17 +1143,17 @@ class SqliteDataService {
     const saveFolder = SettingsService.get('saveFolder') as string;
     const tileFolder = path.join(saveFolder, 'tiles');
 
-    // 全地図の uid を取得（M6 により data_json の width/height は使わないため uid のみでよい）
+    // 全地図の uid を取得（により data_json の width/height は使わないため uid のみでよい）
     const maps = db.prepare('SELECT uid FROM maps').all() as any[];
     if (maps.length === 0) {
       db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(THUMBNAIL_512_MINING_V2_ID);
       return;
     }
 
-    // M7: マイニング対象を抽出。
+    // マイニング対象を抽出。
     //   (a) 512px サムネイルが存在しない地図（新規）
     //   (b) 壊れた 512px（crop 未実行で全グリッドキャンバスを縮小したもの）を持つ地図（自己修復）
-    // R5 でユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
+    // ユーザーが置換した 512px は破損シグネチャと寸法が異なるため巻き込まない。
     const targets: string[] = [];
     const skipped: string[] = [];
     for (const map of maps) {
@@ -1162,7 +1161,7 @@ class SqliteDataService {
       const thumb512Path = path.join(saveFolder, thumb512PathFor(thumb52PathFor(uid, 'jpg'))!);
       const zoom2Dir = path.join(tileFolder, uid, '2');
       if (!await fs.pathExists(zoom2Dir)) {
-        // §C3: ズーム2タイルが存在しない（小地図等）はスキップ
+        // §ズーム2タイルが存在しない（小地図等）はスキップ
         skipped.push(uid);
         continue;
       }
@@ -1179,7 +1178,7 @@ class SqliteDataService {
         continue;
       }
       if (await fs.pathExists(thumb512Path)) {
-        // M7: 既存 512px が破損シグネチャ（全グリッドキャンバスを縮小した寸法）なら再生成対象
+        // 既存 512px が破損シグネチャ（全グリッドキャンバスを縮小した寸法）なら再生成対象
         const broken = await this.isBrokenThumbnail512(thumb512Path, zoom2Dir);
         if (broken) {
           targets.push(uid);
@@ -1274,9 +1273,9 @@ class SqliteDataService {
     db.prepare('INSERT OR REPLACE INTO schema_migrations (id) VALUES (?)').run(markerId);
 
     // migration-report-v2.json へ warnings を追記（既存レポートがあれば読み込んで追記）。
-    // M13-T5 §5.3: atomic write（temp+fsync+rename）primitive へ差し替え。既存の
+    // atomic write（temp+fsync+rename）primitive へ差し替え。既存の
     // readJson+writeJson 直接呼び出しを廃止（marker 記録・warnings.length>0 の判定条件・
-    // 個別失敗の継続方針は無変更。§5.1 の abandon ポリシーに従い、既存 report が壊れて
+    // 個別失敗の継続方針は無変更。壊れた report を直さない方針に従い、既存 report が壊れて
     // いれば追記自体を諦める）
     if (warnings.length > 0) {
       await appendMigrationWarnings(saveFolder, warnings);
@@ -1286,14 +1285,14 @@ class SqliteDataService {
     sendMigrationProgress('database.migrating_thumbnails_512_done', 100, '(512px)');
   }
 
-  // M7: 既存の 512px サムネイルが破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
-  // m19-t5: 512px の復号は readImageMeta を通す。Jimp は webp を decode できないため、
+  // 既存の 512px サムネイルが破損シグネチャ（crop 未実行で全グリッドキャンバスを長辺512に縮小した寸法）かを判定する。
+  // 512px の復号は readImageMeta を通す。Jimp は webp を decode できないため、
   // ここを Jimp.read のままにすると必ず catch へ落ちて常に false を返し、自己修復が黙って死ぬ。
   // （zoom2 タイルは縫い合わせと同じく Jimp.read で読む。拡張子は isTileFile で限らない。
   //   Jimp が読めない形式のタイルなら catch へ落ちて false＝作り直さない）
   // グリッド寸法（(maxX+1)*256 x (maxY+1)*256）とタイル実寸（コンテンツ境界）を比較し、
   // 端タイルがある（コンテンツ < グリッド）のに、実ファイルがグリッド全体を縮小した寸法と一致する場合に破損とみなす。
-  // 正規生成（コンテンツ境界で crop 済み）や R5 のユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
+  // 正規生成（コンテンツ境界で crop 済み）やユーザー置換（寸法が破損シグネチャと異なる）は false を返す。
   private async isBrokenThumbnail512(thumbPath: string, zoom2Dir: string): Promise<boolean> {
     try {
       // @ts-ignore - Jimp は ESM 動的 import
@@ -1571,7 +1570,7 @@ class SqliteDataService {
       END;
     `);
 
-    // m19-t7: トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する backfill は撤去した。
+    // トリガ導入以前に書き込まれた既存行の索引を一度だけ再構築する backfill は撤去した。
     // 上のトリガ定義は**毎起動で DROP & CREATE される**ため索引の器は常に最新であり、
     // 行の索引化は投入時にトリガが行う。0.7.0 からの初回起動では backfill が走る時点で
     // まだ 1 行も無い(取込は後段)ので構造的に 0 件であり、公開版に同梱する意味がない。
@@ -1579,7 +1578,7 @@ class SqliteDataService {
     // 書くこと(器と中身の生成タイミングを分けたことが「0 件で走る段」を生んだ)。
   }
 
-  // --- asset registry (ADR-0007) ---
+  // --- asset registry (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds) ---
   // 全ての slug 書込はこの2つを経由し、アセット表側の書込と同一トランザクションで行う
 
   private registerAsset(db: DatabaseSync, kind: AssetKind, uid: string, slug: string): void {
@@ -1604,9 +1603,9 @@ class SqliteDataService {
     }
   }
 
-  // save 6経路のwithTransaction内から呼ぶslug予約promote検証(D12/D13)。
+  // save 6経路のwithTransaction内から呼ぶslug予約promote検証。
   // 同一DatabaseSync接続を共有するSlugReservationService.promoteWithinへ委譲し、
-  // 他asset_uidの有効予約があればthrowしてtransaction全体をrollbackする(AC4)。
+  // 他asset_uidの有効予約があればthrowしてtransaction全体をrollbackする。
   // 予約が無いslugでは常に成立するため、既存save回帰(予約未使用)を壊さない。
   private promoteSlugWithin(db: DatabaseSync, slug: string, uid: string): void {
     const svc = this.slugReservations;
@@ -1629,7 +1628,7 @@ class SqliteDataService {
     return slugCheckResultIsAvailable(await this.checkSlugReservation({ slug, excludeUid }));
   }
 
-  // --- slug 予約 IPC 薄wrapper(M11-T7/§7.2)。getDbで接続確定後にserviceへ委譲する。
+  // --- slug 予約 IPC 薄wrapper。getDbで接続確定後にserviceへ委譲する。
   //     promote/renewOwn/gc はrenderer非公開(save経路とmain timerのみが使う)。
   async reserveSlug(p: { slug: string; assetUid: string; assetKind: string; draftUid: string }) {
     await this.getDb();
@@ -1655,9 +1654,9 @@ class SqliteDataService {
 
   private createDocRow(db: DatabaseSync, kind: 'map' | 'app', slug: string, dataJson: string, presetUid?: string): string {
     const table = ASSET_TABLES[kind]!;
-    const uid = presetUid ?? generateUid(); // D11改: 指定があれば事前採番uidを採用(後方互換)
+    const uid = presetUid ?? generateUid(); // 指定があれば事前採番uidを採用(後方互換)
     this.withTransaction(db, () => {
-      this.promoteSlugWithin(db, slug, uid); // AC4: 他者予約はconflictでrollback
+      this.promoteSlugWithin(db, slug, uid); // 他者予約はconflictでrollback
       this.registerAsset(db, kind, uid, slug);
       db.prepare(
         `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
@@ -1680,7 +1679,7 @@ class SqliteDataService {
     return this.withTransaction(db, () => {
       const existing = db.prepare(`SELECT slug, revision FROM ${table} WHERE uid = ?`).get(uid) as any;
       if (!existing) {
-        this.promoteSlugWithin(db, slug, uid); // AC4
+        this.promoteSlugWithin(db, slug, uid);
         this.registerAsset(db, kind, uid, slug);
         db.prepare(
           `INSERT INTO ${table} (uid, slug, data_json, revision, updated_at)
@@ -1694,7 +1693,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
-        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
+        this.promoteSlugWithin(db, slug, uid); // 改名先slugのpromote
         this.renameAssetSlug(db, kind, uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -1722,7 +1721,7 @@ class SqliteDataService {
          (SELECT base_map_uid FROM map_base_map_visibility WHERE map_uid = ?)`
     ).run(provisionalKey, uid);
     db.prepare('UPDATE map_base_map_visibility SET map_uid = ? WHERE map_uid = ?').run(uid, provisionalKey);
-    // m1-t4 (HR-6): シフト値の暫定行も同じ DELETE-dup + UPDATE で uid キーへ引き継ぐ（恒久指示: 同一関数へ並置）
+    // シフト値の暫定行も同じ DELETE-dup + UPDATE で uid キーへ引き継ぐ（恒久指示: 同一関数へ並置）
     db.prepare(
       `DELETE FROM map_base_map_shift
        WHERE map_uid = ? AND base_map_uid IN
@@ -1749,7 +1748,7 @@ class SqliteDataService {
     return row ? mapRowToDocument(row) : null;
   }
 
-  // uid正準の参照解決 (ADR-0007)。旧保存形のslug参照にはslugフォールバックで応える。
+  // uid正準の参照解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。旧保存形のslug参照にはslugフォールバックで応える。
   // uid検索はUUID形状の引数に限定し、UUID形状のslug(英数+ハイフンのため同形状に
   // なり得る)が他アセットのuidを誤って参照しないようにする
   async findMapByRef(ref: string): Promise<any | null> {
@@ -1780,7 +1779,7 @@ class SqliteDataService {
       db.prepare('DELETE FROM maps WHERE uid = ?').run(uid);
       db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
       db.prepare('DELETE FROM map_base_map_visibility WHERE map_uid = ?').run(uid);
-      // m1-t4 (HR-6): シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
+      // シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
       db.prepare('DELETE FROM map_base_map_shift WHERE map_uid = ?').run(uid);
     });
   }
@@ -1811,7 +1810,7 @@ class SqliteDataService {
     return row ? appRowToDocument(row) : null;
   }
 
-  // uid正準の参照解決 (ADR-0007)。findMapByRef と同じ解決規則のapp版
+  // uid正準の参照解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。findMapByRef と同じ解決規則のapp版
   async findAppByRef(ref: string): Promise<any | null> {
     if (UUID_PATTERN.test(ref)) {
       const byUid = await this.findApp(ref);
@@ -1850,16 +1849,16 @@ class SqliteDataService {
     return rows.map(appRowToDocument);
   }
 
-  // --- poi sources (ADR-0007) ---
+  // --- poi sources (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds) ---
   // maps/apps と対称: uid正準 + asset_registry によるグローバルslug一意性 + revision楽観ロック。
   // 追加列(title_json/mode/url/data_json/feature_count)を持つため createDocRow/upsertDocRow の
   // 汎用形ではなく、saveUserBaseMap と同じく registerAsset/renameAssetSlug/withTransaction を再利用した
   // 専用の内部ヘルパーで実装する。
 
   private createPoiSourceRow(db: DatabaseSync, slug: string, input: PoiSourceInput, presetUid?: string): string {
-    const uid = presetUid ?? generateUid(); // D11改: 事前採番uid受け入れ(後方互換)
+    const uid = presetUid ?? generateUid(); // 事前採番uid受け入れ(後方互換)
     this.withTransaction(db, () => {
-      this.promoteSlugWithin(db, slug, uid); // AC4
+      this.promoteSlugWithin(db, slug, uid);
       this.registerAsset(db, 'poi_source', uid, slug);
       db.prepare(
         `INSERT INTO poi_sources (uid, slug, title_json, mode, url, data_json, feature_count, revision, updated_at)
@@ -1890,7 +1889,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
-        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
+        this.promoteSlugWithin(db, slug, uid); // 改名先slugのpromote
         this.renameAssetSlug(db, 'poi_source', uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -1932,7 +1931,7 @@ class SqliteDataService {
     return row ? poiSourceRowToRecord(row) : null;
   }
 
-  // uid正準の参照解決 (ADR-0007)。findMapByRef と同じ解決規則の poi_source 版:
+  // uid正準の参照解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。findMapByRef と同じ解決規則の poi_source 版:
   // UUID形状のみuid検索を許し(UUID形状のslugによる誤参照防止)、無ければslugフォールバック
   async findPoiSourceByRef(ref: string): Promise<PoiSourceRecord | null> {
     if (UUID_PATTERN.test(ref)) {
@@ -1942,8 +1941,8 @@ class SqliteDataService {
     return await this.findPoiSourceBySlug(ref);
   }
 
-  // apps/maps の data_json 中の POI ソース参照 ("poiUid":"<uid>") を走査する (AID-006 の器)。
-  // 参照の書込は Phase 7 で始まるため、それまでは常に空配列。削除confirmフローが参照有無の
+  // apps/maps の data_json 中の POI ソース参照 ("poiUid":"<uid>") を走査する (削除確認フローの参照走査の器)。
+  // 参照がまだ書かれていなければ空配列。削除confirmフローが参照有無の
   // 提示に使う(削除自体はブロックしない)
   async findPoiSourceReferences(uid: string): Promise<Array<{ kind: 'map' | 'app'; uid: string; slug: string }>> {
     // UUID 形状のみ許可: %/_ 等の LIKE メタ文字混入で偽参照を作らないためのガード
@@ -1961,8 +1960,8 @@ class SqliteDataService {
   }
 
   // poi_sources の data_json 中の画像アセット参照 (`"<uid>"` — icon/selectedIcon/image 配列の
-  // どこに現れても文字列一致で拾える。POI-139 の参照文法は uid をそのまま値に持つため
-  // "poiUid":"<uid>" のようなキー限定は不要) を走査する (43 §7 の削除確認フローが使う)。
+  // どこに現れても文字列一致で拾える。参照文法は uid をそのまま値に持つため
+  // "poiUid":"<uid>" のようなキー限定は不要) を走査する (43 削除確認フローが使う)。
   // 参照ありでも削除自体はブロックしない(未解決 asset は picker の解釈表示側で警告する)
   async findAssetReferences(uid: string): Promise<{ poiSources: Array<{ uid: string; slug: string; title: Record<string, string> }> }> {
     // UUID 形状のみ許可: %/_ 等の LIKE メタ文字混入で偽参照を作らないためのガード
@@ -2028,17 +2027,17 @@ class SqliteDataService {
     return summaries;
   }
 
-  // --- assets (ADR-0007) ---
+  // --- assets (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds) ---
   // poi_sources と同型。バイト実体は別管理でメタデータのみ持つため FTS 専用表は設けず、
   // searchAssets は slug/title の LIKE 一致で足りる(maps/apps の raw LIKE フォールバックと同機構)。
 
   private createAssetRow(db: DatabaseSync, slug: string, input: AssetInput, presetUid?: string): string {
-    // D11改: 事前採番uid受け入れ(後方互換)。アセットの UID は小文字で保存する（findAsset は
+    // 事前採番uid受け入れ(後方互換)。アセットの UID は小文字で保存する（findAsset は
     // 小文字に揃えて引くので、大文字のまま保存すると二度と見つからない）。行の uid・registry・
     // 呼び出し側が実体のファイル名に使う戻り値を、ここで同じ小文字に揃える
     const uid = (presetUid ?? generateUid()).toLowerCase();
     this.withTransaction(db, () => {
-      this.promoteSlugWithin(db, slug, uid); // AC4
+      this.promoteSlugWithin(db, slug, uid);
       this.registerAsset(db, 'asset', uid, slug);
       db.prepare(
         `INSERT INTO assets (uid, slug, lang, source_name, title_json, mime, ext, width, height, byte_size, revision, updated_at)
@@ -2069,7 +2068,7 @@ class SqliteDataService {
         throw new RevisionConflictError(currentRevision);
       }
       if (String(existing.slug) !== slug) {
-        this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
+        this.promoteSlugWithin(db, slug, uid); // 改名先slugのpromote
         this.renameAssetSlug(db, 'asset', uid, slug);
       }
       const where = expectedRevision != null ? 'WHERE uid = ? AND revision = ?' : 'WHERE uid = ?';
@@ -2115,7 +2114,7 @@ class SqliteDataService {
     return row ? assetRowToRecord(row) : null;
   }
 
-  // uid正準の参照解決 (ADR-0007)。findMapByRef/findPoiSourceByRef と同じ解決規則の asset 版:
+  // uid正準の参照解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。findMapByRef/findPoiSourceByRef と同じ解決規則の asset 版:
   // UUID形状のみuid検索を許し(UUID形状のslugによる誤参照防止)、無ければslugフォールバック
   async findAssetByRef(ref: string): Promise<AssetRecord | null> {
     if (UUID_PATTERN.test(ref)) {
@@ -2344,7 +2343,7 @@ class SqliteDataService {
   }
 
   // --- base maps ---
-  // 内部キーも公開APIもuid正準 (ADR-0007)。
+  // 内部キーも公開APIもuid正準 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。
   // 参照引数(mapRef/baseMapRef)は findMapByRef と同じ解決規則: UUID形状はuid優先、
   // それ以外はslugフォールバック(旧呼び出し形・smoke互換)。
   // 未保存の地図(uid未採番)はslugが暫定キー('slug:'接頭辞)として使われる
@@ -2379,7 +2378,7 @@ class SqliteDataService {
       .get(slug) as any;
   }
 
-  // uid正準のベースマップ参照解決 (ADR-0007)。findMapByRef と同じ規則:
+  // uid正準のベースマップ参照解決 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。findMapByRef と同じ規則:
   // UUID形状はuid優先、それ以外(旧呼び出し形)はslugフォールバック
   private findBaseMapByRef(db: DatabaseSync, ref: string, scope?: BaseMapScope): any | null {
     if (UUID_PATTERN.test(ref)) {
@@ -2424,7 +2423,7 @@ class SqliteDataService {
     const visibility = this.visibilityRowsForMapKey(db, this.resolveVisibilityMapKey(db, mapRef));
     const overrides = this.alwaysOverrides(db);
 
-    // オプトイン方式(ADR-0006): 明示的に選択したものだけ表示(未設定=非表示)。
+    // オプトイン方式(ベースマップの表示は明示的に選んだものだけにする決まり): 明示的に選択したものだけ表示(未設定=非表示)。
     // 常時表示のベースマップは選択に依らず表示され、地図単位では外せない
     const items: BaseMapVisibilityItem[] = [];
     for (const row of baseMapRows) {
@@ -2459,7 +2458,7 @@ class SqliteDataService {
     ).run(mapKey, base.uid, enabled ? 1 : 0);
   }
 
-  // m1-t4 (HR-6・C-3 v1.2): ベースマップ位置合わせのシフト値の編集環境永続化。
+  // ベースマップ位置合わせのシフト値の編集環境永続化。
   // map_base_map_visibility の完全相似形（粒度 (map_uid, base_map_uid)・即時書込・Save/undo 非対象・
   // uid 正準・暫定キー slug:{slug}・adopt/sweep/削除随伴）。行が無いベースマップは「未計測 = 0 扱い」で、
   // 0,0 は行 DELETE で表現する（メモリ側 effectiveShiftOf の「未登録 = 0」と表現を一致させる）
@@ -2527,7 +2526,7 @@ class SqliteDataService {
     });
   }
 
-  // アプリのエクスポート等でuid→slugを解決するための単一読み (ADR-0007)
+  // アプリのエクスポート等でuid→slugを解決するための単一読み (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   async findBaseMapByUid(uid: string): Promise<{ uid: string; slug: string; scope: BaseMapScope; data: any } | null> {
     const db = await this.getDb();
     const row = db
@@ -2550,7 +2549,7 @@ class SqliteDataService {
     ).run(base.uid, always ? 1 : 0);
   }
 
-  // uid正準のベースマップ保存 (ADR-0007):
+  // uid正準のベースマップ保存 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり):
   // payload.uid あり=既存ユーザーベースマップの更新。slug変更は同一uidのslug付け替えで、
   // 表示設定(map_base_map_visibility)/常時表示設定(base_map_always)はuidキーのため付け替え不要。
   // payload.uid なし=新規作成(uid採番)。slug衝突(ビルトイン/Maplat地図/アプリ含む
@@ -2558,7 +2557,7 @@ class SqliteDataService {
   // 楽観ロック(expectedRevision)は導入しない: ベースマップは小さな設定オブジェクトで
   // 編集UIも単一モーダルのため last-write-wins で足りる(revisionカウンタ自体は更新毎に
   // 進めており、必要になれば maps/apps と同じ方式を後付けできる)
-  // m19-t2: 戻り値へ thumbnail（永続化された実効値）を含める。新規作成では下の
+  // 戻り値へ thumbnail（永続化された実効値）を含める。新規作成では下の
   // relocateBaseMapIcon / inheritMercThumbnail が thumbnail を uid 名へ書き換えるため、
   // 呼び出し元（renderer）が payload の値を持ち続けると、そこから導く 512px パスが実体を失う。
   async saveUserBaseMap(payload: BaseMapSavePayload): Promise<{ uid: string; revision: number; thumbnail?: string }> {
@@ -2567,13 +2566,13 @@ class SqliteDataService {
     const tms = payload?.tms ?? {};
     const db = await this.getDb();
 
-    // create=true は新規作成の明示合図(§7.2b): uid を preset として新規経路へ回す。
+    // create=true は新規作成の明示合図(b): uid を preset として新規経路へ回す。
     // create なし/false は従来の uid 有無 dispatch(update 経路の NotFound throw 不変)
     const requestedCreate = payload?.create === true;
     if (!requestedCreate && payload?.uid != null && String(payload.uid).trim() !== '') {
       const uid = String(payload.uid);
-      // nov26-m6-t5 §4.3 (a′): 旧名の thumbnail を、内容が同じ uid 名の対へ付け替える（複製・移動はしない）。
-      // fs の確認とハッシュはトランザクション（同期のコールバック）の外で、その前に行う（T5-MIN-4）
+      // (a′): 旧名の thumbnail を、内容が同じ uid 名の対へ付け替える（複製・移動はしない）。
+      // fs の確認とハッシュはトランザクション（同期のコールバック）の外で、その前に行う
       const effectiveThumbnail = await this.resolveBaseMapThumbnailRepoint(uid, tms?.thumbnail);
       // 現在値の読み取りも同一トランザクション内で行う(BEGIN IMMEDIATEで書き込みロックを
       // 先頭取得するため、並走する書き込みと交錯して返却revisionがずれることがない)
@@ -2587,7 +2586,7 @@ class SqliteDataService {
           throw new RevisionConflictError(currentRevision);
         }
         if (String(existing.slug) !== slug) {
-          this.promoteSlugWithin(db, slug, uid); // AC4: 改名先slugのpromote
+          this.promoteSlugWithin(db, slug, uid); // 改名先slugのpromote
           this.renameAssetSlug(db, 'base_map', uid, slug);
         }
         db.prepare(
@@ -2606,7 +2605,7 @@ class SqliteDataService {
       .prepare(`SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM base_maps WHERE scope = 'user'`)
       .get() as any;
     const sortOrder = Number(next.next_order);
-    // preset uid (D11改): create=true で uid 指定があれば事前採番 uid を採用(UUID 形状のみ)
+    // preset uid: create=true で uid 指定があれば事前採番 uid を採用(UUID 形状のみ)
     const presetUid = requestedCreate && payload?.uid != null && String(payload.uid).trim() !== ''
       ? String(payload.uid)
       : undefined;
@@ -2614,7 +2613,7 @@ class SqliteDataService {
     const uid = presetUid ?? generateUid();
     const data: any = { ...tms, mapID: slug };
     this.withTransaction(db, () => {
-      this.promoteSlugWithin(db, slug, uid); // AC4
+      this.promoteSlugWithin(db, slug, uid);
       this.registerAsset(db, 'base_map', uid, slug);
       db.prepare(
         `INSERT INTO base_maps (uid, slug, scope, sort_order, data_json, revision, updated_at)
@@ -2645,10 +2644,10 @@ class SqliteDataService {
     return { uid, revision, thumbnail: typeof data.thumbnail === 'string' ? data.thumbnail : undefined };
   }
 
-  // nov26-m6-t5 §4.3 (a′)・R4-MIN-1: 更新経路で、渡された thumbnail が旧名（tmbs/{uid でないキー}.{ext}）のとき、
+  // (a′)・更新経路で、渡された thumbnail が旧名（tmbs/{uid でないキー}.{ext}）のとき、
   // 次のすべてを満たせば uid 名（thumb52PathFor(uid, 同じ拡張子)）へ付け替える。ファイルの複製・移動はしない。
   //   1. uid 名の 52px が実在する
-  //   2. 旧名の 52px が実在するなら、内容（SHA-256）が uid 名と一致する（T5-MAJ-1: 移行前の下書きで置換した
+  //   2. 旧名の 52px が実在するなら、内容（SHA-256）が uid 名と一致する（移行前の下書きで置換した
   //      利用者の新しい画像を、移行が作った古い複製で置き換えない。旧名が無い＝参照が既に切れているなら 1 だけでよい）
   //   3. 旧名の 512px が実在するなら uid 名の 512px も実在し、内容が一致する
   // 1 つでも満たさなければ渡された値のまま（失われるものは無い）。512px のパスは thumb512PathFor で導く。
@@ -2748,7 +2747,7 @@ class SqliteDataService {
     this.withTransaction(db, () => {
       this.deleteBaseMapRow(db, String(existing.uid));
     });
-    // m6-t8 §3.12 (ADR-0016): DB delete 成功後、merc タイルを best-effort 削除する。
+    // (メルカトルタイルは元の地図ではなく出力先のベースマップ自身の uid が持つ決まり): DB delete 成功後、merc タイルを best-effort 削除する。
     // MapDeleteTrashService と同型のパターン（rollback しない・個別 try/catch + console.warn）。
     // 元地図（sourceMapUid の参照先）の削除ではこのステップは発火しない（ベースマップ削除専用）。
     let data: any;
@@ -2772,7 +2771,7 @@ class SqliteDataService {
     db.prepare('DELETE FROM asset_registry WHERE uid = ?').run(uid);
     db.prepare('DELETE FROM map_base_map_visibility WHERE base_map_uid = ?').run(uid);
     db.prepare('DELETE FROM base_map_always WHERE base_map_uid = ?').run(uid);
-    // m1-t4 (HR-6): シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
+    // シフト値の編集環境行も随伴削除する（恒久指示: 同一関数へ並置）
     db.prepare('DELETE FROM map_base_map_shift WHERE base_map_uid = ?').run(uid);
   }
 
@@ -2849,7 +2848,7 @@ class SqliteDataService {
     });
   }
 
-  // レガシー地図の取込(ADR-0007): uid採番 + slug=旧_id(衝突時サフィックス→report記録)。
+  // レガシー地図の取込(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり): uid採番 + slug=旧_id(衝突時サフィックス→report記録)。
   // 戻り値は 旧ID→uid の対応(表示設定の解決とtiles/tmbsリネームに使う)
   private importLegacyMaps(db: DatabaseSync, docs: any[], report: MigrationReport): Map<string, string> {
     const mapIdToUid = new Map<string, string>();
@@ -2865,7 +2864,7 @@ class SqliteDataService {
       if (slug !== oldId) report.renamedSlugs.push({ kind: 'map', from: oldId, to: slug });
       const uid = generateUid();
       this.registerAsset(db, 'map', uid, slug);
-      // m19-t7: 取込は他のすべての書き込みと同じ唯一の正規化点 normalizeMapDocument を通る。
+      // 取込は他のすべての書き込みと同じ唯一の正規化点 normalizeMapDocument を通る。
       // ∴ 行は **insert の瞬間から** 1.0.0 の凍結形であり、中間形は DB に一度も現れない
       // (取込側に写像を二重実装するのではなく、既存の 1 点を素通りするのをやめただけである)
       insert.run(uid, slug, JSON.stringify(normalizeMapDocument(doc)));
@@ -2874,7 +2873,7 @@ class SqliteDataService {
     return mapIdToUid;
   }
 
-  // tiles/tmbs の内部ファイル名を uid へ揃える(ADR-0007)。DBコミット後に実行し、
+  // tiles/tmbs の内部ファイル名を uid へ揃える(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。DBコミット後に実行し、
   // 個々の失敗は移行を止めず report.warnings に記録する
   private async renameLegacyMapFiles(mapIdToUid: Map<string, string>, report: MigrationReport): Promise<void> {
     const { saveFolder } = this.folders;
@@ -2903,8 +2902,8 @@ class SqliteDataService {
   }
 
   // settings(または退避済み _settings)配下のユーザーベースマップ/個別地図の表示設定を読み込む
-  // M12-T32 §4.1(1): electron-store tmsList（conf 自動書き込みの残骸）の読み込みは撤去。
-  // ユーザーデータは {saveFolder}/settings/tmsList.json のみが正規経路（§2.3 正規データ 3 層）
+  // electron-store tmsList（conf 自動書き込みの残骸）の読み込みは撤去。
+  // ユーザーデータは {saveFolder}/settings/tmsList.json のみが正規経路（正規データ 3 層）
   private async loadLegacyBaseMapInputs(): Promise<{
     userLists: any[][];
     visibilityEntries: Array<{ mapID: string; baseMapId: string; enabled: boolean }>;
@@ -2932,7 +2931,7 @@ class SqliteDataService {
     return { userLists, visibilityEntries };
   }
 
-  // レガシーのユーザーベースマップ/表示設定の取込(ADR-0007):
+  // レガシーのユーザーベースマップ/表示設定の取込(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり):
   // ベースマップはuid採番 + slug=旧ID(衝突時サフィックス→report記録)。
   // 表示設定は旧IDを地図uid/ベースマップuidへ解決し、どちらかが不明なら警告して読み飛ばす
   private importLegacyBaseMaps(
@@ -2963,7 +2962,7 @@ class SqliteDataService {
         const known = baseIdToUid.get(oldId);
         if (known) {
           // 複数入力(settings/tmsList.json 内の重複等)に同一IDがある場合は後勝ちで内容更新。
-          // m19-t7: update 経路も insert と同じ正規化を通す(片方だけ通すと重複入力のときだけ
+          // update 経路も insert と同じ正規化を通す(片方だけ通すと重複入力のときだけ
           // 1.0.0 の形でない行が残る)
           const knownSlug = (db.prepare('SELECT slug FROM base_maps WHERE uid = ?').get(known) as any)?.slug;
           update.run(
@@ -2976,7 +2975,7 @@ class SqliteDataService {
         if (slug !== oldId) report.renamedSlugs.push({ kind: 'base_map', from: oldId, to: slug });
         const uid = generateUid();
         this.registerAsset(db, 'base_map', uid, slug);
-        // m19-t7: 0.7.0 の生の tms オブジェクトではなく、1.0.0 の形(lang / label を持つ)で insert する。
+        // 0.7.0 の生の tms オブジェクトではなく、1.0.0 の形(lang / label を持つ)で insert する。
         // 以前は raw のまま書き、後段 applyBaseMapLanguageMigration が書き直していた
         insert.run(
           uid,

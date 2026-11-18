@@ -1,7 +1,6 @@
-// m6-t7: リモート fetch の共有防御ユーティリティ。scheme 検証・タイムアウト・
+// リモート fetch の共有防御ユーティリティ。scheme 検証・タイムアウト・
 // ストリームサイズガードの3点のみを担う（PoiSourceService.fetchRemote/fetchSnapshot
-// 冒頭の scheme 検証から抽出。挙動は完全に踏襲し、写像は呼び出し元が行う — 設計書
-// docs/superpowers/specs/2026-08-06-m6-t7-tilejson-import-design.md §3.1 参照）。
+// 冒頭の scheme 検証から抽出。挙動は完全に踏襲し、写像は呼び出し元が行う）。
 //
 // セキュリティ境界: 本モジュールが行うのはこの3点のみ。localhost・プライベート IP・
 // リンクローカルアドレス（169.254.169.254 等）への到達は塞がない（SSRF 対策は対象外）。
@@ -11,13 +10,13 @@
 // （Node の fetch も既定で最大 20 回まで追随する）。リダイレクト回数の上限も Chromium の既定に
 // 任せる。0484 で足したのは「リダイレクト先の scheme が http/https であること」だけである。
 //
-// NOV26-IM-NETFETCH-CONTINGENCY-0483: 取得そのものは fetchTransport 経由にした。
+// 取得そのものは fetchTransport 経由にした。
 // 製品（Electron main）では Chromium のネットワークスタックで実行され、
 // Node 同梱 brotli の CVE-2026-111497（brotli 展開の範囲外書き込み）を通らない。
 // 3点の防御は transport を差し替えても不変（scheme は transport を呼ぶ前に、大きさは
 // 応答の読み方で、時間は AbortController で担保している）。
 //
-// NOV26-IM-NETFETCH-CONTINGENCY-0484: リダイレクト先も含めて http/https 以外を取りに行かない。
+// リダイレクト先も含めて http/https 以外を取りに行かない。
 // 製品の transport は外部取得専用 session で webRequest により拒否し、理由を
 // `UnsupportedSchemeError` で返す。ここではそれを既存の `unsupported-scheme` へ写像し、
 // 念のため応答 URL（リダイレクト後の URL）の scheme も本文を読む前に確かめる。

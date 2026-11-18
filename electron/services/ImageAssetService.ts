@@ -1,7 +1,7 @@
-// 画像アセットの domain layer (Phase 2 Task 4, ADR-0007)。正本は Write Store (maplat.sqlite) の
+// 画像アセットの domain layer (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。正本は Write Store (maplat.sqlite) の
 // assets テーブル(メタデータのみ)。バイト実体は {saveFolder}/assets/{uid}.{ext} に置く
-// (43 §7: 画像等バイト列は fs、メタデータのみ DB)。PoiSourceService と同じく SqliteDataService の
-// CRUD に LangResource 正規化 (ADR-0005) と結果 union の慣習を被せる薄い層。
+// (43 : 画像等バイト列は fs、メタデータのみ DB)。PoiSourceService と同じく SqliteDataService の
+// CRUD に LangResource 正規化 (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり) と結果 union の慣習を被せる薄い層。
 //
 // デコード/メタデータ抽出(mime/width/height)は AppAssetService のサムネイル生成と同じ jimp を
 // 再利用する(新規依存を足さない)。バイトはコピーのみ(Jimpで再エンコードしない — 元画質を保つ)。
@@ -35,13 +35,13 @@ const EXT_MIME_FALLBACK: Record<string, string> = {
 // 'internal' = 予期しない内部エラー
 export type ImageAssetErrorCode = 'not-found' | 'invalid-request' | 'internal';
 
-// decode サイズガード (Phase 2 引き継ぎ①: 大 PNG で main freeze)。バイト数はデコード前に、
+// decode サイズガード (大 PNG で main が固まるのを防ぐ)。バイト数はデコード前に、
 // 総ピクセル数(伸長爆弾対策)はデコード後にチェックする。どちらも Jimp.read を経由させず/
 // ファイルを書き込まずに 'invalid-request' として拒否する
 export const IMAGE_ASSET_MAX_BYTES = 20 * 1024 * 1024;
 export const IMAGE_ASSET_MAX_PIXELS = 100_000_000;
 
-// 伸長爆弾対策の総ピクセル数判定を純関数として切り出す (Phase 6 品質レビュー m9-t4 補強:
+// 伸長爆弾対策の総ピクセル数判定を純関数として切り出す (品質レビューでの補強:
 // add からロジックを剥がして unit テスト可能にする。挙動は変えない)
 export function exceedsPixelLimit(width: number, height: number): boolean {
   return width * height > IMAGE_ASSET_MAX_PIXELS;
@@ -55,7 +55,7 @@ export type ImageAssetSaveResult =
   | { result: 'Error'; code: ImageAssetErrorCode; message?: string; uid?: string; slug?: string; revision?: number }
   | { error: 'revision-conflict'; current: number };
 
-// 削除結果 (M5-T4 / I-4c)。ok は **DB 行・registry の除去** の成否であり、対象不在の no-op も true。
+// 削除結果 (補償は成功したことにできない)。ok は **DB 行・registry の除去** の成否であり、対象不在の no-op も true。
 // bytes は **バイト実体の帰趨** を別軸で申告する — この2軸を分けないと、補償として delete を
 // 呼んだ側が「実体が live path に残っている」ことを検知できない。
 //   'absent'   実体がもともと無かった (対象不在 / ファイル欠落)
@@ -68,7 +68,7 @@ export type ImageAssetDeleteResult = {
   warning?: { stage: 'trash'; message: string };
 };
 
-// 一覧/取得行: バイト実体を含まない (43 §7)
+// 一覧/取得行: バイト実体を含まない
 export interface ImageAssetSummary {
   uid: string;
   slug: string;
@@ -127,7 +127,7 @@ export class ImageAssetService {
     if (e && typeof e.message === 'string' && e.message.startsWith('Slug already in use')) {
       return { result: 'Exist' };
     }
-    // slug 予約 promote conflict(M11-T7/AC4)も duplicate として operation 診断へ写像する
+    // slug 予約 promote conflictも duplicate として operation 診断へ写像する
     if (e?.kind === 'slug-reservation-conflict') {
       return { result: 'Exist' };
     }
@@ -173,7 +173,7 @@ export class ImageAssetService {
   async add(input: { slug: string; title: LangResource; lang?: string; sourceName?: string; sourcePath: string; uid?: string }): Promise<ImageAssetSaveResult> {
     const slug = String(input.slug ?? '').trim();
     if (!slug) return { result: 'Error', code: 'invalid-request', message: 'slug is required' };
-    // preset uid (D11改/M11-T7): renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
+    // preset uid: renderer 事前採番 uid。slug 予約の帰属(asset_uid)と行 uid を
     // 一致させ promote を成立させる。UUID 形状のみ受理(registry 汚染防止)
     const presetUid = input.uid != null ? String(input.uid) : undefined;
     if (presetUid != null && !UUID_PATTERN.test(presetUid)) {
@@ -248,7 +248,7 @@ export class ImageAssetService {
     return { result: 'Success', uid, slug, revision: 1, mime: meta.mime, ext, width: meta.width, height: meta.height };
   }
 
-  // uid正準 + slug フォールバック (SqliteDataService.findAssetByRef, ADR-0007)
+  // uid正準 + slug フォールバック (SqliteDataService.findAssetByRef, 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   async get(ref: string): Promise<ImageAssetSummary | null> {
     const record = await SqliteDataService.findAssetByRef(ref);
     return record ? this.summary(record) : null;
@@ -322,11 +322,11 @@ export class ImageAssetService {
   // 削除: DB行・registryを掃除した後、実体は削除せず _trash へ退避する(ユーザーデータの保全)。
   // 対象が既に存在しない場合は no-op として成功扱い(冪等)
   //
-  // M5-T4 (I-4c): 退避の失敗を **戻り値で申告する**。「DBは正、ファイル操作の失敗はログのみ」
+  // 退避の失敗を **戻り値で申告する**。「DBは正、ファイル操作の失敗はログのみ」
   // というリポジトリ方針(本ファイル :9-11)は覆さない — DB 行が消えた以上 ok:true のままである。
   // 変えたのは「呼び出し側が実体の帰趨を知れなかった」点だけである。補償として delete を呼ぶ
   // 側は、実体が live path に残ったのか _trash へ退いたのかで残留物の有無が変わるため、
-  // ok:true だけでは **補償を成功したことにしてしまう**（I-4c が禁じる状態）。
+  // ok:true だけでは **補償を成功したことにしてしまう**（補償の成功を偽る状態）。
   async delete(uid: string): Promise<ImageAssetDeleteResult> {
     const existing = await SqliteDataService.findAsset(uid);
     if (!existing) return { ok: true, bytes: 'absent' };

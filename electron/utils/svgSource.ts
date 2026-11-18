@@ -1,4 +1,4 @@
-// SVG を「取り込んでよい画像」として確かめる純関数群（nov26-editor-splash-svg #462）。
+// SVG を「取り込んでよい画像」として確かめる純関数群（editor-splash-svg #462）。
 //
 // なぜ要るか:
 //   スプラッシュは今まで `Jimp.read` で「デコードできるか」を確かめてから複製していた。
@@ -12,17 +12,17 @@
 //   要素の対応・属性の書式・重複属性・エスケープされていない `&`・コメント/CDATA/PI/DOCTYPE の
 //   閉じを確かめる。
 //
-// 【NOV26-SR-M12-C1-0465 SR-C1-M-1】書き出したサイトには SVG がそのまま置かれ、閲覧者が SVG の
+// 書き出したサイトには SVG がそのまま置かれ、閲覧者が SVG の
 // URL を直接開くとサイトの origin でスクリプトが動く余地がある。字面だけを見る検査では
 // 「文字参照で書いた javascript:」「XHTML 名前空間の要素」「DTD の内部実体」がすり抜けるため、
 // 値のデコード後の判定・名前空間の解決後の許可リスト・実体の宣言の拒否を足した。
 //
-// 【NOV26-IM-M12-SVG-HARDEN-0479】レビュー（Major 3・Minor 1）を受けて、字面の取り違えで
+// レビューを受けて、字面の取り違えで
 // すり抜けられる 4 つの経路を塞いだ: SMIL の属性を名前空間なしの完全一致の名前で引くこと・
 // DOCTYPE の内部サブセットをまるごと拒否すること・XML 宣言の encoding を UTF-8 に限ること・
 // CSS のエスケープ（`\`）を拒否すること。
 //
-// 【NOV26-IM-M12-SVG-HARDEN-0480】レビュー（Major 2）を受けて 2 点を直した: 宣言の区切りは
+// レビューを受けて 2 点を直した: 宣言の区切りは
 // 引用符を見て決めること（`>` を引用符の中に書いて内部サブセットの `[` を隠せなくする。
 // `<!DOCTYPE` はルートより前に 1 回だけ、それ以外の宣言は場所を問わず拒否）と、
 // `image`・`feImage` の href／xlink:href に限って埋め込みのラスター画像（PNG/JPEG/GIF/WebP の
@@ -47,11 +47,11 @@ const ENTITY_DECLARATION = /<!\s*ENTITY/i;
 const LENGTH = /^([0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)\s*(?:px)?$/;
 const NUMBER = /^[+-]?[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?$/;
 
-// 【NOV26-SR-M12-C1-0465 SR-C1-M-1】名前空間の許可リスト。
+// 名前空間の許可リスト。
 // スプラッシュは図柄だけでよいので、要素は SVG（と、名前空間を書いていない素の SVG）だけ、
 // 属性は名前空間なし・XLink・XML だけを通す。
 //
-// 【NOV26-IM-M12-SVG-HARDEN-0478】要素は許可リストで見る（SVG 1.1／SVG 2 の図柄・構造・
+// 要素は許可リストで見る（SVG 1.1／SVG 2 の図柄・構造・
 // グラデーション・フィルタ・テキスト・アニメーションの要素だけ）。script・foreignObject・iframe・
 // handler・listener などは入れない。加えて、Inkscape 1.x の既定保存（Inkscape SVG）が通るように、
 // 図柄に効かないメタデータの名前空間（inkscape・sodipodi・RDF・Dublin Core・Creative Commons）だけは
@@ -101,7 +101,7 @@ const SMIL_ELEMENTS = new Set(['animate', 'animatemotion', 'animatetransform', '
 const REFERENCE_ATTRIBUTES = new Set(['href', 'src', 'action', 'formaction', 'poster', 'background', 'cite', 'longdesc']);
 
 /**
- * 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像としてだけ通す `data:` の前置き。
+ * 埋め込みのラスター画像としてだけ通す `data:` の前置き。
  * `image`・`feImage` の href／xlink:href に限り、この前置きの後ろが base64 の文字と空白だけなら通す
  * （Illustrator・Inkscape は図を PNG などの base64 で埋め込む）。`data:image/svg+xml` は通さない。
  */
@@ -166,7 +166,7 @@ function normalizeValue(value: string): string {
 }
 
 /**
- * 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像として通せる `data:` か（デコード済みの値を渡す）。
+ * 埋め込みのラスター画像として通せる `data:` か（デコード済みの値を渡す）。
  * 前置き（`data:image/png;base64,` など 4 つ）は正規化して比べるので、`data:i&#9;mage/png;base64,` の
  * ように文字を挟んだものも前置きとしては通し（挿入された文字は意味を持たない）、本体は base64 の
  * 文字（大文字小文字と `+` `/` `=` をそのまま）と空白だけを許す。base64 でない `data:` は通さない。
@@ -192,7 +192,7 @@ function embeddedRasterAllowed(value: string): boolean {
 /**
  * アニメーションの値（`values` は `;` で分けた各値・`from`・`to`・`by`）に、
  * 属性と同じ scheme の判定をかける（デコード・正規化済みの値を見る）。
- * 【NOV26-IM-M12-SVG-HARDEN-0478】SMIL は属性の値を書き換えるので、
+ * SMIL は属性の値を書き換えるので、
  * 属性そのものを検査するだけでは `values="0;javascript:..."` がすり抜ける。
  */
 function animationValueViolation(value: string): string | null {
@@ -210,7 +210,7 @@ const DOCUMENT_REFERENCE = /^#[A-Za-z_][\w.:-]*$/;
 
 /**
  * CSS の中の `url(...)` をすべて見て、**文書内の参照（`url(#id)`）だけ**を許す。
- * 【NOV26-IM-M12-SVG-HARDEN-0474】Illustrator は `<style>` の `.st0{fill:url(#SVGID_1_);}` で
+ * Illustrator は `<style>` の `.st0{fill:url(#SVGID_1_);}` で
  * グラデーションを参照するのが普通なので、`url(` の一律の拒否は取りやめた。外の資源
  * （http・data・相対パス）・空・関数の入れ子・CSS のエスケープ（`\23 ` など）は今までどおり拒否する。
  * 引数は正規化済み（空白と制御文字を落として小文字にしたもの）の CSS。
@@ -240,7 +240,7 @@ function urlViolation(normalized: string): string | null {
 /** style 属性・`<style>` の中身として受け付けない書き方（デコード済みの値を渡す） */
 function styleViolation(css: string): string | null {
   const normalized = normalizeValue(css);
-  // 【NOV26-IM-M12-SVG-HARDEN-0479】CSS のエスケープ（`\`）は受け付けない。`@\69 mport`・`\75 rl(` の
+  // CSS のエスケープ（`\`）は受け付けない。`@\69 mport`・`\75 rl(` の
   // ように、字面の一致で見ている `@import`・`url(` を書かずに同じ意味にできるため。
   // デコード（文字参照）の後の中身で見るので、`&#92;` で書いたものも同じように落ちる
   if (normalized.includes('\\')) return 'CSS escape';
@@ -248,7 +248,7 @@ function styleViolation(css: string): string | null {
   if (normalized.includes('vbscript:')) return 'vbscript:';
   if (normalized.includes('expression(')) return 'expression(';
   if (normalized.includes('@import')) return '@import';
-  // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は一律には拒否しない（文書内参照だけを許す）
+  // url( は一律には拒否しない（文書内参照だけを許す）
   const url = urlViolation(normalized);
   if (url !== null) return url;
   return null;
@@ -292,7 +292,7 @@ function hasSize(attributes: Map<string, string>): boolean {
 }
 
 /**
- * SVG の「固有の大きさ」（NOV26-IM-PWA-ICON-SOURCE-0481）。
+ * SVG の「固有の大きさ」。
  * PWA アイコンの元画像は正方形でなければならない（`NotSquare`）。raster は Jimp の画素数で
  * 判定できるが、SVG は画素を持たないので `viewBox` の幅と高さ（無ければ `width`・`height`）で判定する。
  *
@@ -411,7 +411,7 @@ export function svgIntrinsicSizeFromBytes(bytes: Uint8Array): SvgIntrinsicSize |
  */
 export function checkSvgMarkup(text: string): SvgMarkupCheck {
   if (typeof text !== 'string') return INVALID('not text');
-  // 【NOV26-IM-M12-SVG-HARDEN-0479】BOM は UTF-8 のもの（デコード後の U+FEFF）だけを 1 つ許す。
+  // BOM は UTF-8 のもの（デコード後の U+FEFF）だけを 1 つ許す。
   // UTF-16 の BOM（FE FF・FF FE）は、読み違えると符号の並びが変わるので拒否する
   // （U+FFFE は UTF-16 の BOM を逆の符号で読んだもの）
   const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
@@ -429,7 +429,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
   let rootAttributes: Map<string, string> | null = null;
   let index = 0;
   let rootClosed = false;
-  /** 【NOV26-IM-M12-SVG-HARDEN-0480】DOCTYPE は 1 回だけ通す */
+  /** DOCTYPE は 1 回だけ通す */
   let sawDoctype = false;
 
   const skipWhitespace = () => {
@@ -446,7 +446,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     const lt = source.indexOf('<', index);
     const textEnd = lt < 0 ? source.length : lt;
     const chunk = source.slice(index, textEnd);
-    // 【SR-C1-M-1】定義済み 5 つと数値文字参照以外の実体参照（`&name;`）と裸の `&` は受け付けない
+    // 定義済み 5 つと数値文字参照以外の実体参照（`&name;`）と裸の `&` は受け付けない
     const decodedChunk = decodeReferences(chunk);
     if (decodedChunk === null) return INVALID('unescaped & or undeclared entity');
     collectStyleText(decodedChunk);
@@ -477,13 +477,13 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     if (source.startsWith('<?', index)) {
       const end = source.indexOf('?>', index + 2);
       if (end < 0) return INVALID('unterminated processing instruction');
-      // 【NOV26-IM-M12-SVG-HARDEN-0478】通すのは文書の先頭の XML 宣言だけ。
+      // 通すのは文書の先頭の XML 宣言だけ。
       // `<?xml-stylesheet ...?>` は後ろに続く要素の解釈（XSLT の適用など）を変えられるので拒否する
       const target = (source.slice(index + 2, end).match(/^[^\s?>]*/) ?? [''])[0];
       if (index !== 0 || !/^xml(?:\s|$)/.test(source.slice(index + 2, end))) {
         return INVALID(`processing instruction not allowed: ${target}`);
       }
-      // 【NOV26-IM-M12-SVG-HARDEN-0479】宣言の encoding は書かないか `UTF-8` だけを許す。
+      // 宣言の encoding は書かないか `UTF-8` だけを許す。
       // バイト列は UTF-8 としてしか読まないので、他の encoding を名乗る文書は解釈が割れる
       // （ISO-2022-JP・Shift_JIS・UTF-16・`utf8` の綴り違いなど）
       const declaredEncoding = xmlDeclarationEncoding(source.slice(index + 5, end));
@@ -494,7 +494,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       continue;
     }
     // 宣言（`<!` で始まるもの。コメントと CDATA は上で処理済み）
-    // 【NOV26-IM-M12-SVG-HARDEN-0480】区切りは引用符を見て決める。以前は `<!` の後を引用符を見ずに
+    // 区切りは引用符を見て決める。以前は `<!` の後を引用符を見ずに
     // 最初の `>` で区切っていたため、`<!DOCTYPE svg SYSTEM "x>" [<!ATTLIST svg onload CDATA "..">]>`
     // のように `>` を引用符の中に書くと、内部サブセットの `[` を見ないまま素通りできた。
     // 通すのはルートより前の `<!DOCTYPE` 1 回だけで、`<!ATTLIST`・`<!ELEMENT`・`<!NOTATION`・
@@ -528,7 +528,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       // （`<!ATTLIST svg onload CDATA "x">`）でも、この検査が見ていない属性を補えるため。
       // 外部 ID だけの DOCTYPE（今までどおり）は通す
       if (internalSubset) return INVALID('internal subset in DOCTYPE');
-      // 【SR-C1-M-1】念のため、実体の宣言そのものも拒否する（`&x;` で javascript: を持ち込める）
+      // 念のため、実体の宣言そのものも拒否する（`&x;` で javascript: を持ち込める）
       if (ENTITY_DECLARATION.test(source.slice(index, end + 1))) return INVALID('entity declaration in DOCTYPE');
       index = end + 1;
       continue;
@@ -563,9 +563,9 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     const nameMatch = NAME.exec(source.slice(index));
     if (!nameMatch) return INVALID('bad start tag');
     const name = nameMatch[0];
-    // 【NOV26-IR-EDITOR-SPLASH-SVG-0464 MINOR-2】書き出したサイトで SVG を直接開くと、中の script がサイトと
+    // 書き出したサイトで SVG を直接開くと、中の script がサイトと
     // 同じ origin で動く。スプラッシュは図柄だけでよいので、script と HTML を埋め込む要素は受け付けない
-    // （【NOV26-SR-M12-C1-0465 SR-C1-M-1】名前空間に関係なく、SVG に無い要素と HTML を埋め込む要素まで塞ぐ）
+    // （名前空間に関係なく、SVG に無い要素と HTML を埋め込む要素まで塞ぐ）
     if (FORBIDDEN_ELEMENTS.has(localName(name))) return INVALID(`element not allowed: ${name}`);
     index += name.length;
     if (rootName === null) rootName = name;
@@ -604,13 +604,13 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       index = valueEnd + 1;
       if (attributes.has(attrName)) return INVALID(`duplicate attribute: ${attrName}`);
 
-      // 【SR-C1-M-1】値は数値文字参照と定義済み 5 実体をデコードしてから判定する
+      // 値は数値文字参照と定義済み 5 実体をデコードしてから判定する
       const decoded = decodeReferences(value);
       if (decoded === null) return INVALID(`unescaped & or undeclared entity in attribute: ${attrName}`);
       attributes.set(attrName, decoded);
     }
 
-    // 【SR-C1-M-1】名前空間を解けるだけ解いてから、要素・属性の属する名前空間を許可リストで見る
+    // 名前空間を解けるだけ解いてから、要素・属性の属する名前空間を許可リストで見る
     const parentScope = nsStack[nsStack.length - 1];
     const scope: NamespaceScope = {
       prefixes: new Map(parentScope ? parentScope.prefixes : []),
@@ -629,7 +629,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
     // 接頭辞の無い要素は既定の名前空間（宣言が無ければ「名前空間なし」= 素の SVG として扱う）
     const elementNs = prefixOf(name) === '' ? scope.defaultNs : resolvePrefix(prefixOf(name));
     if (elementNs === undefined) return INVALID(`undeclared namespace prefix: ${name}`);
-    // 【NOV26-IM-M12-SVG-HARDEN-0478】メタデータの名前空間の要素だけは別扱い（図柄に効かない）。
+    // メタデータの名前空間の要素だけは別扱い（図柄に効かない）。
     // それ以外は SVG（と名前空間なし）だけで、さらに許可リストの要素だけを通す
     const elementIsMetadata = elementNs !== null && METADATA_NAMESPACES.has(elementNs);
     if (elementNs !== null && elementNs !== SVG_NS && !elementIsMetadata) {
@@ -647,19 +647,19 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
       if (attrNs !== null && attrNs !== XLINK_NS && attrNs !== XML_NS && !METADATA_NAMESPACES.has(attrNs)) {
         return INVALID(`attribute namespace not allowed: ${attrName}`);
       }
-      // 【NOV26-IM-M12-SVG-HARDEN-0478】メタデータの名前空間の属性は図柄に効かないので値を見ない
+      // メタデータの名前空間の属性は図柄に効かないので値を見ない
       if (attrNs !== null && METADATA_NAMESPACES.has(attrNs)) continue;
 
       const attrLocal = localName(attrName);
-      // 【0464 MINOR-2】イベントの属性（onload 等）は受け付けない
+      // イベントの属性（onload 等）は受け付けない
       if (/^on/i.test(attrLocal)) return INVALID(`event attribute not allowed: ${attrName}`);
       // XHTML の iframe の中身を差し込む口（SVG には無い）
       if (attrLocal === 'srcdoc') return INVALID(`srcdoc not allowed: ${attrName}`);
       const normalized = normalizeValue(attrValue);
-      // 【SR-C1-M-1】文字参照・制御文字・空白を挟んだ javascript: / vbscript: も参照しない
+      // 文字参照・制御文字・空白を挟んだ javascript: / vbscript: も参照しない
       if (/^(?:javascript|vbscript):/.test(normalized)) return INVALID(`script scheme not allowed: ${attrName}`);
       if (REFERENCE_ATTRIBUTES.has(attrLocal) && normalized.startsWith('data:')) {
-        // 【NOV26-IM-M12-SVG-HARDEN-0480】埋め込みのラスター画像だけは、`image`・`feImage` の
+        // 埋め込みのラスター画像だけは、`image`・`feImage` の
         // href／xlink:href に限って通す（Illustrator・Inkscape の埋め込み画像がこの形）。
         // 他の要素（`a`・`use` 等）の `data:` と `data:image/svg+xml` は今までどおり拒否する
         const embeddedRaster = EMBEDDED_RASTER_ELEMENTS.has(localName(name))
@@ -668,18 +668,18 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
           && embeddedRasterAllowed(attrValue);
         if (!embeddedRaster) return INVALID(`data: not allowed: ${attrName}`);
       }
-      // 【SR-C1-M-1】style 属性は expression(・javascript:・@import を受け付けない。
-      // 【NOV26-IM-M12-SVG-HARDEN-0474】url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
+      // style 属性は expression(・javascript:・@import を受け付けない。
+      // url( は文書内参照（`url(#id)`）だけを許す（イラレのグラデーション参照）
       if (attrLocal === 'style') {
         const violation = styleViolation(attrValue);
         if (violation !== null) return INVALID(`style not allowed: ${violation} in ${attrName}`);
       }
     }
 
-    // 【NOV26-IM-M12-SVG-HARDEN-0478】SMIL のアニメーションは実行時に属性を書き換えられる。
+    // SMIL のアニメーションは実行時に属性を書き換えられる。
     // attributeName が参照・style・イベントを指すものは拒否し、値にも scheme の判定をかける。
     if (SMIL_ELEMENTS.has(localName(name))) {
-      // 【NOV26-IM-M12-SVG-HARDEN-0479】SMIL の属性は**名前空間なしの属性だけ**を完全一致の名前で引く。
+      // SMIL の属性は**名前空間なしの属性だけ**を完全一致の名前で引く。
       // 接頭辞を落とした局所名で最初の値を返していたため、`inkscape:attributeName="x"` を本物より前に
       // 置くと本物の `attributeName="href"` を見落とせた。同じ局所名の属性が名前空間違いで
       // 複数ある要素は、どれが本物か決められないので拒否する（正しい XML でも同じ名前は重ならない）
@@ -754,7 +754,7 @@ export function checkSvgMarkup(text: string): SvgMarkupCheck {
 
 /** ファイルのバイト列を UTF-8 として読み、SVG として確かめる（文字コードが壊れていれば不可） */
 export function checkSvgBytes(bytes: Uint8Array): SvgMarkupCheck {
-  // 【NOV26-IM-M12-SVG-HARDEN-0479】UTF-16 の BOM（FE FF・FF FE）で始まるものは受け付けない
+  // UTF-16 の BOM（FE FF・FF FE）で始まるものは受け付けない
   if ((bytes[0] === 0xfe && bytes[1] === 0xff) || (bytes[0] === 0xff && bytes[1] === 0xfe)) {
     return INVALID('utf-16 byte order mark');
   }

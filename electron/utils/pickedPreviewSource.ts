@@ -4,7 +4,7 @@
  * なぜ切り出すか:
  *   新しい IPC（`imageassets:readPickedSource`）は renderer が指定した画像の**バイト列**を返す。
  *   renderer が任意の絶対パスを渡して main に読ませる形にすると、既存に無い能力
- *   （任意ファイル読み出し）を renderer に与えることになる（設計書 §8）。∴ **token 方式**にする:
+ *   （任意ファイル読み出し）を renderer に与えることになる。∴ **token 方式**にする:
  *   main が選択ダイアログで利用者が選んだパスだけをこの store に覚え、
  *   renderer は token でしか要求できない（パス文字列は IPC の引数に取らない）。
  *
@@ -29,7 +29,7 @@ export {
 /** 一次表示できるバイト数の上限（= IMAGE_ASSET_MAX_BYTES） */
 export const PREVIEW_MAX_BYTES = 20 * 1024 * 1024;
 /**
- * 一次表示できる拡張子。**経路ごとに分ける**（nov26-editor-splash-svg #462）。
+ * 一次表示できる拡張子。**経路ごとに分ける**（editor-splash-svg #462）。
  *
  * - アセット（`AssetEdit`）: 既存ピッカ（`imageassets:pickImageFile` の filters）と同じ集合のまま。
  *   SVG は入れない ∴ SVG 経由のスクリプト実行面を持ち込まない

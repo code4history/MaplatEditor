@@ -1,6 +1,6 @@
 // PWA 画像（アイコン 8 枚・スプラッシュ 46 枚）の**仕様と作図の寸法**を決める純関数群。
 //
-// 背景（#174 / nov26-rc-editor174 設計書 v3）:
+// 背景（#174）:
 //   これまでは Chrome を起動する生成ライブラリに作らせていた。同ライブラリは画像を 1 枚も
 //   書く前に Chrome を探して起動する（利用者の既定プロファイル・他アプリのバンドル走査・
 //   ブラウザ実体のダウンロード）。macOS の App Data 保護に当たり、
@@ -9,7 +9,7 @@
 //
 // このモジュールは Electron を import しない（node の smoke で実 Electron 無しに検証する）。
 // 出力（ファイル名・順序・寸法・manifest の icons・index.html の htmlMeta）は従来と同一に保つ
-// （基準 = scripts/fixtures/nov26-rc-editor174-pwa-baseline.json）。
+// （基準 = scripts/fixtures/pwa-baseline.json）。
 import path from 'node:path';
 import appleSplashDevices from '../pwa_apple_splash_devices.json';
 
@@ -196,7 +196,7 @@ export function composePwaHtmlMeta(
 }
 
 /**
- * 1 枚の作図矩形（設計書 v3 §5.2）。
+ * 1 枚の作図矩形。
  * 従来の HTML シェルは body に `padding: 10%`（＝ W 基準）と img の `object-fit: contain` を使っていた。
  * ここでは同じ結果を px で明示的に求める（% を書くと広いビューポート基準になって小さい画像が潰れるため）。
  */
@@ -240,7 +240,7 @@ export function pwaImageBox(spec: { width: number; height: number }): PwaContain
 }
 
 /**
- * 画面より大きいウィンドウが作れない環境での縮小倍率（設計書 v3 §5.4 S2）。
+ * 画面より大きいウィンドウが作れない環境での縮小倍率。
  * 撮れる最大寸法 (availWidth, availHeight) に収まるよう、スペックごとに 1 以下の倍率を返す。
  */
 export function pwaZoomFor(
@@ -255,7 +255,7 @@ export function pwaZoomFor(
 
 /** 描画用のシェル HTML（一時ファイルに書いて file: で読む）。CSS に % は書かない。 */
 export function buildPwaShellHtml(background: string): string {
-  // 【NOV26-IR-EDITOR174-0453 MIN-2】背景色は <style> に埋め込むので、CSS の色として安全な書式だけを通す
+  // 背景色は <style> に埋め込むので、CSS の色として安全な書式だけを通す
   // （`</style><script>` 等を入れさせない）。書式に合わなければ既定の背景色にする
   background = sanitizeCssColor(background);
   // 目印（#pwa-frame-marker）はウィンドウ左下の撮影範囲の外に置く。最初は「どの 1 枚でもない」色
@@ -302,7 +302,7 @@ export function pwaFrameMarkerMatches(pixel: ArrayLike<number>, seq: number): bo
 
 /**
  * 1 枚ぶんの寸法を当てて「新しい内容が描かれた」ところまで待つ JS。
- * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため（設計書 v3 §4.2 E4）。
+ * requestAnimationFrame を 2 回待つのは、1 回では前の寸法の描画を撮ってしまうため。
  * それでも撮影元が前のフレームのことがあるので、marker を渡したときは同じ JS で目印の色と大きさも変える
  * （撮る側が目印を見て、届くまで待つ。pwaFrameMarkerColor を参照）。目印は元画像を読み終えた後（settle）で変える。
  * sourceUrl を渡したときだけ元画像を読み直し、読めなければ reject する（呼び出し側が退避を判断する）。

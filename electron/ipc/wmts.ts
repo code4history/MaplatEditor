@@ -4,11 +4,10 @@ import WmtsGeneratorService from '../services/WmtsGeneratorService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
 
-// M12-T22: 本ハンドラ登録自体はmain.ts:138(import)/229(起動時呼び出し)により
-// 常時生きている。m6-t8でMapEdit.vueの新規「メルカトルタイル」タブから到達
-// 可能になった（M12-T22が転用予定としていたM4-(2)に対応）。ロジックは
+// 本ハンドラ登録自体はmain.ts:138(import)/229(起動時呼び出し)により
+// 常時生きている。MapEdit.vueの新規「メルカトルタイル」タブから到達
+// 可能になった（以前から転用を予定していた地図からのタイル生成に対応）。ロジックは
 // 削除しない。
-// 詳細: docs/superpowers/state/nayuta-state.json m12.tasks[t22] / m4.human_direction_2026_07_25
 export function registerWmtsHandlers() {
     ipc.handle('wmtsGen:generate', async (
         event,

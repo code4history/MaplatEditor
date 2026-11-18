@@ -1,4 +1,4 @@
-// NOV26-IM-NETFETCH-CONTINGENCY-0483/0484: Chromium のネットワークスタックで取得する transport。
+// /0484: Chromium のネットワークスタックで取得する transport。
 //
 // 0483 の背景: Node 24.22.1 で直った CVE-2026-111497（Brotli 展開の範囲外書き込み）は
 // Electron 同梱の Node 24.22.0 に残っている。Node の fetch（undici）は `Content-Encoding: br`

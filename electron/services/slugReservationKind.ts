@@ -1,4 +1,4 @@
-// §7.3 kind 語彙写像（Single Source of Truth）。
+// kind 語彙写像（Single Source of Truth）。
 // UI(SlugField.assetKind) ⇄ registry/slug_reservations ⇄ draft store(AssetDraftKind) の3系統を接続する。
 import type { AssetKind } from './assetIdentity';
 

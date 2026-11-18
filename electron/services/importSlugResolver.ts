@@ -1,4 +1,4 @@
-// M5-T5: import の slug 衝突解決。**全 import 経路の唯一の正本**。
+// import の slug 衝突解決。**全 import 経路の唯一の正本**。
 //
 // 【この層が持つのは「import 方針」であって候補生成規則ではない】
 // 候補生成 (base, base-2 … base-<maxIndex>) は src/utils/slugSequence.ts が正本であり、
@@ -21,7 +21,7 @@
 //   4. 地図 ZIP import                    DataUploadService.extractZip
 //   5. 画像 asset import                  PoiPackageService (POI ZIP 同梱画像の登録)
 //
-// ADR-0007 により slug は asset 種別を跨いで一意 ∴ 種別ごとに規則を分けてはならない。
+// 資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりにより slug は asset 種別を跨いで一意 ∴ 種別ごとに規則を分けてはならない。
 import { findAvailableSlug } from '../../src/utils/slugSequence';
 import SqliteDataService from './SqliteDataService';
 

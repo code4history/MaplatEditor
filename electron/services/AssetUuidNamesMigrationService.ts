@@ -1,19 +1,19 @@
-// nov26-m6-t5 (#109・HR-15): 既存データの画像の内部名を UUID（ベースマップは uid）へ複製で移行する、
-// 一回限りの起動時の移行。タスク設計 `docs/superpowers/specs/2026-10-11-nov26-m6-t5-task-design.md` §4.2〜§4.4。
+// 既存データの画像の内部名を UUID（ベースマップは uid）へ複製で移行する、
+// 一回限りの起動時の移行。〜。
 //
-// 前例: OriginalsMigrationService（M13-T3）と同じく cold-boot の db を引数で受け、SqliteDataService の
+// 前例: OriginalsMigrationServiceと同じく cold-boot の db を引数で受け、SqliteDataService の
 // getDb() 経由のメソッドを呼ばない（自己デッドロック）。SqliteDataService を import しない（一方向）。
 // 印（schema_migrations）は runThumbnail512MiningIfNeeded と同じく持つ。印の ID は SqliteDataService.ts の
-// 行頭の定数 ASSET_UUID_NAMES_V1_ID が唯一の定義で、引数で受け取る（T5-R2-MIN-1）。
+// 行頭の定数 ASSET_UUID_NAMES_V1_ID が唯一の定義で、引数で受け取る。
 //
-// 本移行は「0.7.0 の取込行を 1.0.0 の形へ直す段」ではない（§4.2『m19-t7 との関係』）:
+// 本移行は「0.7.0 の取込行を 1.0.0 の形へ直す段」ではない（取込の中間段ではない）:
 // 対象は 1.0.0〜1.1.x の利用で作られたすべてのアプリ・ユーザーのベースマップの行で、到達先は 1.2.0 の
 // 命名の契約。スキーマ・語彙を変えず、3 つのキーの参照の値だけを同じ内容の複製の名前へ付け替える。
 //
 // 不変条件:
 //   - 旧ファイルは消さない（複製方式）。消すのは「この件で overwrite: false で作ったファイル」だけ
 //   - 参照の形を変えない（読んだキーそのものを書き換える）
-//   - revision と updated_at を進めない（§4.4。移行前の下書きを衝突にしない）
+//   - revision と updated_at を進めない（移行前の下書きを衝突にしない）
 //   - 比較と交換: 書き換えの直前に行を読み直し、該当キーが手順 1 で見た旧値のときだけ置き換える
 import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
@@ -88,8 +88,8 @@ function abs(saveFolder: string, rel: string): string {
 }
 
 /**
- * 比較と交換（§4.2 の 6）。SqliteDataService.withTransaction は private で使えないので、同じ SQL を書く。
- * `revision` と `updated_at` は書かない（§4.4）。
+ * 比較と交換（手順の 6）。SqliteDataService.withTransaction は private で使えないので、同じ SQL を書く。
+ * `revision` と `updated_at` は書かない。
  */
 function compareAndSwap(
   db: DatabaseSync,
@@ -179,7 +179,7 @@ async function migrateBaseMap(
   const source = await checkSource(saveFolder, item.thumbnail);
   if (!source.ok) return { ...base, outcome: source.outcome, detail: source.detail };
 
-  // 512px を先に（R2-MAJ-1・relocateBaseMapIcon の前例）。失敗なら 52px を複製せず参照も変えない
+  // 512px を先に（relocateBaseMapIcon の前例）。失敗なら 52px を複製せず参照も変えない
   const old512 = thumb512PathFor(item.thumbnail);
   const new512 = thumb512PathFor(new52);
   let created512: string | null = null;
@@ -220,7 +220,7 @@ export async function runAssetUuidNamesColdBoot(
   }
   const markDone = () => db.prepare('INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)').run(markerId);
 
-  // 1. 収集（§4.2 の 1）
+  // 1. 収集
   const apps = collectApps(db);
   const baseMaps = collectBaseMaps(db);
   if (apps.length + baseMaps.length === 0) {
@@ -232,7 +232,7 @@ export async function runAssetUuidNamesColdBoot(
     return { skipped: 'no-save-folder', summary, entries };
   }
 
-  // 3. 共有の検出を先に（§4.2 の 3・R2-MIN-3）。複製元の正規化した相対パス → 参照の一覧（uid の昇順）
+  // 3. 共有の検出を先に。複製元の正規化した相対パス → 参照の一覧（uid の昇順）
   const groups = new Map<string, AppCandidate[]>();
   for (const ref of apps) {
     const key = path.posix.normalize(ref.rel);

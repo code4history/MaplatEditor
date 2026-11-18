@@ -2,10 +2,10 @@ import { ipc } from './registry';
 import SqliteDataService from '../services/SqliteDataService';
 import { toRegistryKind } from '../services/slugReservationKind';
 
-// slug 予約 IPC (M11-T7/§7.2)。payload-only・raw event 非伝搬(m2安全API境界)。
+// slug 予約 IPC。payload-only・raw event 非伝搬(安全な API 境界)。
 // promote/renewOwn/gc はここに露出しない(save経路とmain timerのみが使う)。
 
-// Minor-1: 型だけに依存せず、main 境界で不正 kind・空 slug/UID・必須フィールド欠落を拒否する。
+// 型だけに依存せず、main 境界で不正 kind・空 slug/UID・必須フィールド欠落を拒否する。
 // renderer 由来の payload は実行時に unknown になり得るため、ここで検証してから service へ渡す。
 const VALID_KINDS = new Set(['map', 'app', 'poi-source', 'base-map', 'image-asset']);
 

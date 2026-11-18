@@ -33,16 +33,16 @@ export type PoiExportInspection = {
   warnings: string[];
 };
 
-// M5-T4 (I-4c): 補償に到達できなかった残留物。**kind で対象を区別する** —
+// 補償に到達できなかった残留物。**kind で対象を区別する** —
 // asset は「DB は消えたがバイト実体が live path に残る」という部分的な残留があり得るが
 // (retainedPath)、poi_sources 行は DB のみのため残留の形が異なる。1つの型に混ぜると
 // retainedPath が asset にしか意味を持たない曖昧なフィールドになる。
 //
-// M5-T4B (実装レビュー Major-1): 地図 ZIP import の補償対象は4つある
-// （配置済みファイル → map 行 → poi_sources → asset）。m5-t4 は POI 単体パッケージだけを
+// 地図 ZIP import の補償対象は4つある
+// （配置済みファイル → map 行 → poi_sources → asset）。以前の補償は POI 単体パッケージだけを
 // 見ていたため asset / poiSource の2枝しか持たず、地図 ZIP 経路で足りていなかった。
 // 残り2枝が無いと、タイル数百 MB の残留や孤児 map 行が
-// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。I-4c 違反である。
+// **「完全に巻き戻した」として申告される**（= residue 無しの { err }）。「補償は成功したことにできない」に反する。
 // union への追加は後方互換（既存の消費者はログ出力のみ）。
 export type CompensationResidue =
   | { kind: 'asset'; assetUid: string; retainedPath?: string; dbError?: string }
@@ -76,13 +76,13 @@ function isSymlinkEntry(entry: AdmZip.IZipEntry): boolean {
 const ADM_ZIP_DUPLICATE_ENTRY = /^ADM-ZIP: Duplicate entry name /;
 
 /**
- * M5-T4: AdmZip の entry を安全検証・容量検査の入力形へ変換する共通処理。
+ * AdmZip の entry を安全検証・容量検査の入力形へ変換する共通処理。
  *
  * 地図 ZIP 側（DataUploadService）も同じ変換を要するが、そこで組み直すと
  * **symlink 判定（上の isSymlinkEntry）が二重実装になる**。判定を1本に保つため
  * ここを唯一の変換点とする（恒久指示「同一扱い処理は共通実装へ徹底」）。
  *
- * oct26-m5-t16: adm-zip 0.6.1 は重複した entry 名を `getEntries()` の中で
+ * adm-zip 0.6.1 は重複した entry 名を `getEntries()` の中で
  * `ADM-ZIP: Duplicate entry name "<名前>"` として拒否する。この例外だけを製品のメッセージ
  * `Duplicate <kindLabel> entry` へ写し、それ以外の例外はそのまま投げ直す。
  * adm-zip の文言の entry 名は同一プロセスの 2 件目以降で古くなる（上流の不具合）ため使わない。
@@ -96,7 +96,7 @@ export function zipEntryInfos(zip: AdmZip, kindLabel = 'POI package'): PoiPackag
     entries = zip.getEntries();
   } catch (error) {
     if (error instanceof Error && ADM_ZIP_DUPLICATE_ENTRY.test(error.message)) {
-      // eslint-disable-next-line preserve-caught-error -- adm-zip の例外（entry 名が古くなる上流の不具合）を製品の例外へ持ち込まない（oct26-m5-t16。PoiPackageService.ts の 79〜85 行）
+      // eslint-disable-next-line preserve-caught-error -- adm-zip の例外（entry 名が古くなる上流の不具合）を製品の例外へ持ち込まない（PoiPackageService.ts の 79〜85 行）
       throw new Error(`Duplicate ${kindLabel} entry`);
     }
     throw error;
@@ -150,7 +150,7 @@ export async function writePoiExport(inspection: PoiExportInspection, filePath: 
     tempFolder,
     `poi-export-${crypto.randomUUID()}.${inspection.kind === 'zip' ? 'zip' : 'geojson'}`,
   );
-  // oct26-m4-t1 (#98 残経路2・#102): 第1エントリはメモリ上の GeoJSON のため一時ファイルへ
+  // 第1エントリはメモリ上の GeoJSON のため一時ファイルへ
   // staging してから writeZipStreaming へ渡す（writeZipStreaming は localPath を disk から読む）。
   const geoJsonStagePath = path.join(tempFolder, `poi-export-${crypto.randomUUID()}.geojson`);
   try {
@@ -191,15 +191,15 @@ async function sameStoredBytes(slug: string, bytes: Buffer): Promise<string | nu
   }
 }
 
-// M5-T5: POI ZIP 同梱画像を asset 登録するときの slug 採番。
-// **共有 API resolveImportSlug が正本**（§5.1 経路5）。以前はここに独自ループがあり、
+// POI ZIP 同梱画像を asset 登録するときの slug 採番。
+// **共有 API resolveImportSlug が正本**（経路5）。以前はここに独自ループがあり、
 //   - 候補列が base-2（正本の base-2 と偶然一致していた）
 //   - **上限が無く、候補が尽きると無限ループする**（例外も進捗も出ず import が固まる）
 //   - 長さ切詰が無く SLUG_MAX 超過を作り得た
-// という状態だった。ADR-0007 で slug は種別を跨いで一意 ∴ 採番規則を分けてはならない。
+// という状態だった。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりで slug は種別を跨いで一意 ∴ 採番規則を分けてはならない。
 //
 // 戻り値が string | null になる点が旧実装との差である。枯渇（null）は **新しい失敗契約を
-// 作らず**、呼び出し側の既存 throw 経路へ載せる（補償と residue は m5-t4b のまま働く）。
+// 作らず**、呼び出し側の既存 throw 経路へ載せる（補償と residue は従来どおり働く）。
 async function availableAssetSlug(base: string): Promise<string> {
   const slug = await resolveImportSlug(base);
   if (!slug) throw new Error(`No available slug for packaged image: ${base}`);
@@ -344,11 +344,11 @@ export async function importManagedPoiDocuments(
     return run;
   };
 
-  // M5-T4B: html 本文の imgs 参照を asset の正本記法へ戻す。
+  // html 本文の imgs 参照を asset の正本記法へ戻す。
   //
   // 搬出側 (poiReferenceResolver.resolveAssetRefsForExport) は features[].properties.html の
   // `maplat-asset:<UID>` を `imgs/<slug>.<ext>` へ置換して同梱する。その逆変換が無いと
-  // **ZIP 相対参照が DB へそのまま入り**、再搬出で前の ZIP のパスが漏れ出す (AC8)。
+  // **ZIP 相対参照が DB へそのまま入り**、再搬出で前の ZIP のパスが漏れ出す。
   //
   // resolveMedia と分ける理由: icon の正本は裸の asset UID だが、html 本文の正本は
   // `maplat-asset:<UID>` である。同じ resolver を使うと html に裸 UID が書かれ、
@@ -356,7 +356,7 @@ export async function importManagedPoiDocuments(
   const resolveHtmlAssetRef = async (imgsPath: string): Promise<string | null> => {
     // html は **利用者が書く自由記述**である。ZIP に無い imgs/... は我々が書いた参照ではない
     // ∴ Error にせず原文のまま残す。pois/*.geojson や icon の欠損を Error にする契約
-    // （AC7）とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
+    // とはここが違う — 搬出側は html へ書いた imgs/... を必ず同梱するため、
     // 「我々が書いた参照」は常に byName に居る
     if (!byName.has(entryNameKey(imgsPath))) return null;
     const resolved = await resolveMedia(imgsPath);
@@ -373,7 +373,7 @@ export async function importManagedPoiDocuments(
       // 参照されているのに ZIP に無い → Error。黙って落とすと POI が欠けた地図が生まれる
       if (!entry) throw new Error(`Packaged POI document is missing: ${dest}`);
 
-      // nov26-m6-t3 (#116): getData の例外（CRC 不正・zlib の破損）は JSON の誤りと別物である。
+      // getData の例外（CRC 不正・zlib の破損）は JSON の誤りと別物である。
       // try の外で読み、例外の原形のまま呼び出し側の classifyZipReadError へ届かせる
       // （try の中に置くと「GeoJSON is not valid JSON」に化けて、壊れた ZIP と判定できない）
       const documentBytes = entry.getData();
@@ -388,7 +388,7 @@ export async function importManagedPoiDocuments(
     }
     return { documents, createdAssetUids, cleanup, warnings };
   } catch (error) {
-    // 途中失敗の補償。**残留は握り潰さずログへ出す**（I-4c: 補償は成功したことにできない）。
+    // 途中失敗の補償。**残留は握り潰さずログへ出す**（補償は成功したことにできない）。
     // 本 API は throw で失敗を伝えるため戻り値に residue を載せられない。地図 ZIP 経路では
     // 呼び出し側（DataUploadService）が自前の cleanup で residue を集約する。
     const residue = await cleanup();
@@ -400,7 +400,7 @@ export async function importManagedPoiDocuments(
 }
 
 export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
-  // nov26-m6-t3 (#98): 地図の取り込みと同じ 2 GiB の上限を new AdmZip の前に検査する。
+  // 地図の取り込みと同じ 2 GiB の上限を new AdmZip の前に検査する。
   // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
   // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
   // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない

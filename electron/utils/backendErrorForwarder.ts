@@ -66,7 +66,7 @@ export function installBackendErrorForwarding() {
   };
 
   process.on('uncaughtException', (err) => {
-    failAllInflight(err); // t1: 実行中の appedit:export を settle させる（設計書 §4.5。unhandledRejection には結線しない）
+    failAllInflight(err); // 実行中の appedit:export を settle させる（unhandledRejection には結線しない）
     originalError('[uncaughtException]', err);
     broadcast('error', ['[uncaughtException]', err], originalError);
   });

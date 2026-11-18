@@ -7,19 +7,19 @@ import SettingsService from './SettingsService';
 import { resourceAssetFileUrl, resourceRoots, isUnderFolder } from '../utils/resourceAssets';
 // #105: saveFolder 配下の表示用 URL は file:// から app://local へ移行する
 import { localFileUrl } from '../utils/appScheme';
-// m19-t2: 512px パスの派生規約は単一関数へ集約する（マイルストーン設計 v1.6 §4.3.2-3）。
+// 512px パスの派生規約は単一関数へ集約する（マイルストーン）。
 // electron/ から src/utils/ を import する前例は多数実在する（mapDownloadZip.ts / AppPreviewService.ts ほか）。
 import { isBundledThumbnailPath, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
-// m19-t5: 符号化は宛先の拡張子だけで決まる唯一の実装へ委譲する（タスク設計 v1.0 §4.2 規則 C）。
+// 符号化は宛先の拡張子だけで決まる唯一の実装へ委譲する（規則 C）。
 // 52px 経路も同じ関数を通るが、拡張子が変わらないため挙動は不変である。
 import { writeImageByExt } from '../utils/thumbnail512Codec';
-// nov26-m6-t5: 画像の内部名の命名規則（UUID）は assetImageRefs が唯一の定義
+// 画像の内部名の命名規則（UUID）は assetImageRefs が唯一の定義
 import { lowerExtOf, newIconSourceRel, newSplashName } from './assetImageRefs';
-// nov26-editor-splash-svg (#462): スプラッシュだけ SVG も選べる（他の経路は Jimp で読む ∴ 従来の集合）
+// editor-splash-svg (#462): スプラッシュだけ SVG も選べる（他の経路は Jimp で読む ∴ 従来の集合）
 import { IMAGE_FILTERS, PWA_ICON_IMAGE_FILTERS, SPLASH_IMAGE_FILTERS, type ImageFilter } from '../utils/imagePickFilters';
 // 同: SVG は Jimp でデコードできないので、中身が SVG として正しいかを別に確かめる
 import { checkSvgBytes, isSvgExt, svgIntrinsicSizeFromBytes } from '../utils/svgSource';
-// NOV26-IM-PWA-ICON-SOURCE-0481: SVG のアイコン元画像には、退避用の 512x512 PNG を同じ uuid で描く
+// SVG のアイコン元画像には、退避用の 512x512 PNG を同じ uuid で描く
 import { renderImagePng } from '../utils/pwaChromiumRenderer';
 import { PWA_DEFAULT_BACKGROUND } from '../utils/pwaAssets';
 import { PREVIEW_MAX_BYTES } from '../utils/pickedPreviewSource';
@@ -55,7 +55,7 @@ class AppAssetService {
     return ret.filePaths[0];
   }
 
-  // m19-t2: サムネイル書き込みの唯一のルーチン。長辺 px へ縮小して saveFolder 相対パスへ書く。
+  // サムネイル書き込みの唯一のルーチン。長辺 px へ縮小して saveFolder 相対パスへ書く。
   // 書き込み先の相対パスは thumb52PathFor / thumb512PathFor からのみ導き、ここでは組み立てない。
   private async writeThumbnail(
     image: { clone: () => any },
@@ -70,16 +70,16 @@ class AppAssetService {
     return { path: relPath, fileUrl: this.toFileUrl(dest) };
   }
 
-  // 非ビルトインTMSのサムネイルのアップロード: nov26-m6-t5 でメソッドを IPC ごと撤去した。
-  // （この行は m19-t5 smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
+  // 非ビルトインTMSのサムネイルのアップロード: アセットの UUID 名への移行でメソッドを IPC ごと撤去した。
+  // （この行は smoke が writeThumbnail の切り出しの終端に使う。行頭の文言を変えないこと）
   // src からの呼び出しが 0 件で、名前（mapID）を呼び出し元が決められる口だけが残っていたため
-  // （画像の内部名は UUID／uid に統一する。タスク設計 §4.1）。置換は replaceMapThumbnail が担う。
+  // （画像の内部名は UUID／uid に統一する）。置換は replaceMapThumbnail が担う。
 
-  // M12-T15 (R5): Maplat地図サムネイルの置換アップロード（リソース管理）。
+  // Maplat地図サムネイルの置換アップロード（リソース管理）。
   // 512px/52px を独立して置き換えられる。512px アップロード時に「52px も作成する」で 52px を流用生成できる。
   // 画像は任意サイズを受け付け、長辺 512/52px へ縮小して保存する。
   //
-  // m19-t2: 拡張子非依存へ一般化し、地図（.jpg 規約）とベースマップ（実 thumbnail の拡張子）で共有する。
+  // 拡張子非依存へ一般化し、地図（.jpg 規約）とベースマップ（実 thumbnail の拡張子）で共有する。
   // `ext` は末尾の省略可能引数であり、既定 'jpg' により地図側の呼び出し（MapEdit.vue）は無改修で従前どおり。
   //
   // issue #192: `copy512From` は 52px 単独置換のときだけ使う。書き込み先が他者の uid 名から
@@ -88,13 +88,13 @@ class AppAssetService {
   // ∴ 元の 52px パスを受け取り、その 512px が実在して自分の 512px が無いときだけ**複製**する
   // （元ファイルは読むだけで書き換えない。既存の自分の 512px は上書きしない）。
   //
-  // 【返値セマンティクス】（タスク設計 §6.1.1 が唯一の定義。既存の fileUrl / fileUrl52 と同型）
+  // 【返値セマンティクス】（が唯一の定義。既存の fileUrl / fileUrl52 と同型）
   //   kind='52'                : path = 52px  / path52 = undefined      （derive52 は無視される）
   //   kind='512', derive52=true: path = 512px / path52 = 52px
   //   kind='512', derive52=false: path = 512px / path52 = undefined
   //   失敗(err)                : すべて undefined
   // ∴ `path` は「kind が指す側の所在」であって「52px の所在」ではない。
-  //    呼び出し元が 52px を得るときに `path52 ?? path` と書いてはならない（512px を掴む。§6.2.3 規則 U）。
+  //    呼び出し元が 52px を得るときに `path52 ?? path` と書いてはならない（512px を掴む。規則 U）。
   async replaceMapThumbnail(
     win: BrowserWindow,
     mapUid: string,
@@ -165,11 +165,11 @@ class AppAssetService {
   }
 
   // スプラッシュ画像: サイズ自由。img/ へ複製する。
-  // nov26-m6-t5 (#109): 内部名は `{uuid}.{ext}`（タスク設計 §2）。元のファイル名を使うと、同じ名前の画像を
+  // 内部名は `{uuid}.{ext}`。元のファイル名を使うと、同じ名前の画像を
   // 別のアプリへ入れたときに先のアプリの画像を上書きしていた（日本語名は sanitize で `__.png` 等へ潰れて衝突した）。
-  // ext は元画像の拡張子を小文字にしたもの。§2 の形に合わなければ png に変換して書く。
+  // ext は元画像の拡張子を小文字にしたもの。形に合わなければ png に変換して書く。
   //
-  // nov26-editor-splash-svg (#462): SVG も受け付ける。Jimp は SVG を読めないので、SVG のときは
+  // editor-splash-svg (#462): SVG も受け付ける。Jimp は SVG を読めないので、SVG のときは
   // 「XML として読める・ルートが <svg>・大きさ（width/height か viewBox）がある」を確かめ、
   // 通ったものを拡張子のまま（=`{uuid}.svg`）img/ へ複製する。壊れていれば今と同じ InvalidImage。
   async uploadSplash(win: BrowserWindow): Promise<UploadResult> {
@@ -180,7 +180,7 @@ class AppAssetService {
     if (isSvgExt(ext)) {
       let bytes: Buffer;
       try {
-        // 【0464 MINOR-1】巨大な SVG を main で丸ごと読まない（保存前の表示と同じ 20 MB を上限にする）
+        // 巨大な SVG を main で丸ごと読まない（保存前の表示と同じ 20 MB を上限にする）
         if ((await fs.stat(file)).size > PREVIEW_MAX_BYTES) return { err: 'InvalidImage' };
         bytes = await fs.readFile(file);
       } catch {
@@ -201,18 +201,18 @@ class AppAssetService {
       // overwrite: false — UUID 名なので衝突しないが、万一あっても既存の画像を上書きしない
       await fs.copy(file, dest, { overwrite: false, errorOnExist: true });
     } else {
-      // 拡張子の形に合わない名前（§2 の 5 の外）は png へ変換して書く。この経路は必ず Jimp を通っている
+      // 拡張子の形（assetImageRefs.ts の ASSET_EXT_FORMS）に合わない名前は png へ変換して書く。この経路は必ず Jimp を通っている
       await image!.write(dest as `${string}.${string}`);
     }
     return { splash: fileName, fileUrl: this.toFileUrl(dest) };
   }
 
   // PWAアイコン元画像: 512x512以上の正方形 → 512x512 PNG
-  // nov26-m6-t5 (#109): 書き込み先は `pwa/{uuid}.png`（タスク設計 §2）。旧 `pwa/{appID}_icon.png` は
+  // 書き込み先は `pwa/{uuid}.png`。旧 `pwa/{appID}_icon.png` は
   // 同じ appID の別アプリ（取込・複製）の画像を上書きしていた。引数 appID は使わなくなったが、
   // IPC（appassets:upload-pwa-icon）と preload の形を変えないため残す。
   //
-  // NOV26-IM-PWA-ICON-SOURCE-0481: SVG も受け付ける（人間の指示）。SVG はスプラッシュと同じ検査
+  // SVG も受け付ける（人間の指示）。SVG はスプラッシュと同じ検査
   // （`checkSvgBytes`・上限 20MB）に通し、正方形かどうかは `viewBox`（無ければ width/height）で
   // 判定する（大きさの下限 512 は raster だけに課す）。保存は `pwa/{uuid}.svg` にそのまま複製し、
   // **退避用に同じ uuid の `pwa/{uuid}.png`（512x512）も描く**（描けない場合も SVG の登録は成立させる）。
@@ -396,8 +396,8 @@ class AppAssetService {
     const safeH = Math.max(1, Math.min(cropH, canvas.height - safeY));
     canvas.crop({ x: safeX, y: safeY, w: safeW, h: safeH });
 
-    // M12-T15 (R4): crop 済みの中間画像から 512px と 52px を同時生成する（stitch を共有）
-    // m19-t2: 512px 側のパスは thumb512PathFor が導く（出力パスは現行と同一。AC5 が機械確認する）
+    // crop 済みの中間画像から 512px と 52px を同時生成する（stitch を共有）
+    // 512px 側のパスは thumb512PathFor が導く（出力パスは現行と同一。が機械確認する）
     // Maplat地図のサムネイル(tmbs/{mapID}.jpg)と同じ規約のパスに置く。
     // このためベースマップのIDはMaplat地図とID空間を共有し一意である必要がある
     const relPath = thumb52PathFor(sanitizeId(mapID), 'png');
@@ -411,7 +411,7 @@ class AppAssetService {
 
   // saveFolder相対パス → file:// URL（存在しない場合はnull）
   // ビルトインベースマップのアイコンはアプリ同梱リソースから解決する。
-  // m19-t2: 判定を isBundledThumbnailPath へ委ね、52px だけでなくその 512px も同じ分岐へ通す
+  // 判定を isBundledThumbnailPath へ委ね、52px だけでなくその 512px も同じ分岐へ通す
   // （通さないと saveFolder 分岐へ落ちて必ず null になり 512px プレビューが空になる）。
   // 封じ込めは resolveResourceAsset 側の relPath.includes('..') 拒否が担い、境界は既存と同一である。
   fileUrlFor(relPath: string): string | null {
@@ -421,7 +421,7 @@ class AppAssetService {
     }
     const baseFolder = path.resolve(this.saveFolder);
     const resolved = path.resolve(path.join(baseFolder, relPath));
-    // sec-3 (M12-T13): 旧実装は startsWith(baseFolder) だったが末尾 path.sep が無く、兄弟ディレクトリ
+    // sec-3 : 旧実装は startsWith(baseFolder) だったが末尾 path.sep が無く、兄弟ディレクトリ
     // ({saveFolder}-x) が prefix 一致で通過していた。isUnderFolder で厳密化（sec-2 と同型）。
     if (!isUnderFolder(resolved, this.saveFolder)) return null;
     if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return null;
@@ -434,7 +434,7 @@ const MERC_MAX = 20037508.342789244;
 // アイコン規約: 長辺52pxの長方形(縦横比保持)。正方形への引き伸ばしはしない
 const ICON_LONG_SIDE = 52;
 
-// M12-T15: 長辺 px への縮小を一般化（52px / 512px 共通）
+// 長辺 px への縮小を一般化（52px / 512px 共通）
 function resizeToLongSide(image: { width: number; height: number; resize: (size: { w: number; h: number }) => unknown }, px: number): void {
   const longSide = Math.max(image.width, image.height);
   if (longSide === px) return;

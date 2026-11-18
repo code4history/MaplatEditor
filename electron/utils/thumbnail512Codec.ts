@@ -1,4 +1,4 @@
-// m19-t5: 512px サムネイルの符号化・復号の**唯一の実装**（タスク設計 v1.0 §4.2）。
+// 512px サムネイルの符号化・復号の**唯一の実装**。
 //
 // 【設計の要点】この関数群は「512px かどうか」を**判定しない**。**宛先パスの拡張子だけで
 // 符号化器を選ぶ。** 512px の宛先は必ず thumb512PathFor から来る（＝拡張子は THUMB_512_EXT が
@@ -20,7 +20,7 @@ import { createRequire } from 'node:module';
 import { Jimp } from 'jimp';
 
 /**
- * 512px webp の符号化オプション。**品質値の宣言はここ 1 箇所のみ**（タスク設計 §3.3）。
+ * 512px webp の符号化オプション。**品質値の宣言はここ 1 箇所のみ**。
  *
  * 採用値は lossy q=85（335 件で 116.05 MiB -> 37.98 MiB / -67.3%）。
  * 地図の 512px は現行すでに JPEG であり、lossy 化は画質方針の変更ではない。
@@ -130,7 +130,7 @@ function rawOf(image: { bitmap: { data: Uint8Array; width: number; height: numbe
 
 /**
  * 画像を宛先へ書く。**宛先の拡張子が webp なら wasm 符号化器、それ以外は Jimp へ委譲する。**
- * 512px かどうかは見ない（§4.2 規則 C）。52px・タイル・PWA アイコンの経路が同じ関数を通っても
+ * 512px かどうかは見ない（規則 C）。52px・タイル・PWA アイコンの経路が同じ関数を通っても
  * 拡張子が変わらない限り挙動は不変である。
  *
  * ディレクトリは呼び出し元が用意する（Jimp の write と同じ前提を保つ）。
@@ -165,7 +165,7 @@ export async function readImageMeta(absSrc: string): Promise<{ width: number; he
 
 /**
  * 画像を読み直して別の形式で書く。読みは readImageMeta と、書きは writeImageByExt と同じ規則に従う。
- * 既存データの移行（M1）と取り込み（C7）が使う。
+ * 既存データの移行と取り込みが使う。
  *
  * 失敗は例外として送出する（呼び出し元が warnings へ落として次へ進むか、マーカーを書かないかを決める）。
  */
