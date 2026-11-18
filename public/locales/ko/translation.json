@@ -260,7 +260,7 @@
       "default_data_license_note": "지도 데이터 및 이미지 © Google. Google Maps Platform 이용약관을 참조하세요.",
       "attr_value": "Google이 제공하는 저작권 고지",
       "attr_reason": "Google 지도의 저작자 표시에는 Google이 제공하는 저작권 고지를 사용합니다. Google 이용약관에 따라 지도를 표시하는 동안 Google의 저작권 고지 전문과 Google Maps 로고를 표시합니다. 따라서 여기에서는 입력할 수 없습니다.",
-      "data_attr_reason": "Google 지도는 이미지와 데이터 모두 Google의 것입니다. 데이터의 저작자 표시에도 Google이 제공하는 저작권 고지를 사용하므로 여기에서는 입력할 수 없습니다."
+      "data_attr_reason": "Google 지도의 데이터 저작자 표시에는 Google이 제공하는 저작권 고지를 사용하므로 여기에서는 입력할 수 없습니다."
     },
     "style_gl_check_v5_ok": "MapLibre GL JS 5와 6 모두에서 동작합니다",
     "style_gl_check_needs_v6": "MapLibre GL JS 6이 필요합니다: {{reasons}}",

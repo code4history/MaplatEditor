@@ -240,7 +240,7 @@
       "default_data_license_note": "Map data and imagery © Google. See Google Maps Platform terms.",
       "attr_value": "Copyright notice returned by Google",
       "attr_reason": "The attribution of a Google map is the copyright notice that Google returns. As Google's terms require, the full Google copyright notice and the Google Maps logo are shown while the map is displayed. You cannot enter it here.",
-      "data_attr_reason": "Both the imagery and the data of a Google map belong to Google. Its data attribution is also the copyright notice that Google returns, so you cannot enter it here."
+      "data_attr_reason": "The data attribution of a Google map uses the copyright notice that Google returns, so you cannot enter it here."
     },
     "style_gl_check_v5_ok": "Works with MapLibre GL JS 5 and 6",
     "style_gl_check_needs_v6": "Needs MapLibre GL JS 6: {{reasons}}",

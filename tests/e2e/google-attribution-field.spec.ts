@@ -5,7 +5,7 @@
 // case 2: 以前の版で帰属表記を入れて保存した Google の地図は、開くと入力できない形で出て、保存し直すと消える
 // case 3: 旧保存形（kind が無く maptype が google_*）の Google の地図も Google として開き、
 //         帰属表記とデータの帰属表記は入力できず、保存し直すと kind: google になって両方消える
-// データの帰属表記（dataAttr）も帰属表記と同じ扱い（Google の地図は画像もデータも Google のもの）
+// データの帰属表記（dataAttr）も帰属表記と同じ扱い（どちらも Google Maps が返す著作権の表示を使う）
 import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -58,7 +58,7 @@ async function expectReadOnlyAttribution(page: Page): Promise<void> {
   const dataReason = page.getByTestId('basemap-data-attr-google-reason');
   await expect(dataReason).toHaveAttribute('aria-label', '「データ帰属」を使えない理由');
   await dataReason.click();
-  await expect(page.locator('.popover')).toContainText('画像もデータも Google のもの', { timeout: 5000 });
+  await expect(page.locator('.popover')).toContainText('データの帰属表記には、Google が返す著作権の表示を使うため', { timeout: 5000 });
   await page.keyboard.press('Escape');
 }
 

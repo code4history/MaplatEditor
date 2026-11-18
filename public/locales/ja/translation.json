@@ -260,7 +260,7 @@
       "default_data_license_note": "地図データおよび画像 © Google。Google Maps Platform の利用規約を参照してください。",
       "attr_value": "Google が返す著作権の表示",
       "attr_reason": "Google の地図の帰属表記には、Google が返す著作権の表示を使います。Google の利用条件に従い、地図を表示しているあいだは Google の著作権の表示を全文で出し、Google Maps のロゴも出します。そのため、ここでは入力できません。",
-      "data_attr_reason": "Google の地図は、画像もデータも Google のものです。データの帰属表記にも、Google が返す著作権の表示を使います。そのため、ここでは入力できません。"
+      "data_attr_reason": "Google の地図のデータの帰属表記には、Google が返す著作権の表示を使うため、ここでは入力できません。"
     },
     "style_gl_check_v5_ok": "5 系でも 6 系でも動きます",
     "style_gl_check_needs_v6": "6 系が要ります: {{reasons}}",

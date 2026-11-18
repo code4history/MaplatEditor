@@ -260,7 +260,7 @@
       "default_data_license_note": "地圖資料與影像 © Google。請參閱 Google Maps Platform 服務條款。",
       "attr_value": "Google 傳回的版權聲明",
       "attr_reason": "Google 地圖的署名使用 Google 傳回的版權聲明。依照 Google 的條款，顯示地圖期間會完整顯示 Google 的版權聲明，並顯示 Google Maps 標誌。因此無法在此輸入。",
-      "data_attr_reason": "Google 地圖的圖像與資料都屬於 Google。資料的署名也使用 Google 傳回的版權聲明，因此無法在此輸入。"
+      "data_attr_reason": "Google 地圖的資料署名使用 Google 傳回的版權聲明，因此無法在此輸入。"
     },
     "style_gl_check_v5_ok": "可在 MapLibre GL JS 5 與 6 中使用",
     "style_gl_check_needs_v6": "需要 MapLibre GL JS 6：{{reasons}}",

@@ -260,7 +260,7 @@
       "default_data_license_note": "ข้อมูลแผนที่และภาพ © Google ดูข้อกำหนดของ Google Maps Platform",
       "attr_value": "ประกาศลิขสิทธิ์ที่ Google ส่งกลับมา",
       "attr_reason": "การระบุที่มาของแผนที่ Google ใช้ประกาศลิขสิทธิ์ที่ Google ส่งกลับมา ตามข้อกำหนดของ Google ระหว่างที่แสดงแผนที่จะแสดงประกาศลิขสิทธิ์ของ Google แบบเต็มและโลโก้ Google Maps จึงไม่สามารถป้อนที่นี่ได้",
-      "data_attr_reason": "ทั้งภาพและข้อมูลของแผนที่ Google เป็นของ Google การระบุที่มาของข้อมูลก็ใช้ประกาศลิขสิทธิ์ที่ Google ส่งกลับมาเช่นกัน จึงป้อนที่นี่ไม่ได้"
+      "data_attr_reason": "การระบุที่มาของข้อมูลของแผนที่ Google นั้นใช้ประกาศลิขสิทธิ์ที่ Google ส่งกลับมา จึงป้อนที่นี่ไม่ได้"
     },
     "style_gl_check_v5_ok": "ใช้ได้กับ MapLibre GL JS 5 และ 6",
     "style_gl_check_needs_v6": "ต้องใช้ MapLibre GL JS 6: {{reasons}}",

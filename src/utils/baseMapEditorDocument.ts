@@ -190,8 +190,10 @@ export function baseMapProviderKindOf(
 }
 
 // Google の地図の帰属表記（attr）とデータの帰属表記（dataAttr）は、利用者が入力しない。
-// Google の地図は画像もデータも Google のもので、Viewer（MaplatCore）は Google が返す著作権の表示を
-// 全文で出し、Google Maps のロゴも出す（Google の利用条件）。attr があるとその後に添えて出すので、
+// どちらも Google Maps が返す著作権の表示を使う（第三者が提供するデータの帰属表示を含む。
+// https://developers.google.com/maps/documentation/tile/policies#display_third-party_data_attributions）。
+// Viewer（MaplatCore）はその表示を全文で出し、Google Maps のロゴも出す（Google の利用条件）。
+// attr があるとその後に添えて出すので、
 // Google の表示と紛らわしい勝手な文を出させないよう、エディタは次のどこでもこの 2 つを持たない。
 //   - 読み込み（fromBaseMapCatalogItem）: 保存済みの値を読まない。旧保存形は kind を google にそろえる
 //   - 画面（BaseMapEdit）: 入力できない形で出し、理由を ? に書く

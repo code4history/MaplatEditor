@@ -260,7 +260,7 @@
       "default_data_license_note": "Données cartographiques et imagerie © Google. Voir les conditions de Google Maps Platform.",
       "attr_value": "Mention de droits d'auteur fournie par Google",
       "attr_reason": "L'attribution d'une carte Google est la mention de droits d'auteur fournie par Google. Conformément aux conditions de Google, la mention complète de Google et le logo Google Maps sont affichés tant que la carte est affichée. Vous ne pouvez donc pas la saisir ici.",
-      "data_attr_reason": "L'image et les données d'une carte Google appartiennent à Google. L'attribution des données est aussi la mention de droits d'auteur fournie par Google ; vous ne pouvez donc pas la saisir ici."
+      "data_attr_reason": "L'attribution des données d'une carte Google utilise la mention de droits d'auteur fournie par Google ; vous ne pouvez donc pas la saisir ici."
     },
     "style_gl_check_v5_ok": "Fonctionne avec MapLibre GL JS 5 et 6",
     "style_gl_check_needs_v6": "Nécessite MapLibre GL JS 6 : {{reasons}}",

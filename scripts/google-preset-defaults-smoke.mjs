@@ -157,7 +157,7 @@ try {
   assert.deepEqual(toBaseMapSavePayload(switched, null).tms.attr, {}, "case 9: 保存で帰属表記を出さない");
   const tmsPayload = toBaseMapSavePayload({ ...tmsDoc, attr: { ja: "© Example" } }, null);
   assert.deepEqual(tmsPayload.tms.attr, { ja: "© Example" }, "case 9: tms の帰属表記は保存する");
-  // データの帰属表記（dataAttr）も同じ扱い（Google の地図は画像もデータも Google のもの）
+  // データの帰属表記（dataAttr）も同じ扱い（どちらも Google Maps が返す著作権の表示を使う）
   const savedGoogleData = fromBaseMapCatalogItem({
     uid,
     scope: "user",

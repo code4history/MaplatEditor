@@ -39,7 +39,7 @@ import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadat
 import { localizeTitle } from '../../src/utils/langResource';
 import { UUID_PATTERN } from '../adapters/StorageAdapter';
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor, type MaplibreMajor, type ProviderGlKind } from './providerGlCdn';
-import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
+import { baseMapProviderKindOf, requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import {
   resolvePreviewKey,
   resolveStartFromViewerMapID,
@@ -239,11 +239,13 @@ class AppPreviewService {
     // 鍵が3段とも解決できない provider ソースは、この時点で除外する。
     // 除外後の previewableSources を entries 組み立て・hasViewerBasemapSource・startFrom 解決の
     // すべてで使い回すことで、除外が overlay/startFrom 判定へ正しく反映される（設計レビュー）
-    // kind は差分保持モデルではアプリ側に無いためマスタから引く
+    // kind は差分保持モデルではアプリ側に無いためマスタから引く。
+    // usesGoogleAttribution と同じ「kind 優先・maptype フォールバック」で引き、
+    // 旧保存形（kind が無く maptype が google_*）の API キー判定も再保存後と同じにする
     const previewableSources: AppSource[] = resolvableSources.filter((source) => {
       if (source.sourceType === 'maplat') return true;
       const resolved = resolveAppSource(source, baseMapLookup);
-      const kind = (resolved.ok ? resolved.master.data.kind : undefined) as ProviderKeyKind | undefined;
+      const kind = (resolved.ok ? baseMapProviderKindOf(resolved.master.data) : null) as ProviderKeyKind | null;
       if (!requiresProviderKey(kind)) return true;
       if (resolvePreviewKey(kind as ProviderKeyKind, document.httpSettings, SettingsService)) return true;
       mergeWarnings(warnings, [PROVIDER_KEY_MISSING_WARNING[kind as ProviderKeyKind]]);
