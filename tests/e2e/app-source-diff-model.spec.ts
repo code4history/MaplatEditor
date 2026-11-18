@@ -189,16 +189,16 @@ test('差分保持フォーム（プレースホルダ・×による解除・url
       ).toHaveCount(0);
     }
 
-    // ---- case 28: 言語別欄は検索バーと同じ type="search"（native × の出現条件そのもの）----
+    // ---- 操作子の種別がマスタ編集フォームと一致すること: 言語別欄は検索バーと同じ type="search"（native × の出現条件そのもの）----
     await expect(
       card.getByTestId('app-source-override-label'),
-      'case 28: label は検索バー方式（type="search"）',
+      '操作子の種別がマスタ編集フォームと一致すること: label は検索バー方式（type="search"）',
     ).toHaveAttribute('type', 'search');
 
     // ---- case 12: 未上書き → 入力欄は空・placeholder にマスタの実効値 ----
     await expect(card.getByTestId('app-source-override-label')).toHaveAttribute('placeholder', 'マスタラベル');
 
-    // ---- case 12: 「マスタに戻す」ボタンは1つも存在しない（v1.4 で全廃）----
+    // ---- case 12: 「マスタに戻す」ボタンは1つも存在しない ----
     await expect(
       card.getByTestId(/^app-source-reset-/),
       'case 12: 独立した「マスタに戻す」ボタンは廃止された',
@@ -425,7 +425,7 @@ test('builtin(osm) への上書きが配信 JSON と viewer の両方へ届く',
     await expect(osmCard).toBeVisible();
 
     // builtin へ上書きを入れる（旧実装＝文字列のみ指定では、これが viewer へ一切届かなかった）。
-    // v1.4: 言語別欄は LangResourceInput の blur 確定（= 1 Undo 単位）。fill 後に確定させる。
+    // 言語別欄は LangResourceInput の blur 確定（= 1 Undo 単位）。fill 後に確定させる。
     // 上書きできるのは label だけになったため、届くことの検証も label で行う
     await osmCard.getByTestId('app-source-override-label').fill('上書きラベル');
     await osmCard.getByTestId('app-source-override-label').press('Tab');

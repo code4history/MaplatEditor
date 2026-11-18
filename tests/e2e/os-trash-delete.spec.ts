@@ -31,7 +31,7 @@ function osTrashPaths(): string[] {
 }
 
 // --- 手順5 / case 18-6: 後始末はテストプロセス側 fs の afterEach に置く ---
-// (v1.1・試験本文の try/finally ではなく afterEach に置くことで、
+// (試験本文の try/finally ではなく afterEach に置くことで、
 // アプリプロセス死亡時・Playwright test timeout 時にも後始末が実行される)
 test.afterEach(async () => {
   // ステップ1: force rm (ENOENT 許容。trashItem まで到達しない失敗 — seed 失敗・

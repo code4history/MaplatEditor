@@ -990,7 +990,7 @@ class SqliteDataService {
     //     best-effort enhancement: 個別地図の失敗は内部の per-map try/catch で吸収し
     //     warnings として記録・継続する。ただし呼び出し元(ここ)にも try/catch がないため、
     //     段階レベルの予期しない例外は理論上 migrate()/getDb() を失敗させ得る
-    //     (既知の限界。マイルストーン v3.1 SI-9 で対応案(a)=保証水準の明記を採用し、
+    //     (既知の限界。対応案(a)=保証水準の明記を採用し、
     //     (b)=外側 try/catch 追加は不採用と決定済み。本タスクでは変更しない)。
     //     段階1完了後に実行する(maps テーブルへの行投入が段階1完了を前提とするため)
     //   段階3 originals UUID migration (runColdBoot, 下記)
@@ -1008,7 +1008,7 @@ class SqliteDataService {
 
     // 既存: originals UUID migration
     // slug originals -> UUID originals の one-shot migration/report。
-    // v1.1: runColdBoot(db) 呼び出し全体を try/catch で防御する。
+    // runColdBoot(db) 呼び出し全体を try/catch で防御する。
     // OriginalsMigrationService.runInternal() は per-map I/O 失敗を 'copy_failed' entry として
     // 記録し継続する設計だが、それでも予期しない例外(db.prepare() 自体の失敗等、DB破損に
     // 近い異常系)が漏れ出す可能性をゼロにはできないため、ここでも二重に防御する。

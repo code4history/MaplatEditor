@@ -129,8 +129,8 @@ const appSourceEditor = await readFile(
 );
 assert.match(appSourceEditor, /defaultLang:\s*LangCode/);
 // `<LangValueChips` を要求する assert は （b6dcfd1）が LangResourceInput へ
-// 寄せた時点で失効した。同じ保証は smoke の case 28（`<LangValueChips` の**不在**）が
-// 逆向きに担っている。2 本の smoke が正反対を要求する状態を解消するため削除する。
+// 寄せた時点で失効した。同じ保証は app-source-diff-model-smoke の操作子の種別がマスタ編集フォームと
+// 一致すること（`<LangValueChips` の**不在**）が逆向きに担っている。2 本の smoke が正反対を要求する状態を解消するため削除する。
 assert.doesNotMatch(appSourceEditor, /props\.currentLang !== "ja"/);
 
 const appPreviewService = await readFile(

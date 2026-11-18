@@ -71,7 +71,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const zip = new AdmZip(zipPath);
       const names = zip.getEntries().map((e) => e.entryName);
 
-      // case 2: POI はインライン化されず外部参照になり、実体が同梱される
+      // POI はインライン化されず外部参照になり、実体が同梱される
       const mapJson = JSON.parse(zip.getEntry(`maps/${seeded.mapSlug}.json`)!.getData().toString('utf8'));
       expect(Array.isArray(mapJson.pois)).toBe(true);
       expect(mapJson.pois[0].layer).toMatch(/^pois\/.+\.geojson$/);
@@ -81,7 +81,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       expect(names).toContain(`imgs/${seeded.iconSlug}.png`);
       expect(names).toContain(`imgs/${seeded.photoSlug}.png`);
 
-      // case 3: 通常・512px の両サムネイルが slug 名で入る
+      // 通常・512px の両サムネイルが slug 名で入る
       expect(names).toContain(`tmbs/${seeded.mapSlug}.jpg`);
       expect(names).toContain(`tmbs/${seeded.mapSlug}_512.webp`);
       expect(names.some((n) => n.startsWith(`tiles/${seeded.mapSlug}/`))).toBe(true);
@@ -194,7 +194,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const { default: AdmZip } = await import('adm-zip');
       const names = new AdmZip(zipPath).getEntries().map((e) => e.entryName);
 
-      // case 1: 地図由来の POI 実体と依存画像がアプリ ZIP にも入る（共通化の前後で不変）
+      // 地図由来の POI 実体と依存画像がアプリ ZIP にも入る（共通化の前後で不変）
       expect(names.some((n) => /^pois\/.+\.geojson$/.test(n))).toBe(true);
       expect(names).toContain(`imgs/${seeded.iconSlug}.png`);
       expect(names).toContain(`imgs/${seeded.photoSlug}.png`);

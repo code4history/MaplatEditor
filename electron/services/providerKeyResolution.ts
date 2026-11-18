@@ -74,7 +74,7 @@ export const PROVIDER_KEY_MISSING_WARNING: Record<ProviderKeyKind, string> = {
 };
 
 /**
- * startFrom 解決（v1.3 是正）。preview の entries と export の sources は
+ * startFrom 解決。preview の entries と export の sources は
  * 形が異なるため、呼び出し側が {startFrom, mapUid, mapSlug, viewerMapID} の候補配列へ写像してから渡す。
  *
  * 3段: (1) startFrom フラグ付きソース (2) mapUid/mapSlug が document.startFrom と一致 (3) viewerMapID が

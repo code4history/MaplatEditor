@@ -77,7 +77,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [3/6] main.ts: 開発メニューが shouldShowDevelopmentMenu で条件付き: PASS");
 }
 
-// --- case 6: About ウィンドウの createAboutWindow() 関数本体だけを取り出して判定する。
+// --- About ウィンドウの createAboutWindow() 関数本体だけを取り出して判定する。
 // レビュー Minor 申し送り: 単純 grep だと main.ts:17 のコメントや :69 のメインウィンドウの
 // webPreferences（preload: path.join(...) を持つ）が誤ってヒットする。関数本体へスコープを絞る ---
 {
@@ -123,7 +123,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [4/6] main.ts createAboutWindow(): nodeIntegration/contextIsolation/preload/webSecurity/app:// 硬化: PASS");
 }
 
-// --- case 10 / case 8 / case 9: about.html のインラインscript・バージョン・著作権表記 ---
+// --- about.html のインラインscript・バージョン・著作権表記 ---
 {
   const aboutHtml = await readSrc("public/about.html");
   assert.equal(
@@ -149,11 +149,11 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [5/6] about.html: process.versions除去 / バージョン最新化 / 特許に関わる本体系は Apache 2.0 とし、著作権表示を併記する決まりの著作権 / query受信: PASS");
 }
 
-// --- case 1 / case 2 / case 3 の smoke 側: Settings.vue と 11 言語 translation.json ---
+// --- Settings.vue と 11 言語 translation.json ---
 {
   const settingsVue = await readSrc("src/views/Settings.vue");
 
-  // case 1: 「オリジナル地図設定」タブ（settings.original_map）が Settings.vue から消えている
+  // 「オリジナル地図設定」タブ（settings.original_map）が Settings.vue から消えている
   assert.equal(
     (settingsVue.match(/settings\.original_map/g) || []).length,
     0,
@@ -166,11 +166,11 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     "src/views/Settings.vue must not contain the id=\"original\" tab-pane",
   );
 
-  // case 3: ContextHelp タグ数が 2 → 3、form-text の jpeg_decode_desc が 0 件
+  // ContextHelp タグ数が 2 → 3、form-text の jpeg_decode_desc が 0 件
   // 設定画面の「起動時に更新を確認する」の説明に ContextHelp を 1 つ足した ∴ 3 → 4
   // UI 文法（docs/ui-grammar.md §7.1 #14）: MCP の「127.0.0.1 で登録する」注意を ContextHelp へ ∴ 5
   const contextHelpCount = (settingsVue.match(/<ContextHelp/g) || []).length;
-  assert.equal(contextHelpCount, 5, `src/views/Settings.vue must have 5 <ContextHelp> tags (C1 case 3 + + UI grammar: got ${contextHelpCount})`);
+  assert.equal(contextHelpCount, 5, `src/views/Settings.vue must have 5 <ContextHelp> tags (UI grammar: got ${contextHelpCount})`);
   assert.ok(
     !/<div class="form-text">\{\{\s*t\("settings\.jpeg_decode_desc"\)\s*\}\}<\/div>/.test(settingsVue),
     "src/views/Settings.vue must not render jpeg_decode_desc as a plain form-text div anymore",
@@ -182,7 +182,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log("  [6/6a] Settings.vue: オリジナル地図設定タブ削除 / ContextHelp化: PASS");
 }
 
-// case 2: settings.original_map が 11 言語すべてから消えている
+// settings.original_map が 11 言語すべてから消えている
 {
   const { readdir } = await import("node:fs/promises");
   const localesDir = path.join(projectRoot, "public/locales");
@@ -195,7 +195,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
     const raw = await readSrc(`public/locales/${lang}/translation.json`);
     if (/"original_map"\s*:/.test(raw)) stillHasKey++;
   }
-  assert.equal(stillHasKey, 0, `case 2: settings.original_map must be removed from all 11 locale files (still present in ${stillHasKey})`);
+  assert.equal(stillHasKey, 0, `settings.original_map must be removed from all 11 locale files (still present in ${stillHasKey})`);
   console.log("  [6/6b] 11言語 translation.json から settings.original_map 削除: PASS");
 }
 

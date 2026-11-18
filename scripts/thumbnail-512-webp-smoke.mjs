@@ -199,15 +199,15 @@ const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).le
     typeof pkg.scripts['smoke:thumbnail-512-webp'] === 'string',
     'case 13: smoke:thumbnail-512-webp が package.json へ結線されている',
   );
-  // case 12 の一部: 新規依存が dependencies に宣言されている
+  // 新規依存が dependencies に宣言されている
   assert.ok(
     typeof pkg.dependencies['@jsquash/webp'] === 'string',
-    'case 12: @jsquash/webp が dependencies に宣言されている',
+    '@jsquash/webp が dependencies に宣言されている',
   );
-  // 新規 i18n キーの 11 言語パリティは smoke:editor-locale-parity が担う（case 6 実走リスト）
+  // 新規 i18n キーの 11 言語パリティは smoke:editor-locale-parity が担う
   assert.ok(
     typeof pkg.scripts['smoke:editor-locale-parity'] === 'string',
-    'case 6: smoke:editor-locale-parity が実在する（新規 i18n キーの 11 言語パリティ検証）',
+    'smoke:editor-locale-parity が実在する（新規 i18n キーの 11 言語パリティ検証）',
   );
   console.log('ok: C/case 13 結線と依存宣言');
 }

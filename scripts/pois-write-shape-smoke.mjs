@@ -146,7 +146,7 @@ try {
         { label: '空文字列', input: { pois: '' }, expected: { pois: [], unsupported: true } },
         { label: 'レイヤ名キー object', input: { pois: { main: [], id1: [] } }, expected: { pois: [], unsupported: true } },
         {
-          label: 'poiSources のみ残存（無視され・pois 未設定として扱われる — v1.2）',
+          label: 'poiSources のみ残存（無視され・pois 未設定として扱われる）',
           input: { poiSources: '["junk"]' },
           expected: { pois: [], unsupported: false },
         },
@@ -251,13 +251,13 @@ try {
   const appPoisFormatSrc = await readFile(appPoisFormatPath, 'utf8');
   assert.doesNotMatch(appPoisFormatSrc, /JSON\.parse/, 'appPoisFormat.ts に JSON.parse が含まれている（復元ロジックの再混入）');
   assert.match(appPoisFormatSrc, /export function readAppDocumentPois/, 'appPoisFormat.ts に readAppDocumentPois が定義されていない');
-  // v1.2（恒久指示）: poiSources は存在しないものとして扱う。コメントも含め
+  // 恒久指示: poiSources は存在しないものとして扱う。コメントも含め
   // appPoisFormat.ts のソース全体で当該語が0件であることと、シグネチャに poiSources パラメータが
   // 存在しないことを機械的に強制する
   assert.doesNotMatch(
     appPoisFormatSrc,
     /poiSources/,
-    'appPoisFormat.ts に poiSources への言及が残存している（v1.2: 存在しないものとして扱う）',
+    'appPoisFormat.ts に poiSources への言及が残存している（存在しないものとして扱う）',
   );
   assert.match(
     appPoisFormatSrc,
@@ -269,10 +269,10 @@ try {
   const appPreviewServiceSrc = await readFile(path.join(projectRoot, 'electron/services/AppPreviewService.ts'), 'utf8');
   assert.doesNotMatch(appExportServiceSrc, /document\.poiSources/, 'AppExportService.ts に document.poiSources 読みが残存している');
   assert.doesNotMatch(appPreviewServiceSrc, /document\.poiSources/, 'AppPreviewService.ts に document.poiSources 読みが残存している');
-  // v1.2: 上記の document.poiSources 限定 assert に加え、bare poiSources へ強化する
+  // 上記の document.poiSources 限定 assert に加え、bare poiSources へ強化する
   // （プロダクションコード自体は document: any 経由のため無変更だが、将来の再混入を広く検出する）
-  assert.doesNotMatch(appExportServiceSrc, /poiSources/, 'AppExportService.ts に poiSources への言及が残存している（v1.2）');
-  assert.doesNotMatch(appPreviewServiceSrc, /poiSources/, 'AppPreviewService.ts に poiSources への言及が残存している（v1.2）');
+  assert.doesNotMatch(appExportServiceSrc, /poiSources/, 'AppExportService.ts に poiSources への言及が残存している');
+  assert.doesNotMatch(appPreviewServiceSrc, /poiSources/, 'AppPreviewService.ts に poiSources への言及が残存している');
   assert.match(appExportServiceSrc, /readAppDocumentPois/, 'AppExportService.ts が readAppDocumentPois を import/使用していない');
   assert.match(appPreviewServiceSrc, /readAppDocumentPois/, 'AppPreviewService.ts が readAppDocumentPois を import/使用していない');
   assert.doesNotMatch(appExportServiceSrc, /normalizeJsonArray/, 'AppExportService.ts に normalizeJsonArray への参照が残存している');
@@ -291,12 +291,12 @@ try {
   assert.match(appEditView, /poisUnsupported/, 'AppEdit.vue に poisUnsupported の配線がない');
   assert.doesNotMatch(appEditView, /poiHealFailed/, 'AppEdit.vue に旧 poiHealFailed の残存がある');
   assert.doesNotMatch(appEditView, /healAppDocumentPois|healPoisValue/, 'AppEdit.vue に旧 heal 関数への参照が残存している');
-  // v1.2: AppEdit.vue に poiSources への参照（型定義・normalize 分岐・
+  // AppEdit.vue に poiSources への参照（型定義・normalize 分岐・
   // コメントいずれも含む）が完全撤去のはず
   assert.doesNotMatch(
     appEditView,
     /poiSources/,
-    'AppEdit.vue に poiSources への参照が残存している（v1.2 で完全撤去のはず。型定義・normalize 分岐・コメントいずれも含めて0件）',
+    'AppEdit.vue に poiSources への参照が残存している（完全撤去のはず。型定義・normalize 分岐・コメントいずれも含めて0件）',
   );
   assert.match(
     appEditView,

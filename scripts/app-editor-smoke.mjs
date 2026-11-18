@@ -381,14 +381,14 @@ try {
     /healAppDocumentPois|healPoisValue|poiHealFailed|poi_heal_failed|poiSourcesHeal/,
     'AppEdit.vue に旧 heal 契約 (poiSourcesHeal 系) が残存している'
   );
-  // 破損の根本原因の再発防止 + v1.2: AppEdit は旧 Editor 内部表現
+  // 破損の根本原因の再発防止: AppEdit は旧 Editor 内部表現
   // （JSON 文字列の内部表現、及びそれを扱う変数・型フィールド）を一切持たない
   // (内部表現・保存形とも pois 配列のみ)。型定義・normalize 分岐・コメントいずれも
   // 含めて当該語が0件であることを bare 検査で強制する
   assert.doesNotMatch(
     appEditView,
     /poiSources/,
-    'AppEdit.vue に旧 Editor 内部表現（poiSources）への参照が残存している — v1.2 で完全撤去のはず'
+    'AppEdit.vue に旧 Editor 内部表現（poiSources）への参照が残存している — 完全撤去のはず'
   );
   // 書き戻し: PoiReferenceEditor の update:pois を配列のまま反映 + 履歴記録
   assert.match(appEditView, /function onPoisChange/, 'AppEdit.vue に update:pois の反映 (onPoisChange) がない');
@@ -498,7 +498,7 @@ try {
   assert.match(poiReferenceEditor, /v-model:query="poiSearchQuery"/, 'POI selector に検索 query がない');
   assert.match(poiReferenceEditor, /:adapter="poiSourceAdapter"/, 'POI selector が search adapter に接続されていない');
   assert.match(poiReferenceEditor, /<ResourceMasterRow[\s\S]{0,200}?variant="selector"/, 'POI selector が共通の ResourceMasterRow variant="selector" になっていない');
-  // v2.0: 追加済み POI 行は selected=true（青）で表現され、disabled は readOnly のみ。
+  // 追加済み POI 行は selected=true（青）で表現され、disabled は readOnly のみ。
   // isPoiSelected は asResourceListRowFromPoiSource 内で selected へ反映（added=青）
   assert.match(poiReferenceEditor, /:disabled="readOnly"/, '追加済み POI 行の disabled は readOnly のみ（added は selected で表現）');
   assert.match(poiReferenceEditor, /selected: added/, 'asResourceListRowFromPoiSource で added=selected が設定される');

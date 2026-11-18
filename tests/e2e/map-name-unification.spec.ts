@@ -6,7 +6,7 @@
 //   case 7   neDB 0.7.0 取込経路でも移行される（正確名を持たない地図・共有 fixture のまま）
 //   case 7B  【最重要】非空の廃止属性を持つ neDB 入力が、取込 → 移行の end-to-end で正確名を保つ
 //          （①単言語 ②多言語非対称）。設計レビュー v1 が Critical と判定した欠陥の回帰検査。
-//          v1.1 型の欠陥（normalizeMapDocument への無条件 delete）を再導入すると①が必ず落ちる
+//          同型の欠陥（normalizeMapDocument への無条件 delete）を再導入すると①が必ず落ちる
 //   case 7C  移行完了後の DB へ 0.7.0 形の地図単体 ZIP を取り込むと取込境界の受容が働く（冪等）
 //   case 8   地図編集画面が「タイトル」「表示ラベル」の 2 欄になり正式名欄が無い
 //   case 9   15 文字制限が撤廃され、長い値が保存・書き出しできる
@@ -342,7 +342,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
       // ①単言語: title = 正確名 / label = 旧表示用名 / 廃止属性キー不在
       const d1 = docs[String(case1._id)];
       expect(d1, 'ケース① の行があるはず').toBeTruthy();
-      expect(d1.title, 'case 7B①: title は正確名のはず（v1.1 型の欠陥だとここが旧表示用名になる）')
+      expect(d1.title, 'case 7B①: title は正確名のはず（この型の欠陥だとここが旧表示用名になる）')
         .toEqual({ ja: '高畑村公図 第一号' });
       expect(d1.label, 'case 7B①: label は旧表示用名のはず').toEqual({ ja: '高畑公図テスト1' });
       expect(DEPRECATED in d1, 'case 7B①: 廃止属性のキーは消えるはず').toBe(false);

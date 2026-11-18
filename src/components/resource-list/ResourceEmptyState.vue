@@ -1,5 +1,5 @@
 <template>
-  <!-- v2.0: empty state 共有コンポーネント（正本: AssetList.vue:44-45 / BaseMapList.vue:50-54 の文法）。
+  <!-- empty state 共有コンポーネント（正本: AssetList.vue:44-45 / BaseMapList.vue:50-54 の文法）。
        上下左右中央揃えアイコン + メッセージ。master-detail の Detail 空状態・selector の右ペイン空状態で共用。 -->
   <div class="resource-empty-state h-100 d-grid place-items-center text-muted p-4 text-center">
     <div>

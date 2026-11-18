@@ -179,7 +179,7 @@ test.describe('512pxアイコン活用', () => {
       expect(names).toContain(`tmbs/${slug}.jpg`); // 52px（現行）
       expect(names).toContain(`tmbs/${slug}_512.webp`); // 512px（G）
 
-      console.log('  case 8: PASS (export 同梱)');
+      console.log('  export 同梱: PASS');
     } finally {
       await quitElectronApplication(app);
     }

@@ -15,7 +15,7 @@
 // 起動は必ず task script 経由で行うこと:
 //   pnpm --filter maplat-editor run test:e2e:preview-sanitized-viewer
 //   直接 `pnpm exec playwright test` を叩くと ensure-electron / build を
-//   迂回し、依存更新前の bundle を検証してしまう（設計レビュー v1.6）。
+//   迂回し、依存更新前の bundle を検証してしまう。
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';

@@ -193,7 +193,7 @@ try {
         assert.ok(!keys.includes('slug:fx-abandoned'), 'case 10: 7 日超の暫定 shift 行が掃除されない');
         assert.ok(keys.includes('slug:fx-fresh'), 'case 10: 新しい暫定 shift 行が誤って掃除された');
 
-        // case 11 後半 + case 12 の裏面: ベースマップ削除で shift 行が随伴削除され、
+        // case 11 後半: ベースマップ削除で shift 行が随伴削除され、
         // visibility の行操作と独立している（visibility 行はここまで一度も書いていない = 0 件のまま）
         const visCount = reopenedDb.prepare('SELECT count(*) AS count FROM map_base_map_visibility').get();
         assert.equal(Number(visCount.count), 0, 'shift の書込が visibility 行を汚した');

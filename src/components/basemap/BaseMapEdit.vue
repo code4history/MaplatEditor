@@ -769,7 +769,7 @@ const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
-// v1.3 -a: style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
+// style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
 const styleFieldDiagnostics = computed<DiagnosticItem[]>(() =>
   diagnosticsFor(["style-required", "style-mapbox-scheme-forbidden", "style-url-invalid"]),
 );

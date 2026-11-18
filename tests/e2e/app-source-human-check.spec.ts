@@ -45,7 +45,7 @@ const masterDoc = (suffix: string) => ({
   title: { ja: `マスタのタイトル(${suffix})` },
   label: { ja: `マスタのラベル(${suffix})` },
   attr: { ja: `© マスタの帰属(${suffix})` },
-  // v1.4: 帰属・ライセンス系5欄のプレースホルダを人間が見られるよう実値を入れる
+  // 帰属・ライセンス系5欄のプレースホルダを人間が見られるよう実値を入れる
   dataAttr: { ja: `マスタのデータ帰属(${suffix})` },
   license: 'CC BY',
   dataLicense: 'ODbL',

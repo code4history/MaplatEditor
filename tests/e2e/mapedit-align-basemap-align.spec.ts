@@ -546,7 +546,7 @@ test.describe('ベースマップ位置合わせモード', () => {
       await phaseButton(page).click();
       // (d) 確定値は 2 巡目の差分そのもの（1 巡目との合計でない）
       const expected2nd = { x: gt2Coord[0] - ref2Coord[0], y: gt2Coord[1] - ref2Coord[1] };
-      expect(expected2nd.x).toBeLessThan(0); // 西へ置いた ∴ 負（case 15 の両符号）
+      expect(expected2nd.x).toBeLessThan(0); // 西へ置いた ∴ 負（両符号の規則どおり）
       expect(expected2nd.y).toBeGreaterThan(0);
       const dbgFinal = await alignDebug(page);
       expect(dbgFinal.shifts[target]).toEqual(expected2nd);

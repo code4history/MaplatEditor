@@ -8,7 +8,7 @@
  *
  * 使い方: node scripts/ci/run-smokes.mjs --report smoke-report.json [--timeout-sec 600] [--root .] [--exclusions ci/test-exclusions.json] [--log-dir <dir>]
  *
- * 打ち切りの範囲（設計レビュー R2 への対応）:
+ * 打ち切りの範囲:
  *   (1) 同じプロセスグループの子孫 → kill(-pgid) で届く
  *   (2) 別のプロセスグループ／セッションへ移った子孫 → 打ち切りの時点で親子関係（ps の ppid）を辿って列挙し、
  *       その pid とそのプロセスグループにも SIGKILL を送る

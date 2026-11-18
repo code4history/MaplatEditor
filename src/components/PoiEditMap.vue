@@ -217,7 +217,7 @@ const iconRefStyle = (refString: string): Style | null => {
 
 // feature のスタイル決定: viewer (MaplatCore createIconSet + setMarker) と整合する
 // icon 起点ペア継承モデル。feature.icon があれば feature ペアを使用、なければ layerMeta
-// ペアを継承。選択時も resolved icon を維持し、赤ピンは icon 不在時のみ（v1.4 α）。
+// ペアを継承。選択時も resolved icon を維持し、赤ピンは icon 不在時のみ。
 const markerStyle = (
   properties: any,
   selected: boolean,

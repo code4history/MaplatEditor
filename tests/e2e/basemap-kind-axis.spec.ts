@@ -61,7 +61,7 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
       await expect(page.getByTestId(`basemap-kind-${k}`)).toBeEnabled();
     }
 
-    // case 8a: kind 未選択のまま離脱 → フォーム編集なしのため下書きは生まれない（再訪しても prompt の新規）
+    // kind 未選択のまま離脱 → フォーム編集なしのため下書きは生まれない（再訪しても prompt の新規）
     await page.evaluate(() => { location.hash = '/basemaps'; });
     await page.getByTestId('basemap-new').click();
     await expect(page.getByTestId('basemap-kind-prompt')).toBeVisible();
@@ -76,7 +76,7 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
     }
     await expect(page.getByTestId('basemap-kind-tms')).toHaveClass(/btn-primary/);
 
-    // case 8b: tms 選択で下書きが確定 → reload（beforeUnload で draft flush）→ 下書き復帰で tms ロック状態
+    // tms 選択で下書きが確定 → reload（beforeUnload で draft flush）→ 下書き復帰で tms ロック状態
     await page.reload();
     await expect(page.getByTestId('basemap-title')).toBeVisible();
     await expect(page.getByTestId('basemap-kind-tms')).toHaveClass(/btn-primary/);
@@ -84,7 +84,7 @@ test('Base Map kind selector: prompt→select→lock, save→reopen persists, pr
       await expect(page.getByTestId(`basemap-kind-${k}`)).toBeDisabled();
     }
 
-    // case 11 + case 4: slug/title/url を埋めて保存 → 再オープンで tms 維持・既存編集が現行どおり
+    // case 4: slug/title/url を埋めて保存 → 再オープンで tms 維持・既存編集が現行どおり
     await fillAndCommit(page.getByTestId('basemap-slug'), 'e2e-kind-tms');
     await fillAndCommit(page.getByTestId('basemap-title'), '種別テスト');
     // attr（地図画像帰属）が必須になったため、保存には attr 入力が必要
