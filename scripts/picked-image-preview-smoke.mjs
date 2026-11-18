@@ -76,7 +76,7 @@ console.log("ok: (c) スプラッシュ/PWA アイコンのプレビューとボ
 
 
 // --- (d) token 方式の一次画像読み出し（純関数） ---------------------------------
-// case 9: main が「利用者がそのセッションで選んだファイル」にだけ発行する token を解決する。
+// main が「利用者がそのセッションで選んだファイル」にだけ発行する token を解決する。
 {
   let clock = 1_000;
   const store = createPickedPathStore({ now: () => clock, ttlMs: PICK_TOKEN_TTL_MS, max: PICK_TOKEN_MAX });
@@ -104,7 +104,7 @@ console.log("ok: (c) スプラッシュ/PWA アイコンのプレビューとボ
 }
 console.log("ok: (d) token は選ばれたファイルにだけ解決する");
 
-// case 10: 拡張子の許容集合は既存ピッカのフィルタ（png/jpg/jpeg/gif）と一致する
+// 拡張子の許容集合は既存ピッカのフィルタ（png/jpg/jpeg/gif）と一致する
 for (const ext of ["png", "jpg", "jpeg", "gif", "PNG", "JPEG"]) {
   assert.deepEqual(validatePreviewRequest({ ext, byteSize: 1024 }), { ok: true }, `${ext} は表示対象`);
   assert.match(mimeForPreviewExt(ext), /^image\//, `${ext} の MIME が引ける`);
@@ -205,7 +205,7 @@ const assetsImages = await readSrc("electron/ipc/assets-images.ts");
   assert.match(dts, /readPickedSource\(token:\s*string\)/, "型定義に readPickedSource がない");
   assert.match(dts, /token:\s*string\s*\}/, "型定義の pickImageFile が token を返さない");
 
-  // case 11: CSP は変えない（img-src に data: があり blob: は無い）
+  // CSP は変えない（img-src に data: があり blob: は無い）
   const appScheme = await readSrc("electron/utils/appScheme.ts");
   const csp = /RENDERER_CSP\s*=[\s\S]*?;/.exec(appScheme);
   assert.ok(csp, "RENDERER_CSP が見つからない");

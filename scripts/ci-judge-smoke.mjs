@@ -214,7 +214,7 @@ const green = (r, msg, re) => {
   red(judge('e2e', { report: e2eReport(ren), exitCode: '1' }), '(補-4) known-failure の改名（同 file は実行済み）', /除外表の known-failure が報告に無い/);
   red(judge('e2e', { report: e2eReport(goodE2eSpecs()), exitCode: '0' }), '(補-5) exit 0 なのに unexpected あり', /exit が 0 なのに unexpected/);
 
-  // N1（設計レビュー R2）: 中断されたシャードを緑に化けさせない
+  // 中断されたシャードを緑に化けさせない
   // SIGINT 中断の実報告（R2 r2probe/pw/report-sigint.json）と同じ形: exit 130・errors 0・既知失敗 1・
   // 中断されたテスト（results[].status == interrupted）・未着手のテスト（results 空・skip 注記なし）
   const sigint = [
@@ -379,11 +379,11 @@ const green = (r, msg, re) => {
     assert.equal('continue-on-error' in e2e.steps[i], false, `${e2e.steps[i].name} は continue-on-error を持たない`);
     assert.equal('if' in e2e.steps[i], false, `${e2e.steps[i].name} は if を持たない`);
   }
-  // 追補 2（F-case 7）: pnpm の side-effects cache は空ディレクトリ（Electron.app の *.lproj）を記録しない。
+  // 追補 2: pnpm の side-effects cache は空ディレクトリ（Electron.app の *.lproj）を記録しない。
   // e2e job の install は side-effects cache を使わず electron の postinstall を必ず走らせる（smoke job は検査しない）
   const e2eInstall = e2e.steps.find((s) => s.name === 'Install dependencies');
   assert.ok(e2eInstall && /(^|\s)--config\.side-effects-cache=false(\s|$)/.test(e2eInstall.run ?? ''),
-    `e2e job の Install dependencies に --config.side-effects-cache=false（追補 2 F-case 7。run=${e2eInstall?.run}）`);
+    `e2e job の Install dependencies に --config.side-effects-cache=false（追補 2。run=${e2eInstall?.run}）`);
   const e2eJudge = e2e.steps.find((s) => (s.run ?? '').includes('judge-test-results.mjs e2e'));
   assert.match(e2eJudge.run, /--report e2e-report\.json --exit-file playwright-exit\.txt --shard \$\{\{ matrix\.shard \}\}\/3/, 'e2e 判定 step の引数');
   assert.ok(e2e.steps.map((s) => s.run ?? '').includes('pnpm run build'), 'e2e job に pnpm run build');

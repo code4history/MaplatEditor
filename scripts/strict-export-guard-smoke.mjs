@@ -1,4 +1,4 @@
-// スモーク: 搬出/発行 strict policy 分離と export UI 回帰修正 (milestone v2.1 T1)。
+// スモーク: 搬出/発行 strict policy 分離と export UI 回帰修正。
 // 既存の smoke と同じ sandbox 方式 (vite SSR ビルド + electron スタブ + saveFolder/tmpFolder=一時dir) で、
 // mapedit:download-saved の strict-free 搬出 (case 1)、App save/preview/export の共通 strict guard
 // (case 2)、export の pre-dialog/post-dialog 二重判定 (case 3) を behavioral に検証する。

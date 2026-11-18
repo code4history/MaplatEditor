@@ -257,7 +257,9 @@
       "preset_already_registered": "{{name}} sudah terdaftar.",
       "presets_already_registered": "Sudah terdaftar: {{names}}",
       "default_license_note": "Berlaku ketentuan Google Maps Platform. Atribusi harus tetap terlihat.",
-      "default_data_license_note": "Data peta dan citra © Google. Lihat ketentuan Google Maps Platform."
+      "default_data_license_note": "Data peta dan citra © Google. Lihat ketentuan Google Maps Platform.",
+      "attr_value": "Pemberitahuan hak cipta dari Google",
+      "attr_reason": "Atribusi peta Google adalah pemberitahuan hak cipta yang dikembalikan oleh Google. Sesuai ketentuan Google, selama peta ditampilkan, pemberitahuan hak cipta Google secara lengkap dan logo Google Maps selalu ditampilkan. Karena itu, atribusi tidak dapat diisi di sini."
     },
     "style_gl_check_v5_ok": "Berfungsi dengan MapLibre GL JS 5 dan 6",
     "style_gl_check_needs_v6": "Memerlukan MapLibre GL JS 6: {{reasons}}",

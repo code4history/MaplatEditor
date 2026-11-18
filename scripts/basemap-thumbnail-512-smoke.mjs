@@ -173,7 +173,7 @@ const runLateStaticChecks = async () => {
     'case 3: AppAssetService.ts の本体に tmbs/ リテラルが無い（thumb52PathFor / thumb512PathFor へ集約）');
 
   // case 2(b): AppExportService.ts のベースマップ分岐に 512px パスのインライン派生が 0。
-  //   needle は `_512\.`（= パスリテラル）。素の `_512` は i18n キー名等も拾うため使わない（v1.2）。
+  //   needle は `_512\.`（= パスリテラル）。素の `_512` は i18n キー名等も拾うため使わない。
   //   地図分岐の 3 行は別の変更の受け持ちのため対象外。行番号ではなく節の境界で切り出して判定する。
   const exportSrc = await readFile(appExportServicePath, 'utf8');
   const baseMapThumbStart = exportSrc.indexOf('// 3) ベースマップのサムネイル');
@@ -189,12 +189,12 @@ const runLateStaticChecks = async () => {
     `case 2(b): AppExportService 全体で 512px のインライン派生が 0（WebP 化で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
   // case 2(c): BaseMapEdit.vue に 512px パスのインライン派生が 0。
-  //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外（v1.2）。
+  //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外。
   const baseMapEditSrc = await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'), 'utf8');
   assert.equal(countMatches(baseMapEditSrc, /_512\./), 0,
     'case 2(c): BaseMapEdit.vue に 512px パスのインライン派生が無い');
 
-  // case 2(d)（v1.2 で再定式化）: SqliteDataService.ts の `_512\b` 一致件数が現況 11 から増えない
+  // case 2(d): SqliteDataService.ts の `_512\b` 一致件数が現況 11 から増えない
   const sqliteSrc = await readFile(sqlitePath, 'utf8');
   const sqliteHits = countMatches(sqliteSrc, /_512\b/);
   assert.ok(sqliteHits <= 11,

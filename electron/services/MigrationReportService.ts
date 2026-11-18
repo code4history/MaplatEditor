@@ -9,7 +9,7 @@ import fs from 'fs-extra';
 import { promises as fsPromises } from 'fs';
 import type { MigrationCandidateKind } from './MapOriginalImageService';
 
-// v1.1: union をマイルストーン 契約
+// union をマイルストーン 契約
 // (Exclude<MigrationCandidateKind,'copyable'> | 'migrated') に整合させ、
 // 到達不能な 'copyable' を除外・到達し得る 'migrated' を含め、
 // で追加した失敗 outcome 'copy_failed' も additive に含める

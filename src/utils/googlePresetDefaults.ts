@@ -1,4 +1,6 @@
-// Google プリセット選択時の帰属・ライセンス・ズーム既定値
+// Google プリセット選択時のライセンス・ズーム既定値
+// 帰属表記（attr）は埋めない。Google の地図の帰属表記は Google が返す表示を使い、利用者は入力しない
+// （baseMapEditorDocument の usesGoogleAttribution の注記）
 // Vue / i18next 非依存の純粋モジュール。smoke から直接検証する。
 //
 // Minor 吸収:
@@ -9,7 +11,6 @@
 import type { LangCode } from "./editorLanguages";
 import type { BaseMapEditDocument } from "./baseMapEditorDocument";
 
-export const GOOGLE_DEFAULT_ATTR = "© Google";
 export const GOOGLE_DEFAULT_LICENSE = "All right reserved";
 export const GOOGLE_DEFAULT_MIN_ZOOM = 0;
 /** ol/source/Google.js の maxZoom = 22 に整合 */
@@ -46,7 +47,6 @@ export const GOOGLE_DEFAULT_DATA_LICENSE_NOTE_BY_LANG: Record<LangCode, string> 
 };
 
 export type GooglePresetDefaults = {
-  attr: Record<string, string>;
   license: string;
   dataLicense: string;
   licenseNote: Record<string, string>;
@@ -71,11 +71,6 @@ export function allGoogleDefaultNoteTexts(): string[] {
   ];
 }
 
-export function isGoogleDefaultAttr(text: string | undefined | null): boolean {
-  const v = (text ?? "").trim();
-  return v === "" || v === GOOGLE_DEFAULT_ATTR;
-}
-
 /**
  * 空文字は「埋めてよい」。非空は全言語の既定 Note のいずれかと一致すれば Google 既定とみなす。
  * （UI 言語切替後も再上書き抑止が効く — design review）
@@ -95,7 +90,6 @@ export function buildGooglePresetDefaults(defaultLang: LangCode): GooglePresetDe
   const dataLicenseNote =
     GOOGLE_DEFAULT_DATA_LICENSE_NOTE_BY_LANG[defaultLang] ?? GOOGLE_DEFAULT_DATA_LICENSE_NOTE_BY_LANG.en;
   return {
-    attr: { [defaultLang]: GOOGLE_DEFAULT_ATTR },
     license: GOOGLE_DEFAULT_LICENSE,
     dataLicense: GOOGLE_DEFAULT_LICENSE,
     licenseNote: { [defaultLang]: licenseNote },
@@ -123,11 +117,6 @@ export function applyGooglePresetDefaults(
     title: { ...doc.title },
     label: { ...doc.label },
   };
-
-  const attrVal = doc.attr?.[lang] ?? "";
-  if (isGoogleDefaultAttr(attrVal)) {
-    next.attr = { ...next.attr, [lang]: defaults.attr[lang] ?? GOOGLE_DEFAULT_ATTR };
-  }
 
   // license / dataLicense: 空のときだけ（ユーザー明示の All right reserved を尊重）
   if (!(doc.license ?? "").trim()) {

@@ -129,7 +129,7 @@
                 class="small text-warning-emphasis"
                 data-testid="poiref-mixed-warning"
               >{{ t("poiref.mixed_layer_warning") }}</div>
-              <!-- (v1.3): 複層モード index>=1 の key (id/properties.id) 欠落
+              <!-- 複層モード index>=1 の key (id/properties.id) 欠落
                    生メンバーへの viewer-fatal 注記 (normalize_pois.ts:31-33 throw = POI 全損) -->
               <div
                 v-if="showsLayerKeyMissing(entry, index)"
@@ -138,7 +138,7 @@
               >{{ t("poiref.layer_key_missing_warning") }}</div>
             </div>
             <div class="btn-group btn-group-sm flex-shrink-0">
-              <!-- (v1.2): 複層モードの生 FC カード = 1 レイヤの変換
+              <!-- 複層モードの生 FC カード = 1 レイヤの変換
                    (layerMeta round-trip 保持)。表示条件は「複層モードの生 FC 要素」に限定 -->
               <button
                 v-if="layerMode === 'multi' && hostSlug && isRawFcEntry(entry)"
@@ -313,7 +313,7 @@ const emit = defineEmits<{
 
 const { t } = useTranslation();
 const slots = useSlots();
-// v2.0: host 側が #range-filter slot を提供した場合のみ ResourceRangeFilterButton を使い、
+// host 側が #range-filter slot を提供した場合のみ ResourceRangeFilterButton を使い、
 // 未提供時は spatial-toggle を表示（排他）。useSlots() は slot の存在判定に使える。
 const hasRangeFilterSlot = computed(() => !!slots["range-filter"] && !!slots["range-filter"]());
 const poiSearchQuery = ref("");
@@ -332,7 +332,7 @@ const selectedRefs = computed<SelectedPoiSourceRef[]>(() => extractPoiRefs(entri
 const isPoiSelected = (uid: string) => selectedRefs.value.some((item) => item.sourceId === uid);
 const poiSourceTitle = (item: PoiSourceListRow) => localizeTitle(item.title, props.activeLang) || item.slug;
 
-// v2.0: selector 左ペインの行を ResourceMasterRow へ統一。
+// selector 左ペインの行を ResourceMasterRow へ統一。
 // 追加済み（isPoiSelected）=selected=true（青）。readOnly は disabled。
 function asResourceListRowFromPoiSource(item: PoiSourceListRow): ResourceListItemViewModel {
   const added = isPoiSelected(item.uid);
@@ -382,7 +382,7 @@ function entryItemCountLabel(entry: unknown): string | null {
   return count === null ? null : t("poiref.external_item_count", { count });
 }
 
-// (v1.2/v1.3): レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
+// レイヤ構造判定 — 共有述語 (poisLayerStructure = resolver 混在警告と同一実装)
 // の computed 連鎖がペイン構成・変換可否・混在警告表示の唯一の判定源。
 // 参照要素は "fc" へ写像する (resolver が FC に置換した後の形 = viewer が見る形で判別 — 前文)
 // **上書きレイヤ (ラッパー) も同じ理由で "fc" へ写像する。** ラッパーは viewer が
@@ -410,16 +410,16 @@ const canConvertLayer = computed(
     ),
 );
 
-// (v1.2): 複層モードの生 FC 要素 (= 1 レイヤ) 判定。参照要素は poiUidOf ≠ null で除外、
+// 複層モードの生 FC 要素 (= 1 レイヤ) 判定。参照要素は poiUidOf ≠ null で除外、
 // 非 UUID poiUid object は温存規約 により FC 形でも変換対象外。
-// v1.1 の isConvertGroupEntry / isConvertibleFcEntry (要素単位の振り分け) は撤去した
+// isConvertGroupEntry / isConvertibleFcEntry (要素単位の振り分け) は撤去した
 function isRawFcEntry(entry: unknown): boolean {
   if (poiUidOf(entry) !== null) return false;
   if (poisEntryShape(entry) !== "fc") return false;
   return !("poiUid" in (entry as Record<string, unknown>));
 }
 
-// (v1.3): 複層モード index>=1 の key (id/properties.id) 欠落生メンバー行の
+// 複層モード index>=1 の key (id/properties.id) 欠落生メンバー行の
 // viewer-fatal 注記 (normalize_pois.ts:30-33 throw = POI 全損) の表示判定。string は fetch
 // 置換後の内容が静的判定不能のため対象外。UI のみで使用 — resolver 警告契約  は拡張しない
 function showsLayerKeyMissing(entry: unknown, index: number): boolean {
@@ -474,7 +474,7 @@ function applyConvertResult(result: InlineConvertResult): void {
 
 // 変換は document を一切変更しない (update:pois を発火しない — 非破壊・可逆)。
 // 単層モードのレイヤ変換: input = メンバー全件 (= entries そのもの — 単層モードの変換可能条件により
-// 全メンバーが旧オブジェクト / 生 Feature に限定済みで、v1.1 の対象フィルタは不要になった)
+// 全メンバーが旧オブジェクト / 生 Feature に限定済みで、対象フィルタは不要になった)
 async function convertGroup(): Promise<void> {
   if (!props.hostSlug || props.readOnly || converting.value) return;
   if (layerMode.value === "multi" || !canConvertLayer.value) return;
@@ -491,7 +491,7 @@ async function convertGroup(): Promise<void> {
   }
 }
 
-// (v1.2): 複層モードの生 FC カード = 1 レイヤの変換 (layerMeta round-trip 保持)。
+// 複層モードの生 FC カード = 1 レイヤの変換 (layerMeta round-trip 保持)。
 // 複層モードガード付きで維持 — 単層・indeterminate ではレイヤ変換 (convertGroup) のみ
 async function convertFcEntry(index: number): Promise<void> {
   const entry = entries.value[index];

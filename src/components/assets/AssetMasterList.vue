@@ -113,7 +113,7 @@ const adapter = createAssetListAdapter({
 });
 const vmOf = (asset: ImageAssetRow) => adapter.toViewModel(asset, props.activeLang);
 
-// v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+// draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
 // draft は hasDraft=true・badges で draft ラベルを表示。title は新規ドラフトのラベル。
 function draftViewModel(draft: AssetDraftSummary) {
   return {

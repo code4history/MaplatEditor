@@ -266,39 +266,39 @@ try {
     );
   }
 
-  // C6【case 2】: MapEdit の文書代入が setter と履歴復帰の2箇所のみ
-  assert.match(mapEdit, /function setMapDocument\(/, 'case 2: MapEdit.vue に関所 setMapDocument が無い');
+  // MapEdit の文書代入が setter と履歴復帰の2箇所のみ
+  assert.match(mapEdit, /function setMapDocument\(/, 'MapEdit.vue に関所 setMapDocument が無い');
   const assignments = mapEdit.match(/mapData\.value\s*=[^=]/g) ?? [];
   assert.equal(
     assignments.length,
     2,
-    `case 2: mapData.value への直接代入が ${assignments.length} 箇所ある（setMapDocument 内と履歴復帰の2箇所のみが許可）`,
+    `mapData.value への直接代入が ${assignments.length} 箇所ある（setMapDocument 内と履歴復帰の2箇所のみが許可）`,
   );
   assert.match(
     mapEdit,
     /function setMapDocument\([\s\S]{0,400}?mapData\.value\s*=\s*acceptDocumentPois\(/,
-    'case 2: setMapDocument が acceptDocumentPois を通して代入していない',
+    'setMapDocument が acceptDocumentPois を通して代入していない',
   );
   assert.match(
     mapEdit,
     /mapData\.value\s*=\s*cloneDeep\(state\.mapData\)/,
-    'case 2: 履歴復帰の代入（許可された例外）が見つからない',
+    '履歴復帰の代入（許可された例外）が見つからない',
   );
   // 収斂の実効性: 旧来の代入パターンが残っていないこと
   assert.doesNotMatch(
     mapEdit,
     /mapData\.value\s*=\s*(fresh|data|histMap)\b/,
-    'case 2: setMapDocument を経由しない旧来の文書代入が残っている',
+    'setMapDocument を経由しない旧来の文書代入が残っている',
   );
-  console.log('ok: Part C 実装同一性（case 1）と関所の実効性（case 2）');
+  console.log('ok: Part C 実装同一性（case 1）と関所の実効性');
 
-  // 警告文言が 11 locale すべてに存在する（case 11 の先出し検査）
+  // 警告文言が 11 locale すべてに存在する（先出し検査）
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
   for (const locale of LOCALES) {
     const dict = JSON.parse(await readFile(path.join(projectRoot, `public/locales/${locale}/translation.json`), 'utf8'));
     const value = dict?.mapedit?.poi_format_unsupported;
-    assert.equal(typeof value, 'string', `case 11: ${locale} に mapedit.poi_format_unsupported が無い`);
-    assert.ok(value.length > 0, `case 11: ${locale} の mapedit.poi_format_unsupported が空`);
+    assert.equal(typeof value, 'string', `${locale} に mapedit.poi_format_unsupported が無い`);
+    assert.ok(value.length > 0, `${locale} の mapedit.poi_format_unsupported が空`);
   }
   console.log('ok: Part C-7 mapedit.poi_format_unsupported が 11 locale すべてに存在する');
 

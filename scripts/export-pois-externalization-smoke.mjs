@@ -525,20 +525,20 @@ try {
         };
         const soloResult: any = await AppExportService.exportApp(fakeWin as any, soloApp);
         assert.ok(soloResult && soloResult.result === 'Success',
-          'case 16: 単独形の文書でも export が成功する: ' + JSON.stringify(soloResult));
+          '単独形の文書でも export が成功する: ' + JSON.stringify(soloResult));
         const soloDir = nodePath.join(${JSON.stringify(workDir)}, 'export-extract-solo');
         new AdmZip(soloResult.outDir).extractAllTo(soloDir, true);
         const soloAppJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'apps', 'fx_solo_app.json'), 'utf8'));
         assert.deepEqual(
           soloAppJson.pois,
           [{ layer: 'https://example.com/solo-app-pois.geojson', hide: true }],
-          'case 16: 単独形の上書きレイヤが配列1件として出力される（上の書き出しの出力契約と同形）',
+          '単独形の上書きレイヤが配列1件として出力される（上の書き出しの出力契約と同形）',
         );
         const soloMapJson = JSON.parse(await fsReadFile(nodePath.join(soloDir, 'maps', 'fxsolo.json'), 'utf8'));
         assert.deepEqual(
           soloMapJson.pois,
           [{ layer: 'https://example.com/solo-pois.geojson' }],
-          'case 16: 単独形の裸 URL も配列要素位置ではラッパーへ包まれる（上の E3）',
+          '単独形の裸 URL も配列要素位置ではラッパーへ包まれる（上の E3）',
         );
         console.log('ok: (D) single-layer-form documents now reach the export output');
       }

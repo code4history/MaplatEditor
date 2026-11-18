@@ -302,7 +302,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
         throw e;
       }
       {
-        // case 5b: after-undo〜after-redo 区間に unsuppressed な push が無いこと。
+        // after-undo〜after-redo 区間に unsuppressed な push が無いこと。
         // 基点測定（W2-W4 無効）では発生しうるので、抑止有効時のみ検査する
         const journal = await historyJournal(page);
         const window_ = journal.filter((e: any) => e.phase === 'after-undo' || e.phase === 'after-redo');
@@ -314,7 +314,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
           expect(c.suppressed, 'case 4c: commitHistorySnapshot はスコープ外から呼ばれる').toBe(false);
         }
         if (!NO_HISTORY_SUPPRESS) {
-          expect(offending, 'case 5b: undo→redo 区間に unsuppressed な push が無い').toEqual([]);
+          expect(offending, 'undo→redo 区間に unsuppressed な push が無い').toEqual([]);
         }
       }
 
@@ -368,7 +368,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
       await page.locator('[role="tab"]').filter({ hasText: /プレビュー/ }).click();
       const frame = await previewFrame(page);
 
-      // viewer ready + active source が対象地図であることを状態ベースで待機（レビュー v1.2）
+      // viewer ready + active source が対象地図であることを状態ベースで待機
       await frame.waitForFunction(() => !!(window as any).__maplatPreview?.core, undefined, { timeout: 90000 });
       await frame.waitForFunction(
         (expected: string) => (window as any).__maplatPreview?.core?.from?.mapID === expected,
@@ -432,7 +432,7 @@ test.describe('地図管理 POI 編集の hide 上書き UI', () => {
       expect(viewerState.fromMapID, 'case 1-9(b): active source が対象地図').toBe(mapSlug);
       expect(viewerState.clusterBHide, 'case 1-9(b): B の cluster.hide が true').toBe(true);
       expect(viewerState.clusterAHide, 'case 1-9(b): A の cluster.hide は立たない').not.toBe(true);
-      // (c) hidden 一覧は B の exact namespaceID のみを含み A を含まない（レビュー v1.2）
+      // (c) hidden 一覧は B の exact namespaceID のみを含み A を含まない
       expect(viewerState.hiddenLayerKeys, 'case 1-9(c): hidden 一覧に B の exact 値').toContain(viewerState.expectedNsB);
       expect(viewerState.hiddenLayerKeys, 'case 1-9(c): hidden 一覧に A は含まれない').not.toContain(viewerState.expectedNsA);
       // (d) marker はレイヤA の 1 件のみ（B の分が加算されない）

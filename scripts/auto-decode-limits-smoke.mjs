@@ -352,7 +352,7 @@ await writeFile(
         } else {
           console.log('skip: case 8 の「400 MP が安全枠内」の assert（この機体の heap_size_limit は '
             + safety.heapSizeLimitMB.toFixed(1) + ' MiB で 4096 未満。安全枠は ' + safety.maxResolutionMP
-            + ' MP で、旧既定 8192 MB を超える約 390 MP の画像はこの機体では扱えない。case 6-c と同じ扱い。'
+            + ' MP で、旧既定 8192 MB を超える約 390 MP の画像はこの機体では扱えないため skip する。'
             + '自動値が旧既定を上回ることは上の 2 つの assert で確認済み）');
         }
       });

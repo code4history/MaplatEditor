@@ -160,7 +160,7 @@ await writeFile(
       ]));
       assert.equal(b.recommendedMemoryMB, Math.ceil(b.requiredMemoryMB * 1.03));
     });
-    check('推奨解像度は ceil(megapixels)（マージンを乗せない・v2.3）', () => {
+    check('推奨解像度は ceil(megapixels)（マージンを乗せない）', () => {
       const b = estimateJpegDecodeBudget(synthSofHeader(11000, 10000, [
         { h: 1, v: 1 }, { h: 1, v: 1 }, { h: 1, v: 1 },
       ]));

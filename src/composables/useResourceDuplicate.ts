@@ -106,7 +106,7 @@ export async function findLocalCloneSlug(
   });
 }
 
-// grid 一覧（Map/App）の複製遷移先。エディタ側 duplicateFrom 受け口の契約（設計v3.2）:
+// grid 一覧（Map/App）の複製遷移先。エディタ側 duplicateFrom 受け口の契約:
 // duplicateFrom=複製元uid / draftUid=予約帰属uid(=create uid) / slug=予約済みslug / new=1
 export function duplicateEditorPath(editorPath: string, sourceUid: string, reserved: ReservedCopySlug): string {
   return `${editorPath}?duplicateFrom=${sourceUid}&draftUid=${reserved.uid}&slug=${encodeURIComponent(reserved.slug)}&new=1`;

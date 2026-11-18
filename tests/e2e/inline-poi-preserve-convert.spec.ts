@@ -1,5 +1,5 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
-// inline POI の保全パネル完成と GeoJSON 変換 E2E (— v1.3 レイヤ単位ペイン)。
+// inline POI の保全パネル完成と GeoJSON 変換 E2E (レイヤ単位ペイン)。
 // フィクスチャは 完全分割表から導出 (shape 列は smoke Part I のクラス転記表と同一表):
 //   手順1-6 = C4 単層クリーン [object, object] / 手順4b = C2a [fc, fc] → C3 [fc, fc, object] /
 //   手順4c = C5 [object, object, fc, string] / 手順4d = C6b [string, object, fc]
@@ -339,7 +339,7 @@ test.describe('inline POI 保全・変換', () => {
       const storedPois = await page.evaluate(async (uid) => (await (window as any).mapedit.request(uid)).pois, seeded.uid);
       expect(storedPois).toEqual(seeded.pois);
 
-      // --- C3 遷移: 末尾へ key 無し旧 POI object を 1 件追加して再表示 (v1.3 手順4b 拡張) ---
+      // --- C3 遷移: 末尾へ key 無し旧 POI object を 1 件追加して再表示 (手順4b 拡張) ---
       const poisBroken = [...poisMulti, { name: '壊れ旧POI', lat: 39.71, lng: 141.17 }];
       await saveMapWithPois(page, { slug: seeded.slug, uid: seeded.uid, title: 'T6 複層', pois: poisBroken });
       await openHash(page, '#/maplist');
@@ -407,7 +407,7 @@ test.describe('inline POI 保全・変換', () => {
       });
       expect(draftFeatures).toBe(2);
 
-      // --- 手順4d (C6b — v1.3 新設): [URL, 旧POI甲, 生FC] = indeterminate ---
+      // --- 手順4d (C6b 新設): [URL, 旧POI甲, 生FC] = indeterminate ---
       const seededUrlHead = await saveMapWithPois(page, {
         slug: `t6-urlhead-${Date.now()}`, title: 'T6 先頭URL',
         pois: ['https://example.com/pois.json', { name: '旧POI甲', lat: 39.7052, lng: 141.1592 }, rawFc(null, '生FC', 1)],

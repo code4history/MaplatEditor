@@ -257,7 +257,9 @@
       "preset_already_registered": "{{name}} 已註冊。",
       "presets_already_registered": "已註冊：{{names}}",
       "default_license_note": "適用 Google Maps Platform 服務條款。必須保留歸屬標示。",
-      "default_data_license_note": "地圖資料與影像 © Google。請參閱 Google Maps Platform 服務條款。"
+      "default_data_license_note": "地圖資料與影像 © Google。請參閱 Google Maps Platform 服務條款。",
+      "attr_value": "Google 傳回的版權聲明",
+      "attr_reason": "Google 地圖的署名使用 Google 傳回的版權聲明。依照 Google 的條款，顯示地圖期間會完整顯示 Google 的版權聲明，並顯示 Google Maps 標誌。因此無法在此輸入。"
     },
     "style_gl_check_v5_ok": "可在 MapLibre GL JS 5 與 6 中使用",
     "style_gl_check_needs_v6": "需要 MapLibre GL JS 6：{{reasons}}",

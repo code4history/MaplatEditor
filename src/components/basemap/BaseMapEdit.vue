@@ -171,8 +171,28 @@
         </div>
         <!-- 帰属・ライセンスを 3行 に再構成。
              1行目: 地図画像帰属 / データ帰属 / 2行目: 地図画像ライセンス / 補足 / 3行目: データライセンス / 補足。
-             attr は必須 (地図側と同様) -->
-        <div class="col-12 col-xl-6">
+             attr は必須 (地図側と同様)。ただし Google の地図は入力させない（下の分岐） -->
+        <!-- Google の地図の帰属表記は Google が返す表示を使う（Viewer は Google の著作権の表示を全文で出し、
+             Google Maps のロゴも出す）。欄は消さずに入力できない状態で見せ、使えない理由を ? に書く
+             （ui-grammar §2.1「押せない理由」と同じ形。値は状態の表示 §2.3） -->
+        <div v-if="document.kind === 'google'" class="col-12 col-xl-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">
+            {{ t("basemap.modal.attr_label") }}
+            <ContextHelp
+              :text="t('basemap.google.attr_reason')"
+              :ariaLabel="t('editor_ui.unavailable_reason', { name: t('basemap.modal.attr_label') })"
+              data-testid="basemap-attr-google-reason"
+            />
+          </label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            data-testid="basemap-attr-google"
+            :value="t('basemap.google.attr_value')"
+            disabled
+          >
+        </div>
+        <div v-else class="col-12 col-xl-6">
           <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.attr_label") }} <span class="text-danger">*</span> <ContextHelp :text="t('field_help.image_attribution')" :ariaLabel="t('field_help.image_attribution')" /></label>
           <LangResourceInput
             input-testid="basemap-attr"
@@ -769,7 +789,7 @@ const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
 const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
-// v1.3 -a: style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
+// style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
 const styleFieldDiagnostics = computed<DiagnosticItem[]>(() =>
   diagnosticsFor(["style-required", "style-mapbox-scheme-forbidden", "style-url-invalid"]),
 );

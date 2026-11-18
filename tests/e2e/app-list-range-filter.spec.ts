@@ -177,7 +177,7 @@ test.describe('AppList range filter', () => {
       await page.locator(`[data-resource-uid="${seeded.appUid}"] a`).first().click();
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 15000 });
 
-      // case 4/case 6: エディタの戻るボタン（実経路）で AppList へ戻る
+      // case 4: エディタの戻るボタン（実経路）で AppList へ戻る
       // ※ goBack は直前履歴が '/applist' 始まりなら router.back()（クエリ保持）で戻るため、
       //   URL の bbox が維持され backCache 復元条件が成立する
       await page.getByTestId('editor-back').click();

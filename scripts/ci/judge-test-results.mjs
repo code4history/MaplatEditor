@@ -285,7 +285,7 @@ export function judgeE2e({ report, table, exitText, shard }) {
     if ((s[st] ?? 0) !== count(st)) failures.push(`e2e 報告の stats.${st}=${s[st]} とテスト一覧の件数 ${count(st)} が一致しない（報告が壊れている）`);
   }
 
-  // N1（設計レビュー R2）: 中断（SIGINT・job 取り消し等）されたシャードを「既知失敗だけ」と読まない。
+  // 中断（SIGINT・job 取り消し等）されたシャードを「既知失敗だけ」と読まない。
   // SIGINT では exit 130・errors 0 件になり、中断されたテストは results[].status == interrupted、
   // 未着手のテストは status skipped だが skip / fixme の注記を持たない（R2 r2probe/pw/report-sigint.json で実測）
   const interrupted = tests.filter((t) => t.results.some((r) => r.status === 'interrupted'));

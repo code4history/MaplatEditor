@@ -1,4 +1,4 @@
-// case 2/case 3/case 4/case 5: 地図 ZIP import の slug 衝突を自動解決する（タスク設計 v1.4）。
+// case 2/case 3/case 4/case 5: 地図 ZIP import の slug 衝突を自動解決する。
 //
 // 固定する受け入れ条件:
 //   case 2 同名 slug の地図 ZIP が 'Exist' にならず base-2 として取り込まれる

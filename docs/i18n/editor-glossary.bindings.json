@@ -1273,6 +1273,12 @@
         "ja"
       ]
     },
+    "basemap.google.attr_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "basemap.google.default_data_license_note": {
       "by": [
         "en",
@@ -3257,6 +3263,12 @@
       ]
     },
     "basemap.errors.attr_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.google.attr_reason": {
       "by": [
         "en",
         "ja"
