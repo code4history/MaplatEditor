@@ -59,7 +59,7 @@ import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths'
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
 import { resolveViewerPwaWorker } from '../../src/utils/appHttpSettings';
-import { requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
+import { baseMapProviderKindOf, requiresProviderKey } from '../../src/utils/baseMapEditorDocument';
 import { normalizeAppExportOptions, type AppExportOptions } from '../../src/utils/exportOptions';
 import {
   resolvePublishKey,
@@ -363,11 +363,13 @@ class AppExportService {
       })
       .filter((source: AppSource) => {
         if (source.sourceType === 'maplat') return true;
-        // kind は差分保持モデルではアプリ側に無いためマスタから引く
+        // kind は差分保持モデルではアプリ側に無いためマスタから引く。
+        // usesGoogleAttribution と同じ「kind 優先・maptype フォールバック」で引き、
+        // 旧保存形（kind が無く maptype が google_*）の API キー判定も再保存後と同じにする
         const resolvedSource = resolveAppSource(source, baseMapLookup);
-        const kind = (resolvedSource.ok ? resolvedSource.master.data.kind : undefined) as
+        const kind = (resolvedSource.ok ? baseMapProviderKindOf(resolvedSource.master.data) : null) as
           | ProviderKeyKind
-          | undefined;
+          | null;
         if (!requiresProviderKey(kind)) return true;
         const resolvedKind = kind as ProviderKeyKind;
         const resolved =

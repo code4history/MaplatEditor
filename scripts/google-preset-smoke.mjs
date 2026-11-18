@@ -168,6 +168,7 @@ try {
     lang: "ja",
     title: { ja: "G" },
     attr: { ja: "© G" },
+    dataAttr: { ja: "© G データ" },
     kind: "google",
     maptype: "google_roadmap",
   };
@@ -189,21 +190,36 @@ try {
   // Viewer は Google が返す著作権の表示を必ず出し、attr はその後に添えるだけなので、勝手な文を出させない
   const googleSetting = composeBaseMapSettingFile(masterGoogleItem, appSrc.role);
   assert.equal("attr" in googleSetting, false, "case 7b: Google の地図の設定ファイルに attr を出さない");
+  assert.equal("dataAttr" in googleSetting, false, "case 7b: Google の地図の設定ファイルに dataAttr を出さない");
   assert.equal("attr" in composeViewerSource(appSrc, { lookup }), false, "case 7b: アプリ JSON にも attr を出さない");
-  // 旧保存形（kind 無し・maptype が google_*）も同じ
+  // 旧保存形（kind 無し・maptype が google_*）も同じ。再保存の前でも Google として出す
   const legacyGoogleItem = {
     uid: "uid-google-legacy",
     mapID: "google-legacy",
-    data: { mapID: "google-legacy", lang: "ja", title: { ja: "G" }, attr: { ja: "© 旧" }, maptype: "google_hybrid" },
+    data: { mapID: "google-legacy", lang: "ja", title: { ja: "G" }, attr: { ja: "© 旧" }, dataAttr: { ja: "© 旧データ" }, maptype: "google_hybrid" },
   };
-  assert.equal("attr" in composeBaseMapSettingFile(legacyGoogleItem, "base"), false, "case 7b: 旧保存形の Google の地図も attr を出さない");
+  const legacySetting = composeBaseMapSettingFile(legacyGoogleItem, "base");
+  assert.equal("attr" in legacySetting, false, "case 7b: 旧保存形の Google の地図も attr を出さない");
+  assert.equal("dataAttr" in legacySetting, false, "case 7b: 旧保存形の Google の地図も dataAttr を出さない");
+  // 再保存の前の出力（プレビューと書き出しはこの関数を通る）は種別を保持する
+  assert.equal(legacySetting.maptype, "google_hybrid", "case 7b: 旧保存形は再保存の前から google_hybrid を出力");
+  const legacyWithUrlItem = {
+    uid: "uid-google-legacy-url",
+    mapID: "google-legacy-url",
+    data: { mapID: "google-legacy-url", lang: "ja", title: { ja: "G" }, maptype: "google_hybrid", url: "https://example.org/{z}/{x}/{y}.png" },
+  };
+  const legacyUrlSetting = composeBaseMapSettingFile(legacyWithUrlItem, "base");
+  assert.equal(legacyUrlSetting.maptype, "google_hybrid", "case 7b: 旧保存形の種別は maptype から決める");
+  assert.equal("url" in legacyUrlSetting, false, "case 7b: 旧保存形の Google の地図も url を出さない");
+  assert.equal("urls" in legacyUrlSetting, false, "case 7b: 旧保存形の Google の地図も urls を出さない");
   // Google 以外の種別の attr は従来どおり出す
   const tmsItem = {
     uid: "uid-tms",
     mapID: "tms-master",
-    data: { mapID: "tms-master", lang: "ja", title: { ja: "T" }, attr: { ja: "© Example" }, kind: "tms", url: "https://example.org/{z}/{x}/{y}.png" },
+    data: { mapID: "tms-master", lang: "ja", title: { ja: "T" }, attr: { ja: "© Example" }, dataAttr: { ja: "© Data" }, kind: "tms", url: "https://example.org/{z}/{x}/{y}.png" },
   };
   assert.equal(composeBaseMapSettingFile(tmsItem, "base").attr, "© Example", "case 7b: tms の attr は出す");
+  assert.equal(composeBaseMapSettingFile(tmsItem, "base").dataAttr, "© Data", "case 7b: tms の dataAttr は出す");
   // normalize 経由でも同じ
   const normalized = normalizeAppSource(appSrc);
   assert.equal("maptype" in composeViewerSource(normalized, { lookup }), false, "case 7: normalize→compose でも maptype は出ない");

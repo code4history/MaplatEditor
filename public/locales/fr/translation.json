@@ -259,7 +259,8 @@
       "default_license_note": "Les conditions de Google Maps Platform s'appliquent. L'attribution doit rester visible.",
       "default_data_license_note": "Données cartographiques et imagerie © Google. Voir les conditions de Google Maps Platform.",
       "attr_value": "Mention de droits d'auteur fournie par Google",
-      "attr_reason": "L'attribution d'une carte Google est la mention de droits d'auteur fournie par Google. Conformément aux conditions de Google, la mention complète de Google et le logo Google Maps sont affichés tant que la carte est affichée. Vous ne pouvez donc pas la saisir ici."
+      "attr_reason": "L'attribution d'une carte Google est la mention de droits d'auteur fournie par Google. Conformément aux conditions de Google, la mention complète de Google et le logo Google Maps sont affichés tant que la carte est affichée. Vous ne pouvez donc pas la saisir ici.",
+      "data_attr_reason": "L'attribution des données d'une carte Google utilise la mention de droits d'auteur fournie par Google ; vous ne pouvez donc pas la saisir ici."
     },
     "style_gl_check_v5_ok": "Fonctionne avec MapLibre GL JS 5 et 6",
     "style_gl_check_needs_v6": "Nécessite MapLibre GL JS 6 : {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "Rechercher une adresse",
     "iiif_image_size_help": "La taille d'une carte diffusée depuis IIIF est fixée par le info.json de l'image IIIF.",
     "iiif_upload_map_reason": "Une carte diffusée depuis IIIF charge son image depuis le service d'images IIIF. Enregistrer une autre image ne correspondrait pas à la taille de l'image IIIF et casserait la carte ; cette action n'est donc pas disponible.",
-    "iiif_map_tile_reason": "Les tuiles d'une carte diffusée depuis IIIF sont chargées depuis le service d'images IIIF affiché ici. Ce service est fixé par le Manifest importé ; vous ne pouvez pas le saisir ici."
+    "iiif_map_tile_reason": "Les tuiles d'une carte diffusée depuis IIIF sont chargées depuis le service d'images IIIF affiché ici. Ce service est fixé par les informations IIIF importées ; vous ne pouvez pas le saisir ici.",
+    "image_size": "Taille de l'image de la carte"
   },
   "mapupload": {
     "map_image": "Image de la carte",

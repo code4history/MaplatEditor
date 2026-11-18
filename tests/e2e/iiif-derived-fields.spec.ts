@@ -119,7 +119,7 @@ async function expectIiifDerivedFields(page: Page): Promise<void> {
   await expect(tileUrl).toBeDisabled();
   await expect(tileUrl).toHaveValue(CANVAS_3_SERVICE_URL);
   await expect(page.getByTestId('map-tile-url-iiif-reason')).toHaveAttribute('aria-label', '「地図タイルURL」を使えない理由');
-  await expectPopover(page, 'map-tile-url-iiif-reason', 'インポートした Manifest で決まるため');
+  await expectPopover(page, 'map-tile-url-iiif-reason', 'インポートした IIIF の情報で決まるため');
 
   await expect(page.getByTestId('map-upload-image')).toBeDisabled();
   await expect(page.getByTestId('map-upload-image-iiif-reason')).toHaveAttribute('aria-label', '「地図画像登録」を使えない理由');
@@ -128,6 +128,11 @@ async function expectIiifDerivedFields(page: Page): Promise<void> {
   await expect(page.getByTestId('map-image-extension')).toHaveCount(0);
   await expect(page.getByTestId('map-image-width')).toHaveValue('4074');
   await expect(page.getByTestId('map-image-height')).toHaveValue('2705');
+  // 大きさの ? は幅と高さの両方の説明（高さの後ろに 1 つ）。? の有無で幅と高さの入力欄がずれない
+  await expect(page.getByTestId('map-image-size-iiif-help')).toHaveAttribute('aria-label', '「地図画像の大きさ」の説明');
+  const widthBox = await page.getByTestId('map-image-width').boundingBox();
+  const heightBox = await page.getByTestId('map-image-height').boundingBox();
+  expect(Math.abs((widthBox?.y ?? 0) - (heightBox?.y ?? -10))).toBeLessThan(0.5);
   await expectPopover(page, 'map-image-size-iiif-help', 'info.json で決まります');
 }
 
