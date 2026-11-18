@@ -417,7 +417,7 @@ try {
   );
   // renderer の /tms_list.json fetch は廃止。PoiEditMap 単体でなく
   // src/ 全域で参照 0 件が要件（コメント含む）。PoiEdit 専用 smoke への MapEdit 側
-  // 検査混在は 設計レビュー Info 4 で許容済み（case 3 の正 = src/ 全域での消失のため）
+  // 検査混在は 以前のレビューで許容済み（case 3 の正 = src/ 全域での消失のため）
   assert.doesNotMatch(
     poiEditMap,
     /tms_list/,

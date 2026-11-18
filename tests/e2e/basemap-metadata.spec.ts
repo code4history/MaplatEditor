@@ -67,7 +67,7 @@ test('6項目を日本語と英語で入力し保存・一覧へ戻る・再読�
  } finally { await quitElectronApplication(app); }
 });
 
-test('保存の直後に一覧へ戻ると、一覧の読み直しが遅れても編集画面が開き直さない', async () => {
+test('ベースマップ保存の直後に一覧へ戻ると、一覧の読み直しが遅れても編集画面が開き直さない', async () => {
  test.setTimeout(180000);
  const { app, page } = await launch();
  try {

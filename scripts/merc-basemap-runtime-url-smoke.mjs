@@ -26,7 +26,7 @@
 //      composeBaseMapSettingFile の出力にも url_ が出ない
 //   S6 非 merc（tms / google / mapbox / maplibre）の item に url_ が立たない（'url_' in item === false）
 //   S7 toBaseMapLayerData が url_ を載せ替え、引数の item.data を破壊せず、
-//      url_ を持たない item の返り値には url_ own key を立てない（round 3 MNR-13）
+//      url_ を持たない item の返り値には url_ own key を立てない（own-key を保持する契約）
 //   S8 search:baseMaps の pageSize<=0（全件）経路でも url_ と thumbnailUrl の両方が添付される
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -444,7 +444,7 @@ try {
   assert.ok(master, 'S5-b: lookup が merc マスタを引けること');
   assert.equal('url_' in master, false, 'S5-b: createBaseMapMasterLookup が item レベルのキーを落とすこと');
   const settingFile = composeBaseMapSettingFile(master, 'base');
-  assert.equal('url_' in settingFile, false, 'S5-b: 設定ファイル出力に url_ キーが出ないこと（MJR-1 の再発防止）');
+  assert.equal('url_' in settingFile, false, 'S5-b: 設定ファイル出力に url_ キーが出ないこと（url_ を出さない検査）');
   assert.equal(
     settingFile.url, `merc/${MERC_SLUG}/{z}/{x}/{y}.png`,
     'S5-b: 設定ファイルの url は現在 slug 由来のまま不変であること: ' + settingFile.url,
@@ -452,7 +452,7 @@ try {
   console.log('ok: S5-b compose boundary emits no url_ and keeps the slug-derived url');
 
   // ============================================================
-  // S7: toBaseMapLayerData の載せ替え・非破壊・own key 規律（round 3 MNR-13）
+  // S7: toBaseMapLayerData の載せ替え・非破壊・own key 規律（own-key を保持する契約）
   // ============================================================
   const mercItem = JSON.parse(JSON.stringify(snapshot.mercItem));
   const layerData = toBaseMapLayerData(mercItem);

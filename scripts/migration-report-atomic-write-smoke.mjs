@@ -15,7 +15,7 @@
 //   (G) mergeAndWriteReport (既存T3契約の regression): 壊れたJSON → abandon
 //   (H) atomic write 一般: 正常書込み後に .m13tmp が残留しない (temp+fsync+rename)
 //   (I) crash-mid-write 模擬: 前回クラッシュ残留の .m13tmp (壊れた内容) が事前に存在していても、
-//       次回の正常な書込みで上書き・renameされ、結果は正しい内容になる (SI-5 準拠の設計根拠の実証)
+//       次回の正常な書込みで上書き・renameされ、結果は正しい内容になる (同一ディレクトリに配置する設計判断の実証)
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -204,7 +204,7 @@ try {
     await writeLegacyMigrationReport(dir, report);
     const written = await readReportRaw(dir);
     assert.deepEqual(written.warnings, report.warnings, '残留 temp があっても新しい正常な内容で上書きされるはず');
-    assert.equal(await tempExists(dir), false, '残留 temp は今回の書込みの rename で解消されるはず (SI-5 準拠)');
+    assert.equal(await tempExists(dir), false, '残留 temp は今回の書込みの rename で解消されるはず (同一ディレクトリ内に置く)');
     console.log('ok: (I) a stale crashed .m13tmp residue is overwritten cleanly by the next successful write (fault injection)');
   }
 

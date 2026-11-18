@@ -54,7 +54,7 @@ test('地図削除で originals が本物の OS ゴミ箱に入り、live から
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-os-trash-delete-os-trash-'));
   const saveFolder = path.join(e2eRoot, 'save-folder');
 
-  // --- 手順1: run ごとに一意な uid/slug (いずれも randomUUID 由来。レビュー v2 Info 3) ---
+  // --- 手順1: run ごとに一意な uid/slug (いずれも randomUUID 由来。以前のレビュー) ---
   // ゴミ箱内 basename の衝突リネーム が起きず、exact path での確認・後始末が成立する
   const uid = randomUUID();
   const slug = `fx-e2e-${randomUUID()}`;

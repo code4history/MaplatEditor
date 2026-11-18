@@ -259,7 +259,7 @@ try {
       assert.equal(exportedD.result, 'Success');
       assert.ok(
         !exportedD.warnings.includes(MERC_NAME_COLLISION_WARNING),
-        'case 8: 差分モデルでは dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
+        '差分モデルでは dirName がマスタの現在 slug から導出されるため衝突しないはず: ' + JSON.stringify(exportedD.warnings),
       );
       const zipD = new AdmZip(zipPathD);
       const namesD = zipD.getEntries().map((e) => e.entryName);

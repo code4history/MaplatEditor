@@ -57,7 +57,7 @@ const ES_CHAIN = [
   { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, C=US', thumbprint: '2222222222222222222222222222222222222222' },
   { subject: 'CN=SSL.com Root Certification Authority RSA, O=SSL Corporation, L=Houston, S=Texas, C=US', thumbprint: ES_ROOT },
 ];
-// eSigner の実物（U-1・run 38369214775 の artifact u1-esigner-identity/esigner-identity.json の chain）
+// eSigner の実物（実測した署名チェーン・run 38369214775 の artifact u1-esigner-identity/esigner-identity.json の chain）
 const ES_REAL_CHAIN = [
   { subject: 'CN="NAYUTA, INC.", O="NAYUTA, INC.", L=Osaka, S=Ōsaka Prefecture, C=JP', thumbprint: '7625D11EF2D21CB8133CF1E60A2DBEC2B33938B6' },
   { subject: 'CN=SSL.com Code Signing Intermediate CA RSA R1, O=SSL Corp, L=Houston, S=Texas, C=US', thumbprint: 'BC1E0FF366EEAD57F872622A0A5903706B7420F4' },
@@ -142,15 +142,15 @@ const FIXTURE_IDENTITY = {
   assert.deepEqual(as.issuerAllow.map((a) => a.thumbprint).sort(), [AS_CHAIN[2].thumbprint, AS_CHAIN[3].thumbprint].sort(),
     '[1] artifact-signing.issuerAllow は H-B1 の chain の index ≥ 2（PCA とルート）');
   assert.equal(si.checkSigner({ subject: AS_SUBJECT, chain: AS_CHAIN }, 'artifact-signing'), null, '[1] 正本で H-B1 の実物が通る');
-  // 値の実在（U-1 の実測）: eSigner は run 38369214775 の measure-esigner-identity（v1.1.0 の x64 Setup.exe）の
+  // 値の実在（署名チェーンの実測）: eSigner は run 38369214775 の measure-esigner-identity（v1.1.0 の x64 Setup.exe）の
   // 葉の Subject と chain の index 2（SSL.com Root）。index 1（Intermediate）は 規則で issuerAllow に入れない
   const es = identity.esigner;
-  assert.equal(es.publisherSubject, ES_REAL_CHAIN[0].subject, '[1] esigner.publisherSubject は U-1 の SignerCertificate.Subject そのもの');
+  assert.equal(es.publisherSubject, ES_REAL_CHAIN[0].subject, '[1] esigner.publisherSubject は実物の SignerCertificate.Subject そのもの');
   assert.deepEqual(es.issuerAllow.map((a) => a.thumbprint), [ES_REAL_CHAIN[2].thumbprint],
-    '[1] esigner.issuerAllow は U-1 の chain の index 2（SSL.com Root Certification Authority RSA）だけ');
-  assert.match(es.source, /38369214775/, '[1] esigner.source は U-1 の run を指す');
+    '[1] esigner.issuerAllow は実物の chain の index 2（SSL.com Root Certification Authority RSA）だけ');
+  assert.match(es.source, /38369214775/, '[1] esigner.source は 実測の run を指す');
   assert.equal(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN }, 'esigner'), null,
-    '[1] 正本の esigner で U-1 の実物（SSL.com のチェーン）が通る');
+    '[1] 正本の esigner で実測した署名者（SSL.com のチェーン）が通る');
   assert.match(si.checkSigner({ subject: ES_REAL_CHAIN[0].subject, chain: ES_REAL_CHAIN.slice(0, 2) }, 'esigner') ?? '', /上位/,
     '[1] 正本の esigner でも Root が無いチェーンは落ちる');
 
@@ -527,10 +527,10 @@ const OLD = new Date('2020-01-02T03:04:05Z');
   assert.deepEqual(r1.errors, [], '[3] pack-win-1: 差し替え済みのプラグインとアンインストーラー・インストーラーは正常');
   assert.deepEqual(r1.selected.map((s) => s.name), [path.basename(files.uninst[0])], '[3] pack-win-1: アンインストーラーだけを並べる');
   assert.equal(r1.later, 1, '[3] pack-win-1: インストーラーは後の phase');
-  // pack-win-2（installer）: アンインストーラーの would-sign が残る＝U-1 不成立 → 赤
+  // pack-win-2（installer）: アンインストーラーの would-sign が残る＝署名の差し替え失敗 → 赤
   const pack2Bad = writeRec('rec-pack2-bad.jsonl', [entry('uninst', 'would-sign'), entry('setup', 'would-sign')]);
   assert.ok(run('installer', pack2Bad, 'p2bad').errors.some((x) => /前の phase/.test(x) && /__uninstaller/.test(x)),
-    '[3] installer でアンインストーラーの would-sign が残れば赤（U-1 不成立の検出）');
+    '[3] installer でアンインストーラーの would-sign が残れば赤（署名の差し替え失敗の検出）');
   // どの phase にも属さない would-sign・並べるものが 0 本・収集した複写が無い → 赤
   const stray = writeRec('rec-stray.jsonl', [{ file: path.join(d, 'stray', 'foo.exe'), name: 'foo.exe', sha256: 'f'.repeat(64), decision: 'would-sign' }, entry('setup', 'would-sign')]);
   assert.ok(run('installer', stray, 'stray').errors.some((x) => /どの phase/.test(x)), '[3] どの phase にも属さない would-sign は赤');

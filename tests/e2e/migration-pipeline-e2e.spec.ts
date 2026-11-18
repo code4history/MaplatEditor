@@ -128,8 +128,8 @@ test('legacy migration -> thumbnail-512 mining -> originals UUID migration が�
       sha256(path.join(fixturesRoot, 'originals/takabatake_kozu2.jpg')),
       sha256(legacySlug2),
     ]);
-    expect(legacyHash1, 'legacy slug 原本1はフィクスチャ由来と byte-for-byte 不変のはず(SI-2)').toBe(fixtureHash1);
-    expect(legacyHash2, 'legacy slug 原本2はフィクスチャ由来と byte-for-byte 不変のはず(SI-2)').toBe(fixtureHash2);
+    expect(legacyHash1, 'legacy slug 原本1はフィクスチャ由来と byte-for-byte 不変のはず(fixture bytes remain unchanged)').toBe(fixtureHash1);
+    expect(legacyHash2, 'legacy slug 原本2はフィクスチャ由来と byte-for-byte 不変のはず(fixture bytes remain unchanged)').toBe(fixtureHash2);
 
     // --- (c) migration-report-v2.json: originalsUuidMigration.entries ---
     const report = JSON.parse(await readFile(path.join(saveFolder, 'migration-report-v2.json'), 'utf8'));

@@ -368,7 +368,7 @@ const green = (r, msg, re) => {
   assert.match(pwLine, /(^|\s)--forbid-only(\s|$)/, 'Playwright step の playwright test 行に --forbid-only');
   assert.match(pw.run, /echo "\$\?" > playwright-exit\.txt\n\s*exit 0/, 'Playwright step は exit を playwright-exit.txt に書いて 0 で抜ける');
   assert.equal(pw.env?.PLAYWRIGHT_JSON_OUTPUT_NAME, 'e2e-report.json');
-  // 追補 1（F-case 6）: macOS runner は en-US。Playwright の前に Electron の言語を ja に固定し、確かめる
+  // 追加検査: macOS runner は en-US。Playwright の前に Electron の言語を ja に固定し、確かめる
   const pwIndex = e2e.steps.indexOf(pw);
   const setLoc = e2e.steps.findIndex((s) => s.name === 'Set Electron locale (ja)');
   const checkLoc = e2e.steps.findIndex((s) => s.name === 'Check Electron locale');

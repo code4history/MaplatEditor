@@ -1,4 +1,4 @@
-// #141t5/case 4 (a)〜(c): 自動更新の基盤を、spec の中に立てた模擬の更新元（node:http・127.0.0.1）で確かめる。
+// 自動更新の基盤を、spec の中に立てた模擬の更新元（node:http・127.0.0.1）で確かめる。
 // 実 main の electron-updater（macOS では MacUpdater）を、試験用の注入点（MAPLAT_E2E_ROOT と MAPLAT_E2E_UPDATE_FEED・
 // app.isPackaged が偽のときだけ有効）で模擬の更新元へ向け、globalThis.__maplatUpdateTest から確認・ダウンロードを呼ぶ。
 //   (a) 正式版 v9.0.0・RC v9.1.0-rc.1・win-signed-cache がある GitHub 形の更新元で、結果が 9.0.0。RC と win-signed-cache の資産への要求が 0 件

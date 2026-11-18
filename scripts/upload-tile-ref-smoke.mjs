@@ -236,7 +236,7 @@ try {
           path.join(tileFolder, UID_C1),
           '$ を含む saveFolder でも url は恒久タイルフォルダの実パスへ復号されるはず: ' + saveC1.url
         );
-        console.log('ok: (Part C) $ characters in saveFolder path do not corrupt the permanent tile url (regex replacement hazard, review Minor1)');
+        console.log('ok: (Part C) $ characters in saveFolder path do not corrupt the permanent tile url (regex replacement hazard)');
       }
 
       // ============================================================
