@@ -25,7 +25,7 @@ async function launch(e2eRoot: string, instance: string): Promise<Runtime> {
     const page = await app.firstWindow();
     await page.waitForLoadState('domcontentloaded');
     const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
-    // case 14: instance固有userDataDirへ逃げず、両instanceが共有E2E root配下だけを使う
+    // instance固有userDataDirへ逃げず、両instanceが共有E2E root配下だけを使う
     if (!path.resolve(saveFolder).startsWith(path.resolve(e2eRoot) + path.sep)) {
       throw new Error(`E2E storage isolation failed: ${saveFolder} is outside ${e2eRoot}`);
     }
@@ -190,10 +190,10 @@ test('instance B save conflicts with instance A reservation and creates no asset
     await saveButton.click();
     await expect(b.page.locator('[data-diagnostic-scope="operation"]')).toBeVisible({ timeout: 15_000 });
 
-    // case 6: asset本体は作成されていない
+    // asset本体は作成されていない
     const created = await b.page.evaluate(async (slug) => (await window.baseMaps.list()).some((row: any) => row.mapID === slug), slug);
     expect(created).toBe(false);
-    // case 6: draftも作成されていない
+    // draftも作成されていない
     const draftCreated = await b.page.evaluate(async (uid) =>
       (await window.assetDrafts.get('base-map', uid)) != null, bUid);
     expect(draftCreated).toBe(false);

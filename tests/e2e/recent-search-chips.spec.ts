@@ -43,7 +43,7 @@ test('+ active: 停止 800 ms で記録し、変換中は記録せず、画面�
     const search = running.page.locator('[data-resource-search]');
     await search.click();
     await search.pressSequentially('tokyo', { delay: 80 });
-    // case 10: 入力中の各文字は履歴に入らず、停止後にまとめて 1 件
+    // 入力中の各文字は履歴に入らず、停止後にまとめて 1 件
     await running.page.waitForTimeout(1500);
     const mapEntries = await storedSearches(running.page, 'map');
     expect(mapEntries).toHaveLength(1);
@@ -52,7 +52,7 @@ test('+ active: 停止 800 ms で記録し、変換中は記録せず、画面�
     // レビュー指示 4: 現在の q と一致するチップは active
     await expect(running.page.locator('[data-recent-search="tokyo"]')).toHaveClass(/active/);
 
-    // case 8: 履歴は画面ごとに独立（地図管理の q がアプリ管理に出ない）
+    // 履歴は画面ごとに独立（地図管理の q がアプリ管理に出ない）
     await openHash(running.page, '#/applist', '[data-resource-list="app"]');
     await expect(running.page.locator(CHIPS)).toHaveCount(0);
 
@@ -79,7 +79,7 @@ test('+ active: 停止 800 ms で記録し、変換中は記録せず、画面�
     await expect(running.page.locator('[data-recent-search="とうきょう"]')).toHaveCount(1);
     await expect(running.page.locator('[data-recent-search="とうきょう"]')).toHaveClass(/active/);
 
-    // case 7: 再起動後も残る（electron-store に保存されている）
+    // 再起動後も残る（electron-store に保存されている）
     await quitElectronApplication(running.app);
     running = await launch(root);
     await openHash(running.page, '#/applist', '[data-resource-list="app"]');
@@ -94,7 +94,7 @@ test('件数上限・× の 1 件削除・ワンクリック絞り込み・uid �
   const root = await mkdtemp(path.join(os.tmpdir(), 'maplat-recent-search-chips-'));
   const running = await launch(root);
   try {
-    // case 5: 全面（グリッド）は 10 件まで
+    // 全面（グリッド）は 10 件まで
     await openHash(running.page, '#/maplist', '[data-resource-list="map"]');
     const mapSearch = running.page.locator('[data-resource-search]');
     for (let index = 1; index <= 11; index += 1) await commitByBlur(mapSearch, `map${index}`);
@@ -107,7 +107,7 @@ test('件数上限・× の 1 件削除・ワンクリック絞り込み・uid �
     await expect(running.page.locator('[data-recent-search]').first()).toHaveAttribute('data-recent-search', 'enter-commit');
     await expect(running.page.locator('[data-recent-search]')).toHaveCount(10);
 
-    // case 4: × は該当 1 件だけを消し、入力欄の値と現在の検索条件（q）は変えない
+    // × は該当 1 件だけを消し、入力欄の値と現在の検索条件（q）は変えない
     const beforeHash = await running.page.evaluate(() => location.hash);
     await running.page.locator('[data-recent-search-remove="map5"]').click();
     await expect(running.page.locator('[data-recent-search="map5"]')).toHaveCount(0);
@@ -122,13 +122,13 @@ test('件数上限・× の 1 件削除・ワンクリック絞り込み・uid �
     await running.page.waitForTimeout(1200);
     await expect(running.page.locator('[data-recent-search="map7"]')).toHaveCount(0);
 
-    // case 5: 左右ペインは 5 件まで
+    // 左右ペインは 5 件まで
     await openHash(running.page, '#/basemaps', '[data-master-detail="base-map"]');
     const baseSearch = running.page.getByTestId('basemap-search');
     for (let index = 1; index <= 6; index += 1) await commitByBlur(baseSearch, `GSI${index}`);
     await expect(running.page.locator('[data-recent-search]')).toHaveCount(5);
 
-    // case 6/case 9: チップ 1 クリックでその q の絞り込みが走り、選択中の uid を落とさない
+    // チップ 1 クリックでその q の絞り込みが走り、選択中の uid を落とさない
     await commitByBlur(baseSearch, 'GSI');
     await expect(running.page.getByTestId('basemap-row-gsi_ortho')).toBeVisible();
     await running.page.getByTestId('basemap-row-gsi_ortho').click();
@@ -138,7 +138,7 @@ test('件数上限・× の 1 件削除・ワンクリック絞り込み・uid �
     await expect(running.page.getByTestId('basemap-row-gsi_ortho')).toHaveCount(0);
     await running.page.locator('[data-recent-search="GSI"]').click();
     await expect(running.page).toHaveURL(/q=GSI/);
-    await expect(running.page).toHaveURL(/uid=/); // case 9: uid を保つ
+    await expect(running.page).toHaveURL(/uid=/); // uid を保つ
     await expect(running.page.getByTestId('basemap-row-gsi_ortho')).toBeVisible();
     await expect(running.page.getByTestId('basemap-row-osm')).toHaveCount(0);
     // レビュー指示 4: 適用したチップが active になる

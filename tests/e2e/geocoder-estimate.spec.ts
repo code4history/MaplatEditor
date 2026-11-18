@@ -461,7 +461,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
 
   test('region modal shows auto GCP range as a guide without overriding auto', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-hv2-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-guide-only-'));
     const { app, page } = await launch(e2eRoot);
 
     const uid = await createMapWithGcps(page);
@@ -509,7 +509,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
 
   test('outlier GCP uses intersects (not contains) so local base map still listed', async () => {
     test.setTimeout(180_000);
-    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-hv3-'));
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-outlier-intersection-'));
     const { app, page } = await launch(e2eRoot);
 
     const { title } = await createTestBaseMap(page);
@@ -526,7 +526,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await quitElectronApplication(app);
   });
 
-  test('HV-R2: checked base map outside filter region stays visible so it can be unchecked', async () => {
+  test('checked base map outside the filter region stays visible so it can be unchecked', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-geocoder-estimate-r2-checked-'));
     const { app, page } = await launch(e2eRoot);

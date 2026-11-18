@@ -1,6 +1,6 @@
 // preview viewer bundle 同期後のサニタイズされた POI 描画の E2E 検証
 //
-// case 5: 実プレビューで viewer が動作し、POI の HTML が無害化された状態で
+// 実プレビューで viewer が動作し、POI の HTML が無害化された状態で
 //      描画されること（POI の HTML の無害化の是正がプレビューへ届いていることの
 //      動作面の到達確認）
 //

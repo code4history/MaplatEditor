@@ -2,8 +2,7 @@
 // 設計レビューで求められたことに追随する:
 // 設計レビューの指示（連番で古い非同期結果を捨てる）に追随する。
 //
-//   (a) アプリ編集: performUndo/performRedo の末尾で hydrateAssetPreviews() を呼ぶ  -> case 8
-//   (b) アプリ編集: hydrateAssetPreviews が連番で古い解決結果を捨てる（後着上書き防止）
+//   (a) アプリ編集: performUndo/performRedo の末尾で hydrateAssetPreviews() を呼ぶ  -> //   (b) アプリ編集: hydrateAssetPreviews が連番で古い解決結果を捨てる（後着上書き防止）
 //   (c) アプリ編集: スプラッシュ/PWA アイコンのプレビューに e2e 用の testid がある
 //   (d) token 方式の一次画像読み出し（main が選ばれたファイルにだけ発行する）の純関数
 //   (e) 一次画像の data: URL 化（renderer）
@@ -41,7 +40,7 @@ function bodyOf(source, name) {
 
 const appEdit = await readSrc("src/views/AppEdit.vue");
 
-// (a) case 8: undo/redo でプレビューを追随させる
+// (a) undo/redo でプレビューを追随させる
 for (const name of ["performUndo", "performRedo"]) {
   const body = bodyOf(appEdit, name);
   assert.match(

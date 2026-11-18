@@ -1,14 +1,14 @@
-// case 13: 採番の生成部は必ず "-" で始まる。
+// 採番の生成部は必ず "-" で始まる。
 //
 // 人間指示（2026-08-03）:
 //   「base(-[付与文字列]) がいい。base との間にハイフンがないと、
 //     元々の名前か生成した名前か判定しにくい」
 //
 // 固定する受け入れ条件:
-//   case 13(a) 表駆動 — slugCandidate(base,2)='base-2' / suffix 付きは無変化
-//   case 13(b) 長さ切詰が "-" 込みで効く
-//   case 13(c) 実経路 — POI import が base-2、POI 搬出のファイル名が pois/x-2.geojson
-//   case 13(d) 旧規則を書いた docstring/コメントが追随している
+// (a) 表駆動 — slugCandidate(base,2)='base-2' / suffix 付きは無変化
+// (b) 長さ切詰が "-" 込みで効く
+// (c) 実経路 — POI import が base-2、POI 搬出のファイル名が pois/x-2.geojson
+// (d) 旧規則を書いた docstring/コメントが追随している
 //
 // 【n=1 に "-" は付かない】
 // n=1 は衝突がなく **base をそのまま使う** ケースであり、生成部が存在しない。
@@ -30,7 +30,7 @@ const outDir = path.join(workDir, 'dist');
 const bundled = path.join(outDir, 'entry.mjs');
 
 try {
-  // --- case 13(d): 旧規則を書いた docstring/コメントの追随（ソーステキスト assert）---
+  // --- (d): 旧規則を書いた docstring/コメントの追随（ソーステキスト assert）---
   // 規則を変えてコメントを置き去りにすると、次に読む人が旧規則を正しいと信じる。
   const docTargets = [
     { file: 'src/utils/slugSequence.ts', label: '正本の冒頭コメント' },
@@ -41,8 +41,8 @@ try {
     const src = await readFile(path.join(projectRoot, file), 'utf8');
     const comments = src.split('\n').filter((l) => /^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
     assert.equal(/base2|base3|base100/.test(comments), false,
-      `case 13(d): ${file}（${label}）のコメントに旧規則 base2/base3/base100 が残っている`);
-    console.log(`ok case 13(d): ${file} のコメントが新規則へ追随している`);
+      `(d): ${file}（${label}）のコメントに旧規則 base2/base3/base100 が残っている`);
+    console.log(`ok (d): ${file} のコメントが新規則へ追随している`);
   }
 
   await writeFile(entryFile, `
@@ -52,7 +52,7 @@ try {
     const { reservePoiFileBase } =
       await import(${JSON.stringify(path.join(projectRoot, 'src/utils/poiExportFileName.ts'))});
 
-    // ---- case 13(a): 表駆動 ----
+    // ---- (a): 表駆動 ----
     // 不変条件は1つ: **生成部は必ず "-" で始まる**。
     // suffix（"-copy" / "-poi" / "-local"）は既に "-" 始まりなので変化しない。
     const table = [
@@ -70,52 +70,52 @@ try {
     ];
     for (const [base, n, opts, expected, why] of table) {
       assert.equal(slugCandidate(base, n, opts), expected,
-        'case 13(a): slugCandidate(' + JSON.stringify(base) + ', ' + n + ', ' + JSON.stringify(opts)
+        '(a): slugCandidate(' + JSON.stringify(base) + ', ' + n + ', ' + JSON.stringify(opts)
           + ') は ' + expected + ' であること — ' + why);
     }
-    console.log('ok case 13(a): 生成部が必ず "-" 始まり（suffix 系は無変化）');
+    console.log('ok (a): 生成部が必ず "-" 始まり（suffix 系は無変化）');
 
-    // ---- case 13(b): 長さ切詰が "-" 込みで効く ----
+    // ---- (b): 長さ切詰が "-" 込みで効く ----
     // 生成部が1文字伸びる ∴ base の切詰も1文字増える。SLUG_MAX を超えてはならない。
     const long = 'a'.repeat(120);
     const c2 = slugCandidate(long, 2);
-    assert.equal(c2.length, SLUG_MAX, 'case 13(b): 切詰後も SLUG_MAX ちょうど（実際: ' + c2.length + '）');
+    assert.equal(c2.length, SLUG_MAX, '(b): 切詰後も SLUG_MAX ちょうど（実際: ' + c2.length + '）');
     assert.equal(c2, 'a'.repeat(SLUG_MAX - 2) + '-2',
-      'case 13(b): 末尾が "-2" で base が2文字ぶん削られること（実際末尾: ' + c2.slice(-6) + '）');
+      '(b): 末尾が "-2" で base が2文字ぶん削られること（実際末尾: ' + c2.slice(-6) + '）');
     const c100 = slugCandidate(long, 100);
-    assert.equal(c100.length, SLUG_MAX, 'case 13(b): 3桁連番でも SLUG_MAX ちょうど');
-    assert.equal(c100.slice(-4), '-100', 'case 13(b): 末尾が "-100"（実際: ' + c100.slice(-4) + '）');
+    assert.equal(c100.length, SLUG_MAX, '(b): 3桁連番でも SLUG_MAX ちょうど');
+    assert.equal(c100.slice(-4), '-100', '(b): 末尾が "-100"（実際: ' + c100.slice(-4) + '）');
     const cCopy = slugCandidate(long, 2, { suffix: '-copy' });
     assert.equal(cCopy, 'a'.repeat(SLUG_MAX - 6) + '-copy2',
-      'case 13(b): suffix 系の切詰は無変化（実際末尾: ' + cCopy.slice(-8) + '）');
-    console.log('ok case 13(b): 長さ切詰が "-" 込みで効く');
+      '(b): suffix 系の切詰は無変化（実際末尾: ' + cCopy.slice(-8) + '）');
+    console.log('ok (b): 長さ切詰が "-" 込みで効く');
 
-    // ---- case 13(c)-1: findAvailableSlug の候補列 ----
+    // ---- (c)-1: findAvailableSlug の候補列 ----
     {
       const tried = [];
       const got = await findAvailableSlug('foo', async (s) => { tried.push(s); return s === 'foo-3'; });
-      assert.equal(got, 'foo-3', 'case 13(c): 3番目の候補が採れること');
+      assert.equal(got, 'foo-3', '(c): 3番目の候補が採れること');
       assert.deepEqual(tried, ['foo', 'foo-2', 'foo-3'],
-        'case 13(c): 候補列が base → base-2 → base-3 であること（実際: ' + JSON.stringify(tried) + '）');
+        '(c): 候補列が base → base-2 → base-3 であること（実際: ' + JSON.stringify(tried) + '）');
       const none = await findAvailableSlug('foo', async () => false);
-      assert.equal(none, null, 'case 13(c): 枯渇は null');
+      assert.equal(none, null, '(c): 枯渇は null');
     }
-    console.log('ok case 13(c): findAvailableSlug の候補列が base → base-2 → base-3');
+    console.log('ok (c): findAvailableSlug の候補列が base → base-2 → base-3');
 
-    // ---- case 13(c)-2: POI 搬出のファイル名（顧客可視の出力）----
+    // ---- (c)-2: POI 搬出のファイル名（顧客可視の出力）----
     // reservePoiFileBase は正本 slugCandidate の利用側 ∴ 正本を直せば自動的に揃う。
     {
       const taken = new Set();
-      assert.equal(reservePoiFileBase('x', taken), 'x',   'case 13(c): 1件目は素の名前');
-      assert.equal(reservePoiFileBase('x', taken), 'x-2', 'case 13(c): 2件目は x-2（旧: x2）');
-      assert.equal(reservePoiFileBase('x', taken), 'x-3', 'case 13(c): 3件目は x-3');
-      assert.deepEqual([...taken].sort(), ['x', 'x-2', 'x-3'], 'case 13(c): 確保した名前が taken に記録される');
+      assert.equal(reservePoiFileBase('x', taken), 'x',   '(c): 1件目は素の名前');
+      assert.equal(reservePoiFileBase('x', taken), 'x-2', '(c): 2件目は x-2（旧: x2）');
+      assert.equal(reservePoiFileBase('x', taken), 'x-3', '(c): 3件目は x-3');
+      assert.deepEqual([...taken].sort(), ['x', 'x-2', 'x-3'], '(c): 確保した名前が taken に記録される');
       // 枯渇（上限を下げず実際に埋める）
       const full = new Set();
       for (let n = 1; n <= SEQUENCE_MAX_INDEX; n++) full.add(slugCandidate('y', n));
-      assert.equal(reservePoiFileBase('y', full), null, 'case 13(c): 全候補が埋まっていれば null');
+      assert.equal(reservePoiFileBase('y', full), null, '(c): 全候補が埋まっていれば null');
     }
-    console.log('ok case 13(c): POI 搬出ファイル名が pois/x-2.geojson 相当へ揃う');
+    console.log('ok (c): POI 搬出ファイル名が pois/x-2.geojson 相当へ揃う');
 
     console.log('slug rule hyphen OK');
   `);

@@ -1,5 +1,5 @@
-// case 2: #100 runGuarded 拡張 smoke。
-// case 2 / 全数調査表 #21〜#27。
+// #100 runGuarded 拡張 smoke。
+// 全数調査表 #21〜#27。
 //
 // 各 (file, channel) について、handler 本体が runGuarded('<channel>', …) を呼んでいることを
 // ソース scan で assert する。channel 文字列はハンドラに一意なので、同一文字列の runGuarded 呼び出しが
@@ -34,4 +34,4 @@ for (const [file, channels] of TARGETS) {
   }
 }
 
-console.log(`=== case 2: runGuarded 拡張 ${total} チャネル: PASS ===`);
+console.log(`=== runGuarded 拡張 ${total} チャネル: PASS ===`);

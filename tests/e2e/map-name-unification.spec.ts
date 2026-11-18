@@ -129,7 +129,7 @@ function readMapDocs(db: DatabaseSync): Record<string, any> {
   return Object.fromEntries(rows.map((r) => [String(r.slug), JSON.parse(String(r.data_json))]));
 }
 
-/** 名称 3 属性だけを取り出す（case 7C の「2 回取込で結果同一」の比較単位。設計レビュー v2 MNR-B） */
+/** 名称 3 属性だけを取り出す（2 回取込でも結果が同一かを比較する）。 */
 function nameTriple(doc: any): Record<string, unknown> {
   return { title: doc.title, label: doc.label, hasDeprecated: DEPRECATED in doc };
 }
@@ -617,7 +617,6 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
 
       // 2 回目の取込: slug 自動解決で **行は増える**（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり）ため「DB 不変」では
       // 成立しない。期待値は「各取込が生んだ地図文書の名称 3 属性が同一」である
-      // （設計レビュー v2 MNR-B）
       await importOnce();
       const afterSecond = (() => {
         const db = openDb(saveFolder);

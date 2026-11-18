@@ -1,7 +1,7 @@
 // 地図搬出とアプリ搬出が **単一の実装** を共有すること。
 //
 // 固定する受け入れ条件:
-//   case 1  同一の POI fixture を地図 ZIP／アプリ ZIP の双方で搬出したとき、
+// 同一の POI fixture を地図 ZIP／アプリ ZIP の双方で搬出したとき、
 //        POI 参照形・pois/*.geojson・依存 assets が共通 manifest と一致する。
 //        **かつアプリ ZIP の出力内容が共通化の前後で変わらない**
 //
@@ -29,41 +29,41 @@ await mkdir(scratchRoot, { recursive: true });
   const resolverSrc = await readFile(path.join(projectRoot, 'electron/services/poiReferenceResolver.ts'), 'utf8');
 
   assert.match(resolverSrc, /export async function externalizeMapDocumentPois\(/,
-    'case 1: 共通 API が poiReferenceResolver に1つだけ定義されていること');
+    '共通 API が poiReferenceResolver に1つだけ定義されていること');
   assert.match(mapSrc, /externalizeMapDocumentPois\(/,
-    'case 1: 地図 ZIP 搬出が共通 API を呼ぶこと');
+    '地図 ZIP 搬出が共通 API を呼ぶこと');
   assert.match(appSrc, /externalizeMapDocumentPois\(/,
-    'case 1: アプリ搬出（map JSON 経路）が共通 API を呼ぶこと');
+    'アプリ搬出（map JSON 経路）が共通 API を呼ぶこと');
 
   // 地図 ZIP 側が readAppDocumentPois / externalizePoisArray を **直接** 呼んでいないこと
   // （共通 API の内側だけが呼ぶ形＝二重実装が復活していないこと）
   assert.equal(/readAppDocumentPois\(/.test(mapSrc), false,
-    'case 1: 地図 ZIP 搬出が readAppDocumentPois を直接呼ばないこと（共通 API 経由であること）');
+    '地図 ZIP 搬出が readAppDocumentPois を直接呼ばないこと（共通 API 経由であること）');
   assert.equal(/externalizePoisArray\(/.test(mapSrc), false,
-    'case 1: 地図 ZIP 搬出が externalizePoisArray を直接呼ばないこと（共通 API 経由であること）');
+    '地図 ZIP 搬出が externalizePoisArray を直接呼ばないこと（共通 API 経由であること）');
 
   // 旧実装（インライン FC 化）へ戻っていないこと
   assert.equal(/resolvePoisArray\(/.test(mapSrc), false,
-    'case 1: 地図 ZIP 搬出が resolvePoisArray（インライン FC 化）へ戻っていないこと');
+    '地図 ZIP 搬出が resolvePoisArray（インライン FC 化）へ戻っていないこと');
 
   // ---- POI 実体の **書き出し** も単一実装であること ----
   // 外部化（参照形の決定）を共通化しても、書き出し（整形・境界検査）が2箇所にあると
   // 同じ dest の同じ実体が経路によって別物になる。実際に地図 ZIP だけ minify・
   // 境界検査なしで書いていた（2026-08-03 人間指摘）
   assert.match(resolverSrc, /export async function writePoiDocuments\(/,
-    'case 1: POI 実体の書き出しが poiReferenceResolver に1つだけ定義されていること');
+    'POI 実体の書き出しが poiReferenceResolver に1つだけ定義されていること');
   assert.match(mapSrc, /writePoiDocuments\(/,
-    'case 1: 地図 ZIP 搬出が共有の書き出しを呼ぶこと');
+    '地図 ZIP 搬出が共有の書き出しを呼ぶこと');
   assert.match(appSrc, /writePoiDocuments\(/,
-    'case 1: アプリ搬出が共有の書き出しを呼ぶこと');
+    'アプリ搬出が共有の書き出しを呼ぶこと');
   // 呼び出し側が自前で直列化・境界検査へ戻っていないこと
   for (const [label, src] of [['地図 ZIP', mapSrc], ['アプリ', appSrc]]) {
     assert.equal(/JSON\.stringify\(doc\.json\)/.test(src), false,
-      'case 1: ' + label + ' 搬出が POI 実体を自前で直列化していないこと');
+      '' + label + ' 搬出が POI 実体を自前で直列化していないこと');
     assert.equal(/escaped the output directory/.test(src), false,
-      'case 1: ' + label + ' 搬出が境界検査を自前で持っていないこと（共有側の責務）');
+      '' + label + ' 搬出が境界検査を自前で持っていないこと（共有側の責務）');
   }
-  console.log('ok: case 1 単一実装を両者が呼ぶ（参照形の決定・実体の書き出しの両方）');
+  console.log('ok: 単一実装を両者が呼ぶ（参照形の決定・実体の書き出しの両方）');
 }
 
 // ---------------------------------------------------------------------------
@@ -141,23 +141,23 @@ try {
 
   assert.deepEqual(
     mapJson.pois, appJson.pois,
-    'case 1: 同じ POI 入力に対して地図/アプリの参照形が一致すること',
+    '同じ POI 入力に対して地図/アプリの参照形が一致すること',
   );
   assert.deepEqual(
     mapOut.result.documents.map((d) => d.dest).sort(),
     appOut.result.documents.map((d) => d.dest).sort(),
-    'case 1: 生成される pois/*.geojson の dest が一致すること',
+    '生成される pois/*.geojson の dest が一致すること',
   );
   assert.deepEqual(
     mapOut.result.files.map((f) => f.dest).sort(),
     appOut.result.files.map((f) => f.dest).sort(),
-    'case 1: 依存 assets の manifest が一致すること',
+    '依存 assets の manifest が一致すること',
   );
 
   // 透過要素も同じ扱いであること
   assert.equal(mapJson.pois[1].layer, 'https://example.com/remote.geojson');
   assert.equal(appJson.pois[1].layer, 'https://example.com/remote.geojson');
-  console.log('ok: case 1 地図/アプリの参照形・documents・assets が一致');
+  console.log('ok: 地図/アプリの参照形・documents・assets が一致');
 
   // POI が無い場合は pois キーを触らない（元に無いキーを生やさない）
   {
@@ -165,7 +165,7 @@ try {
     const out = await externalizeMapDocumentPois(empty, createPoiExternalizationContext());
     assert.equal(out.result, null, 'POI 0件では result が null であること');
     assert.equal('pois' in empty, false, 'POI 0件では pois キーを生やさないこと');
-    console.log('ok: case 1 POI 0件で pois キーを生やさない');
+    console.log('ok: POI 0件で pois キーを生やさない');
   }
 
   console.log('export unification parity smoke: OK');

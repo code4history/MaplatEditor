@@ -114,7 +114,7 @@ test('WGS84 search adapters and selector contexts share FTS, bbox, remount, and 
     await poiToggle.click();
     await expect(poiToggle).toContainText(/全世界|指定なし/);
 
-    // case 3/case 4: 一覧の bbox 範囲フィルタ UI (BaseMapList 文法: ボタン→モーダル→?bbox=→クリア)
+    // 一覧の bbox 範囲フィルタ UI (BaseMapList 文法: ボタン→モーダル→?bbox=→クリア)
     await page.evaluate(() => { location.hash = '#/maplist'; });
     await expect(page.getByTestId('map-range-filter')).toBeVisible();
     await page.getByTestId('map-range-filter').click();

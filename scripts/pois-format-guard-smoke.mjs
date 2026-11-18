@@ -7,7 +7,7 @@
 // Part A: acceptDocumentPois の表駆動（親F1〜F7）
 //         — 配列は同一参照で素通し / 既存の空配列は維持 / 未設定はキーを生やさない /
 //           未対応形式は生値をそのまま温存 / target === incoming でも安全（冪等）
-// Part B: usePoisFormatGuard の反応性（case 1 の第2層）
+// Part B: usePoisFormatGuard の反応性（の第2層）
 //         — 文書が差し替わったら判定が追随する（関所を通らない履歴復帰でも正しい）
 // Part C: 実装同一性と関所の実効性のソース assert
 //         — 両 View が同じ1本を通り、温存の独自分岐を持たない /
@@ -196,7 +196,7 @@ try {
   assert.match(
     appPoisFormat,
     /export function acceptDocumentPois</,
-    'case 1: appPoisFormat.ts に受け入れ関所 acceptDocumentPois が無い',
+    'appPoisFormat.ts に受け入れ関所 acceptDocumentPois が無い',
   );
   assert.doesNotMatch(appPoisFormat, /JSON\.parse/, 'appPoisFormat.ts に JSON.parse が混入している');
 
@@ -205,25 +205,25 @@ try {
     assert.match(
       src,
       /import \{[^}]*acceptDocumentPois[^}]*\} from ['"]\.\.\/utils\/appPoisFormat['"]/,
-      `case 1: ${name} が acceptDocumentPois を import していない`,
+      `${name} が acceptDocumentPois を import していない`,
     );
-    assert.match(src, /acceptDocumentPois\(/, `case 1: ${name} が受け入れ関所を呼んでいない`);
+    assert.match(src, /acceptDocumentPois\(/, `${name} が受け入れ関所を呼んでいない`);
     assert.match(
       src,
       /import \{[^}]*usePoisFormatGuard[^}]*\} from ['"]\.\.\/composables\/usePoisFormatGuard['"]/,
-      `case 1: ${name} が usePoisFormatGuard を import していない`,
+      `${name} が usePoisFormatGuard を import していない`,
     );
-    assert.match(src, /usePoisFormatGuard\(/, `case 1: ${name} が判定ガードを使っていない`);
+    assert.match(src, /usePoisFormatGuard\(/, `${name} が判定ガードを使っていない`);
     // 温存・判定の独自実装が View 側に残っていないこと（実装同一性の核心）
     assert.doesNotMatch(
       src,
       /readAppDocumentPois\(/,
-      `case 1: ${name} が判定関数を直接呼んでいる（受け入れは acceptDocumentPois、判定表示は usePoisFormatGuard へ一本化する）`,
+      `${name} が判定関数を直接呼んでいる（受け入れは acceptDocumentPois、判定表示は usePoisFormatGuard へ一本化する）`,
     );
     assert.doesNotMatch(
       src,
       /poisUnsupported\.value\s*=/,
-      `case 1: ${name} が poisUnsupported へ命令的に代入している（computed ガードへ移行済みのはず）`,
+      `${name} が poisUnsupported へ命令的に代入している（computed ガードへ移行済みのはず）`,
     );
   }
 
@@ -232,21 +232,21 @@ try {
     assert.match(
       src,
       /unsupported:\s*poisUnsupported/,
-      `case 1: ${name} が composable の unsupported を poisUnsupported として受けていない`,
+      `${name} が composable の unsupported を poisUnsupported として受けていない`,
     );
-    assert.match(src, /:read-only="poisUnsupported"/, `case 1: ${name} が PoiReferenceEditor へ read-only を渡していない`);
+    assert.match(src, /:read-only="poisUnsupported"/, `${name} が PoiReferenceEditor へ read-only を渡していない`);
   }
 
   // 警告表示の機構が同一（文言キーだけ画面別 — ・人間判断 2026-08-02）
   assert.match(
     appEdit,
     /v-if="poisUnsupported"[\s\S]{0,160}?appedit\.poi_format_unsupported/,
-    'case 1: AppEdit.vue の未対応形式警告が無い',
+    'AppEdit.vue の未対応形式警告が無い',
   );
   assert.match(
     mapEdit,
     /v-if="poisUnsupported"[\s\S]{0,160}?mapedit\.poi_format_unsupported/,
-    'case 1: MapEdit.vue の未対応形式警告（mapedit 名前空間）が無い',
+    'MapEdit.vue の未対応形式警告（mapedit 名前空間）が無い',
   );
 
   // 書き込みガードが両 View に同一形で入っている
@@ -254,7 +254,7 @@ try {
     const idx = src.indexOf('function onPoisChange');
     assert.ok(idx > 0, `${name} に onPoisChange が無い`);
     const body = src.slice(idx, idx + 420);
-    assert.match(body, /acceptsWrite\(\)/, `case 1: ${name} の onPoisChange に書き込みガードが無い`);
+    assert.match(body, /acceptsWrite\(\)/, `${name} の onPoisChange に書き込みガードが無い`);
     // 空時のキー削除を含む保存形の決定は共通の書き込み関所 writeDocumentPois へ移した
     // （両画面で完全に同一の写像だったため — 恒久指示「同一扱い処理は共通実装へ徹底」）。
     // 「永続形は両画面同一」という検査意図は、両画面が同じ関所を通ることで従来より強く担保される。
@@ -262,7 +262,7 @@ try {
     assert.match(
       body,
       /writeDocumentPois\(/,
-      `case 1: ${name} の onPoisChange が書き込み関所 writeDocumentPois を通っていない（永続形は両画面同一 —）`,
+      `${name} の onPoisChange が書き込み関所 writeDocumentPois を通っていない（永続形は両画面同一 —）`,
     );
   }
 
@@ -290,7 +290,7 @@ try {
     /mapData\.value\s*=\s*(fresh|data|histMap)\b/,
     'setMapDocument を経由しない旧来の文書代入が残っている',
   );
-  console.log('ok: Part C 実装同一性（case 1）と関所の実効性');
+  console.log('ok: Part C 実装同一性（）と関所の実効性');
 
   // 警告文言が 11 locale すべてに存在する（先出し検査）
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];

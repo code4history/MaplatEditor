@@ -1,7 +1,7 @@
-// case 8: 実 UI の「ローカル複製」が動く。
+// 実 UI の「ローカル複製」が動く。
 //
 // 固定する受け入れ条件:
-//   case 8 remote ソースを複製すると <slug>-local の新ソースが作られ、その編集画面へ遷移する
+// remote ソースを複製すると <slug>-local の新ソースが作られ、その編集画面へ遷移する
 //
 // 【なぜ E2E が要るか】
 // 当初の設計は「既存の clone E2E が回帰になる」として E2E 不要としていたが、
@@ -118,7 +118,7 @@ test.describe('実 UI からのローカル複製', () => {
       });
       expect(second.slug).toBe(`${slug}-local2`);
 
-      console.log(`  case 8: PASS（複製 → ${slug}-local → 2回目 ${slug}-local2）`);
+      console.log(`  PASS（複製 → ${slug}-local → 2回目 ${slug}-local2）`);
     } finally {
       await quitElectronApplication(app);
       await new Promise<void>((resolve) => server.close(() => resolve()));

@@ -1,11 +1,11 @@
-// case 1: import の slug 解決を唯一の正本へ集約する。
+// import の slug 解決を唯一の正本へ集約する。
 //
 // 固定する受け入れ条件:
-//   case 1(a) 共有 API `resolveImportSlug` が **1つだけ** 定義されている
-//   case 1(b) の4経路すべてが共有 API を呼ぶ
+// (a) 共有 API `resolveImportSlug` が **1つだけ** 定義されている
+// (b) の4経路すべてが共有 API を呼ぶ
 //          1 POI .zip / 2 POI .geojson / 3 地図ZIP同梱 managed POI 復元 / 4 地図 ZIP
-//   case 1(c) `PoiSourceService` の private 実装が **残っていない**
-//   case 1(d) 契約 — 空入力は素通し / 枯渇は null / 予約はしない
+// (c) `PoiSourceService` の private 実装が **残っていない**
+// (d) 契約 — 空入力は素通し / 枯渇は null / 予約はしない
 //
 // 【なぜソース assert を併用するか】
 // 挙動だけを見ると「4経路が同じ結果を返す」ことは確かめられるが、
@@ -23,14 +23,14 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const resolverPath = path.join(projectRoot, 'electron/services/importSlugResolver.ts');
 
-// ---- case 1(a): 共有 API が実在し、定義が1つだけ ----
+// ---- (a): 共有 API が実在し、定義が1つだけ ----
 assert.equal(existsSync(resolverPath), true,
-  'case 1(a): electron/services/importSlugResolver.ts が存在すること（import 方針の唯一の正本）');
+  '(a): electron/services/importSlugResolver.ts が存在すること（import 方針の唯一の正本）');
 const resolverSrc = await readFile(resolverPath, 'utf8');
 assert.match(resolverSrc, /export async function resolveImportSlug/,
-  'case 1(a): resolveImportSlug を export していること');
+  '(a): resolveImportSlug を export していること');
 assert.equal(/base2|base3|base100/.test(resolverSrc), false,
-  'case 1(a): 新規モジュールに旧採番規則の記述が無いこと');
+  '(a): 新規モジュールに旧採番規則の記述が無いこと');
 
 // 定義の一意性: リポジトリ全体で `resolveImportSlug` の **定義** は1つだけ
 const definitionOwners = [];
@@ -43,23 +43,23 @@ for (const dir of ['electron', 'src']) {
   for (const line of stdout.split('\n').filter(Boolean)) definitionOwners.push(line);
 }
 assert.equal(definitionOwners.length, 1,
-  'case 1(a): resolveImportSlug の定義はリポジトリ全体で1つだけであること（実際:\n'
+  '(a): resolveImportSlug の定義はリポジトリ全体で1つだけであること（実際:\n'
     + definitionOwners.join('\n') + '\n）');
 assert.match(definitionOwners[0], /importSlugResolver\.ts/,
-  'case 1(a): その唯一の定義が importSlugResolver.ts にあること（実際: ' + definitionOwners[0] + '）');
-console.log('ok case 1(a): 共有 API の定義が1つだけ');
+  '(a): その唯一の定義が importSlugResolver.ts にあること（実際: ' + definitionOwners[0] + '）');
+console.log('ok (a): 共有 API の定義が1つだけ');
 
-// ---- case 1(c): PoiSourceService の private 実装が残っていない ----
+// ---- (c): PoiSourceService の private 実装が残っていない ----
 const poiSourceSrc = await readFile(path.join(projectRoot, 'electron/services/PoiSourceService.ts'), 'utf8');
 assert.equal(/private\s+async\s+resolveImportSlug/.test(poiSourceSrc), false,
-  'case 1(c): PoiSourceService の private resolveImportSlug が削除されていること');
+  '(c): PoiSourceService の private resolveImportSlug が削除されていること');
 assert.equal(/findAvailableSlug/.test(poiSourceSrc), false,
-  'case 1(c): PoiSourceService が候補生成を直接呼ばないこと（共有 API 経由にする）');
+  '(c): PoiSourceService が候補生成を直接呼ばないこと（共有 API 経由にする）');
 assert.match(poiSourceSrc, /from '\.\/importSlugResolver'/,
-  'case 1(c): PoiSourceService が共有 API を import していること');
-console.log('ok case 1(c): private 実装が残っていない');
+  '(c): PoiSourceService が共有 API を import していること');
+console.log('ok (c): private 実装が残っていない');
 
-// ---- case 1(b): 4経路が共有 API を呼ぶ（呼び出し側のソース確認）----
+// ---- (b): 4経路が共有 API を呼ぶ（呼び出し側のソース確認）----
 const callSites = [
   { file: 'electron/services/PoiSourceService.ts', min: 3, label: '経路1-3（POI .zip / .geojson / managed POI 復元）' },
   { file: 'electron/services/DataUploadService.ts', min: 1, label: '経路4（地図 ZIP）' },
@@ -69,11 +69,11 @@ for (const { file, min, label } of callSites) {
   const src = await readFile(path.join(projectRoot, file), 'utf8');
   const calls = (src.match(/resolveImportSlug\s*\(/g) || []).length;
   assert.ok(calls >= min,
-    `case 1(b): ${file} が共有 API を ${min} 箇所以上呼ぶこと — ${label}（実際: ${calls}）`);
+    `(b): ${file} が共有 API を ${min} 箇所以上呼ぶこと — ${label}（実際: ${calls}）`);
 }
-console.log('ok case 1(b): 4経路（＋経路5）が共有 API を呼ぶ');
+console.log('ok (b): 4経路（＋経路5）が共有 API を呼ぶ');
 
-// ---- case 1(d): 契約の実挙動 ----
+// ---- (d): 契約の実挙動 ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 const workDir = await mkdtemp(path.join(scratchRoot, 'import-slug-resolver-'));
@@ -120,39 +120,39 @@ try {
     const { SEQUENCE_MAX_INDEX, slugCandidate } = await import(${JSON.stringify(path.join(projectRoot, 'src/utils/slugSequence.ts'))});
 
     // (d-1) 空入力は素通し（呼び出し側の invalid-request 検査へ委ねる）
-    assert.equal(await resolveImportSlug(''), '',        'case 1(d): 空文字はそのまま返る');
-    assert.equal(await resolveImportSlug('   '), '',     'case 1(d): 空白のみは trim して空文字');
-    assert.equal(await resolveImportSlug(null), '',      'case 1(d): null は空文字');
-    assert.equal(await resolveImportSlug(undefined), '', 'case 1(d): undefined は空文字');
+    assert.equal(await resolveImportSlug(''), '',        '(d): 空文字はそのまま返る');
+    assert.equal(await resolveImportSlug('   '), '',     '(d): 空白のみは trim して空文字');
+    assert.equal(await resolveImportSlug(null), '',      '(d): null は空文字');
+    assert.equal(await resolveImportSlug(undefined), '', '(d): undefined は空文字');
 
     // (d-2) 空きがあれば素の base
-    assert.equal(await resolveImportSlug('free-slug'), 'free-slug', 'case 1(d): 未使用なら base そのもの');
+    assert.equal(await resolveImportSlug('free-slug'), 'free-slug', '(d): 未使用なら base そのもの');
 
     // (d-3) 衝突すると base-2 へ（実 DB を使う。規則の再実装をしない）
     await SqliteDataService.createMap('taken', { mapID: 'taken', title: 't', gcps: [], edges: [] });
-    assert.equal(await resolveImportSlug('taken'), 'taken-2', 'case 1(d): 衝突時は base-2');
+    assert.equal(await resolveImportSlug('taken'), 'taken-2', '(d): 衝突時は base-2');
     await SqliteDataService.createMap('taken-2', { mapID: 'taken-2', title: 't', gcps: [], edges: [] });
-    assert.equal(await resolveImportSlug('taken'), 'taken-3', 'case 1(d): 連続衝突で base-3');
+    assert.equal(await resolveImportSlug('taken'), 'taken-3', '(d): 連続衝突で base-3');
 
     // (d-4) **予約はしない** — 同じ入力を2回呼べば同じ答えが返る
     assert.equal(await resolveImportSlug('taken'), 'taken-3',
-      'case 1(d): 解決しただけでは予約されない ∴ 2回目も同じ候補が返る');
+      '(d): 解決しただけでは予約されない ∴ 2回目も同じ候補が返る');
 
     // (d-5) 枯渇は null（上限を下げず実際に埋める）
     for (let n = 1; n <= SEQUENCE_MAX_INDEX; n++) {
       const s = slugCandidate('full', n);
       await SqliteDataService.createMap(s, { mapID: s, title: 't', gcps: [], edges: [] });
     }
-    assert.equal(await resolveImportSlug('full'), null, 'case 1(d): 全候補が埋まっていれば null');
+    assert.equal(await resolveImportSlug('full'), null, '(d): 全候補が埋まっていれば null');
 
     // (d-6) excludeUid — 自分自身の slug は衝突扱いにしない（POI の上書き保存経路が使う）
     const { uid: ownUid } = await SqliteDataService.createMap('own', { mapID: 'own', title: 't', gcps: [], edges: [] });
     assert.equal(await resolveImportSlug('own', { excludeUid: ownUid }), 'own',
-      'case 1(d): excludeUid 指定時は自分の slug をそのまま採れる');
+      '(d): excludeUid 指定時は自分の slug をそのまま採れる');
     assert.equal(await resolveImportSlug('own'), 'own-2',
-      'case 1(d): excludeUid 無しなら衝突として扱う');
+      '(d): excludeUid 無しなら衝突として扱う');
 
-    console.log('ok case 1(d): 契約（空入力素通し / 衝突は base-2 / 予約しない / 枯渇 null / excludeUid）');
+    console.log('ok (d): 契約（空入力素通し / 衝突は base-2 / 予約しない / 枯渇 null / excludeUid）');
     console.log('import slug resolver OK');
   `);
 

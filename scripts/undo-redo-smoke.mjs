@@ -69,7 +69,7 @@ try {
   assert.match(flushCallback, /'\(flush\)'/, "C7 must tag its origin with '(flush)'");
   assert.doesNotMatch(flushCallback, /\bcatch\b/, 'C7 callback must not catch (the composable catches and reports)');
   // === 復元時のタイルソース再構築===
-  // case 5: restoreHistoryState の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
+  // restoreHistoryState の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
   {
     const body = mapEdit.match(/const restoreHistoryState = async[\s\S]*?\n\}\);/)?.[0] ?? '';
     assert.ok(body, 'restoreHistoryState could not be located');
@@ -78,17 +78,17 @@ try {
     const code = body.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
     const exchangeAt = code.indexOf('exchangeTileSource(');
     const markersAt = code.indexOf('gcpsToMarkers(');
-    assert.ok(exchangeAt >= 0, 'restoreHistoryState must rebuild the tile source (case 5)');
+    assert.ok(exchangeAt >= 0, 'restoreHistoryState must rebuild the tile source ()');
     assert.ok(markersAt >= 0, 'restoreHistoryState must redraw markers');
     assert.ok(exchangeAt < markersAt, 'the tile source must be rebuilt BEFORE gcpsToMarkers() (coordinate transforms depend on illstSource)');
     assert.match(code, /tileIdentityKey\(/, 'restoreHistoryState must gate the rebuild on the tile identity key');
   }
-  // case 3: extension / imageExtension の cleanup
-  assert.doesNotMatch(mapEdit, /mapData\.value\.extension\b/, 'mapData.value.extension must not be referenced (case 3-b)');
+  // extension / imageExtension の cleanup
+  assert.doesNotMatch(mapEdit, /mapData\.value\.extension\b/, 'mapData.value.extension must not be referenced (-b)');
   assert.match(
     mapEdit,
     /const resolveImageExtension = [\s\S]{0,160}?imageExtension/,
-    'resolveImageExtension must read imageExtension (case 3-a)',
+    'resolveImageExtension must read imageExtension (-a)',
   );
   for (const [name, re] of [
     ['exchangeTileSource', /const exchangeTileSource = async[\s\S]*?\n\};/],
@@ -96,7 +96,7 @@ try {
   ]) {
     const body = mapEdit.match(re)?.[0] ?? '';
     assert.ok(body, `${name} could not be located`);
-    assert.match(body, /resolveImageExtension\(/, `${name} must resolve the extension through resolveImageExtension() (case 3-c)`);
+    assert.match(body, /resolveImageExtension\(/, `${name} must resolve the extension through resolveImageExtension() (-c)`);
   }
 
   // INV-8 (C8): 保留中の編集はポインタ移動より前に確定させる（b）。

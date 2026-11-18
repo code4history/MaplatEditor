@@ -76,8 +76,8 @@ check("定数（件数上限・800 ms・保存キー）", () => {
   assert.equal(RECENT_SEARCH_STORE_KEY, "recentSearches");
 });
 
-// case 3: 空・空白のみ（全角空白含む）は記録しない
-check("case 3 normalizeQueryForHistory は空・空白のみ・201 文字を捨てる", () => {
+// 空・空白のみ（全角空白含む）は記録しない
+check("normalizeQueryForHistory は空・空白のみ・201 文字を捨てる", () => {
   assert.equal(normalizeQueryForHistory(""), null);
   assert.equal(normalizeQueryForHistory("   "), null);
   assert.equal(normalizeQueryForHistory("\u3000"), null);
@@ -94,8 +94,8 @@ check("sameSearchKey は大文字小文字を区別しない", () => {
   assert.equal(sameSearchKey("Tokyo", "osaka"), false);
 });
 
-// case 1: 壊れた値の正規化と上限
-check("case 1 normalizeRecentSearches は非配列・型不正・空 q・200 文字超を捨てる", () => {
+// 壊れた値の正規化と上限
+check("normalizeRecentSearches は非配列・型不正・空 q・200 文字超を捨てる", () => {
   assert.deepEqual(normalizeRecentSearches(undefined, "map"), []);
   assert.deepEqual(normalizeRecentSearches(null, "map"), []);
   assert.deepEqual(normalizeRecentSearches("recent", "map"), []);
@@ -114,7 +114,7 @@ check("case 1 normalizeRecentSearches は非配列・型不正・空 q・200 文
   assert.deepEqual(normalizeRecentSearches(dirty, "map"), [{ q: "ok", at: 14 }]);
 });
 
-check("case 1 normalizeRecentSearches は kind ごとの上限で切る", () => {
+check("normalizeRecentSearches は kind ごとの上限で切る", () => {
   const eleven = Array.from({ length: 11 }, (_, index) => ({ q: `q${index}`, at: index }));
   assert.equal(normalizeRecentSearches(eleven, "map").length, 10);
   assert.equal(normalizeRecentSearches(eleven, "poi-source").length, 10);
@@ -123,7 +123,7 @@ check("case 1 normalizeRecentSearches は kind ごとの上限で切る", () => 
   assert.equal(normalizeRecentSearches(eleven, "image-asset").length, 5);
 });
 
-check("case 1 normalizeRecentSearches は at 降順・重複は新しい表記を残す", () => {
+check("normalizeRecentSearches は at 降順・重複は新しい表記を残す", () => {
   const value = [
     { q: "old", at: 1 },
     { q: "Tokyo", at: 30 },
@@ -141,8 +141,8 @@ check("case 1 normalizeRecentSearches は at 降順・重複は新しい表記�
   ]);
 });
 
-// case 2: 同じ q（大文字小文字違い含む）は件数を増やさず先頭へ
-check("case 2 insertRecentSearch は重複を増やさず先頭へ移動する", () => {
+// 同じ q（大文字小文字違い含む）は件数を増やさず先頭へ
+check("insertRecentSearch は重複を増やさず先頭へ移動する", () => {
   const list = [
     { q: "b", at: 2 },
     { q: "a", at: 1 },
@@ -158,7 +158,7 @@ check("case 2 insertRecentSearch は重複を増やさず先頭へ移動する",
   assert.equal(insertRecentSearch(list, "A", 4).length, list.length);
 });
 
-check("case 2/case 3 insertRecentSearch は空 q を記録せず、上限で末尾を落とす", () => {
+check("insertRecentSearch は空 q を記録せず、上限で末尾を落とす", () => {
   const list = [{ q: "a", at: 1 }];
   assert.deepEqual(insertRecentSearch(list, "   ", 2), list);
   const full = [
@@ -211,8 +211,8 @@ for (const rel of [
   }
 }
 
-// case 11 + レビュー指示 5: チップは表示専用
-check("case 11 RecentSearchChips.vue は window.* を呼ばない表示専用部品", () => {
+// + レビュー指示 5: チップは表示専用
+check("RecentSearchChips.vue は window.* を呼ばない表示専用部品", () => {
   const src = sources["src/components/resource-list/RecentSearchChips.vue"];
   assert.doesNotMatch(src, /window\./, "チップ部品は window.* を呼ばない（Part 4 と同規約）");
   assert.match(src, /data-testid="recent-search-chips"/, "行のテスト用フック");
@@ -328,7 +328,7 @@ check("レビュー指示 3 左右ペイン 2 画面は uid 変化時と onBefor
     assert.match(src, /recordRecentNow/, `${rel}: @change は即時記録する`);
     assert.match(src, /applyRecent/, `${rel}: チップの適用`);
     assert.match(src, /removeRecent/, `${rel}: × の削除`);
-    assert.match(src, /mergeMasterDetailFilters|updateFilters|\.\.\.route\.query/, `${rel}: uid を保ったまま q を書き換える（case 9）`);
+    assert.match(src, /mergeMasterDetailFilters|updateFilters|\.\.\.route\.query/, `${rel}: uid を保ったまま q を書き換える（）`);
   }
 });
 console.log("recent-search-chips smoke Part 2: OK");
@@ -360,10 +360,10 @@ const LOCALE_KEYS = [
     }
     const unique = new Set(keySets.values());
     assert.equal(unique.size, 1, "全ロケールで resource_list のキー集合が一致する（欠落も余剰も無い）");
-    console.log("OK case 12 11 言語の 4 キー");
+    console.log("OK 11 言語の 4 キー");
   } catch (cause) {
     failures += 1;
-    console.error(`NG case 12 11 言語の 4 キー\n  ${cause?.message ?? cause}`);
+    console.error(`NG 11 言語の 4 キー\n  ${cause?.message ?? cause}`);
   }
 }
 

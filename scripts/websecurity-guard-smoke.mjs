@@ -1,5 +1,5 @@
-// 主判定 case 1: #105 webSecurity 是正 smoke。
-// case 1。
+// 主判定 #105 webSecurity 是正 smoke。
+// 。
 //
 // assert 内容:
 //   1. electron/main.ts の全 webPreferences から webSecurity:false が除去されている
@@ -19,7 +19,7 @@ const readSrc = (rel) => readFile(path.join(projectRoot, rel), "utf8");
 
 import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/utils/appScheme.ts";
 
-// --- case 1 assert 1: webSecurity:false の実設定除去（コメント除く） ---
+// --- assert 1: webSecurity:false の実設定除去（コメント除く） ---
 {
   const mainTs = await readSrc("electron/main.ts");
   const noComments = mainTs
@@ -35,7 +35,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   console.log(`  [1/3] webSecurity:false の実設定 ${realSettings} 件（コメント除く）: PASS`);
 }
 
-// --- case 1 assert 2: app:// スキーム登録が実在する ---
+// --- assert 2: app:// スキーム登録が実在する ---
 {
   const mainTs = await readSrc("electron/main.ts");
   assert.ok(
@@ -49,7 +49,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   console.log("  [2/3] protocol.handle('app', …) + registerSchemesAsPrivileged: PASS");
 }
 
-// --- case 1 assert 3: 経路解決純関数の許可 / 拒否 ---
+// --- assert 3: 経路解決純関数の許可 / 拒否 ---
 {
   const bundleRoots = ["/tmp/websecurity-guard/dist", "/tmp/websecurity-guard/public"];
   // 是正（実装レビュー Round 1）: localFileUrl() が URL 化する置き場所は saveFolder だけでなく
@@ -123,7 +123,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
 
   // 経路トラバーサル試行（リテラル '..' / percent-encoded '%2e%2e'）も許可ルート内へ封じ込める。
   // WHATWG URL 正規化と resolveAppUrl の isUnderRoot により、ルート外へ脱出する解決結果は返らない。
-  // （case 1 の要求は file:// 絶対パスと無許可 origin の拒否。本 assert は補強）
+  // （の要求は file:// 絶対パスと無許可 origin の拒否。本 assert は補強）
   for (const raw of ["app://bundle/../secret.txt", "app://bundle/%2e%2e/secret.txt"]) {
     const res = resolveAppUrl(raw, roots);
     if (res !== null) {
@@ -138,7 +138,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   console.log("  [3/3] resolveAppUrl 純関数（許可経路解決 / file:// 拒否 / 無許可 origin 拒否）: PASS");
 }
 
-// --- case 1 assert 4: 旧 file:// タイルURLテンプレート → app://local 補正 ---
+// --- assert 4: 旧 file:// タイルURLテンプレート → app://local 補正 ---
 {
   // 旧実装（file-url ライブラリ + 手組み `/{z}/{x}/{y}.<ext>`）が生成した交換形 url の
   // file:// テンプレートを app://local へ補正する。テンプレートサフィックス {z}/{x}/{y} は
@@ -171,4 +171,4 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
   console.log("  [4/4] migrateLegacyFileUrl（旧 file:// ・旧 app://local → app://bundle/__local 補正）: PASS");
 }
 
-console.log("=== 主判定 case 1: PASS ===");
+console.log("=== 主判定 PASS ===");

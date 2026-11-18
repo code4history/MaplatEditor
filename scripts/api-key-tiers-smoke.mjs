@@ -2,7 +2,7 @@
  * smoke: API キー3段解決の純粋ロジック（providerKeyResolution.ts / requiresProviderKey）
  * mapbox-maplibre-smoke と同様に vite で contracts をバンドルして検証する。
  *
- * case 13: requiresProviderKey / PROVIDER_KEY_REQUIRED_KINDS が isProviderKind（3種）・
+ * requiresProviderKey / PROVIDER_KEY_REQUIRED_KINDS が isProviderKind（3種）・
  *       providerGlCdn の sourceKind（2種・CDN用）と混同されない
  * resolvePreviewKey（3段）/ resolvePublishKey（2段）
  * resolveStartFromViewerMapID の3段照合（除外ソース救済なし・旧形 slug 救済あり）
@@ -66,7 +66,7 @@ const {
   PROVIDER_KEY_MISSING_WARNING,
 } = await import(pathToFileURL(path.join(outDir, "contracts.mjs")).href);
 
-// ---- case 13: requiresProviderKey は google/mapbox の2種のみ。isProviderKind（3種）とは別述語 ----
+// ---- requiresProviderKey は google/mapbox の2種のみ。isProviderKind（3種）とは別述語 ----
 assert.deepEqual([...PROVIDER_KEY_REQUIRED_KINDS], ["google", "mapbox"]);
 assert.equal(requiresProviderKey("google"), true, "google はキーが要る");
 assert.equal(requiresProviderKey("mapbox"), true, "mapbox はキーが要る");
