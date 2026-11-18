@@ -61,7 +61,7 @@ function selectExisting(uid: string): void {
 }
 
 // 帰属表記は必須（Viewer は帰属表記を既定値で埋めないので、空のベースマップを作らない）。
-// 元の地図の帰属表記を既定値に入れてあるので、元の地図にあれば何もしなくてよい
+// 元の地図に帰属表記がある場合は既定値へ引き継ぐ。空欄ならここで入力する。
 const attrDiagnostics = computed(() =>
   attr.value.trim() ? [] : [{ key: 'attr-required', severity: 'danger' as const, message: t('basemap.errors.attr_required') }],
 );

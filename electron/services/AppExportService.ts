@@ -53,6 +53,7 @@ import {
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
 import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 // 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { resolveAppLocalizedMetadata } from '../../src/utils/appLocalizedMetadata';
@@ -299,6 +300,23 @@ class AppExportService {
     const warnings: string[] = [];
     const appID = String(document?.appID || '').trim();
     if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
+
+    const baseMapLookupForAttribution = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
+    const attributionSources = (Array.isArray(document?.sources) ? document.sources : [])
+      .map((source: any) => normalizeAppSource(source, document.lang || 'ja'));
+    for (const source of attributionSources) {
+      if (source.sourceType === 'maplat') {
+        const mapDoc = await SqliteDataService.findMapByRef(String(source.mapUid ?? ''));
+        if (mapDoc && lacksRequiredAttribution(mapDoc)) {
+          return { result: 'Error', warnings, message: 'appedit.export_blocked_missing_attribution' };
+        }
+      } else {
+        const resolved = resolveAppSource(source, baseMapLookupForAttribution);
+        if (resolved.ok && lacksRequiredAttribution(resolved.master.data)) {
+          return { result: 'Error', warnings, message: 'appedit.export_blocked_missing_attribution' };
+        }
+      }
+    }
 
     // pre-dialog revalidation。strict_error / missing map を含む maplat 参照は
     // dialog を開く前に拒否する

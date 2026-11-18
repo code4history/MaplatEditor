@@ -158,6 +158,9 @@ test('帰属表記の無い地図・ベースマップは一覧と編集画面�
     await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み/, { timeout: 30_000 });
     await page.getByRole('tab', { name: 'メタデータ編集' }).click();
     await expect(page.getByTestId('map-attr')).toHaveClass(/is-invalid/);
+    await page.getByTestId('map-attr').fill(' 　');
+    await page.getByTestId('map-attr').press('Tab');
+    await expect(page.getByTestId('map-attr')).toHaveClass(/is-invalid/);
     await page.getByTestId('map-attr').fill('© 直した地図');
     await page.getByTestId('map-attr').press('Tab');
     await expect(page.getByTestId('map-attr')).not.toHaveClass(/is-invalid/);

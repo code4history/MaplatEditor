@@ -225,7 +225,7 @@ try {
         uid: baseMapUid,
         slug: 'diag-base-ok',
         create: true,
-        tms: { title: { ja: '正常ベース' }, url: 'https://example.com/{z}/{x}/{y}.png', thumbnail: 'tmbs/' + baseMapUid + '.png' },
+        tms: { title: { ja: '正常ベース' }, attr: { ja: '© Example' }, url: 'https://example.com/{z}/{x}/{y}.png', thumbnail: 'tmbs/' + baseMapUid + '.png' },
       });
 
       const mapDocs = await Promise.all([

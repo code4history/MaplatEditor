@@ -54,6 +54,7 @@ import { displayTileUrl } from '../utils/appUrl';
 import { DEFAULT_MAP_EXPORT_OPTIONS, hasAnyMapExportContent, type MapExportOptions } from '../utils/exportOptions';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
+import { lacksRequiredAttribution } from '../utils/attributionRequirement';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
 // サムネイル置換はベースマップ管理と共有する単一実装を通す
 import { useThumbnailReplace } from '../composables/useThumbnailReplace';
@@ -1503,15 +1504,12 @@ const saveError = computed(() => {
     // 長さ制限（全角15文字）は 1.0.0 の凍結契約 により撤廃した。必須検証のみ残す。
     // 表示ラベル(label)は任意項目であり検証しない
     const rawTitle = mapData.value.title;
-    const lang = mapData.value.lang || 'ja';
     if (rawTitle == null || rawTitle === '') {
         err['title'] = t('mapmodel.no_title');
     }
 
     // --- attr（地図画像コピーライト必須）---
-    const rawAttr = mapData.value.attr;
-    const attrVal = typeof rawAttr === 'object' ? rawAttr?.[lang] : rawAttr;
-    if (attrVal == null || attrVal === '') {
+    if (lacksRequiredAttribution(mapData.value)) {
         err['attr'] = t('mapmodel.image_copyright');
     }
 
@@ -4525,6 +4523,8 @@ const importMap = async () => {
             } else if (arg.err === 'NoJson') {
                 // 地図の設定（JSON）を外して書き出した zip
                 modalFinish('dataupload.error_no_json');
+            } else if (arg.err === 'AttributionRequired') {
+                modalFinish('mapmodel.image_copyright');
             } else if (arg.err === 'TooLarge') {
                 // 2 GiB 超。理由の分かる固定文（原文は main のログ）
                 modalFinish('dataupload.error_too_large');
@@ -4855,12 +4855,17 @@ async function wmtsGenerate(): Promise<void> {
             return;
         }
         mercNewUid.value = reserved.uid;
+        const inheritedAttr = attr.value;
+        if (!inheritedAttr.trim()) {
+            mercModalVisible.value = true;
+            return;
+        }
         await generateMercTileSet({
             mode: 'new',
             uid: reserved.uid,
             slug: reserved.slug,
             title: mercDefaultTitle.value,
-            attr: '',
+            attr: inheritedAttr,
         });
         return;
     }

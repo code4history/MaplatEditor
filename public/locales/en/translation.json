@@ -878,7 +878,7 @@
     "modal_select_description": "Existing Mercator tile sets generated from this map were found. Choose one to update, or create a new one.",
     "modal_create_new": "Create New",
     "modal_create_confirm": "Create",
-    "modal_attr_help": "The attribution of the new base map. It starts with the attribution of the original map. The viewer does not fill one in, so it cannot be left empty."
+    "modal_attr_help": "Attribution for the new base map. The original map attribution is copied when available; otherwise, enter it here. The viewer does not add attribution."
   },
   "menu": {
     "quit": "Quit MaplatEditor",

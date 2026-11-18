@@ -898,7 +898,7 @@
     "modal_select_description": "Des jeux de tuiles Mercator déjà générés à partir de cette carte ont été trouvés. Choisissez-en un à mettre à jour, ou créez-en un nouveau.",
     "modal_create_new": "Créer un nouveau",
     "modal_create_confirm": "Créer",
-    "modal_attr_help": "L'attribution du nouveau fond de carte. Elle reprend l'attribution de la carte d'origine. La visionneuse n'en ajoute pas ; elle ne peut donc pas rester vide."
+    "modal_attr_help": "Attribution du nouveau fond de carte. L’attribution de la carte d’origine est reprise si elle existe ; sinon, saisissez-la ici. La visionneuse n’ajoute pas d’attribution."
   },
   "menu": {
     "quit": "Quitter MaplatEditor",

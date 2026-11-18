@@ -898,7 +898,7 @@
     "modal_select_description": "Se encontraron conjuntos de teselas de Mercator ya generados a partir de este mapa. Elija uno para actualizarlo o cree uno nuevo.",
     "modal_create_new": "Crear nuevo",
     "modal_create_confirm": "Crear",
-    "modal_attr_help": "La atribución del nuevo mapa base. Se rellena con la atribución del mapa de origen. El visor no la añade, por lo que no puede quedar vacía."
+    "modal_attr_help": "Atribución del nuevo mapa base. Se copia la atribución del mapa de origen si está disponible; de lo contrario, introdúcela aquí. El visor no añade atribuciones."
   },
   "menu": {
     "quit": "Salir de MaplatEditor",

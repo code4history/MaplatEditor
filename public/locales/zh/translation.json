@@ -898,7 +898,7 @@
     "modal_select_description": "找到了由此地图生成的墨卡托瓦片集。请选择要更新的一项，或新建一个。",
     "modal_create_new": "新建",
     "modal_create_confirm": "创建",
-    "modal_attr_help": "新底图的署名。已填入原地图的署名。查看器不会补充署名，因此不能留空。"
+    "modal_attr_help": "新底图的署名。原地图有署名时会复制过来；否则请在此输入。查看器不会补充署名。"
   },
   "menu": {
     "quit": "退出MaplatEditor",

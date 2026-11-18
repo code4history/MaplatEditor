@@ -110,7 +110,7 @@ try {
       const mapObject: any = {
         mapID: 'pois-save-map',
         title: 'POI保存テスト地図',
-        attr: '',
+        attr: '© Example',
         officialTitle: '',
         dataAttr: '',
         author: '',
@@ -181,7 +181,39 @@ try {
       );
       console.log('ok: (3) maps without pois do not grow a pois key');
 
-      // --- ④ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が解決され、
+      // --- ④ main 側も新規の欠落と、既存値を空にする更新を拒否する ---
+      const missingNew = await MapEditService.save({
+        mapObject: { ...mapObject, mapID: 'missing-attribution-new', attr: '' }, tins: [], slug: 'missing-attribution-new',
+      });
+      assert.equal(missingNew.result, 'Error', '新規地図の帰属表記欠落は main で拒否するはず');
+      const clearingUpdate = await MapEditService.save({
+        uid: savedUid, mapObject: { ...mapObject, uid: savedUid, mapID: 'pois-save-map', attr: '' }, tins: [], slug: 'pois-save-map',
+      });
+      assert.equal(clearingUpdate.result, 'Error', '帰属表記を空にする更新は main で拒否するはず');
+
+      // 以前から欠落していた地図の編集では欠落を維持できる（移行・修正で拒否も補完もしない）
+      const legacyUid = (await SqliteDataService.createMap('legacy-attribution-map', { ...mapObject, mapID: 'legacy-attribution-map', attr: '' })).uid;
+      const keepLegacy = await MapEditService.save({
+        uid: legacyUid, mapObject: { ...mapObject, uid: legacyUid, mapID: 'legacy-attribution-map', attr: '' }, tins: [], slug: 'legacy-attribution-map',
+      });
+      assert.equal(keepLegacy.result, 'Success', '以前から欠落している地図の欠落はそのまま保てるはず');
+      await assert.rejects(
+        () => SqliteDataService.saveUserBaseMap({ slug: 'missing-attribution-base-new', create: true, tms: { kind: 'tms', attr: {} } }),
+        /mapmodel\.image_copyright/,
+        '新規ベースマップの帰属表記欠落は main で拒否するはず',
+      );
+      const base = await SqliteDataService.saveUserBaseMap({
+        slug: 'attributed-base-map', create: true,
+        tms: { kind: 'tms', attr: { ja: '© Example' }, title: { ja: '背景地図' }, url: 'https://example.org/{z}/{x}/{y}.png' },
+      });
+      await assert.rejects(
+        () => SqliteDataService.saveUserBaseMap({ uid: base.uid, slug: 'attributed-base-map', tms: { kind: 'tms', attr: {} } }),
+        /mapmodel\.image_copyright/,
+        'ベースマップの帰属表記を空にする更新は main で拒否するはず',
+      );
+      console.log('ok: (4) main rejects missing attribution on new maps and clearing updates, preserves legacy gaps');
+
+      // --- ⑤ download 経路 (composeDownloadMapJson) でも {poiUid} 参照が解決され、
       //     未解決の poiUid キーが出力に残らないこと (品質レビューの指摘) ---
       //
       // 【地図 ZIP の書き出しの統一で解決形が変わった】以前は地図 ZIP だけが POI を

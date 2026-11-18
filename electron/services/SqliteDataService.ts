@@ -17,6 +17,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 // 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
@@ -2565,6 +2566,12 @@ class SqliteDataService {
     if (!slug) throw new Error('slug is required');
     const tms = payload?.tms ?? {};
     const db = await this.getDb();
+    if (lacksRequiredAttribution(tms)) {
+      const oldUid = payload?.uid == null ? '' : String(payload.uid);
+      const oldRow = oldUid ? db.prepare(`SELECT data_json FROM base_maps WHERE uid = ? AND scope = 'user'`).get(oldUid) as any : null;
+      const oldData = oldRow ? JSON.parse(oldRow.data_json) : null;
+      if (!oldData || !lacksRequiredAttribution(oldData)) throw new Error('mapmodel.image_copyright');
+    }
 
     // create=true は新規作成の明示合図(b): uid を preset として新規経路へ回す。
     // create なし/false は従来の uid 有無 dispatch(update 経路の NotFound throw 不変)

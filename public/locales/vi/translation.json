@@ -898,7 +898,7 @@
     "modal_select_description": "Đã tìm thấy các bộ tile Mercator được tạo từ bản đồ này. Hãy chọn một bộ để cập nhật, hoặc tạo mới.",
     "modal_create_new": "Tạo mới",
     "modal_create_confirm": "Tạo",
-    "modal_attr_help": "Ghi công của bản đồ nền mới. Đã điền sẵn ghi công của bản đồ gốc. Trình xem không tự bổ sung ghi công nên không được để trống."
+    "modal_attr_help": "Ghi công của bản đồ nền mới. Ghi công từ bản đồ gốc sẽ được sao chép nếu có; nếu không, hãy nhập tại đây. Trình xem không tự thêm ghi công."
   },
   "menu": {
     "quit": "Thoát MaplatEditor",
