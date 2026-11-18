@@ -654,7 +654,11 @@ const canRedo = computed(() => (historyVersion.value, history.canRedo()));
 const savedDocument = ref(clone(initial));
 const validation = computed(() => {
   const result = validateBaseMapDocument(document.value);
-  const existingLegacyGap = document.value.kind !== "google"
+  // 旧欠落の猶予は保存済みの既存レコードにだけ当てる（MapEdit.vue の !!mapUid.value と同じ）。
+  // 新規作成・複製（revision 未確定）の初期値も attr が空なので、猶予を当てると
+  // 出典なしのまま保存できてしまい、main の拒否で落ちる
+  const existingLegacyGap = revision.value !== null
+    && document.value.kind !== "google"
     && lacksRequiredAttribution(savedDocument.value)
     && lacksRequiredAttribution(document.value);
   return existingLegacyGap
@@ -821,7 +825,8 @@ const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title
 const attrDiagnostics = computed<DiagnosticItem[]>(() => {
   const errors = diagnosticsFor(["attr-required"]);
   if (errors.length) return errors;
-  if (document.value.kind !== "google" && lacksRequiredAttribution(savedDocument.value) && lacksRequiredAttribution(document.value)) {
+  // 黄色警告の旧欠落の猶予も保存済みの既存レコードにだけ当てる（validation の existingLegacyGap と同じ条件）
+  if (revision.value !== null && document.value.kind !== "google" && lacksRequiredAttribution(savedDocument.value) && lacksRequiredAttribution(document.value)) {
     return [{ key: "legacy-attr-missing", severity: "warning", message: t("basemap.errors.attr_required") }];
   }
   return [];
@@ -1048,7 +1053,12 @@ async function discardDraft(): Promise<void> {
 function saveFailure(result: BaseMapSaveResult): string {
   if ("error" in result) return t("common.revision_conflict");
   if (result.result === "Exist") return t("basemap.errors.id_duplicate");
-  if (result.result === "Error") return result.message || t("basemap.errors.save_failed");
+  if (result.result === "Error") {
+    // main の拒否メッセージには i18n キーがそのまま渡ることがある（mapmodel.image_copyright 等）。
+    // 生のキーを出さないよう画面の側で訳してから出す（MapEdit.vue が errorKey を t() するのと同じ扱い）
+    if (result.message === "mapmodel.image_copyright") return t("mapmodel.image_copyright");
+    return result.message || t("basemap.errors.save_failed");
+  }
   return t("basemap.errors.save_failed");
 }
 

@@ -9,6 +9,8 @@
 // case 3: エクスポート — 帰属表記が無いソースがあると、エクスポートの小窓より前に止まり、どの地図かが出る
 // case 4: 直す — ベースマップと地図の編集画面は帰属表記の欠落を最初から示し、入れて保存すると
 //         警告が消えてエクスポートの小窓まで進む
+// case 5: 新規作成 — 保存済みでないレコードには旧欠落の猶予が無いので、出典が空のままでは保存できず、
+//         その旨は danger で示される。main の拒否が返る場面では生のキーではなく画面語が出る
 import { expect, test, type Page } from '@playwright/test';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -274,6 +276,80 @@ test('IIIF の地図の帰属表記は Manifest の attribution から入り、�
     await page.getByRole('tab', { name: 'メタデータ編集' }).click();
     await expect(page.getByTestId('map-attr')).toHaveValue('国立国会図書館 National Diet Library, JAPAN');
     await expect(page.getByTestId('map-attr')).not.toHaveClass(/is-invalid/);
+  } finally {
+    await quitElectronApplication(app);
+  }
+});
+
+// case 5: 新規作成の入口では旧欠落の猶予を当てない。あわせて、main が拒否する帰属表記の更新は
+// 生のキー（mapmodel.image_copyright）ではなく画面語で示す
+test('新規のベースマップは出典が空だと保存できず、main の拒否は画面語で示される', async () => {
+  test.setTimeout(240_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-attribution-new-'));
+  const saveFolder = path.join(e2eRoot, 'save-folder');
+  await mkdir(path.join(saveFolder, 'settings'), { recursive: true });
+  const sfx = `${Date.now()}`;
+  // 後半の相手は「保存済みで出典の無い旧データ」。移行で作る（API では出典なしの新規は作らせない）
+  await writeFile(path.join(saveFolder, 'nedb.db'), '', 'utf8');
+  await writeFile(path.join(saveFolder, 'settings', 'tmsList.json'), JSON.stringify([{
+    mapID: `tms-leg-${sfx}`, kind: 'tms', title: `tms-leg-${sfx}`, url: 'https://tiles.example.org/leg/{z}/{x}/{y}.png', attr: {},
+  }]), 'utf8');
+  const { app, page } = await launch(e2eRoot);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  try {
+    await app.evaluate(async ({ dialog }) => {
+      dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
+    });
+    await forceJapanese(page);
+    await page.evaluate(() => window.maplist.request('', 1, 100));
+    const startupProgress = page.getByTestId('operation-progress-dialog');
+    for (let attempt = 0; attempt < 3 && await startupProgress.isVisible().catch(() => false); attempt++) {
+      const closeProgress = startupProgress.getByRole('button', { name: 'OK' });
+      await expect(closeProgress).toBeEnabled({ timeout: 60_000 });
+      await closeProgress.click();
+      await expect(startupProgress).toBeHidden();
+    }
+    const legUid = await page.evaluate(async (s) => {
+      const item = (await window.baseMaps.list()).find((b: any) => b.mapID === `tms-leg-${s}`);
+      return item?.uid as string;
+    }, sfx);
+    expect(legUid).toBeTruthy();
+
+    // 新規作成: 出典が空だと danger・保存ボタン無効。入れれば保存できる
+    await page.evaluate(() => { location.hash = '#/basemaps'; });
+    await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-tms').click();
+    await fillAndCommit(page.getByTestId('basemap-slug'), `new-empty-${sfx}`);
+    await fillAndCommit(page.getByTestId('basemap-title'), '新規空attr');
+    await fillAndCommit(page.getByTestId('basemap-url'), 'https://tiles.example.org/new/{z}/{x}/{y}.png');
+    await expect(page.getByTestId('basemap-attr')).toHaveClass(/is-invalid/);
+    await expect(page.getByTestId('editor-save')).toBeDisabled();
+    await fillAndCommit(page.getByTestId('basemap-attr'), '© 新規の帰属表記');
+    await expect(page.getByTestId('basemap-attr')).not.toHaveClass(/is-invalid/);
+    await expect(page.getByTestId('editor-save')).toBeEnabled();
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByTestId('editor-save-state')).toHaveText(/保存済み/, { timeout: 30_000 });
+
+    // 保存済みの旧欠落には従来どおり猶予がある。その間に保存済みの値へ並行して出典が付くと
+    // main は出典を消す更新を拒否するが、その拒否は生のキーではなく画面語で出る
+    await page.evaluate((uid) => { location.hash = `#/basemaps?uid=${uid}`; }, legUid);
+    await expect(page.getByTestId('basemap-attr')).not.toHaveClass(/is-invalid/, { timeout: 30_000 });
+    await fillAndCommit(page.getByTestId('basemap-title'), '旧欠落を編集');
+    await expect(page.getByTestId('editor-save')).toBeEnabled();
+    await page.evaluate(async ({ uid }) => {
+      const item = (await window.baseMaps.list()).find((b: any) => b.uid === uid) as any;
+      const saved = await window.baseMaps.saveUser({
+        uid, slug: item.mapID, expectedRevision: item.revision,
+        tms: { ...item.data, attr: { ja: '© 並行して足した帰属表記' } },
+      }) as { result?: string };
+      if (saved?.result !== 'Success') throw new Error(`parallel save failed: ${JSON.stringify(saved)}`);
+    }, { uid: legUid });
+    await page.getByTestId('editor-save').click();
+    await expect(page.getByText('地図画像の帰属表記を指定してください。')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('body')).not.toContainText('mapmodel.image_copyright');
+
+    expect(pageErrors).toEqual([]);
   } finally {
     await quitElectronApplication(app);
   }
