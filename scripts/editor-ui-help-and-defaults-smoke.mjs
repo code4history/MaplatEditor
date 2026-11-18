@@ -36,9 +36,9 @@ const FROZEN_RANGE_ATTRS = [
 const APP_EDIT = "src/views/AppEdit.vue";
 const MAP_EDIT = "src/views/MapEdit.vue";
 const BASE_MAP_EDIT = "src/components/basemap/BaseMapEdit.vue";
-const HUMAN_CHECK = "tests/e2e/m6-t10-human-check.spec.ts";
+const HUMAN_CHECK = "tests/e2e/app-source-human-check.spec.ts";
 const SELF_SMOKE = "scripts/editor-ui-help-and-defaults-smoke.mjs";
-const SELF_E2E = "tests/e2e/m19-t4b-editor-ui-help-and-defaults.spec.ts";
+const SELF_E2E = "tests/e2e/editor-ui-help-and-defaults.spec.ts";
 
 const appEditVue = await readSrc(APP_EDIT);
 const mapEditVue = await readSrc(MAP_EDIT);
@@ -57,7 +57,7 @@ const locales = Object.fromEntries(
 // ---------------------------------------------------------------------------
 // S1 : defaultApp() の httpSettings は現行値のまま
 //   ②（読み込み時の欠落キー補完 AppEdit.vue:718 以降）を兼ねているため、ここを動かすと
-//   既存アプリ・取り込みアプリの解釈が変わる（tests/e2e/m11-t3-editor-shell.spec.ts が依存）
+//   既存アプリ・取り込みアプリの解釈が変わる（tests/e2e/editor-shell.spec.ts が依存）
 // ---------------------------------------------------------------------------
 /**
  * defaultApp() の httpSettings の既定のブロックを取り出す。
@@ -356,7 +356,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
   assert.equal(
     count(appEditVue, 'id="previewLang"'),
     1,
-    "S9/AC15: #previewLang は 1 箇所で維持すること（m1-t6-preview-restart.spec.ts が依存）",
+    "S9/AC15: #previewLang は 1 箇所で維持すること（preview-restart.spec.ts が依存）",
   );
   console.log("  [S9/AC15] 言語切替の移設: .preview-lang 絶対配置の廃止 / #previewLang 生存: PASS");
 }
@@ -374,10 +374,10 @@ const NEW_APPEDIT_NOTE_KEYS = [
       `S10/AC16: ${HUMAN_CHECK} の案内文に凍結前 UI の記述「${stale}」が残っている`,
     );
   }
-  assert.match(guide, /m19-t4b/, "S10/AC16: 案内文に m19-t4b 追加分の見てほしい項目があること");
+  assert.match(guide, /【追加】ベースマップ編集の帰属・ライセンス・表示ラベル 7 欄/, "S10/AC16: 案内文に追加分の見てほしい項目があること");
   // seed 部分（masterDoc / ソース選択導線）は変更しない
   assert.match(humanCheck, /const masterDoc = \(suffix: string\) => \(\{/, "S10/AC16: masterDoc は変更しない");
-  assert.match(humanCheck, /m6t10-human-tms/, "S10/AC16: seed 導線は変更しない");
+  assert.match(humanCheck, /human-check-tms/, "S10/AC16: seed 導線は変更しない");
   console.log("  [S10/AC16] 人間検証ハーネスの案内文が凍結後 UI に追随: PASS");
 }
 
@@ -548,4 +548,4 @@ const NEW_APPEDIT_NOTE_KEYS = [
   console.log("  [ContextHelp] Popover はフェードなし（animation: false）: PASS");
 }
 
-console.log("m19-t4b editor UI help & defaults smoke: PASS (S1-S13)");
+console.log("editor UI help & defaults smoke: PASS (S1-S13)");

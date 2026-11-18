@@ -126,7 +126,7 @@ try {
       };
       // shell.trashItem スタブ — 呼び出しを記録し、指示に応じて reject する。
       // 成功時はファイルシステムに一切触れない (record-only)。live 消滅の実証は
-      // 本物の trashItem を呼ぶ E2E (tests/e2e/m12-t18-os-trash-delete.spec.ts) が担う
+      // 本物の trashItem を呼ぶ E2E (tests/e2e/os-trash-delete.spec.ts) が担う
       export const shell = {
         trashCalls: [] as string[],
         rejectAll: false,

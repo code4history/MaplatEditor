@@ -207,9 +207,9 @@ try {
     const pkg = JSON.parse(await read('package.json'));
     assert.equal(typeof pkg.scripts['smoke:mapedit-align-basemap-align'], 'string',
       'case 22: smoke が package.json に結線されていない');
-    assert.equal(typeof pkg.scripts['test:e2e:mapedit-align-m1-t2'], 'string',
+    assert.equal(typeof pkg.scripts['test:e2e:mapedit-align-basemap-align'], 'string',
       'case 22: e2e が package.json に結線されていない');
-    assert.ok(pkg.scripts['test:e2e:mapedit-align-m1-t2'].includes('mapedit-align-m1-t2-basemap-align.spec.ts'),
+    assert.ok(pkg.scripts['test:e2e:mapedit-align-basemap-align'].includes('mapedit-align-basemap-align.spec.ts'),
       'case 22: e2e script が本タスクの spec を指していない');
   }
   console.log('[7/7] case 18/case 22: i18n 全 11 言語と package.json 結線 OK');

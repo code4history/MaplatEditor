@@ -1,8 +1,8 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // directgo 編集 E2E: 内容の形「リンク」で directgo を編集する。
-//   AC1 リンク先と「新しいタブで開く」を入れて保存 → チェックなしは文字列、ありは { href, blank: true }
-//   AC3 拒否される href は保存できず理由が出る。生 JSON の窓で書いた拒否される directgo も同じ error
-//   AC4 standard・html・url の値がある POI をリンクにしても値は消えない。リンクから standard へ戻すと
+//   case 1 リンク先と「新しいタブで開く」を入れて保存 → チェックなしは文字列、ありは { href, blank: true }
+//   case 3 拒否される href は保存できず理由が出る。生 JSON の窓で書いた拒否される directgo も同じ error
+//   case 4 standard・html・url の値がある POI をリンクにしても値は消えない。リンクから standard へ戻すと
 //       確認の窓が出て、確定で directgo が消え standard の値は残る。Undo 1 回で戻る
 //   確かめ用アプリ: tests/e2e/fixtures/directgo/directgo-edit-app/ の POI を osm・gsi の 2 枚の地図と
 //       アプリとして書き出し、directgo が入力のまま入ることを確かめる。環境変数
@@ -83,7 +83,7 @@ const point = (lon: number, lat: number) => ({ type: 'Point', coordinates: [lon,
 const LINK_ERROR = /リンク先に使えない値です/;
 
 test.describe('directgo edit', () => {
-  test('AC1: リンクの形で href と「新しいタブで開く」を入れて保存する（文字列 / { href, blank: true }）', async () => {
+  test('リンクの形で href と「新しいタブで開く」を入れて保存する（文字列 / { href, blank: true }）', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-directgo-edit-ac1-'));
     const { app, page } = await launch(e2eRoot);
@@ -106,14 +106,14 @@ test.describe('directgo edit', () => {
       await setHref(page, 'https://example.org/');
       await save(page);
       let stored = await storedProperties(page, uid);
-      console.log(`result: AC1 unchecked ${JSON.stringify(stored.a1?.directgo)}`);
+      console.log(`result: case 1 unchecked ${JSON.stringify(stored.a1?.directgo)}`);
       expect(stored.a1?.directgo).toBe('https://example.org/');
       expect(stored.a1?.desc).toBeTruthy();
 
       await page.getByTestId('poi-directgo-blank').check();
       await save(page);
       stored = await storedProperties(page, uid);
-      console.log(`result: AC1 checked ${JSON.stringify(stored.a1?.directgo)}`);
+      console.log(`result: case 1 checked ${JSON.stringify(stored.a1?.directgo)}`);
       expect(stored.a1?.directgo).toEqual({ href: 'https://example.org/', blank: true });
 
       // 同じアプリの中の位置（#!s:）も入れられる。チェックを外すと文字列に戻る
@@ -121,7 +121,7 @@ test.describe('directgo edit', () => {
       await setHref(page, '#!s:other-map/x:100/y:200/z:3');
       await save(page);
       stored = await storedProperties(page, uid);
-      console.log(`result: AC1 in-app ${JSON.stringify(stored.a1?.directgo)}`);
+      console.log(`result: case 1 in-app ${JSON.stringify(stored.a1?.directgo)}`);
       expect(stored.a1?.directgo).toBe('#!s:other-map/x:100/y:200/z:3');
       expect(stored.a1?._maplatContentMode).toBe('link');
     } finally {
@@ -129,7 +129,7 @@ test.describe('directgo edit', () => {
     }
   });
 
-  test('AC3: 拒否される href は保存できず理由が出る（フォーム・生 JSON の窓）', async () => {
+  test('拒否される href は保存できず理由が出る（フォーム・生 JSON の窓）', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-directgo-edit-ac3-'));
     const { app, page } = await launch(e2eRoot);
@@ -148,7 +148,7 @@ test.describe('directgo edit', () => {
         await setHref(page, bad);
         await expect(page.getByTestId('poi-directgo-error')).toContainText(LINK_ERROR);
         await expect(page.getByTestId('editor-save')).toBeDisabled();
-        console.log(`result: AC3 form ${JSON.stringify(bad)} rejected`);
+        console.log(`result: case 3 form ${JSON.stringify(bad)} rejected`);
       }
       await setHref(page, 'https://example.org/fixed');
       await expect(page.getByTestId('poi-directgo-error')).toHaveCount(0);
@@ -165,7 +165,7 @@ test.describe('directgo edit', () => {
       await textarea.fill(JSON.stringify(raw, null, 2));
       await page.locator('button:has-text("適用"), button:has-text("Apply")').click();
       await expect(page.getByText(LINK_ERROR).first()).toBeVisible({ timeout: 5000 });
-      console.log('result: AC3 raw-pane javascript: rejected');
+      console.log('result: case 3 raw-pane javascript: rejected');
       const stored = await storedProperties(page, uid);
       expect(stored.b2?.directgo).toBeUndefined();
     } finally {
@@ -173,7 +173,7 @@ test.describe('directgo edit', () => {
     }
   });
 
-  test('AC4: リンクにしても他の内容は消えず、リンクから standard へ戻すと確認の後に directgo だけ消える（Undo 1 回）', async () => {
+  test('リンクにしても他の内容は消えず、リンクから standard へ戻すと確認の後に directgo だけ消える（Undo 1 回）', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-directgo-edit-ac4-'));
     const { app, page } = await launch(e2eRoot);
@@ -204,8 +204,8 @@ test.describe('directgo edit', () => {
       await setHref(page, 'https://example.org/c1-link');
       await save(page);
       let stored = await storedProperties(page, uid);
-      console.log(`result: AC4 link c1 ${JSON.stringify(stored.c1)}`);
-      console.log(`result: AC4 link c2 ${JSON.stringify(stored.c2)}`);
+      console.log(`result: case 4 link c1 ${JSON.stringify(stored.c1)}`);
+      console.log(`result: case 4 link c2 ${JSON.stringify(stored.c2)}`);
       expect(stored.c1?.desc).toBeTruthy();
       expect(stored.c1?.address).toBeTruthy();
       expect(stored.c1?.directgo).toBe('https://example.org/c1-link');
@@ -237,7 +237,7 @@ test.describe('directgo edit', () => {
       await confirmation.restore();
       await save(page);
       stored = await storedProperties(page, uid);
-      console.log(`result: AC4 back to standard c1 ${JSON.stringify(stored.c1)}`);
+      console.log(`result: case 4 back to standard c1 ${JSON.stringify(stored.c1)}`);
       expect(stored.c1?.directgo).toBeUndefined();
       expect(stored.c1?._maplatContentMode).toBe('standard');
       expect(stored.c1?.desc).toBeTruthy();

@@ -1,0 +1,143 @@
+// 設定画面・アプリケーションメニュー・About ウィンドウの整理。
+//
+//
+// 検証する受け入れ条件:
+//   case 1  設定タブが「基本設定」「ベースマップ」の2個で「オリジナル地図設定」が無い
+//   case 3  JPEG解像度上限の説明がContextHelpの「？」ポップアップで出る
+//   case 5  開発実行（未パッケージ）では開発メニューが従来どおり出る
+//   case 7  Aboutのバージョン4値（electron/chrome/node/v8）が表示され赤字エラーにならない
+//   case 8  Aboutのバージョン表記がアプリの実バージョンと一致する
+import { expect, test, type Page } from '@playwright/test';
+import { mkdtemp } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
+import { launch } from './helpers/launchIsolated';
+// evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出した
+// （wiki-screenshots-extra の撮影スペックが同じロジックを要したため。挙動は無変更）
+import { applicationMenuLabels, evalMain, openAboutWindow } from './helpers/electronMenu';
+
+async function openHash(page: Page, hash: string, ready: string): Promise<void> {
+  await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
+  await expect(page.locator(ready)).toBeVisible();
+}
+
+async function forceJapanese(page: Page): Promise<void> {
+  await page.evaluate(() => window.settings.set('lang', 'ja'));
+}
+
+test.describe('設定画面・アプリケーションメニュー・About ウィンドウの整理', () => {
+  test('設定タブは「基本設定」「ベースマップ」の2個で、「オリジナル地図設定」が存在しない', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fxa-ac1-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+      await openHash(page, '#/settings', '#langSwitcher');
+
+      // The MCP server tab is a separate, optional tab (hidden when that feature is turned off); the
+      // check here is about the two settings tabs and the removed original-map tab.
+      const tabs = page.locator('.nav-tabs .nav-item:not(:has([data-testid="settings-mcp-tab"]))');
+      await expect(tabs).toHaveCount(2);
+      expect(await page.locator('.nav-tabs').innerText()).not.toContain('オリジナル地図設定');
+      expect(await page.locator('body').innerText()).not.toContain('オリジナル地図設定');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('JPEG 解像度上限 (MP) の説明が ContextHelp の「？」ポップアップで出る', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fxa-ac3-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+      await openHash(page, '#/settings', '#langSwitcher');
+
+      const help = page.locator('[data-testid="settings-jpeg-decode-help"]');
+      await expect(help).toBeVisible();
+      // S2 で削除した form-text はもう画面上に無い（常時表示ではなくポップアップに変わったこと）
+      expect(await page.locator('form').first().innerText()).not.toContain('通常は空欄');
+
+      await help.hover();
+      const popover = page.locator('.popover');
+      await expect(popover).toBeVisible({ timeout: 5_000 });
+      expect(await popover.innerText()).toContain('通常は空欄');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('開発実行（未パッケージ）では開発メニューが従来どおり出る', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fxa-ac5-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+      // launchIsolated の launch() は projectRoot を args に渡す未パッケージ起動のため isPackaged=false
+      const labels = await applicationMenuLabels(app);
+      expect(labels).toContain('開発');
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('About のバージョン4値が表示され赤字エラーにならず、実バージョンと一致する', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fxa-ac7-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+
+      const appVersion = await evalMain<string>(app, ({ app: electronApp }) => electronApp.getVersion());
+
+      const aboutPage: Page = await openAboutWindow(app, 'について');
+
+      const versionsText = await aboutPage.locator('#versions').innerText();
+      expect(versionsText).not.toContain('Error:');
+      expect(versionsText).toMatch(/electron/);
+      expect(versionsText).toMatch(/chrome/);
+      expect(versionsText).toMatch(/node/);
+      expect(versionsText).toMatch(/v8/);
+      // 各値が空文字・'-'・undefined でないこと
+      expect(versionsText).not.toMatch(/:\s*-\s*$/m);
+      expect(versionsText).not.toContain('undefined');
+      const redNodeCount = await aboutPage.locator('[style*="color:red"], [style*="color: red"]').count();
+      expect(redNodeCount).toBe(0);
+
+      // case 8: バージョン表記がアプリの実バージョンと一致する（Version 0.7.0 ハードコードが無い）
+      const appVersionText = await aboutPage.locator('#appVersion').innerText();
+      expect(appVersionText).toBe(`Version ${appVersion}`);
+
+      await aboutPage.close();
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  test('保存フォルダが拒否されたら画面に伝え、ほかの設定を保存しない', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-settings-folder-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      await forceJapanese(page);
+      await openHash(page, '#/settings', '#langSwitcher');
+      await app.evaluate(({ dialog }) => {
+        const g = globalThis as any;
+        g.__messages = [];
+        dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: ['//server/share'] })) as any;
+        dialog.showMessageBox = (async (...args: any[]) => {
+          g.__messages.push(args[args.length - 1].message);
+          return { response: 0, checkboxChecked: false };
+        }) as any;
+      });
+      const before = await page.evaluate(() => window.settings.get('updateCheckEnabled'));
+      await page.locator('#saveFolder').click();
+      await expect(page.locator('#saveFolder')).toHaveValue('//server/share');
+      await page.locator('button.btn-primary').first().click();
+      // 失敗は通知だけなので、ネイティブのダイアログではなく画面上部のバナーに出る（docs/ui-grammar.md §5.3）
+      await expect(page.getByTestId('operation-notice')).toContainText('データフォルダを保存できませんでした');
+      await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'danger');
+      expect(await app.evaluate(() => (globalThis as any).__messages)).toEqual([]);
+      expect(await page.evaluate(() => window.settings.get('saveFolder'))).not.toBe('//server/share');
+      expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(before);
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+});

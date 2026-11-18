@@ -5,7 +5,7 @@
 //
 // fixture 生成コマンド（レビュー）:
 //   python3 -c "import json;print(json.dumps(json.load(open('$HOME/Library/Application Support/maplat-editor/config.json'))['tmsList'],ensure_ascii=False,indent=2))" \
-//     > tests/fixtures/m12-t32-basemap-bootstrap/legacy-tmslist.json
+//     > tests/fixtures/basemap-bootstrap/legacy-tmslist.json
 // 本機 config.json の tmsList（267 件・KTGIS 公開カタログ由来・個人情報不含）を忠実に保持。
 import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -24,7 +24,7 @@ const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'basemap-bootstrap-smoke.mjs');
 
-const fixturePath = path.join(projectRoot, 'tests/fixtures/m12-t32-basemap-bootstrap/legacy-tmslist.json');
+const fixturePath = path.join(projectRoot, 'tests/fixtures/basemap-bootstrap/legacy-tmslist.json');
 const builtinPath = path.join(projectRoot, 'electron/builtin_base_maps.json');
 const tmsListPath = path.join(projectRoot, 'electron/tms_list.json');
 const settingsPath = path.join(projectRoot, 'electron/services/SettingsService.ts');

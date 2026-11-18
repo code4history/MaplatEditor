@@ -1,6 +1,6 @@
 // renderer の Content-Security-Policy（MaplatEditor#120）の smoke（Electron を起動しない）。
 //
-// 実起動のヘッダ・注入・違反 0・保存フォルダ内スクリプトの拒否は tests/e2e/oct26-m4-t6-csp.spec.ts が測る。
+// 実起動のヘッダ・注入・違反 0・保存フォルダ内スクリプトの拒否は tests/e2e/csp.spec.ts が測る。
 // 本 smoke は e2e を回さない場面でも、次が外されたら落ちるように固定する:
 //   [case 1] createAppSchemeHandler の同梱 HTML（index.html・about.html）の応答に RENDERER_CSP が付き、値は。
 //         script-src／worker-src は 'self' を含まずパスで限定。同梱の非 HTML には付かない。__local の応答は
@@ -58,7 +58,7 @@ await writeFile(path.join(dist, "assets", "index-x.js"), "void 0");
 await writeFile(path.join(save, "tiles", "0.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
 await writeFile(path.join(save, "evil.html"), "<!doctype html><script>1</script>");
 for (const f of ["evil.js", "evil.mjs", "EVIL2.JS", "evil.txt", "evil.json", "evil"]) {
-  await writeFile(path.join(save, f), "window.__t6 = 1");
+  await writeFile(path.join(save, f), "window.__e2eRan = 1");
 }
 const handler = typeof appScheme.createAppSchemeHandler === "function"
   ? appScheme.createAppSchemeHandler({

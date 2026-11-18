@@ -463,5 +463,5 @@ function mainExternal(src) {
   pass(`MacUpdater（${updaterPkg.version}）: ダウンロード後の Squirrel は autoInstallOnAppQuit だけで決まる`);
 }
 
-assert.ok(existsSync(path.join(projectRoot, 'tests/e2e/nov26-m7-t5-update-feed.spec.ts')), 'e2e（tests/e2e/nov26-m7-t5-update-feed.spec.ts）が無い');
+assert.ok(existsSync(path.join(projectRoot, 'tests/e2e/update-feed.spec.ts')), 'e2e（tests/e2e/update-feed.spec.ts）が無い');
 console.log('update-foundation smoke: PASS');

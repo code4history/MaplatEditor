@@ -3,7 +3,7 @@
  *
  *   [A] case 1: build.yml の publish-win-sign-cache の「Check cache candidates」の run: を抜き出し、fixture の
  *       outbox/ で bash に渡して実行する。正しい名前の PE は通り、名前・種類・大きさ・中身の形・件数の外れは落ちる
- *   [B] case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjsで評価し、eSigner の退路の
+ *   [B] case 3: publish-win-sign-cache の if: を scripts/ci/eval-gh-if.mjs で評価し、eSigner の退路の
  *       mode=full で候補があるときだけ真になる
  *   [C] case 2: win-sign.cjs の signFile で、outbox へ置く（outboxDir()）より前に checkSigner(…, 'esigner')（C-3）がある
  *   [D] case 3: publish-win-sign-cache の全 step が checkout・pnpm・setup-node を持たず、run: のコマンド位置に

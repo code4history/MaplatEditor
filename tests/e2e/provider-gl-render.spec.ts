@@ -1,17 +1,17 @@
 // 書き出したアプリ（Export）とプレビュー（Preview）で、MapLibre GL JS・Mapbox GL JS が実際に読み込まれ、
 // MapLibre のベースマップが描かれることを確かめる E2E。
 //
-// T1 決定的な style（Preview）: リポジトリの fixture（line-layer-opacity を含む）を、テストの中のサーバで配る
-// T2 決定的な style（Export）: 同じアプリを書き出し、zip を展開してテストの中のサーバで配り、BrowserWindow で開く
-// T3 Mapbox の版（Preview）
-// T4 MapLibre GL JS の読み込みが失敗しても、アプリは起動する（Preview）
-// T5 プレビューの配信に CSP が無く、CSP の違反がコンソールに出ない（Preview）
-// T6 外部の切絵図の style（Export・Preview）。外部に届かないときは注記つきで skip する
+// case 1 決定的な style（Preview）: リポジトリの fixture（line-layer-opacity を含む）を、テストの中のサーバで配る
+// case 2 決定的な style（Export）: 同じアプリを書き出し、zip を展開してテストの中のサーバで配り、BrowserWindow で開く
+// case 3 Mapbox の版（Preview）
+// case 4 MapLibre GL JS の読み込みが失敗しても、アプリは起動する（Preview）
+// case 5 プレビューの配信に CSP が無く、CSP の違反がコンソールに出ない（Preview）
+// case 6 外部の切絵図の style（Export・Preview）。外部に届かないときは注記つきで skip する
 //
-// WebGL 2 の段（WebGL 2 を要するのは T1・T2・T6）:
+// WebGL 2 の段（WebGL 2 を要するのは case 1・case 2・case 6）:
 //   第 1 段: 通常の起動で WebGL 2 が使える
 //   第 2 段: 通常の起動で使えないとき、テストだけの起動引数（swiftshader）で起動し直して使える
-//   第 3 段: それでも使えないとき、CI の中に限り T1・T2・T6 を注記つきで skip する。手元では失敗させる
+//   第 3 段: それでも使えないとき、CI の中に限り case 1・case 2・case 6 を注記つきで skip する。手元では失敗させる
 // 段を進めるのは「確かめが正常に終わり、getContext('webgl2') が厳密に null」のときだけ。
 // 確かめの例外・時間切れ・想定外の値は、その場で失敗させる。
 // 確かめはプレビューを開く前の素の BrowserWindow（about:blank）で行い、プレビューの不具合と切り離す。
@@ -193,7 +193,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     if (styleServer) await styleServer.close();
   });
 
-  test('T3 Mapbox: プレビューで読み込まれる mapboxgl の版がピン留め版（3.33.0 以上）', async () => {
+  test('case 3 Mapbox: プレビューで読み込まれる mapboxgl の版がピン留め版（3.33.0 以上）', async () => {
     annotateStage();
     const baseMapUid = await seedBaseMap(page, 'glr-mapbox-base', baseMapMasterDoc({
       kind: 'mapbox', maptype: 'mapbox', style: 'mapbox://styles/mapbox/streets-v12', url: '',
@@ -208,7 +208,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     expect(minor, `mapboxgl.version=${version}`).toBeGreaterThanOrEqual(33);
   });
 
-  test('T4 MapLibre GL JS の読み込みが失敗しても、プレビューのアプリは起動する', async () => {
+  test('case 4 MapLibre GL JS の読み込みが失敗しても、プレビューのアプリは起動する', async () => {
     annotateStage();
     const from = consoleLines.length;
     await app.evaluate(({ session }) => {
@@ -222,7 +222,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
         .then(() => true, () => false);
       const bodyText = await frame.evaluate(() => document.body?.innerText?.slice(0, 300) ?? '').catch((e) => String(e));
       const lines = consoleLines.slice(from);
-      console.log(`T4: started=${started} loadFailedLogged=${lines.some((l) => l.text.includes(LOAD_FAILED))} body=${JSON.stringify(bodyText)}`);
+      console.log(`case 4: started=${started} loadFailedLogged=${lines.some((l) => l.text.includes(LOAD_FAILED))} body=${JSON.stringify(bodyText)}`);
       expect(lines.some((l) => l.text.includes(LOAD_FAILED)), 'コンソールに読み込みの失敗の行が無い').toBe(true);
       expect(started, `アプリが起動しない（window.__maplatPreview が無い）: ${bodyText}`).toBe(true);
     } finally {
@@ -230,7 +230,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     }
   });
 
-  test('T5 プレビューの配信に CSP が無く、CSP の違反がコンソールに出ない', async () => {
+  test('case 5 プレビューの配信に CSP が無く、CSP の違反がコンソールに出ない', async () => {
     annotateStage();
     const from = consoleLines.length;
     const { src } = await openPreview(mlApp.uid);
@@ -244,16 +244,16 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     expect(csp, JSON.stringify(csp)).toEqual([]);
   });
 
-  test('T1 決定的な style（Preview）: line-layer-opacity を含む style が検証エラーなしで描かれる', async () => {
+  test('case 1 決定的な style（Preview）: line-layer-opacity を含む style が検証エラーなしで描かれる', async () => {
     skipWithoutWebGl();
     const from = consoleLines.length;
     const { frame } = await openPreview(mlApp.uid);
     const state = await waitPreviewMap(frame, 60_000);
     await page.waitForTimeout(1_500);
     const sample = await sampleWindow(page, await iframeRect());
-    await saveShot('T1-preview', sample.png);
+    await saveShot('case 1-preview', sample.png);
     const styleErrors = consoleLines.slice(from).filter((l) => STYLE_ERROR.test(l.text));
-    console.log(`T1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+    console.log(`case 1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
     const fixtureLayers = JSON.parse(await readFile(FIXTURE_STYLE, 'utf8')).layers.length;
     expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
     expect(state.ready, `__maplatPreview が無い: ${JSON.stringify(state)}`).toBe(true);
@@ -264,7 +264,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     expect(sample.distinct6).toBeGreaterThanOrEqual(DISTINCT_MIN);
   });
 
-  test('T2 決定的な style（Export）: 書き出したアプリで同じ style が検証エラーなしで描かれる', async () => {
+  test('case 2 決定的な style（Export）: 書き出したアプリで同じ style が検証エラーなしで描かれる', async () => {
     skipWithoutWebGl();
     const ex = await openExport(mlApp.uid, 'glr-fixture-export');
     try {
@@ -275,9 +275,9 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
         await ex.win.waitForTimeout(1_000);
         sample = await sampleWindow(ex.win, { x: 0, y: 0, width: 1000, height: 700 });
       }
-      await saveShot('T2-export', sample.png);
+      await saveShot('case 2-export', sample.png);
       const styleErrors = ex.lines.filter((l) => STYLE_ERROR.test(l.text));
-      console.log(`T2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+      console.log(`case 2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
       expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
       expect(sample.bgHits, 'fixture の背景色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
       expect(sample.fillHits, 'fixture の塗りの色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
@@ -287,7 +287,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     }
   });
 
-  test('T6 切絵図の style（外部）: 書き出しとプレビューの両方で検証エラーなしで描かれる', async () => {
+  test('case 6 切絵図の style（外部）: 書き出しとプレビューの両方で検証エラーなしで描かれる', async () => {
     skipWithoutWebGl();
     const reach = await Promise.all([status(KIRIEZU_STYLE, 5_000), status(OPENFREEMAP, 5_000)]);
     test.skip(reach.some((s) => s !== 'ok'), `外部の style／タイルに届かない: style=${reach[0]} tiles=${reach[1]}`);
@@ -299,9 +299,9 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     const state = await waitPreviewMap(frame, 90_000);
     await page.waitForTimeout(2_000);
     const prev = await sampleWindow(page, await iframeRect());
-    await saveShot('T6-preview', prev.png);
+    await saveShot('case 6-preview', prev.png);
     const prevErrors = consoleLines.slice(from).filter((l) => STYLE_ERROR.test(l.text));
-    console.log(`T6 preview: state=${JSON.stringify(state)} distinct6=${prev.distinct6} styleErrors=${JSON.stringify(prevErrors.map((l) => l.text.slice(0, 200)))}`);
+    console.log(`case 6 preview: state=${JSON.stringify(state)} distinct6=${prev.distinct6} styleErrors=${JSON.stringify(prevErrors.map((l) => l.text.slice(0, 200)))}`);
 
     const ex = await openExport(a.uid, 'glr-kiriezu-export');
     let exp: Sample;
@@ -313,9 +313,9 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
         await ex.win.waitForTimeout(1_500);
         exp = await sampleWindow(ex.win, { x: 0, y: 0, width: 1000, height: 700 });
       }
-      await saveShot('T6-export', exp.png);
+      await saveShot('case 6-export', exp.png);
       const expErrors = ex.lines.filter((l) => STYLE_ERROR.test(l.text));
-      console.log(`T6 export: distinct6=${exp.distinct6} styleErrors=${JSON.stringify(expErrors.map((l) => l.text.slice(0, 200)))}`);
+      console.log(`case 6 export: distinct6=${exp.distinct6} styleErrors=${JSON.stringify(expErrors.map((l) => l.text.slice(0, 200)))}`);
       expect(expErrors, '書き出し: style の検証エラーがコンソールに出ている').toEqual([]);
       expect(exp.distinct6, '書き出し: 切絵図が描かれていない').toBeGreaterThanOrEqual(DISTINCT_MIN);
     } finally {

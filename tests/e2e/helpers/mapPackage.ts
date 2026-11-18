@@ -1,6 +1,6 @@
 // 地図パッケージ（搬出／取込）E2E の共通ハーネス。
 //
-// M5-T5 で新設。m5-t4b の spec に inline で書かれていたものを、m5-t5 が同じ準備を
+// map-import-slug-collision の追加に合わせて新設。map-package-roundtrip の spec に inline で書かれていたものを、map-import-slug-collision が同じ準備を
 // 必要としたため **複製せず**ここへ移した（恒久指示「同一扱い処理は共通実装へ徹底」）。
 // 依存アセットを全種類持つ地図の seed、ダイアログの退避と復元、ZIP の slug 書き換えは
 // 「似た処理」ではなく **同じ処理** であり、2箇所で育てると片方だけが直る。

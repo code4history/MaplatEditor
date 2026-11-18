@@ -293,7 +293,7 @@ const FREEZE_ALIASES = [
   { name: "envelop" + LNGLATS, files: ["src/utils/appSourceModel.ts", "scripts/app-source-model-smoke.mjs"] }, // smoke は旧キーの正規化を検査する
   { name: "coverage" + "_lnglats", files: ["src/utils/appSourceModel.ts"] },
   // e2e の fixture 定数（値を凍結名のキーへ入れて使う）。定数名は属性名にならないので tests/e2e/ の
-  // どの spec でも許す（#146 の nov26-m6-t4-app-source-editor-behavior.spec.ts も使う）。
+  // どの spec でも許す（#146 の app-source-editor-behavior.spec.ts も使う）。
   // 末尾が "/" の項目はディレクトリの接頭として扱う
   { name: "COVERAGE" + "_LNG_LATS", files: ["tests/e2e/"] },
 ];

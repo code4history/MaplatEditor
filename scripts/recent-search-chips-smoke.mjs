@@ -372,7 +372,7 @@ const LOCALE_KEYS = [
   try {
     const pkg = JSON.parse(await readFile(path.join(projectRoot, "package.json"), "utf8"));
     assert.match(pkg.scripts["smoke:recent-search-chips"] ?? "", /recent-search-chips-smoke\.mjs/);
-    assert.match(pkg.scripts["test:e2e:nov26-editor-feat1"] ?? "", /nov26-editor-feat1\.spec\.ts/);
+    assert.match(pkg.scripts["test:e2e:recent-search-chips"] ?? "", /recent-search-chips\.spec\.ts/);
     console.log("OK package.json の smoke / e2e スクリプト");
   } catch (cause) {
     failures += 1;

@@ -73,7 +73,7 @@ for (const phase of ['before', 'after']) {
         // POI のソースを保存した通知は、地図の編集画面へ移ったら消えている（ui-grammar §5.3）
         await expect(page.getByTestId('operation-notice')).toHaveCount(0);
         await expect(page.getByTestId('map-export-option-originals-help').locator('i.bi-question-circle')).toHaveCount(1);
-        // ファイルサイズ・写真の付帯情報の注意は ? に入れず、オリジナル画像を選んだときに黄色の警告で出す（§2.4）
+        // ファイルサイズ・写真の付帯情報の注意は ? に入れず、オリジナル画像を選んだときに黄色の警告で出す
         await expect(page.getByTestId('map-export-option-originals-warning')).toHaveCount(0);
         await page.getByTestId('map-export-option-originals').check();
         await expect(page.getByTestId('map-export-option-originals-warning')).toHaveAttribute('data-diagnostic-scope', 'field');
@@ -109,7 +109,7 @@ for (const phase of ['before', 'after']) {
         await expect(page.getByTestId('settings-mcp-recommend-loopback')).toHaveAttribute('aria-label', '「クライアントへの登録」の説明');
       }
       {
-        // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246 のレビュー Minor 6）
+        // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246）
         await openHash(page, '#/maplist');
         await app.evaluate(({ BrowserWindow }) => {
           const renamedSlugs = Array.from({ length: 24 }, (_, index) => ({ kind: 'map', from: `old-map-${index + 1}`, to: `old-map-${index + 1}-2` }));
