@@ -544,16 +544,16 @@ try {
     assert.match(langInput, /clearable\?: boolean/, '操作子の種別がマスタ編集フォームと一致すること: LangResourceInput に clearable prop');
     assert.match(langInput, /placeholder\?: string/, '操作子の種別がマスタ編集フォームと一致すること: LangResourceInput に placeholder prop');
     assert.match(langInput, /clearable: false/, '操作子の種別がマスタ編集フォームと一致すること: clearable の既定は false（BaseMapEdit は type=text のまま）');
-    assert.match(licenseSelect, /unsetLabelKey\?: string/, '操作子の種別がマスタ編集フォームと一致すること: LicenseSelect に unsetLabelKey prop');
+    assert.match(licenseSelect, /unsetLabelKey\?: string/, '共通部品の既定値が変わらないこと: LicenseSelect に unsetLabelKey prop');
     assert.match(
       licenseSelect, /unsetLabelKey: "mapedit\.license_unset"/,
-      '操作子の種別がマスタ編集フォームと一致すること: unsetLabelKey の既定は現行のハードコード値と同一（MapEdit/BaseMapEdit の表示を変えない）',
+      '共通部品の既定値が変わらないこと: unsetLabelKey の既定は現行のハードコード値と同一（MapEdit/BaseMapEdit の表示を変えない）',
     );
     // BaseMapEdit は無改修＝新 prop を1つも渡していない
     for (const prop of ['clearable', 'unset-label-key', 'unsetLabelKey']) {
       assert.equal(
         baseMapEdit.includes(prop), false,
-        `操作子の種別がマスタ編集フォームと一致すること: BaseMapEdit は無改修（${prop} を渡していない）`,
+        `共通部品の既定値が変わらないこと: BaseMapEdit は無改修（${prop} を渡していない）`,
       );
     }
     console.log('ok: 操作子の種別がマスタ編集フォームと一致すること（共通部品の既定値互換）');

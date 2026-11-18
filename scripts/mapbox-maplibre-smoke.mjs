@@ -143,7 +143,7 @@ const base = {
   assert.equal(payload.tms.style, "https://example.com/style.json");
 }
 
-// case 3
+// case 3: mapbox:// スキームの style は maplibre では拒否される
 {
   const doc = { ...base, kind: "maplibre", style: "mapbox://styles/x" };
   assert.equal(
@@ -160,7 +160,7 @@ const base = {
   assert.equal(e.includes("provider-incomplete"), false);
 }
 
-// composeViewerSource が style と maptype の運び先を扱う
+// maptype・style は設定ファイルに載り、アプリ JSON には出ない
 {
   const raw = {
     sourceType: "base-map",

@@ -244,7 +244,7 @@ try {
     }
 
     // -----------------------------------------------------------------------
-    // html 内の imgs 参照の逆変換（既出の欠陥の局所テスト）
+    // html 内の imgs 参照の逆変換（roundtrip-end-to-end-smoke の case 8 が捕まえた欠陥の局所テスト）
     //
     // 搬出（poiReferenceResolver.resolveAssetRefsForExport）は
     // features[].properties.html の maplat-asset:<UID> を imgs/<slug>.<ext> へ置換する。

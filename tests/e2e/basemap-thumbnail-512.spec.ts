@@ -362,7 +362,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-replace-512')).toBeDisabled();
       await expect(page.getByTestId('basemap-thumbnail-replace-52')).toBeDisabled();
 
-      console.log('  placeholder と derive52 強制 ON: PASS');
+      console.log('  ビルトインの 512px プレビューと置換の無効化: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -386,7 +386,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeChecked();
       await expect(page.getByTestId('basemap-thumbnail-derive-52')).toBeDisabled();
 
-      console.log('  case 6: PASS');
+      console.log('  placeholder の表示と derive52 強制 ON: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -441,7 +441,7 @@ test.describe('ベースマップのサムネイル管理（512px/52px）', () =
       const img52 = page.locator('img.base-map-icon');
       await expect(img52).toHaveAttribute('src', new RegExp(`${uid}\\.png`), { timeout: 15000 });
 
-      console.log('  case 7: PASS');
+      console.log('  derive52 OFF の 512px 単独置換で document.thumbnail が不変: PASS');
     } finally {
       await quitElectronApplication(app);
     }

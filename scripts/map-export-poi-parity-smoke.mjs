@@ -78,7 +78,7 @@ const { composeDownloadMapJson, readAppDocumentPois } = mod;
 
 try {
   // 生 FeatureCollection をレイヤ実体として使う（poiUid 登録参照は DB を要するため、
-  // 本 smoke は「読み出しの形」だけを対象にする。登録参照の外部化は統合 smoke が担う）
+  // 本 smoke は「読み出しの形」だけを対象にする。登録参照の外部化は export-pois-externalization-smoke が担う）
   const layerFc = () => ({
     type: 'FeatureCollection',
     features: [{
