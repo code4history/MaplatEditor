@@ -30,7 +30,7 @@ function osTrashPaths(): string[] {
   return trashedBasenames.map((b) => path.join(OS_TRASH_DIR, b));
 }
 
-// --- 手順5 / case 18-6: 後始末はテストプロセス側 fs の afterEach に置く ---
+// --- 手順5: 後始末はテストプロセス側 fs の afterEach に置く ---
 // (試験本文の try/finally ではなく afterEach に置くことで、
 // アプリプロセス死亡時・Playwright test timeout 時にも後始末が実行される)
 test.afterEach(async () => {

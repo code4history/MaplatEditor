@@ -2,13 +2,13 @@
 // poi-reference-resolver-smoke・export-pois-externalization-smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で AppPreviewService.prepare の実 HTTP 配信を behavioral に検証する。
 //
-// Part A: 配信 JSON が参照形（apps / maps ともインライン FC 0件）                      … case 1 / case 2
-// Part B: GET pois/<name>.geojson が FC を返し、上書きが焼き込まれていない             … case 3
-// Part C: app と map が同一ソースを参照しても外部ファイルは1つ                          … case 4
-// Part D: 未知の pois/<name> は {}（404 で POI 全損にしない）                           … case 5
-// Part E: 外部ファイル内の icon / asset が imgs/ ルートで実体として取れる               … case 6
-// Part F: preview と export が同一形式（ファイル名の一致は要求しない）                  … case 7
-// Part G: バンドル viewer の POI 表示の対応（伝播要否の判定を記録する）                     … case 8
+// Part A: 配信 JSON が参照形（apps / maps ともインライン FC 0件）
+// Part B: GET pois/<name>.geojson が FC を返し、上書きが焼き込まれていない
+// Part C: app と map が同一ソースを参照しても外部ファイルは1つ
+// Part D: 未知の pois/<name> は {}（404 で POI 全損にしない）
+// Part E: 外部ファイル内の icon / asset が imgs/ ルートで実体として取れる
+// Part F: preview と export が同一形式（ファイル名の一致は要求しない）
+// Part G: バンドル viewer の POI 表示の対応（伝播要否の判定を記録する）
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';

@@ -59,9 +59,9 @@ await mkdir(scratchRoot, { recursive: true });
   // 呼び出し側が自前で直列化・境界検査へ戻っていないこと
   for (const [label, src] of [['地図 ZIP', mapSrc], ['アプリ', appSrc]]) {
     assert.equal(/JSON\.stringify\(doc\.json\)/.test(src), false,
-      '' + label + ' 搬出が POI 実体を自前で直列化していないこと');
+      label + ' 搬出が POI 実体を自前で直列化していないこと');
     assert.equal(/escaped the output directory/.test(src), false,
-      '' + label + ' 搬出が境界検査を自前で持っていないこと（共有側の責務）');
+      label + ' 搬出が境界検査を自前で持っていないこと（共有側の責務）');
   }
   console.log('ok: 単一実装を両者が呼ぶ（参照形の決定・実体の書き出しの両方）');
 }

@@ -50,9 +50,9 @@ try {
       );
       assert.equal(
         MAP_LANG_ATTRS.includes('url'), false,
-        '-1: MAP_LANG_ATTRS に url が含まれてはいけない（不変条件 I-1）。実際: ' + JSON.stringify(MAP_LANG_ATTRS)
+        'MAP_LANG_ATTRS に url が含まれてはいけない（不変条件 I-1）。実際: ' + JSON.stringify(MAP_LANG_ATTRS)
       );
-      console.log('ok: -1 MAP_LANG_ATTRS does not contain url');
+      console.log('ok: MAP_LANG_ATTRS does not contain url');
 
       // --- 内部形への正規化で url が畳み込まれない ---
       // 言語別フィールド (title) はオブジェクトへ正規化されるのに対し、url は文字列のまま素通しになる。
@@ -60,25 +60,25 @@ try {
       const normalized = normalizeMapLangFields({ lang: 'ja', title: 'T', url: TILE_URL });
       assert.deepEqual(
         normalized.title, { ja: 'T' },
-        '-2: 言語別フィールド title は内部形（オブジェクト）へ正規化されるはず'
+        '言語別フィールド title は内部形（オブジェクト）へ正規化されるはず'
       );
       assert.strictEqual(
         normalized.url, TILE_URL,
-        '-2: url は正規化されず文字列のまま素通しするはず。実際: ' + JSON.stringify(normalized.url)
+        'url は正規化されず文字列のまま素通しするはず。実際: ' + JSON.stringify(normalized.url)
       );
-      console.log('ok: -2 normalizeMapLangFields leaves url untouched while folding title');
+      console.log('ok: normalizeMapLangFields leaves url untouched while folding title');
 
       // --- 交換形への畳み込みでも url が変換されない ---
       const compacted = compactMapLangFields({ lang: 'ja', title: { ja: 'T' }, url: TILE_URL });
       assert.strictEqual(
         compacted.title, 'T',
-        '-3: 言語別フィールド title は交換形（プレーン文字列）へ畳み込まれるはず'
+        '言語別フィールド title は交換形（プレーン文字列）へ畳み込まれるはず'
       );
       assert.strictEqual(
         compacted.url, TILE_URL,
-        '-3: url は交換形でも文字列のまま素通しするはず。実際: ' + JSON.stringify(compacted.url)
+        'url は交換形でも文字列のまま素通しするはず。実際: ' + JSON.stringify(compacted.url)
       );
-      console.log('ok: -3 compactMapLangFields leaves url untouched while folding title');
+      console.log('ok: compactMapLangFields leaves url untouched while folding title');
 
       console.log('url type smoke passed');
       process.exit(0);

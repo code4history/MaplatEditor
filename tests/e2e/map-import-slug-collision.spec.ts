@@ -147,7 +147,7 @@ test.describe('実 UI からの同名 slug 取込', () => {
         expect(doc.mapID).toBe(slug);
       }
 
-      console.log('  -b: PASS（連続同名取込で base-2 → base-3）');
+      console.log('  PASS（連続同名取込で base-2 → base-3）');
     } finally {
       await quitElectronApplication(app);
     }

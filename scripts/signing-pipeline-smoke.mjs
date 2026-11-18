@@ -1,13 +1,13 @@
 /**
- * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査（case 1）。
+ * Windows 署名を Azure Artifact Signing の署名専用ジョブへ移した経路の受け入れ検査。
  *
  * 実署名は CI（build.yml の dispatch・承認つき）でしか走らないため、ここでは Windows も課金も要らない部分を固める:
- *   [1] 署名者の正本（scripts/win-sign/signer-identity.{json,cjs}）— case 1 (c)(d)(e)
- *   [2] win-sign.cjs の collect・同じ実行の署名済みでの差し替え・fail-closed — case 1 (f) の一部・(o)(p)
- *   [3] collect-sign-set.mjs・apply-signed.mjs の phase の規則と照合 —
- *   [4] build.yml の静的検査 — case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
- *   [5] 祖先の確認の shell を fixture のリポジトリで実行 — case 1 (h)
- *   [6] 変異の自己検査 — case 1 (m)
+ *   [1] 署名者の正本（scripts/win-sign/signer-identity.{json,cjs}）
+ *   [2] win-sign.cjs の collect・同じ実行の署名済みでの差し替え・fail-closed
+ *   [3] collect-sign-set.mjs・apply-signed.mjs の phase の規則と照合
+ *   [4] build.yml の静的検査
+ *   [5] 祖先の確認の shell を fixture のリポジトリで実行
+ *   [6] 変異の自己検査
  *
  * 実行: node scripts/signing-pipeline-smoke.mjs（rtk を付けない）
  */
@@ -80,7 +80,7 @@ const FIXTURE_IDENTITY = {
 };
 
 // ───────────────────────────────────────────────
-// [1] 署名者の正本 — case 1 (c)(d)(e)
+// [1] 署名者の正本
 // ───────────────────────────────────────────────
 {
   assert.ok(existsSync(SIGNER_JSON), '[1] scripts/win-sign/signer-identity.json がある');
@@ -257,7 +257,7 @@ const readRecord = (f) => readFileSync(f, 'utf8').trim().split('\n').filter(Bool
 const OLD = new Date('2020-01-02T03:04:05Z');
 
 // ───────────────────────────────────────────────
-// [2] win-sign.cjs の collect・差し替え・fail-closed — case 1 (f)(o)(p)
+// [2] win-sign.cjs の collect・差し替え・fail-closed
 // ───────────────────────────────────────────────
 {
   // (f) collect はキャッシュを引かない（WIN_SIGN_CACHE_URL・CACHE_DIR・SIMULATE_DIR があっても見ない）
@@ -631,7 +631,7 @@ const OLD = new Date('2020-01-02T03:04:05Z');
 }
 
 // ───────────────────────────────────────────────
-// [4] build.yml の静的検査 — case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)
+// [4] build.yml の静的検査
 // ───────────────────────────────────────────────
 const { checkSigningJob, checkPnpmPin, ENDPOINT } = await import('./win-sign/signing-job-rules.mjs');
 const SIGN_JOBS = { 'sign-win-payload': '26', 'sign-win-uninstaller': '2', 'sign-win-installer': '2' };
@@ -644,7 +644,7 @@ const usesOf = (st) => (typeof st?.uses === 'string' ? st.uses : '');
 const needsOf = (job) => (job?.needs == null ? [] : [].concat(job.needs));
 const EB_RE = /(^|[\s;&|(])electron-builder\s/m;
 
-/** case 1 の build.yml の違反の一覧（空なら合格） */
+/** build.yml の違反の一覧（空なら合格） */
 function checkBuildWorkflow(wf) {
   const v = [];
   const jobs = wf?.jobs ?? {};
@@ -854,7 +854,7 @@ const wfText = readFileSync(WORKFLOW, 'utf8');
 const wf = yaml.load(wfText);
 {
   const v = checkBuildWorkflow(wf);
-  assert.deepEqual(v, [], `case 1 の build.yml の違反:\n  ${v.join('\n  ')}`);
+  assert.deepEqual(v, [], `build.yml の違反:\n  ${v.join('\n  ')}`);
   assert.deepEqual(checkPnpmPin(wfText), [], '[4] pnpm/action-setup は固定した版の PIN');
   // 自己検査: PIN を壊した本文で checkPnpmPin が違反を出す（規則の空振りの検出）
   {
@@ -865,11 +865,11 @@ const wf = yaml.load(wfText);
     assert.ok(checkPnpmPin(wfText.replace(pinLine, `pnpm/action-setup@${'0'.repeat(40)}`)).length > 0,
       '[4] 自己検査: pnpm/action-setup を別の SHA にしても違反が出ない');
   }
-  console.log('  [4/6] build.yml の静的検査（case 1 (a)(b)(f)(g)(h)(i)(j)(k)(l)(n)）: PASS');
+  console.log('  [4/6] build.yml の静的検査: PASS');
 }
 
 // ───────────────────────────────────────────────
-// [5] 祖先の確認の shell を fixture のリポジトリで実行 — case 1 (h)
+// [5] 祖先の確認の shell を fixture のリポジトリで実行
 // ───────────────────────────────────────────────
 {
   const prep = wf.jobs.prepare.steps;
@@ -907,7 +907,7 @@ const wf = yaml.load(wfText);
 }
 
 // ───────────────────────────────────────────────
-// [6] 変異の自己検査 — case 1 (m)
+// [6] 変異の自己検査
 // ───────────────────────────────────────────────
 {
   const steps = (w, job) => w.jobs[job].steps;

@@ -1,6 +1,5 @@
 // 主判定 #105 webSecurity 是正 smoke。
 //
-//
 // assert 内容:
 //   1. electron/main.ts の全 webPreferences から webSecurity:false が除去されている
 //      （コメント行・ブロックコメントを剥がして実設定のみ判定）。

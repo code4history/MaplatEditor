@@ -1,7 +1,7 @@
 // スモーク: pois の受け入れ関所（acceptDocumentPois）と判定ガード（usePoisFormatGuard）が
 // AppEdit / MapEdit の共通実装になっていることの検証。
 //
-// 注意: 本タスクは 以前の版の （scripts/revisioned-save-smoke.mjs）と ID が衝突するため、
+// 注意: 既存のスモーク（scripts/revisioned-save-smoke.mjs）と名前が衝突するため、
 // 規約どおり内容語を含むファイル名にしている。
 //
 // Part A: acceptDocumentPois の表駆動（親F1〜F7）
@@ -117,7 +117,7 @@ try {
       }
       console.log('ok: Part A-2 未設定入力は pois キーを生やさない（App / Map 同一）');
 
-      // 既存の空配列は維持する（実データ App 19件を壊さない —）
+      // 既存の空配列は維持する（実データ App 19件を壊さない）
       const existingEmpty = [];
       const keepTarget = {};
       acceptDocumentPois(keepTarget, { pois: existingEmpty });
@@ -262,7 +262,7 @@ try {
     assert.match(
       body,
       /writeDocumentPois\(/,
-      `${name} の onPoisChange が書き込み関所 writeDocumentPois を通っていない（永続形は両画面同一 —）`,
+      `${name} の onPoisChange が書き込み関所 writeDocumentPois を通っていない（永続形は両画面同一）`,
     );
   }
 

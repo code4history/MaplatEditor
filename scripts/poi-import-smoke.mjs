@@ -694,11 +694,11 @@ try {
     // 切り出しの変異: 見出しの別名表は poiImportRows.ts の 1 か所だけ
     assert.equal((rowsSrc.match(/const PLAIN_ALIASES\b/g) ?? []).length, 1);
 
-    // (e) 選択の拡張子と filters
+    // 選択の拡張子と filters
     const mergeHandler = extractHandler(ipcSrc, 'poisource:pickAndParseMerge');
     assert.match(mergeHandler, /extensions:\s*\['csv', 'kml'\]/, 'pickAndParseMerge の filters が csv・kml でない');
     const pkg = JSON.parse(await read('package.json'));
-    // ((e)) xmldom は dependencies に 0.8.15 の完全一致
+    // xmldom は dependencies に 0.8.15 の完全一致
     assert.equal(pkg.dependencies['@xmldom/xmldom'], '0.8.15', '@xmldom/xmldom は 0.8.15 の完全一致');
     assert.equal(pkg.devDependencies?.['@xmldom/xmldom'], undefined);
     const lock = await read('pnpm-lock.yaml');

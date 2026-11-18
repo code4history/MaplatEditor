@@ -1,6 +1,5 @@
 // 設定画面・アプリケーションメニュー・About ウィンドウの整理。
 //
-//
 // releaseChannel の純関数を版数 × isPackaged のマトリクスで検証する。
 // electron を import しないモジュールなので node で直接 import できる。
 import assert from "node:assert/strict";
@@ -56,7 +55,7 @@ import { shouldShowDevelopmentMenu, isRcOrLater } from "../electron/utils/releas
   console.log(`  [2/6] isRcOrLater 個別ケース（${cases.length}件）: PASS`);
 }
 
-// --- 続き: ソーステキスト assert（main.ts が releaseChannel を使って開発メニューを
+// --- ソーステキスト assert（main.ts が releaseChannel を使って開発メニューを
 // 条件付きにしていること）。regions: 541-582 行の template.push ブロックを包む ---
 {
   const mainTs = await readSrc("electron/main.ts");

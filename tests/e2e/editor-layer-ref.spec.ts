@@ -236,7 +236,7 @@ test.describe('URLレイヤ・上書きレイヤの読み書き', () => {
 
       const { poisPane, cards } = await openMapPoisTab(page, uid, slug);
 
-      // ---- （再掲）: 単独形は read-only にならず警告も出ない ----
+      // ---- 単独形は read-only にならず警告も出ない（再掲）----
       await expect(cards, '単独形が1件のカードとして編集可能に出る').toHaveCount(1, { timeout: 30000 });
       await expect(
         poisPane.locator('.editor-diagnostic__message'),

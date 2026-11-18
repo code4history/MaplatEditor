@@ -1,6 +1,5 @@
 // 地図 / ベースマップ / アプリ管理の画面内 UI 微修正。
 //
-//
 //   S1    defaultApp の httpSettings は現行値のまま（②読み込み時の欠落補完を動かさない）
 //   S2    新既定は NEW_APP_HTTP_OVERRIDES 1 箇所に集約され、適用点は newAppDocument だけ
 //   S3    AppEdit.vue の <ContextHelp タグ数 = 14（アプリの書き出しを小窓にした変更で +1）
@@ -169,9 +168,9 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 // ---------------------------------------------------------------------------
 {
   const cases = [
-    [APP_EDIT, appEditVue, 15, "S3 "],
-    [MAP_EDIT, mapEditVue, 25, "S4 "],
-    [BASE_MAP_EDIT, baseMapEditVue, 13, "S5 "],
+    [APP_EDIT, appEditVue, 15, "S3"],
+    [MAP_EDIT, mapEditVue, 25, "S4"],
+    [BASE_MAP_EDIT, baseMapEditVue, 13, "S5"],
   ];
   for (const [rel, source, expected, label] of cases) {
     const actual = count(source, "<ContextHelp");

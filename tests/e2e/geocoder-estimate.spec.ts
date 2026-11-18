@@ -19,7 +19,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 // strictMode を引数化した。既定は 'strict' で、既存呼び出し5箇所の挙動は一切変わらない。
 // seedMapAndApp だけが 'loose' を渡す（理由は seedMapAndApp のコメントを参照）。
-// GCP 定義を1箇所に保つのが目的である — case 4 の homeLng/homeLat 期待値（139.75 / 35.65）は
+// GCP 定義を1箇所に保つのが目的である — homeLng/homeLat 期待値（139.75 / 35.65）は
 // この GCP から導かれるため、seed を複製すると両者が将来ずれ得る。
 async function createMapWithGcps(page: Page, strictMode: 'strict' | 'loose' = 'strict'): Promise<string> {
   // T12-4: DB 直書きを防ぐため、素体 save 後に window.mapedit.updateTin で compiled を生成し、
@@ -173,7 +173,7 @@ async function seedMapAndApp(e2eRoot: string): Promise<{ mapUid: string; appUid:
     // strict_status: 'strict_error'（かつ kinks_points 4件）になり、AppDataService.saveApp が
     // DB 書き込み分岐より前の MapPurposeService.assertViewerRuntimeAllowed で maplat 参照を
     // 拒否するため、下の appedit.save が result: 'Error' で落ちる（実測 2026-08-02）。
-    // case 4 の期待値（下記 homeLng/homeLat）は compiled.vertices_points から作られる
+    // 期待値（下記 homeLng/homeLat）は compiled.vertices_points から作られる
     // maps_rtree の bbox 由来だが、その bbox は 'strict' / 'loose' で同一であることを実測済み。
     const mapUid = await createMapWithGcps(page, 'loose');
 

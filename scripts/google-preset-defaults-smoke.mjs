@@ -1,5 +1,8 @@
 // Google プリセット既定値 smoke
-// case 1-4: build / apply / 上書きポリシー
+// case 1: build（buildGooglePresetDefaults の既定値）
+// case 2: apply（applyGooglePresetDefaults への適用）
+// case 3: プリセットの既定値は帰属表記に触れない
+// case 4: 非空の license / 非 null の zoom は保持し、zoom はフィールド単位で扱う
 // case 9: Google の地図の帰属表記は埋めず、入力させず、読み込み・保存でも持たない
 // case 8: 11言語 Note キー
 import assert from "node:assert/strict";
@@ -92,7 +95,7 @@ try {
   );
   assert.equal(customAttr.attr.ja, "My Custom Attr", "case 3: 既定値の適用は attr を書き換えない");
 
-  // ---- case 4: non-empty license / non-null zoom preserved; per-field zoom () ----
+  // ---- case 4: non-empty license / non-null zoom preserved; per-field zoom ----
   const customLicense = applyGooglePresetDefaults(
     { ...fresh, license: "CC BY", dataLicense: "ODbL", minZoom: 5, maxZoom: null },
     d,

@@ -1,13 +1,12 @@
 // smoke: ジオコーダ応答（Nominatim の display_name）のエスケープ是正。
 //
-//
 // (a): nominatim.js のソースに row.address.name の生補間が現れない
 // (b): OSM 分岐が共有プリミティブ template( を通る
 // (c): helpers/dom.js の template() を実際に import して起動し、HTML がエスケープされることを確認
 //           （テスト内でエスケープ処理を再現しない。実関数を呼ぶ）
 //
 // dom.js は './mix' を拡張子なしで import するため node から直接 import できない。
-// 他の smoke（等）と同じく vite の ssr build で束ねてから実行する。
+// 他の smoke と同じく vite の ssr build で束ねてから実行する。
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';

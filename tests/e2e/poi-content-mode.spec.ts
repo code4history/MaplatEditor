@@ -140,15 +140,15 @@ test.describe('POI Content Mode', () => {
       // html mode + 参照素材(image)に asset UID を持つ POI を seed
       const slug = `poi-content-mode-ac10-${Date.now()}`;
       const srcUid = await page.evaluate(async (params) => {
-        const r = await window.poiSources.createLocal({ slug: params.slug, title: { ja: 'case 10 POI' }, lang: 'ja' });
+        const r = await window.poiSources.createLocal({ slug: params.slug, title: { ja: '画像挿入 POI' }, lang: 'ja' });
         if (!r || r.result !== 'Success') throw new Error(`create: ${JSON.stringify(r)}`);
         await window.poiSources.save(r.uid, {
-          slug: params.slug, title: { ja: 'case 10 POI' },
+          slug: params.slug, title: { ja: '画像挿入 POI' },
           fc: {
             type: 'FeatureCollection',
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
-              properties: { _maplatContentMode: 'html', name: { ja: 'case 10' }, html: { ja: '' }, image: [params.assetUid] },
+              properties: { _maplatContentMode: 'html', name: { ja: '画像挿入' }, html: { ja: '' }, image: [params.assetUid] },
             }],
           },
         });
@@ -196,15 +196,15 @@ test.describe('POI Content Mode', () => {
           sourceName: 'prev-1x1.png', token: params.assetToken,
         });
         if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
-        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'case 12 POI' }, lang: 'ja' });
+        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: '参照解決 POI' }, lang: 'ja' });
         if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
         await window.poiSources.save(p.uid, {
-          slug: `${params.slug}-poi`, title: { ja: 'case 12 POI' },
+          slug: `${params.slug}-poi`, title: { ja: '参照解決 POI' },
           fc: {
             type: 'FeatureCollection',
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
-              properties: { _maplatContentMode: 'html', name: { ja: 'case 12' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
+              properties: { _maplatContentMode: 'html', name: { ja: '参照解決' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
             }],
           },
         });
@@ -214,7 +214,7 @@ test.describe('POI Content Mode', () => {
       // app 直下 pois に {poiUid} を持つアプリのプレビューセッションを生成し、解決結果を実HTTPで検証
       const preview = await page.evaluate(async (poiUid) => {
         return await window.appedit.preparePreview({
-          appID: 'ac12app', appName: { ja: 'case 12' }, title: { ja: 'case 12' },
+          appID: 'ref-resolve-app', appName: { ja: '参照解決' }, title: { ja: '参照解決' },
           lang: 'ja', sources: [], pois: [{ poiUid }],
           appSettings: {}, httpSettings: {}, manifestSettings: {},
         });
@@ -251,15 +251,15 @@ test.describe('POI Content Mode', () => {
       const missingUid = '00000000-0000-4000-a000-000000000042';
       const missSlug = `t9-miss-${Date.now()}`;
       const missPoiUid = await page.evaluate(async (params) => {
-        const p = await window.poiSources.createLocal({ slug: params.slug, title: { ja: 'case 14 POI' }, lang: 'ja' });
+        const p = await window.poiSources.createLocal({ slug: params.slug, title: { ja: '欠落参照 POI' }, lang: 'ja' });
         if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
         await window.poiSources.save(p.uid, {
-          slug: params.slug, title: { ja: 'case 14 POI' },
+          slug: params.slug, title: { ja: '欠落参照 POI' },
           fc: {
             type: 'FeatureCollection',
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
-              properties: { _maplatContentMode: 'html', name: { ja: 'case 14' }, html: { ja: `<img src="maplat-asset:${params.missingUid}" />` } },
+              properties: { _maplatContentMode: 'html', name: { ja: '欠落参照' }, html: { ja: `<img src="maplat-asset:${params.missingUid}" />` } },
             }, {
               // 標準表示モードの画像欄によるアセットUID直接参照の欠落も検出する
               // (人間検証Round1: 画像欄が未検査だった穴の回帰防止)
@@ -297,15 +297,15 @@ test.describe('POI Content Mode', () => {
           sourceName: 'exp-1x1.png', token: params.assetToken,
         });
         if (!a || a.result !== 'Success') throw new Error(`asset: ${JSON.stringify(a)}`);
-        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: 'case 13 POI' }, lang: 'ja' });
+        const p = await window.poiSources.createLocal({ slug: `${params.slug}-poi`, title: { ja: '書き換え POI' }, lang: 'ja' });
         if (!p || p.result !== 'Success') throw new Error(`poi: ${JSON.stringify(p)}`);
         await window.poiSources.save(p.uid, {
-          slug: `${params.slug}-poi`, title: { ja: 'case 13 POI' },
+          slug: `${params.slug}-poi`, title: { ja: '書き換え POI' },
           fc: {
             type: 'FeatureCollection',
             features: [{
               type: 'Feature', id: 'p1', geometry: { type: 'Point', coordinates: [139.767, 35.681] },
-              properties: { _maplatContentMode: 'html', name: { ja: 'case 13' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
+              properties: { _maplatContentMode: 'html', name: { ja: '書き換え' }, html: { ja: `<img src="maplat-asset:${a.uid}" />` } },
             }],
           },
         });
@@ -321,7 +321,7 @@ test.describe('POI Content Mode', () => {
 
       const exportResult = await page.evaluate(async (poiUid) => {
         return await window.appedit.export({
-          appID: 'ac13app', appName: { ja: 'case 13' }, title: { ja: 'case 13' },
+          appID: 'rewrite-app', appName: { ja: '書き換え' }, title: { ja: '書き換え' },
           lang: 'ja', sources: [], pois: [{ poiUid }],
           appSettings: {}, httpSettings: {}, manifestSettings: {},
         });

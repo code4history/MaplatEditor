@@ -1,11 +1,11 @@
-// スモーク: export の POI 外部ファイル化 。
+// スモーク: export の POI 外部ファイル化。
 // poi-reference-resolver-smoke と同じ sandbox 方式 (vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時dir) で
 // 純関数と AppExportService.exportApp の実出力を behavioral に検証する。
 //
-// Part A: poiExportFileName の表駆動 (sanitize / 一意化)                                      … case 6
-// Part B: externalizePoisArray の要素変換規則 E1〜E7 (正本表)                     … case 3/case 5/case 7/case 8/case 9
+// Part A: poiExportFileName の表駆動 (sanitize / 一意化)
+// Part B: externalizePoisArray の要素変換規則 E1〜E7 (正本表)
 // Part C: exportApp の実出力 (zip 展開) — pois/ 実在・両 JSON の参照化・上書き非焼き込み・
-//         icon 実体同梱・app と map で1ファイルへ畳む・sanitize が pois/ の外へ出さない        … case 1/case 2/case 3/case 4/case 5/case 6
+//         icon 実体同梱・app と map で1ファイルへ畳む・sanitize が pois/ の外へ出さない
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';

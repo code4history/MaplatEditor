@@ -244,7 +244,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(() => page.evaluate(() => location.hash), { timeout: 15000 })
         .toMatch(/#\/poisources\/[0-9a-f-]{36}$/);
 
-      console.log('  PASS');
+      console.log('  POI Import の作成とキャンセル: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -540,7 +540,7 @@ test.describe('Dedup/Import', () => {
       await expect.poll(() => page.evaluate(() => location.hash), { timeout: 10000 }).toContain(`draftUid=${draftUid}`);
       await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-takeover', { timeout: 10000 });
 
-      console.log('  PASS');
+      console.log('  POI 新規下書きの引き継ぎ: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -567,7 +567,7 @@ test.describe('Dedup/Import', () => {
       const savedSlugs = await page.evaluate(async () =>
         ((await (window as any).search.poiSources({ page: 1, pageSize: 50 })).docs as Array<{ slug: string }>).map((d) => d.slug));
       expect(savedSlugs).toContain('t10b-live-save');
-      console.log('  PASS');
+      console.log('  blur 前の Cmd+S が live slug で作成: PASS');
 
       // blur 前に focus を維持したまま flush → live slug 入りの下書きが残り復元される
       await openHash(page, '#/poisources/new');
@@ -590,7 +590,7 @@ test.describe('Dedup/Import', () => {
       await draftCard.click();
       await expect(page.getByTestId('poi-slug')).toHaveValue('t10b-live-draft', { timeout: 10000 });
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
-      console.log('  PASS');
+      console.log('  focus 維持の flush で下書き復元: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -674,7 +674,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('.poi-feature-row')).toHaveCount(2, { timeout: 10000 });
       await expect(page.getByTestId('editor-save-state')).toHaveText(/下書きから復元/, { timeout: 10_000 });
 
-      console.log('  PASS');
+      console.log('  未作成編集の draftUid 復元: PASS');
     } finally {
       await quitElectronApplication(app);
     }
