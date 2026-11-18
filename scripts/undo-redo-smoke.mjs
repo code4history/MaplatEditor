@@ -78,17 +78,17 @@ try {
     const code = body.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
     const exchangeAt = code.indexOf('exchangeTileSource(');
     const markersAt = code.indexOf('gcpsToMarkers(');
-    assert.ok(exchangeAt >= 0, 'restoreHistoryState must rebuild the tile source ()');
+    assert.ok(exchangeAt >= 0, 'restoreHistoryState must rebuild the tile source');
     assert.ok(markersAt >= 0, 'restoreHistoryState must redraw markers');
     assert.ok(exchangeAt < markersAt, 'the tile source must be rebuilt BEFORE gcpsToMarkers() (coordinate transforms depend on illstSource)');
     assert.match(code, /tileIdentityKey\(/, 'restoreHistoryState must gate the rebuild on the tile identity key');
   }
   // extension / imageExtension の cleanup
-  assert.doesNotMatch(mapEdit, /mapData\.value\.extension\b/, 'mapData.value.extension must not be referenced (-b)');
+  assert.doesNotMatch(mapEdit, /mapData\.value\.extension\b/, 'mapData.value.extension must not be referenced');
   assert.match(
     mapEdit,
     /const resolveImageExtension = [\s\S]{0,160}?imageExtension/,
-    'resolveImageExtension must read imageExtension (-a)',
+    'resolveImageExtension must read imageExtension',
   );
   for (const [name, re] of [
     ['exchangeTileSource', /const exchangeTileSource = async[\s\S]*?\n\};/],
@@ -96,7 +96,7 @@ try {
   ]) {
     const body = mapEdit.match(re)?.[0] ?? '';
     assert.ok(body, `${name} could not be located`);
-    assert.match(body, /resolveImageExtension\(/, `${name} must resolve the extension through resolveImageExtension() (-c)`);
+    assert.match(body, /resolveImageExtension\(/, `${name} must resolve the extension through resolveImageExtension()`);
   }
 
   // INV-8 (C8): 保留中の編集はポインタ移動より前に確定させる（b）。

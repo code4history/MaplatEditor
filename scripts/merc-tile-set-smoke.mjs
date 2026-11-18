@@ -225,7 +225,7 @@ try {
       console.log('ok: (C) AppExportService.exportApp: merc/{dirName} コピー + tiles[] 差し替え ');
 
       // ============================================================
-      // (D) dirName 衝突は**構造的に到達不能**になった (の再定義)
+      // (D) dirName 衝突は**構造的に到達不能**になった (dirName の再定義)
       // ============================================================
       // 旧モデルでは dirName が「アプリへ追加した時点の slug」としてアプリ文書に凍結されていたため、
       // 別のマスタを同じ dirName で参照する状態が作れた。アプリのソースを差分で持つ形への変更の後は dirName を
@@ -267,7 +267,7 @@ try {
       assert.ok(namesD.some((name) => name.startsWith('merc/merc-source-b/')), '2件目も自分の slug 名でコピーされるはず（旧モデルでは失われていた）');
       assert.ok(namesD.includes('maps/merc-source-a.json'), '各ベースマップの設定ファイルが出るはず ');
       assert.ok(namesD.includes('maps/merc-source-b.json'), '各ベースマップの設定ファイルが出るはず ');
-      console.log('ok: (D) dirName はマスタの現在 slug から導出され、衝突が構造的に消える (再定義)');
+      console.log('ok: (D) dirName はマスタの現在 slug から導出され、衝突が構造的に消える (dirName の再定義)');
 
       // ============================================================
       // (E) SqliteDataService.deleteUserBaseMap: merc タイル削除。他 kind は非発火

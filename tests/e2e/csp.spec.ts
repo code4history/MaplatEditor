@@ -1,5 +1,5 @@
 // renderer の Content-Security-Policy（MaplatEditor#120）の E2E。
-// 設計: 設計書 v3（ポリシー・案 A＋案 B・case 1/case 3/case 4/case 7）
+// 検査する範囲: ポリシー・案 A＋案 B・case 1/case 3/case 4/case 7。
 //
 //   case 1  実起動の renderer から fetch した app://bundle/index.html・about.html の応答に、CSP が付く。
 //        __local の応答は sandbox の CSP と nosniff だけ（renderer CSP を重ねない）
@@ -15,7 +15,7 @@
 // ポリシー文字列は spec 内に逐語で置く（electron/utils/appScheme.ts を import すると、変更前の版で「変更前の値」を
 // 測ってしまい変更前 FAIL を示せないため。t2ff spec と同じ理由）。
 //
-// 撤退時（撤退条件 2）: renderer CSP を戻す commit では case 1（ヘッダ）・case 3・case 4 と、case 7 の
+// 撤退時: renderer CSP を戻す commit では case 1（ヘッダ）・case 3・case 4 と、case 7 の
 // 「assets/ 外の同梱スクリプトが CSP で拒否される」断言を test.skip にする（理由「renderer CSP は 11 月へ撤退・#120」）。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';

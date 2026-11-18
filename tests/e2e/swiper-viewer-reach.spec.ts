@@ -158,7 +158,7 @@ test.describe('swiper 12 — preview 到達', () => {
       expect(dispatched.ok, `clickMarkers を発火できること（${dispatched.reason ?? ''}）`).toBe(true);
       expect(dispatched.images, 'viewer に届いた datum が seed した画像数を保っていること').toBe(IMAGES.length);
 
-      // 6. swiper の生成とスライド数を assert（の本体）
+      // 6. swiper の生成とスライド数を assert
       const swiper = frame.locator('cc-swiper').first();
       await expect(swiper).toBeAttached({ timeout: 30000 });
       const slideCount = await frame.evaluate(() =>

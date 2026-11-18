@@ -487,7 +487,7 @@ test('diagnostics use field and operation scopes without legacy banners', async 
 });
 
 // 新規作成の順序保証 — UID採番 → slug予約成功 → 初期draft即時保存 → save(create:true + uid)
-// 予約失敗時は asset 本体も draft も残さない(D7 )。
+// 予約失敗時は asset 本体も draft も残さない(D7)。
 test('new base map creation mints uid, reserves slug, and persists initial draft before save', async () => {
   test.setTimeout(300_000);
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-slug-reservation-'));
@@ -681,7 +681,7 @@ test('checkpoint clean removes the persisted draft immediately and it stays gone
   }
 });
 
-// / preload→IPC→SettingsService→SqliteDataService.saveUserBaseMap の実経路を通し、
+// preload→IPC→SettingsService→SqliteDataService.saveUserBaseMap の実経路を通し、
 // foreign reservationによるpromote conflictがregistry/body双方をrollbackすることを証明する。
 test('actual base map save service rolls back registry and body on promote conflict', async () => {
   test.setTimeout(300_000);

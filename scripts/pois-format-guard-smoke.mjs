@@ -7,7 +7,7 @@
 // Part A: acceptDocumentPois の表駆動（親F1〜F7）
 //         — 配列は同一参照で素通し / 既存の空配列は維持 / 未設定はキーを生やさない /
 //           未対応形式は生値をそのまま温存 / target === incoming でも安全（冪等）
-// Part B: usePoisFormatGuard の反応性（の第2層）
+// Part B: usePoisFormatGuard の反応性（第2層）
 //         — 文書が差し替わったら判定が追随する（関所を通らない履歴復帰でも正しい）
 // Part C: 実装同一性と関所の実効性のソース assert
 //         — 両 View が同じ1本を通り、温存の独自分岐を持たない /
@@ -290,7 +290,7 @@ try {
     /mapData\.value\s*=\s*(fresh|data|histMap)\b/,
     'setMapDocument を経由しない旧来の文書代入が残っている',
   );
-  console.log('ok: Part C 実装同一性（）と関所の実効性');
+  console.log('ok: Part C 実装同一性と関所の実効性');
 
   // 警告文言が 11 locale すべてに存在する（先出し検査）
   const LOCALES = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];

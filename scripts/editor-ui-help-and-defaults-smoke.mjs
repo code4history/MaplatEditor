@@ -114,7 +114,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
       `S1/defaultApp().httpSettings.${key} must stay ${value} (② 読み込み時の欠落補完を動かさない)`,
     );
   }
-  console.log("  [S1 ] defaultApp().httpSettings が現行値のまま（11 キー）: PASS");
+  console.log("  [S1] defaultApp().httpSettings が現行値のまま（11 キー）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
       `S2/NEW_APP_HTTP_OVERRIDES.${key} must be ${value}`,
     );
   }
-  console.log("  [S2 ] 新既定 3 値が NEW_APP_HTTP_OVERRIDES 1 箇所へ集約 / 適用点は newAppDocument() のみ: PASS");
+  console.log("  [S2] 新既定 3 値が NEW_APP_HTTP_OVERRIDES 1 箇所へ集約 / 適用点は newAppDocument() のみ: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -198,7 +198,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   };
   await walk(path.join(projectRoot, "src"));
   assert.equal(total, 80, `S3-S5: src 全体の <ContextHelp タグ数は 80 であること（上の注記の 56 + UI 文法の 17 + #85 の 1 + Google の帰属表記の 2 + IIIF の 4） (got ${total})`);
-  console.log("  [S3-S5 -] ContextHelp タグ数 AppEdit 15 / MapEdit 25 / BaseMapEdit 13 / src 計 80: PASS");
+  console.log("  [S3-S5] ContextHelp タグ数 AppEdit 15 / MapEdit 25 / BaseMapEdit 13 / src 計 80: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない
@@ -217,7 +217,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     /<ContextHelp :title="t\('merc\.tab_title'\)" :text="t\('merc\.tab_description'\)"/,
     "S4/merc カードヘッダに merc.tab_description の ContextHelp があること",
   );
-  console.log("  [S4 ] merc タブ: <p> 廃止 → カードヘッダの ContextHelp へ移設: PASS");
+  console.log("  [S4] merc タブ: <p> 廃止 → カードヘッダの ContextHelp へ移設: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -279,7 +279,7 @@ const FIELD_HELP_TRANSFER = [
       `S6/BaseMapEdit.vue must reference field_help.${newKey} twice (:text と :ariaLabel)`,
     );
   }
-  console.log("  [S6 ] field_help.* 7 キー 1 本化（11 言語・値不変・両画面が同一キーを参照）: PASS");
+  console.log("  [S6] field_help.* 7 キー 1 本化（11 言語・値不変・両画面が同一キーを参照）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -307,7 +307,7 @@ const FIELD_HELP_TRANSFER = [
       assert.ok(locales[lang].appedit[k] !== undefined, `S7/${lang}.appedit.${k} は残すこと`);
     }
   }
-  console.log("  [S7 ] manifest_settings: 非ラテン 5 言語からラテン語 manifest が消滅 / 6 言語は不変: PASS");
+  console.log("  [S7] manifest_settings: 非ラテン 5 言語からラテン語 manifest が消滅 / 6 言語は不変: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +344,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
       `S8/AppEdit.vue must reference appedit.${key} twice (:text と :ariaLabel)`,
     );
   }
-  console.log(`  [S8 ] 新設 ${NEW_APPEDIT_NOTE_KEYS.length} キー × ${langs.length} 言語が非空 / 全キー参照済み: PASS`);
+  console.log(`  [S8] 新設 ${NEW_APPEDIT_NOTE_KEYS.length} キー × ${langs.length} 言語が非空 / 全キー参照済み: PASS`);
 }
 
 // ---------------------------------------------------------------------------
@@ -370,7 +370,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
     1,
     "S9/#previewLang は 1 箇所で維持すること（preview-restart.spec.ts が依存）",
   );
-  console.log("  [S9 ] 言語切替の移設: .preview-lang 絶対配置の廃止 / #previewLang 生存: PASS");
+  console.log("  [S9] 言語切替の移設: .preview-lang 絶対配置の廃止 / #previewLang 生存: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -390,7 +390,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
   // seed 部分（masterDoc / ソース選択導線）は変更しない
   assert.match(humanCheck, /const masterDoc = \(suffix: string\) => \(\{/, "S10/masterDoc は変更しない");
   assert.match(humanCheck, /human-check-tms/, "S10/seed 導線は変更しない");
-  console.log("  [S10 ] 人間検証ハーネスの案内文が凍結後 UI に追随: PASS");
+  console.log("  [S10] 人間検証ハーネスの案内文が凍結後 UI に追随: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -409,7 +409,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
       );
     }
   }
-  console.log("  [S11 ] 新設 2 ファイルに凍結属性名リテラル 0 件: PASS");
+  console.log("  [S11] 新設 2 ファイルに凍結属性名リテラル 0 件: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -470,7 +470,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
       assert.equal(count(raw, attr), 0, `S12 (c): public/locales/${lang}/translation.json に ${attr} は無いこと`);
     }
   }
-  console.log("  [S12 ] スキーマ属性の増減ゼロ（httpSettings 11 キー不変 / 上書きは既存キーのみ / MC7b 11-3-8-1）: PASS");
+  console.log("  [S12] スキーマ属性の増減ゼロ（httpSettings 11 キー不変 / 上書きは既存キーのみ / MC7b 11-3-8-1）: PASS");
 }
 
 // ---------------------------------------------------------------------------
@@ -545,7 +545,7 @@ const NEW_APPEDIT_NOTE_KEYS = [
     1,
     "S13/pwaManifest のテンプレート直接参照は v-model の 1 箇所だけ（v-if は pwaEnabled 経由）",
   );
-  console.log("  [S13 ] キャッシュの PWA 従属: onPwaToggle 1 レコード化 / 判定点は pwaEnabled 1 つ: PASS");
+  console.log("  [S13] キャッシュの PWA 従属: onPwaToggle 1 レコード化 / 判定点は pwaEnabled 1 つ: PASS");
 }
 
 // ContextHelp の Popover はフェードを使わない。フェード中に部品が外れると、Bootstrap の完了処理が

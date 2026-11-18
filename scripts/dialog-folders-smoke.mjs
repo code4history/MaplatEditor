@@ -75,7 +75,7 @@ const config = JSON.parse(fs.readFileSync(path.join(fixture,'runtime/electron-st
 assert.deepEqual(config.lastDialogFolders,folders);
 assert.deepEqual(Object.keys(config.lastDialogFolders).sort(),['export','image','import']);
 for (const v of Object.values(config.lastDialogFolders)) { assert.ok(path.isAbsolute(v)); assert.ok(fs.statSync(v).isDirectory()); }
-console.log('/3用途を分離・再読込で保持・JSONはフォルダ絶対パスのみ');
+console.log('3用途を分離・再読込で保持・JSONはフォルダ絶対パスのみ');
 for (const bad of ['relative', 12, path.join(folders.export,'export.txt'), path.join(fixture,'missing')]) {
  Settings.set('lastDialogFolders',{import:bad}); assert.equal(dialogDefaultPath('import'),documents);
 }

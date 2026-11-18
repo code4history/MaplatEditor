@@ -130,7 +130,7 @@ test('grid list (Map) uses unified new-item, slug, result status, action menu, a
     await expect(card).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await expect(card).toHaveCSS('border-top-width', '1px');
 
-    // 改(2026-07-16 件数表示統一・人間指示): backend が total を返すため
+    // 2026-07-16 の件数表示統一（人間指示）: backend が total を返すため
     // 「全N件」(完載) または「全N件中 M件表示」(部分表示) 形式になる
     const count = page.locator('[data-resource-count]');
     await expect(count).toContainText('全15件');

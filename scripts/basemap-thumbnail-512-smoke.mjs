@@ -1,17 +1,17 @@
 // smoke: ベースマップ管理のサムネイル操作を地図管理と同型にする（512px/52px）。
 //
-// 対象ケースと対応 AC:
-//   S1  thumb512PathFor の全域性 + ビルトイン 329 件の thumbnail512 明示属性との完全一致   -> case 1
-//   S2  public/basemap_icons と basemap_icons_512 の basename 集合一致                     -> case 1
-//   S3  replaceMapThumbnail(win, key, '512', true, 'png') が _512.webp と .png を書く        -> case 3
-//   S4  replaceMapThumbnail(win, key, '512', true)（ext 省略）が .jpg 規約を保つ            -> case 4
-//   S5  user ベースマップ書き出しで tmbs/{slug}.png と tmbs/{slug}_512.webp の両方が出る     -> case 9
-//   S6  BaseMapEditDocument / BaseMapSavePayload に thumbnail512 が無い                      -> case 8
-//   S7  11 言語の basemap.thumbnail_* 4 キーが揃い、mapedit.thumbnail_* が消えていない      -> case 10
-//   S8  返値セマンティクスと規則 U の機械証明 + 禁止形のソーステキスト assert     -> case 15(a)(c)
-//   S9  grep 系の受け入れ条件（インライン派生の不在・置換経路の単一性・結線）              -> case 2/case 3/case 14
+// 対象ケース:
+//   S1  thumb512PathFor の全域性 + ビルトイン 329 件の thumbnail512 明示属性との完全一致
+//   S2  public/basemap_icons と basemap_icons_512 の basename 集合一致
+//   S3  replaceMapThumbnail(win, key, '512', true, 'png') が _512.webp と .png を書く
+//   S4  replaceMapThumbnail(win, key, '512', true)（ext 省略）が .jpg 規約を保つ
+//   S5  user ベースマップ書き出しで tmbs/{slug}.png と tmbs/{slug}_512.webp の両方が出る
+//   S6  BaseMapEditDocument / BaseMapSavePayload に thumbnail512 が無い
+//   S7  11 言語の basemap.thumbnail_* 4 キーが揃い、mapedit.thumbnail_* が消えていない
+//   S8  返値セマンティクスと規則 U の機械証明 + 禁止形のソーステキスト assert
+//   S9  grep 系の受け入れ条件（インライン派生の不在・置換経路の単一性・結線）
 //
-// / basemap-512-export と同型 harness（vite SSR ビルド + electron/electron-store スタブ +
+// basemap-512-export と同型 harness（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で、実サービス（AppAssetService / AppExportService / SqliteDataService）を直接呼ぶ。
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -115,7 +115,7 @@ await writeFile(
   assert.equal(/thumbnail512/.test(docSrc), false, 'S6: baseMapEditorDocument.ts に thumbnail512 を追加していない');
   const dtsSrc = await readFile(path.join(projectRoot, 'src/electron.d.ts'), 'utf8');
   assert.equal(/thumbnail512/.test(dtsSrc), false, 'S6: electron.d.ts（BaseMapSavePayload 等）に thumbnail512 を追加していない');
-  // case 8(c): renderer は thumbnail512 明示属性を一切読まない。
+  // renderer は thumbnail512 明示属性を一切読まない。
   // 属性名ではない識別子は除外する: thumbnail512Url（ref 名）/ thumbnail512Codec（WebP 化の符号化モジュール名）。
   const NON_ATTRIBUTE_IDENTIFIERS = ['thumbnail512Url', 'thumbnail512Codec'];
   const srcHits = [];
@@ -133,8 +133,8 @@ await writeFile(
     }
   };
   await walk(path.join(projectRoot, 'src'));
-  assert.deepEqual(srcHits, [], 'S6/case 8(c): renderer(src/) が thumbnail512 明示属性を読んでいない');
-  console.log('ok: S6 thumbnail512 属性の非追加（case 8 a/b/c）');
+  assert.deepEqual(srcHits, [], 'S6: renderer(src/) が thumbnail512 明示属性を読んでいない');
+  console.log('ok: S6 thumbnail512 属性の非追加');
 }
 
 // S7 / S9 は「実装後の最終形」を検査するため、バンドル実行のあとに回す（末尾で呼ぶ）。
@@ -161,58 +161,58 @@ const runLateStaticChecks = async () => {
 {
   const countMatches = (text, re) => text.split('\n').filter((l) => re.test(l)).length;
 
-  // case 2(a): AppAssetService.ts のインライン _512 派生が 0
+  // AppAssetService.ts のインライン _512 派生が 0
   const assetSrc = await readFile(appAssetServicePath, 'utf8');
   assert.equal(countMatches(assetSrc, /_512/), 0,
-    'case 2(a): AppAssetService.ts に _512 リテラルが残っていない（thumb512PathFor 経由）');
+    'AppAssetService.ts に _512 リテラルが残っていない（thumb512PathFor 経由）');
 
-  // case 3: 置換経路の単一性 + 本体に tmbs/ リテラルが無い
+  // 置換経路の単一性 + 本体に tmbs/ リテラルが無い
   assert.equal(countMatches(assetSrc, /async replaceMapThumbnail/), 1,
-    'case 3: replaceMapThumbnail は 1 実装のみ（並行実装なし）');
+    'replaceMapThumbnail は 1 実装のみ（並行実装なし）');
   assert.equal(countMatches(assetSrc, /['"`]tmbs\//), 0,
-    'case 3: AppAssetService.ts の本体に tmbs/ リテラルが無い（thumb52PathFor / thumb512PathFor へ集約）');
+    'AppAssetService.ts の本体に tmbs/ リテラルが無い（thumb52PathFor / thumb512PathFor へ集約）');
 
-  // case 2(b): AppExportService.ts のベースマップ分岐に 512px パスのインライン派生が 0。
+  // AppExportService.ts のベースマップ分岐に 512px パスのインライン派生が 0。
   //   needle は `_512\.`（= パスリテラル）。素の `_512` は i18n キー名等も拾うため使わない。
   //   地図分岐の 3 行は別の変更の受け持ちのため対象外。行番号ではなく節の境界で切り出して判定する。
   const exportSrc = await readFile(appExportServicePath, 'utf8');
   const baseMapThumbStart = exportSrc.indexOf('// 3) ベースマップのサムネイル');
   const baseMapThumbEnd = exportSrc.indexOf('// 3b)');
   assert.ok(baseMapThumbStart > 0 && baseMapThumbEnd > baseMapThumbStart,
-    'case 2(b): ベースマップのサムネイル節を特定できる');
+    'ベースマップのサムネイル節を特定できる');
   const baseMapThumbSection = exportSrc.slice(baseMapThumbStart, baseMapThumbEnd);
   assert.equal(countMatches(baseMapThumbSection, /_512\./), 0,
-    'case 2(b): ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
+    'ベースマップ分岐に 512px パスのインライン派生が無い（thumb512PathFor 経由）');
   // WebP 化の後: それまで WebP 化の受け持ちとして残していた地図分岐の 3 行も thumb512PathFor へ寄った。
   // ∴ AppExportService 全体でインライン派生は 0 になる（thumbnail-512-webp-smoke が全ファイルで機械照合する）。
   assert.equal(countMatches(exportSrc, /_512\./), 0,
-    `case 2(b): AppExportService 全体で 512px のインライン派生が 0（WebP 化で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
+    `AppExportService 全体で 512px のインライン派生が 0（WebP 化で地図分岐も移行済み。実測 ${countMatches(exportSrc, /_512\./)}）`);
 
-  // case 2(c): BaseMapEdit.vue に 512px パスのインライン派生が 0。
+  // BaseMapEdit.vue に 512px パスのインライン派生が 0。
   //   needle は `_512\.`。i18n キー `basemap.thumbnail_replace_512` と testid は派生ではないため対象外。
   const baseMapEditSrc = await readFile(path.join(projectRoot, 'src/components/basemap/BaseMapEdit.vue'), 'utf8');
   assert.equal(countMatches(baseMapEditSrc, /_512\./), 0,
-    'case 2(c): BaseMapEdit.vue に 512px パスのインライン派生が無い');
+    'BaseMapEdit.vue に 512px パスのインライン派生が無い');
 
-  // case 2(d): SqliteDataService.ts の `_512\b` 一致件数が現況 11 から増えない
+  // SqliteDataService.ts の `_512\b` 一致件数が現況 11 から増えない
   const sqliteSrc = await readFile(sqlitePath, 'utf8');
   const sqliteHits = countMatches(sqliteSrc, /_512\b/);
   assert.ok(sqliteHits <= 11,
-    `case 2(d): SqliteDataService.ts の _512\\b 一致件数が増えていない（現況 11 / 実測 ${sqliteHits}）`);
+    `SqliteDataService.ts の _512\\b 一致件数が増えていない（現況 11 / 実測 ${sqliteHits}）`);
 
-  // S8(e) / case 15(c): 規則 U 違反形（禁止形）の再混入防止
+  // S8(e): 規則 U 違反形（禁止形）の再混入防止
   assert.equal(baseMapEditSrc.split('path52 ?? path').length - 1, 0,
-    'case 15(c): BaseMapEdit.vue に禁止形 `path52 ?? path` が無い');
+    'BaseMapEdit.vue に禁止形 `path52 ?? path` が無い');
   assert.equal(baseMapEditSrc.split('path ?? path52').length - 1, 0,
-    'case 15(c): BaseMapEdit.vue に禁止形 `path ?? path52` が無い');
+    'BaseMapEdit.vue に禁止形 `path ?? path52` が無い');
 
-  // case 14 : 新規検証スクリプトが package.json に結線されている
+  // 新規検証スクリプトが package.json に結線されている
   const pkg = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
   const wired = Object.entries(pkg.scripts).filter(([, v]) => v.includes('basemap-thumbnail-512'));
   assert.equal(wired.length, 2,
-    `case 14: package.json にこの smoke / e2e が結線されている（実測 ${wired.length}: ${JSON.stringify(wired)}）`);
+    `package.json にこの smoke / e2e が結線されている（実測 ${wired.length}: ${JSON.stringify(wired)}）`);
 
-  console.log('ok: S9 grep 系 AC（case 2 a/b/c/d）');
+  console.log('ok: S9 grep 系の受け入れ条件');
 }
 
 };
@@ -403,7 +403,7 @@ await writeFile(
       assert.ok(names.includes('tmbs/' + SLUG + '.png'),
         'S5: 52px が slug 名で同梱される: ' + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
       assert.ok(names.includes('tmbs/' + SLUG + '_512.webp'),
-        'S5/case 9: 512px も slug 名で同梱される（uid 名のコピー元から解決。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 B の是正）: '
+        'S5: 512px も slug 名で同梱される（uid 名のコピー元から解決。資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの違反 B の是正）: '
           + JSON.stringify(names.filter((n) => n.startsWith('tmbs/'))));
       assert.equal(names.includes('tmbs/' + UID + '_512.webp'), false, 'S5: uid 名は出力へ漏れない（資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まりの export 契約）');
       console.log('ok: S5 ベースマップ 512px の package 同梱（uid → slug 解決）');

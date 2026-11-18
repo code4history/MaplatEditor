@@ -2,7 +2,7 @@
 //
 // 固定する受け入れ条件:
 // (a) 共有 API `resolveImportSlug` が **1つだけ** 定義されている
-// (b) の4経路すべてが共有 API を呼ぶ
+// (b) 4経路すべてが共有 API を呼ぶ
 //          1 POI .zip / 2 POI .geojson / 3 地図ZIP同梱 managed POI 復元 / 4 地図 ZIP
 // (c) `PoiSourceService` の private 実装が **残っていない**
 // (d) 契約 — 空入力は素通し / 枯渇は null / 予約はしない

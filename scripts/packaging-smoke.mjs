@@ -174,7 +174,7 @@ function findAsar() {
 {
   const asar = findAsar();
   if (!asar) {
-    // 黙って通さない。何が未検証かを明示する（は root でのビルド後に確定させる）
+    // 黙って通さない。何が未検証かを明示する（asar の中身は root でのビルド後に確定させる）
     console.log('  [5/8] asar の中身: **SKIP — ビルド生成物が無い**');
     console.log('        推移依存の同梱は静的検査では証明できない。root（完全 workspace）で');
     console.log('        `pnpm run dist:mac:arm64` 等を実行してから本 smoke を再実行すること。');
@@ -294,7 +294,7 @@ function findAsar() {
 }
 
 // ───────────────────────────────────────────────
-// の補助: 本 smoke が package.json へ結線されていること
+// 補助: 本 smoke が package.json へ結線されていること
 // ───────────────────────────────────────────────
 {
   const scripts = pkg.scripts ?? {};

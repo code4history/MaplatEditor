@@ -126,7 +126,7 @@ test('instance B reports reserved-by-other when instance A reserves the slug', a
     await a.page.getByTestId('basemap-slug').fill(slug);
     await waitForOwnedReservation(a.page, slug, aUid);
 
-    // POI作成モーダルは解体済み(HV5)。B は新規追加→POIエディタの SlugField で
+    // POI作成モーダルは解体済み。B は新規追加→POIエディタの SlugField で
     // A の予約中 slug を入力し、reserved-by-other の伝播を検証する（検証意図は不変）。
     await openHash(b.page, '#/poisources', '[data-resource-list="poi-source"]');
     await b.page.locator('[data-resource-new]').click();

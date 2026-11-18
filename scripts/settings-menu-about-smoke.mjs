@@ -1,8 +1,8 @@
 // 設定画面・アプリケーションメニュー・About ウィンドウの整理。
 //
 //
-// 相当: releaseChannel の純関数を版数 × isPackaged のマトリクスで検証する
-// （）。electron を import しないモジュールなので node で直接 import できる。
+// releaseChannel の純関数を版数 × isPackaged のマトリクスで検証する。
+// electron を import しないモジュールなので node で直接 import できる。
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";

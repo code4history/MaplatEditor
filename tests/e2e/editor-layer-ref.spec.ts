@@ -10,7 +10,7 @@ import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 //   単独形の文書は要素数1のままなら単独形で保存される（配列化しない）
 //   単独形 URL の文書で POI が黙って消えない
 //
-// 【 の実測による訂正】設計は「単独形 URL の文書で POI を追加 → 可能。
+// 【実測による訂正】設計は「単独形 URL の文書で POI を追加 → 可能。
 // 元の URL は要素として残り配列化して2要素になる」としていたが、**UI からこの経路には到達
 // できない**。PoiReferenceEditor の hasNonReferenceEntries（:356）が非参照要素の存在で真に
 // なり、POI ソース選択ペインが inline-poi-preserve-convert の既存制約（poiref.add_blocked_note）で無効化される

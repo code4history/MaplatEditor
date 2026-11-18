@@ -1,5 +1,5 @@
 // 主判定 #105 webSecurity 是正 smoke。
-// 。
+//
 //
 // assert 内容:
 //   1. electron/main.ts の全 webPreferences から webSecurity:false が除去されている
@@ -123,7 +123,7 @@ import { resolveAppUrl, localFileUrl, migrateLegacyFileUrl } from "../electron/u
 
   // 経路トラバーサル試行（リテラル '..' / percent-encoded '%2e%2e'）も許可ルート内へ封じ込める。
   // WHATWG URL 正規化と resolveAppUrl の isUnderRoot により、ルート外へ脱出する解決結果は返らない。
-  // （の要求は file:// 絶対パスと無許可 origin の拒否。本 assert は補強）
+  // （要求は file:// 絶対パスと無許可 origin の拒否。本 assert は補強）
   for (const raw of ["app://bundle/../secret.txt", "app://bundle/%2e%2e/secret.txt"]) {
     const res = resolveAppUrl(raw, roots);
     if (res !== null) {

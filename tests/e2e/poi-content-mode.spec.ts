@@ -1,5 +1,5 @@
 // POI Content Mode & Asset Reference URI E2E Test
-// 検証: case 1-case 7, case 10, case 12-case 13, case 14, case 16, case 18
+// 検証: コンテンツ方式の切替・入力欄・診断、maplat-asset の挿入・解決・欠落警告・書き換え。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -65,24 +65,24 @@ test.describe('POI Content Mode', () => {
       await featureRow.click();
       await page.waitForTimeout(500);
 
-      // case 1: tabs visible
+      // tabs visible
       const standardTab = page.getByTestId('poi-content-mode-tab-standard');
       const htmlTab = page.getByTestId('poi-content-mode-tab-html');
       const urlTab = page.getByTestId('poi-content-mode-tab-url');
       await expect(standardTab).toBeVisible({ timeout: 5000 });
       await expect(htmlTab).toHaveClass(/active/); // legacy → html mode
 
-      // case 3: html mode fields
+      // html mode fields
       await expect(page.locator('label:has-text("HTML")')).toBeVisible({ timeout: 5000 });
       await expect(page.locator('label:has-text("参照アセット")')).toBeVisible({ timeout: 5000 });
       await expect(page.locator('label:has-text("説明")').first()).toHaveCount(0);
       await expect(page.locator('label:has-text("住所")').first()).toHaveCount(0);
 
-      // case 5: incompatible diagnostic
+      // incompatible diagnostic
       await expect(page.locator('.editor-diagnostic').first()).toBeVisible({ timeout: 5000 });
 
       const confirmation = await captureNativeConfirmation(app);
-      // case 7: cancel
+      // cancel
       await standardTab.click();
       const prompt = await confirmation.wait();
       expect(prompt.cancelId).toBe(1);
@@ -90,7 +90,7 @@ test.describe('POI Content Mode', () => {
       await confirmation.answer(1);
       await expect(htmlTab).toHaveClass(/active/);
 
-      // case 6: confirm → standard mode
+      // confirm → standard mode
       await standardTab.click();
       await confirmation.answer(0);
       await expect(standardTab).toHaveClass(/active/);
@@ -99,7 +99,7 @@ test.describe('POI Content Mode', () => {
       await page.locator('[data-editor-action="undo"]').click();
       await expect(htmlTab).toHaveClass(/active/);
 
-      // case 4+case 16: url mode
+      // url mode
       await urlTab.click();
       await confirmation.answer(0);
       await expect(urlTab).toHaveClass(/active/);
@@ -113,7 +113,7 @@ test.describe('POI Content Mode', () => {
       await expect(page.getByText(/URLに http\/https 以外のプロトコル/)).toBeVisible({ timeout: 5000 });
       await expect(page.getByText('content-mode-url-format')).toHaveCount(0);
 
-      console.log('  case 1-case 7+case 16: PASS');
+      console.log('  コンテンツ方式のタブ・入力欄・切替: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -174,7 +174,7 @@ test.describe('POI Content Mode', () => {
       });
       expect(htmlContent).toContain(`maplat-asset:${assetUid}`);
       expect(htmlContent).toContain('<img src=');
-      console.log('  case 10: PASS');
+      console.log('  画像を挿入で maplat-asset が入る: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -211,7 +211,7 @@ test.describe('POI Content Mode', () => {
         return { assetUid: a.uid as string, poiUid: p.uid as string };
       }, { slug: assetSlug, assetToken });
 
-      // case 12: app 直下 pois に {poiUid} を持つアプリのプレビューセッションを生成し、解決結果を実HTTPで検証
+      // app 直下 pois に {poiUid} を持つアプリのプレビューセッションを生成し、解決結果を実HTTPで検証
       const preview = await page.evaluate(async (poiUid) => {
         return await window.appedit.preparePreview({
           appID: 'ac12app', appName: { ja: 'case 12' }, title: { ja: 'case 12' },
@@ -247,7 +247,7 @@ test.describe('POI Content Mode', () => {
       expect(bytes.length).toBeGreaterThan(0);
       expect(bytes[0]).toBe(0x89); // PNG magic
 
-      // case 14: 欠落 UID を参照する POI をエディタで開くと欠落警告が表示される（無条件アサーション）
+      // 欠落 UID を参照する POI をエディタで開くと欠落警告が表示される（無条件アサーション）
       const missingUid = '00000000-0000-4000-a000-000000000042';
       const missSlug = `t9-miss-${Date.now()}`;
       const missPoiUid = await page.evaluate(async (params) => {
@@ -276,7 +276,7 @@ test.describe('POI Content Mode', () => {
       // html内参照(p1)と画像欄UID直接参照(p2)の両方が欠落として数えられる(2件)
       await expect(page.getByText(/参照先が存在しないアセット参照が2件/)).toBeVisible({ timeout: 10000 });
 
-      console.log('  case 12+case 14: PASS');
+      console.log('  プレビューの解決と欠落警告: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -345,7 +345,7 @@ test.describe('POI Content Mode', () => {
       expect(poiText).not.toContain('maplat-asset:');
       expect(names.some((n) => n.endsWith(`imgs/${assetSlug}.png`)), `asset entry in: ${names.join(', ')}`).toBe(true);
 
-      console.log('  case 13: PASS');
+      console.log('  書き換えと実体の同梱: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -363,7 +363,7 @@ test.describe('POI Content Mode', () => {
       await expect(addBtn).toBeVisible();
       await expect(addBtn.locator('i.bi-plus-lg')).toBeVisible();
 
-      console.log('  case 18: PASS');
+      console.log('  追加ボタンの文法: PASS');
     } finally {
       await quitElectronApplication(app);
     }

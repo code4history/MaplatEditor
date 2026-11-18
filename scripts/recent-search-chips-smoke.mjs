@@ -211,7 +211,7 @@ for (const rel of [
   }
 }
 
-// + レビュー指示 5: チップは表示専用
+// レビュー指示 5: チップは表示専用
 check("RecentSearchChips.vue は window.* を呼ばない表示専用部品", () => {
   const src = sources["src/components/resource-list/RecentSearchChips.vue"];
   assert.doesNotMatch(src, /window\./, "チップ部品は window.* を呼ばない（Part 4 と同規約）");
@@ -328,7 +328,7 @@ check("レビュー指示 3 左右ペイン 2 画面は uid 変化時と onBefor
     assert.match(src, /recordRecentNow/, `${rel}: @change は即時記録する`);
     assert.match(src, /applyRecent/, `${rel}: チップの適用`);
     assert.match(src, /removeRecent/, `${rel}: × の削除`);
-    assert.match(src, /mergeMasterDetailFilters|updateFilters|\.\.\.route\.query/, `${rel}: uid を保ったまま q を書き換える（）`);
+    assert.match(src, /mergeMasterDetailFilters|updateFilters|\.\.\.route\.query/, `${rel}: uid を保ったまま q を書き換える`);
   }
 });
 console.log("recent-search-chips smoke Part 2: OK");

@@ -11,7 +11,7 @@
 //   10. undo / redo（AppEdit の historyApplying + recordHistory 経路）
 //
 // t1 E2E（map-poi-hide-override.spec.ts）と t5 E2E（properties-viewer-reach.spec.ts）の
-// 両方の知見を踏襲。待機はすべて状態ベース（固定スリープ禁止 = の教訓）。
+// 両方の知見を踏襲。待機はすべて状態ベース（固定スリープ禁止）。
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -88,7 +88,7 @@ const POI_A_ID = 'a1';
 const POI_B_ID = 'b1';
 
 test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
-  test('シナリオ1: case 2-1/3/4/7/8a/9/10: hide 上書きの AppEdit UI・round-trip・viewer 到達・undo', async () => {
+  test('シナリオ1: hide 上書きの AppEdit UI・round-trip・viewer 到達・undo', async () => {
     test.setTimeout(300_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-hide-override-'));
     const { app, page } = await launch(e2eRoot);
@@ -349,7 +349,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
   // case 2-2 — 非参照要素（生 FC）には hide チェックボックスが出ない。
   // 別 seed（参照2件 + 生 FC 1件）。preview タブは開かない（UI 検証のみ・viewer 無関係）。
   // 生 FC はインラインのため nodesLoader の fetch は発火しない（生 URL とは異なる）。
-  test('シナリオ2: case 2-2: 非参照要素（生 FC）には hide チェックボックスが出ない', async () => {
+  test('シナリオ2: 非参照要素（生 FC）には hide チェックボックスが出ない', async () => {
     test.setTimeout(120_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-ac2-2-'));
     const { app, page } = await launch(e2eRoot);
@@ -420,7 +420,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
   // case 2-8b — 追加選択・並べ替え・別参照の解除でも hide が保持される。
   // 別 seed（参照2件 → 追加選択で3件 → 並べ替え → 参照解除で2件）。
   // 検証は保存形（readSavedAppPois）で行い、DOM の再マウントに依存しない。
-  test('シナリオ3: case 2-8b: 追加選択・並べ替え・別参照の解除でも hide が保持される', async () => {
+  test('シナリオ3: 追加選択・並べ替え・別参照の解除でも hide が保持される', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t2-ac2-8b-'));
     const { app, page } = await launch(e2eRoot);

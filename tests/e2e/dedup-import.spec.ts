@@ -1,7 +1,7 @@
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 // 複製・削除action・Import統合 E2E Test
-//           を実効検証する。
-// (copyFromUidのタイル複製)・(失敗経路)はコード検査+人間検証。
+// 複製・削除・Import の主要な経路を実効検証する。
+// copyFromUid のタイル複製と失敗経路はコード検査+人間検証。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
@@ -96,7 +96,7 @@ test.describe('Dedup/Import', () => {
       await card.locator('[data-resource-action-trigger]').click();
       await expect(page.locator('[role="menuitem"]:has-text("複製")')).toBeVisible({ timeout: 3000 });
 
-      // +複製 → エディタが予約slug(-copy)と複製内容で開き、DB行は増えない
+      // 複製 → エディタが予約slug(-copy)と複製内容で開き、DB行は増えない
       await page.locator('[role="menuitem"]:has-text("複製")').click();
       await expect(page.getByTestId('app-id')).toHaveValue(`${seeded.slug}-copy`, { timeout: 10000 });
       await expect(page.getByTestId('app-title')).toHaveValue('T10 App');
@@ -119,7 +119,7 @@ test.describe('Dedup/Import', () => {
       await clickCardAction(page, seeded.uid, '複製');
       await expect(page.getByTestId('app-id')).toHaveValue(`${seeded.slug}-copy2`, { timeout: 10000 });
 
-      console.log('  +++PASS');
+      console.log('  App複製と採番: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -133,7 +133,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('[data-resource-new]')).toBeVisible({ timeout: 15000 });
       await expect(page.locator('.modal-title:has-text("POI")')).toHaveCount(0);
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 5000 });
-      console.log('  +PASS');
+      console.log('  モーダル不在と Import ボタン: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -160,7 +160,7 @@ test.describe('Dedup/Import', () => {
       const total = await page.evaluate(async () => (await (window as any).search.poiSources({ page: 1, pageSize: 50 })).total);
       expect(total).toBe(0);
 
-      console.log('  +PASS');
+      console.log('  削除と一覧更新: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -202,7 +202,7 @@ test.describe('Dedup/Import', () => {
       // エラーの operation 診断が無く、通知のバナーは「無い」か「成功」（失敗のバナーを見逃さない）
       await expectNoFailureNotice(page);
 
-      console.log('  +PASS');
+      console.log('  POI 新規追加の作成: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -455,7 +455,7 @@ test.describe('Dedup/Import', () => {
       { timeout: 15000 }).toBe(2);
       await expect(page.locator('.poi-feature-row')).toHaveCount(1, { timeout: 10000 });
 
-      console.log('  +PASS');
+      console.log('  POI 複製と Import ボタン: PASS');
     } finally {
       await quitElectronApplication(app);
     }
@@ -512,7 +512,7 @@ test.describe('Dedup/Import', () => {
       await clickCardAction(page, poi.uid, '複製');
       await expect(page.getByTestId('poi-slug')).toHaveValue(`${poi.slug}-copy`, { timeout: 10000 });
 
-      console.log('  +PASS');
+      console.log('  複製放棄と予約解放: PASS');
     } finally {
       await quitElectronApplication(app);
     }

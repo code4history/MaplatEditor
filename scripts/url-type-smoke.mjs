@@ -43,7 +43,7 @@ try {
 
       const TILE_URL = 'https://t.example.jp/ext/{z}/{x}/{y}.jpg';
 
-      // --- -1: url は言語別フィールドの集合に属さない ---
+      // --- url は言語別フィールドの集合に属さない ---
       assert.ok(
         Array.isArray(MAP_LANG_ATTRS) && MAP_LANG_ATTRS.length > 0,
         'MAP_LANG_ATTRS は非空の配列のはず'
@@ -54,7 +54,7 @@ try {
       );
       console.log('ok: -1 MAP_LANG_ATTRS does not contain url');
 
-      // --- -2: 内部形への正規化で url が畳み込まれない ---
+      // --- 内部形への正規化で url が畳み込まれない ---
       // 言語別フィールド (title) はオブジェクトへ正規化されるのに対し、url は文字列のまま素通しになる。
       // 「url だけが対象外である」ことを、同じ入力の中で対比して固定する
       const normalized = normalizeMapLangFields({ lang: 'ja', title: 'T', url: TILE_URL });
@@ -68,7 +68,7 @@ try {
       );
       console.log('ok: -2 normalizeMapLangFields leaves url untouched while folding title');
 
-      // --- -3: 交換形への畳み込みでも url が変換されない ---
+      // --- 交換形への畳み込みでも url が変換されない ---
       const compacted = compactMapLangFields({ lang: 'ja', title: { ja: 'T' }, url: TILE_URL });
       assert.strictEqual(
         compacted.title, 'T',

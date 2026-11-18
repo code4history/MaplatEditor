@@ -56,7 +56,7 @@ try {
   const demoBytes = new Uint8Array(await readFile(path.join(fixtureDir, 'demo-merge.csv')));
 
   // --- (1)(3)(4)(5): デモ A の追記と上書き ---
-  // 性質の検査は関数にまとめ、変異版 (下の ) にも同じ検査を当てる
+  // 性質の検査は関数にまとめ、変異版（下の節）にも同じ検査を当てる
   const checkDemo = async (impl) => {
     const existing = await existingFeatures();
     const parse = parseCsv(demoBytes);

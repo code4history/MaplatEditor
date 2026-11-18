@@ -1,5 +1,5 @@
 // smoke: ジオコーダ応答（Nominatim の display_name）のエスケープ是正。
-// 。
+//
 //
 // (a): nominatim.js のソースに row.address.name の生補間が現れない
 // (b): OSM 分岐が共有プリミティブ template( を通る

@@ -1,7 +1,7 @@
 /**
  * smoke: style 契約 / CDN 共通モジュール / peerDeps / wiring
  * master-detail-smoke と同様に vite で contracts をバンドルして検証する。
- * case 3: case 13 ブロックへ単色プレースホルダ検出・寸法検証を追加
+ * 既定サムネが単色プレースホルダでなく、寸法も正しいこと
  */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -143,7 +143,7 @@ const base = {
   assert.equal(payload.tms.style, "https://example.com/style.json");
 }
 
-// case 3: mapbox:// スキームの style は maplibre では拒否される
+// mapbox:// スキームの style は maplibre では拒否される
 {
   const doc = { ...base, kind: "maplibre", style: "mapbox://styles/x" };
   assert.equal(
@@ -370,7 +370,7 @@ function satisfiesRange(version, range) {
   }
 }
 
-// case 13: 既定サムネ（kind 選択で basemap_icons/{mapbox,maplibre}.png。実ファイル存在）
+// 既定サムネ（kind 選択で basemap_icons/{mapbox,maplibre}.png。実ファイル存在）
 {
   const vue = await readFile(
     path.join(projectRoot, "src/components/basemap/BaseMapEdit.vue"),
@@ -382,7 +382,7 @@ function satisfiesRange(version, range) {
     const st = await import("node:fs/promises").then(({ stat }) =>
       stat(path.join(projectRoot, "public/basemap_icons", name)),
     );
-    assert.equal(st.isFile(), true, `case 13: basemap_icons/${name} 存在`);
+    assert.equal(st.isFile(), true, `basemap_icons/${name} 存在`);
   }
 
   // ---- 単色プレースホルダでないこと・52px寸法（basemap_icons/） ----

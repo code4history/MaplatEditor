@@ -250,7 +250,7 @@ try {
     assert.equal(r.totalRecords, 7);
     assert.deepEqual(r.issues.map(keyOf).sort(), [
       '3:coord-range:error',
-      '4:coordinate-partial:warning', // a-3 は lng だけに値がある (警告。の表からは漏れていた)
+      '4:coordinate-partial:warning', // a-3 は lng だけに値がある（警告。当初の表からは漏れていた）
       '5:file-duplicate-id:error',
       '6:display-id-charset:error',
       '7:image-dropped:warning',
@@ -576,7 +576,7 @@ try {
         assert.deepEqual(detail.fc.features[0].geometry.coordinates, [139.7745, 35.684]);
         assert.match(detail.fc.features[0].properties._maplatUid, /^[0-9a-f-]{36}$/);
       }
-      // KML (の KML 版): デモ D は経緯度が逆の Point があり Invalid。有効な KML は Success。壊れた KML は Invalid
+      // KML: デモ D は経緯度が逆の Point があり Invalid。有効な KML は Success。壊れた KML は Invalid
       assert.equal(await service.detectImportLanguage(fx('demo.kml'), 'en'), 'en');
       assert.equal(await service.detectImportLanguage(fx('demo.kml')), 'ja');
       const kmlBad = await service.importFile({ slug: 'kml-demo', title: { ja: 'k' }, filePath: fx('demo.kml'), lang: 'ja' });
@@ -704,7 +704,7 @@ try {
     const lock = await read('pnpm-lock.yaml');
     const importers = lock.slice(lock.indexOf('\nimporters:'), lock.indexOf('\npackages:'));
     assert.match(importers, /\n {6}'@xmldom\/xmldom':\n {8}specifier: 0\.8\.15\n {8}version: 0\.8\.15\n/, 'lock の importers に xmldom がない');
-    console.log('  case m (・(e): 唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
+    console.log('  case m (唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
   }
 
   // ---------- PR-2 の実装レビュー m-1: 取り込み後の「N 件追加」の表示を、Undo・保存の後に残さない ----------

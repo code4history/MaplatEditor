@@ -357,7 +357,7 @@ test.describe('範囲語彙の統一', () => {
       await page.locator('.envelope-modal .btn-close').first().click();
       await expect(page.locator('.envelope-modal')).not.toBeVisible();
 
-      // --- の本体: **ボタン文言ではなくリストの中身**を見る ---
+      // --- **ボタン文言ではなくリストの中身**を見る ---
       //
       // ここでボタン文言だけを見ると、395 行を行ごと削除した壊れた実装でも緑になる。
       // baseMapRangeState は baseMapFilterRegion を直接読むため、絞り込みが壊れていても

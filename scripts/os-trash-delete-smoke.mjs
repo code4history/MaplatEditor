@@ -6,7 +6,7 @@
 // シナリオ:
 //   Part A: 順序契約 — DB delete 強制失敗時は rethrow / trashItem 呼び出し 0件 / originals 無傷
 //   Part B: 成功系 — canonical 全 variant + 一意 legacy の絶対パスで trashItem が呼ばれ、
-//           tiles/tmbs/512 は従来どおり直接削除される (case 18-1 の呼び出し集合側)
+//           tiles/tmbs/512 は従来どおり直接削除される（呼び出し集合の検査）
 //   Part C: trashItem 失敗の継続 — reject でも削除全体は完遂し対象は live 残置 + warning
 //   Part D: ambiguous legacy (2件) は trashItem 対象にせず live 残置 + warning
 //   Part E: 構造 assert (撤去の恒久ガード、Part C の確立様式) —
@@ -243,7 +243,7 @@ try {
       }
 
       // ============================================================
-      // Part B: 成功系 — canonical 全 variant + 一意 legacy の絶対パスで trashItem / tiles・tmbs 直接削除 (case 18-1/3)
+      // Part B: 成功系 — canonical 全 variant + 一意 legacy の絶対パスで trashItem / tiles・tmbs 直接削除
       // ============================================================
       {
         const dirs = setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-b'))});

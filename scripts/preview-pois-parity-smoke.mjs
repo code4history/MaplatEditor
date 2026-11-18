@@ -42,7 +42,7 @@ const bundledFile = path.join(outDir, 'preview-pois-parity-smoke.mjs');
   ];
   const missing = required.filter((needle) => !bundle.includes(needle));
   if (missing.length > 0) {
-    console.error('[preview-pois-parity][case 8] バンドル viewer が MaplatCore の最新の修正に未対応です。'
+    console.error('[preview-pois-parity][Part G] バンドル viewer が MaplatCore の最新の修正に未対応です。'
       + 'MaplatCore の修正をバンドルへ伝播させてください（pnpm run sync:preview-bundle）。'
       + ' 欠落: ' + JSON.stringify(missing));
     process.exit(1);
@@ -180,7 +180,7 @@ try {
           [[400, 0], [135.1, 35.1]],
           [[200, 300], [135.05, 35.0]],
         ],
-        // app と同じ POI ソース A を参照する（case 4: 1ファイルへ畳む）
+        // app と同じ POI ソース A を参照する（1ファイルへ畳む）
         pois: [{ poiUid: uidA, hide: true }],
       });
       assert.ok(mapUid, '地図 fixture');

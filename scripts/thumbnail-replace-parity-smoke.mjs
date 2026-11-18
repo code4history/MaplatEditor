@@ -1,12 +1,12 @@
 // smoke: サムネイル置換の永続化セマンティクス統一（静的照合）。
 //
-// 本 smoke は の S1-S4 を実装する。いずれも絶対数 assert であり、
+// 本 smoke は S1-S4 を実装する。いずれも絶対数 assert であり、
 // 誰がいつどこで走らせても同じ判定になる。
 //
-//   S1 -> case 6  : 追加 i18n キー 2 本が 11 ロケール全部に非空で存在する（[C7]）
-//   S2 -> case 11 : replaceThumbnail の実装本体が repo 内に 1 つだけ（[C2]）
-//   S3 -> case 12 : 512px パスのインライン組み立てが無い（[C4]）
-//   S4 -> case 13 : BaseMapEdit の updateField("thumbnail", …) が 1 件（selectKind のみ）（[C3]）
+//   S1  追加 i18n キー 2 本が 11 ロケール全部に非空で存在する
+//   S2  replaceThumbnail の実装本体が repo 内に 1 つだけ
+//   S3  512px パスのインライン組み立てが無い
+//   S4  BaseMapEdit の updateField("thumbnail", …) が 1 件（selectKind のみ）
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -32,7 +32,7 @@ const localeDirs = (await readdir(path.join(projectRoot, "public/locales"), { wi
   .map((e) => e.name)
   .sort();
 assert.deepEqual(localeDirs, [...LOCALES].sort(),
-  `S1: ロケールの集合が想定と異なる（[C1]）。実測: ${JSON.stringify(localeDirs)}`);
+  `S1: ロケールの集合が想定と異なる。実測: ${JSON.stringify(localeDirs)}`);
 
 for (const loc of LOCALES) {
   const doc = JSON.parse(await read(`public/locales/${loc}/translation.json`));
@@ -83,7 +83,7 @@ for (const [rel, text] of SRC_TEXT) {
   if (count > 0) implSites.push({ rel, count });
 }
 assert.deepEqual(implSites, [{ rel: COMPOSABLE, count: 1 }],
-  "S2: replaceThumbnail の実装本体は useThumbnailReplace.ts の 1 つだけであること（[C2]）。\n"
+  "S2: replaceThumbnail の実装本体は useThumbnailReplace.ts の 1 つだけであること。\n"
   + `  実測: ${JSON.stringify(implSites)}\n`
   + "  2 画面へ並行実装を戻すことは人間の恒久指示（同一扱いの処理は共通実装へ寄せる）に反する。");
 
@@ -115,7 +115,7 @@ for (const rel of GUARDED_FILES) {
   });
 }
 assert.deepEqual(inlineHits, [],
-  "S3: 512px パスのインライン組み立てが混入した（[C4]）。\n"
+  "S3: 512px パスのインライン組み立てが混入した。\n"
   + `  実測:\n    ${inlineHits.join("\n    ")}\n`
   + "  派生は utils/thumbnailPaths.ts の thumb512PathFor だけを通すこと（WebP 化の単一変化点）。");
 
@@ -153,7 +153,7 @@ baseMapEditLines.forEach((line, i) => {
   if (/updateField\(\s*"thumbnail"/.test(line)) updateFieldThumbnailLines.push(i + 1);
 });
 assert.equal(updateFieldThumbnailLines.length, 1,
-  "S4: BaseMapEdit.vue の updateField(\"thumbnail\", …) は 1 件（selectKind）だけであること（[C3]）。\n"
+  "S4: BaseMapEdit.vue の updateField(\"thumbnail\", …) は 1 件（selectKind）だけであること。\n"
   + `  実測行: ${JSON.stringify(updateFieldThumbnailLines)}\n`
   + "  置換・生成は rebaseThumbnailPointer を通す（規則 指し先の移動は undo の対象にしない）。");
 
