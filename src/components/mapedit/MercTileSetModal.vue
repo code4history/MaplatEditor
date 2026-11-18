@@ -40,7 +40,7 @@ watch(
   () => props.visible,
   (visible) => {
     if (visible) {
-      mode.value = 'select';
+      mode.value = props.existingEntries.length === 0 ? 'new' : 'select';
       slugLive.value = props.defaultSlug;
       title.value = props.defaultTitle;
       attr.value = props.defaultAttr;

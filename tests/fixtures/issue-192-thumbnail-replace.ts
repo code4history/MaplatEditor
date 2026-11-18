@@ -65,7 +65,7 @@ async function seedSource(sourceUid: string, ext: string): Promise<string> {
     uid: sourceUid,
     create: true,
     slug: `issue192-src-${sourceUid.slice(0, 8)}`,
-    tms: { kind: 'tms', thumbnail: rel52 } as any,
+    tms: { kind: 'tms', thumbnail: rel52, attr: { ja: '© Example' } } as any,
   });
   return rel52;
 }
@@ -142,7 +142,7 @@ async function replaceCase(kind: '52' | '512', opts: { deriveOff?: boolean } = {
     uid: doc.uid,
     create: true,
     slug: doc.slug,
-    tms: { kind: 'tms', thumbnail: doc.thumbnail } as any,
+    tms: { kind: 'tms', thumbnail: doc.thumbnail, attr: { ja: '© Example' } } as any,
   });
   assert.equal(saved.thumbnail, doc.thumbnail, '初回保存は置換で書いた自分の uid 名を保持する');
   assert.equal(saved.revision, 1, '既に自分の uid 名なので保存時の付け替え（revision +1）は起きない');

@@ -137,7 +137,7 @@ await writeFile(
     const expectedStagingRoot = nodePath.join(${JSON.stringify(userDataDir)}, 'draft-tiles');
 
     const mapObject = (mapID: string, url_: string) => ({
-      mapID, imageExtension: 'jpg', url_, width: 256, height: 256, gcps: [], edges: [], sub_maps: [],
+      mapID, attr: { ja: '© Example' }, imageExtension: 'jpg', url_, width: 256, height: 256, gcps: [], edges: [], sub_maps: [],
     });
     async function makeStaging(uid: string, tag: string) {
       const dir = nodePath.join(draftTileRoot, uid);

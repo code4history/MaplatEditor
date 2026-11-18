@@ -197,6 +197,46 @@ try {
         uid: legacyUid, mapObject: { ...mapObject, uid: legacyUid, mapID: 'legacy-attribution-map', attr: '' }, tins: [], slug: 'legacy-attribution-map',
       });
       assert.equal(keepLegacy.result, 'Success', '以前から欠落している地図の欠落はそのまま保てるはず');
+
+      const raceUid = (await SqliteDataService.createMap('attribution-race-map', {
+        ...mapObject, mapID: 'attribution-race-map', attr: '',
+      })).uid;
+      const [fillRace, staleRace] = await Promise.all([
+        MapEditService.save({
+          uid: raceUid,
+          mapObject: { ...mapObject, uid: raceUid, mapID: 'attribution-race-map', attr: '© Added first' },
+          tins: [], slug: 'attribution-race-map',
+        }),
+        MapEditService.save({
+          uid: raceUid,
+          mapObject: { ...mapObject, uid: raceUid, mapID: 'attribution-race-map', attr: '' },
+          tins: [], slug: 'attribution-race-map',
+        }),
+      ]);
+      assert.equal(fillRace.result, 'Success', '並行更新の帰属表記追加は成功するはず');
+      assert.equal(staleRace.result, 'Error', '先行して追加された帰属表記を古い空値で消す更新は拒否するはず');
+      assert.deepEqual((await SqliteDataService.findMapByRef(raceUid))?.attr, { ja: '© Added first' });
+
+      const baseRace = await SqliteDataService.saveUserBaseMap({
+        slug: 'attribution-race-base', create: true,
+        tms: { kind: 'tms', attr: { ja: '© Initial' }, title: { ja: 'Race Base' }, url: 'https://example.org/race/{z}/{x}/{y}.png' },
+      });
+      const baseDb = await SqliteDataService.getDb();
+      baseDb.prepare("UPDATE base_maps SET data_json = json_set(data_json, '$.attr', json('{}')) WHERE uid = ?").run(baseRace.uid);
+      const [fillBaseRace, staleBaseRace] = await Promise.allSettled([
+        SqliteDataService.saveUserBaseMap({
+          uid: baseRace.uid, slug: 'attribution-race-base',
+          tms: { kind: 'tms', attr: { ja: '© Added first' }, title: { ja: 'Race Base' }, url: 'https://example.org/race/{z}/{x}/{y}.png' },
+        }),
+        SqliteDataService.saveUserBaseMap({
+          uid: baseRace.uid, slug: 'attribution-race-base',
+          tms: { kind: 'tms', attr: {}, title: { ja: 'Race Base' }, url: 'https://example.org/race/{z}/{x}/{y}.png' },
+        }),
+      ]);
+      assert.equal(fillBaseRace.status, 'fulfilled', '移行データに帰属表記を追加する更新は成功するはず');
+      assert.equal(staleBaseRace.status, 'rejected', '先行追加された帰属表記を古い空値で消す更新は拒否するはず');
+      const storedBaseRace = baseDb.prepare('SELECT data_json FROM base_maps WHERE uid = ?').get(baseRace.uid) as { data_json: string };
+      assert.deepEqual(JSON.parse(storedBaseRace.data_json).attr, { ja: '© Added first' });
       await assert.rejects(
         () => SqliteDataService.saveUserBaseMap({ slug: 'missing-attribution-base-new', create: true, tms: { kind: 'tms', attr: {} } }),
         /mapmodel\.image_copyright/,

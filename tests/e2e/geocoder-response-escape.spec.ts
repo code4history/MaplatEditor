@@ -68,7 +68,7 @@ async function createMapWithGcps(page: Page): Promise<string> {
       mapID: slug,
       title: { ja: 'ジオコーダエスケープ検証地図' },
       officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-      attr: {}, dataAttr: {}, description: {},
+      attr: { ja: '© Example' }, dataAttr: {}, description: {},
       license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
       imageExtension: 'png', width: 400, height: 300,
       url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',

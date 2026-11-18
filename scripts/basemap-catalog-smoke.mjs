@@ -160,6 +160,7 @@ try {
         expectedRevision: myBaseRevision,
         tms: {
           title: 'My Base Map v2',
+          attr: 'Example Provider',
           url: 'https://example.test/tiles/{z}/{x}/{-y}.png',
           thumbnail: 'tmbs/my_basemap_menu.jpg',
           coverageLngLats: [[139, 35], [140, 35], [140, 36], [139, 36]],
@@ -171,7 +172,7 @@ try {
         uid: added.uid,
         slug: 'my_basemap-stale',
         expectedRevision: myBaseRevision,
-        tms: { title: 'Stale update', url: 'https://example.test/stale/{z}/{x}/{y}.png' },
+        tms: { title: 'Stale update', attr: 'Example Provider', url: 'https://example.test/stale/{z}/{x}/{y}.png' },
       });
       assert.deepEqual(staleUpdate, { error: 'revision-conflict', current: savedUpdate.revision });
       const afterUpdate = await SettingsService.listBaseMaps();
@@ -185,7 +186,7 @@ try {
       // Builtin ID conflicts are rejected (slugのグローバル一意性)
       assert.deepEqual(await SettingsService.saveUserBaseMap({
         slug: 'osm',
-        tms: { title: 'Fake OSM', url: 'https://example.test/{z}/{x}/{y}.png' },
+        tms: { title: 'Fake OSM', attr: '© Example', url: 'https://example.test/{z}/{x}/{y}.png' },
       }), { result: 'Exist' });
       assert.deepEqual(await SettingsService.saveUserBaseMap({ tms: { title: 'No ID' } }), {
         result: 'Error', code: 'invalid-request', message: 'slug is required',
@@ -211,7 +212,7 @@ try {
       // 同じslugで再追加すると新しいuidの別アセットになり、表示設定は既定(オプトイン=非表示)に戻る
       const readdedResult = await SettingsService.saveUserBaseMap({
         slug: 'my_basemap',
-        tms: { title: 'My Base Map v3', url: 'https://example.test/tiles/{z}/{x}/{y}.png' },
+        tms: { title: 'My Base Map v3', attr: 'Example Provider', url: 'https://example.test/tiles/{z}/{x}/{y}.png' },
       });
       assert.equal(readdedResult.result, 'Success');
       const { uid: readdedUid } = readdedResult;
@@ -229,7 +230,7 @@ try {
       await writeFile(${JSON.stringify(path.join(dataDir, 'tmbs'))} + '/icon_new.png', 'png-bytes');
       const iconNewResult = await SettingsService.saveUserBaseMap({
         slug: 'icon_new',
-        tms: { title: 'Icon New', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: 'tmbs/icon_new.png' },
+        tms: { title: 'Icon New', attr: 'Example Provider', url: 'https://example.test/{z}/{x}/{y}.png', thumbnail: 'tmbs/icon_new.png' },
       });
       assert.equal(iconNewResult.result, 'Success');
       const { uid: iconNewUid } = iconNewResult;

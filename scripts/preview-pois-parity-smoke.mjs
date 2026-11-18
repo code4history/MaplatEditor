@@ -169,6 +169,7 @@ try {
 
       const { uid: mapUid } = await SqliteDataService.createMap('t3map', {
         title: 'POI 地図',
+        attr: { ja: '© Example' },
         width: 400,
         height: 300,
         strictMode: 'loose',

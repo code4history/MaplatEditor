@@ -201,7 +201,7 @@
             :default-lang="document.defaultLang"
             :language-options="SUPPORTED_LANGUAGES"
             :disabled="readOnly || saving || sessionTransitionPending"
-            :invalid="attrDiagnostics.length > 0"
+            :invalid="validation.errors.includes('attr-required')"
             @update:model-value="updateResource('attr', $event)"
             @select-language="activeLang = $event"
           />
@@ -506,6 +506,7 @@ import {
 import { applyGooglePresetDefaults, buildGooglePresetDefaults } from "../../utils/googlePresetDefaults";
 import { envelopeToBbox } from "../../utils/appSourceModel";
 import { isTranslationMode } from "../../utils/editorLanguageMode";
+import { lacksRequiredAttribution } from "../../utils/attributionRequirement";
 import { SUPPORTED_LANGUAGES, resolveEditorLanguage, type LangCode } from "../../utils/editorLanguages";
 import { isEditableElement } from "../../utils/nativeTextUndo";
 // #105: merc 実行時タイル URL は file:// から app://local へ移行する
@@ -629,7 +630,16 @@ const structuralDisabled = computed(() => readOnly.value || translationMode.valu
 const dirty = computed(() => (historyVersion.value, history.isDirty()));
 const canUndo = computed(() => (historyVersion.value, history.canUndo()));
 const canRedo = computed(() => (historyVersion.value, history.canRedo()));
-const validation = computed(() => validateBaseMapDocument(document.value));
+const savedDocument = ref(clone(initial));
+const validation = computed(() => {
+  const result = validateBaseMapDocument(document.value);
+  const existingLegacyGap = document.value.kind !== "google"
+    && lacksRequiredAttribution(savedDocument.value)
+    && lacksRequiredAttribution(document.value);
+  return existingLegacyGap
+    ? { ...result, valid: result.errors.filter((code) => code !== "attr-required").length === 0, errors: result.errors.filter((code) => code !== "attr-required") }
+    : result;
+});
 // 既存 validation の error code → i18n キー（黄色バナー再利用の文言）。
 const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
   "slug-required": "basemap.errors.id_required",
@@ -787,7 +797,14 @@ watch(
 const diagnosticsFor = (codes: readonly string[]): DiagnosticItem[] =>
   validationFieldDiagnostics(validation.value.errors, VALIDATION_MESSAGE_KEYS, t, codes);
 const titleDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["title-required"]));
-const attrDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["attr-required"]));
+const attrDiagnostics = computed<DiagnosticItem[]>(() => {
+  const errors = diagnosticsFor(["attr-required"]);
+  if (errors.length) return errors;
+  if (document.value.kind !== "google" && lacksRequiredAttribution(savedDocument.value) && lacksRequiredAttribution(document.value)) {
+    return [{ key: "legacy-attr-missing", severity: "warning", message: t("basemap.errors.attr_required") }];
+  }
+  return [];
+});
 const urlDiagnostics = computed<DiagnosticItem[]>(() => diagnosticsFor(["url-required", "url-invalid"]));
 // style 診断は field 側のみ（URL と同パターン。section 二重表示は撤去）
 const styleFieldDiagnostics = computed<DiagnosticItem[]>(() =>
@@ -823,6 +840,7 @@ function resetSession(item: BaseMapCatalogItem | null, uid: string): void {
       ? duplicateInitial(props.duplicateSourceItem, uid)
       : newBaseMapDocument(uid, resolveEditorLanguage(i18next.language));
   document.value = clone(next);
+  savedDocument.value = clone(next);
   history = new UndoStack(clone(next));
   // 複製内容はどこにも永続化されていないため dirty 扱いにする(即保存可能)
   if (!item && props.isNew && props.duplicateSourceItem) history.markDirty();
@@ -1060,6 +1078,7 @@ async function save(): Promise<void> {
     }
     if (result.result !== "Success") { error.value = saveFailure(result); return; }
     revision.value = result.revision;
+    savedDocument.value = clone(captured);
     // 保存成功(saved)で初めて originalSlug を確定 slug へ更新する(と同型の残作業引き継ぎ規約)
     originalSlug.value = captured.slug;
     // 新規作成では backend が 52px/512px を暫定名（slug 名）から uid 名へ付け替え、

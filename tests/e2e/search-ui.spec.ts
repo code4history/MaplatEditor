@@ -29,7 +29,7 @@ async function seedSpatialDocuments(page: Page): Promise<{ mapUid: string; appUi
       mapID: mapSlug,
       title: { ja: 'T8b 配線固有 東京地図', en: 'T8b unique Tokyo map' },
       officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-      attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+      attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
       reference: '', url: '', lang: 'ja', imageExtension: 'png', width: 400, height: 300,
       url_: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
       gcps: [

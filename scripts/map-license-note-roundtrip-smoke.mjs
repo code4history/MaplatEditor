@@ -103,7 +103,7 @@ try {
       const mapObject: any = {
         mapID: 'license-note-map',
         title: 'ライセンス補足テスト地図',
-        attr: '',
+        attr: { ja: '© Example' },
         officialTitle: '',
         dataAttr: '',
         author: '',

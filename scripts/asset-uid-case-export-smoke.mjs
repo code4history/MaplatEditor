@@ -171,7 +171,7 @@ try {
       assert.equal(created.result, 'Success', 'POI ソースの作成: ' + JSON.stringify(created));
 
       const { uid: mapUid } = await SqliteDataService.createMap('uidcasemap', {
-        title: { ja: '見本地図' },
+        title: { ja: '見本地図' }, attr: { ja: '© Example' },
       });
       assert.ok(mapUid, '地図 fixture の作成');
 

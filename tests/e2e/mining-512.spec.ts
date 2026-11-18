@@ -33,7 +33,7 @@ async function seedNonSquareMap(page: Page): Promise<{ uid: string; slug: string
       mapObject: {
         mapID: mapSlug, title: { ja: 't15 mining' },
         officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: {}, dataAttr: {}, description: {},
+        attr: { ja: '© Example' }, dataAttr: {}, description: {},
         license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
         imageExtension: 'jpg', width: 900, height: 300,
         gcps: [[[0, 0], [15550000, 4160000]], [[900, 0], [15560000, 4160000]], [[900, 300], [15560000, 4150000]]],

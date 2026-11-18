@@ -160,7 +160,7 @@ test.describe('ベースマップ重複修正', () => {
       const bmResult: any = await page.evaluate(async () => {
         return await (window as any).baseMaps.saveUser({
           slug: `t32-s2-bm-${Date.now()}`,
-          tms: { mapID: `t32-s2-bm`, title: 't32 s2 basemap', url: 'https://example.test/{z}/{x}/{y}.png' },
+          tms: { mapID: `t32-s2-bm`, title: 't32 s2 basemap', attr: { ja: '© Example' }, url: 'https://example.test/{z}/{x}/{y}.png' },
         });
       });
       expect(bmResult?.result).toBe('Success');
@@ -276,7 +276,7 @@ test.describe('ベースマップ重複修正', () => {
       expect(mapA?.result).toBe('Success');
       const mapAUid = mapA.uid;
       const bmA: any = await page.evaluate(async () => {
-        return await (window as any).baseMaps.saveUser({ slug: `user-in-a-${Date.now()}`, tms: { mapID: 'user-in-a', title: 'A bm', url: 'https://a.test/{z}/{x}/{y}.png' } });
+        return await (window as any).baseMaps.saveUser({ slug: `user-in-a-${Date.now()}`, tms: { mapID: 'user-in-a', title: 'A bm', attr: { ja: '© A' }, url: 'https://a.test/{z}/{x}/{y}.png' } });
       });
       expect(bmA?.result).toBe('Success');
       const bmAUid = bmA.uid;
@@ -295,7 +295,7 @@ test.describe('ベースマップ重複修正', () => {
       expect(mapB?.result).toBe('Success');
       const mapBUid = mapB.uid;
       const bmB: any = await page.evaluate(async () => {
-        return await (window as any).baseMaps.saveUser({ slug: `user-in-b-${Date.now()}`, tms: { mapID: 'user-in-b', title: 'B bm', url: 'https://b.test/{z}/{x}/{y}.png' } });
+        return await (window as any).baseMaps.saveUser({ slug: `user-in-b-${Date.now()}`, tms: { mapID: 'user-in-b', title: 'B bm', attr: { ja: '© B' }, url: 'https://b.test/{z}/{x}/{y}.png' } });
       });
       expect(bmB?.result).toBe('Success');
       const bmBUid = bmB.uid;

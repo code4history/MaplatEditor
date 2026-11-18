@@ -150,6 +150,7 @@ try {
       ];
       const mapObjectFor = (mapID) => ({
         mapID,
+        attr: { ja: '© Example' },
         imageExtension: 'jpg',
         width: 4000,
         height: 3000,

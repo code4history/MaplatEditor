@@ -154,7 +154,7 @@ try {
         const UID_B1 = 'b1111111-1111-4111-8111-111111111111';
         const saveB1 = await MapEditService.save({
           mapObject: {
-            mapID: 'b1-new-upload', imageExtension: 'png', url_: uploadedUrl,
+            mapID: 'b1-new-upload', attr: { ja: '© Example' }, imageExtension: 'png', url_: uploadedUrl,
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -204,7 +204,7 @@ try {
         const UID_C1 = 'c1111111-1111-4111-8111-111111111111';
         const saveC1 = await MapEditService.save({
           mapObject: {
-            mapID: 'c1-dollar-hazard', imageExtension: 'jpg', url_: uploadedUrl,
+            mapID: 'c1-dollar-hazard', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: uploadedUrl,
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -246,7 +246,7 @@ try {
         setSaveFolder(${JSON.stringify(path.join(workDir, 'data-part-d'))});
         const UID_D1 = 'd1111111-1111-4111-8111-111111111111';
         const createD1 = await MapEditService.save({
-          mapObject: { mapID: 'd1-normal-map', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'd1-normal-map', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'd1-normal-map',
           uid: UID_D1,
@@ -256,7 +256,7 @@ try {
         assert.equal(createD1.url, undefined, '新規作成でも url_(tmpCheck対象)が無ければ url は含まれないはず');
 
         const updateD1 = await MapEditService.save({
-          mapObject: { mapID: 'd1-normal-map', imageExtension: 'jpg', gcps: [[[1, 1], [2, 2]]], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'd1-normal-map', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [[[1, 1], [2, 2]]], edges: [], sub_maps: [] },
           tins: ['tooLessGcps'],
           slug: 'd1-normal-map',
           uid: UID_D1,
@@ -280,7 +280,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveESrc = await MapEditService.save({
           mapObject: {
-            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'e1-clone-src', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -298,7 +298,7 @@ try {
         // が発火せず、この smoke は url を含む新仕様を検証できない(designer が実測で
         // 発見した、旧 Part E 自体のカバレッジの欠落)。
         const saveEDest = await MapEditService.save({
-          mapObject: { mapID: 'e1-clone-dest', imageExtension: 'jpg', url_: saveESrc.url, gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'e1-clone-dest', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: saveESrc.url, gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'e1-clone-dest',
           uid: UID_E_DEST,
@@ -326,7 +326,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const createF1 = await MapEditService.save({
           mapObject: {
-            mapID: 'f1-rename-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'f1-rename-src', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -337,7 +337,7 @@ try {
         assert.equal(createF1.result, 'Success');
 
         const renameF1 = await MapEditService.save({
-          mapObject: { mapID: 'f1-renamed', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'f1-renamed', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'f1-renamed',
           uid: UID_F1,

@@ -166,6 +166,7 @@ try {
       function baseMapDoc(title: string) {
         return {
           title, lang: 'ja', imageExtension: 'jpg',
+          attr: { ja: '© Example' },
           width: 100, height: 100,
           gcps: GCPS, edges: [], sub_maps: [],
           strictMode: 'strict', vertexMode: 'plain',
@@ -405,7 +406,7 @@ try {
         // case 11: MapEditService の whReady 早期 return は無変更
         // width/height なし・compiled なし → normalizeRequestData は [json] を返す（store2HistMap を通さない）
         const { uid } = await SqliteDataService.createMap('wh-unready', {
-          title: 'WH Unready', lang: 'ja', imageExtension: 'jpg',
+          title: 'WH Unready', attr: { ja: '© Example' }, lang: 'ja', imageExtension: 'jpg',
           gcps: GCPS, edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain',
           homePosition: [135.05, 34.95], mercZoom: 14, url: '',
         });
@@ -423,7 +424,7 @@ try {
         // case 14: import 経路で whReady が偽になり得るかの実測。
         // 偽でも extractZip はガードを持ち込まないため histMap 形式を返し続けること
         const zipPath = await makeImportZip('wh-unready-import', {
-          title: 'WH Unready Import', lang: 'ja', imageExtension: 'jpg',
+          title: 'WH Unready Import', attr: { ja: '© Example' }, lang: 'ja', imageExtension: 'jpg',
           gcps: GCPS, edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain',
           homePosition: [135.05, 34.95], mercZoom: 14, url: '',
         });

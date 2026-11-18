@@ -204,10 +204,6 @@ class MapEditService {
         // mapObject.uid を既存地図の更新とみなす (旧 status ベース呼び出しの救済)
         const uid: string | undefined =
             request.uid ?? (request.copyFromUid ? undefined : mapObject.uid ?? undefined);
-        const existingMap = uid ? await SqliteDataService.findMapByRef(uid) : null;
-        if (lacksRequiredAttribution(mapObject) && (!existingMap || !lacksRequiredAttribution(existingMap))) {
-            return { result: 'Error', errorKey: 'mapmodel.image_copyright' };
-        }
         // 期の旧 app://local は同一 origin の新形へ正規化してから tmp/staging/複製の判定に使う
         // v1.0.0 の下書きに残る file://…/{z}/{x}/{y}.<ext> も同じ入口で正規化する
         // （しないと staging と判定されず、Success のままタイル・原本が移らず下書き削除で失われる）
@@ -276,6 +272,12 @@ class MapEditService {
         const queueUid = request.create === true ? (request.uid ?? undefined) : (uid ?? undefined);
 
         const body = async (): Promise<MapSaveResult> => {
+            // Read the saved value after entering the per-UID queue so an older concurrent
+            // request cannot overwrite attribution added by the preceding save.
+            const existingMap = uid ? await SqliteDataService.findMapByRef(uid) : null;
+            if (lacksRequiredAttribution(mapObject) && (!existingMap || !lacksRequiredAttribution(existingMap))) {
+                return { result: 'Error', errorKey: 'mapmodel.image_copyright' };
+            }
             // フォルダの確保
             await fs.ensureDir(tileFolder);
             await fs.ensureDir(originalFolder);

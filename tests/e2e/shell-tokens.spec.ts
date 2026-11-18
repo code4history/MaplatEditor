@@ -68,7 +68,7 @@ async function seedMap(page: Page): Promise<string> {
     const result = await window.mapedit.save({ slug, mapObject: {
       mapID: slug, title: { ja: 'T5 地図', en: 'T5 Map' },
       officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-      attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+      attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
       reference: '', url: '', lang: 'ja', imageExtension: 'jpg', width: 400, height: 300,
       gcps: [], edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
     }, tins: [] });

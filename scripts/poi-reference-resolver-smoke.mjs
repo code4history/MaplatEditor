@@ -181,6 +181,7 @@ try {
       // --- fixture: pois に同じ {poiUid} を持つ登録地図 (map data_json 側参照の受け皿) ---
       const { uid: mapUid } = await SqliteDataService.createMap('poimap', {
         title: 'POI Map',
+        attr: { ja: '© Example' },
         width: 400,
         height: 300,
         strictMode: 'loose',

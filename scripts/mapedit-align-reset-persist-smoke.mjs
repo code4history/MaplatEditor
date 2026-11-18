@@ -94,7 +94,7 @@ try {
       // 検証用のユーザーベースマップを 1 枚用意する
       const addedResult = await SettingsService.saveUserBaseMap({
         slug: 'fx_basemap',
-        tms: { title: 'Base Map', url: 'https://example.test/{z}/{x}/{y}.png' },
+        tms: { title: 'Base Map', attr: { ja: '© Example' }, url: 'https://example.test/{z}/{x}/{y}.png' },
       });
       assert.equal(addedResult.result, 'Success');
       const baseUid = addedResult.uid;

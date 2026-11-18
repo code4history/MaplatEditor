@@ -346,7 +346,7 @@ try {
       await prepareTmpUpload('png');
       const saveE1 = await MapEditService.save({
         mapObject: {
-          mapID: 'e1-new-upload',
+          mapID: 'e1-new-upload', attr: { ja: '© Example' },
           imageExtension: 'PNG',
           url_: tmpUrl,
           gcps: [], edges: [], sub_maps: [],
@@ -369,7 +369,7 @@ try {
       await prepareTmpUpload('tiff');
       const saveE2 = await MapEditService.save({
         mapObject: {
-          mapID: 'e2-unsupported-ext',
+          mapID: 'e2-unsupported-ext', attr: { ja: '© Example' },
           imageExtension: 'tiff',
           url_: localFileUrl(tmpTileFolder),
           gcps: [], edges: [], sub_maps: [],
@@ -390,7 +390,7 @@ try {
       // ============================================================
       const UID_F1 = 'f1111111-1111-4111-8111-111111111111';
       const createdF1 = await MapEditService.save({
-        mapObject: { mapID: 'f1-concurrent-save', gcps: [], edges: [], sub_maps: [] },
+        mapObject: { mapID: 'f1-concurrent-save', attr: { ja: '© Example' }, gcps: [], edges: [], sub_maps: [] },
         tins: [],
         slug: 'f1-concurrent-save',
         uid: UID_F1,
@@ -416,14 +416,14 @@ try {
       try {
         const [saveF1a, saveF1b] = await Promise.all([
           MapEditService.save({
-            mapObject: { mapID: 'f1-concurrent-save', gcps: [], edges: [], sub_maps: [] },
+            mapObject: { mapID: 'f1-concurrent-save', attr: { ja: '© Example' }, gcps: [], edges: [], sub_maps: [] },
             tins: [],
             slug: 'f1-concurrent-save',
             uid: UID_F1,
             expectedRevision: 1,
           }),
           MapEditService.save({
-            mapObject: { mapID: 'f1-concurrent-save', gcps: [], edges: [], sub_maps: [] },
+            mapObject: { mapID: 'f1-concurrent-save', attr: { ja: '© Example' }, gcps: [], edges: [], sub_maps: [] },
             tins: [],
             slug: 'f1-concurrent-save',
             uid: UID_F1,
@@ -453,7 +453,7 @@ try {
       await prepareTmpUpload('jpg');
       const saveGSrc = await MapEditService.save({
         mapObject: {
-          mapID: 'g-clone-source', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
+          mapID: 'g-clone-source', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
           gcps: [], edges: [], sub_maps: [],
         },
         tins: [],
@@ -467,7 +467,7 @@ try {
 
       const UID_G_DEST = 'aaaaaaaa-2222-4222-8222-222222222222';
       const saveGDest = await MapEditService.save({
-        mapObject: { mapID: 'g-clone-dest', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+        mapObject: { mapID: 'g-clone-dest', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
         tins: [],
         slug: 'g-clone-dest',
         uid: UID_G_DEST,

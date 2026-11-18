@@ -189,7 +189,7 @@ test.describe('メルカトルタイル生成', () => {
         const r = await window.baseMaps.saveUser({
           create: true,
           slug,
-          tms: { kind: 'tms', title: {}, label: {}, attr: {}, url: 'https://example.com/{z}/{x}/{y}.png' },
+          tms: { kind: 'tms', title: {}, label: {}, attr: { ja: '© Example' }, url: 'https://example.com/{z}/{x}/{y}.png' },
         });
         if (!r || !r.uid) throw new Error(`occupant seed failed: ${JSON.stringify(r)}`);
       }, `${mapSlug}-merc`);

@@ -70,7 +70,7 @@ test('an MCP client lists, reads and converts points of a saved map', async () =
         slug,
         mapObject: {
           mapID: slug, title: { en: 'MCP read test' }, officialTitle: {}, author: {}, era: {}, createdAt: {},
-          contributor: {}, mapper: {}, attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC0',
+          contributor: {}, mapper: {}, attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC0',
           reference: '', url: '', lang: 'en', imageExtension: 'jpg', width: 1000, height: 800, gcps, edges: [],
           sub_maps: [], strictMode: 'auto', vertexMode: 'plain', status: 'New',
         },

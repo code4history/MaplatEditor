@@ -1509,7 +1509,8 @@ const saveError = computed(() => {
     }
 
     // --- attr（地図画像コピーライト必須）---
-    if (lacksRequiredAttribution(mapData.value)) {
+    // 旧データの既存欠落は警告扱いで編集を許す。新規保存または保存済み値を空にする操作は拒否。
+    if (lacksRequiredAttribution(mapData.value) && (!mapUid.value || !lacksRequiredAttribution(originalMapData.value))) {
         err['attr'] = t('mapmodel.image_copyright');
     }
 
@@ -1520,6 +1521,9 @@ const saveError = computed(() => {
 
     return Object.keys(err).length > 0 ? err : null;
 });
+const legacyAttributionWarning = computed(() =>
+    !!mapUid.value && lacksRequiredAttribution(originalMapData.value) && lacksRequiredAttribution(mapData.value)
+);
 
 // 旧実装 map.js L.169-171
 // IIIF から配信する地図は url_ を持たない ∴ 配信先（検査を通ったもの）でも表示できる。
@@ -4236,7 +4240,7 @@ let mapSaveSucceeded = false;
 // Busy カバー対象にする。saving(useRevisionedAssetSave) は performSave 中しか立たないため
 const preparingSave = ref(false);
 const saveMap = async (): Promise<boolean> => {
-    if (preparingSave.value || saving.value) return false; // 準備区間の再入防止
+    if (preparingSave.value || saving.value || saveError.value) return false; // 判定は通常保存と保存してエクスポートで共有
     mapSaveSucceeded = false;
     saveOperationError.value = null;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -5200,6 +5204,7 @@ const goBack = async () => {
                             <input data-testid="map-attr" type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
+                            <DiagnosticFeedback v-else-if="legacyAttributionWarning" scope="field" :items="[{ key: 'legacy-attr-missing', severity: 'warning', message: t('mapmodel.image_copyright') }]" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('field_help.image_license')" :ariaLabel="t('field_help.image_license')" /></label>

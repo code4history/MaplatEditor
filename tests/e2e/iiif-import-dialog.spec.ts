@@ -267,7 +267,7 @@ test.describe('IIIF import dialog', () => {
           createdAt: {},
           contributor: {},
           mapper: {},
-          attr: {},
+          attr: { ja: '© Example' },
           dataAttr: {},
           description: {},
           license: 'PD',

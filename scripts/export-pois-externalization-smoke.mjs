@@ -382,6 +382,7 @@ try {
       // ============================================================
       const { uid: mapUid } = await SqliteDataService.createMap('fxmap', {
         title: { ja: 'fx地図' },
+        attr: { ja: '© Example' },
         // app と同じ POI ソース A を参照する (case 5: 1ファイルへ畳む)
         pois: [{ poiUid: uidA, hide: true }],
       });
@@ -506,6 +507,7 @@ try {
       {
         const { uid: soloMapUid } = await SqliteDataService.createMap('fxsolo', {
           title: { ja: 'fx単独形地図' },
+          attr: { ja: '© Example' },
           pois: 'https://example.com/solo-pois.geojson',   // 実データ maps/morioka.json と同形
         });
         assert.ok(soloMapUid, '単独形 map fixture の作成');
