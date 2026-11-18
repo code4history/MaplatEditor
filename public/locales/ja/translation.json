@@ -259,7 +259,8 @@
       "default_license_note": "Google Maps Platform の利用規約が適用されます。帰属表記は表示したままにしてください。",
       "default_data_license_note": "地図データおよび画像 © Google。Google Maps Platform の利用規約を参照してください。",
       "attr_value": "Google が返す著作権の表示",
-      "attr_reason": "Google の地図の帰属表記には、Google が返す著作権の表示を使います。Google の利用条件に従い、地図を表示しているあいだは Google の著作権の表示を全文で出し、Google Maps のロゴも出します。そのため、ここでは入力できません。"
+      "attr_reason": "Google の地図の帰属表記には、Google が返す著作権の表示を使います。Google の利用条件に従い、地図を表示しているあいだは Google の著作権の表示を全文で出し、Google Maps のロゴも出します。そのため、ここでは入力できません。",
+      "data_attr_reason": "Google の地図は、画像もデータも Google のものです。データの帰属表記にも、Google が返す著作権の表示を使います。そのため、ここでは入力できません。"
     },
     "style_gl_check_v5_ok": "5 系でも 6 系でも動きます",
     "style_gl_check_needs_v6": "6 系が要ります: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "住所検索",
     "iiif_image_size_help": "IIIF から配信する地図の大きさは、IIIF の画像の info.json で決まります。",
     "iiif_upload_map_reason": "IIIF から配信する地図は、画像を IIIF の配信元から読み込みます。別の画像を登録すると、配信元の画像と大きさが合わなくなり地図が壊れるため、使えません。",
-    "iiif_map_tile_reason": "IIIF から配信する地図のタイルは、ここに出ている IIIF の画像の配信元から読み込みます。配信元はインポートした Manifest で決まるため、ここでは入力できません。"
+    "iiif_map_tile_reason": "IIIF から配信する地図のタイルは、ここに出ている IIIF の画像の配信元から読み込みます。配信元はインポートした IIIF の情報で決まるため、ここでは入力できません。",
+    "image_size": "地図画像の大きさ"
   },
   "mapupload": {
     "map_image": "地図画像",

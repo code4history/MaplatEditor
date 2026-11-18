@@ -259,7 +259,8 @@
       "default_license_note": "Es gelten die Nutzungsbedingungen der Google Maps Platform. Die Quellenangabe muss sichtbar bleiben.",
       "default_data_license_note": "Kartendaten und Bildmaterial © Google. Siehe Nutzungsbedingungen der Google Maps Platform.",
       "attr_value": "Von Google gelieferter Urheberrechtshinweis",
-      "attr_reason": "Als Quellenangabe einer Google-Karte dient der Urheberrechtshinweis, den Google liefert. Gemäß den Nutzungsbedingungen von Google werden, solange die Karte angezeigt wird, der vollständige Urheberrechtshinweis von Google und das Google Maps-Logo angezeigt. Daher kann sie hier nicht eingegeben werden."
+      "attr_reason": "Als Quellenangabe einer Google-Karte dient der Urheberrechtshinweis, den Google liefert. Gemäß den Nutzungsbedingungen von Google werden, solange die Karte angezeigt wird, der vollständige Urheberrechtshinweis von Google und das Google Maps-Logo angezeigt. Daher kann sie hier nicht eingegeben werden.",
+      "data_attr_reason": "Bei einer Google-Karte gehören Bild und Daten Google. Als Quellenangabe der Daten dient ebenfalls der Urheberrechtshinweis, den Google liefert, daher kann sie hier nicht eingegeben werden."
     },
     "style_gl_check_v5_ok": "Funktioniert mit MapLibre GL JS 5 und 6",
     "style_gl_check_needs_v6": "Benötigt MapLibre GL JS 6: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "Adresse suchen",
     "iiif_image_size_help": "Die Größe einer über IIIF bereitgestellten Karte wird durch die info.json des IIIF-Bildes bestimmt.",
     "iiif_upload_map_reason": "Eine über IIIF bereitgestellte Karte lädt ihr Bild vom IIIF-Bilddienst. Ein anderes Bild würde nicht zur Größe des IIIF-Bildes passen und die Karte beschädigen, daher ist dies nicht verfügbar.",
-    "iiif_map_tile_reason": "Die Kacheln einer über IIIF bereitgestellten Karte werden vom hier angezeigten IIIF-Bilddienst geladen. Der Dienst wird durch das importierte Manifest bestimmt und kann hier nicht eingegeben werden."
+    "iiif_map_tile_reason": "Die Kacheln einer über IIIF bereitgestellten Karte werden vom hier angezeigten IIIF-Bilddienst geladen. Der Dienst wird durch die importierten IIIF-Angaben bestimmt und kann hier nicht eingegeben werden.",
+    "image_size": "Größe des Kartenbilds"
   },
   "mapupload": {
     "map_image": "Kartenbild",

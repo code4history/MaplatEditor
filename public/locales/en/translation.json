@@ -239,7 +239,8 @@
       "default_license_note": "Google Maps Platform terms apply. Attribution must remain visible.",
       "default_data_license_note": "Map data and imagery © Google. See Google Maps Platform terms.",
       "attr_value": "Copyright notice returned by Google",
-      "attr_reason": "The attribution of a Google map is the copyright notice that Google returns. As Google's terms require, the full Google copyright notice and the Google Maps logo are shown while the map is displayed. You cannot enter it here."
+      "attr_reason": "The attribution of a Google map is the copyright notice that Google returns. As Google's terms require, the full Google copyright notice and the Google Maps logo are shown while the map is displayed. You cannot enter it here.",
+      "data_attr_reason": "Both the imagery and the data of a Google map belong to Google. Its data attribution is also the copyright notice that Google returns, so you cannot enter it here."
     },
     "style_gl_check_v5_ok": "Works with MapLibre GL JS 5 and 6",
     "style_gl_check_needs_v6": "Needs MapLibre GL JS 6: {{reasons}}",
@@ -561,7 +562,8 @@
     "control_search_address": "Search address",
     "iiif_image_size_help": "The size of a map delivered from IIIF is set by the info.json of the IIIF image.",
     "iiif_upload_map_reason": "A map delivered from IIIF loads its image from the IIIF image service. Registering another image would not match the size of the IIIF image and would break the map, so this is unavailable.",
-    "iiif_map_tile_reason": "The tiles of a map delivered from IIIF are loaded from the IIIF image service shown here. The service is set by the imported Manifest, so you cannot enter it here."
+    "iiif_map_tile_reason": "The tiles of a map delivered from IIIF are loaded from the IIIF image service shown here. The service is set by the imported IIIF information, so you cannot enter it here.",
+    "image_size": "Map image size"
   },
   "mapupload": {
     "map_image": "Map Image",

@@ -172,10 +172,10 @@
         <!-- 帰属・ライセンスを 3行 に再構成。
              1行目: 地図画像帰属 / データ帰属 / 2行目: 地図画像ライセンス / 補足 / 3行目: データライセンス / 補足。
              attr は必須 (地図側と同様)。ただし Google の地図は入力させない（下の分岐） -->
-        <!-- Google の地図の帰属表記は Google が返す表示を使う（Viewer は Google の著作権の表示を全文で出し、
-             Google Maps のロゴも出す）。欄は消さずに入力できない状態で見せ、使えない理由を ? に書く
-             （ui-grammar §2.1「押せない理由」と同じ形。値は状態の表示 §2.3） -->
-        <div v-if="document.kind === 'google'" class="col-12 col-xl-6">
+        <!-- Google の地図の帰属表記とデータの帰属表記は Google が返す表示を使う（Viewer は Google の著作権の表示を
+             全文で出し、Google Maps のロゴも出す）。欄は消さずに入力できない状態で見せ、使えない理由を ? に書く
+             （ui-grammar §2.1「押せない理由」と同じ形。値は状態の表示 §2.3）。判定は usesGoogleAttribution -->
+        <div v-if="googleAttribution" class="col-12 col-xl-6">
           <label class="form-label fw-semibold d-flex align-items-center gap-1">
             {{ t("basemap.modal.attr_label") }}
             <ContextHelp
@@ -207,7 +207,24 @@
           />
           <DiagnosticFeedback v-if="attrDiagnostics.length" scope="field" :items="attrDiagnostics" />
         </div>
-        <div class="col-12 col-xl-6">
+        <div v-if="googleAttribution" class="col-12 col-xl-6">
+          <label class="form-label fw-semibold d-flex align-items-center gap-1">
+            {{ t("basemap.modal.data_attr_label") }}
+            <ContextHelp
+              :text="t('basemap.google.data_attr_reason')"
+              :ariaLabel="t('editor_ui.unavailable_reason', { name: t('basemap.modal.data_attr_label') })"
+              data-testid="basemap-data-attr-google-reason"
+            />
+          </label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            data-testid="basemap-data-attr-google"
+            :value="t('basemap.google.attr_value')"
+            disabled
+          >
+        </div>
+        <div v-else class="col-12 col-xl-6">
           <label class="form-label fw-semibold d-flex align-items-center gap-1">{{ t("basemap.modal.data_attr_label") }} <ContextHelp :text="t('field_help.data_attribution')" :ariaLabel="t('field_help.data_attribution')" /></label>
           <LangResourceInput
             input-testid="basemap-data-attr"
@@ -502,6 +519,7 @@ import {
   type BaseMapEditDocument,
   type BaseMapKind,
   type GoogleMapType,
+  usesGoogleAttribution,
 } from "../../utils/baseMapEditorDocument";
 import { applyGooglePresetDefaults, buildGooglePresetDefaults } from "../../utils/googlePresetDefaults";
 import { envelopeToBbox } from "../../utils/appSourceModel";
@@ -623,6 +641,9 @@ const thumbnailUrl = ref<string | null>(props.item?.thumbnailUrl ?? null);
 // ホスト固有の thumbnailUrl（= raw52UrlRef。一覧 IPC のレガシー補完を温存する）だけ。
 const showEnvelopeModal = ref(false);
 const readOnly = computed(() => document.value.scope === "builtin");
+// Google の地図か（帰属表記とデータの帰属表記を入力させない）。旧保存形も読み込みで kind を google に
+// そろえてあるが、判定は書き出しと同じ関数で行う
+const googleAttribution = computed(() => usesGoogleAttribution(document.value));
 const editable = computed(() => !readOnly.value);
 const translationMode = computed(() => isTranslationMode(activeLang.value, document.value.defaultLang));
 const structuralDisabled = computed(() => readOnly.value || translationMode.value || saving.value || sessionTransitionPending.value);

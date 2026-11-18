@@ -259,7 +259,8 @@
       "default_license_note": "Google Maps Platform 이용약관이 적용됩니다. 저작자 표시는 계속 보여야 합니다.",
       "default_data_license_note": "지도 데이터 및 이미지 © Google. Google Maps Platform 이용약관을 참조하세요.",
       "attr_value": "Google이 제공하는 저작권 고지",
-      "attr_reason": "Google 지도의 저작자 표시에는 Google이 제공하는 저작권 고지를 사용합니다. Google 이용약관에 따라 지도를 표시하는 동안 Google의 저작권 고지 전문과 Google Maps 로고를 표시합니다. 따라서 여기에서는 입력할 수 없습니다."
+      "attr_reason": "Google 지도의 저작자 표시에는 Google이 제공하는 저작권 고지를 사용합니다. Google 이용약관에 따라 지도를 표시하는 동안 Google의 저작권 고지 전문과 Google Maps 로고를 표시합니다. 따라서 여기에서는 입력할 수 없습니다.",
+      "data_attr_reason": "Google 지도는 이미지와 데이터 모두 Google의 것입니다. 데이터의 저작자 표시에도 Google이 제공하는 저작권 고지를 사용하므로 여기에서는 입력할 수 없습니다."
     },
     "style_gl_check_v5_ok": "MapLibre GL JS 5와 6 모두에서 동작합니다",
     "style_gl_check_needs_v6": "MapLibre GL JS 6이 필요합니다: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "주소 검색",
     "iiif_image_size_help": "IIIF에서 제공하는 지도의 크기는 IIIF 이미지의 info.json으로 정해집니다.",
     "iiif_upload_map_reason": "IIIF에서 제공하는 지도는 이미지를 IIIF 이미지 서비스에서 불러옵니다. 다른 이미지를 등록하면 IIIF 이미지와 크기가 맞지 않아 지도가 깨지므로 사용할 수 없습니다.",
-    "iiif_map_tile_reason": "IIIF에서 제공하는 지도의 타일은 여기에 표시된 IIIF 이미지 서비스에서 불러옵니다. 서비스는 가져올 때 사용한 Manifest로 정해지므로 여기에서는 입력할 수 없습니다."
+    "iiif_map_tile_reason": "IIIF에서 제공하는 지도의 타일은 여기에 표시된 IIIF 이미지 서비스에서 불러옵니다. 서비스는 가져올 때 사용한 IIIF 정보로 정해지므로 여기에서는 입력할 수 없습니다.",
+    "image_size": "지도 이미지 크기"
   },
   "mapupload": {
     "map_image": "지도 이미지",

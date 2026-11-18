@@ -157,6 +157,31 @@ try {
   assert.deepEqual(toBaseMapSavePayload(switched, null).tms.attr, {}, "case 9: 保存で帰属表記を出さない");
   const tmsPayload = toBaseMapSavePayload({ ...tmsDoc, attr: { ja: "© Example" } }, null);
   assert.deepEqual(tmsPayload.tms.attr, { ja: "© Example" }, "case 9: tms の帰属表記は保存する");
+  // データの帰属表記（dataAttr）も同じ扱い（Google の地図は画像もデータも Google のもの）
+  const savedGoogleData = fromBaseMapCatalogItem({
+    uid,
+    scope: "user",
+    mapID: "g-saved-data",
+    data: { kind: "google", maptype: "google_roadmap", lang: "ja", title: { ja: "G" }, dataAttr: { ja: "勝手なデータ帰属" } },
+  });
+  assert.deepEqual(savedGoogleData.dataAttr, {}, "case 9: 読み込みで保存済みのデータ帰属を読まない");
+  assert.deepEqual(toBaseMapSavePayload({ ...ready, dataAttr: { ja: "データ帰属" } }, null).tms.dataAttr, {}, "case 9: 保存でデータ帰属を出さない");
+  assert.deepEqual(toBaseMapSavePayload({ ...tmsDoc, attr: { ja: "© Example" }, dataAttr: { ja: "© Data" } }, null).tms.dataAttr, { ja: "© Data" }, "case 9: tms のデータ帰属は保存する");
+  // 旧保存形（kind 無し・maptype が google_*）は読み込みで kind を google にそろえ、画面・保存も Google として扱う
+  const legacyGoogle = fromBaseMapCatalogItem({
+    uid,
+    scope: "user",
+    mapID: "g-legacy",
+    data: { maptype: "google_hybrid", lang: "ja", title: { ja: "G" }, attr: { ja: "旧の帰属表記" }, dataAttr: { ja: "旧のデータ帰属" } },
+  });
+  assert.equal(legacyGoogle.kind, "google", "case 9: 旧保存形の Google の地図は kind を google にそろえる");
+  assert.equal(legacyGoogle.maptype, "google_hybrid", "case 9: 旧保存形の maptype を保つ");
+  assert.deepEqual(legacyGoogle.attr, {}, "case 9: 旧保存形の帰属表記を読まない");
+  assert.deepEqual(legacyGoogle.dataAttr, {}, "case 9: 旧保存形のデータ帰属を読まない");
+  assert.equal(validateBaseMapDocument({ ...legacyGoogle, slug: "g-legacy" }).errors.includes("attr-required"), false, "case 9: 旧保存形も帰属表記を求めない");
+  const legacyPayload = toBaseMapSavePayload({ ...legacyGoogle, slug: "g-legacy", attr: { ja: "x" }, dataAttr: { ja: "y" } }, 1);
+  assert.equal(legacyPayload.tms.kind, "google", "case 9: 旧保存形は kind: google で保存し直す");
+  assert.deepEqual([legacyPayload.tms.attr, legacyPayload.tms.dataAttr], [{}, {}], "case 9: 旧保存形も帰属表記とデータ帰属を保存しない");
   // 判定は kind 優先・旧保存形（kind 無し・maptype が google_*）も Google とみなす
   assert.equal(usesGoogleAttribution({ kind: "google" }), true);
   assert.equal(usesGoogleAttribution({ maptype: "google_hybrid" }), true);

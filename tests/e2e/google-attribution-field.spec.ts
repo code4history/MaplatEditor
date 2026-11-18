@@ -3,6 +3,9 @@
 // エディタは入力させず、理由を ? で示し、保存済みの値も読まず、保存すると消す。
 // case 1: 新規の Google の地図は帰属表記を入れずに保存でき、保存した値に attr が無い
 // case 2: 以前の版で帰属表記を入れて保存した Google の地図は、開くと入力できない形で出て、保存し直すと消える
+// case 3: 旧保存形（kind が無く maptype が google_*）の Google の地図も Google として開き、
+//         帰属表記とデータの帰属表記は入力できず、保存し直すと kind: google になって両方消える
+// データの帰属表記（dataAttr）も帰属表記と同じ扱い（Google の地図は画像もデータも Google のもの）
 import { expect, test, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -47,6 +50,16 @@ async function expectReadOnlyAttribution(page: Page): Promise<void> {
   await expect(page.locator('.popover')).toContainText('Google が返す著作権の表示を使います', { timeout: 5000 });
   await expect(page.locator('.popover')).toContainText('Google Maps のロゴ');
   await page.keyboard.press('Escape');
+  // データの帰属表記も同じ形
+  await expect(page.getByTestId('basemap-data-attr')).toHaveCount(0);
+  const dataField = page.getByTestId('basemap-data-attr-google');
+  await expect(dataField).toBeDisabled();
+  await expect(dataField).toHaveValue('Google が返す著作権の表示');
+  const dataReason = page.getByTestId('basemap-data-attr-google-reason');
+  await expect(dataReason).toHaveAttribute('aria-label', '「データ帰属」を使えない理由');
+  await dataReason.click();
+  await expect(page.locator('.popover')).toContainText('画像もデータも Google のもの', { timeout: 5000 });
+  await page.keyboard.press('Escape');
 }
 
 async function saveAndWait(page: Page): Promise<void> {
@@ -74,12 +87,26 @@ test('Google の地図の帰属表記は入力できず、保存済みの値も�
         tms: {
           kind: 'google', maptype: 'google_satellite', lang: 'ja',
           title: { ja: '保存済みの Google 航空写真' }, label: { ja: '保存済み' },
-          attr: { ja: '勝手な帰属表記' }, dataAttr: {}, license: 'All right reserved', dataLicense: 'All right reserved',
+          attr: { ja: '勝手な帰属表記' }, dataAttr: { ja: '勝手なデータ帰属' }, license: 'All right reserved', dataLicense: 'All right reserved',
           licenseNote: {}, dataLicenseNote: {}, url: '', minZoom: 0, maxZoom: 22,
           thumbnail: 'basemap_icons/google_satellite.png', coverageLngLats: null,
         },
       });
       if (!result?.uid) throw new Error(`seed failed: ${JSON.stringify(result)}`);
+      // case 3 の材料: 旧保存形（kind が無い）の Google の地図
+      const legacy = await (window as any).baseMaps.saveUser({
+        slug: 'google-legacy-form',
+        create: true,
+        uid: crypto.randomUUID(),
+        tms: {
+          maptype: 'google_hybrid', lang: 'ja',
+          title: { ja: '旧保存形の Google ハイブリッド' }, label: { ja: '旧保存形' },
+          attr: { ja: '旧保存形の帰属表記' }, dataAttr: { ja: '旧保存形のデータ帰属' }, license: '', dataLicense: '',
+          licenseNote: {}, dataLicenseNote: {}, url: '', minZoom: 0, maxZoom: 22,
+          thumbnail: 'basemap_icons/google_hybrid.png', coverageLngLats: null,
+        },
+      });
+      if (!legacy?.uid) throw new Error(`seed failed: ${JSON.stringify(legacy)}`);
     });
 
     // case 1
@@ -104,6 +131,21 @@ test('Google の地図の帰属表記は入力できず、保存済みの値も�
     await fillAndCommit(page.getByTestId('basemap-title'), '保存し直した Google 航空写真');
     await saveAndWait(page);
     expect(hasAttrText((await savedData(page, 'google-saved-attr')).attr)).toBe(false);
+    expect(hasAttrText((await savedData(page, 'google-saved-attr')).dataAttr)).toBe(false);
+
+    // case 3
+    await page.evaluate(() => { location.hash = '/basemaps'; });
+    await page.getByTestId('basemap-row-google-legacy-form').click();
+    await expect(page.getByTestId('basemap-google-preset-group')).toBeVisible();
+    await expect(page.getByTestId('basemap-google-preset-hybrid')).toHaveClass(/btn-primary/);
+    await expectReadOnlyAttribution(page);
+    await fillAndCommit(page.getByTestId('basemap-title'), '保存し直した旧保存形');
+    await saveAndWait(page);
+    const legacySaved = await savedData(page, 'google-legacy-form');
+    expect(legacySaved.kind).toBe('google');
+    expect(legacySaved.maptype).toBe('google_hybrid');
+    expect(hasAttrText(legacySaved.attr)).toBe(false);
+    expect(hasAttrText(legacySaved.dataAttr)).toBe(false);
 
     expect(pageErrors).toEqual([]);
   } finally {

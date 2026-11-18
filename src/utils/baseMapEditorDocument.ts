@@ -189,11 +189,18 @@ export function baseMapProviderKindOf(
   return null;
 }
 
-// Google の地図の帰属表記（attr）は、利用者が入力しない。Viewer（MaplatCore）は Google の地図では
-// Google が返す著作権の表示を全文で出し、Google Maps のロゴも出す（Google の利用条件）。
-// attr があると、その後に添えて出すので、Google の表示と紛らわしい勝手な文を出させないよう、
-// エディタは Google の地図の attr を入力させず、読み込み・保存・書き出しのどこでも持たない。
-// 判定は baseMapProviderKindOf と同じ（kind 優先・旧保存形は maptype の google_* で受ける）
+// Google の地図の帰属表記（attr）とデータの帰属表記（dataAttr）は、利用者が入力しない。
+// Google の地図は画像もデータも Google のもので、Viewer（MaplatCore）は Google が返す著作権の表示を
+// 全文で出し、Google Maps のロゴも出す（Google の利用条件）。attr があるとその後に添えて出すので、
+// Google の表示と紛らわしい勝手な文を出させないよう、エディタは次のどこでもこの 2 つを持たない。
+//   - 読み込み（fromBaseMapCatalogItem）: 保存済みの値を読まない。旧保存形は kind を google にそろえる
+//   - 画面（BaseMapEdit）: 入力できない形で出し、理由を ? に書く
+//   - 保存（toBaseMapSavePayload）: 空で書く（以前の版の値は次の保存で消える）
+//   - 書き出し・プレビュー（composeBaseMapSettingFile）: 出さない（マスタに値が残っていても）
+// 判定はこの関数 1 つで行う。baseMapProviderKindOf と同じく kind を優先し、kind の無い旧保存形は
+// maptype の google_* で受ける（読み込みで kind を google にそろえるので、画面と保存もこれで判定する）
+export const GOOGLE_PROVIDED_ATTRIBUTION_KEYS = ["attr", "dataAttr"] as const;
+
 export function usesGoogleAttribution(
   data: { kind?: unknown; maptype?: unknown } | null | undefined,
 ): boolean {
@@ -319,7 +326,9 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
   // license / dataLicense は ASCII 語彙の単一文字列。非文字列は空文字へ落とす
   const license = typeof data.license === "string" ? data.license : "";
   const dataLicense = typeof data.dataLicense === "string" ? data.dataLicense : "";
-  const kind = normalizeKind(data.kind);
+  // 旧保存形の Google の地図（kind が無く maptype が google_*）も Google として開く（usesGoogleAttribution の注記）
+  const google = usesGoogleAttribution(data);
+  const kind = google ? "google" : normalizeKind(data.kind);
   return {
     ...metadata,
     uid: item.uid,
@@ -328,9 +337,9 @@ export function fromBaseMapCatalogItem(item: BaseMapCatalogItemLike): BaseMapEdi
     slug: item.mapID,
     title,
     label: Object.keys(label).length > 0 ? label : { ...title },
-    // Google の地図に保存済みの attr（以前の版で入力できた値）は読まない。次に保存すると消える
-    attr: kind === "google" ? {} : lang.attr ?? {},
-    dataAttr: lang.dataAttr ?? {},
+    // Google の地図に保存済みの attr・dataAttr（以前の版で入力できた値）は読まない。次に保存すると消える
+    attr: google ? {} : lang.attr ?? {},
+    dataAttr: google ? {} : lang.dataAttr ?? {},
     licenseNote: lang.licenseNote ?? {},
     dataLicenseNote: lang.dataLicenseNote ?? {},
     license,
@@ -401,7 +410,7 @@ export function validateBaseMapDocument(document: BaseMapEditDocument): BaseMapV
   if (!document.title[document.defaultLang]?.trim()) errors.push("title-required");
   // 地図画像帰属 (attr) を必須化。地図側と同様、既定言語の値が空なら error。
   // Google の地図だけは入力させない（帰属表記は Google が返す。usesGoogleAttribution の注記）
-  if (kind !== "google" && !document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
+  if (!usesGoogleAttribution(document) && !document.attr[document.defaultLang]?.trim()) errors.push("attr-required");
   // url 必須は kind === "tms" のみ（merc はメルカトルタイルの生成が導出、provider は不要。現行の tms 挙動と完全一致）
   if (kind === "tms") {
     if (!document.url.trim()) errors.push("url-required");
@@ -443,10 +452,10 @@ export function toBaseMapSavePayload(
       lang: document.defaultLang,
       title: { ...document.title },
       label: hasExplicitLabel ? { ...document.label } : { ...document.title },
-      // Google の地図は attr を持たない（種別を Google へ切り替える前に入れた値も保存しない）
-      attr: document.kind === "google" ? {} : { ...document.attr },
+      // Google の地図は attr・dataAttr を持たない（usesGoogleAttribution の注記）
+      attr: usesGoogleAttribution(document) ? {} : { ...document.attr },
       // 5フィールドを常に出力する (空でも出す。attr と同じ形)
-      dataAttr: { ...document.dataAttr },
+      dataAttr: usesGoogleAttribution(document) ? {} : { ...document.dataAttr },
       license: document.license,
       dataLicense: document.dataLicense,
       licenseNote: { ...document.licenseNote },

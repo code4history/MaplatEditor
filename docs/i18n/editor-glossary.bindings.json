@@ -225,12 +225,6 @@
         "en",
         "ja"
       ]
-    },
-    "mapedit.iiif_map_tile_reason": {
-      "by": [
-        "en",
-        "ja"
-      ]
     }
   },
   "import": {
@@ -1279,6 +1273,12 @@
         "ja"
       ]
     },
+    "basemap.google.data_attr_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "basemap.google.default_data_license_note": {
       "by": [
         "en",
@@ -1569,6 +1569,12 @@
     },
     "mapedit.image_height": {
       "by": [
+        "ja"
+      ]
+    },
+    "mapedit.image_size": {
+      "by": [
+        "en",
         "ja"
       ]
     },
@@ -3269,6 +3275,12 @@
       ]
     },
     "basemap.google.attr_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "basemap.google.data_attr_reason": {
       "by": [
         "en",
         "ja"

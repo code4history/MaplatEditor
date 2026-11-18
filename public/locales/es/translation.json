@@ -259,7 +259,8 @@
       "default_license_note": "Se aplican los términos de Google Maps Platform. La atribución debe permanecer visible.",
       "default_data_license_note": "Datos de mapas e imágenes © Google. Consulte los términos de Google Maps Platform.",
       "attr_value": "Aviso de derechos de autor que devuelve Google",
-      "attr_reason": "La atribución de un mapa de Google es el aviso de derechos de autor que devuelve Google. Según las condiciones de Google, mientras se muestra el mapa se muestran el aviso completo de Google y el logotipo de Google Maps. Por eso no se puede introducir aquí."
+      "attr_reason": "La atribución de un mapa de Google es el aviso de derechos de autor que devuelve Google. Según las condiciones de Google, mientras se muestra el mapa se muestran el aviso completo de Google y el logotipo de Google Maps. Por eso no se puede introducir aquí.",
+      "data_attr_reason": "La imagen y los datos de un mapa de Google pertenecen a Google. La atribución de los datos también es el aviso de derechos de autor que devuelve Google, por lo que no se puede introducir aquí."
     },
     "style_gl_check_v5_ok": "Funciona con MapLibre GL JS 5 y 6",
     "style_gl_check_needs_v6": "Requiere MapLibre GL JS 6: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "Buscar dirección",
     "iiif_image_size_help": "El tamaño de un mapa servido desde IIIF lo determina el info.json de la imagen IIIF.",
     "iiif_upload_map_reason": "Un mapa servido desde IIIF carga su imagen desde el servicio de imágenes IIIF. Registrar otra imagen no coincidiría con el tamaño de la imagen IIIF y rompería el mapa, por lo que no está disponible.",
-    "iiif_map_tile_reason": "Las teselas de un mapa servido desde IIIF se cargan desde el servicio de imágenes IIIF que se muestra aquí. El servicio lo determina el Manifest importado, por lo que no se puede introducir aquí."
+    "iiif_map_tile_reason": "Las teselas de un mapa servido desde IIIF se cargan desde el servicio de imágenes IIIF que se muestra aquí. El servicio lo determina la información IIIF importada, por lo que no se puede introducir aquí.",
+    "image_size": "Tamaño de la imagen del mapa"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
