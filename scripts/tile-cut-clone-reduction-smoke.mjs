@@ -38,7 +38,7 @@ const bundledFile = path.join(outDir, 'tile-cut-clone-reduction-smoke.mjs');
 const dataDir = path.join(workDir, 'data');
 await mkdir(dataDir, { recursive: true });
 
-// / smoke と同じサンドボックス方式
+// 他の smoke と同じサンドボックス方式
 await writeFile(
   electronStubFile,
   `
