@@ -1,19 +1,25 @@
 import { shell } from 'electron';
 import { ipc } from './registry';
 
-export function isHttpsExternalLink(value: unknown): value is string {
-  if (typeof value !== 'string') return false;
+function toHttpsUrl(value: unknown): URL | null {
+  if (typeof value !== 'string') return null;
   try {
-    return new URL(value).protocol === 'https:';
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isHttpsExternalLink(value: unknown): value is string {
+  return toHttpsUrl(value) !== null;
 }
 
 export function registerExternalLinkHandlers(): void {
   ipc.handle('external-links:open-https', async (_event, value: unknown) => {
-    if (!isHttpsExternalLink(value)) return false;
-    await shell.openExternal(value);
+    const url = toHttpsUrl(value);
+    if (!url) return false;
+    await shell.openExternal(url.href);
     return true;
   });
 }
