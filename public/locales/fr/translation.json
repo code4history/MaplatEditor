@@ -578,7 +578,10 @@
     "control_zoom_in": "Zoom avant",
     "control_zoom_out": "Zoom arrière",
     "control_reset_rotation": "Réinitialiser la rotation",
-    "control_search_address": "Rechercher une adresse"
+    "control_search_address": "Rechercher une adresse",
+    "iiif_image_size_help": "La taille d'une carte diffusée depuis IIIF est fixée par le info.json de l'image IIIF.",
+    "iiif_upload_map_reason": "Une carte diffusée depuis IIIF charge son image depuis le service d'images IIIF. Enregistrer une autre image ne correspondrait pas à la taille de l'image IIIF et casserait la carte ; cette action n'est donc pas disponible.",
+    "iiif_map_tile_reason": "Les tuiles d'une carte diffusée depuis IIIF sont chargées depuis le service d'images IIIF affiché ici. Ce service est fixé par le Manifest importé ; vous ne pouvez pas le saisir ici."
   },
   "mapupload": {
     "map_image": "Image de la carte",
@@ -864,7 +867,8 @@
     "envelope_south_name": "Sud",
     "envelope_east_name": "Est",
     "envelope_north_name": "Nord",
-    "envelope_coord_error_incomplete": "Saisissez les quatre valeurs : ouest, sud, est et nord."
+    "envelope_coord_error_incomplete": "Saisissez les quatre valeurs : ouest, sud, est et nord.",
+    "source_no_cache_iiif_reason": "La visionneuse ne conserve jamais sur l'appareil les tuiles d'une carte diffusée depuis IIIF ; elle les charge toujours depuis le service d'images IIIF. Il n'est pas nécessaire de l'exclure ici."
   },
   "mapmodel": {
     "untitled": "Titre non défini",

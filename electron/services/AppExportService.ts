@@ -10,7 +10,7 @@ import MapPurposeService from './MapPurposeService';
 import { ProgressReporter } from '../utils/ProgressReporter';
 // IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
 // 地図 1 枚の ZIP と同じ判定を使う
-import { hasIiifDelivery } from '../utils/iiifDelivery';
+import { hasIiifDelivery, withoutManualTileUrl } from '../utils/iiifDelivery';
 import { writeZipStreaming } from '../utils/zipWriter';
 import { resolveResourceAsset } from '../utils/resourceAssets';
 import {
@@ -499,7 +499,8 @@ class AppExportService {
         const slug = String(mapDoc.slug);
         // 交換形: デフォルト言語のみの言語別フィールドはプレーン文字列に畳み込む (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)
         // IIIF の書誌の写し (iiif.copiedMetadata) も同じ規則で畳む（地図 1 枚の ZIP と同じ関数）
-        const mapJson = compactIiifCopiedMetadata(compactMapLangFields({ ...mapDoc }));
+        // IIIF のまま配る地図は、手で入れたタイルの URL を出さない（Viewer は delivery を使い url を捨てる）
+        const mapJson = withoutManualTileUrl(compactIiifCopiedMetadata(compactMapLangFields({ ...mapDoc })));
         delete (mapJson as any)._id;
         delete (mapJson as any).status;
         delete (mapJson as any).onlyOne;

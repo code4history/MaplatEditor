@@ -555,7 +555,9 @@ async function confirmMaplibreExport(saved: any): Promise<boolean> {
 // 使う）。引けなかった地図は入れない（resolveMaplatFallbackCenter と同じくベストエフォート）。
 // 読み込み・下書きの復帰・Undo/Redo・地図の追加のどれでソースが変わっても拾えるよう、
 // maplat ソースの mapUid の並びを監視して未取得のものだけ引く。
-const maplatMapDocs = ref<Record<string, { lang?: string; label?: unknown }>>({});
+// iiifDelivery: IIIF のまま配る地図か（delivery を持つ）。ソースの欄の「オフライン表示から外す」を
+// 使えなくするのに使う（Viewer はこの地図をもともとキャッシュしない）
+const maplatMapDocs = ref<Record<string, { lang?: string; label?: unknown; iiifDelivery?: boolean }>>({});
 const maplatMapDocsRequested = new Set<string>();
 
 async function fetchMaplatMapDoc(mapUid: string) {
@@ -564,7 +566,10 @@ async function fetchMaplatMapDoc(mapUid: string) {
   try {
     const mapDoc = await window.mapedit.request(mapUid);
     if (mapDoc) {
-      maplatMapDocs.value = { ...maplatMapDocs.value, [mapUid]: { lang: mapDoc.lang, label: mapDoc.label } };
+      maplatMapDocs.value = {
+        ...maplatMapDocs.value,
+        [mapUid]: { lang: mapDoc.lang, label: mapDoc.label, iiifDelivery: typeof mapDoc.delivery?.url === "string" },
+      };
     }
   } catch {
     // noop: プレースホルダが空になるだけ

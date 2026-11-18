@@ -38,6 +38,7 @@ import {
 } from '../../src/utils/exportOptions';
 import { normalizeOriginalExt } from './MapOriginalImageService';
 import { isAllowedDeliveryUrl } from '../../src/utils/ipClassify';
+import { withoutManualTileUrl } from '../utils/iiifDelivery';
 
 // 交換形式（ZIP）が持ち込む 512px サムネイルの拡張子候補。
 //
@@ -344,7 +345,8 @@ class DataUploadService {
             const mapFile = mapFiles[0];
             const mapID   = mapFile.split('.')[0];
             const mapPath = path.join(mapTmpFolder, mapFile);
-            const mapData = await fs.readJson(mapPath);
+            // IIIF のまま配る地図に手で入れたタイルの URL は取り込まない（url_ も作らない）
+            const mapData = withoutManualTileUrl(await fs.readJson(mapPath));
 
             // 配信先の URL の文字列を検査する。通らない地図は取り込まない
             // （取り込むと、保存も開き直しもできない地図ができる）。

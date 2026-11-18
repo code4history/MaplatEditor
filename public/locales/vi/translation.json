@@ -578,7 +578,10 @@
     "control_zoom_in": "Phóng to",
     "control_zoom_out": "Thu nhỏ",
     "control_reset_rotation": "Đặt lại hướng xoay",
-    "control_search_address": "Tìm địa chỉ"
+    "control_search_address": "Tìm địa chỉ",
+    "iiif_image_size_help": "Kích thước của bản đồ cung cấp từ IIIF do info.json của ảnh IIIF quyết định.",
+    "iiif_upload_map_reason": "Bản đồ cung cấp từ IIIF tải ảnh từ dịch vụ ảnh IIIF. Đăng ký ảnh khác sẽ không khớp kích thước với ảnh IIIF và làm hỏng bản đồ, nên không dùng được.",
+    "iiif_map_tile_reason": "Tile của bản đồ cung cấp từ IIIF được tải từ dịch vụ ảnh IIIF hiển thị ở đây. Dịch vụ do Manifest đã nhập quyết định, nên không thể nhập ở đây."
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
@@ -864,7 +867,8 @@
     "envelope_south_name": "Nam",
     "envelope_east_name": "Đông",
     "envelope_north_name": "Bắc",
-    "envelope_coord_error_incomplete": "Hãy nhập đủ bốn giá trị: tây, nam, đông và bắc."
+    "envelope_coord_error_incomplete": "Hãy nhập đủ bốn giá trị: tây, nam, đông và bắc.",
+    "source_no_cache_iiif_reason": "Trình xem không bao giờ lưu tile của bản đồ cung cấp từ IIIF trên thiết bị mà luôn tải từ dịch vụ ảnh IIIF. Không cần loại trừ ở đây."
   },
   "mapmodel": {
     "untitled": "Chưa có tiêu đề",

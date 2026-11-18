@@ -558,7 +558,10 @@
     "control_zoom_in": "Zoom in",
     "control_zoom_out": "Zoom out",
     "control_reset_rotation": "Reset rotation",
-    "control_search_address": "Search address"
+    "control_search_address": "Search address",
+    "iiif_image_size_help": "The size of a map delivered from IIIF is set by the info.json of the IIIF image.",
+    "iiif_upload_map_reason": "A map delivered from IIIF loads its image from the IIIF image service. Registering another image would not match the size of the IIIF image and would break the map, so this is unavailable.",
+    "iiif_map_tile_reason": "The tiles of a map delivered from IIIF are loaded from the IIIF image service shown here. The service is set by the imported Manifest, so you cannot enter it here."
   },
   "mapupload": {
     "map_image": "Map Image",
@@ -844,7 +847,8 @@
     "envelope_south_name": "South",
     "envelope_east_name": "East",
     "envelope_north_name": "North",
-    "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north."
+    "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north.",
+    "source_no_cache_iiif_reason": "The viewer never keeps the tiles of a map delivered from IIIF on the device; it always loads them from the IIIF image service. There is no need to exclude it here."
   },
   "mapmodel": {
     "untitled": "Untitled",

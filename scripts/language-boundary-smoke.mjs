@@ -78,7 +78,8 @@ assert.match(
   /<SlugField(?=[^>]*:disabled="translationMode")(?=[^>]*input-testid="map-slug")[^>]*\/>/,
 );
 assert.match(mapEdit, /data-editor-document-language[^>]*:disabled="translationMode"/);
-assert.match(mapEdit, /@click="mapUpload"[^>]*:disabled="translationMode"/);
+// 翻訳モードでは押せない（IIIF から配信する地図でも押せないので、条件が後ろに続いてよい）
+assert.match(mapEdit, /@click="mapUpload"[^>]*:disabled="translationMode(?: \|\| [A-Za-z]+)*"/);
 
 const slugField = await readFile(
   path.join(projectRoot, 'src/components/editor-ui/SlugField.vue'),

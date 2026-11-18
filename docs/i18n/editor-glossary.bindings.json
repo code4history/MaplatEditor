@@ -225,6 +225,12 @@
         "en",
         "ja"
       ]
+    },
+    "mapedit.iiif_map_tile_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
     }
   },
   "import": {
@@ -355,6 +361,12 @@
       ]
     },
     "mapedit.error_image_machine_limit": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.iiif_map_tile_reason": {
       "by": [
         "en",
         "ja"
@@ -1159,6 +1171,12 @@
         "ja"
       ]
     },
+    "appedit.source_no_cache_iiif_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "appedit.source_no_cache_note": {
       "by": [
         "en",
@@ -1520,6 +1538,24 @@
       ]
     },
     "mapedit.export_option_tiles_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.iiif_image_size_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.iiif_map_tile_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.iiif_upload_map_reason": {
       "by": [
         "en",
         "ja"
@@ -3457,6 +3493,12 @@
         "ja"
       ]
     },
+    "appedit.source_no_cache_iiif_reason": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "appedit.source_no_cache_note": {
       "by": [
         "en",
@@ -3550,6 +3592,12 @@
     "mapedit.export_option_tiles_help": {
       "by": [
         "en"
+      ]
+    },
+    "mapedit.iiif_map_tile_reason": {
+      "by": [
+        "en",
+        "ja"
       ]
     },
     "mapedit.map_tile": {
@@ -4157,6 +4205,12 @@
       ]
     },
     "appedit.share_ui_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_no_cache_iiif_reason": {
       "by": [
         "en",
         "ja"
