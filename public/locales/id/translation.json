@@ -578,7 +578,10 @@
     "control_zoom_in": "Perbesar",
     "control_zoom_out": "Perkecil",
     "control_reset_rotation": "Atur ulang rotasi",
-    "control_search_address": "Cari alamat"
+    "control_search_address": "Cari alamat",
+    "iiif_image_size_help": "Ukuran peta yang disajikan dari IIIF ditentukan oleh info.json gambar IIIF.",
+    "iiif_upload_map_reason": "Peta yang disajikan dari IIIF memuat gambarnya dari layanan gambar IIIF. Mendaftarkan gambar lain tidak akan cocok dengan ukuran gambar IIIF dan merusak peta, sehingga tidak tersedia.",
+    "iiif_map_tile_reason": "Tile peta yang disajikan dari IIIF dimuat dari layanan gambar IIIF yang ditampilkan di sini. Layanan ditentukan oleh Manifest yang diimpor, sehingga tidak dapat diisi di sini."
   },
   "mapupload": {
     "map_image": "Gambar peta",
@@ -867,7 +870,8 @@
     "envelope_coord_error_incomplete": "Isi keempat nilai: barat, selatan, timur, dan utara.",
     "export_blocked_missing_attribution": "Ekspor dihentikan karena ada peta tanpa atribusi. Tambahkan atribusi pada peta berikut, lalu ekspor lagi.",
     "source_attribution_missing_map": "Peta ini tidak memiliki atribusi. Penampil tidak menambahkannya, sehingga aplikasi tidak dapat diekspor apa adanya. Tambahkan atribusi di editor peta.",
-    "source_attribution_missing_base_map": "Peta dasar ini tidak memiliki atribusi. Penampil tidak menambahkannya, sehingga aplikasi tidak dapat diekspor apa adanya. Tambahkan atribusi di editor peta dasar."
+    "source_attribution_missing_base_map": "Peta dasar ini tidak memiliki atribusi. Penampil tidak menambahkannya, sehingga aplikasi tidak dapat diekspor apa adanya. Tambahkan atribusi di editor peta dasar.",
+    "source_no_cache_iiif_reason": "Penampil tidak pernah menyimpan tile peta yang disajikan dari IIIF di perangkat; tile selalu dimuat dari layanan gambar IIIF. Tidak perlu dikecualikan di sini."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",

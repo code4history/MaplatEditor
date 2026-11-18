@@ -626,7 +626,7 @@ function setupMenu() {
               const doneMessage = t('menu.originals_migration_done').replace('{count}', String(total));
               const message = `${doneMessage}\n${lines.join('\n')}\n\n${t('menu.originals_migration_warnings_hint')}`;
               const options = { type: 'info' as const, title: t('menu.run_originals_migration'), message };
-              // v1.1: forceQuit パターン(main.ts 33-34行)により
+              // forceQuit パターン(main.ts 33-34行)により
               // macOS では全ウィンドウ閉鎖後もアプリ/メニューが生存し win は null になり得る。
               // win が null の場合は BrowserWindow 引数なしの showMessageBox へフォールバックする
               if (win) {
@@ -635,7 +635,7 @@ function setupMenu() {
                 await dialog.showMessageBox(options);
               }
             } catch (e: any) {
-              // v1.1: runManual() 自体は per-map failure を吸収するが、
+              // runManual() 自体は per-map failure を吸収するが、
               // getDb() や dialog 自体の予期しない失敗にも click ハンドラとして防御的に備える
               console.error('[main] manual originals migration failed', e);
               const errorOptions = { type: 'error' as const, title: t('menu.run_originals_migration'), message: t('menu.originals_migration_failed') };

@@ -196,6 +196,10 @@ const attributionMissing = computed(() => {
 const showNoCache = computed(() =>
   props.source.sourceType === "maplat" || (!masterMissing.value && !isProviderKind(master.value.kind)),
 );
+// IIIF のまま配る地図は、Viewer がもともとオフライン表示（キャッシュ）の対象にしない（MaplatCore は
+// delivery が iiifImage の地図を Weiwudi へ登録しない）。外す意味が無いので押せなくし、理由を ? に出す。
+// 保存済みの値は消さない（アプリのキャッシュが働かないときと同じ扱い）
+const iiifDeliveryMap = computed(() => props.source.sourceType === "maplat" && master.value.iiifDelivery === true);
 
 // 数値（mercator シフト 2 欄）。空欄＝上書きなしなので解除へ倒す
 function setNumber(key: string, raw: string) {
@@ -567,11 +571,19 @@ function copyCoverageToEnvelope() {
             class="form-check-input mt-0"
             data-testid="app-source-no-cache"
             :checked="source.noCache === true"
-            :disabled="translationMode || !cacheEnabled"
+            :disabled="translationMode || !cacheEnabled || iiifDeliveryMap"
             @change="setNoCache(($event.target as HTMLInputElement).checked)"
           >
           {{ t("appedit.source_no_cache") }}
+          <!-- ? は 1 つだけ。IIIF のまま配る地図では、使えない理由の文に替える -->
           <ContextHelp
+            v-if="iiifDeliveryMap"
+            data-testid="app-source-no-cache-iiif-reason"
+            :text="t('appedit.source_no_cache_iiif_reason')"
+            :ariaLabel="t('editor_ui.unavailable_reason', { name: t('appedit.source_no_cache') })"
+          />
+          <ContextHelp
+            v-else
             data-testid="app-source-no-cache-help"
             :text="t('appedit.source_no_cache_note')"
             :ariaLabel="t('editor_ui.help_about', { name: t('appedit.source_no_cache') })"

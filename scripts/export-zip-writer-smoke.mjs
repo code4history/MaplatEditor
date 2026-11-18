@@ -5,7 +5,7 @@
 //           （順序は契約外 — adm-zip 0.6.0 は書き出し時に名前でソート（zipFile.js:135-146）し、
 //           新実装は入力順を保存するため、本番の未ソート DFS 入力ではエントリ順が異なる。
 //           zip 仕様上エントリ順は任意で、既存検査の getEntries 全 20 箇所に順序依存 assert は
-//           0 件（実装レビュー v1 実測）∴ 集合一致を契約とする。検査入力は本番
+//           0 件（実測）∴ 集合一致を契約とする。検査入力は本番
 //           listTileFiles と同じ**未ソート** stack DFS 順で与える）
 //   case 3  (a) adm-zip で読める・展開できる (b) unzip -t OK (c) ditto -x -k OK
 //           (d) 展開結果が原本とバイト一致。70,000 エントリの ZIP64 経路では
@@ -134,7 +134,7 @@ try {
 
       // ---- helpers ----
       // 本番の AppExportService.listTileFiles (:107-129) と同じ**未ソート** stack(LIFO) DFS。
-      // case 2 の検査入力はこの順で与える（実装レビュー v1 ソート済み入力での比較は
+      // case 2 の検査入力はこの順で与える（ソート済み入力での比較は
       // 本番経路（未ソート）を一度も通らず判別力が無い）
       async function walkFilesProductionOrder(dir: string): Promise<string[]> {
         const out: string[] = [];
@@ -366,7 +366,7 @@ try {
         // --- case 2: エントリ名の**集合**一致（順序は契約外） ---
         // adm-zip 0.6.0 は書き出し時に名前でソート（zipFile.js:135-146）し、新実装は入力順を
         // 保存する ∴ 未ソート入力ではエントリ順は一致しない（それで正しい。zip 仕様上順序は
-        // 任意・既存検査に順序依存 assert 0 件 — 実装レビュー v1）。集合一致のみを契約とする
+        // 任意・既存検査に順序依存 assert 0 件）。集合一致のみを契約とする
         const ourNames = new AdmZip(ourZip).getEntries().map((e) => e.entryName);
         const admNames = new AdmZip(admZipPath).getEntries().map((e) => e.entryName);
         assert.deepEqual([...ourNames].sort(), [...admNames].sort(),
@@ -403,7 +403,7 @@ try {
 
       // ============================================================
       // SECTION 4: case 4 uncaughtException 時の settle 保証（実結線経由）
-      //   設計レビュー v2 N-1: テスト内で自前結線せず、実モジュールの
+      //   テスト内で自前結線せず、実モジュールの
       //   installBackendErrorForwarding() が登録した uncaughtException ハンドラ
       //   （backendErrorForwarder.ts:67 の 1 行追加）を経由して検査する。
       //   自前結線だと :67 への 1 行追加の欠落を検出できず負検査も空洞化する。
@@ -472,7 +472,7 @@ try {
       //   ループ先頭件（lastReportTime=0 との差が常に成立）でのみ発火し、以後の送信は
       //   sinceLastReport>=100（zipped=101）と最終件（zipped===N）のみ ∴ 送信列が決定的になる。
       //   （ProgressReporter 内部の heartbeat は new Date() の実時間だが 30s 閾値であり、
-      //   この fixture の実行は秒オーダー ∴ 発火しない — 設計レビュー v2 I-3 の前提のまま）
+      //   この fixture の実行は秒オーダー ∴ 発火しない）
       //
       //   検査構造:
       //   (a) 前提条件: ループ最終件の update の整数パーセントが直前送信済みと等しい

@@ -190,7 +190,7 @@ console.log(
   "⏭️  case 7: lock pin assert は skip（registry 参照へ移行済みのため。実測値: 新 pin 07ee37a5/9b97eb5 は出現ゼロ）"
 );
 
-// ── case 8 (レビュー 再発防止): プレビュー配信ロケールのライセンス用語が正本一致 ──
+// ── プレビュー配信ロケールのライセンス用語が正本一致（再発防止） ──
 // 前回レビューで「Editor 正本は新用語だが、preview が読む tracked コピー public/preview/locales
 // が旧用語のまま」という配信同期漏れ が起きた。MD5 全数一致は case 1/case 2 が担保するが、
 // 「帰属/データ」の用語が正本と一致すること自体を明示的に固定する（再発防止）。
@@ -201,7 +201,7 @@ const { readdir: readdirLocales } = await import("node:fs/promises");
 const previewLangs = (await readdirLocales(previewLocalesDir)).filter((name) =>
   /^[a-z]{2}(-[A-Z]{2})?$/.test(name)
 );
-assert.ok(previewLangs.length >= 11, `case 8: preview に 11 言語以上の locales があるはず（実際 ${previewLangs.length}）`);
+assert.ok(previewLangs.length >= 11, `preview に 11 言語以上の locales があるはず（実際 ${previewLangs.length}）`);
 for (const lang of previewLangs) {
   const canonical = JSON.parse(
     await readFile(path.join(canonicalLocalesDir, lang, "translation.json"), "utf8")
@@ -213,12 +213,12 @@ for (const lang of previewLangs) {
     assert.equal(
       preview.html?.[key],
       canonical.html?.[key],
-      `case 8: ${lang}: html.${key} が正本と一致しない（preview=${preview.html?.[key]}, canonical=${canonical.html?.[key]}）。` +
+      `${lang}: html.${key} が正本と一致しない（preview=${preview.html?.[key]}, canonical=${canonical.html?.[key]}）。` +
         `プレビュー配信ロケール (public/preview/locales) を sync:preview-bundle で再同期してください。`
     );
   }
 }
-console.log(`✅ case 8: プレビュー配信ロケールのライセンス用語 (${TERM_KEYS.join("/")}) が全 ${previewLangs.length} 言語で正本一致`);
+console.log(`✅ プレビュー配信ロケールのライセンス用語 (${TERM_KEYS.join("/")}) が全 ${previewLangs.length} 言語で正本一致`);
 passed++;
 
 console.log(`\n結果: ${passed}/${total} AC パス`);

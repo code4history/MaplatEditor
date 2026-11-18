@@ -14,7 +14,7 @@
 //   pnpm --filter maplat-editor run test:e2e:swiper-viewer-reach
 //   MAPLAT_E2E_PAUSE=1 PWDEBUG=1 pnpm --filter maplat-editor run test:e2e:swiper-viewer-reach
 //   直接 `pnpm exec playwright test` を叩くと ensure-electron / build を迂回し、
-//   依存更新前の bundle を検証してしまう（設計レビュー v1.6）。
+//   依存更新前の bundle を検証してしまう。
 import { _electron as electron, expect, test, type ElectronApplication, type Frame, type Page } from '@playwright/test';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';

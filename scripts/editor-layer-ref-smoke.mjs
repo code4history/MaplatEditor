@@ -88,7 +88,7 @@ const URL_A = 'pois/a.geojson';
 {
   const shapesOf = (entries) => entries.map(poisEntryShape);
   const cases = [
-    [[{ layer: URL_A, hide: true }], 'multi', '上書きレイヤ先頭 → 複層（v1.0 は single だった）'],
+    [[{ layer: URL_A, hide: true }], 'multi', '上書きレイヤ先頭 → 複層'],
     [[{ layer: 'a' }, { layer: 'b' }], 'multi', '上書きレイヤ2件 → 複層'],
     [[FC('x'), { layer: 'b' }], 'multi', 'FC 先頭 → 複層（現行どおり）'],
     [[FC('x'), FC('y')], 'multi', 'FC 2件 → 複層（現行どおり）'],

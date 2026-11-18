@@ -12,7 +12,7 @@
         :disabled="disabled"
         @change="onConfirm(($event.target as HTMLTextAreaElement).value)"
       />
-      <!-- v1.4: clearable のとき type="search" にして
+      <!-- clearable のとき type="search" にして
            ブラウザ native の×（検索バーと同一デザイン）を出す。
            native × は **change を発火しない**（a の実測）ため search も購読する。
            search は type="search" 専用で×と Enter でのみ発火するので、change の
@@ -66,9 +66,9 @@ const props = withDefaults(defineProps<{
   disabled?: boolean;
   invalid?: boolean;
   inputTestid?: string;
-  // v1.4 (a): 未上書き時に効く値の提示（アプリソース編集のプレースホルダ）
+  // (a) 未上書き時に効く値の提示（アプリソース編集のプレースホルダ）
   placeholder?: string;
-  // v1.4 (a): type="search" にして native × を出す。
+  // (a) type="search" にして native × を出す。
   // 「空にする＝既定へ戻る」という意味が成り立つ欄でのみ true にする
   clearable?: boolean;
 }>(), {

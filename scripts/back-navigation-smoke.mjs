@@ -3,7 +3,7 @@
 // pois-write-shape-smoke.mjs Part C（countOccurrences =
 // content.includes によるコメント込み生文字列一致）と同文法。
 //
-// 設計レビュー v1.0 の解消（v1.1）: この生一致方式は変更しない。新規ヘルパ
+// 指摘の解消: この生一致方式は変更しない。新規ヘルパ
 // コメント側を禁止対象そのものの文字列を含まない言い回しへ書き換えることで、smoke が
 // 設計自身のヘルパで自己矛盾 fail する問題を解消した（採用: 方式(a)）。
 import { readFile, readdir } from 'node:fs/promises';

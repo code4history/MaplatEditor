@@ -313,7 +313,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await openMapEdit(page, uid);
     await switchMapEditSettingsTab(page);
 
-    // auto: 範囲ボタンが「GCP範囲で絞り込み中」を表示（v2.0 の ResourceRangeFilterButton）
+    // auto: 範囲ボタンが「GCP範囲で絞り込み中」を表示（ResourceRangeFilterButton）
     await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中');
     // 手動 override 指定前はクリアボタンがない
     await expect(page.locator('[data-testid="map-base-map-region-clear"]')).not.toBeVisible();
@@ -336,7 +336,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await page.locator('.envelope-modal .btn-close').first().click();
     await expect(page.locator('.envelope-modal')).not.toBeVisible();
 
-    // manual: ボタンが「手動設定範囲で絞り込み中」へ切替（v2.0。数値表示はないため文言で検証）
+    // manual: ボタンが「手動設定範囲で絞り込み中」へ切替（数値表示はないため文言で検証）
     await expect(page.getByTestId('map-base-map-region-button')).toContainText('手動設定範囲で絞り込み中');
 
     // クリアで auto に戻る
@@ -517,7 +517,7 @@ test.describe('Geocoder & GCP Estimate E2E Tests', () => {
     await openMapEdit(page, mapUid);
     await switchMapEditSettingsTab(page);
 
-    // ロード完了を待つ（v2.0: 範囲ボタンの「GCP範囲で絞り込み中」表示を待つ）
+    // ロード完了を待つ（範囲ボタンの「GCP範囲で絞り込み中」表示を待つ）
     await expect(page.getByTestId('map-base-map-region-button')).toContainText('GCP範囲で絞り込み中', { timeout: 30000 });
 
     // 外れGCPを含む bbox は存在範囲で包含されていないが、一部交差しているため表示される

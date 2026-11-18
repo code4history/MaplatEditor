@@ -160,7 +160,7 @@ try {
           label + ': thumbnail_512.webp の長辺は 512px 以下: ' + thumb512Img.width + 'x' + thumb512Img.height);
       }
 
-      // case 2a / case 2b の RED 実証のため、最初の失敗で打ち切らず全ケースを走らせて
+      // 2つのガードの RED 実証のため、最初の失敗で打ち切らず全ケースを走らせて
       // 失敗を集約する。修正前は 48 MP が maxMemoryUsageInMB、110 MP が maxResolutionInMP と
       // 異なる文言で落ち、2つのガードが別個であることが1回の実行で読める。
       const failures = [];
@@ -218,19 +218,19 @@ try {
         assert.equal(d.maxResolutionInMP, null);
       });
 
-      // case 7: 不正値は既定へ落ちる。store は利用者が編集できる JSON なので UI を通らない値が入り得る。
+      // 不正値は既定へ落ちる。store は利用者が編集できる JSON なので UI を通らない値が入り得る。
       // set 経由（書き込み側の防御）と store 直書き（読み出し側の防御）の**両方**を確認する —
       // set だけだと読み出し側の正規化が効いているかを証明できない。
       const rawStore = SettingsService.store; // private だが、読み出し側の検証にはここを突く必要がある
       for (const bad of [0, -1, 'abc', null, Infinity]) {
-        okB('case 7 不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（set 経由・例外を投げない）', () => {
+        okB('不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（set 経由・例外を投げない）', () => {
           SettingsService.set('jpegDecodeMaxMemoryMB', bad);
           SettingsService.set('jpegDecodeMaxResolutionMP', bad);
           const d = SettingsService.getJpegDecodeCaps();
           assert.equal(d.maxMemoryUsageInMB, null);
           assert.equal(d.maxResolutionInMP, null);
         });
-        okB('case 7 不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（store 直書き＝手編集の JSON 相当）', () => {
+        okB('不正値 ' + JSON.stringify(bad) + ' が自動へ落ちる（store 直書き＝手編集の JSON 相当）', () => {
           rawStore.set('jpegDecodeMaxMemoryMB', bad);
           rawStore.set('jpegDecodeMaxResolutionMP', bad);
           const d = SettingsService.getJpegDecodeCaps();
@@ -239,7 +239,7 @@ try {
         });
       }
 
-      okB('case 8 下限が効く（256→512 / 50→100）', () => {
+      okB('下限が効く（256→512 / 50→100）', () => {
         SettingsService.set('jpegDecodeMaxMemoryMB', 256);
         SettingsService.set('jpegDecodeMaxResolutionMP', 50);
         const d = SettingsService.getJpegDecodeCaps();
@@ -262,7 +262,7 @@ try {
         assert.equal(SettingsService.getJpegDecodeCaps().maxMemoryUsageInMB, within);
       });
 
-      // ============ Phase C: 事前判定と構造化エラー（case 10-case 14） ============
+      // ============ Phase C: 事前判定と構造化エラー ============
       // 実測トリガ級の巨大画像を使わずに検証する。ガードは「設定値」に対する判定なので、
       // 小さい画像 + 意図的に低い設定値で同じ経路を通せる（実行時間を無駄にしない）。
 
@@ -272,7 +272,7 @@ try {
         SettingsService.set('jpegDecodeMaxResolutionMP', null);
       };
 
-      /** prediction の「全部入りか無しか」を検査する（case 11b の不変条件） */
+      /** prediction の「全部入りか無しか」を検査する（不変条件） */
       function assertPredictionShape(r, label) {
         if (r.prediction === undefined) return 'absent';
         assert.equal(typeof r.prediction, 'object', label + ': prediction はオブジェクト');
@@ -287,7 +287,7 @@ try {
       }
 
       // 下限（メモリ 512 / 解像度 100）があるため、小さい画像では不足を作れない。
-      // ∴ 実サイズのフィクスチャを使い、v1.3 からの回帰ケース（48 MP / 110 MP）と統合する。
+      // ∴ 実サイズのフィクスチャを使い、回帰ケース（48 MP / 110 MP）と統合する。
       const bigJpg = nodePath.join(workDir, 'ac10-48mp.jpg');
       await makeFixture(8000, 6000, bigJpg);                    // 48 MP / 4:4:4 → 予測 1008 MB
       const bigBudget = estimateJpegDecodeBudget(await fs.readFile(bigJpg));
@@ -318,27 +318,27 @@ try {
         };
       }
 
-      // --- case 6 RED 相当 + case 10: 既定の 512 相当ではメモリ不足を事前判定して弾く ---
+      // --- 既定の 512 相当ではメモリ不足を事前判定して弾く ---
       resetLimits();
       SettingsService.set('jpegDecodeMaxMemoryMB', 512);   // jpeg-js 既定と同じ＝下限
       const memCase = await upload('ac10-mem', bigJpg);
-      okB('case 10 メモリ不足を事前判定し jpeg_memory_limit を返す（48 MP / 上限 512）', () => {
+      okB('メモリ不足を事前判定し jpeg_memory_limit を返す（48 MP / 上限 512）', () => {
         assert.equal(memCase.r.errorCode, 'jpeg_memory_limit', JSON.stringify(memCase.r));
         assert.equal(memCase.r.configuredMB, 512);
-        assert.equal(assertPredictionShape(memCase.r, 'case 10'), 'present');
+        assert.equal(assertPredictionShape(memCase.r, 'メモリ不足の事前判定'), 'present');
         assert.equal(memCase.r.prediction.requiredMemoryMB, bigBudget.requiredMemoryMB);
         assert.equal(memCase.r.prediction.recommendedMemoryMB, bigBudget.recommendedMemoryMB);
       });
-      okB('case 10 原寸デコードもタイル化も開始していない（番兵が残る・時間では判定しない）', () => {
+      okB('原寸デコードもタイル化も開始していない（番兵が残る・時間では判定しない）', () => {
         assert.equal(memCase.sentinelSurvived, true,
           '事前判定で弾いた場合、imageCutter は outFolder のクリアにも到達しない'
           + '（＝既存の下書きタイルを壊さない）');
       });
 
-      // --- case 6 GREEN 相当 + case 12 + case 3: 推奨値をそのまま設定すると1回で通り、生成物も揃う ---
+      // --- 推奨値をそのまま設定すると1回で通り、生成物も揃う ---
       SettingsService.set('jpegDecodeMaxMemoryMB', memCase.r.prediction.recommendedMemoryMB);
       const memRetry = await upload('ac12-mem-retry', bigJpg);
-      okB('case 12 推奨メモリ値（' + memCase.r.prediction.recommendedMemoryMB
+      okB('推奨メモリ値（' + memCase.r.prediction.recommendedMemoryMB
         + ' MB）をそのまま設定すると1回で通る（48 MP）', () => {
         assert.ok(!memRetry.r.err, '成功する: ' + JSON.stringify(memRetry.r));
         assert.equal(memRetry.r.width, 8000);
@@ -358,27 +358,27 @@ try {
         }
       })();
 
-      // --- case 11: 解像度不足も同様に事前判定で弾く（デコードしないので即座に返る） ---
+      // --- 解像度不足も同様に事前判定で弾く（デコードしないので即座に返る） ---
       resetLimits();
       SettingsService.set('jpegDecodeMaxResolutionMP', 100);   // jpeg-js 既定と同じ＝下限
       const resCase = await upload('ac11-res', hugeJpg);
-      okB('case 11 解像度不足を事前判定し jpeg_resolution_limit を返す（110 MP / 上限 100）', () => {
+      okB('解像度不足を事前判定し jpeg_resolution_limit を返す（110 MP / 上限 100）', () => {
         assert.equal(resCase.r.errorCode, 'jpeg_resolution_limit', JSON.stringify(resCase.r));
         assert.equal(resCase.r.configuredMP, 100);
-        assert.equal(assertPredictionShape(resCase.r, 'case 11'), 'present');
+        assert.equal(assertPredictionShape(resCase.r, '解像度不足の事前判定'), 'present');
         assert.equal(resCase.r.prediction.megapixels, 110);
         assert.equal(resCase.r.prediction.recommendedResolutionMP, 110,
-          'ceil(110) = 110。マージンを乗せない（v2.3）');
+          'ceil(110) = 110。マージンを乗せない');
       });
-      okB('case 11 原寸デコードもタイル化も開始していない（番兵が残る）', () => {
+      okB('原寸デコードもタイル化も開始していない（番兵が残る）', () => {
         assert.equal(resCase.sentinelSurvived, true);
       });
 
-      // --- case 12b + v1.3 の 110 MP 回帰: 推奨解像度（マージン無し）で1回で通る ---
+      // --- 110 MP 回帰: 推奨解像度（マージン無し）で1回で通る ---
       SettingsService.set('jpegDecodeMaxResolutionMP', resCase.r.prediction.recommendedResolutionMP);
       SettingsService.set('jpegDecodeMaxMemoryMB', hugeBudget.recommendedMemoryMB);
       const resRetry = await upload('ac12b-res-retry', hugeJpg);
-      okB('case 12b 推奨解像度値 ceil(megapixels)=110（マージン無し）で1回で通る（110 MP）', () => {
+      okB('推奨解像度値 ceil(megapixels)=110（マージン無し）で1回で通る（110 MP）', () => {
         assert.ok(!resRetry.r.err, '成功する: ' + JSON.stringify(resRetry.r));
         assert.equal(resRetry.r.width, 11000);
         assert.equal(resRetry.r.height, 10000);
@@ -395,7 +395,7 @@ try {
       const smallJpg = nodePath.join(workDir, 'small.jpg');
       await makeFixture(1200, 900, smallJpg);
 
-      // --- case 13: 予測できない失敗は errorCode unknown（prediction を持たない） ---
+      // --- 予測できない失敗は errorCode unknown（prediction を持たない） ---
       resetLimits();
       const brokenJpg = nodePath.join(workDir, 'broken.jpg');
       {
@@ -410,28 +410,28 @@ try {
         await fs.mkdir(outFolder, { recursive: true });
         globalThis.__nextImagePath = brokenJpg;
         const r = await showMapSelectDialog(null, outFolder, '地図画像');
-        okB('case 13 上限起因でない失敗は errorCode unknown で、prediction を持たない', () => {
+        okB('上限起因でない失敗は errorCode unknown で、prediction を持たない', () => {
           assert.ok(r.err, '失敗する: ' + JSON.stringify(r));
           assert.equal(r.errorCode, 'unknown', JSON.stringify(r));
-          assert.equal(assertPredictionShape(r, 'case 13'), 'absent');
+          assert.equal(assertPredictionShape(r, '予測できない失敗'), 'absent');
         });
       }
 
-      // --- case 14: Canceled は従来どおり ---
+      // --- Canceled は従来どおり ---
       {
         const outFolder = nodePath.join(workDir, 'ac14-cancel');
         await fs.mkdir(outFolder, { recursive: true });
         globalThis.__nextImagePath = null;   // showOpenDialog が canceled を返す
         const r = await showMapSelectDialog(null, outFolder, '地図画像');
-        okB('case 14 Canceled は err のみで errorCode を付けない', () => {
+        okB('Canceled は err のみで errorCode を付けない', () => {
           assert.equal(r.err, 'Canceled');
           assert.equal(r.errorCode, undefined, 'Canceled に errorCode は付かない');
           assert.equal(r.prediction, undefined);
         });
       }
 
-      // --- case 18: 汎用エラーキーを削除していない ---
-      okB('case 18 mapedit.error_image_upload（汎用の受け皿）が11ロケールすべてに残っている', () => {
+      // --- 汎用エラーキーを削除していない ---
+      okB('mapedit.error_image_upload（汎用の受け皿）が11ロケールすべてに残っている', () => {
         for (const lang of LOCALES) {
           const t = JSON.parse(nodeFs.readFileSync(
             nodePath.join(${JSON.stringify(projectRoot)}, 'public/locales', lang, 'translation.json'), 'utf8'));

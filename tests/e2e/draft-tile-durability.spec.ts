@@ -67,7 +67,7 @@ async function installDialogHarness(app: ElectronApplication, imagePath: string)
   }, imagePath);
 }
 
-// case 20-1（v1.1・Info2）: stubMessageBoxOk だと偽陽性の警告ダイアログが自動 OK で素通りするため、
+// case 20-1: stubMessageBoxOk だと偽陽性の警告ダイアログが自動 OK で素通りするため、
 // 表示された message を main プロセス側に記録する記録型 stub を使う（応答は常に先頭ボタン = OK/削除）
 async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> {
   await app.evaluate(async ({ dialog }) => {
@@ -212,7 +212,7 @@ test.describe('下書きタイルの永続 staging 化', () => {
     expect(urlRestored).toBe(urlBeforeQuit);
     expect(await pathExists(stagingDir)).toBe(true);
 
-    // 負命題（v1.1・Info2）: 復元時に喪失警告・保存済み告知が出ないこと
+    // 負命題: 復元時に喪失警告・保存済み告知が出ないこと
     expect(LOST_MSG).toBeTruthy();
     expect(ALREADY_MSG).toBeTruthy();
     await page.waitForTimeout(1_000);

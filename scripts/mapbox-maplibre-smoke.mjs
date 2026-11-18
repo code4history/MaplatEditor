@@ -117,20 +117,20 @@ const base = {
   attr: { ja: "A" },
 };
 
-// case 1
+// mapbox の style 指定が受け入れられ保存形に載る
 {
   const doc = {
     ...base,
     kind: "mapbox",
     style: "mapbox://styles/mapbox/streets-v12",
   };
-  assert.equal(validateBaseMapDocument(doc).valid, true, "case 1 valid");
+  assert.equal(validateBaseMapDocument(doc).valid, true, "mapbox の style 指定は valid");
   const payload = toBaseMapSavePayload(doc, null);
   assert.equal(payload.tms.maptype, "mapbox");
   assert.equal(payload.tms.style, "mapbox://styles/mapbox/streets-v12");
 }
 
-// case 2
+// maplibre の style 指定が受け入れられ保存形に載る
 {
   const doc = {
     ...base,
@@ -143,7 +143,7 @@ const base = {
   assert.equal(payload.tms.style, "https://example.com/style.json");
 }
 
-// case 3
+// case 3: mapbox:// スキームの style は maplibre では拒否される
 {
   const doc = { ...base, kind: "maplibre", style: "mapbox://styles/x" };
   assert.equal(
@@ -152,7 +152,7 @@ const base = {
   );
 }
 
-// case 4
+// style 未指定は style-required で拒否され provider 不備とは区別される
 {
   const doc = { ...base, kind: "mapbox", style: null };
   const e = validateBaseMapDocument(doc).errors;
@@ -160,7 +160,7 @@ const base = {
   assert.equal(e.includes("provider-incomplete"), false);
 }
 
-// case 5: composeViewerSource が style と maptype を viewer オブジェクトへ載せる
+// maptype・style は設定ファイルに載り、アプリ JSON には出ない
 {
   const raw = {
     sourceType: "base-map",
@@ -178,18 +178,18 @@ const base = {
   const lookup = createBaseMapMasterLookup([master]);
   const out = composeBaseMapSettingFile(master, "base");
   const appElement = composeViewerSource(normalizeAppSource(raw), { lookup });
-  assert.equal("maptype" in appElement, false, "case 5: アプリ JSON に maptype は出さない");
-  assert.equal(appElement.settingFile, "maps/ml1.json", "case 5: 設定ファイル参照を出す");
-  assert.equal(out.maptype, "maplibre", "case 5: maptype=maplibre");
+  assert.equal("maptype" in appElement, false, "アプリ JSON に maptype は出さない");
+  assert.equal(appElement.settingFile, "maps/ml1.json", "設定ファイル参照を出す");
+  assert.equal(out.maptype, "maplibre", "maptype=maplibre");
   assert.equal(
     out.style,
     "https://tile.openstreetmap.jp/styles/osm-bright/style.json",
-    "case 5: style が設定ファイル出力に載る",
+    "style が設定ファイル出力に載る",
   );
-  assert.equal("kind" in out, false, "case 5: kind は出力に出ない（EDITOR_ONLY）");
+  assert.equal("kind" in out, false, "kind は出力に出ない（EDITOR_ONLY）");
 }
 
-// case 6
+// detectRequiredProviderGl が必要な provider を収集する
 {
   const s = detectRequiredProviderGl([
     { maptype: "maplibre" },
@@ -201,7 +201,7 @@ const base = {
   assert.equal(detectRequiredProviderGl([{ maptype: "base" }]).size, 0);
 }
 
-// case 7/case 8/case 9
+// provider GL の CDN タグ描画（integrity・crossorigin・importmap なし）
 {
   // 版は字面で二重に持たず、ピン留めの定数から組む。既定（5 系）は 5.6.2 の UMD を <script src> で入れる。
   // 6 系（import map とモジュールの起動）の形は provider-gl-esm-smoke が見る
@@ -219,7 +219,7 @@ const base = {
   assert.equal(PROVIDER_GL_CDN.mapbox.jsIntegrity.startsWith("sha384-"), true);
 }
 
-// case 11 peerDeps
+// peerDeps の満たし判定
 // 兄弟リポジトリ（../MaplatCore・../Maplat）ではなく、Editor が実際に解決する
 // 公開物（node_modules/@maplat/core・@maplat/ui）を読む。期待値を公開物の値へ写すと検査が何も守らなく
 // なる（タスク）ので、「Editor が実際に使う GL の版（PROVIDER_GL_CDN のピン留め版）
@@ -265,7 +265,7 @@ function satisfiesRange(version, range) {
   assert.equal(satisfiesRange("3.27.0", "^2.0.0 || ^3.0.0"), true);
   assert.equal(satisfiesRange("1.13.3", "^2.0.0 || ^3.0.0"), false, "S5 自己検査: mapbox v1 を満たすと判定した");
   assert.throws(() => satisfiesRange("5.6.2", ">=5 <7"), /判定できない範囲/);
-  console.log("ok: (case 11 self-check) semver range check rejects out-of-range versions and unknown range syntax");
+  console.log("ok: (自己検査) semver range check rejects out-of-range versions and unknown range syntax");
 }
 {
   const readPkg = async (name) =>
@@ -329,8 +329,8 @@ function satisfiesRange(version, range) {
   assert.match(exp, /renderProviderGlCdnTags\(requiredProviderGl, maplibreMajor\)/);
 }
 
-// case 12（v1.3）: provider 3種別は loadBaseMapVisibility の単一投入点で除外。
-// 機能 assert（述語）+ 適用点 assert + v1.1 実装の撤去 assert
+// provider 3種別は loadBaseMapVisibility の単一投入点で除外。
+// 機能 assert（述語）+ 適用点 assert + 旧実装の撤去 assert
 {
   // 述語の機能: kind 優先・maptype フォールバック
   assert.equal(isProviderKind("google"), true);
@@ -366,7 +366,7 @@ function satisfiesRange(version, range) {
   assert.equal(langs.length, 11, "locales は11言語");
   for (const lang of langs) {
     const tr = await readFile(path.join(projectRoot, "public/locales", lang, "translation.json"), "utf8");
-    assert.ok(!tr.includes("basemap_mapbox_not_in_editor"), `case 12: ${lang} に撤去済みキー残存`);
+    assert.ok(!tr.includes("basemap_mapbox_not_in_editor"), `${lang} に撤去済みキー残存`);
   }
 }
 
@@ -392,7 +392,7 @@ function satisfiesRange(version, range) {
     await assertDimensions(icon, 52, `${name} (52px)`);
   }
 
-  // ---- case 9: 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
+  // ---- 単色プレースホルダでないこと・512px寸法（basemap_icons_512/） ----
   for (const name of ["mapbox.webp", "maplibre.webp"]) {
     const icon512 = path.join(projectRoot, "public/basemap_icons_512", name);
     const st512 = await import("node:fs/promises").then(({ stat }) => stat(icon512));

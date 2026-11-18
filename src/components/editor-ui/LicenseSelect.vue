@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<{
   allowUnset?: boolean;
   disabled?: boolean;
   testId?: string;
-  // v1.4 (b): allowUnset の空選択肢のラベルキー。
+  // allowUnset の空選択肢のラベルキー。
   // マスタ編集では「未設定」だが、アプリソース編集では「マスタに従う」を意味する。
   // 既定は現行のハードコード値と同一なので MapEdit / BaseMapEdit の表示は変わらない
   unsetLabelKey?: string;

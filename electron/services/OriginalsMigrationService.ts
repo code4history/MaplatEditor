@@ -20,7 +20,7 @@ import { mergeAndWriteReport, type OriginalsUuidMigrationEntry } from './Migrati
 
 export type MigrationRunMode = 'startup' | 'manual';
 
-// v1.1: summary のキー集合を outcome union
+// summary のキー集合を outcome union
 // (Exclude<MigrationCandidateKind,'copyable'> | 'migrated' | 'copy_failed') に整合させる
 export interface MigrationRunResult {
     mode: MigrationRunMode;
@@ -59,7 +59,7 @@ function getGlobalInFlight(): { promise: Promise<MigrationRunResult> | null } {
     return g.__maplatM13OriginalsMigrationInFlight;
 }
 
-// v1.1: copyable 判定 map の copy 手順(fs.copyFile/open+sync/rename)は
+// copyable 判定 map の copy 手順(fs.copyFile/open+sync/rename)は
 // ディスク満杯・権限・OneDrive ファイルロック(既存コード内に実在既知の環境)等で失敗し得る。
 // per-map 処理全体を try/catch し、失敗は 'copy_failed' outcome の entry として記録して
 // 次の map の処理を継続する(既存 one-shot 群 runThumbnail512MiningIfNeeded の
@@ -71,7 +71,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
 
     // 手順1: 前回 crash の残留 temp を掃除する (SI-3)。originals/ 自体が無いsaveFolder
     // (地図0件の新規環境)でも安全に no-op する。
-    // v1.1: cleanup 自体の失敗(権限等)も migration 全体を失敗させない。
+    // cleanup 自体の失敗(権限等)も migration 全体を失敗させない。
     // 失敗しても後続の per-map copy は tempPath 個別の open/copyFile 失敗として
     // 各 map の try/catch で捕捉されるため、cleanup 失敗を握りつぶして続行してよい
     try {
@@ -142,7 +142,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
                 } catch { /* ディレクトリ fsync 非対応環境(一部Windows等)への配慮。rename自体の成否には無関係 */ }
                 return { uid: row.uid, slug: row.slug, outcome: 'migrated' as const, sourcePath: candidate.sourcePath, targetPath: candidate.targetPath };
             } catch (e: any) {
-                // v1.1: 単一 map の I/O 失敗(ディスク満杯・権限・OneDrive ファイルロック等)で
+                // 単一 map の I/O 失敗(ディスク満杯・権限・OneDrive ファイルロック等)で
                 // migration 全体・ひいては getDb()/アプリ起動を失敗させない。失敗を記録して次の map へ進む
                 const msg = e?.message ?? String(e);
                 console.error(`[OriginalsMigrationService] copy_failed: uid=${row.uid} slug=${row.slug}: ${msg}`, e);
@@ -183,7 +183,7 @@ async function runInternal(rows: MapRow[], mode: MigrationRunMode): Promise<Migr
     return result;
 }
 
-// v1.1: rows.length === 0 のケースも runInternal 内部で処理するため、
+// rows.length === 0 のケースも runInternal 内部で処理するため、
 // runColdBoot/runManual のどちらの呼び出しも例外なく runWithSingleFlight を経由する。
 // これにより 0 件パスが in-flight run の存在確認を迂回して temp cleanup を実行する
 // 反例(解決したという主張と、移行の受け入れ条件との自己矛盾)を解消し、cleanup コードの重複(DRY 違反)も

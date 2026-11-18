@@ -6,6 +6,8 @@ import SqliteDataService, { RevisionConflictError } from './SqliteDataService';
 import type { MapSaveRequest, MapSaveResult } from '../adapters/StorageAdapter';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
+// IIIF のまま配る地図は、手で入れたタイルの URL を読み込み・保存の入口で外す
+import { withoutManualTileUrl } from '../utils/iiifDelivery';
 import SettingsService from './SettingsService';
 import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
@@ -43,7 +45,8 @@ class MapEditService {
     // uid正準の読み出し (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)。旧保存形のslug参照への保険として
     // slugフォールバック付きの SqliteDataService.findMapByRef で解決する
     async request(uidOrMapID: string) {
-        const json = await SqliteDataService.findMapByRef(uidOrMapID);
+        // IIIF のまま配る地図に以前の版で入れたタイルの URL は読まない（url_ も作らない）
+        const json = withoutManualTileUrl(await SqliteDataService.findMapByRef(uidOrMapID));
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
@@ -72,7 +75,7 @@ class MapEditService {
     // 既存ロジックをそのまま抽出（strict throw を含まない）。
     // strict-free な読み出し (MapPurposeService.downloadSavedMap など) から再利用する
     async buildPreviewSource(uidOrMapID: string) {
-        const json = await SqliteDataService.findMapByRef(uidOrMapID);
+        const json = withoutManualTileUrl(await SqliteDataService.findMapByRef(uidOrMapID));
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
@@ -192,7 +195,8 @@ class MapEditService {
      * - copyFromUid: 複製元uid (新規作成 + 複製元ファイルのコピー)
      */
     async save(request: MapSaveRequest): Promise<MapSaveResult> {
-        const { mapObject } = request;
+        // IIIF のまま配る地図は、タイルの URL を保存しない（画面に残っていても、以前の版で入れたものでも）
+        const mapObject = withoutManualTileUrl(request.mapObject);
         const tins = request.tins.length === 0 ? ['tooLessGcps'] : request.tins;
         const slug = (request.slug ?? mapObject.mapID) as string;
         // 互換フォールバック: 明示のuidが無い場合、複製でなければ読み出し時に付与された

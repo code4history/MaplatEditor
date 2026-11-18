@@ -42,7 +42,7 @@ const validSegmentBase = (value: unknown): value is string =>
  * 4条件をすべて満たす場合のみ解決済み絶対パスを返し、1つでも欠ければ null（例外は投げない）:
  *   1. validUid 同基準
  *   2. `'.'` / `'..'` の明示拒否（validUid とパス区切り拒否だけでは素通りするため独立条件。
- *      v1.0 設計レビュー Major1: `assetUid='..'` で `<draftTileRoot>/..` = userData 自体を
+ *      `assetUid='..'` で `<draftTileRoot>/..` = userData 自体を
  *      指し、クリア/削除が userData を破壊し得た欠陥の直接対応）
  *   3. パス区切り文字（`/` および `\`）を含まない（`\` は POSIX ではファイル名有効文字だが安全側で拒否）
  *   4. `path.resolve(root, segment)` が `root + path.sep` で始まり（セパレータ境界込み包含。
@@ -93,7 +93,7 @@ const TILE_TEMPLATE_SUFFIX_RE = /\/\{z\}\/\{x\}\/\{y\}\.[^./\\]+$/;
  *      に委譲する（包含判定は同一実装を必ず通る）。検証は percent-decode 後の実パスに対して
  *      行う（`%2e%2e` 等のエンコード表現による `'..'` 迂回を防ぐため、生文字列比較で代替しない）
  *   3. decode 失敗（`appUrlToLocalPath` の null: `%2F` や不正 percent-encoding 等）を含め、
- *      内部処理で発生する例外はすべて捕捉して null を返す（v1.2・レビュー v2 Minor1）
+ *      内部処理で発生する例外はすべて捕捉して null を返す
  */
 export function resolveStagingDirFromUrl(stagingRoot: string, rawUrl: string): string | null {
   try {

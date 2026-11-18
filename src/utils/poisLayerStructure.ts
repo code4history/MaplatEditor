@@ -1,4 +1,4 @@
-// レイヤ構造判定の共有純関数 (renderer / main 共用 — v1.2 人間検証差し戻し (2) の実装形)。
+// レイヤ構造判定の共有純関数 (renderer / main 共用)。
 // viewer 正本 MaplatCore/src/normalize_pois.ts のレイヤ判別 (配列の先頭要素だけで一度に決まる —
 // :28 先頭判別 / :29-37 複層 key 導出 / :38-43 単層) を editor 側の静的判別へ写した唯一の実装。
 // UI (PoiReferenceEditor のペイン構成・変換可否・混在警告表示) と main (poiReferenceResolver の

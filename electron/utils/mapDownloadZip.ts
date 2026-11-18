@@ -12,7 +12,7 @@ import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths'
 import { ProgressReporter } from './ProgressReporter';
 // IIIF のまま配る地図（地図データに delivery を持つ地図）はタイルを同梱しない。
 // アプリの書き出しと同じ判定を使う
-import { hasIiifDelivery } from './iiifDelivery';
+import { hasIiifDelivery, withoutManualTileUrl } from './iiifDelivery';
 import {
   createPoiExternalizationContext,
   externalizeMapDocumentPois,
@@ -42,9 +42,10 @@ export async function composeDownloadMapJson(
 ): Promise<{ compiled: any; warnings: string[]; files: IconFile[]; documents: PoiDocument[] }> {
   // 言語の畳み込みに加え、IIIF の書誌の写し (iiif.copiedMetadata) も交換形へ畳む
   // (アプリの書き出しと同じ関数。写し直しの比較に言語が要る copiedValues は畳まない)
-  const compiled = compactIiifCopiedMetadata(
+  // IIIF のまま配る地図は、手で入れたタイルの URL を出さない（アプリの書き出しと同じ関数）
+  const compiled = withoutManualTileUrl(compactIiifCopiedMetadata(
     compactMapLangFields(await storeHandler.histMap2Store(mapObject, tins)),
-  );
+  ));
   // 交換形にはv2の内部メタデータ(uid/slug/revision)を含めない (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
   delete (compiled as any).uid;
   delete (compiled as any).slug;

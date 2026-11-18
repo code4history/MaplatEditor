@@ -578,7 +578,10 @@
     "control_zoom_in": "Acercar",
     "control_zoom_out": "Alejar",
     "control_reset_rotation": "Restablecer rotación",
-    "control_search_address": "Buscar dirección"
+    "control_search_address": "Buscar dirección",
+    "iiif_image_size_help": "El tamaño de un mapa servido desde IIIF lo determina el info.json de la imagen IIIF.",
+    "iiif_upload_map_reason": "Un mapa servido desde IIIF carga su imagen desde el servicio de imágenes IIIF. Registrar otra imagen no coincidiría con el tamaño de la imagen IIIF y rompería el mapa, por lo que no está disponible.",
+    "iiif_map_tile_reason": "Las teselas de un mapa servido desde IIIF se cargan desde el servicio de imágenes IIIF que se muestra aquí. El servicio lo determina el Manifest importado, por lo que no se puede introducir aquí."
   },
   "mapupload": {
     "map_image": "Imagen del mapa",
@@ -867,7 +870,8 @@
     "envelope_coord_error_incomplete": "Introduzca los cuatro valores: oeste, sur, este y norte.",
     "export_blocked_missing_attribution": "Se detuvo la exportación porque algunos mapas no tienen atribución. Añada una atribución a los siguientes mapas y vuelva a exportar.",
     "source_attribution_missing_map": "Este mapa no tiene atribución. El visor no la añade, por lo que la aplicación no se puede exportar así. Añada una atribución en el editor del mapa.",
-    "source_attribution_missing_base_map": "Este mapa base no tiene atribución. El visor no la añade, por lo que la aplicación no se puede exportar así. Añada una atribución en el editor del mapa base."
+    "source_attribution_missing_base_map": "Este mapa base no tiene atribución. El visor no la añade, por lo que la aplicación no se puede exportar así. Añada una atribución en el editor del mapa base.",
+    "source_no_cache_iiif_reason": "El visor nunca guarda en el dispositivo las teselas de un mapa servido desde IIIF; siempre las carga desde el servicio de imágenes IIIF. No es necesario excluirlo aquí."
   },
   "mapmodel": {
     "untitled": "Título no establecido",

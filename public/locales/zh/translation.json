@@ -578,7 +578,10 @@
     "control_zoom_in": "放大",
     "control_zoom_out": "缩小",
     "control_reset_rotation": "重置旋转",
-    "control_search_address": "搜索地址"
+    "control_search_address": "搜索地址",
+    "iiif_image_size_help": "从 IIIF 提供的地图的尺寸由 IIIF 图像的 info.json 决定。",
+    "iiif_upload_map_reason": "从 IIIF 提供的地图从 IIIF 图像服务读取图像。注册其他图像会与 IIIF 图像的尺寸不符并导致地图损坏，因此无法使用。",
+    "iiif_map_tile_reason": "从 IIIF 提供的地图的瓦片从此处显示的 IIIF 图像服务读取。该服务由导入的 Manifest 决定，因此无法在此输入。"
   },
   "mapupload": {
     "map_image": "地图图像",
@@ -867,7 +870,8 @@
     "envelope_coord_error_incomplete": "请输入西、南、东、北全部四个值。",
     "export_blocked_missing_attribution": "由于部分地图没有署名，已停止导出。请为以下地图填写署名后再导出。",
     "source_attribution_missing_map": "此地图没有署名。查看器不会补充署名，因此无法按现状导出应用。请在地图编辑界面填写署名。",
-    "source_attribution_missing_base_map": "此底图没有署名。查看器不会补充署名，因此无法按现状导出应用。请在底图编辑界面填写署名。"
+    "source_attribution_missing_base_map": "此底图没有署名。查看器不会补充署名，因此无法按现状导出应用。请在底图编辑界面填写署名。",
+    "source_no_cache_iiif_reason": "查看器从不在设备上保留从 IIIF 提供的地图的瓦片，而是始终从 IIIF 图像服务读取。因此无需在此排除。"
   },
   "mapmodel": {
     "untitled": "标题未设置",

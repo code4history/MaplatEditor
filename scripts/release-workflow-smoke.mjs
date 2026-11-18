@@ -190,34 +190,34 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   // case 4: 課金・公証を伴う経路が mode=full のときだけ発火する（2軸モデル）
   const FULL_COND = /github\.event_name == 'workflow_dispatch' && inputs\.mode == 'full'/;
 
-  // case 10: 入力が mode / platforms の2軸（+ #104 の exact SHA 宣言 expected_editor_sha / expected_version）であり、既定が課金ゼロ側であること
+  // 入力が mode / platforms の2軸（+ #104 の exact SHA 宣言 expected_editor_sha / expected_version）であり、既定が課金ゼロ側であること
   const inputs = wf.on.workflow_dispatch.inputs;
   assert.deepEqual(
     Object.keys(inputs).sort(),
     ['expected_editor_sha', 'expected_version', 'mode', 'notarize', 'platforms', 'win_signer'],
-    'case 10: 入力は mode / platforms + #104 の expected_editor_sha / expected_version + Windows の署名者の win_signer'
+    '入力は mode / platforms + #104 の expected_editor_sha / expected_version + Windows の署名者の win_signer'
   );
   assert.equal(inputs.notarize.type, 'boolean', 'notarize は boolean 入力');
   assert.equal(inputs.notarize.required, false, 'notarize は任意');
   assert.equal(inputs.notarize.default, false, 'notarize の既定は false（公証なし）');
-  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'case 10: mode の選択肢（sign-check は署名の確認用）');
+  assert.deepEqual(inputs.mode.options, ['verify', 'sign-check', 'full'], 'mode の選択肢（sign-check は署名の確認用）');
   assert.deepEqual(inputs.win_signer.options, ['artifact-signing', 'esigner'], 'win_signer の選択肢');
   assert.equal(inputs.win_signer.default, 'artifact-signing', 'win_signer の既定は artifact-signing（定額）');
-  assert.equal(inputs.mode.default, 'verify', 'case 10: mode の既定は課金ゼロ側（verify）');
-  assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'case 10: platforms の選択肢');
-  assert.equal(inputs.platforms.default, 'all', 'case 10: platforms の既定は all');
-  assert.equal(inputs.expected_editor_sha.type, 'string', 'case 10: expected_editor_sha は string 入力');
-  assert.equal(inputs.expected_editor_sha.required, false, 'case 10: expected_editor_sha は任意（push では空でフォールバック）');
-  assert.equal(inputs.expected_version.type, 'string', 'case 10: expected_version は string 入力');
-  assert.equal(inputs.expected_version.required, false, 'case 10: expected_version は任意');
+  assert.equal(inputs.mode.default, 'verify', 'mode の既定は課金ゼロ側（verify）');
+  assert.deepEqual(inputs.platforms.options, ['all', 'mac', 'win', 'linux'], 'platforms の選択肢');
+  assert.equal(inputs.platforms.default, 'all', 'platforms の既定は all');
+  assert.equal(inputs.expected_editor_sha.type, 'string', 'expected_editor_sha は string 入力');
+  assert.equal(inputs.expected_editor_sha.required, false, 'expected_editor_sha は任意（push では空でフォールバック）');
+  assert.equal(inputs.expected_version.type, 'string', 'expected_version は string 入力');
+  assert.equal(inputs.expected_version.required, false, 'expected_version は任意');
 
-  // case 10: platforms フィルタが各ビルドジョブに掛かる（push では常に全部走る）
+  // platforms フィルタが各ビルドジョブに掛かる（push では常に全部走る）
   for (const [job, key] of [['build-mac', 'mac'], ['build-win', 'win'], ['build-linux', 'linux']]) {
     const cond = wf.jobs[job].if ?? '';
-    assert.match(cond, /github\.event_name != 'workflow_dispatch'/, `case 10: ${job} は push で常に走る`);
+    assert.match(cond, /github\.event_name != 'workflow_dispatch'/, `${job} は push で常に走る`);
     assert.ok(
       cond.includes("inputs.platforms == 'all'") && cond.includes(`inputs.platforms == '${key}'`),
-      `case 10: ${job} が platforms フィルタを持つ`
+      `${job} が platforms フィルタを持つ`
     );
   }
   const winSteps = wf.jobs['build-win'].steps;
@@ -345,7 +345,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const finUpload = wf.jobs['finalize-win'].steps.find((s) => (s.uses ?? '').startsWith('actions/upload-artifact') && s.with?.name === 'win-artifacts');
   assert.ok(String(finUpload.with.path).includes('*-Setup.exe.blockmap'), 'finalize-win の win artifacts に blockmap を含む');
 
-  console.log('  [3/7] case 1/case 4/case 6/case 10 build.yml 静的検査: PASS');
+  console.log('  [3/7] case 1/case 4/case 6 build.yml 静的検査: PASS');
 }
 
 // ───────────────────────────────────────────────
@@ -360,7 +360,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 }
 
 // ───────────────────────────────────────────────
-// case 9: 公証経路が二重にならない（case 7 実走で発見した欠陥の回帰止め）
+// 公証経路が二重にならない（実走で発見した欠陥の回帰止め）
 //
 // electron-builder 24.13.3 は APPLE_ID を env に見つけると自前の notarizeIfProvided を
 // 走らせる。mac.notarize が未定義だと macPackager.js:501 の
@@ -380,19 +380,19 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 
   assert.equal(
     cfg.mac.notarize, false,
-    'case 9: APPLE_ID 設定時に mac.notarize が明示 false でない'
+    'APPLE_ID 設定時に mac.notarize が明示 false でない'
     + '（electron-builder 自前の公証が起動し、mac.notarize 未定義のため分解エラーで落ちる）'
   );
   assert.equal(
     cfg.afterSign, 'scripts/notarize/notarize.cjs',
-    'case 9: 公証は afterSign フックが担う（APPLE_ID があるとき）'
+    '公証は afterSign フックが担う（APPLE_ID があるとき）'
   );
-  assert.equal(cfg.mac.hardenedRuntime, true, 'case 9: 公証時は Hardened Runtime が有効');
-  console.log('  [5/7] case 9 公証経路の単一化: PASS');
+  assert.equal(cfg.mac.hardenedRuntime, true, '公証時は Hardened Runtime が有効');
+  console.log('  [5/7] 公証経路の単一化: PASS');
 }
 
 // ───────────────────────────────────────────────
-// case 11: GITHUB_TOKEN の最小権限（セキュリティレビューの指摘）
+// GITHUB_TOKEN の最小権限（セキュリティレビューの指摘）
 //
 // contents: write を必要とするのは Release を作る release ジョブだけである。
 // workflow レベルに置くとビルド3ジョブの GITHUB_TOKEN にも書き込み権限が乗り、
@@ -407,11 +407,11 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 
   assert.equal(
     wf.permissions?.contents, 'read',
-    'case 11: workflow レベルの permissions.contents は read（write を全ジョブへ配らない）'
+    'workflow レベルの permissions.contents は read（write を全ジョブへ配らない）'
   );
   assert.equal(
     wf.jobs.release.permissions?.contents, 'write',
-    'case 11: contents: write は Release を作る release ジョブにのみ与える'
+    'contents: write は Release を作る release ジョブにのみ与える'
   );
   // SAC: 署名済みキャッシュの asset を足すジョブにも write が要る。ただし checkout も依存の導入もせず、
   // リポジトリのコードを実行しない（依存ツリーの汚染が write トークンに届かない）
@@ -430,7 +430,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   }
   for (const [name, job] of Object.entries(wf.jobs)) {
     if (name === 'release' || name === 'publish-win-sign-cache') continue;
-    assert.notEqual(job.permissions?.contents, 'write', `case 11: ${name} に contents: write を与えない`);
+    assert.notEqual(job.permissions?.contents, 'write', `${name} に contents: write を与えない`);
   }
   // release ジョブは配布物の artifact だけを Release に載せる（署名の記録・キャッシュ候補を載せない）
   const dl = wf.jobs.release.steps.find((st) => (st.uses ?? '').startsWith('actions/download-artifact'));
@@ -439,7 +439,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
     assert.notEqual(
       wf.jobs[job].permissions?.contents, 'write',
-      `case 11: ${job} に contents: write を与えない`
+      `${job} に contents: write を与えない`
     );
   }
   // 多層防御: ビルドジョブの checkout はトークンを .git/config へ残さない
@@ -447,14 +447,14 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     const co = wf.jobs[job].steps.find((s) => (s.uses ?? '').startsWith('actions/checkout@'));
     assert.equal(
       co?.with?.['persist-credentials'], false,
-      `case 11: ${job} の checkout は persist-credentials: false`
+      `${job} の checkout は persist-credentials: false`
     );
   }
-  console.log('  [6/7] case 11 GITHUB_TOKEN の最小権限: PASS');
+  console.log('  [6/7] GITHUB_TOKEN の最小権限: PASS');
 }
 
 // ───────────────────────────────────────────────
-// case 12: Hardened Runtime 下で V8 が起動できる entitlements（2026-08-09 の起動不能事故）
+// Hardened Runtime 下で V8 が起動できる entitlements（2026-08-09 の起動不能事故）
 //
 // Apple Silicon では Hardened Runtime 下の V8 が JIT 用 CodeRange を MAP_JIT で確保する。
 // これを許すのは com.apple.security.cs.allow-jit のみで、
@@ -473,7 +473,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   );
   assert.ok(
     granted.has('com.apple.security.cs.allow-jit'),
-    'case 12: entitlements に com.apple.security.cs.allow-jit が無い'
+    'entitlements に com.apple.security.cs.allow-jit が無い'
       + '（Apple Silicon の署名ビルドが V8 の CodeRange 確保に失敗して起動直後に落ちる。'
       + ' allow-unsigned-executable-memory は代替にならない）'
   );
@@ -485,10 +485,10 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
     assert.match(
       cfgSrc,
       new RegExp(`${key}:\\s*'scripts/notarize/entitlements\\.mac\\.plist'`),
-      `case 12: electron-builder.config.cjs の ${key} が entitlements.mac.plist を指していない`
+      `electron-builder.config.cjs の ${key} が entitlements.mac.plist を指していない`
     );
   }
-  console.log('  [7/7] case 12 Hardened Runtime 下の JIT entitlements: PASS');
+  console.log('  [7/7] Hardened Runtime 下の JIT entitlements: PASS');
 }
 
 console.log('\nrelease-workflow smoke: すべて成功');

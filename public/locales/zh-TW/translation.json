@@ -578,7 +578,10 @@
     "control_zoom_in": "放大",
     "control_zoom_out": "縮小",
     "control_reset_rotation": "重設旋轉",
-    "control_search_address": "搜尋地址"
+    "control_search_address": "搜尋地址",
+    "iiif_image_size_help": "從 IIIF 提供的地圖尺寸由 IIIF 圖像的 info.json 決定。",
+    "iiif_upload_map_reason": "從 IIIF 提供的地圖會從 IIIF 圖像服務讀取圖像。登錄其他圖像會與 IIIF 圖像的尺寸不符並使地圖損壞，因此無法使用。",
+    "iiif_map_tile_reason": "從 IIIF 提供的地圖圖磚會從此處顯示的 IIIF 圖像服務讀取。該服務由匯入的 Manifest 決定，因此無法在此輸入。"
   },
   "mapupload": {
     "map_image": "地圖圖像",
@@ -867,7 +870,8 @@
     "envelope_coord_error_incomplete": "請輸入西、南、東、北全部四個值。",
     "export_blocked_missing_attribution": "由於部分地圖沒有署名，已停止匯出。請為以下地圖填寫署名後再匯出。",
     "source_attribution_missing_map": "此地圖沒有署名。檢視器不會補上署名，因此無法依現狀匯出應用程式。請在地圖編輯畫面填寫署名。",
-    "source_attribution_missing_base_map": "此底圖沒有署名。檢視器不會補上署名，因此無法依現狀匯出應用程式。請在底圖編輯畫面填寫署名。"
+    "source_attribution_missing_base_map": "此底圖沒有署名。檢視器不會補上署名，因此無法依現狀匯出應用程式。請在底圖編輯畫面填寫署名。",
+    "source_no_cache_iiif_reason": "檢視器從不在裝置上保留從 IIIF 提供的地圖圖磚，而是一律從 IIIF 圖像服務讀取。因此不需要在此排除。"
   },
   "mapmodel": {
     "untitled": "標題未設定",

@@ -214,7 +214,7 @@ assert.match(
   console.log(`ok: (S3) settings tab block located (${settingsTab.length} chars, single tab)`);
   // POI カードは settings タブから撤去済み (POIデータタブへ移設)
   assert.doesNotMatch(settingsTab, /PoiSourceSelector|PoiReferenceEditor/, 'settings タブに POI UI が残存している (POIデータタブへ移設済みのはず)');
-  // ベースマップ可視性ペインは共有 ResourceSelector (v2.0) へ移行済み。
+  // ベースマップ可視性ペインは共有 ResourceSelector へ移行済み。
   // 旧 inline `flex: 1 1 0; min-height: 0;` の意図 = 「兄弟要素との圧縮競合で一覧の
   // スクロール領域が 0px に潰れない」(2026-07-11 実機バグの再発防止) は、ホスト側の
   // flex-grow-1 min-h-0 と ResourceSelector 内部の min-height:0 / overflow:auto が引き継ぐ

@@ -63,7 +63,7 @@ export type InlineConvertResult =
   | { ok: false; reason: InlineConvertFailureReason };
 
 // 変換フロー本体 (処理列)。順序は複製フローと同じ「slug を先に確保してから成果物を作る」
-// 文法 (予約 → 検証。v1.0 レビュー 据え置き)。失敗系はすべて予約を解放し、document・
+// 文法 (予約 → 検証)。失敗系はすべて予約を解放し、document・
 // 既存ドラフトを変更しない。
 export async function convertInlineEntriesToDraft(args: {
   /** 生 FC 要素そのもの、または変換群 (旧オブジェクト+生 Feature) を並べた配列 */

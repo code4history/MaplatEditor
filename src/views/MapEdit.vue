@@ -434,7 +434,7 @@ const builtinThumbnails: Record<string, string> = {
     gsi_ortho: gsiOrthoThumb,
 };
 
-// v2.0: selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
+// selector の spatial context。EnvelopeEditorModal で設定した baseMapFilterRegion を使う。
 // 無ければ GCP auto range を fallback（現状の filteredBaseMapVisibilityList と同一方針）。
 // adapter の bbox 絞り込みに使う。UI は ResourceRangeFilterButton へ一本化（spatial-toggle は #range-filter slot で排他）。
 const baseMapSpatialContext = computed<SelectorSpatialContextView>(() => {
@@ -459,16 +459,16 @@ const baseMapVisibilityListAdapter = createBaseMapVisibilityListAdapter({
     activeLang: () => mapData.value.lang || 'ja',
 });
 
-// v2.0: 右ペイン（選択済み）= enabled なベースマップ一覧
+// 右ペイン（選択済み）= enabled なベースマップ一覧
 const enabledBaseMaps = computed(() => baseMapVisibilityList.value.filter((item) => item.enabled));
 
-// v2.0: 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
+// 右ペインの thumbnail。IPC が resolveBaseMapListImage で thumbnailUrl を付与済み。
 // builtin の同梱リソースは builtinThumbnails で確実に解決（AppEdit.vue:1042-1044 と同形式）
 function baseMapThumbnail(item: BaseMapVisibilityItem): string {
     return builtinThumbnails[item.mapID] || item.thumbnailUrl || noImage;
 }
 
-// v2.0: 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
+// 右ペインの title。resolveBaseMapSelectorText で表示用タイトルを解決（AppEdit.vue:1035-1040 と同形式）
 function baseMapTitleForSelected(item: BaseMapVisibilityItem): string {
     return resolveBaseMapSelectorText(
         { mapID: item.mapID, ...(item.data || {}) },
@@ -520,7 +520,7 @@ async function setBaseMapEnabled(item: BaseMapVisibilityItem, enabled: boolean):
     }
 }
 
-// v2.0: baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
+// baseMapVisibilityList が IPC で読み込まれたら ResourceSelectorList を再 load させる。
 // :key remount は廃止。代わりに ref から ResourceSelectorList.reload() を直接呼ぶ（scroll 保持）。
 // ※ 楽観更新中（item.enabled 変更のみ）は配列参照が不変のため watch は発火せず、in-place で更新される。
 //   初回 IPC 読込完了時のみ配列参照が差し替わり watch が発火。
@@ -530,9 +530,9 @@ watch(() => baseMapVisibilityList.value, () => {
     void baseMapSelectorListRef.value?.reload();
 }, { deep: false });
 
-// v2.0: ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
+// ResourceMasterRow variant="selector" へ渡す ViewModel へ変換。
 // adapter.toViewModel と同一ロジックだが、template 内で直接呼ぶため host 側にも用意。
-// v1.3: provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
+// provider 種別は loadBaseMapVisibility の単一投入点で除外済みのため、
 // ここでの個別 disabled 制御は持たない
 function asResourceListRowFromVisibility(item: BaseMapVisibilityItem): ResourceListItemViewModel {
     return baseMapVisibilityListAdapter.toViewModel(item, mapData.value.lang || 'ja');
@@ -1527,6 +1527,9 @@ const saveError = computed(() => {
 // IIIF から配信する地図は url_ を持たない ∴ 配信先（検査を通ったもの）でも表示できる。
 const hasAllowedDelivery = (md: any): boolean =>
     !!md?.delivery && typeof md.delivery.url === 'string' && isAllowedDeliveryUrl(md.delivery.url);
+// IIIF のまま配る地図か（delivery を持つ）。この地図の画像・大きさ・タイルは IIIF の配信先（info.json）で
+// 決まるので、タイルの URL・画像の登録・拡張子は入力させない（理由は ? で出す）
+const iiifDeliveryMap = computed(() => typeof mapData.value?.delivery?.url === 'string');
 const gcpsEditReady = computed(() =>
     !!(mapData.value.width && mapData.value.height && (mapData.value.url_ || hasAllowedDelivery(mapData.value)))
 );
@@ -3336,6 +3339,8 @@ const refreshRuntimeTileUrl = async (
  * まとめて起きるからであり、ここも同じ形に揃えた。
  */
 const onTileUrlCommitted = async (event: Event) => {
+    // IIIF のまま配る地図はタイルの URL を持たない（欄は入力できない形で出る）
+    if (iiifDeliveryMap.value) return;
     const next = (event.target as HTMLInputElement).value;
     if (await refreshRuntimeTileUrl(next, { applyUrl: true, exchange: true })) {
         // await を跨いで着地した編集なので明示確定する（mapUpload と同型）
@@ -3491,7 +3496,7 @@ const loadBaseMapVisibility = async () => {
     baseMapVisibilityError.value = '';
     try {
         const list = await (window as any).mapedit.getBaseMapVisibilityOfMapID(baseMapVisibilityMapRef());
-        // v1.3: provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
+        // provider 種別（google/mapbox/maplibre）はエディタ背景に使えないため
         // 単一投入点で除外する（人間判断 2026-08-05「選択肢に非表示」）。
         // 左右両ペイン（adapter / enabledBaseMaps）と背景レイヤ生成（enabledBaseMapData）の
         // 3消費者すべてにここで効かせる。adapter 側には置かない（二重適用防止）
@@ -4104,6 +4109,9 @@ const modalHide = () => {
  * 4. 結果受信後: mapData更新 → loadMapTiles() → gcpsToMarkers() → updateTin()
  */
 const mapUpload = async () => {
+    // IIIF のまま配る地図は画像を IIIF の配信先から取る。別の画像を登録すると、配信先と大きさが
+    // 食い違って地図が壊れるので、登録させない（ボタンは押せない形で出る）
+    if (iiifDeliveryMap.value) return;
     // GCPが存在する場合: 上書き確認（旧実装: vueMap.gcpsEditReady 相当）
     const hasGcps = gcpsEditReady.value;
     if (hasGcps) {
@@ -4659,7 +4667,7 @@ const downloadSavedMap = async (): Promise<boolean> => {
         }
         return false;
     } catch (e) {
-        // 防御的catch(v1.2追加: t1 review v2 Minor2対応)。
+        // 防御的catch。
         // MapPurposeService.downloadSavedMap()は契約上reject しないが、
         // ipcRenderer.invoke('mapedit:download-saved', ...)自体はIPC基盤レベル
         // (HMRによるhandler未登録の隙間等)で reject し得るため、その場合に
@@ -5111,23 +5119,37 @@ const goBack = async () => {
                     </div>
 
                     <div class="row g-1 mb-2">
+                        <!-- IIIF のまま配る地図の大きさは IIIF の info.json で決まる（入力欄はもともと読み取り専用）。
+                             決まり方を ? で示す。拡張子は使わない（タイルの形式は Viewer が info.json から選ぶ）ので出さない -->
                         <div class="col-md-2">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_width") }}</label>
-                             <input type="number" class="form-control form-control-sm" v-model="mapData.width" disabled>
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">
+                                 {{ t("mapedit.image_width") }}
+                                 <ContextHelp v-if="iiifDeliveryMap" data-testid="map-image-size-iiif-help" :text="t('mapedit.iiif_image_size_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.image_width') })" />
+                             </label>
+                             <input type="number" class="form-control form-control-sm" data-testid="map-image-width" v-model="mapData.width" disabled>
                         </div>
                          <div class="col-md-2">
                              <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_height") }}</label>
-                             <input type="number" class="form-control form-control-sm" v-model="mapData.height" disabled>
+                             <input type="number" class="form-control form-control-sm" data-testid="map-image-height" v-model="mapData.height" disabled>
                         </div>
                          <!-- 旧実装 mapedit.html L.82: v-model="imageExtensionCalc" (computed, read-only) に準拠 -->
-                         <div class="col-md-1">
+                         <div v-if="!iiifDeliveryMap" class="col-md-1">
                              <label class="form-label fw-bold small mb-0">{{ t("mapedit.extension") }}</label>
-                             <input type="text" class="form-control form-control-sm" :value="imageExtensionCalc" disabled>
+                             <input type="text" class="form-control form-control-sm" data-testid="map-image-extension" :value="imageExtensionCalc" disabled>
                         </div>
-                         <div class="col-md-2 d-flex align-items-start pt-4">
+                         <!-- IIIF のまま配る地図は画像を登録できない。押せない理由をボタンの右の ? に出す（ui-grammar §2.1） -->
+                         <div class="d-flex align-items-start gap-1 pt-4" :class="iiifDeliveryMap ? 'col-md-3' : 'col-md-2'">
                             <button class="btn btn-outline-secondary btn-sm w-100 mt-1"
+                                    data-testid="map-upload-image"
                                     @click="mapUpload"
-                                    :disabled="translationMode">{{ t("mapedit.upload_map") }}</button>
+                                    :disabled="translationMode || iiifDeliveryMap">{{ t("mapedit.upload_map") }}</button>
+                            <ContextHelp
+                                v-if="iiifDeliveryMap"
+                                class="mt-1"
+                                data-testid="map-upload-image-iiif-reason"
+                                :text="t('mapedit.iiif_upload_map_reason')"
+                                :ariaLabel="t('editor_ui.unavailable_reason', { name: t('mapedit.upload_map') })"
+                            />
                         </div>
                     </div>
 
@@ -5206,7 +5228,16 @@ const goBack = async () => {
                              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_source") }} <ContextHelp :text="t('mapedit.map_source_desc')" :ariaLabel="t('mapedit.map_source_desc')" /></label>
                              <input type="text" class="form-control form-control-sm" v-model="mapData.reference" :disabled="translationMode" :placeholder="t('mapedit.map_source_pf')">
                         </div>
-                         <div class="col-md-8">
+                         <!-- IIIF のまま配る地図のタイルは IIIF の配信先から取る。配信先を入力できない形で見せ、
+                              使えない理由を ? に出す（ui-grammar §2.1。値は状態の表示 §2.3） -->
+                         <div v-if="iiifDeliveryMap" class="col-md-8">
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">
+                                 {{ t("mapedit.map_tile") }}
+                                 <ContextHelp data-testid="map-tile-url-iiif-reason" :text="t('mapedit.iiif_map_tile_reason')" :ariaLabel="t('editor_ui.unavailable_reason', { name: t('mapedit.map_tile') })" />
+                             </label>
+                             <input type="text" class="form-control form-control-sm" data-testid="map-tile-url-iiif" :value="mapData.delivery.url" disabled>
+                        </div>
+                         <div v-else class="col-md-8">
                              <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_tile") }} <ContextHelp :text="t('mapedit.map_tile_desc')" :ariaLabel="t('mapedit.map_tile_desc')" /></label>
                              <input type="text" class="form-control form-control-sm" data-testid="map-tile-url" :value="mapData.url" @change="onTileUrlCommitted" :disabled="translationMode" :placeholder="t('mapedit.map_tile_pf')">
                         </div>

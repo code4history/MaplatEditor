@@ -179,7 +179,7 @@ const adapter = createBaseMapListAdapter({
 });
 const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activeLang);
 
-// v2.0: draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
+// draft 行も ResourceMasterRow で描画（個別行要素の撲滅、C1 対応）。
 function draftViewModel(draft: AssetDraftSummary) {
   return {
     uid: draft.assetUid,
@@ -206,5 +206,5 @@ defineExpose({ scrollElement });
 <style scoped>
 .base-map-master-list { min-width: 18rem; }
 .min-w-0 { min-width: 0; }
-/* v2.0: details 内の builtin row 群も .resource-list__rows クラスで gap 管理（scoped は廃止） */
+/* details 内の builtin row 群も .resource-list__rows クラスで gap 管理（scoped は廃止） */
 </style>

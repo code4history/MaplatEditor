@@ -62,12 +62,12 @@ onBeforeUnmount(() => {
   dispose();
 });
 
-// v2.0: host 側から reload を呼べるように expose
+// host 側から reload を呼べるように expose
 defineExpose({ reload: loadFirst });
 </script>
 
 <style scoped>
-/* v2.0: 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
+/* 行間隔・行見た目は resource-list.scss の .resource-list__rows / .resource-master-row へ集約（C1 対応）。
    scoped CSS での行間隔・行見た目定義は全廃。 */
 .min-h-0 { min-height: 0; }
 </style>
