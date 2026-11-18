@@ -5120,16 +5120,18 @@ const goBack = async () => {
 
                     <div class="row g-1 mb-2">
                         <!-- IIIF のまま配る地図の大きさは IIIF の info.json で決まる（入力欄はもともと読み取り専用）。
-                             決まり方を ? で示す。拡張子は使わない（タイルの形式は Viewer が info.json から選ぶ）ので出さない -->
+                             決まり方を幅と高さの両方の説明として、高さの後ろの ? 1 つで示す（読み上げの名前は「地図画像の大きさ」）。
+                             2 つのラベルは同じ高さにそろえ、? の有無で入力欄がずれないようにする。
+                             拡張子は使わない（タイルの形式は Viewer が info.json から選ぶ）ので出さない -->
                         <div class="col-md-2">
-                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">
-                                 {{ t("mapedit.image_width") }}
-                                 <ContextHelp v-if="iiifDeliveryMap" data-testid="map-image-size-iiif-help" :text="t('mapedit.iiif_image_size_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.image_width') })" />
-                             </label>
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1 map-image-size-label">{{ t("mapedit.image_width") }}</label>
                              <input type="number" class="form-control form-control-sm" data-testid="map-image-width" v-model="mapData.width" disabled>
                         </div>
                          <div class="col-md-2">
-                             <label class="form-label fw-bold small mb-0">{{ t("mapedit.image_height") }}</label>
+                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1 map-image-size-label">
+                                 {{ t("mapedit.image_height") }}
+                                 <ContextHelp v-if="iiifDeliveryMap" data-testid="map-image-size-iiif-help" :text="t('mapedit.iiif_image_size_help')" :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.image_size') })" />
+                             </label>
                              <input type="number" class="form-control form-control-sm" data-testid="map-image-height" v-model="mapData.height" disabled>
                         </div>
                          <!-- 旧実装 mapedit.html L.82: v-model="imageExtensionCalc" (computed, read-only) に準拠 -->
@@ -5863,6 +5865,10 @@ const goBack = async () => {
 </template>
 
 <style scoped>
+/* 地図画像の幅・高さのラベル: ? を置く高さのラベルと置かない幅のラベルを、? のボタンの高さ（1.5rem）にそろえる */
+.map-image-size-label {
+    min-height: 1.5rem;
+}
 /* Ensure map containers fill available space */
 .map-container {
     width: 100%;

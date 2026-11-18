@@ -26,7 +26,7 @@ import { usePoisFormatGuard } from "../composables/usePoisFormatGuard";
 import HomePositionEditorModal from "../components/HomePositionEditorModal.vue";
 import EnvelopeEditorModal from "../components/EnvelopeEditorModal.vue";
 import ExportKeyPromptModal from "../components/editor-ui/ExportKeyPromptModal.vue";
-import { requiresProviderKey } from "../utils/baseMapEditorDocument";
+import { baseMapProviderKindOf, requiresProviderKey } from "../utils/baseMapEditorDocument";
 import ResourceSelector from "../components/ResourceSelector.vue";
 import ResourceSelectorList from "../components/ResourceSelectorList.vue";
 import ResourceMasterRow from "../components/resource-list/ResourceMasterRow.vue";
@@ -1183,11 +1183,13 @@ async function resolveExportOverrideKeys(
 ): Promise<{ googleApiKey?: string; mapboxToken?: string } | null | undefined> {
   const kinds = new Set<"google" | "mapbox">();
   for (const raw of document.sources || []) {
-    // kind は差分保持モデルではアプリ側に無いためマスタから引く
+    // kind は差分保持モデルではアプリ側に無いためマスタから引く。
+    // usesGoogleAttribution と同じ「kind 優先・maptype フォールバック」で引き、
+    // 旧保存形（kind が無く maptype が google_*）の API キー判定も再保存後と同じにする
     const source = normalizeSource(raw, document.lang);
     if (source.sourceType === "maplat") continue;
     const resolved = resolveAppSource(source, baseMapLookup.value);
-    const kind = resolved.ok ? resolved.master.data.kind : undefined;
+    const kind = resolved.ok ? baseMapProviderKindOf(resolved.master.data) : null;
     if (requiresProviderKey(kind)) kinds.add(kind as "google" | "mapbox");
   }
   const missing: Array<"google" | "mapbox"> = [];

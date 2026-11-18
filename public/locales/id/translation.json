@@ -259,7 +259,8 @@
       "default_license_note": "Berlaku ketentuan Google Maps Platform. Atribusi harus tetap terlihat.",
       "default_data_license_note": "Data peta dan citra © Google. Lihat ketentuan Google Maps Platform.",
       "attr_value": "Pemberitahuan hak cipta dari Google",
-      "attr_reason": "Atribusi peta Google adalah pemberitahuan hak cipta yang dikembalikan oleh Google. Sesuai ketentuan Google, selama peta ditampilkan, pemberitahuan hak cipta Google secara lengkap dan logo Google Maps selalu ditampilkan. Karena itu, atribusi tidak dapat diisi di sini."
+      "attr_reason": "Atribusi peta Google adalah pemberitahuan hak cipta yang dikembalikan oleh Google. Sesuai ketentuan Google, selama peta ditampilkan, pemberitahuan hak cipta Google secara lengkap dan logo Google Maps selalu ditampilkan. Karena itu, atribusi tidak dapat diisi di sini.",
+      "data_attr_reason": "Atribusi data peta Google memakai pemberitahuan hak cipta yang dikembalikan oleh Google, sehingga tidak dapat diisi di sini."
     },
     "style_gl_check_v5_ok": "Berfungsi dengan MapLibre GL JS 5 dan 6",
     "style_gl_check_needs_v6": "Memerlukan MapLibre GL JS 6: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "Cari alamat",
     "iiif_image_size_help": "Ukuran peta yang disajikan dari IIIF ditentukan oleh info.json gambar IIIF.",
     "iiif_upload_map_reason": "Peta yang disajikan dari IIIF memuat gambarnya dari layanan gambar IIIF. Mendaftarkan gambar lain tidak akan cocok dengan ukuran gambar IIIF dan merusak peta, sehingga tidak tersedia.",
-    "iiif_map_tile_reason": "Tile peta yang disajikan dari IIIF dimuat dari layanan gambar IIIF yang ditampilkan di sini. Layanan ditentukan oleh Manifest yang diimpor, sehingga tidak dapat diisi di sini."
+    "iiif_map_tile_reason": "Tile peta yang disajikan dari IIIF dimuat dari layanan gambar IIIF yang ditampilkan di sini. Layanan ditentukan oleh informasi IIIF yang diimpor, sehingga tidak dapat diisi di sini.",
+    "image_size": "Ukuran gambar peta"
   },
   "mapupload": {
     "map_image": "Gambar peta",

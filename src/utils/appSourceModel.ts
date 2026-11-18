@@ -1,4 +1,4 @@
-import { isProviderKind, resolveBaseMapRuntimeText, usesGoogleAttribution } from "./baseMapEditorDocument";
+import { GOOGLE_PROVIDED_ATTRIBUTION_KEYS, baseMapProviderKindOf, resolveBaseMapRuntimeText, usesGoogleAttribution } from "./baseMapEditorDocument";
 import { BASE_MAP_LANG_ATTRS, BASE_MAP_META_LANG_ATTRS, normalizeLangResource } from "./langResource";
 import type { LangResource } from "./langResource";
 // 書誌の表の出し方の語彙は Core が持つ（Editor に同じ union を書き写さない）。
@@ -677,6 +677,9 @@ export function composeBaseMapSettingFile(
 ): Record<string, unknown> {
   const masterData = master.data || {};
   const kind = masterData.kind;
+  // 種別・URL の判定も usesGoogleAttribution と同じ「kind 優先・maptype フォールバック」で行う。
+  // 旧保存形（kind が無く maptype が google_*）も、再保存の前でも Google として出す
+  const providerKind = baseMapProviderKindOf(masterData);
   const masterLang = String(masterData.lang || masterData.defaultLang || "en");
   const data = normalizeRuntimeKeys({ ...masterData }) as Record<string, any>;
 
@@ -684,9 +687,11 @@ export function composeBaseMapSettingFile(
     if (SETTING_FILE_EXCLUDED_KEYS.has(key)) delete data[key];
   }
   delete data.mapID;
-  // Google の地図は attr を出さない。Viewer は Google が返す著作権の表示を必ず出し、attr があると
+  // Google の地図は attr・dataAttr を出さない。Viewer は Google が返す著作権の表示を必ず出し、attr があると
   // その後に添えてしまう。以前の版で入力できた値がマスタに残っていても、ここで落とす
-  if (usesGoogleAttribution(masterData)) delete data.attr;
+  if (usesGoogleAttribution(masterData)) {
+    for (const key of GOOGLE_PROVIDED_ATTRIBUTION_KEYS) delete data[key];
+  }
 
   // 言語別フィールドは 多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まりの交換形へ畳む（言語の解決は viewer 側 ui.translate が行う）。
   // 畳み込みの基準は**この設定ファイル自身の既定言語**（= マスタの lang。data.lang として同梱される）
@@ -702,7 +707,7 @@ export function composeBaseMapSettingFile(
   }
 
   // 上から順に評価し、最初に成立した行を採る（provider は role より優先）
-  const maptype = isProviderKind(kind)
+  const maptype = providerKind
     ? String(masterData.maptype ?? "base")
     : role === "overlay"
       ? "overlay"
@@ -710,7 +715,7 @@ export function composeBaseMapSettingFile(
 
   // kind 別の url。merc はマスタが url を持たない（空文字）ため現在 slug から導出し、
   // provider は url を出さない（source_ex.ts:221-224 が削除するため）。
-  if (isProviderKind(kind)) {
+  if (providerKind) {
     delete data.url;
     delete data.urls;
   } else if (kind === "merc") {

@@ -259,7 +259,8 @@
       "default_license_note": "Áp dụng điều khoản Google Maps Platform. Phải giữ nguyên dòng ghi công.",
       "default_data_license_note": "Dữ liệu bản đồ và hình ảnh © Google. Xem điều khoản Google Maps Platform.",
       "attr_value": "Thông báo bản quyền do Google trả về",
-      "attr_reason": "Phần ghi công của bản đồ Google là thông báo bản quyền do Google trả về. Theo điều khoản của Google, trong khi hiển thị bản đồ, toàn văn thông báo bản quyền của Google và logo Google Maps luôn được hiển thị. Vì vậy không thể nhập ở đây."
+      "attr_reason": "Phần ghi công của bản đồ Google là thông báo bản quyền do Google trả về. Theo điều khoản của Google, trong khi hiển thị bản đồ, toàn văn thông báo bản quyền của Google và logo Google Maps luôn được hiển thị. Vì vậy không thể nhập ở đây.",
+      "data_attr_reason": "Ghi công dữ liệu của bản đồ Google dùng thông báo bản quyền do Google trả về, nên không thể nhập ở đây."
     },
     "style_gl_check_v5_ok": "Hoạt động với MapLibre GL JS 5 và 6",
     "style_gl_check_needs_v6": "Cần MapLibre GL JS 6: {{reasons}}",
@@ -581,7 +582,8 @@
     "control_search_address": "Tìm địa chỉ",
     "iiif_image_size_help": "Kích thước của bản đồ cung cấp từ IIIF do info.json của ảnh IIIF quyết định.",
     "iiif_upload_map_reason": "Bản đồ cung cấp từ IIIF tải ảnh từ dịch vụ ảnh IIIF. Đăng ký ảnh khác sẽ không khớp kích thước với ảnh IIIF và làm hỏng bản đồ, nên không dùng được.",
-    "iiif_map_tile_reason": "Tile của bản đồ cung cấp từ IIIF được tải từ dịch vụ ảnh IIIF hiển thị ở đây. Dịch vụ do Manifest đã nhập quyết định, nên không thể nhập ở đây."
+    "iiif_map_tile_reason": "Tile của bản đồ cung cấp từ IIIF được tải từ dịch vụ ảnh IIIF hiển thị ở đây. Dịch vụ do thông tin IIIF đã nhập quyết định, nên không thể nhập ở đây.",
+    "image_size": "Kích thước ảnh bản đồ"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",
