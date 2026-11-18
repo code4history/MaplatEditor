@@ -27,7 +27,8 @@ function mapObject(slug: string, title: string, pois: unknown[] = []) {
     createdAt: {},
     contributor: {},
     mapper: {},
-    attr: {},
+    // 帰属表記を持たせる（無いと「帰属表記なし」の印が付き、この試験が見る他の印と混ざる）
+    attr: { ja: '© T16' },
     dataAttr: {},
     description: {},
     license: 'PD',
