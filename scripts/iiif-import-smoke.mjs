@@ -1,6 +1,6 @@
 // IIIF 取り込みの取得層（electron/services/iiifFetch.ts）の smoke。
 //
-// 前例（scripts/m12-t13-resolver-containment-smoke.mjs）と同じ形で、main の TS を
+// 前例（scripts/resolver-containment-smoke.mjs）と同じ形で、main の TS を
 // vite の ssr build で束ね、子プロセスで走らせる。下書きの預かり所は electron の
 // app を読むので、前例と同じく electron をスタブして束ねる。試験は 1 つずつ
 // `ok: <機能の名前>` を出し、1 つでも失敗したら exit 1 で終わる。この先の段で

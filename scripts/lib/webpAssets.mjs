@@ -1,4 +1,4 @@
-// m19-t5: scripts/ 側の webp 対応画像入出力（オフライン用）。
+// scripts/ 側の webp 対応画像入出力（オフライン用）。
 //
 // 製品コードの唯一の実装は `electron/utils/thumbnail512Codec.ts` である。本ファイルは
 // **同じ規則（入力/宛先の拡張子だけで符号化器を選ぶ）を、TS を import できない .mjs スクリプト用に

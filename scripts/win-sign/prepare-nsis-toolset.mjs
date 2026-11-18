@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// nov26-m7-t2（MAJ-1）: --prepackaged の electron-builder を起動する**前の step** で、署名済みのプラグインに
+// --prepackaged の electron-builder を起動する**前の step** で、署名済みのプラグインに
 // 差し替えた NSIS ツールセットを用意する。
 //
 // --prepackaged では beforePack が呼ばれない（app-builder-lib 26.17.0 out/platformPackager.js の doPack が先頭で
@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-// fileURLToPath で読む（B31 MAJ-1）。URL の pathname を使うと Windows で /D:/… になり、
+// fileURLToPath で読む。URL の pathname を使うと Windows で /D:/… になり、
 // path.resolve が D:\D:\… を作って electron-builder.config.cjs が見つからない（run 38369214775 の measure-prod-a/b）
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const winSign = require('./win-sign.cjs');

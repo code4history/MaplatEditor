@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// nov26-m7-t2: 署名専用ジョブ（Azure Artifact Signing）へ渡す PE を、win-sign.cjs の記録（collect）から選んで並べる。
+// 署名専用ジョブ（Azure Artifact Signing）へ渡す PE を、win-sign.cjs の記録（collect）から選んで並べる。
 //
-// phase の順は payload < uninstaller < installer（MIN-1）:
+// phase の順は payload < uninstaller < installer:
 //   payload     … NSIS プラグイン（kind: nsis-plugin）・*-unpacked の中のファイル・elevate.exe
 //                 （electron-builder 26.17.0 は elevate.exe を NSIS の組み立ての中で一時ディレクトリから署名する。
 //                 app-builder-lib out/targets/nsis/nsisUtil.js の CopyElevateHelper.addToArchive）

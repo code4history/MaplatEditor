@@ -1,14 +1,14 @@
 # CI のテスト実行（smoke / e2e）と除外表
 
-`.github/workflows/test.yml`（`Tests`）が、push（master・glm52・foss4g-hiroshima）・PR・手動実行で次を行う（#121・oct26-m4-t5）。
+`.github/workflows/test.yml`（`Tests`）が、push（master・glm52・foss4g-hiroshima）・PR・手動実行で次を行う（#121）。
 
 | job | 内容 |
 |---|---|
-| `smoke` | install → `pnpm run lint`（ESLint。対象 `src electron`・nov26-m8-t4）→ `pnpm run build` → `scripts/ci/run-smokes.mjs`（`smoke:*` を全数・直列）→ `scripts/ci/judge-test-results.mjs smoke` |
+| `smoke` | install → `pnpm run lint`（ESLint。対象 `src electron`）→ `pnpm run build` → `scripts/ci/run-smokes.mjs`（`smoke:*` を全数・直列）→ `scripts/ci/judge-test-results.mjs smoke` |
 | `e2e (1)〜(3)` | install → `pnpm run build` → `playwright test --forbid-only --shard=N/3`（exit を `playwright-exit.txt` に記録）→ `judge-test-results.mjs e2e` |
 
 e2e job は Playwright の前に Electron（`com.github.Electron`）の言語を `ja` に固定し（`defaults write com.github.Electron AppleLanguages -array ja`）、`scripts/ci/electron-locale-check.cjs` で `app.getLocale()` が `ja` であることを確かめる。
-macOS runner の言語は en-US で、MaplatEditor は設定が無いと OS の言語で UI を起動するため、日本語の文言を待つ e2e が英語 UI で落ちるのを防ぐ（マージ判断 oct26-m4-t5 追補 1）。
+macOS runner の言語は en-US で、MaplatEditor は設定が無いと OS の言語で UI を起動するため、日本語の文言を待つ e2e が英語 UI で落ちるのを防ぐ。
 e2e job の install は `--config.side-effects-cache=false` を付けて electron の postinstall を必ず走らせる。pnpm の side-effects cache は空ディレクトリを記録しないので、キャッシュから復元した Electron.app には `*.lproj` が無く、`app.getLocale()` が en-US になるため（追補 2。検査は `lproj=<n>` を出し、0 個なら NG）。
 手元で共有 node_modules を pnpm で張り直した後は、e2e の前に言語検査の出力の `lproj=`（macOS の Electron では 55）を見ること。0 なら同じ理由で `.lproj` が消えている。
 
@@ -30,7 +30,7 @@ e2e job の install は `--config.side-effects-cache=false` を付けて electro
 ## 手元で判定を通す
 
 ```bash
-cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml   # 単独 clone のときだけ（Maplats 配下の checkout では行わない）
+cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml   # 単独 clone のときだけ（親の作業場所の配下の checkout では行わない）
 pnpm install --frozen-lockfile
 node_modules/.bin/eslint src electron   # = pnpm run lint（合否は rtk を通さずに見る）
 pnpm run build
@@ -46,7 +46,7 @@ node scripts/ci/judge-test-results.mjs smoke --report smoke-report.json   # = pn
 # --grep-invert を使うときは 3 シャードすべてに同じものを付ける（シャードの割り当てがそろい、取りこぼしが出ない）
 for n in 1 2 3; do
   PLAYWRIGHT_JSON_OUTPUT_NAME=e2e-report-$n.json ./node_modules/.bin/playwright test --forbid-only --shard=$n/3 --reporter=json,list \
-    --grep-invert "m12-t18-os-trash-delete"
+    --grep-invert "os-trash-delete"
   echo $? > playwright-exit-$n.txt
   node scripts/ci/judge-test-results.mjs e2e --report e2e-report-$n.json --exit-file playwright-exit-$n.txt --shard $n/3
 done
@@ -71,16 +71,16 @@ node scripts/ci/measure-exclusions.mjs --smoke-report smoke-report.json \
 
 表は書き換えない。差分案（`unregistered-failure`・`registered-but-passed`・`expect-mismatch`・`intermittent`（known-failure が再試行で合格した）・`registered-but-skipped`・`not-observed`）を JSON で出す（kind `intermittent` のエントリは結果を問わず差分にしない）。各行の `reason`・`issue`・`expect` を人（またはエージェント）が埋めて表を直す。**新しく出た失敗を `known-failure` に載せるときは、原因がその変更の外にあることを失敗ログで示し、`issue` に既存 Issue か新 Issue を書く。原因が分からない失敗は載せずに合流を止める。**
 
-## 合流の順序と、表を直す責任（t5 と並行タスク）
+## 合流の順序と、表を直す責任（この CI と並行の作業）
 
-表の中身は、**t5（本 CI）を合流する直前の master で測り直して確定する**。並行中の oct26-m4-t2ff 第 2 版・oct26-m4-t2s との順序で、次の 2 通りがある。
+表の中身は、**この CI を合流する直前の master で測り直して確定する**。並行中の 2 つの作業（app:// の同一 origin 化の第 2 版と、旧形式の下書きの表示の修正）との順序で、次の 2 通りがある。
 
 | 状況 | 表を確定する時点 | 後から合流する側の手順 |
 |---|---|---|
-| **t2ff 第 2 版・t2s が先に master へ合流済み**（予定: 09-23 まで） | 両者の合流後の master に t5 を載せた tree で測る | —（両者の結果は測り直しで表に取り込まれる） |
-| **t5 が先に合流する**（t2ff・t2s が 09-23 までに合流しない場合） | その時点の master で測って t5 を合流 | **t2ff・t2s は合流前に手元で `ci:smoke` → `ci:judge`（t2ff は e2e とその判定も）を通し、表を直した状態で合流する**。t2s は直した smoke のエントリを表から外す（`expect` が変わるものは直す） |
+| **並行の 2 つの作業が先に master へ合流済み**（予定: 09-23 まで） | 両者の合流後の master にこの CI を載せた tree で測る | —（両者の結果は測り直しで表に取り込まれる） |
+| **この CI が先に合流する**（並行の 2 つの作業が 09-23 までに合流しない場合） | その時点の master で測ってこの CI を合流 | **並行の 2 つの作業は合流前に手元で `ci:smoke` → `ci:judge`（同一 origin 化は e2e とその判定も）を通し、表を直した状態で合流する**。旧形式の下書きの修正は直した smoke のエントリを表から外す（`expect` が変わるものは直す） |
 
-t5 合流後に入るすべての変更（#117 の是正・oct26-m4-t6 CSP など）も同じ:
+この CI の合流後に入るすべての変更（#117 の是正・CSP など）も同じ:
 
 - 既知失敗を直した → **同じ変更で表から外す**（外さないと「通ったのに表に残っている」で赤）
 - 新しい失敗が出た → 直すか、上の根拠を付けて表に載せる

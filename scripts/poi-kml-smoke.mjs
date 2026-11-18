@@ -48,7 +48,7 @@ try {
   const point = (c) => `<Point><coordinates>${c}</coordinates></Point>`;
   const demoBytes = new Uint8Array(await readFile(path.join(fixtureDir, 'demo.kml')));
 
-  // ---------- §8.4 のデモ D ----------
+  // ---------- デモ D ----------
   {
     const r = parse(demoBytes);
     assert.equal(r.format, 'kml');
@@ -374,7 +374,7 @@ try {
     console.log('  case 9 (scanKmlShape の構文と予算): PASS');
   }
 
-  // ---------- 属性の多い QGIS 風: 要素数の上限が先に当たる (Minor-3) ----------
+  // ---------- 属性の多い QGIS 風: 要素数の上限が先に当たる () ----------
   {
     const small = parse(qgisKml(100, 40));
     assert.equal(small.fatal, false);

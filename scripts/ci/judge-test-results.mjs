@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * oct26-m4-t5（#121）: CI の smoke / e2e の報告を除外表と突き合わせて合否を決める判定器。
+ * #121: CI の smoke / e2e の報告を除外表と突き合わせて合否を決める判定器。
  *
  * job の合否はこの判定器の exit だけで決まる（実行 step は失敗しても続行する）。∴ fail-closed:
  * 「何も見られなかった」「報告が壊れている」「数が合わない」はすべて赤（exit 1）にする。
@@ -10,7 +10,7 @@
  *   node scripts/ci/judge-test-results.mjs e2e --report e2e-report.json --exit-file playwright-exit.txt [--shard 1/3]
  *   共通オプション: --root <リポジトリ直下（既定: カレント）> --exclusions <除外表（既定: <root>/ci/test-exclusions.json）>
  *
- * 規定の正本は設計書 oct26-m4-t5 v2 §5.3（＋設計レビュー R2 の N1・Info-3）。運用は ci/README.md。
+ * 運用は ci/README.md。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -34,14 +34,14 @@ export function parseArgs(argv) {
   return opts;
 }
 
-// ───────────────────────────── 除外表（AC3） ─────────────────────────────
+// ───────────────────────────── 除外表 ─────────────────────────────
 /**
  * 除外表を読み、形式を検査する。問題は errors に 1 行ずつ積む（1 件でもあれば判定は赤）。
  * - 全エントリに kind（smoke: known-failure / excluded、e2e: known-failure / intermittent）・reason・issue
  * - smoke: name が package.json の smoke:* に実在・known-failure は expect 必須・name の重複無し
  * - smoke: kind intermittent は使えない（smoke は 1 回しか実行しないので間欠を表せない）
  * - e2e: kind は known-failure / intermittent のみ（excluded は Playwright の実行対象から外れないので意味を持たない）
- *        intermittent（IR MIN-2）: 同じ commit で合格と失敗の両方を観測したもの。unexpected / flaky / expected のいずれも緑・skipped は赤・issue 必須
+ *        intermittent: 同じ commit で合格と失敗の両方を観測したもの。unexpected / flaky / expected のいずれも緑・skipped は赤・issue 必須
  *        tests/e2e/<file> の line 行に test( があり、その第 1 引数の文字列が title と一致・file+title の重複無し
  */
 export function loadExclusions(root, exclusionsPath) {
@@ -310,7 +310,7 @@ export function judgeE2e({ report, table, exitText, shard }) {
     const key = `${t.file}\u0000${t.title}`;
     const entry = known.get(key);
     if (entry) seenKnown.add(key);
-    // IR MIN-2: intermittent は結果を問わず緑（unexpected / flaky / expected）。skipped だけは赤（実行されていない＝何も観測していない）
+    // intermittent は結果を問わず緑（unexpected / flaky / expected）。skipped だけは赤（実行されていない＝何も観測していない）
     if (entry?.kind === 'intermittent') {
       if (t.status === 'skipped') failures.push(`intermittent の e2e が skipped（skip するなら除外表から外し、理由は spec 側に書く）: ${label(t)}`);
       else if (['unexpected', 'flaky', 'expected'].includes(t.status)) intermittentSeen.push(`${label(t)}（結果 ${t.status}・${entry.issue}）`);
@@ -329,7 +329,7 @@ export function judgeE2e({ report, table, exitText, shard }) {
         else flakyUnknown.push(label(t));
         break;
       case 'skipped':
-        // R2 Info-3: known-failure に後から test.skip が付くと「直ったら赤」が発火しなくなる
+        // known-failure に後から test.skip が付くと「直ったら赤」が発火しなくなる
         if (entry) failures.push(`known-failure の e2e が skipped（skip するなら除外表から外し、理由は spec 側に書く）: ${label(t)}`);
         break;
       default:

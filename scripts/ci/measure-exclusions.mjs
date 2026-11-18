@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * oct26-m4-t5（#121）: 手元で取った smoke / e2e の報告と除外表を突き合わせ、表の差分案を出す（表は書き換えない）。
+ * #121: 手元で取った smoke / e2e の報告と除外表を突き合わせ、表の差分案を出す（表は書き換えない）。
  *
  * 検出するもの:
  *   - unregistered-failure: 除外表に無い失敗（smoke の exit≠0・打ち切り／e2e の unexpected）→ 追加案（expect の候補つき）
@@ -8,7 +8,7 @@
  *   - intermittent: 表の known-failure が e2e で flaky（再試行で合格）→ 要判断
  *   - expect-mismatch: smoke の known-failure が expect を出力に含まずに失敗 → expect 修正案（候補つき）
  *   - not-observed: 表の known-failure が、与えた報告のどこにも出てこない（e2e は全シャードを与えたときだけ意味がある）
- *   - e2e の intermittent（IR MIN-2）: expected / unexpected / flaky は差分にしない。skipped は registered-but-skipped・報告のどこにも無ければ not-observed
+ *   - e2e の intermittent: expected / unexpected / flaky は差分にしない。skipped は registered-but-skipped・報告のどこにも無ければ not-observed
  *
  * 使い方:
  *   node scripts/ci/measure-exclusions.mjs [--smoke-report smoke-report.json] [--e2e-reports a.json,b.json,c.json]

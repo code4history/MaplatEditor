@@ -13,7 +13,7 @@
 //   --authenticode --signer <artifact-signing|esigner>（署名済みの最終成果物。Windows のみ）:
 //       各 PE の Get-AuthenticodeSignature が Valid で、署名者が signer-identity.json の当該モード
 //       （DN の属性の集合・上位の証明書の thumbprint。scripts/win-sign/signer-identity.cjs の checkSigner）か
-//       Microsoft Corporation であること（nov26-m7-t2・C-3）。
+//       Microsoft Corporation であること（C-3）。
 //
 // 実行:
 //   node scripts/win-sign/verify-win-sign-coverage.mjs --record <jsonl> [--summary <json>] <installer.exe> …

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // エディタの用語集の検査（scripts/editor-glossary-check.mjs）の回帰検証。
-// 設計「MaplatEditor 全言語用語集・CI検査 タスク設計書」v1.2 §5.7 の fixture を、実データを壊さずに一時ディレクトリで確かめる。
+// 設計「MaplatEditor 全言語用語集・CI検査 タスク設計書」の fixture を、実データを壊さずに一時ディレクトリで確かめる。
 //
 // - 照合・結び付けの単体: 検査 script の evaluateKey / matchForm を、実物の正本で呼ぶ
 // - #237 型の場合 A〜E・E′・#241 相当と関門 1・2: 実物の正本と locale を一時の git リポジトリに写し、値を変えて CLI を走らせる
@@ -202,7 +202,7 @@ try {
     const res = evaluate({ en: 'Asset images', ja: 'アセットの画像', th: 'รูปภาพทรัพยากร' });
     check('誤検出なし: th「รูปภาพทรัพยากร」は asset を満たす', has(res, 'asset') && langFindings(res, 'asset', 'th').length === 0);
     const res2 = evaluate({ en: 'Asset images', ja: 'アセットの画像', th: 'รูปภาพ' });
-    check('M5: th「รูปภาพ」単独は asset を満たさない', langFindings(res2, 'asset', 'th').some((f) => f.kind === 'required'));
+    check('th「รูปภาพ」単独は asset を満たさない', langFindings(res2, 'asset', 'th').some((f) => f.kind === 'required'));
   }
   {
     const res = evaluate({ en: 'Map list', ja: '地図一覧', de: 'Kartenliste' });
@@ -239,7 +239,7 @@ try {
     check('誤一致なし: de「Player」は統一前の形「layer」に当たらない', !langFindings(r4, 'layer', 'de').some((f) => f.kind === 'former'));
   }
 
-  // ───────────── #237 型（設計 §5.7 の場合 A〜E・E′・#241 相当） ─────────────
+  // ───────────── #237 型（場合 A〜E・E′・#241 相当） ─────────────
   {
     const dir = makeRepo('case-a');
     for (const l of LANGS) apply237(dir, l);

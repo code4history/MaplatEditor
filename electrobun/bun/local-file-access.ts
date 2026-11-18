@@ -2,12 +2,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const workspaceRoot = path.resolve(import.meta.dir, '../..');
-const m2DataRoot = path.join(workspaceRoot, '.tmp', 'electrobun-m2');
+const pocDataRoot = path.join(workspaceRoot, '.tmp', 'electrobun-poc');
 
 export function resolveM2LocalPath(relativePath: string): string {
-  const resolved = path.resolve(m2DataRoot, relativePath);
-  if (!resolved.startsWith(m2DataRoot + path.sep)) {
-    throw new Error(`Refusing to access path outside M2 data root: ${relativePath}`);
+  const resolved = path.resolve(pocDataRoot, relativePath);
+  if (!resolved.startsWith(pocDataRoot + path.sep)) {
+    throw new Error(`Refusing to access path outside PoC data root: ${relativePath}`);
   }
   return resolved;
 }

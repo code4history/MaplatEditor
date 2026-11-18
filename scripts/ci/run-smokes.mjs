@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * oct26-m4-t5（#121）: package.json の smoke:* を全数、直列に実行して報告を書く実行器。
+ * #121: package.json の smoke:* を全数、直列に実行して報告を書く実行器。
  *
  * - 除外表 ci/test-exclusions.json の kind: excluded 以外をすべて実行する（新しい smoke は表に書かない限り自動で走る）
  * - 自身の exit は smoke の成否で決めない（常に 0）。報告を書けなかったときだけ非 0。合否は judge-test-results.mjs が決める
@@ -8,7 +8,7 @@
  *
  * 使い方: node scripts/ci/run-smokes.mjs --report smoke-report.json [--timeout-sec 600] [--root .] [--exclusions ci/test-exclusions.json] [--log-dir <dir>]
  *
- * 打ち切りの範囲（設計レビュー R2 Info-1 への対応）:
+ * 打ち切りの範囲（設計レビュー R2 への対応）:
  *   (1) 同じプロセスグループの子孫 → kill(-pgid) で届く
  *   (2) 別のプロセスグループ／セッションへ移った子孫 → 打ち切りの時点で親子関係（ps の ppid）を辿って列挙し、
  *       その pid とそのプロセスグループにも SIGKILL を送る

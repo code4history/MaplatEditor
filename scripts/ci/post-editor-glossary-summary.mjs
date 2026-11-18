@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 用語集の正本を変えた PR に、変更の要約を 1 件のコメントとして出す（設計 v1.2 §5.6 関門 2）。
+ * 用語集の正本を変えた PR に、変更の要約を 1 件のコメントとして出す（関門 2）。
  *
  * - 要約は scripts/editor-glossary-check.mjs の報告（--report）の glossaryChangeSummary を使う。無ければ何もしない
  * - 目印の文字列（<!-- editor-glossary-summary -->）を持つ既存のコメントがあれば書き換え、無ければ新しく作る
@@ -8,7 +8,7 @@
  * - 合否は決めない（常に exit 0）。用語の合否は smoke:editor-glossary が持つ
  *
  * 使い方: node scripts/ci/post-editor-glossary-summary.mjs --report editor-glossary-report.json
- * 環境変数: GITHUB_TOKEN・GITHUB_REPOSITORY・PR_NUMBER（・GITHUB_API_URL・GITHUB_STEP_SUMMARY）
+ * 環境変数: GITHUB_TOKEN・GITHUB_REPOSITORY・PR_NUMBER（GITHUB_API_URL・GITHUB_STEP_SUMMARY）
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 

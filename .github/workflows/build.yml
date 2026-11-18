@@ -1,25 +1,25 @@
 name: Build and Release
-# 承認スクリプト（outer の scripts/release-train/examples/2026-11/editor-approve.sh・editor-m7-signed-2-approve.sh）は
-# この表示名で自分の起動であることを照合する ∴ 書式を 1 文字も変えない（nov26-m7-t2・C-10。smoke が式を断言する）
+# 親の作業場所にある承認スクリプトは
+# この表示名で自分の起動であることを照合する ∴ 書式を 1 文字も変えない（smoke が式を断言する）
 run-name: ${{ github.event_name == 'workflow_dispatch' && format('dispatch mode={0} signer={1} sha={2} ver={3}', inputs.mode, inputs.win_signer, inputs.expected_editor_sha, inputs.expected_version) || format('push {0}', github.sha) }}
 
 on:
-  # 署名ポリシー（m6-t12 §2.4 / 人間決定 D6・2026-08-08）。2軸で指定する:
+  # 署名ポリシー（2026-08-08）。2軸で指定する:
   #
   #   mode=verify（既定・動作確認用）: Mac 署名のみ / Win 署名なし / draft Release なし
   #     Apple は年額で署名ごとの課金がなく eSigner も呼ばないため **課金ゼロ**。全バージョン可。
   #     ただし Mac は署名するので、ビルドする commit は origin/master の祖先に限る（prepare が拒む）。
   #     expected_editor_sha を省いたときは dispatch した ref の HEAD で確かめる ∴ 作業ブランチは不可
   #   mode=full（完全）:               Mac 署名+公証 / Win 全 PE 署名 / draft Release 作成
-  #     **rc 以降**に限定（prerelease は rc 始まりのみ。正式版は master 限定。判定は scripts/m6-t12/check-release-guard.mjs）。
+  #     **rc 以降**に限定（prerelease は rc 始まりのみ。正式版は master 限定。判定は scripts/release/check-release-guard.mjs）。
   #     Windows は配布物の全 PE を署名する（2026-10-03・SAC 起動拒否への対処）。署名者は win_signer で選ぶ:
-  #       artifact-signing（既定・nov26-m7-t2）… Azure Artifact Signing（定額 5,000 署名／月）。署名は依存を入れない
+  #       artifact-signing（既定）… Azure Artifact Signing（定額 5,000 署名／月）。署名は依存を入れない
   #         署名専用ジョブ（sign-win-payload・sign-win-uninstaller・sign-win-installer）だけが行い、OIDC の要求口
   #         （id-token: write）はそのジョブにしか無い（C-8）。承認の待ちは最大 4 回（build-mac＋build-win・署名専用 3 つ）
-  #       esigner（J-7 の退路）… SSL.com eSigner（署名ごとに課金）。build-win の中で electron-builder のフックが署名し、
+  #       esigner（Artifact Signing が使えないときの退路）… SSL.com eSigner（署名ごとに課金）。build-win の中で electron-builder のフックが署名し、
   #         DLL 等は署名済みキャッシュ（Release `win-signed-cache`）から使い回す
   #
-  #   mode=sign-check（nov26-m7-t2）: Mac は Developer ID 署名（notarize=true のときは公証+staple も実行、既定は false で公証なし）/
+  #   mode=sign-check: Mac は Developer ID 署名（notarize=true のときは公証+staple も実行、既定は false で公証なし）/
   #     Win は Artifact Signing で全 PE 署名 / draft Release なし。
   #     署名の経路を本番の前に確かめる用途。定額で配布物も作らないので rc の制限は課さないが、expected_editor_sha・
   #     expected_version は必須で、master の祖先でない SHA は prepare が拒む。win_signer=esigner は拒む。
@@ -29,8 +29,8 @@ on:
   #     「Mac だけ焼き直す」（mac + full）が eSigner を再課金せずにできる
   #
   #   push（master / glm52 / foss4g-hiroshima）: Mac は Developer ID 署名のみ（公証なし・課金ゼロ）、
-  #     Win / Linux は署名しない。Mac 証明書2 secrets は environment `ci` にも置く（t1・2026-08-21。
-  #     dispatch 忘れによる未署名配布事故を受けた人間指示で、m6-t12 の「push では署名しない」を部分差し戻し）。
+  #     Win / Linux は署名しない。Mac 証明書2 secrets は environment `ci` にも置く（2026-08-21。
+  #     dispatch 忘れによる未署名配布事故を受けた人間指示で、以前の「push では署名しない」方針を部分差し戻し）。
   #     公証・eSigner・Release 作成は従来どおり `release`（Required reviewers 保護）の dispatch 限定
   push:
     branches: [master, glm52, foss4g-hiroshima]
@@ -54,9 +54,9 @@ on:
         type: choice
         default: all
         options: [all, mac, win, linux]
-      # #104 / oct26-m4-t2: exact commit SHA 宣言。mode=full では必須（check-release-guard.mjs が検証）。
+      # #104 / exact commit SHA 宣言。mode=full では必須（check-release-guard.mjs が検証）。
       # リポジトリ内の自己参照ファイル（release-manifest.json）は作らず、宣言は dispatch 入力で渡す。
-      # 照合の正は prepare が git rev-parse HEAD から生成する build-meta.json.editor_sha（AC-7 契約 (b)）。
+      # 照合の正は prepare が git rev-parse HEAD から生成する build-meta.json.editor_sha（成果物の SHA の照合の契約 (b)）。
       expected_editor_sha:
         description: 'ビルド対象 commit の40桁 SHA（mode=full では必須。全 checkout をこの SHA へ固定）'
         type: string
@@ -65,7 +65,7 @@ on:
         description: '期待する配布バージョン（mode=full では必須。package.json の version と一致すること）'
         type: string
         required: false
-      # nov26-m7-t2: Windows の署名者。sign-check は artifact-signing だけ（esigner は prepare が拒む）
+      # Windows の署名者。sign-check は artifact-signing だけ（esigner は prepare が拒む）
       win_signer:
         description: 'Windows の署名者（artifact-signing＝Azure Artifact Signing・既定 / esigner＝SSL.com eSigner・課金の退路）'
         type: choice
@@ -73,13 +73,13 @@ on:
         options: [artifact-signing, esigner]
 
 # GITHUB_TOKEN は既定を read に絞り、contents: write は Release を作る release ジョブへ
-# job 単位で与える（セキュリティレビュー SR-t12-M-1・2026-08-08）。
+# job 単位で与える（セキュリティレビューの指摘・2026-08-08）。
 # workflow レベルに write を置くとビルド3ジョブのトークンにも書き込み権限が乗り、
 # checkout が .git/config へ残したトークン（既定 persist-credentials: true）を経由して、
 # ビルド時に走る依存ツリー（vite / vue-tsc / electron-builder のプラグイン群）の汚染が
 # そのままリポジトリ書き込みに直結する。署名パイプラインではそれは「次に署名される内容を
 # 書き換えられる」ことを意味し、外部 action を SHA ピンする脅威モデルと矛盾する。
-# 回帰止めは smoke の AC11。
+# 回帰止めは release-workflow-smoke の権限の検査。
 permissions:
   contents: read
 
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
-      # nov26-m7-t2: Windows の署名の経路（none / artifact-signing / esigner）。後段の if: はこれだけを見る
+      # Windows の署名の経路（none / artifact-signing / esigner）。後段の if: はこれだけを見る
       win_sign_path: ${{ steps.win-sign-path.outputs.path }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -100,10 +100,10 @@ jobs:
           # push では inputs が空のため、actions/checkout の既定 ref（トリガー commit）へフォールバックする。
           persist-credentials: false
           ref: ${{ inputs.expected_editor_sha }}
-          # nov26-m7-t2（#140 L-1）: 祖先の確認に origin/master の履歴が要る
+          # （#140 L-1）: 祖先の確認に origin/master の履歴が要る
           fetch-depth: 0
 
-      # nov26-m7-t2（#140 L-1）: 署名するのは master の祖先の SHA だけ。checkout の直後の最初の step で、
+      # （#140 L-1）: 署名するのは master の祖先の SHA だけ。checkout の直後の最初の step で、
       # リポジトリのファイルを呼ばずに確かめる（この step は dispatch された ref＝master の workflow のもの）
       # mode=verify も同じく確かめる（Mac の署名は verify でも行うため）。verify は expected_editor_sha を
       # 省けるが、省いたときは dispatch した ref の HEAD を確かめる ∴ 作業ブランチの dispatch は prepare で落ちる。
@@ -127,7 +127,7 @@ jobs:
             *) echo "祖先の確認は workflow_dispatch のときだけ（${EVENT}:${MODE}）" ;;
           esac
 
-      # nov26-m7-t2: Windows の署名の経路をインラインで決める（リポジトリのコードは使わない）
+      # Windows の署名の経路をインラインで決める（リポジトリのコードは使わない）
       - name: Decide the Windows signing path
         id: win-sign-path
         shell: bash
@@ -152,8 +152,8 @@ jobs:
         id: ver
         run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
 
-      # 実行可否の判定（m6-t12 §2.2 / D6 + #104 exact SHA）。version 取得後に置くのが要点
-      # （prerelease 判定と expected_version 照合に version が必要）。判定ロジックは smoke（AC3）と同一実装
+      # 実行可否の判定（署名の方針 + #104 exact SHA）。version 取得後に置くのが要点
+      # （prerelease 判定と expected_version 照合に version が必要）。判定ロジックは smoke と同一実装
       - name: Guard build mode
         env:
           MODE: ${{ inputs.mode }}
@@ -162,25 +162,25 @@ jobs:
           EXPECTED_VERSION: ${{ inputs.expected_version }}
           WIN_SIGNER: ${{ inputs.win_signer }}
           NOTARIZE: ${{ inputs.notarize }}
-        run: node scripts/m6-t12/check-release-guard.mjs
+        run: node scripts/release/check-release-guard.mjs
 
-      # oct26-m12-t5a（HR-26/4）: 新ビューア出力の鮮度ガード。check-release-guard.mjs の直後に
+      # 新ビューア出力の鮮度ガード。check-release-guard.mjs の直後に
       # 置くことで、full ビルド・未公開版の全ビルド経路（push / dispatch を問わない）が
-      # 旧ビューア同梱で止まる（H-M12-5' (a)）。enforce/warn はスクリプトが規則表で決める
+      # 旧ビューア同梱で止まる。enforce/warn はスクリプトが規則表で決める
       #（workflow 入力で弱められない）。MODE は規則表（mode=full → enforce）にだけ渡す。
       # prepare は依存導入（pnpm install は後続ジョブ）前なので node_modules が無い。スクリプトが
       # それを検知し、依存なし分岐では同梱ビューア public/preview の中身だけを早期ガードし、
       # 版（package.json / pnpm-lock.yaml）は整合性の確認にだけ使う（新しさを版で判定せず、
-      # 「解決版 > 1.0.0」の旧世代拒否は行わない — FIX3）。依存の実体（node_modules）の中身の
+      # 「解決版 > 1.0.0」の旧世代拒否は行わない）。依存の実体（node_modules）の中身の
       # 判定は、各 build ジョブの pnpm install 直後の完全検査 step で行う。
       - name: Check bundled viewer freshness
         env:
           MODE: ${{ inputs.mode }}
-        run: node scripts/m12-t5/check-viewer-freshness.mjs
+        run: node scripts/viewer-freshness/check-viewer-freshness.mjs
 
       # #104: 成果物へ埋め込む build commit SHA の証明（provenance）。checkout を
       # inputs.expected_editor_sha へ固定しているため、git rev-parse HEAD がビルド対象 commit になる。
-      # AC-7 は成果物内の build-meta.json.editor_sha == expected_editor_sha を照合する。
+      # 成果物の SHA の照合は成果物内の build-meta.json.editor_sha == expected_editor_sha を照合する。
       - name: Generate build provenance (build-meta.json)
         run: |
           printf '{"editor_sha":"%s","version":"%s"}\n' "$(git rev-parse HEAD)" "$(jq -r .version package.json)" > build-meta.json
@@ -201,19 +201,19 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || inputs.platforms == 'mac'
     runs-on: macos-latest
     # 公証は Apple のキュー次第で長引く。既定（360分）のままだと応答が返らないときに
-    # 6時間まるごと消費してから cancelled になる（m6-t12 AC7 の初回実走で実測）。
+    # 6時間まるごと消費してから cancelled になる（成果物の SHA の照合の初回実走で実測）。
     # ビルド 5分 + 公証（x64/arm64 の2回）に十分な余裕を見つつ、早く失敗させる
     timeout-minutes: 120
-    # 公証・eSigner 用 secrets は environment `release`（Required reviewers。m6-t12 §2.4）。
+    # 公証・eSigner 用 secrets は environment `release`（Required reviewers）。
     # Mac 証明書2件（APPLE_CERT_BASE64 / APPLE_CERT_PASSWORD）は push でも署名するため
-    # `ci` にも置く（t1・2026-08-21）。`ci` にはこの2件以外を置かない（docs/release-signing.md Part C）
+    # `ci` にも置く（2026-08-21）。`ci` にはこの2件以外を置かない（docs/release-signing.md Part C）
     environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.mode != '') && 'release' || 'ci' }}
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}
@@ -221,7 +221,7 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
+          # overrides は不要と実測して撤去した。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -230,23 +230,23 @@ jobs:
           cache: pnpm
 
       # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
-      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する
       - name: Apply CI-only pnpm config
         run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
 
-      # oct26-m12-t5a（FIX3）: pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
+      # pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
       # 実行する。prepare の依存なし分岐は同梱ビューアの中身しか見られないため、依存の実体
       # （node_modules）の中身で新しさを判定する本 step を各 build ジョブに置き、素通り経路をなくす。
       # enforce/warn はスクリプトが規則表で決める（MODE は mode=full → enforce にだけ渡す）。
       - name: Check bundled viewer freshness (dependencies installed)
         env:
           MODE: ${{ inputs.mode }}
-        run: node scripts/m12-t5/check-viewer-freshness.mjs
+        run: node scripts/viewer-freshness/check-viewer-freshness.mjs
 
-      # Developer ID 証明書のインポート（push / dispatch とも実行。Mac は常に署名を試みる — t1・2026-08-21）
+      # Developer ID 証明書のインポート（push / dispatch とも実行。Mac は常に署名を試みる — 2026-08-21）
       # インポート成功時に MAC_SIGN=true を設定 → electron-builder が Hardened Runtime 付き署名を行う
       # Secret 未設定（APPLE_CERT_BASE64 が空）の場合はシェル内でスキップし、無署名の DMG になる
       # ※ secrets コンテキストは if: 条件式では使用不可のため、シェル内で判定する
@@ -281,7 +281,7 @@ jobs:
       # ※ 空文字を env: に渡すと electron-builder が誤動作するため $GITHUB_ENV 経由で設定
       # mode=verify（および notarize=false の mode=sign-check）では APPLE_ID を渡さない。notarize.cjs は APPLE_ID 不在でスキップする
       # 既存経路を持つため（scripts/notarize/notarize.cjs:26）、署名済み・未公証の DMG が
-      # そのまま得られる。Apple の公証キューが滞留したとき（m6-t12 AC7 で 7 時間超の
+      # そのまま得られる。Apple の公証キューが滞留したとき（成果物の SHA の照合の初回実走で 7 時間超の
       # In Progress を実測）に、動作確認だけ先へ進めるための経路でもある
       - name: Set macOS notarization environment
         if: github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))
@@ -307,7 +307,7 @@ jobs:
 
       - name: Refresh latest-mac.yml for the stapled DMGs
         if: github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || (inputs.mode == 'sign-check' && inputs.notarize))
-        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml
+        run: node scripts/release/resign-update-metadata.mjs release/${{ env.VERSION }} --ext .dmg --yml latest-mac.yml
 
       # dispatch は証明書の欠落も赤にする。push は証明書がある場合だけ検査する。
       - name: Verify the DMGs
@@ -347,7 +347,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}
@@ -355,7 +355,7 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
+          # overrides は不要と実測して撤去した。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -364,27 +364,27 @@ jobs:
           cache: pnpm
 
       # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
-      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する
       - name: Apply CI-only pnpm config
         run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
 
-      # oct26-m12-t5a（FIX3）: pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
+      # pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
       # 実行する。prepare の依存なし分岐は同梱ビューアの中身しか見られないため、依存の実体
       # （node_modules）の中身で新しさを判定する本 step を各 build ジョブに置き、素通り経路をなくす。
       # enforce/warn はスクリプトが規則表で決める（MODE は mode=full → enforce にだけ渡す）。
       - name: Check bundled viewer freshness (dependencies installed)
         env:
           MODE: ${{ inputs.mode }}
-        run: node scripts/m12-t5/check-viewer-freshness.mjs
+        run: node scripts/viewer-freshness/check-viewer-freshness.mjs
 
       # ── Windows の署名（2026-10-03・SAC 起動拒否への対処。仕組みは scripts/win-sign/win-sign.cjs）──
       # electron-builder のファイルごとの署名フックに、配布物に入る全 PE（アプリ本体 exe・DLL・Windows 用 .node・
       # elevate.exe・アンインストーラー・インストーラー・NSIS プラグイン DLL）を渡す。WIN_SIGN_MODE で切り替える:
       #   collect … 署名しない。全ファイルを記録し、署名するはずのものを <SHA-256>.pe で集める（push・verify・
-      #             Artifact Signing の経路。nov26-m7-t2）。キャッシュは引かない
+      #             Artifact Signing の経路）。キャッシュは引かない
       #   record  … 署名しない。記録し、署名済みキャッシュを引いて本番の署名回数の見込みを出す（eSigner の経路の予行）
       #   esigner … SSL.com CodeSignTool で本当に署名する（win_sign_path=esigner のときだけ・課金あり）
       # どの経路でも先に署名なしで 1 回作り、下の検査（コーデック・署名の網羅）を**署名の前に**通す。
@@ -400,7 +400,7 @@ jobs:
           WIN_SIGN_CACHE_URL: ${{ needs.prepare.outputs.win_sign_path == 'esigner' && format('https://github.com/{0}/releases/download/win-signed-cache', github.repository) || '' }}
         run: pnpm run dist:win
 
-      # 生成された NSIS ペイロードのコーデックを機械照合する（m19-t13）。
+      # 生成された NSIS ペイロードのコーデックを機械照合する。
       # nsis7z は解けないコーデックのエントリを**黙って落として完走する**ため、
       # 「ビルド成功 / インストーラ成功 / アプリだけが存在しない」という形で不具合が成立する
       # （v1.0.0-rc2 の arm64 で実際に起きた。MaplatEditor.exe と DLL 8 本が展開されなかった）。
@@ -412,11 +412,11 @@ jobs:
       # 課金ゼロの mode=verify と push ビルドでも走らせて日常の回帰の番人にするため。
       # ファイル名は electron-builder.config.cjs の artifactName から決定的（署名ステップと同じ）。
       #
-      # アンカー規約（m19-t13 設計 §6.2）: root 側の結線検査は、この検査ステップのスクリプトキー名
+      # アンカー規約: root 側の結線検査は、この検査ステップのスクリプトキー名
       # （または呼び先スクリプトの相対パス）に**最初に一致した行**をアンカーにする。
       # ∴ このステップより上のコメントにそれらの文字列を書かないこと（誤アンカーする）。
       - name: Verify Windows payload codec
-        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+        run: pnpm run verify:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
       # 署名の網羅の機械照合（課金の前）: インストーラーを展開し（$PLUGINSDIR/app-*.7z・アンインストーラーの中まで）、
       # 中身で判定した全 PE が署名フックに渡った（または Microsoft 署名済み）ことを記録と SHA-256 で照らし合わせる。
@@ -480,17 +480,17 @@ jobs:
 
       - name: Verify Windows payload codec (signed build)
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.prepare.outputs.win_sign_path == 'esigner'
-        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+        run: pnpm run verify:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
       # auto-update メタデータの再計算（mode=full のみ）。署名をフックへ移したため electron-builder が
       # 署名済みバイナリから latest.yml と blockmap を作っており、本来は不要（2026-10-03 に record ビルドで
       # 実測: 再計算しても latest.yml はバイト一致・blockmap は展開後の中身が一致し gzip ヘッダーの OS 欄だけ違う）。
-      # 冪等な安全網として残す（m6-t12 §2.3・AC5）
+      # 冪等な安全網として残す
       - name: Update auto-update metadata after signing
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.prepare.outputs.win_sign_path == 'esigner'
-        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}
+        run: node scripts/release/resign-update-metadata.mjs release/${{ env.VERSION }}
 
-      # ── Artifact Signing の経路（nov26-m7-t2）: 署名専用ジョブへ渡すものを並べる ──
+      # ── Artifact Signing の経路: 署名専用ジョブへ渡すものを並べる ──
       # 記録の would-sign のうち payload（*-unpacked の中・NSIS プラグイン・elevate.exe）を <SHA-256>.pe で並べる。
       # アンインストーラーとインストーラーは後の段（pack-win-1・pack-win-2）で作り直して並べる
       - name: Collect the payload to sign (Artifact Signing)
@@ -556,7 +556,7 @@ jobs:
           if-no-files-found: ignore
 
       # 新しく署名したキャッシュ対象（DLL・elevate.exe・.node・NSIS プラグイン）を、書き込み権限のある
-      # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（SR-t12-M-1）
+      # publish-win-sign-cache ジョブへ artifact で渡す。このジョブに contents: write を与えない（セキュリティレビューの指摘）
       # always(): 署名の途中でビルドが失敗しても、それまでに署名できたファイルは保管する（課金の取り直しを防ぐ。
       # 1.1.0-rc.2 の run 37125230712 で .node の署名失敗により 15 本の署名済みファイルを失った）
       - name: Count signed-file cache candidates
@@ -581,7 +581,7 @@ jobs:
   # 署名済みファイルのキャッシュを Release `win-signed-cache` の asset へ足す（mode=full のみ）
   #
   # 書き込み（asset の追加）には contents: write が要る。build-win に write を与えると、ビルド時に走る
-  # 依存ツリーの汚染がリポジトリ書き込みに直結する（SR-t12-M-1）ため、書き込みはこの専用ジョブに限る。
+  # 依存ツリーの汚染がリポジトリ書き込みに直結する（セキュリティレビューの指摘）ため、書き込みはこの専用ジョブに限る。
   # このジョブは checkout も依存の導入もせず、リポジトリのコードを 1 行も実行しない（gh CLI だけ）。
   # 取り込む側（scripts/win-sign/win-sign.cjs）は、asset を使う前に「署名を除いた中身が署名前ファイルと一致」
   # 「Authenticode が Valid」「署名者が signer-identity.json の esigner」を確かめるので、ここで改ざんされても取り込まれない。
@@ -591,7 +591,7 @@ jobs:
     needs: [prepare, build-win]
     # build-win が失敗しても、署名できた分は保管する（取り込み側が中身と署名を検証するので安全）
     # キャッシュを書くのは eSigner の退路だけ（C-4: Artifact Signing の経路はキャッシュを読まない・書かない）。
-    # always() を持つので prepare の成功も要る（nov26-m7-t4）
+    # always() を持つので prepare の成功も要る
     if: always() && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && needs.build-win.outputs.win_sign_cache_new != '0' && needs.build-win.outputs.win_sign_cache_new != '' && needs.prepare.result == 'success' && needs.prepare.outputs.win_sign_path == 'esigner'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -608,10 +608,10 @@ jobs:
           name: win-sign-cache-outbox
           path: outbox
 
-      # 上げる前の検査（nov26-m7-t4・#140 L-2）。公式の Release から配られうるファイルを、名前（win-sign.cjs の
+      # 上げる前の検査（#140 L-2）。公式の Release から配られうるファイルを、名前（win-sign.cjs の
       # assetName の形）・種類（通常のファイル）・大きさ・件数・中身の形（PE の MZ）で絞る。1 つでも外れたら
       # この step が落ち、次の upload は走らない（何も上げない）。リポジトリのコードは実行しない（shell と coreutils だけ）。
-      # 検査の振る舞いは scripts/nov26-m7-t4-cache-publish-guard-smoke.mjs がこの run: を抜き出して実行して確かめる
+      # 検査の振る舞いは scripts/cache-publish-guard-smoke.mjs がこの run: を抜き出して実行して確かめる
       - name: Check cache candidates
         shell: bash
         run: |
@@ -656,11 +656,11 @@ jobs:
           done
 
   # ─────────────────────────────────────────────
-  # Artifact Signing の経路（nov26-m7-t2・C-8）: 署名専用ジョブ 3 つと、その間の pack（依存を入れるが id-token を持たない）
+  # Artifact Signing の経路（C-8）: 署名専用ジョブ 3 つと、その間の pack（依存を入れるが id-token を持たない）
   #   build-win（payload を集める）→ sign-win-payload → pack-win-1（アンインストーラーを集める）→ sign-win-uninstaller
   #   → pack-win-2（署名済みのアンインストーラーに差し替えてインストーラーを集める）→ sign-win-installer
   #   → finalize-win（署名済みの Setup.exe・latest.yml・blockmap・網羅検査）→ verify-win-install（入れて起動して消す）
-  # 署名の受け渡しの名前は <SHA-256>.pe（.exe の名前で並べると成果物の検査器 oct26-m4-t2 (d) に当たる）
+  # 署名の受け渡しの名前は <SHA-256>.pe（.exe の名前で並べると成果物の検査器 (d) に当たる）
   # ─────────────────────────────────────────────
   # 署名専用ジョブ（payload: unpacked の PE・NSIS プラグイン・elevate.exe）。3 つの署名専用ジョブは step の列が完全に同じで、違いは下の env: のリテラル 3 つだけ
   # （smoke が step の一致を断言する）。OIDC の要求口（id-token: write）はジョブの間ずっと開いているので、リポジトリの
@@ -671,7 +671,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     environment: release
-    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない。nov26-m7-t3）
+    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない）
     permissions:
       id-token: write
     env:
@@ -685,7 +685,7 @@ jobs:
           name: ${{ env.IN_ARTIFACT }}
           path: sign-in
 
-      # 入力の検査（MIN-3）: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
+      # 入力の検査: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
       # 名前が <SHA-256>.pe・件数が 1 以上 MAX_FILES 以下・中身の SHA-256 が名前と一致・512 MiB 以下・先頭が MZ。
       # 署名の step は -Filter *.pe で直下だけを見るので「検査した集合＝署名する集合」になる。ファイルは読むだけで実行しない
       - name: Check the input
@@ -711,7 +711,7 @@ jobs:
           }
           "入力: $($items.Count) 本（上限 $max）"
 
-      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（nov26-m7-t1 の probe-sign と同じ値）
+      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（署名の下調べに使った probe-sign と同じ値）
       - name: Set up SignTool and the Artifact Signing dlib
         shell: pwsh
         env:
@@ -810,7 +810,7 @@ jobs:
             Copy-Item -LiteralPath $f.FullName -Destination (Join-Path sign-out $f.Name)
           }
           ConvertTo-Json -InputObject @($rec) -Depth 3 | Set-Content -LiteralPath (Join-Path sign-out 'signing-record.json') -Encoding utf8NoBOM
-          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる。nov26-m7-t3）
+          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる）
           $md = @("### 署名の記録（$env:GITHUB_JOB・$($rec.Count) 本）", '', '| in (署名前 SHA-256) | out (署名後 SHA-256) | status |', '|---|---|---|')
           foreach ($r in $rec) { $md += "| $($r['in']) | $($r['out']) | $($r['status']) |" }
           ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
@@ -894,7 +894,7 @@ jobs:
       - name: Apply the signed payload
         run: node scripts/win-sign/apply-signed.mjs --phase payload --manifest release/win-sign/manifest-payload.json --signed release/win-sign/signed-payload --signer artifact-signing --release-dir release/${{ env.VERSION }} --signed-dir release/win-sign/signed
 
-      # 準備の step（MAJ-1）: --prepackaged では beforePack が呼ばれないので、electron-builder の前に NSIS ツールセットを
+      # 準備の step: --prepackaged では beforePack が呼ばれないので、electron-builder の前に NSIS ツールセットを
       # 用意する（署名済みのプラグインに差し替え、ELECTRON_BUILDER_NSIS_DIR・RESOURCES_DIR を $GITHUB_ENV へ）
       - name: Prepare the NSIS toolset
         env:
@@ -943,7 +943,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     environment: release
-    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない。nov26-m7-t3）
+    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない）
     permissions:
       id-token: write
     env:
@@ -957,7 +957,7 @@ jobs:
           name: ${{ env.IN_ARTIFACT }}
           path: sign-in
 
-      # 入力の検査（MIN-3）: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
+      # 入力の検査: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
       # 名前が <SHA-256>.pe・件数が 1 以上 MAX_FILES 以下・中身の SHA-256 が名前と一致・512 MiB 以下・先頭が MZ。
       # 署名の step は -Filter *.pe で直下だけを見るので「検査した集合＝署名する集合」になる。ファイルは読むだけで実行しない
       - name: Check the input
@@ -983,7 +983,7 @@ jobs:
           }
           "入力: $($items.Count) 本（上限 $max）"
 
-      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（nov26-m7-t1 の probe-sign と同じ値）
+      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（署名の下調べに使った probe-sign と同じ値）
       - name: Set up SignTool and the Artifact Signing dlib
         shell: pwsh
         env:
@@ -1082,7 +1082,7 @@ jobs:
             Copy-Item -LiteralPath $f.FullName -Destination (Join-Path sign-out $f.Name)
           }
           ConvertTo-Json -InputObject @($rec) -Depth 3 | Set-Content -LiteralPath (Join-Path sign-out 'signing-record.json') -Encoding utf8NoBOM
-          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる。nov26-m7-t3）
+          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる）
           $md = @("### 署名の記録（$env:GITHUB_JOB・$($rec.Count) 本）", '', '| in (署名前 SHA-256) | out (署名後 SHA-256) | status |', '|---|---|---|')
           foreach ($r in $rec) { $md += "| $($r['in']) | $($r['out']) | $($r['status']) |" }
           ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
@@ -1180,7 +1180,7 @@ jobs:
       - name: Apply the signed uninstallers
         run: node scripts/win-sign/apply-signed.mjs --phase uninstaller --manifest release/win-sign/manifest-uninstaller.json --signed release/win-sign/signed-uninstaller --signer artifact-signing --release-dir release/${{ env.VERSION }} --signed-dir release/win-sign/signed
 
-      # 準備の step（MAJ-1）: --prepackaged では beforePack が呼ばれないので、electron-builder の前に NSIS ツールセットを
+      # 準備の step: --prepackaged では beforePack が呼ばれないので、electron-builder の前に NSIS ツールセットを
       # 用意する（署名済みのプラグインに差し替え、ELECTRON_BUILDER_NSIS_DIR・RESOURCES_DIR を $GITHUB_ENV へ）
       - name: Prepare the NSIS toolset
         env:
@@ -1229,7 +1229,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     environment: release
-    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない。nov26-m7-t3）
+    # contents: read も持たない（同じ run の artifact の受け渡しは runtime のトークンで行われ GITHUB_TOKEN を使わない）
     permissions:
       id-token: write
     env:
@@ -1243,7 +1243,7 @@ jobs:
           name: ${{ env.IN_ARTIFACT }}
           path: sign-in
 
-      # 入力の検査（MIN-3）: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
+      # 入力の検査: 全項目を再帰で数え、ディレクトリ・リンクが 1 つでもあれば落とす。全項目が直下のファイルで
       # 名前が <SHA-256>.pe・件数が 1 以上 MAX_FILES 以下・中身の SHA-256 が名前と一致・512 MiB 以下・先頭が MZ。
       # 署名の step は -Filter *.pe で直下だけを見るので「検査した集合＝署名する集合」になる。ファイルは読むだけで実行しない
       - name: Check the input
@@ -1269,7 +1269,7 @@ jobs:
           }
           "入力: $($items.Count) 本（上限 $max）"
 
-      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（nov26-m7-t1 の probe-sign と同じ値）
+      # 署名ツールの取得: NuGet から版と SHA-256 で固定する（署名の下調べに使った probe-sign と同じ値）
       - name: Set up SignTool and the Artifact Signing dlib
         shell: pwsh
         env:
@@ -1368,7 +1368,7 @@ jobs:
             Copy-Item -LiteralPath $f.FullName -Destination (Join-Path sign-out $f.Name)
           }
           ConvertTo-Json -InputObject @($rec) -Depth 3 | Set-Content -LiteralPath (Join-Path sign-out 'signing-record.json') -Encoding utf8NoBOM
-          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる。nov26-m7-t3）
+          # job summary にも表で書く（artifact は 1 日で消えるが、summary は run の保持期間残る＝後から監査できる）
           $md = @("### 署名の記録（$env:GITHUB_JOB・$($rec.Count) 本）", '', '| in (署名前 SHA-256) | out (署名後 SHA-256) | status |', '|---|---|---|')
           foreach ($r in $rec) { $md += "| $($r['in']) | $($r['out']) | $($r['status']) |" }
           ($md -join "`n") + "`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
@@ -1443,15 +1443,15 @@ jobs:
 
       # build-win の latest.yml（現行の配布物と同じ形）を雛形に、署名済みの Setup.exe から sha512・size・blockmap を作り直す
       - name: Update auto-update metadata (Artifact Signing)
-        run: node scripts/m6-t12/resign-update-metadata.mjs release/${{ env.VERSION }}
+        run: node scripts/release/resign-update-metadata.mjs release/${{ env.VERSION }}
 
       - name: Verify Windows signatures (Artifact Signing)
         run: node scripts/win-sign/verify-win-sign-coverage.mjs --authenticode --signer artifact-signing --summary release/win-sign/coverage-artifact-signing.json release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
       - name: Verify Windows payload codec (Artifact Signing)
-        run: pnpm run verify:m19-t13:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
+        run: pnpm run verify:win-payload-codec release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-x64-Setup.exe release/${{ env.VERSION }}/MaplatEditor-Windows-${{ env.VERSION }}-arm64-Setup.exe
 
-      # latest.yml の各 sha512 と署名済みの Setup.exe の sha512 を並べて照らす（t5 の H-B3 と t2/AC6 の材料）
+      # latest.yml の各 sha512 と署名済みの Setup.exe の sha512 を並べて照らす（更新ファイルの署名者の照合の材料）
       - name: Check latest.yml against the signed installers
         shell: pwsh
         run: |
@@ -1471,7 +1471,7 @@ jobs:
           $md -join "`n"
           if ($bad.Count -gt 0) { throw "latest.yml の sha512 が署名済みの Setup.exe と一致しない: $($bad -join ', ')" }
 
-      # 中身は両モードで同じ 3 種類（MIN-4）: Setup.exe（x64・arm64）・その blockmap・latest.yml
+      # 中身は両モードで同じ 3 種類: Setup.exe（x64・arm64）・その blockmap・latest.yml
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -1493,7 +1493,7 @@ jobs:
           if-no-files-found: ignore
 
   # 自分のアーキテクチャの Setup.exe を runner に入れ、入った全 PE の署名を確かめ、起動して 10 秒生きていることを確かめ、消す
-  # （§9.3 の機械の行）。x64 と arm64 の 2 脚（matrix。片方が落ちてももう片方の結果を残す）。
+  # （機械の行）。x64 と arm64 の 2 脚（matrix。片方が落ちてももう片方の結果を残す）。
   # 署名済みのインストーラーを実行するのは id-token を持たないこのジョブだけ。依存は入れない（Node 組み込みと pwsh・ランナーの 7-Zip だけ）。
   # x64 の脚はさらに、署名した PE の集合（署名の記録の積み直し win-signing-records-*）と Setup.exe 2 本の中身を突き合わせる
   # （判定 A: 署名したのに配布物に無い PE が無い・判定 B: 配布物の Microsoft 以外の署名の PE がすべて署名した集合にある）
@@ -1574,7 +1574,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # ビルド時に走る依存ツリーへトークンを渡さない（SR-t12-M-1 の多層防御）
+          # ビルド時に走る依存ツリーへトークンを渡さない（セキュリティレビューの指摘による多層防御）
           persist-credentials: false
           # #104: 全 checkout を expected_editor_sha へ固定（push では空のため既定 ref へフォールバック）
           ref: ${{ inputs.expected_editor_sha }}
@@ -1582,7 +1582,7 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           # ローカル開発と同じ pnpm 11 系にメジャー固定（latest 追従による突然の挙動変化を防ぐ）。
-          # overrides は m1-t2 で不要と実測し撤去。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
+          # overrides は不要と実測して撤去した。allowBuilds は必要なため ci/pnpm-workspace.ci.yaml へ分離した
           version: 11
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -1591,21 +1591,21 @@ jobs:
           cache: pnpm
 
       # pnpm 11 は allowBuilds を pnpm-workspace.yaml からしか読まない。ローカルでは同ファイルが
-      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する（m1-t2）
+      # workspace ルート誤認を起こすためリポジトリ直下には置かず、CI でのみ展開する
       - name: Apply CI-only pnpm config
         run: cp ci/pnpm-workspace.ci.yaml pnpm-workspace.yaml
 
       - name: Install dependencies
         run: pnpm install
 
-      # oct26-m12-t5a（FIX3）: pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
+      # pnpm install の直後に、依存ありの完全検査（A1〜A5・中身で判定）を
       # 実行する。prepare の依存なし分岐は同梱ビューアの中身しか見られないため、依存の実体
       # （node_modules）の中身で新しさを判定する本 step を各 build ジョブに置き、素通り経路をなくす。
       # enforce/warn はスクリプトが規則表で決める（MODE は mode=full → enforce にだけ渡す）。
       - name: Check bundled viewer freshness (dependencies installed)
         env:
           MODE: ${{ inputs.mode }}
-        run: node scripts/m12-t5/check-viewer-freshness.mjs
+        run: node scripts/viewer-freshness/check-viewer-freshness.mjs
 
       - name: Install Linux build dependencies
         run: sudo apt-get install -y rpm
@@ -1627,7 +1627,7 @@ jobs:
   release:
     needs: [prepare, build-mac, build-win, build-linux, finalize-win, verify-win-install]
     # draft Release は完全ビルドを全プラットフォーム揃えたときだけ作る。Artifact Signing の経路では、入れて起動して
-    # 消せることを確かめた成果物だけを上げる（verify-win-install の success を要る。MIN-2）。eSigner の経路では
+    # 消せることを確かめた成果物だけを上げる（verify-win-install の success を要る）。eSigner の経路では
     # finalize-win・verify-win-install は skipped（!cancelled() で skipped の needs を許したうえで、各結果を明示する）
     if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.build-mac.result == 'success' && needs.build-win.result == 'success' && needs.build-linux.result == 'success' && ((needs.finalize-win.result == 'success' && needs.verify-win-install.result == 'success') || (needs.prepare.outputs.win_sign_path == 'esigner' && needs.finalize-win.result == 'skipped' && needs.verify-win-install.result == 'skipped')) && github.event_name == 'workflow_dispatch' && inputs.mode == 'full' && inputs.platforms == 'all' }}
     runs-on: ubuntu-latest

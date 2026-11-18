@@ -3,7 +3,7 @@
 //   **PWA アイコン用の画像**（manifestSettings.iconSource）から作る。スプラッシュ画像からは作らない。
 //
 // 確かめること:
-//   (1) 書き出した zip の pwa/{appID}/ は基準（scripts/fixtures/nov26-rc-editor174-pwa-baseline.json）の
+//   (1) 書き出した zip の pwa/{appID}/ は基準（scripts/fixtures/pwa-baseline.json）の
 //       54 枚そろう（favicon-196.png・mstile-icon-* が含まれる）
 //   (2) apple-splash の中央の画素が **アイコン元画像の色**（スプラッシュ画像の色ではない）
 //   (3) 「PWA アイコン用の画像」に SVG を登録できる（拡張子フィルタ・縦横比を問わない・
@@ -22,7 +22,7 @@ import { dismissOperationNotice, readOperationNotice } from './helpers/operation
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
 
 const APP_ID = 'nov26-pwa-icon-source-app';
-const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/nov26-rc-editor174-pwa-baseline.json');
+const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/pwa-baseline.json');
 /** アイコンの色（赤）。スプラッシュ（青）・背景色と区別できる色を選ぶ */
 const ICON = { r: 255, g: 0, b: 0 };
 /** スプラッシュ画像の色（青）。apple-splash にこの色が出たら「スプラッシュから描いている」 */

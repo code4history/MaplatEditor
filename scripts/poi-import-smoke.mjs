@@ -24,7 +24,7 @@ try {
   const ipcSrc = await read('electron/ipc/poisource.ts');
   const preloadSrc = await read('electron/preload.ts');
   const typesSrc = await read('src/electron.d.ts');
-  const guardSrc = await read('scripts/oct26-m4-t2-ipc-guard-smoke.mjs');
+  const guardSrc = await read('scripts/ipc-guard-smoke.mjs');
   const editSrc = await read('src/views/PoiEdit.vue');
 
   // ---------- 静的検査の部品 ----------
@@ -86,7 +86,7 @@ try {
     console.log('  case a (書き出しの IPC の結線): PASS');
   }
 
-  // ---------- AC16(e): ハンドラの窓の変異試験 ----------
+  // ---------- case 16(e): ハンドラの窓の変異試験 ----------
   {
     const padded = (body) => `ipc.handle('x:y', (event, uid, format) => {\n${'  // 長いハンドラの注記 ) ( } {\n'.repeat(300)}  const s = "文字列の ) ( 括弧";\n${body}\n});\nipc.handle('z', () => 1);`;
     assert.equal(handlerUses(padded('  dialog.showSaveDialog(options);'), 'x:y', 'showSaveDialog'), true, 'ハンドラを長くしても検査が通る');
@@ -98,7 +98,7 @@ try {
     console.log('  case b (ハンドラの窓の検査に変異を当てる): PASS');
   }
 
-  // ---------- 取り込みの IPC の結線 (AC7) ----------
+  // ---------- 取り込みの IPC の結線  ----------
   {
     assert.match(ipcSrc, /ipc\.handle\(\s*'poisource:pickAndParseMerge'/, 'pickAndParseMerge が ipc.handle で登録されていない');
     assert.match(ipcSrc, /runGuarded\(\s*'poisource:pickAndParseMerge'/, 'pickAndParseMerge が runGuarded で包まれていない');
@@ -199,7 +199,7 @@ try {
     console.log('  case o (エクスポートの選択ダイアログ): PASS');
   }
 
-  // ---------- 確定時の再確認 (r5 Minor-3) ----------
+  // ---------- 確定時の再確認（レビューの指摘） ----------
   {
     const at = editSrc.indexOf('function onMergeImportSubmit');
     assert.ok(at >= 0, 'onMergeImportSubmit がない');
@@ -240,7 +240,7 @@ try {
   const keyOf = (i) => `${i.line}:${i.code}:${i.level}`;
   const codes = (r) => r.issues.map((i) => i.code);
 
-  // ---------- AC4: デモ B の解析 ----------
+  // ---------- case 4: デモ B の解析 ----------
   {
     const bytes = new Uint8Array(await readFile(path.join(fixtureDir, 'demo-errors.csv')));
     const r = parse(bytes);
@@ -250,7 +250,7 @@ try {
     assert.equal(r.totalRecords, 7);
     assert.deepEqual(r.issues.map(keyOf).sort(), [
       '3:coord-range:error',
-      '4:coordinate-partial:warning', // a-3 は lng だけに値がある (設計 §4.9 の警告。AC4 の表からは漏れていた)
+      '4:coordinate-partial:warning', // a-3 は lng だけに値がある (警告。case 4 の表からは漏れていた)
       '5:file-duplicate-id:error',
       '6:display-id-charset:error',
       '7:image-dropped:warning',
@@ -265,10 +265,10 @@ try {
     assert.deepEqual(plan.issues.map(keyOf).sort(), ['4:coord-missing:error', '8:name-required:error']);
     assert.equal(plan.features.length, 2);
     assert.equal(r.totalRecords - plan.features.length, 5, '除かれるのは 5 件');
-    console.log('  case f (AC4: デモ B の解析と合流): PASS');
+    console.log('  case f (case 4: デモ B の解析と合流): PASS');
   }
 
-  // ---------- AC4: 列の定義 ----------
+  // ---------- case 4: 列の定義 ----------
   {
     // 別名・NFKC・大文字小文字
     const r = parse('ID,名称,説明,住所,画像,緯度,経度\r\na,n,d,ad,https://x/1.jpg,35.5,139.5\r\n');
@@ -329,10 +329,10 @@ try {
     const px = parse('id,name,lat,lng,x,Y,pixel_x\r\na,n,1,2,10,20,30\r\n');
     assert.ok(px.issues.some((i) => i.code === 'pixel-coordinates-ignored' && i.level === 'warning'));
     assert.ok(!px.columns.includes('x'));
-    console.log('  case g (AC4: 列の定義): PASS');
+    console.log('  case g (case 4: 列の定義): PASS');
   }
 
-  // ---------- AC4: 数値・値の形・警告 ----------
+  // ---------- case 4: 数値・値の形・警告 ----------
   {
     const coord = (lat, lng) => parse(`id,name,lat,lng\r\na,n,${lat},${lng}\r\n`);
     const ok = (lat, lng, expected) => {
@@ -402,10 +402,10 @@ try {
     assert.equal(stripped[0].message, '5');
     // lat・lng には無害化を戻さない (数値の列)
     assert.equal(parse("id,name,lat,lng\r\na,n,'+1,2\r\n").issues[0].code, 'coord-format');
-    console.log('  case h (AC4: 値の形・警告): PASS');
+    console.log('  case h (case 4: 値の形・警告): PASS');
   }
 
-  // ---------- AC4: 上限 ----------
+  // ---------- case 4: 上限 ----------
   {
     const many = 'id,name,lat,lng\r\n' + Array.from({ length: 20001 }, (_, i) => `i${i},n,1,2`).join('\r\n') + '\r\n';
     const r = parse(many);
@@ -425,10 +425,10 @@ try {
     assert.ok(codes(parse(Uint8Array.from([0xff, 0xfe, 0x69, 0x00]))).includes('encoding-unsupported'));
     assert.ok(codes(parse(enc('id,name\u0000'))).includes('not-text'));
     assert.equal(parse(Uint8Array.from([0xff, 0xfe, 0x69, 0x00])).encoding, null);
-    console.log('  case i (AC4: 上限・致命的な誤り): PASS');
+    console.log('  case i (case 4: 上限・致命的な誤り): PASS');
   }
 
-  // ---------- AC7(c)(d): 取り込みの IPC 本体 ----------
+  // ---------- case 7(c)(d): 取り込みの IPC 本体 ----------
   {
     const dir = path.join(workDir, 'files');
     await mkdir(dir, { recursive: true });
@@ -481,10 +481,10 @@ try {
     for (const lang of ['ja', 'en', 'de', 'fr', 'es', 'ko', 'zh', 'zh-TW', 'vi', 'th', 'id']) {
       assert.equal((await run({ lang }, fileOk)).result, 'Parsed', lang);
     }
-    console.log('  case j (AC7: 取り込みの IPC 本体): PASS');
+    console.log('  case j (case 7: 取り込みの IPC 本体): PASS');
   }
 
-  // ---------- AC15: 新しいソースを作る取り込み ----------
+  // ---------- case 15: 新しいソースを作る取り込み ----------
   {
     const svc = await read('electron/services/PoiSourceService.ts');
     const importAt = svc.indexOf('async importFile(');
@@ -544,14 +544,14 @@ try {
       assert.equal(await service.detectImportLanguage(fx('names-utf8.csv'), 'en'), 'en');
       assert.equal(await service.detectImportLanguage(fx('names-utf8.csv')), 'ja');
 
-      // (c) §8.1 の CSV: temple-1 の行が新しい POI の必須を満たさない -> 全件か拒否
+      // (c) 取り込みの統合の CSV: temple-1 の行が新しい POI の必須を満たさない -> 全件か拒否
       const merge = await service.importFile({ slug: 'csv-merge', title: { ja: 'm' }, filePath: fx('demo-merge.csv'), lang: 'ja' });
       assert.equal(merge.result, 'Invalid', JSON.stringify(merge));
       assert.ok(keys(merge.issues).includes('name-required:error'));
       assert.ok(keys(merge.issues).includes('coord-missing:error'));
       assert.equal(await service.get('csv-merge'), null, 'Invalid では行を残さない');
 
-      // §8.2 の CSV: Invalid で issues が parse.issues + plan.issues
+      // 不正な行を含む CSV: Invalid で issues が parse.issues + plan.issues
       const errors = await service.importFile({ slug: 'csv-errors', title: { ja: 'e' }, filePath: fx('demo-errors.csv'), lang: 'ja' });
       assert.equal(errors.result, 'Invalid');
       const got = keys(errors.issues).sort();
@@ -565,7 +565,7 @@ try {
       assert.equal(fatalCsv.result, 'Invalid');
       assert.ok(keys(fatalCsv.issues).includes('missing-columns:error'));
 
-      // 有効な CSV (§8.3): 3 つの文字コードとも Success・名前は同じ
+      // 有効な CSV: 3 つの文字コードとも Success・名前は同じ
       for (const [slug, file] of [['csv-bom', 'names-utf8bom.csv'], ['csv-utf8', 'names-utf8.csv'], ['csv-sjis', 'names-sjis.csv']] as const) {
         const ok = await service.importFile({ slug, title: { ja: slug }, filePath: fx(file), lang: 'ja' });
         assert.equal(ok.result, 'Success', file + ' ' + JSON.stringify(ok));
@@ -576,7 +576,7 @@ try {
         assert.deepEqual(detail.fc.features[0].geometry.coordinates, [139.7745, 35.684]);
         assert.match(detail.fc.features[0].properties._maplatUid, /^[0-9a-f-]{36}$/);
       }
-      // KML (AC15 の KML 版): デモ D は経緯度が逆の Point があり Invalid。有効な KML は Success。壊れた KML は Invalid
+      // KML (case 15 の KML 版): デモ D は経緯度が逆の Point があり Invalid。有効な KML は Success。壊れた KML は Invalid
       assert.equal(await service.detectImportLanguage(fx('demo.kml'), 'en'), 'en');
       assert.equal(await service.detectImportLanguage(fx('demo.kml')), 'ja');
       const kmlBad = await service.importFile({ slug: 'kml-demo', title: { ja: 'k' }, filePath: fx('demo.kml'), lang: 'ja' });
@@ -620,10 +620,10 @@ try {
     });
     process.stdout.write(stdout);
     if (stderr) process.stderr.write(stderr);
-    console.log('  case k (AC15: 新しいソースを作る取り込み): PASS');
+    console.log('  case k (case 15: 新しいソースを作る取り込み): PASS');
   }
 
-  // ---------- AC18: PR-3 の結線 ----------
+  // ---------- case 18: PR-3 の結線 ----------
   {
     const listFiles = async (dir) => {
       const out = [];
@@ -698,13 +698,13 @@ try {
     const mergeHandler = extractHandler(ipcSrc, 'poisource:pickAndParseMerge');
     assert.match(mergeHandler, /extensions:\s*\['csv', 'kml'\]/, 'pickAndParseMerge の filters が csv・kml でない');
     const pkg = JSON.parse(await read('package.json'));
-    // (AC7(e)) xmldom は dependencies に 0.8.15 の完全一致
+    // (case 7(e)) xmldom は dependencies に 0.8.15 の完全一致
     assert.equal(pkg.dependencies['@xmldom/xmldom'], '0.8.15', '@xmldom/xmldom は 0.8.15 の完全一致');
     assert.equal(pkg.devDependencies?.['@xmldom/xmldom'], undefined);
     const lock = await read('pnpm-lock.yaml');
     const importers = lock.slice(lock.indexOf('\nimporters:'), lock.indexOf('\npackages:'));
     assert.match(importers, /\n {6}'@xmldom\/xmldom':\n {8}specifier: 0\.8\.15\n {8}version: 0\.8\.15\n/, 'lock の importers に xmldom がない');
-    console.log('  case m (AC18・AC7(e): 唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
+    console.log('  case m (case 18・case 7(e): 唯一の入口・xmldom の置き場所・事前走査の順序・共有の実装): PASS');
   }
 
   // ---------- PR-2 の実装レビュー m-1: 取り込み後の「N 件追加」の表示を、Undo・保存の後に残さない ----------
@@ -790,7 +790,7 @@ try {
     console.log('  case p (エクスポートの統合の文言・11 言語): PASS');
   }
 
-  // ---------- 文言 (AC10) ----------
+  // ---------- 文言  ----------
   {
     const WORDS = {
       ja: ['設定'], en: ['setting'], de: ['einstellung'], fr: ['paramètre', 'réglage'],

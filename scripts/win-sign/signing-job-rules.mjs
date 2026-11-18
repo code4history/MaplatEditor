@@ -1,7 +1,7 @@
 /**
- * nov26-m7-t1: 署名専用ジョブ（Azure Artifact Signing・OIDC の id-token を持つジョブ）の規則の正本。
+ * 署名専用ジョブ（Azure Artifact Signing・OIDC の id-token を持つジョブ）の規則の正本。
  *
- * t1 の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、t2 で入る署名専用ジョブが
+ * 以前の疎通ジョブ（probe-sign。疎通の workflow は撤去済み）と、署名の経路の導入で入った署名専用ジョブが
  * **同じ規則で検査される**ように、規則をこの 1 か所に置く。各 smoke は自前で規則を書き直さず、ここを呼ぶ。
  *
  * 署名専用ジョブは OIDC の要求口（id-token: write）をジョブの間ずっと持つ。そのため:
@@ -13,23 +13,23 @@
  *   - 入力（署名する PE）を実行しない。& で呼んでよいのは $env:SIGNTOOL だけ。run: の shell は pwsh に限る
  *     （拒否リストは完全にできないので、shell を 1 つに絞り、& の対象を許可リストにしたうえで、既知の起動手段
  *     〔Start-Process・Invoke-Item・ii・[Diagnostics.Process]::Start・Start-Job・powershell -・cmd /c 等〕と、
- *     ワークスペースの絶対パスから入力のディレクトリを指す形を拒む。nov26-m7-t2・B24-MIN-2）
+ *     ワークスペースの絶対パスから入力のディレクトリを指す形を拒む）
  *   - permissions は { id-token: write } だけ（contents: read も持たない。同じ run の artifact の受け渡しは runtime の
- *     トークンで行われ GITHUB_TOKEN を使わない。nov26-m7-t3）
+ *     トークンで行われ GITHUB_TOKEN を使わない。）
  *   - 署名の記録（signing-record.json）を job summary にも表で書く（artifact は 1 日で消えるが summary は run と同じだけ残る。
- *     probe は除く。nov26-m7-t3 規則 11）
- *   - & の対象 $env:SIGNTOOL・/dlib の $env:DLIB を付け替えさせない（NOV26-M7T2-B31-MIN2 の E1〜E4。nov26-m7-t3 規則 12〜14）:
+ *     probe は除く。規則 11）
+ *   - & の対象 $env:SIGNTOOL・/dlib の $env:DLIB を付け替えさせない（レビューで挙げた E1〜E4。規則 12〜14）:
  *     SIGNTOOL・DLIB への代入（$env:X = ・Set-Item env:X・SetEnvironmentVariable）と step の env: での上書きを拒む。
  *     GITHUB_ENV へ書いてよいのは NuGet の step（ちょうど 1 つ）の SIGNTOOL・DLIB と、許可した名前（UNSIGNED_SHA256）だけで、
  *     行の頭がリテラルの "名前= でなければ拒む。GITHUB_PATH は誰にも書かせない。ドット・ソース（. <パス>）と
  *     Diagnostics.Process（New-Object・::new・::Start）を拒む。
  *     判定の前にバッククォートの継続行を畳む。Env:\X・Env:/X（プロバイダーのパス）も代入とみなす。GITHUB_ENV へ書く値は
- *     "$($変数[0].FullName)"（NuGet）か "$変数"（それ以外）だけで、その step は改行を作る書き方を持たない（B41 MAJ-2）
+ *     "$($変数[0].FullName)"（NuGet）か "$変数"（それ以外）だけで、その step は改行を作る書き方を持たない
  *
  * checkSigningJob(jobName, job, opts?) → string[]（違反の一覧。空なら合格）
  *   opts.requireSummary（既定: jobName !== 'probe-sign'）… 規則 11 を課すか
- * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて m10 の PIN か）
- * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う（nov26-m7-t2・B24-MIN-1）
+ * checkPnpmPin(workflowText) → string[]（pnpm/action-setup の行がすべて固定した版の PIN か）
+ * secretRefs(value) / hasSecretRef(value) → secrets の参照（名前・丸渡し）を拾う
  */
 
 export const ENDPOINT = 'https://jpe.codesigning.azure.net';
@@ -44,17 +44,17 @@ export const ALLOWED_SECRETS = ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUB
 export const PROTECTED_ENV = ['SIGNTOOL', 'DLIB'];
 /** NuGet の step 以外が GITHUB_ENV へ書いてよい名前（probe の入力の SHA-256） */
 export const GITHUB_ENV_ALLOWED = ['UNSIGNED_SHA256'];
-/** NuGet の step が GITHUB_ENV へ書く値の形（"SIGNTOOL=$($signtool[0].FullName)"）。B41 MAJ-2 */
+/** NuGet の step が GITHUB_ENV へ書く値の形（"SIGNTOOL=$($signtool[0].FullName)"）。*/
 const GITHUB_ENV_NUGET_VALUE_RE = /^\$\(\$[A-Za-z_][A-Za-z0-9_]*\[0\]\.FullName\)$/;
-/** NuGet 以外の step が GITHUB_ENV へ書く値の形（"UNSIGNED_SHA256=$sha"）。B41 MAJ-2 */
+/** NuGet 以外の step が GITHUB_ENV へ書く値の形（"UNSIGNED_SHA256=$sha"）。*/
 const GITHUB_ENV_ALLOWED_VALUE_RE = /^\$[A-Za-z_][A-Za-z0-9_]*$/;
-/** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。B41 MAJ-2 */
+/** 改行を作る PowerShell の書き方（`n・`r・`u{…}・[char]・[Environment]::NewLine・here-string @" @'）。*/
 const NEWLINE_MAKER_RE = /`[nru]|\[char\]|NewLine|@["']/i;
 
-/** 署名専用ジョブが受け取る入力のディレクトリ（t1 は probe-in・t2 は sign-in） */
+/** 署名専用ジョブが受け取る入力のディレクトリ（疎通ジョブは probe-in・署名専用ジョブは sign-in） */
 export const INPUT_DIRS = ['probe-in', 'sign-in'];
 
-/** コマンド位置のパッケージマネージャ・JS 実行系（m6-t12 AC11 の正規表現に yarn|bun を足したもの） */
+/** コマンド位置のパッケージマネージャ・JS 実行系（リリースのワークフローの検査の正規表現に yarn|bun を足したもの） */
 const RUNTIME_RE = /(^|[\s;&|(])(pnpm|npm|npx|node|yarn|bun)\s/m;
 /** owner/repo[/path]@<40 桁 hex> */
 const PINNED_USES_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\/[A-Za-z0-9_./-]+)?@[0-9a-f]{40}$/;
@@ -107,7 +107,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
   const v = [];
   if (!job || typeof job !== 'object') return [`${jobName}: ジョブが無い`];
 
-  // 1. permissions は { id-token: write } と完全一致（nov26-m7-t3: contents: read も外す）
+  // 1. permissions は { id-token: write } と完全一致（contents: read も外す）
   const perm = job.permissions;
   const permKeys = perm && typeof perm === 'object' ? Object.keys(perm) : [];
   if (!(permKeys.length === 1 && permKeys[0] === 'id-token' && perm['id-token'] === 'write')) {
@@ -127,7 +127,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
   // ジョブ全体（steps 以外）で secrets を参照しない（env: 等で全 step へ配らない）
   const { steps: rawSteps, ...rest } = job;
   if (hasSecretRef(rest)) v.push(`${jobName}: ジョブレベルで secrets を参照している`);
-  // github.token を参照しない（署名ジョブは GitHub に何も書かない・読まない。B24-Info-5）
+  // github.token を参照しない（署名ジョブは GitHub に何も書かない・読まない。B24-）
   if (GITHUB_TOKEN_RE.test(allStrings(job))) v.push(`${jobName}: github.token を参照している`);
   const defaultShell = job.defaults?.run?.shell;
 
@@ -237,7 +237,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
       summarySteps++;
     }
 
-    // 規則 12〜14 は、PowerShell のバッククォートの継続行（行末の ` ＋改行）を空白へ畳んでから判定する（B41 MAJ-2）
+    // 規則 12〜14 は、PowerShell のバッククォートの継続行（行末の ` ＋改行）を空白へ畳んでから判定する
     const folded = run.replace(/`[ \t]*\r?\n/g, ' ');
 
     // 12. SIGNTOOL・DLIB を付け替えない（E1）
@@ -246,7 +246,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
     }
     for (const [re, what] of [
       [/\$\{?env:(SIGNTOOL|DLIB)\}?\s*(\+|-|\?\?)?=(?!=)/i, '$env:SIGNTOOL・DLIB への代入'],
-      // Env:\SIGNTOOL・Env:/DLIB（プロバイダーの正規のパス）も同じ（B41 MAJ-2）
+      // Env:\SIGNTOOL・Env:/DLIB（プロバイダーの正規のパス）も同じ
       [/(^|[^$\w{])env:[\\/]?(SIGNTOOL|DLIB)\b/im, 'env: ドライブの SIGNTOOL・DLIB（Set-Item 等）'],
       [/SetEnvironmentVariable/i, 'SetEnvironmentVariable'],
       [/Set-Variable|(^|[\s;|(])(sv|set)\s/im, 'Set-Variable'],
@@ -255,7 +255,7 @@ export function checkSigningJob(jobName, job, opts = {}) {
     }
 
     // 13. GITHUB_ENV・GITHUB_PATH（E2）: NuGet の step の SIGNTOOL・DLIB と、許可した名前だけ・行の頭はリテラルの "名前=
-    //     値の文字種も絞る（B41 MAJ-2: 許可した形の値に `n・$([char]10) 等で改行を入れて別の名前の行を足させない）:
+    //     値の文字種も絞る（許可した形の値に `n・$([char]10) 等で改行を入れて別の名前の行を足させない）:
     //     NuGet の step は "$($変数[0].FullName)"、それ以外は "$変数" だけ。さらに GITHUB_ENV へ書く step は、
     //     改行を作る書き方（`n・`r・[char]・NewLine・here-string）を持たない（変数に改行を仕込ませない）
     const isNuget = /nuget\.org/i.test(run);
@@ -299,7 +299,7 @@ export function checkPnpmPin(workflowText) {
     if (!line.includes('pnpm/action-setup@')) return;
     const m = line.match(/pnpm\/action-setup@([^\s#'"]+)/);
     if (!m || `pnpm/action-setup@${m[1]}` !== PNPM_PIN) {
-      v.push(`${i + 1} 行: pnpm/action-setup が m10 の PIN でない: ${line.trim()}`);
+      v.push(`${i + 1} 行: pnpm/action-setup が固定した PIN でない: ${line.trim()}`);
     }
   });
   return v;

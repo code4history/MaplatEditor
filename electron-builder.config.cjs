@@ -1,6 +1,6 @@
 // electron-builder 設定ファイル
 //
-// 署名の判定ロジック（m6-t12 §2.3/§2.4）:
+// 署名の判定ロジック:
 //   macOS 署名のみ: MAC_SIGN=true で Hardened Runtime 付き署名（公証なし）
 //   macOS 署名+公証: APPLE_ID 環境変数が設定されている場合（リリース用）
 //   Windows: 配布物に入る全 PE（exe・dll・Windows 用 .node・elevate.exe・アンインストーラー・
@@ -14,8 +14,8 @@
 
 // Windows NSIS ペイロードの圧縮フィルタは electron-builder 26.15.6 以降が BCJ に固定する
 // （上流 #9988・v26 への backport #9989。環境変数では変えられない）。
-// m19-t13 の回避策（BCJ2 の指定）は nov26-m6-t2 で撤去した。生成物の検査は
-// scripts/m19-t13/verify-win-payload-codec.mjs（G2）。
+// 以前の回避策（BCJ2 の指定）は Electron 43 への更新で撤去した。生成物の検査は
+// scripts/win-payload/verify-win-payload-codec.mjs（G2）。
 
 // Windows: 全 PE 署名（2026-10-03・SAC 起動拒否への対処。詳細は scripts/win-sign/win-sign.cjs 冒頭）
 const winSign = require('./scripts/win-sign/win-sign.cjs');
@@ -24,7 +24,7 @@ const winSignEnabled = winSign.getMode() !== 'off';
 // app-builder-lib が NSIS の言語メッセージ 2 ファイルを並行に取り込む順を固定する。詳細は nsis-message-order.cjs 冒頭
 if (winSignEnabled) require('./scripts/win-sign/nsis-message-order.cjs').install();
 
-// 自動更新（nov26-m7-t5・#141）: Windows の更新ファイルの署名者を electron-updater が照らす publisherName。
+// 自動更新（#141）: Windows の更新ファイルの署名者を electron-updater が照らす publisherName。
 // 正本は scripts/win-sign/signer-identity.json の artifact-signing.publisherSubject（Get-AuthenticodeSignature の
 // SignerCertificate.Subject の文字列そのもの）。**加工しない**: electron-updater は builder-util-runtime の parseDn で
 // 両側を読み、キー名を正規化せずに全キーの値を比べる（S と ST は別のキー・値は 1 文字も変えられない）。
@@ -44,7 +44,7 @@ const config = {
         output: 'release/${version}',
         buildResources: 'build',
     },
-    // 自動更新の更新元（nov26-m7-t5）。ビルドは --publish never のまま（公開はしない）。この設定は electron-builder が
+    // 自動更新の更新元。ビルドは --publish never のまま（公開はしない）。この設定は electron-builder が
     // resources/app-update.yml を書くために要る。publisherName を win.signtoolOptions に置かないのは、そこが
     // WIN_SIGN_MODE=off で消え、CN だけ（または無し）に落ちるため（app-builder-lib の PublishManager は
     // publish の publisherName を先に使う）。publisherName は Windows（NsisUpdater）だけが読む
@@ -57,7 +57,7 @@ const config = {
             publisherName: [signerIdentity['artifact-signing'].publisherSubject],
         },
     ],
-    // m1-t2: 内部パッケージ（@maplat/* / @c4h/*）は outer の pnpm workspace により
+    // 内部パッケージ（@maplat/* / @c4h/*）は 親の作業場所の pnpm workspace により
     // 兄弟リポジトリの作業ディレクトリへ symlink 解決される。electron-builder は
     // その実体を丸ごと収集するため、各リポジトリの package.json の files 指定
     // （publish 時のみ有効）では防げず、public/ docs/ spec/ e2e/ dist-demo/ や
@@ -90,7 +90,7 @@ const config = {
         icon: 'build/icon.icns',
         target: [
             { target: 'dmg', arch: ['x64', 'arm64'] },
-            // 自動更新（Squirrel.Mac）は zip を要る（nov26-m7-t5）。名前は下の artifactName（MaplatEditor-Mac-<版>-<arch>.zip）
+            // 自動更新（Squirrel.Mac）は zip を要る。名前は下の artifactName（MaplatEditor-Mac-<版>-<arch>.zip）
             { target: 'zip', arch: ['x64', 'arm64'] },
         ],
         artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
@@ -101,7 +101,7 @@ const config = {
         // 自前の公証は明示的に止める。**false を省略できない**: electron-builder 24.13.3 は
         // APPLE_ID を env に見つけると notarizeIfProvided を起動し、mac.notarize が未定義だと
         // macPackager.js:501 の `const { appBundleId, ascProvider } = options` が undefined を
-        // 分解して落ちる（m6-t12 AC7 の初回実走で実測。回帰止めは AC9）。
+        // 分解して落ちる（成果物の SHA の照合の初回実走で実測。回帰止めは release-workflow-smoke）。
         // 仮に落ちなくても afterSign と二重に公証してしまう
         notarize: false,
         ...(isMacSigning && {
@@ -155,7 +155,7 @@ const config = {
         perMachine: false,
         allowToChangeInstallationDirectory: true,
         deleteAppDataOnUninstall: false,
-        // arch 別 2 本（x64 / arm64）のみを配布する。統合版（arch 無し）は生成しない（m1-t4）。
+        // arch 別 2 本（x64 / arm64）のみを配布する。統合版（arch 無し）は生成しない。
         // 2 本の .exe 名は artifactName テンプレート由来であり、この設定では変わらない。
         buildUniversalInstaller: false,
     },

@@ -6,7 +6,7 @@
 //       fixture のアプリは 7 つ:
 //         N1 tms だけ / N2 builtin の osm だけ / N3 maplat の地図だけ /
 //         N4 tms ＋ PWA・キャッシュ・overlay 等の httpSettings を有効にしたもの /
-//         M1 Mapbox だけ / L1 MapLibre だけ / B1 MapLibre と Mapbox の両方
+//         Mapbox だけ / L1 MapLibre だけ / B1 MapLibre と Mapbox の両方
 //
 // 各アプリを、版の値（文書の最上位の maplibreMajorVersion）が 無い・5・6 の 3 通りで書き出す。
 // `--dump <dir>` を付けると、各アプリの書き出しの index.html とプレビューの HTML（版ごとに 14 個）を
@@ -207,7 +207,7 @@ try {
       const V5_JS_SRI = 'sha384-1qC0PnXk2fgMDybOtZF1ui4LM5Sxm7o0TbEkwfxTTVdlZvuNENNGCKUub7d644HP';
       const V5_CSS_SRI = 'sha384-gNYNsUmuZqDYiT3gbirWTV5K7rt71RoveS/yXAaU09d4ZUmeDVTD3XoqB6uJAIFR';
 
-      check('AC1 ピン留め版: MapLibre は 5 系 5.6.2 と 6 系、Mapbox は 3 系の 3.33.0 以上。URL に版が入り、SRI は sha384 の 64 字', () => {
+      check('case 1 ピン留め版: MapLibre は 5 系 5.6.2 と 6 系、Mapbox は 3 系の 3.33.0 以上。URL に版が入り、SRI は sha384 の 64 字', () => {
         assert.equal('maplibre' in PIN, false, 'どちらの版かを名前で示さない PROVIDER_GL_CDN.maplibre が残っている');
         const m5 = PIN.maplibre5, m = PIN.maplibre6, b = PIN.mapbox;
         assert.ok(m5 && m, 'maplibre5・maplibre6 が無い');
@@ -224,7 +224,7 @@ try {
         assert.equal(gl.MAPLIBRE_IMPORT_SPECIFIER, 'maplibre-gl');
       });
 
-      check('AC16 resolveMaplibreMajor は最上位の 6 だけを 6 とし、無い・5・"6"・7・null・httpSettings の中の 6 を 5 とする', () => {
+      check('case 16 resolveMaplibreMajor は最上位の 6 だけを 6 とし、無い・5・"6"・7・null・httpSettings の中の 6 を 5 とする', () => {
         assert.equal(typeof gl.resolveMaplibreMajor, 'function', 'resolveMaplibreMajor が無い');
         assert.equal(gl.resolveMaplibreMajor({ maplibreMajorVersion: 6 }), 6);
         for (const doc of [{}, { maplibreMajorVersion: 5 }, { maplibreMajorVersion: '6' }, { maplibreMajorVersion: 7 }, { maplibreMajorVersion: null }, { httpSettings: { maplibreMajorVersion: 6 } }, null, undefined]) {
@@ -232,7 +232,7 @@ try {
         }
       });
 
-      check('AC2 MapLibre の断片: 6 なら link と import map の 2 行、5 なら 5.6.2 の link と <script src> の 2 行', () => {
+      check('case 2 MapLibre の断片: 6 なら link と import map の 2 行、5 なら 5.6.2 の link と <script src> の 2 行', () => {
         const m = PIN.maplibre6;
         const frag = gl.renderProviderGlCdnTags(new Set(['maplibre']), 6);
         const importmap = JSON.stringify({ imports: { 'maplibre-gl': m.module }, integrity: { [m.module]: m.moduleIntegrity } });
@@ -248,7 +248,7 @@ try {
           '  <script src="' + V5_JS + '" integrity="' + V5_JS_SRI + '" crossorigin="anonymous"></script>\\n');
       });
 
-      check('AC3(a) 起動スクリプト: MapLibre を含まない集合と、5 を選んだときは従来の <script>。断片は空集合で空', () => {
+      check('case 3(a) 起動スクリプト: MapLibre を含まない集合と、5 を選んだときは従来の <script>。断片は空集合で空', () => {
         const body = '    var option = {};\\n    MaplatApp.createObject(option);';
         assert.equal(typeof gl.renderViewerStartupScript, 'function', 'renderViewerStartupScript が無い');
         for (const major of [5, 6]) {
@@ -265,7 +265,7 @@ try {
       });
 
       const lastScriptOpen = (h: string) => h.lastIndexOf('<script');
-      check('AC3(c) GL を使わないアプリ（N1〜N4）の実際の出力: どの版の値でも GL の字面が無く、起動は従来の <script>', () => {
+      check('case 3(c) GL を使わないアプリ（N1〜N4）の実際の出力: どの版の値でも GL の字面が無く、起動は従来の <script>', () => {
         for (const [variant] of VARIANTS) {
           for (const name of ['N1', 'N2', 'N3', 'N4']) {
             for (const [kind, h, lead] of [['export', html[variant][name].exp, '    var option = '], ['preview', html[variant][name].prev, '    const option = ']] as const) {
@@ -280,7 +280,7 @@ try {
         }
       });
 
-      check('AC15 5 系（値なし・5）の L1・B1 は 5.6.2 の <script src> で、import map もモジュールの起動も無い', () => {
+      check('case 15 5 系（値なし・5）の L1・B1 は 5.6.2 の <script src> で、import map もモジュールの起動も無い', () => {
         for (const variant of ['unset', 'v5']) {
           for (const name of ['L1', 'B1']) {
             for (const [kind, h] of [['export', html[variant][name].exp], ['preview', html[variant][name].prev]] as const) {
@@ -293,7 +293,7 @@ try {
         }
       });
 
-      check('M1 Mapbox だけのアプリ: どの版の値でも Mapbox の 2 行が入り、起動は従来の <script>', () => {
+      check('Mapbox だけのアプリ: どの版の値でも Mapbox の 2 行が入り、起動は従来の <script>', () => {
         for (const [variant, major] of VARIANTS) {
           for (const [kind, h, lead] of [['export', html[variant].M1.exp, '    var option = '], ['preview', html[variant].M1.prev, '    const option = ']] as const) {
             assert.ok(h.includes(gl.renderProviderGlCdnTags(new Set(['mapbox']), major ?? 5)), variant + '/M1/' + kind + ': Mapbox の断片が無い');
@@ -304,7 +304,7 @@ try {
         }
       });
 
-      check('AC4 起動の順序（6 を選んだ L1・B1 の書き出しとプレビュー）', () => {
+      check('case 4 起動の順序（6 を選んだ L1・B1 の書き出しとプレビュー）', () => {
         for (const name of ['L1', 'B1']) {
           for (const [kind, h] of [['export', html.v6[name].exp], ['preview', html.v6[name].prev]] as const) {
             const tag = 'v6/' + name + '/' + kind + ': ';
@@ -332,7 +332,7 @@ try {
       {
         const exp = await readFile(${JSON.stringify(path.join(projectRoot, 'electron/services/AppExportService.ts'))}, 'utf8');
         const prev = await readFile(${JSON.stringify(path.join(projectRoot, 'electron/services/AppPreviewService.ts'))}, 'utf8');
-        check('AC5 共通化: 両生成器は providerGlCdn の 3 関数を呼び、モジュール起動の字面を自分で書かない (source)', () => {
+        check('case 5 共通化: 両生成器は providerGlCdn の 3 関数を呼び、モジュール起動の字面を自分で書かない (source)', () => {
           for (const [name, s] of [['AppExportService', exp], ['AppPreviewService', prev]] as const) {
             for (const fn of ['renderViewerStartupScript', 'renderProviderGlCdnTags', 'resolveMaplibreMajor']) {
               assert.match(s, new RegExp('import \\\\{[^}]*\\\\b' + fn + '\\\\b[^}]*\\\\} from [\\'"]\\\\./providerGlCdn[\\'"]'), name + ' が ' + fn + ' を import していない');
@@ -346,7 +346,7 @@ try {
         });
       }
 
-      check('AC8(a) Mapbox の断片の URL が v<ピン留め版> で 3.33.0 以上', () => {
+      check('case 8(a) Mapbox の断片の URL が v<ピン留め版> で 3.33.0 以上', () => {
         const frag = gl.renderProviderGlCdnTags(new Set(['mapbox']), 5);
         assert.ok(frag.includes('https://api.mapbox.com/mapbox-gl-js/v' + PIN.mapbox.version + '/mapbox-gl.js'), frag);
         assert.ok(frag.includes('integrity="' + PIN.mapbox.jsIntegrity + '"'), frag);
@@ -357,10 +357,10 @@ try {
       {
         const pkg = JSON.parse(await readFile(${JSON.stringify(path.join(projectRoot, 'package.json'))}, 'utf8'));
         const src = await readFile(${JSON.stringify(path.join(projectRoot, 'electron/services/providerGlCdn.ts'))}, 'utf8');
-        check('AC12 結線: package.json に smoke:provider-gl-esm がある', () => {
+        check('case 12 結線: package.json に smoke:provider-gl-esm がある', () => {
           assert.equal(pkg.scripts?.['smoke:provider-gl-esm'], 'node scripts/provider-gl-esm-smoke.mjs');
         });
-        check('AC13(a) providerGlCdn.ts の冒頭の注記: 6 系の ESM 注入・CSP・版の選択と既定 5', () => {
+        check('case 13(a) providerGlCdn.ts の冒頭の注記: 6 系の ESM 注入・CSP・版の選択と既定 5', () => {
           const head = src.slice(0, 3500);
           assert.equal(src.includes('UMD がある **5.6.2** をピンする'), false, '5.6.2 に固定する旧注記が残っている');
           assert.match(head, /importmap|import map/, '冒頭の注記に import map の説明が無い');
