@@ -157,6 +157,8 @@ const {
 }
 
 const mapedit = await readFile(path.join(projectRoot, "src/views/MapEdit.vue"), "utf8");
+const appSourceEditor = await readFile(path.join(projectRoot, "src/components/AppSourceEditor.vue"), "utf8");
+const baseMapEdit = await readFile(path.join(projectRoot, "src/components/basemap/BaseMapEdit.vue"), "utf8");
 
 // ---- case 6: 単一投入点の字面と、google を条件付きで通す OR ----
 {
@@ -171,6 +173,20 @@ const mapedit = await readFile(path.join(projectRoot, "src/views/MapEdit.vue"), 
   );
   // キーの有無は述語の第2引数で渡す（キー未解決なら出さない）
   assert.match(mapedit, /isGoogleEditorBasemap\(item\?\.data,\s*!!editorGoogleKey\.value\)/);
+}
+
+// ---- legacy Google entries stay out of cache and count as registered presets ----
+{
+  assert.match(
+    appSourceEditor,
+    /baseMapProviderKindOf\(master\.value\)\s*===\s*null/,
+    "旧保存形の Google をキャッシュ対象外に判定する共通述語を使う",
+  );
+  assert.match(
+    baseMapEdit,
+    /item\.scope\s*===\s*["']user["']\s*&&\s*baseMapProviderKindOf\(item\.data\)\s*===\s*["']google["']/,
+    "旧保存形の Google を登録済みプリセットに含める共通述語を使う",
+  );
 }
 
 // ---- case 9: google 源の分岐（ソーステキスト契約） ----

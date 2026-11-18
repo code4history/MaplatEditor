@@ -80,7 +80,7 @@ export async function createOverlayBaseMaps(
       if (!source) return null;
       const meta = resolveBaseMapLayerMetadata(tms, lang);
       // ui-map-overlay-proposal §5-8: 帰属をソースに載せないと OL の帰属表示が消えるため、ここで写す。
-      // 帰属表示とレイヤ名（title）はどちらも innerHTML で描かれるので escape して渡す
+      // 帰属表示は Core の許可表でサニタイズし、レイヤ名（title）は escape して渡す
       source.setAttributions?.(textAttributions(meta.attr));
       return new TileLayer({
         source,

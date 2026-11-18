@@ -295,6 +295,10 @@ contextBridge.exposeInMainWorld('search', {
 
 contextBridge.exposeInMainWorld('isE2E', Boolean(process.env.MAPLAT_E2E_ROOT))
 
+contextBridge.exposeInMainWorld('externalLinks', {
+  openHttps: (url: string) => ipcRenderer.invoke('external-links:open-https', url),
+})
+
 // IIIF の取り込み: 取得と下書きの預かりは main が持ち、判定は renderer が行う。
 // 出すのは IPC の 6 本と同じ名前だけ（ipcRenderer は直接出さない）。
 contextBridge.exposeInMainWorld('iiifImport', {

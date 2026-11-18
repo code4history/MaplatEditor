@@ -151,3 +151,50 @@ test('Google preset: select/save/reload, URL hidden, uniqueness UI', async () =>
     await quitElectronApplication(app);
   }
 });
+
+test('legacy Google shape hides cache exclusion and counts as a registered preset', async () => {
+  test.setTimeout(180_000);
+  const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-google-legacy-'));
+  const { app, page } = await launch(e2eRoot);
+  try {
+    await seedE2EProviderKeys(page);
+    const slug = `legacy-google-${Date.now()}`;
+    const baseMap = await page.evaluate(async (s) => await (window as any).baseMaps.saveUser({
+      slug: s,
+      create: true,
+      uid: crypto.randomUUID(),
+      tms: {
+        maptype: 'google_roadmap',
+        lang: 'ja', title: { ja: s }, label: { ja: s }, attr: {}, dataAttr: {},
+        license: '', dataLicense: '', licenseNote: {}, dataLicenseNote: {}, url: '',
+        minZoom: null, maxZoom: null, thumbnail: 'basemap_icons/google_roadmap.png', coverageLngLats: null,
+      },
+    }), slug);
+    expect(baseMap?.result).toBe('Success');
+
+    const appSlug = `legacy-google-app-${Date.now()}`;
+    const appSaved = await page.evaluate(async ({ s, source }) => await (window as any).appedit.save({
+      uid: crypto.randomUUID(), slug: s, create: true,
+      document: {
+        appID: s, appName: { ja: s }, title: { ja: s }, description: {}, keywords: '', siteUrl: '', lang: 'ja',
+        sources: [source], startFrom: '', pois: [], appSettings: {},
+        httpSettings: { previewPort: 0, pwaManifest: true, enableCache: true }, manifestSettings: { backgroundColor: '#ffffff' },
+      },
+    }), { s: appSlug, source: slug });
+    expect(appSaved?.result).toBe('Success');
+    await page.evaluate((uid: string) => { location.hash = `#/appedit?uid=${uid}`; }, appSaved.uid);
+    await expect(page.getByTestId('app-sources-tab')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('app-sources-tab').click();
+    const card = page.getByTestId(`app-selected-source-${slug}`);
+    await expect(card).toBeVisible({ timeout: 30_000 });
+    await expect(card.getByTestId('app-source-no-cache')).toHaveCount(0);
+
+    await page.evaluate(() => { location.hash = '/basemaps'; });
+    await expect(page.getByTestId('basemap-new')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('basemap-new').click();
+    await page.getByTestId('basemap-kind-google').click();
+    await expect(page.getByTestId('basemap-google-preset-roadmap')).toBeDisabled();
+  } finally {
+    await quitElectronApplication(app);
+  }
+});

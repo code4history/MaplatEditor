@@ -13,6 +13,7 @@ import LayerSwitcher from 'ol-layerswitcher';
 import type OlMap from 'ol/Map';
 import type { EventsKey } from 'ol/events';
 import { unByKey } from 'ol/Observable';
+import { sanitizeHtml } from '@maplat/core/common';
 
 export const MAP_TOOL_EDGE = 'rgba(0,0,0,.45)';
 export const HALO_OUTER = '#555555';
@@ -26,10 +27,11 @@ export function iconElement(className: string): HTMLElement {
   return el;
 }
 
-// ---- 地図の上に描く文字（帰属表示・ベースマップの名前）の escape ----
+// ---- 地図の上に描く文字（帰属表示・ベースマップの名前）の安全な表示 ----
 // OL の帰属表示（ol/control/Attribution）と ol-layerswitcher のレイヤ名は innerHTML で描かれる。
-// 著作権表示とベースマップの名前は利用者の入力や取り込んだデータから来るので、HTML として解釈させず
-// 文字として出す（例: 著作権表示に <img src="https://…"> を書いても要素は作らず外部へ要求も出さない）。
+// 帰属表記は提供元が求めるリンクを含められるため Core の IIIF 制限付き許可表でサニタイズし、
+// 既定の許可表が含む img は帰属表示から外す。
+// ベースマップ名は HTML として扱わず escapeHtmlText を使う。
 
 /** 文字列を HTML の文字として escape する（innerHTML に入れても要素にならない） */
 export function escapeHtmlText(value: unknown): string {
@@ -41,10 +43,10 @@ export function escapeHtmlText(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-/** `source.setAttributions` に渡す帰属表示。空なら空の配列、あれば escape した 1 件 */
+/** `source.setAttributions` に渡す帰属表示。空なら空の配列、リンクだけ Core の制限付き許可表で残す */
 export function textAttributions(value: unknown): string[] {
   const text = value == null ? '' : String(value).trim();
-  return text ? [escapeHtmlText(text)] : [];
+  return text ? [sanitizeHtml(text, { profile: 'iiif' })] : [];
 }
 
 export interface MapOverlayControlLabels {
@@ -114,7 +116,22 @@ export function layoutMapOverlayControls(
 
   if (toolsEl) {
     const attribution = overlay.querySelector<HTMLElement>('.ol-attribution');
-    if (attribution && attribution.parentElement !== toolsEl) toolsEl.appendChild(attribution);
+    if (attribution) {
+      if (attribution.parentElement !== toolsEl) toolsEl.appendChild(attribution);
+      if (attribution.dataset.externalLinkHandler !== 'installed') {
+        attribution.dataset.externalLinkHandler = 'installed';
+        attribution.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          const link = target.closest('a');
+          if (!link || !attribution.contains(link)) return;
+          event.preventDefault();
+          let url: URL;
+          try { url = new URL(link.href); } catch { return; }
+          if (url.protocol === 'https:') void window.externalLinks?.openHttps(url.href);
+        });
+      }
+    }
   }
 
   overlay.querySelectorAll<HTMLElement>('button[title]').forEach((button) => {

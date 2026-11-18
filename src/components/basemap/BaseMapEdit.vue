@@ -508,9 +508,9 @@ import {
   type MaplibreStyleSupportResult,
 } from "../../utils/maplibreStyleSupport";
 import {
+  baseMapProviderKindOf,
   fromBaseMapCatalogItem,
   newBaseMapDocument,
-  normalizeKind,
   requiresProviderKey,
   resolveBaseMapRuntimeText,
   toBaseMapSavePayload,
@@ -768,8 +768,10 @@ async function refreshRegisteredPresets(): Promise<void> {
     registeredPresets.value = new Set();
     return;
   }
+  // kind を持たない古い保存形の Google（maptype が google_*）も登録済みに数えるため、
+  // 判定は baseMapProviderKindOf に寄せる（normalizeKind は kind を持たない行を tms 扱いにして拾わない）
   const googleItems = catalog.filter(
-    (item) => item.scope === "user" && normalizeKind(item.data?.kind) === "google",
+    (item) => item.scope === "user" && baseMapProviderKindOf(item.data) === "google",
   );
   registeredPresets.value = new Set(
     googleItems

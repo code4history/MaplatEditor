@@ -498,6 +498,7 @@ declare global {
   interface Window {
     /** preload が渡す OS の種類（process.platform）。Electron の外（ブラウザだけの試験等）では無い */
     runtimeInfo?: { platform: string };
+    externalLinks?: { openHttps(url: string): Promise<boolean> };
     settings: SettingsAPI;
     maplist: MapListAPI;
     mapedit: MapEditAPI;

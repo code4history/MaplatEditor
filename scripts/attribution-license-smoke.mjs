@@ -273,6 +273,18 @@ try {
   const builtins = JSON.parse(await readFile(path.join(projectRoot, "electron/builtin_base_maps.json"), "utf8"));
   const builtinsWithoutAttr = builtins.filter((item) => lacksRequiredAttribution(item)).map((item) => item.mapID);
   assert.deepEqual(builtinsWithoutAttr, [], "case 8: 組み込みのベースマップはすべて帰属表記を持つ");
+  const konjakuMaps = builtins.filter((item) => item.attr?.ja?.includes("今昔マップ on the web"));
+  assert.equal(konjakuMaps.length, 318, "case 8: 今昔マップ318件の帰属表記がある");
+  assert.ok(konjakuMaps.every((item) => item.attr.en?.includes("今昔マップ on the web")), "case 8: 今昔マップの英語表記にも指定名がある");
+  const gsiMaps = builtins.filter((item) => item.mapID.startsWith("gsi"));
+  assert.equal(gsiMaps.length, 8, "case 8: 地理院タイル8件がある");
+  assert.ok(
+    gsiMaps.every((item) => Object.values(item.attr ?? {}).some((value) => value.includes('<a href="https://maps.gsi.go.jp/development/ichiran.html"'))),
+    "case 8: 地理院タイル8件の出典に一覧ページへのリンクがある",
+  );
+  const attributionRenderer = await readFile(path.join(projectRoot, "src/utils/mapOverlayTools.ts"), "utf8");
+  assert.match(attributionRenderer, /import\s*\{\s*sanitizeHtml\s*\}\s*from\s*["']@maplat\/core\/common["']/);
+  assert.match(attributionRenderer, /return\s+text\s*\?\s*\[sanitizeHtml\(text,\s*\{\s*profile:\s*["']iiif["']\s*\}\)\]/);
   console.log("ok: case 8 attribution requirement (maps, base maps, app sources, built-ins)");
 
   // --- case 9: validateBaseMapDocument の attr-required は多言語のどれか 1 言語で足りる ---

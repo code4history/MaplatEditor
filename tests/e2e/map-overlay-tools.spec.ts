@@ -1,8 +1,8 @@
 // 地図の上に重ねる部品（docs/ui-map-overlay-proposal.md 案 A）の振る舞い。
 //
 //   1. ベースマップの名前と著作権表示（帰属）は利用者の入力・取り込んだデータから来る。
-//      OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描くので、HTML を書かれても
-//      要素を作らず文字として出し、外部へ要求も出さないこと（escape）。
+//      OL の帰属表示と ol-layerswitcher のレイヤ名は innerHTML で描く。名前は文字として出し、
+//      帰属表示は Core の許可表で安全なリンクだけを通し、危険な要素と属性は除く。
 //   2. ベースマップの切り替えの札は、選んだら閉じる・地図を押したら閉じる・Esc で閉じる。
 //      札に aria-expanded と今の選択の名前を含む読み上げ名、ラジオに同じ name がある。
 import { expect, test, type Page } from '@playwright/test';
@@ -14,10 +14,10 @@ import { launch } from './helpers/launchIsolated';
 
 const PROBE_HOST = 'overlay-escape-probe.invalid';
 const EVIL_TITLE = `<img src="https://${PROBE_HOST}/title.png" data-evil="title">EVIL_TITLE T1 &amp; T2 & T3`;
-const EVIL_ATTR = `<img src="https://${PROBE_HOST}/attr.png" data-evil="attr">EVIL_ATTR A1 &amp; A2 & A3`;
-// 二重 escape で正当な文字が化けないこと（`&amp;` が `&amp;amp;` に、`&` が `&amp;` に見えない）
+const EVIL_ATTR = `<a href="https://example.org/tiles" target="_blank">GSI tile list</a><img src="https://${PROBE_HOST}/attr.png" data-evil="attr">EVIL_ATTR A1 &amp; A2 & A3`;
+// 名前は文字表示なので entity 表記を保ち、帰属表示は安全な HTML として entity を解釈する。
 const AMP_TITLE = 'T1 &amp; T2 & T3';
-const AMP_ATTR = 'A1 &amp; A2 & A3';
+const AMP_ATTR = 'A1 & A2 & A3';
 
 async function seedEvilBaseMap(page: Page): Promise<string> {
   return page.evaluate(async ({ title, attr }) => {
@@ -55,7 +55,7 @@ async function openPoiEditor(page: Page): Promise<void> {
 }
 
 test.describe('地図の上の部品', () => {
-  test('ベースマップの名前と帰属表示に書かれた HTML は文字として出し、要素も外部への要求も作らない', async () => {
+  test('帰属表示は安全なリンクを残し、危険な要素を除く。ベースマップ名は文字として出す', async () => {
     test.setTimeout(180_000);
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-overlay-escape-'));
     const { app, page } = await launch(e2eRoot);
@@ -82,7 +82,46 @@ test.describe('地図の上の部品', () => {
       await expect(trigger).toContainText(AMP_TITLE);
       const attribution = page.locator('[data-testid="map-overlay-tools-poi"] .ol-attribution');
       await expect(attribution).toContainText('EVIL_ATTR', { timeout: 20_000 });
-      await expect(attribution).toContainText('<img');
+      await expect(attribution.locator('a')).toHaveAttribute('href', 'https://example.org/tiles');
+      await expect(attribution.locator('a')).toHaveAttribute('target', '_blank');
+      await expect(attribution.locator('a')).toHaveAttribute('rel', 'noopener noreferrer');
+      await app.evaluate(({ shell }) => {
+        (globalThis as any).__externalLinkCalls = [];
+        shell.openExternal = async (url: string) => { (globalThis as any).__externalLinkCalls.push(url); };
+      });
+      await attribution.locator('a').click();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      await attribution.evaluate((el) => {
+        for (const [scheme, href] of [
+          ['http', 'http://example.org/unsafe'],
+          ['javascript', 'javascript:alert(1)'],
+          ['file', 'file:///etc/passwd'],
+          ['data', 'data:text/html,<script>alert(1)</script>'],
+        ]) {
+          const link = document.createElement('a');
+          link.id = `unsafe-${scheme}`;
+          link.href = href;
+          link.textContent = scheme;
+          el.appendChild(link);
+        }
+      });
+      for (const scheme of ['http', 'javascript', 'file', 'data']) await attribution.locator(`#unsafe-${scheme}`).click();
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      // 出典の欄を介さず IPC に直接渡しても、https: 以外と壊れた値は開かない
+      for (const value of [
+        'http://example.org/unsafe',
+        'javascript:alert(1)',
+        'file:///etc/passwd',
+        'data:text/html,<script>alert(1)</script>',
+        ':::: not a url',
+      ]) {
+        expect(await page.evaluate((v) => window.externalLinks?.openHttps(v), value)).toBe(false);
+      }
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      // 開くのは検証した後の正規化済みの URL
+      expect(await page.evaluate(() => window.externalLinks?.openHttps('HTTPS://Example.org/tiles'))).toBe(true);
+      await expect.poll(() => app.evaluate(() => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles', 'https://example.org/tiles']);
+      await expect(attribution).not.toContainText('<img');
       await expect(attribution).toContainText(AMP_ATTR);
       expect(await page.locator('[data-evil]').count()).toBe(0);
 
@@ -118,7 +157,9 @@ test.describe('地図の上の部品', () => {
         const getter = evil?.getSource?.()?.getAttributions?.();
         return getter ? getter({}) : null;
       });
-      expect(mercAttributions).toEqual([EVIL_ATTR.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')]);
+      expect(mercAttributions).toHaveLength(1);
+      expect(mercAttributions[0]).toContain('<a href="https://example.org/tiles" target="_blank" rel="noopener noreferrer">GSI tile list</a>');
+      expect(mercAttributions[0]).not.toContain('<img');
       expect(await page.locator('[data-evil]').count()).toBe(0);
 
       await page.waitForTimeout(1_000);

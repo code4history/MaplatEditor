@@ -128,8 +128,16 @@ function konjakuLabel(row, mapID) {
   return { ja: `${region.ja} ${era}`, en: `${region.en} ${era}` };
 }
 
+// 帰属表記（attr）は Viewer が Core の sanitizeHtml に通して HTML として出すため、
+// 提供元が求めるリンクも attr の中に置く。
+// 地理院タイル: 出典に「国土地理院」等と記載し、地理院タイル一覧ページへのリンクを付ける
+// （https://maps.gsi.go.jp/development/ichiran.html の「ご利用について」）。
+const GSI_TILES_LIST_URL = "https://maps.gsi.go.jp/development/ichiran.html";
 const GSI_PROVIDER = {
-  attr: { ja: "国土地理院", en: "The Geospatial Information Authority of Japan" },
+  attr: {
+    ja: `国土地理院（<a href="${GSI_TILES_LIST_URL}" target="_blank" rel="noopener noreferrer">地理院タイル一覧</a>）`,
+    en: `The Geospatial Information Authority of Japan (<a href="${GSI_TILES_LIST_URL}" target="_blank" rel="noopener noreferrer">GSI tile list</a>)`,
+  },
   license: "Custom",
   dataLicense: "Custom",
   licenseNote: { ja: "公共データ利用規約 第1.0版（PDL1.0）／出典：国土地理院ウェブサイト", en: "Public Data License 1.0 / Source: GSI website" },
@@ -155,8 +163,13 @@ const PROVIDER_ATTRS = {
   affrc_tokyo5k: NARO_PROVIDER,
 };
 
+// 今昔マップ: タイルを設定した画面に「必ず「今昔マップ on the web」という文字を」入れることを求められている
+// （https://ktgis.net/kjmapw/tilemapservice.html）。表示言語が英語のときもその文字列をそのまま含める
 const KONJAKU_PROVIDER = {
-  attr: { ja: "今昔マップ on the web（埼玉大学教育学部 谷 謙二）", en: "Konjaku Map on the Web" },
+  attr: {
+    ja: "今昔マップ on the web（埼玉大学教育学部 谷 謙二）",
+    en: "Konjaku Map on the Web (今昔マップ on the web)",
+  },
   license: "Custom",
   dataLicense: "Custom",
   licenseNote: { ja: "国土地理院長の使用/複製承認 R4JHf18 ほか", en: "Permission from GSI Director-General (R4JHf18, etc.)" },
