@@ -34,8 +34,8 @@
 以下すべて成功:
 
 - `pnpm smoke:issue-148-basemap-icon`
-- `pnpm smoke:m19-t2-basemap-thumbnail-512`（ベースマップの 512px サムネイル）
-- `pnpm smoke:nov26-m6-t5-asset-uuid-migration`（アセットの UUID 名への移行）
+- `pnpm smoke:basemap-thumbnail-512`（ベースマップの 512px サムネイル）
+- `pnpm smoke:asset-uuid-migration`（アセットの UUID 名への移行）
 - `pnpm build`（vue-tscを含む）
 - `git diff --check`
 
@@ -49,7 +49,7 @@ Electron画面からの「複製→保存→再起動」、Windows/macOS固有�
 
 画面確認は新規の `MAPLAT_E2E_ROOT` と `--user-data-dir` を同じ専用一時フォルダに指定して行う。元データを開かず、専用プロファイル内で作ったユーザー地図の52px/512pxをハッシュ記録し、複製保存後・再起動後に元地図と複製地図の両方を確認する。builtin既定、旧名、52pxのみも独立fixtureとし、テスト終了後も診断用データを残す。
 
-## 11月トレインへのリベース
+## 11 月の版へのリベース
 
 基点を master `77bcffa4` に移した。上の検証は rebase 前（`4f7bb029`）の記録。
 
@@ -57,6 +57,6 @@ Electron画面からの「複製→保存→再起動」、Windows/macOS固有�
 - `SqliteDataService.ts` は自動マージで通った。master 側で増えた「更新経路の付け替え」（`resolveBaseMapThumbnailRepoint`）と uuid 名の資産・起動時移行（`AssetUuidNamesMigrationService`）はそのまま残り、本修正は新規作成経路の `relocateBaseMapIcon` だけを copy へ置き換える。master の起動時移行も copy + 比較交換であり規則は同じ。
 - 今の master（修正前）でも同じ不具合が出ることを確かめた: `node scripts/issue-148-basemap-icon-smoke.mjs` が `ENOENT ... tmbs/<元uid>.png` で失敗する（move で元 52px が消える）。
 - 移動前提だった 2 本の smoke を copy 前提へ直した（どちらも修正前の master では緑、修正後は赤になることを実測してから直した）。
-  - `m5-basemap-catalog`: 初回保存後に暫定名 `tmbs/icon_new.png` が消えることを要求していた → 残ることと内容を要求する。
-  - `scripts/m19-t5-thumbnail-512-webp-smoke.mjs`（512px サムネイルの WebP 化）の検査 R-1〜R-3: 移動・ロールバック前提 → 宛先に別内容があれば複製しない／元を失わない／正常時は複製して暫定名が残る、へ変更。失敗ログの検査は `console.error` から `console.warn`（宛先パスを含む）へ変更（move 廃止で単一の warn に集約されたため）。
-- 手元の全 smoke（`node scripts/ci/run-smokes.mjs`・172本）は 2 本を除いて緑。残る 2 本は本修正と無関係の環境要因（`scripts/nov26-rc-editor174-pwa-chromium-smoke.mjs`（PWA を Chromium で確かめる）は Chromium の sandbox 初期化が `Operation not permitted`、`scripts/oct26-m4-t5-ci-judge-smoke.mjs`（CI の判定）は打ち切り後の孫プロセスが残る）。どちらも `SqliteDataService` を参照しない。
+  - `basemap-catalog`: 初回保存後に暫定名 `tmbs/icon_new.png` が消えることを要求していた → 残ることと内容を要求する。
+  - `scripts/thumbnail-512-webp-smoke.mjs`（512px サムネイルの WebP 化）の検査 R-1〜R-3: 移動・ロールバック前提 → 宛先に別内容があれば複製しない／元を失わない／正常時は複製して暫定名が残る、へ変更。失敗ログの検査は `console.error` から `console.warn`（宛先パスを含む）へ変更（move 廃止で単一の warn に集約されたため）。
+- 手元の全 smoke（`node scripts/ci/run-smokes.mjs`・172本）は 2 本を除いて緑。残る 2 本は本修正と無関係の環境要因（`scripts/pwa-chromium-smoke.mjs`（PWA を Chromium で確かめる）は Chromium の sandbox 初期化が `Operation not permitted`、`scripts/ci-judge-smoke.mjs`（CI の判定）は打ち切り後の孫プロセスが残る）。どちらも `SqliteDataService` を参照しない。
