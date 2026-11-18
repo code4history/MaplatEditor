@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ContextHelp from "../editor-ui/ContextHelp.vue";
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 import SlugField from '../editor-ui/SlugField.vue';
 import EditorField from '../editor-ui/EditorField.vue';
@@ -60,9 +60,15 @@ function selectExisting(uid: string): void {
   emit('select-existing', uid);
 }
 
+// 帰属表記は必須（Viewer は帰属表記を既定値で埋めないので、空のベースマップを作らない）。
+// 元の地図の帰属表記を既定値に入れてあるので、元の地図にあれば何もしなくてよい
+const attrDiagnostics = computed(() =>
+  attr.value.trim() ? [] : [{ key: 'attr-required', severity: 'danger' as const, message: t('basemap.errors.attr_required') }],
+);
+
 function confirmNew(): void {
   const slug = slugLive.value.trim();
-  if (!slug || !title.value.trim()) return;
+  if (!slug || !title.value.trim() || !attr.value.trim()) return;
   emit('create-new', { uid: props.newUid, slug, title: title.value.trim(), attr: attr.value });
 }
 
@@ -111,8 +117,8 @@ function cancel(): void {
               @update:model-value="slugLive = $event"
               @change="slugLive = $event.trim()"
             />
-            <EditorField :label="t('basemap.modal.attr_label')" label-for="mercNewAttr">
-              <input id="mercNewAttr" type="text" class="form-control form-control-sm" data-testid="merc-new-attr" v-model="attr" />
+            <EditorField :label="t('basemap.modal.attr_label')" label-for="mercNewAttr" required :diagnostics="attrDiagnostics">
+              <input id="mercNewAttr" type="text" class="form-control form-control-sm" :class="{ 'is-invalid': attrDiagnostics.length > 0 }" data-testid="merc-new-attr" v-model="attr" />
               <template #help>
                 <ContextHelp :text="t('merc.modal_attr_help')" :ariaLabel="t('editor_ui.help_about', { name: t('basemap.modal.attr_label') })" />
               </template>
@@ -131,7 +137,7 @@ function cancel(): void {
             type="button"
             class="btn btn-primary"
             data-testid="merc-modal-confirm"
-            :disabled="!slugLive.trim() || !title.trim()"
+            :disabled="!slugLive.trim() || !title.trim() || !attr.trim()"
             @click="confirmNew"
           >
             {{ t('merc.modal_create_confirm') }}

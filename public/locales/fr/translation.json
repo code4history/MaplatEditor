@@ -864,7 +864,10 @@
     "envelope_south_name": "Sud",
     "envelope_east_name": "Est",
     "envelope_north_name": "Nord",
-    "envelope_coord_error_incomplete": "Saisissez les quatre valeurs : ouest, sud, est et nord."
+    "envelope_coord_error_incomplete": "Saisissez les quatre valeurs : ouest, sud, est et nord.",
+    "export_blocked_missing_attribution": "L'export a été arrêté car certaines cartes n'ont pas d'attribution. Ajoutez une attribution aux cartes suivantes, puis exportez à nouveau.",
+    "source_attribution_missing_map": "Cette carte n'a pas d'attribution. La visionneuse n'en ajoute pas ; l'application ne peut donc pas être exportée en l'état. Ajoutez une attribution dans l'éditeur de la carte.",
+    "source_attribution_missing_base_map": "Ce fond de carte n'a pas d'attribution. La visionneuse n'en ajoute pas ; l'application ne peut donc pas être exportée en l'état. Ajoutez une attribution dans l'éditeur du fond de carte."
   },
   "mapmodel": {
     "untitled": "Titre non défini",
@@ -891,7 +894,7 @@
     "modal_select_description": "Des jeux de tuiles Mercator déjà générés à partir de cette carte ont été trouvés. Choisissez-en un à mettre à jour, ou créez-en un nouveau.",
     "modal_create_new": "Créer un nouveau",
     "modal_create_confirm": "Créer",
-    "modal_attr_help": "Vous pourrez le renseigner plus tard depuis l'écran d'édition."
+    "modal_attr_help": "L'attribution du nouveau fond de carte. Elle reprend l'attribution de la carte d'origine. La visionneuse n'en ajoute pas ; elle ne peut donc pas rester vide."
   },
   "menu": {
     "quit": "Quitter MaplatEditor",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "Recherches récentes",
     "recent_search_apply": "Rechercher « {{q}} »",
     "recent_search_remove": "Supprimer « {{q}} » de l’historique",
-    "recent_search_record_failed": "Impossible d’enregistrer l’historique des recherches"
+    "recent_search_record_failed": "Impossible d’enregistrer l’historique des recherches",
+    "badge_missing_attribution": "Sans attribution"
   }
 }

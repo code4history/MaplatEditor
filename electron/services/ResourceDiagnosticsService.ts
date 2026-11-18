@@ -16,12 +16,16 @@ import {
   type AppSource,
 } from '../../src/utils/appSourceModel';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+// 帰属表記が要るのに無い地図・アプリのソースを一覧の印に出す（Viewer は帰属表記を既定値で埋めない）
+import { findSourcesWithoutAttribution, lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 
 export interface MapResourceDiagnostics {
   kind: 'map';
   strictError: boolean;
   missingPoiRefs: boolean;
   missingAssetRefs: boolean;
+  /** 帰属表記（attr）が無い */
+  missingAttribution: boolean;
 }
 
 export interface AppResourceDiagnostics {
@@ -31,6 +35,8 @@ export interface AppResourceDiagnostics {
   missingPoiRefs: boolean;
   missingAssetRefs: boolean;
   unsupportedPoisFormat: boolean;
+  /** 帰属表記が無い地図・ベースマップをソースに持つ（このままでは書き出せない） */
+  missingAttribution: boolean;
 }
 
 export interface PoiSourceResourceDiagnostics {
@@ -90,6 +96,23 @@ async function diagnosePois(
 //
 // 判定範囲は拡大する: 旧実装は「サムネイルが uid 形のパスを持つソース」しか検査していなかったが、
 // 新実装は全ベースマップ由来ソースが対象になる。
+// アプリのソースのうち、帰属表記が要るのに無いものがあるか。ベースマップは一覧を 1 回だけ引き、
+// Maplat の地図は文書を 1 枚ずつ引く（書き出しの前の確かめと同じ関数で判定する）
+type MapAttributionDoc = { attr?: unknown; mapID?: unknown; slug?: unknown } | null;
+
+async function hasSourceWithoutAttribution(document: { sources?: unknown; lang?: string } | null | undefined): Promise<boolean> {
+  const rawSources: unknown[] = Array.isArray(document?.sources) ? document.sources : [];
+  const sources: AppSource[] = rawSources.map((raw) => normalizeAppSource(raw, document?.lang || 'ja'));
+  if (sources.length === 0) return false;
+  const lookup = createBaseMapMasterLookup(await SqliteDataService.listBaseMaps());
+  const mapDocs = new Map<string, MapAttributionDoc>();
+  for (const source of sources) {
+    if (source.sourceType !== 'maplat' || mapDocs.has(source.mapUid)) continue;
+    mapDocs.set(source.mapUid, await SqliteDataService.findMapByRef(source.mapUid));
+  }
+  return findSourcesWithoutAttribution(sources, lookup, (uid) => mapDocs.get(uid)).length > 0;
+}
+
 async function hasMissingBaseMapRef(document: any): Promise<boolean> {
   const sources: AppSource[] = (Array.isArray(document?.sources) ? document.sources : [])
     .map((raw: any) => normalizeAppSource(raw, document?.lang || 'ja'))
@@ -108,6 +131,7 @@ export async function attachMapDiagnostics<T extends Record<string, any>>(docs: 
       kind: 'map',
       strictError: hasStrictError(doc),
       ...poiDiagnostics,
+      missingAttribution: lacksRequiredAttribution(doc),
     } satisfies MapResourceDiagnostics;
   }));
   return docs;
@@ -127,6 +151,7 @@ export async function attachAppDiagnostics<T extends Record<string, any>>(docs: 
       missingBaseMapRefs: await hasMissingBaseMapRef(doc),
       ...poiDiagnostics,
       unsupportedPoisFormat: appPois.unsupported,
+      missingAttribution: await hasSourceWithoutAttribution(doc),
     } satisfies AppResourceDiagnostics;
   }));
   return docs;

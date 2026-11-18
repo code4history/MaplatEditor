@@ -844,7 +844,10 @@
     "envelope_south_name": "South",
     "envelope_east_name": "East",
     "envelope_north_name": "North",
-    "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north."
+    "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north.",
+    "export_blocked_missing_attribution": "Export was stopped because some maps have no attribution. Add an attribution to the following maps, then export again.",
+    "source_attribution_missing_map": "This map has no attribution. The viewer does not fill one in, so the app cannot be exported as it is. Add an attribution in the map editor.",
+    "source_attribution_missing_base_map": "This base map has no attribution. The viewer does not fill one in, so the app cannot be exported as it is. Add an attribution in the base map editor."
   },
   "mapmodel": {
     "untitled": "Untitled",
@@ -871,7 +874,7 @@
     "modal_select_description": "Existing Mercator tile sets generated from this map were found. Choose one to update, or create a new one.",
     "modal_create_new": "Create New",
     "modal_create_confirm": "Create",
-    "modal_attr_help": "You can fill this in later from the edit screen."
+    "modal_attr_help": "The attribution of the new base map. It starts with the attribution of the original map. The viewer does not fill one in, so it cannot be left empty."
   },
   "menu": {
     "quit": "Quit MaplatEditor",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "Recent searches",
     "recent_search_apply": "Search for \"{{q}}\"",
     "recent_search_remove": "Remove \"{{q}}\" from history",
-    "recent_search_record_failed": "Could not save the search history"
+    "recent_search_record_failed": "Could not save the search history",
+    "badge_missing_attribution": "No attribution"
   }
 }

@@ -864,7 +864,10 @@
     "envelope_south_name": "南",
     "envelope_east_name": "東",
     "envelope_north_name": "北",
-    "envelope_coord_error_incomplete": "請輸入西、南、東、北全部四個值。"
+    "envelope_coord_error_incomplete": "請輸入西、南、東、北全部四個值。",
+    "export_blocked_missing_attribution": "由於部分地圖沒有署名，已停止匯出。請為以下地圖填寫署名後再匯出。",
+    "source_attribution_missing_map": "此地圖沒有署名。檢視器不會補上署名，因此無法依現狀匯出應用程式。請在地圖編輯畫面填寫署名。",
+    "source_attribution_missing_base_map": "此底圖沒有署名。檢視器不會補上署名，因此無法依現狀匯出應用程式。請在底圖編輯畫面填寫署名。"
   },
   "mapmodel": {
     "untitled": "標題未設定",
@@ -891,7 +894,7 @@
     "modal_select_description": "找到了由此地圖產生的麥卡托圖磚集。請選擇要更新的項目，或新增一個。",
     "modal_create_new": "新增",
     "modal_create_confirm": "建立",
-    "modal_attr_help": "您可以稍後在編輯畫面中填寫。"
+    "modal_attr_help": "新底圖的署名。已填入原地圖的署名。檢視器不會補上署名，因此不能留空。"
   },
   "menu": {
     "quit": "結束MaplatEditor",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "最近的搜尋條件",
     "recent_search_apply": "搜尋「{{q}}」",
     "recent_search_remove": "從歷史記錄中刪除「{{q}}」",
-    "recent_search_record_failed": "無法儲存搜尋歷史"
+    "recent_search_record_failed": "無法儲存搜尋歷史",
+    "badge_missing_attribution": "無署名"
   }
 }

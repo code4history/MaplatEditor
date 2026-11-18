@@ -864,7 +864,10 @@
     "envelope_south_name": "Sur",
     "envelope_east_name": "Este",
     "envelope_north_name": "Norte",
-    "envelope_coord_error_incomplete": "Introduzca los cuatro valores: oeste, sur, este y norte."
+    "envelope_coord_error_incomplete": "Introduzca los cuatro valores: oeste, sur, este y norte.",
+    "export_blocked_missing_attribution": "Se detuvo la exportación porque algunos mapas no tienen atribución. Añada una atribución a los siguientes mapas y vuelva a exportar.",
+    "source_attribution_missing_map": "Este mapa no tiene atribución. El visor no la añade, por lo que la aplicación no se puede exportar así. Añada una atribución en el editor del mapa.",
+    "source_attribution_missing_base_map": "Este mapa base no tiene atribución. El visor no la añade, por lo que la aplicación no se puede exportar así. Añada una atribución en el editor del mapa base."
   },
   "mapmodel": {
     "untitled": "Título no establecido",
@@ -891,7 +894,7 @@
     "modal_select_description": "Se encontraron conjuntos de teselas de Mercator ya generados a partir de este mapa. Elija uno para actualizarlo o cree uno nuevo.",
     "modal_create_new": "Crear nuevo",
     "modal_create_confirm": "Crear",
-    "modal_attr_help": "Puede completarlo más tarde desde la pantalla de edición."
+    "modal_attr_help": "La atribución del nuevo mapa base. Se rellena con la atribución del mapa de origen. El visor no la añade, por lo que no puede quedar vacía."
   },
   "menu": {
     "quit": "Salir de MaplatEditor",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "Búsquedas recientes",
     "recent_search_apply": "Buscar \"{{q}}\"",
     "recent_search_remove": "Quitar \"{{q}}\" del historial",
-    "recent_search_record_failed": "No se pudo guardar el historial de búsquedas"
+    "recent_search_record_failed": "No se pudo guardar el historial de búsquedas",
+    "badge_missing_attribution": "Sin atribución"
   }
 }

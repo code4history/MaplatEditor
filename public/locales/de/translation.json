@@ -864,7 +864,10 @@
     "envelope_south_name": "Süden",
     "envelope_east_name": "Osten",
     "envelope_north_name": "Norden",
-    "envelope_coord_error_incomplete": "Geben Sie alle vier Werte ein: Westen, Süden, Osten und Norden."
+    "envelope_coord_error_incomplete": "Geben Sie alle vier Werte ein: Westen, Süden, Osten und Norden.",
+    "export_blocked_missing_attribution": "Der Export wurde angehalten, weil einige Karten keine Quellenangabe haben. Ergänzen Sie die Quellenangabe der folgenden Karten und exportieren Sie erneut.",
+    "source_attribution_missing_map": "Diese Karte hat keine Quellenangabe. Der Viewer ergänzt keine, daher kann die App so nicht exportiert werden. Ergänzen Sie die Quellenangabe im Karteneditor.",
+    "source_attribution_missing_base_map": "Diese Basiskarte hat keine Quellenangabe. Der Viewer ergänzt keine, daher kann die App so nicht exportiert werden. Ergänzen Sie die Quellenangabe im Editor der Basiskarte."
   },
   "mapmodel": {
     "untitled": "Titel nicht festgelegt",
@@ -891,7 +894,7 @@
     "modal_select_description": "Für diese Karte wurden bereits erzeugte Mercator-Kachelsätze gefunden. Wählen Sie einen zum Aktualisieren aus oder erstellen Sie einen neuen.",
     "modal_create_new": "Neu erstellen",
     "modal_create_confirm": "Erstellen",
-    "modal_attr_help": "Sie können dies später im Bearbeitungsbildschirm ausfüllen."
+    "modal_attr_help": "Die Quellenangabe der neuen Basiskarte. Sie ist mit der Quellenangabe der Ausgangskarte vorbelegt. Der Viewer ergänzt keine, daher darf sie nicht leer bleiben."
   },
   "menu": {
     "quit": "MaplatEditor beenden",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "Letzte Suchanfragen",
     "recent_search_apply": "Nach \"{{q}}\" suchen",
     "recent_search_remove": "\"{{q}}\" aus dem Verlauf entfernen",
-    "recent_search_record_failed": "Die Suchhistorie konnte nicht gespeichert werden"
+    "recent_search_record_failed": "Die Suchhistorie konnte nicht gespeichert werden",
+    "badge_missing_attribution": "Keine Quellenangabe"
   }
 }

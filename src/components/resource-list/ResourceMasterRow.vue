@@ -24,7 +24,7 @@
       <ContextHelp v-if="isDisabled && item.disabledReason" :text="item.disabledReason" :ariaLabel="helpAriaLabel" data-testid="resource-disabled-reason" @click.stop @keydown.stop />
     </span>
     <span v-if="item.hasDraft && draftLabel" class="badge bg-warning text-dark" data-resource-draft-badge :data-testid="draftBadgeTestId">{{ draftLabel }}</span>
-    <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="resourceBadgeClass(badge.tone)">{{ badge.label }}</span>
+    <span v-for="badge in item.badges" :key="badge.key" class="badge" :class="resourceBadgeClass(badge.tone)" :data-testid="`resource-badge-${badge.key}`">{{ badge.label }}</span>
     <slot name="extra"></slot>
     <ResourceActionMenu v-if="showActionMenu" ref="menuRef" :actions="actions" @select="(key) => emit('action', key, item)" />
   </div>

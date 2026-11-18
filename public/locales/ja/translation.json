@@ -864,7 +864,10 @@
     "envelope_south_name": "南",
     "envelope_east_name": "東",
     "envelope_north_name": "北",
-    "envelope_coord_error_incomplete": "西・南・東・北の 4 つすべてを入力してください。"
+    "envelope_coord_error_incomplete": "西・南・東・北の 4 つすべてを入力してください。",
+    "export_blocked_missing_attribution": "帰属表記が無い地図があるため、エクスポートを止めました。次の地図に帰属表記を入れてから、もう一度エクスポートしてください。",
+    "source_attribution_missing_map": "この地図には帰属表記がありません。ビューアは帰属表記を補わないため、このままではアプリをエクスポートできません。地図の編集画面で帰属表記を入れてください。",
+    "source_attribution_missing_base_map": "このベースマップには帰属表記がありません。ビューアは帰属表記を補わないため、このままではアプリをエクスポートできません。ベースマップの編集画面で帰属表記を入れてください。"
   },
   "mapmodel": {
     "untitled": "タイトル未設定",
@@ -891,7 +894,7 @@
     "modal_select_description": "この地図から生成済みのメルカトルタイルセットが見つかりました。更新するものを選ぶか、新規に作成してください。",
     "modal_create_new": "新規作成",
     "modal_create_confirm": "作成",
-    "modal_attr_help": "後から編集画面で入力できます。"
+    "modal_attr_help": "新しいベースマップの帰属表記です。元の地図の帰属表記を入れてあります。ビューアは帰属表記を補わないため、空のままでは作れません。"
   },
   "menu": {
     "quit": "MaplatEditorを終了",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "直近の検索条件",
     "recent_search_apply": "「{{q}}」で検索",
     "recent_search_remove": "「{{q}}」を履歴から削除",
-    "recent_search_record_failed": "検索履歴を保存できませんでした"
+    "recent_search_record_failed": "検索履歴を保存できませんでした",
+    "badge_missing_attribution": "帰属表記なし"
   }
 }

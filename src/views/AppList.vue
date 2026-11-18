@@ -100,6 +100,7 @@ const adapter = createAppListAdapter({
     missingPoi: t("resource_list.badge_missing_poi"),
     missingAsset: t("resource_list.badge_missing_asset"),
     poisFormat: t("resource_list.badge_pois_format"),
+    missingAttribution: t("resource_list.badge_missing_attribution"),
   },
 });
 const { items, total, loaded, state, failure, batchesLoaded, loadFirst, loadMore, retry, restore, applyDeletion } = useInfiniteResourceList<AppListRow, number>(adapter, { filter: () => ({ q: query.value, bbox: bbox.value }), activeLang: () => "" });

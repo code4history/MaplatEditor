@@ -5,6 +5,8 @@ export interface MapResourceDiagnostics {
   strictError?: boolean;
   missingPoiRefs?: boolean;
   missingAssetRefs?: boolean;
+  /** 帰属表記（attr）が無い */
+  missingAttribution?: boolean;
 }
 
 export interface AppResourceDiagnostics {
@@ -14,6 +16,8 @@ export interface AppResourceDiagnostics {
   missingPoiRefs?: boolean;
   missingAssetRefs?: boolean;
   unsupportedPoisFormat?: boolean;
+  /** 帰属表記が無い地図・ベースマップをソースに持つ */
+  missingAttribution?: boolean;
 }
 
 export interface PoiSourceResourceDiagnostics {
@@ -33,6 +37,14 @@ export interface DiagnosticsBadgeLabels {
   missingPoi: string;
   missingAsset: string;
   poisFormat: string;
+  /** 帰属表記が無いことの印。渡さない一覧（POI ソース）では出さない */
+  missingAttribution?: string;
+}
+
+// 帰属表記が無いことの印（地図・アプリ・ベースマップの一覧で同じ形）
+export function attributionBadge(missing: boolean | undefined, labels: { missingAttribution?: string }): ResourceListBadge[] {
+  if (!missing || !labels.missingAttribution) return [];
+  return [{ key: "missing-attribution", label: labels.missingAttribution, tone: "warning" }];
 }
 
 export function buildResourceDiagnosticsBadges(
@@ -45,6 +57,7 @@ export function buildResourceDiagnosticsBadges(
       ...(diagnostics.strictError ? [{ key: "strict-error", label: labels.strictError, tone: "danger" as const }] : []),
       ...(diagnostics.missingPoiRefs ? [{ key: "missing-poi", label: labels.missingPoi, tone: "warning" as const }] : []),
       ...(diagnostics.missingAssetRefs ? [{ key: "missing-asset", label: labels.missingAsset, tone: "warning" as const }] : []),
+      ...attributionBadge(diagnostics.missingAttribution, labels),
     ];
   }
   if (diagnostics.kind === "app") {
@@ -54,6 +67,7 @@ export function buildResourceDiagnosticsBadges(
       ...(diagnostics.missingPoiRefs ? [{ key: "missing-poi", label: labels.missingPoi, tone: "warning" as const }] : []),
       ...(diagnostics.missingAssetRefs ? [{ key: "missing-asset", label: labels.missingAsset, tone: "warning" as const }] : []),
       ...(diagnostics.unsupportedPoisFormat ? [{ key: "pois-format", label: labels.poisFormat, tone: "warning" as const }] : []),
+      ...attributionBadge(diagnostics.missingAttribution, labels),
     ];
   }
   return diagnostics.missingAssetRefs

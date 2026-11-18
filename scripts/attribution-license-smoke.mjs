@@ -8,6 +8,9 @@
 //      解決結果が空のキーは出力されない。
 // case 7  語彙が licenseVocabulary.ts 単一の正本から供給され、image 11件 / data 10件で PD は data に無い。
 //      ソーステキスト assert: MapEdit / BaseMapEdit に <option のべた書きが残っていない。
+// case 8  帰属表記が要るのに無い地図・ベースマップ・アプリのソースを見分ける（attributionRequirement）。
+//      Viewer は帰属表記を既定値で埋めないので、エディタが見つけて止める。Google の地図は対象外。
+//      組み込みのベースマップはすべて帰属表記を持つ（勝手に埋めないが、欠けたら気づけるように見張る）。
 //
 // master-detail-smoke と同じ harness（vite SSR ビルド + import）。
 import assert from "node:assert/strict";
@@ -38,6 +41,7 @@ try {
       `export * from ${modulePath("src/utils/appSourceModel.ts")};`,
       `export * from ${modulePath("src/utils/langResource.ts")};`,
       `export * from ${modulePath("src/utils/licenseVocabulary.ts")};`,
+      `export * from ${modulePath("src/utils/attributionRequirement.ts")};`,
     ].join("\n"),
     "utf8",
   );
@@ -72,6 +76,9 @@ try {
     createBaseMapMasterLookup,
     createAppSourceFromBaseMap,
     validateBaseMapDocument,
+    hasAttributionText,
+    lacksRequiredAttribution,
+    findSourcesWithoutAttribution,
   } = await import(pathToFileURL(bundledFile).href);
   // 単独実行を可能にするため bundledFile の import を相対解決させる
   // (rollup ssr は相対 import を同ディレクトリへまとめる。既存 smoke と同じ手順)。
@@ -224,6 +231,47 @@ try {
     }
   }
   console.log("ok: case 7 MapEdit/BaseMapEdit no literal license <option> (LicenseSelect used)");
+
+  // --- case 8: 帰属表記が要るのに無いものを見分ける ---
+  assert.equal(hasAttributionText("© Example"), true);
+  assert.equal(hasAttributionText("  "), false, "case 8: 空白だけは無いとみなす（Viewer と同じ）");
+  assert.equal(hasAttributionText({ ja: "", en: "© Example" }), true, "case 8: どれかの言語にあればよい");
+  assert.equal(hasAttributionText({ ja: " " }), false);
+  assert.equal(hasAttributionText(undefined), false);
+  assert.equal(lacksRequiredAttribution({ kind: "tms", attr: {} }), true, "case 8: tms の空の attr は欠落");
+  assert.equal(lacksRequiredAttribution({ kind: "merc" }), true, "case 8: merc の attr 無しは欠落");
+  assert.equal(lacksRequiredAttribution({ kind: "mapbox", attr: { ja: "© Mapbox" } }), false);
+  assert.equal(lacksRequiredAttribution({ kind: "google", maptype: "google_roadmap", attr: {} }), false, "case 8: Google は対象外");
+  assert.equal(lacksRequiredAttribution({ maptype: "google_satellite" }), false, "case 8: 旧保存形の Google も対象外");
+  assert.equal(lacksRequiredAttribution({ title: { ja: "地図" }, attr: "" }), true, "case 8: Maplat の地図の空の attr は欠落");
+  assert.equal(lacksRequiredAttribution(null), false, "case 8: 引けなかったものは判定しない");
+
+  const attrLookup = createBaseMapMasterLookup([
+    { uid: "uid-ok", mapID: "tms-ok", data: { mapID: "tms-ok", kind: "tms", attr: { ja: "© OK" } } },
+    { uid: "uid-none", mapID: "tms-none", data: { mapID: "tms-none", kind: "tms", attr: {} } },
+    { uid: "uid-google", mapID: "g-road", data: { mapID: "g-road", kind: "google", maptype: "google_roadmap" } },
+  ]);
+  const attrSources = [
+    { sourceType: "maplat", mapUid: "map-ok", role: "maplat" },
+    { sourceType: "maplat", mapUid: "map-none", role: "maplat", mapSlug: "map-none-slug" },
+    { sourceType: "maplat", mapUid: "map-unknown", role: "maplat" },
+    { sourceType: "tms", mapUid: "tms-ok", baseMapUid: "uid-ok", role: "base" },
+    { sourceType: "tms", mapUid: "tms-none", baseMapUid: "uid-none", role: "overlay" },
+    { sourceType: "tms", mapUid: "g-road", baseMapUid: "uid-google", role: "base" },
+    { sourceType: "tms", mapUid: "gone", baseMapUid: "uid-gone", role: "base" },
+  ];
+  const mapDocs = { "map-ok": { mapID: "map-ok", attr: { ja: "© 地図" } }, "map-none": { attr: {} } };
+  const missing = findSourcesWithoutAttribution(attrSources, attrLookup, (uid) => mapDocs[uid]);
+  assert.deepEqual(
+    missing.map((m) => [m.sourceType, m.name]),
+    [["maplat", "map-none-slug"], ["tms", "tms-none"]],
+    "case 8: 欠落は Maplat の地図 1 件と重ね地図 1 件。Google・引けない地図・マスタ欠落は数えない",
+  );
+
+  const builtins = JSON.parse(await readFile(path.join(projectRoot, "electron/builtin_base_maps.json"), "utf8"));
+  const builtinsWithoutAttr = builtins.filter((item) => lacksRequiredAttribution(item)).map((item) => item.mapID);
+  assert.deepEqual(builtinsWithoutAttr, [], "case 8: 組み込みのベースマップはすべて帰属表記を持つ");
+  console.log("ok: case 8 attribution requirement (maps, base maps, app sources, built-ins)");
 
   console.log("attribution-license smoke passed");
   process.exit(0);

@@ -864,7 +864,10 @@
     "envelope_south_name": "Selatan",
     "envelope_east_name": "Timur",
     "envelope_north_name": "Utara",
-    "envelope_coord_error_incomplete": "Isi keempat nilai: barat, selatan, timur, dan utara."
+    "envelope_coord_error_incomplete": "Isi keempat nilai: barat, selatan, timur, dan utara.",
+    "export_blocked_missing_attribution": "Ekspor dihentikan karena ada peta tanpa atribusi. Tambahkan atribusi pada peta berikut, lalu ekspor lagi.",
+    "source_attribution_missing_map": "Peta ini tidak memiliki atribusi. Penampil tidak menambahkannya, sehingga aplikasi tidak dapat diekspor apa adanya. Tambahkan atribusi di editor peta.",
+    "source_attribution_missing_base_map": "Peta dasar ini tidak memiliki atribusi. Penampil tidak menambahkannya, sehingga aplikasi tidak dapat diekspor apa adanya. Tambahkan atribusi di editor peta dasar."
   },
   "mapmodel": {
     "untitled": "Belum berjudul",
@@ -891,7 +894,7 @@
     "modal_select_description": "Ditemukan set tile Mercator yang sudah dibuat dari peta ini. Pilih salah satu untuk diperbarui, atau buat yang baru.",
     "modal_create_new": "Buat Baru",
     "modal_create_confirm": "Buat",
-    "modal_attr_help": "Anda dapat mengisinya nanti dari layar edit."
+    "modal_attr_help": "Atribusi peta dasar baru. Sudah diisi dengan atribusi peta asal. Penampil tidak menambahkannya, sehingga tidak boleh dibiarkan kosong."
   },
   "menu": {
     "quit": "Keluar dari MaplatEditor",
@@ -1369,6 +1372,7 @@
     "recent_searches_label": "Pencarian terbaru",
     "recent_search_apply": "Cari \"{{q}}\"",
     "recent_search_remove": "Hapus \"{{q}}\" dari riwayat",
-    "recent_search_record_failed": "Riwayat pencarian tidak dapat disimpan"
+    "recent_search_record_failed": "Riwayat pencarian tidak dapat disimpan",
+    "badge_missing_attribution": "Tanpa atribusi"
   }
 }

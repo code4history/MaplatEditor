@@ -59,6 +59,7 @@ import {
   type CoordField,
 } from "../utils/envelopeCoordInput";
 import { isProviderKind, resolveBaseMapRuntimeText } from "../utils/baseMapEditorDocument";
+import { lacksRequiredAttribution } from "../utils/attributionRequirement";
 import type { LangResource } from "../utils/langResource";
 
 const props = defineProps<{
@@ -183,6 +184,15 @@ function setNoCache(checked: boolean) {
 // 欄を出すのは、Viewer が Weiwudi へ登録しうる地図だけ: Maplat の地図と、provider でないベースマップ
 // （組み込み・tms）。provider（Google・Mapbox・MapLibre）は元から登録されないので出さない。
 // マスタが引けないソースは欠落の表示だけにする（他の欄と同じ）。
+// 帰属表記が要るのに無い地図・ベースマップ。Viewer は帰属表記を既定値で埋めないので、
+// このままではアプリを書き出せない（書き出しは AppEdit が止める）。書き出す前に分かるよう、ソースの欄に
+// 警告を常に出す（ui-grammar §2.4 の常設の注意）。Maplat の地図は文書を引けてから判定する
+const attributionMissing = computed(() => {
+  if (masterMissing.value) return false;
+  if (props.source.sourceType === "maplat" && master.value.attrKnown !== true) return false;
+  return lacksRequiredAttribution(master.value);
+});
+
 const showNoCache = computed(() =>
   props.source.sourceType === "maplat" || (!masterMissing.value && !isProviderKind(master.value.kind)),
 );
@@ -342,6 +352,16 @@ function copyCoverageToEnvelope() {
 
 <template>
   <div>
+    <DiagnosticFeedback
+      v-if="attributionMissing"
+      scope="field"
+      data-testid="app-source-attribution-missing"
+      :items="[{
+        key: 'attribution-missing',
+        severity: 'warning',
+        message: t(source.sourceType === 'maplat' ? 'appedit.source_attribution_missing_map' : 'appedit.source_attribution_missing_base_map'),
+      }]"
+    />
     <!-- maplat: label のみ編集可（他のメタデータは map.json 側で設定する）。
          hotfix (2026-08-07): label 操作子の移設で maplat 分岐が空になり、
          maplat ソースの label 編集が消えていた退行の復旧。
