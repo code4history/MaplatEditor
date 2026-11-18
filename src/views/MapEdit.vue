@@ -54,6 +54,7 @@ import { displayTileUrl } from '../utils/appUrl';
 import { DEFAULT_MAP_EXPORT_OPTIONS, hasAnyMapExportContent, type MapExportOptions } from '../utils/exportOptions';
 import { isTranslationMode } from '../utils/editorLanguageMode';
 import { MAP_LANG_ATTRS } from '../utils/langResource';
+import { lacksRequiredAttribution } from '../utils/attributionRequirement';
 import { thumb52PathFor } from '../utils/thumbnailPaths';
 // サムネイル置換はベースマップ管理と共有する単一実装を通す
 import { useThumbnailReplace } from '../composables/useThumbnailReplace';
@@ -1088,9 +1089,8 @@ class Drag extends Pointer {
 // 言語別フィールドの内部表現は常にオブジェクト {lang: text} (多言語の値は内部では常に言語別のオブジェクトで持ち、書き出しでは既定言語だけなら文字列に畳む決まり)。
 // ロード/保存側(SqliteDataService)で正規化されるが、新規作成直後の初期値や
 // 旧形式データに備えてプレーン文字列(=デフォルト言語の値)も防御的に受容する
-const localedGet = (key: string) => {
+const localedGet = (key: string, locale: string = currentLang.value) => {
     const lang = mapData.value.lang || 'ja';
-    const locale = currentLang.value;
     const val = mapData.value[key];
     if (typeof val !== 'object' || val === null) {
         return lang === locale ? (val || '') : '';
@@ -1503,15 +1503,13 @@ const saveError = computed(() => {
     // 長さ制限（全角15文字）は 1.0.0 の凍結契約 により撤廃した。必須検証のみ残す。
     // 表示ラベル(label)は任意項目であり検証しない
     const rawTitle = mapData.value.title;
-    const lang = mapData.value.lang || 'ja';
     if (rawTitle == null || rawTitle === '') {
         err['title'] = t('mapmodel.no_title');
     }
 
     // --- attr（地図画像コピーライト必須）---
-    const rawAttr = mapData.value.attr;
-    const attrVal = typeof rawAttr === 'object' ? rawAttr?.[lang] : rawAttr;
-    if (attrVal == null || attrVal === '') {
+    // 旧データの既存欠落は警告扱いで編集を許す。新規保存または保存済み値を空にする操作は拒否。
+    if (lacksRequiredAttribution(mapData.value) && (!mapUid.value || !lacksRequiredAttribution(originalMapData.value))) {
         err['attr'] = t('mapmodel.image_copyright');
     }
 
@@ -1522,6 +1520,9 @@ const saveError = computed(() => {
 
     return Object.keys(err).length > 0 ? err : null;
 });
+const legacyAttributionWarning = computed(() =>
+    !!mapUid.value && lacksRequiredAttribution(originalMapData.value) && lacksRequiredAttribution(mapData.value)
+);
 
 // 旧実装 map.js L.169-171
 // IIIF から配信する地図は url_ を持たない ∴ 配信先（検査を通ったもの）でも表示できる。
@@ -4238,7 +4239,7 @@ let mapSaveSucceeded = false;
 // Busy カバー対象にする。saving(useRevisionedAssetSave) は performSave 中しか立たないため
 const preparingSave = ref(false);
 const saveMap = async (): Promise<boolean> => {
-    if (preparingSave.value || saving.value) return false; // 準備区間の再入防止
+    if (preparingSave.value || saving.value || saveError.value) return false; // 判定は通常保存と保存してエクスポートで共有
     mapSaveSucceeded = false;
     saveOperationError.value = null;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -4525,6 +4526,8 @@ const importMap = async () => {
             } else if (arg.err === 'NoJson') {
                 // 地図の設定（JSON）を外して書き出した zip
                 modalFinish('dataupload.error_no_json');
+            } else if (arg.err === 'AttributionRequired') {
+                modalFinish('mapmodel.image_copyright');
             } else if (arg.err === 'TooLarge') {
                 // 2 GiB 超。理由の分かる固定文（原文は main のログ）
                 modalFinish('dataupload.error_too_large');
@@ -4710,9 +4713,11 @@ const mercModalVisible = ref(false);
 const mercExistingEntries = ref<MercExistingEntry[]>([]);
 const mercExistingItemsRaw = ref<Array<{ uid: string; mapID: string; data: any; revision: number }>>([]);
 const mercNewUid = ref('');
-const mercDefaultTitle = computed(() => `${title.value || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
-// 実装レビューの指摘: モーダルの手入力欄の既定値を元地図の帰属（現在言語）から継承する
-const mercDefaultAttr = computed(() => attr.value);
+// 初回生成のモーダルの既定値は、表示中の言語ではなく地図の既定言語のスロットから継承する。
+// 保存先（generateMercTileSet の inheritedAttr[lang]）も同じ既定言語スロットなので、
+// 表示中の言語の値で空を判定して別の言語の欄へ書き込むことがなくなる
+const mercDefaultTitle = computed(() => `${localedGet('title', mapData.value.lang || 'ja') || mapData.value.mapID} ${t('merc.default_title_suffix')}`);
+const mercDefaultAttr = computed(() => localedGet('attr', mapData.value.lang || 'ja'));
 // 実装レビューの指摘: slugSequence.ts の派生 slug 規約（生成部は必ず "-" で始まる、
 // 人間指示 2026-08-03）に合わせ、接尾辞形式 {元slug}-merc とする（旧: 接頭辞 merc-{元slug}）。
 const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
@@ -4855,12 +4860,18 @@ async function wmtsGenerate(): Promise<void> {
             return;
         }
         mercNewUid.value = reserved.uid;
+        // 空の判定も地図の既定言語のスロットで行う（mercDefaultAttr。書き込み先の言語と揃える）
+        const inheritedAttr = mercDefaultAttr.value;
+        if (!inheritedAttr.trim()) {
+            mercModalVisible.value = true;
+            return;
+        }
         await generateMercTileSet({
             mode: 'new',
             uid: reserved.uid,
             slug: reserved.slug,
             title: mercDefaultTitle.value,
-            attr: '',
+            attr: inheritedAttr,
         });
         return;
     }
@@ -5197,6 +5208,7 @@ const goBack = async () => {
                             <input data-testid="map-attr" type="text" class="form-control form-control-sm" :class="saveError?.attr ? 'is-invalid' : ''" v-model="attr" :placeholder="t('mapedit.map_copyright_pf')">
                             <!-- field エラーは共通 DiagnosticFeedback(赤・(i)付き)で表示 -->
                             <DiagnosticFeedback v-if="saveError?.attr" scope="field" :items="[{ key: 'attr-required', severity: 'danger', message: saveError.attr }]" />
+                            <DiagnosticFeedback v-else-if="legacyAttributionWarning" scope="field" :items="[{ key: 'legacy-attr-missing', severity: 'warning', message: t('mapmodel.image_copyright') }]" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold small mb-0 d-flex align-items-center gap-1">{{ t("mapedit.map_image_license") }} <ContextHelp :text="t('field_help.image_license')" :ariaLabel="t('field_help.image_license')" /></label>

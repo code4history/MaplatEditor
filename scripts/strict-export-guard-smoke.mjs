@@ -125,9 +125,23 @@ try {
 
       const downloadSavedHandler = __handlers.get('mapedit:download-saved');
       assert.ok(downloadSavedHandler, 'mapedit:download-saved ハンドラが登録されているはず');
+      const legacyDownloadHandler = __handlers.get('mapedit:download');
+      assert.ok(legacyDownloadHandler, '旧 mapedit:download ハンドラが登録されているはず');
       const fakeEvent = { sender: {}, senderFrame: { url: 'app://bundle/index.html', parent: null } };
       const fakeWin: any = { webContents: { send() {} } };
       const exportDir = ${JSON.stringify(exportDir)};
+
+      const { uid: legacyMissingUid } = await SqliteDataService.createMap('legacy-missing-attribution', {
+        title: 'Legacy Map', attr: {}, gcps: [], edges: [], sub_maps: [],
+      });
+      const legacyDialogCallsBefore = (globalThis as any).__showSaveDialogCallCount || 0;
+      const legacyDownloadResult = await legacyDownloadHandler(fakeEvent, {
+        uid: legacyMissingUid, mapID: 'legacy-missing-attribution', title: 'Legacy Map', attr: {},
+        gcps: [], edges: [], sub_maps: [],
+      }, []);
+      assert.equal(legacyDownloadResult, 'Error', '旧地図 ZIP API は帰属表記欠落を拒否するはず');
+      assert.equal((globalThis as any).__showSaveDialogCallCount || 0, legacyDialogCallsBefore,
+        '帰属表記検証は保存先ダイアログより前に実行されるはず');
 
       function maplatSource(mapRef: string) {
         return {
@@ -138,7 +152,7 @@ try {
 
       // --- case 1: strict_error 地図でも mapedit:download-saved(mapRef) は成功する ---
       const { uid: strictMapUid } = await SqliteDataService.createMap('strict-export-map', {
-        title: 'Strict Export Map',
+        title: 'Strict Export Map', attr: { ja: '© Example' },
         compiled: { strict_status: 'strict_error' },
         gcps: [], edges: [], sub_maps: [],
         strictMode: 'strict', vertexMode: 'plain',
@@ -162,7 +176,7 @@ try {
       // case 1 (既知の限界): GCP<3・compiled 欠落の保存地図は現行 previewSource と
       // 同一挙動 (too_less_gcps) で 'Error' に収束する (対象外の確認事項、非回帰)
       const { uid: tooLessGcpsUid } = await SqliteDataService.createMap('too-less-gcps-map', {
-        title: 'Too Less Gcps Map', gcps: [], edges: [], sub_maps: [],
+        title: 'Too Less Gcps Map', attr: { ja: '© Example' }, gcps: [], edges: [], sub_maps: [],
         strictMode: 'strict', vertexMode: 'plain',
       });
       (globalThis as any).__nextDialogResult = {
@@ -244,7 +258,7 @@ try {
 
       // --- case 3: post-dialog revalidation。dialog 待ち中の strict flip を古い判定で通さない ---
       const { uid: flipMapUid } = await SqliteDataService.createMap('flip-map', {
-        title: 'Flip Map', gcps: [], edges: [], sub_maps: [],
+        title: 'Flip Map', attr: { ja: '© Example' }, gcps: [], edges: [], sub_maps: [],
         strictMode: 'strict', vertexMode: 'plain',
       });
       const flipMapDoc = await SqliteDataService.findMap(flipMapUid);

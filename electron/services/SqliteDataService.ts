@@ -17,6 +17,7 @@ import builtinBaseMaps from '../builtin_base_maps.json';
 import SettingsService from './SettingsService';
 import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
 // 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
@@ -2565,7 +2566,6 @@ class SqliteDataService {
     if (!slug) throw new Error('slug is required');
     const tms = payload?.tms ?? {};
     const db = await this.getDb();
-
     // create=true は新規作成の明示合図(b): uid を preset として新規経路へ回す。
     // create なし/false は従来の uid 有無 dispatch(update 経路の NotFound throw 不変)
     const requestedCreate = payload?.create === true;
@@ -2578,9 +2578,13 @@ class SqliteDataService {
       // 先頭取得するため、並走する書き込みと交錯して返却revisionがずれることがない)
       return this.withTransaction(db, () => {
         const existing = db
-          .prepare(`SELECT uid, slug, revision FROM base_maps WHERE uid = ? AND scope = 'user'`)
+          .prepare(`SELECT uid, slug, revision, data_json FROM base_maps WHERE uid = ? AND scope = 'user'`)
           .get(uid) as any;
         if (!existing) throw new Error(`Unknown user base map: ${uid}`);
+        const existingData = JSON.parse(existing.data_json);
+        if (lacksRequiredAttribution(tms) && !lacksRequiredAttribution(existingData)) {
+          throw new Error('mapmodel.image_copyright');
+        }
         const currentRevision = Number(existing.revision);
         if (payload.expectedRevision != null && currentRevision !== payload.expectedRevision) {
           throw new RevisionConflictError(currentRevision);
@@ -2612,6 +2616,7 @@ class SqliteDataService {
     if (presetUid != null && !UUID_PATTERN.test(presetUid)) throw new Error('uid must be a UUID');
     const uid = presetUid ?? generateUid();
     const data: any = { ...tms, mapID: slug };
+    if (lacksRequiredAttribution(data)) throw new Error('mapmodel.image_copyright');
     this.withTransaction(db, () => {
       this.promoteSlugWithin(db, slug, uid);
       this.registerAsset(db, 'base_map', uid, slug);

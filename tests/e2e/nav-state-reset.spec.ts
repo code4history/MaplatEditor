@@ -44,7 +44,7 @@ async function seedMaps(page: Page, count: number): Promise<void> {
       const result = await (window as any).mapedit.save({ slug, mapObject: {
         mapID: slug, title: { ja: `画面遷移試験 地図 ${slugTag}` },
         officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+        attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
         reference: '', url: '', lang: 'ja', imageExtension: 'jpg', width: 400, height: 300,
         gcps: [], edges: [], sub_maps: [], strictMode: 'strict', vertexMode: 'plain', status: 'New',
       }, tins: [] });

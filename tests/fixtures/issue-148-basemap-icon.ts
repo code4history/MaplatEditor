@@ -14,7 +14,7 @@ const db = await Sqlite.getDb(); // finish migrations before seeding fixtures
 const row = (uid: string) => db.prepare('SELECT * FROM base_maps WHERE uid = ?').get(uid) as any;
 const document = (uid: string) => JSON.parse(row(uid).data_json);
 const save = (uid: string, thumbnail: string, kind = 'tms', slug = uid) =>
-  Sqlite.saveUserBaseMap({ uid, create: true, slug, tms: { kind, thumbnail } as any });
+  Sqlite.saveUserBaseMap({ uid, create: true, slug, tms: { kind, thumbnail, attr: kind === 'google' ? {} : { ja: '© Example' } } as any });
 async function seed(rel: string, large = true) {
   await fs.outputFile(at(rel), '52-' + rel);
   if (large) await fs.outputFile(at(thumb512PathFor(rel)!), '512-' + rel);
@@ -157,7 +157,7 @@ console.log('PASS: owned/missing/orphan images and same-size copy corruption');
   finally { db.exec('DROP TRIGGER fail_update'); }
   await preserved(rel);
   assert.equal(document(uid).thumbnail, rel);
-  const result = await Sqlite.saveUserBaseMap({ uid, slug: uid, expectedRevision: 1, tms: { thumbnail: rel } as any });
+  const result = await Sqlite.saveUserBaseMap({ uid, slug: uid, expectedRevision: 1, tms: { thumbnail: rel, attr: { ja: '© Example' } } as any });
   assert.equal(result.thumbnail, `tmbs/${uid}.png`);
   assert.equal(result.revision, 2);
 }

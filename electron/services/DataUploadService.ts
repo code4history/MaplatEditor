@@ -17,6 +17,7 @@ import {
 import poiSourceService from './PoiSourceService';
 import { resolveImportSlug } from './importSlugResolver';
 import { readAppDocumentPois } from '../../src/utils/appPoisFormat';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import { listPoiDocumentEntries } from '../../src/utils/poiPackage';
 import { THUMB_512_EXT, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { transcodeImage } from '../utils/thumbnail512Codec';
@@ -347,6 +348,7 @@ class DataUploadService {
             const mapPath = path.join(mapTmpFolder, mapFile);
             // IIIF のまま配る地図に手で入れたタイルの URL は取り込まない（url_ も作らない）
             const mapData = withoutManualTileUrl(await fs.readJson(mapPath));
+            if (lacksRequiredAttribution(mapData)) throw 'AttributionRequired';
 
             // 配信先の URL の文字列を検査する。通らない地図は取り込まない
             // （取り込むと、保存も開き直しもできない地図ができる）。

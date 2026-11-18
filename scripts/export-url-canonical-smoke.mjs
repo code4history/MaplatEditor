@@ -87,6 +87,7 @@ try {
       // __nextSaveDialog を注入して保存先/キャンセルを制御する (case 6 はここに canceled:true を入れる)
       export const dialog = {
         async showSaveDialog() {
+          (globalThis as any).__saveDialogCalls = ((globalThis as any).__saveDialogCalls || 0) + 1;
           return (globalThis as any).__nextSaveDialog || { canceled: true, filePath: undefined };
         },
         async showOpenDialog() { return { canceled: true, filePaths: [] }; },
@@ -168,6 +169,7 @@ try {
       function baseMapDoc(title: string) {
         return {
           title, lang: 'ja', imageExtension: 'jpg',
+          attr: { ja: '© Example' },
           width: 100, height: 100,
           gcps: GCPS, edges: [], sub_maps: [],
           strictMode: 'strict', vertexMode: 'plain',
@@ -193,6 +195,16 @@ try {
         ...baseMapDoc('Local Empty Url Map'), url: '',
       });
       await putTileAndThumb(emptyUid);
+      {
+        const { uid: missingAttrUid } = await SqliteDataService.createMap('missing-attribution-map-zip', {
+          ...baseMapDoc('Map without attribution'), attr: '', url: '',
+        });
+        const before = (globalThis as any).__saveDialogCalls || 0;
+        const result = await downloadSaved(fakeEvent, missingAttrUid);
+        assert.equal(result, 'Error', '地図 ZIP の書き出しは帰属表記欠落を拒否するはず');
+        assert.equal((globalThis as any).__saveDialogCalls || 0, before, '拒否は保存先ダイアログより前のはず');
+        console.log('ok: map ZIP export rejects missing attribution before save dialog');
+      }
       {
         const { json } = await exportAndReadMapJson(emptyUid, 'local-empty-url', 'local-empty-url.zip');
         assert.strictEqual(

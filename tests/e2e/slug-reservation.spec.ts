@@ -707,7 +707,7 @@ test('actual base map save service rolls back registry and body on promote confl
         create: true,
         uid: targetUid,
         slug,
-        tms: { mapID: slug, title: { ja: 'case 4 conflict' }, url: 'https://example.test/{z}/{x}/{y}.png' },
+        tms: { mapID: slug, title: { ja: 'case 4 conflict' }, attr: { ja: '© Example' }, url: 'https://example.test/{z}/{x}/{y}.png' },
       }), { slug, targetUid });
     expect(result).toEqual({ result: 'Exist' });
 

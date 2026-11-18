@@ -17,6 +17,7 @@
       <span
         v-for="badge in visibleBadges" :key="badge.key"
         class="badge ms-0 me-1" :class="resourceBadgeClass(badge.tone)"
+        :data-testid="`resource-badge-${badge.key}`"
       >{{ badge.label }}</span>
     </router-link>
     <div class="resource-grid-card__actions">

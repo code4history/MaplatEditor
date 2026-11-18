@@ -8,6 +8,7 @@ import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 // IIIF のまま配る地図は、手で入れたタイルの URL を読み込み・保存の入口で外す
 import { withoutManualTileUrl } from '../utils/iiifDelivery';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import SettingsService from './SettingsService';
 import { normalizeOriginalExt, resolveRuntimeOriginal } from './MapOriginalImageService';
 import MapMutationQueue from './MapMutationQueue';
@@ -271,6 +272,12 @@ class MapEditService {
         const queueUid = request.create === true ? (request.uid ?? undefined) : (uid ?? undefined);
 
         const body = async (): Promise<MapSaveResult> => {
+            // Read the saved value after entering the per-UID queue so an older concurrent
+            // request cannot overwrite attribution added by the preceding save.
+            const existingMap = uid ? await SqliteDataService.findMapByRef(uid) : null;
+            if (lacksRequiredAttribution(mapObject) && (!existingMap || !lacksRequiredAttribution(existingMap))) {
+                return { result: 'Error', errorKey: 'mapmodel.image_copyright' };
+            }
             // フォルダの確保
             await fs.ensureDir(tileFolder);
             await fs.ensureDir(originalFolder);

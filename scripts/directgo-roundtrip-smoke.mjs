@@ -247,7 +247,7 @@ try {
 
       // ---------------- E2a 地図の inline の POI（地図データの保存と再読込）----------------
       const mapBase: any = {
-        mapID: 'directgo-map', title: 'directgo 地図', attr: '', officialTitle: '', dataAttr: '',
+        mapID: 'directgo-map', title: 'directgo 地図', attr: { ja: '© Example' }, officialTitle: '', dataAttr: '',
         author: '', createdAt: '', era: '', license: 'All right reserved', dataLicense: 'CC BY-SA',
         contributor: '', mapper: '', reference: '', description: '', url: '', lang: 'ja',
         imageExtension: 'jpg', width: 400, height: 300, gcps: [], edges: [], sub_maps: [],

@@ -48,7 +48,7 @@ async function seedUserBaseMap(page: Page, slug: string): Promise<void> {
       slug: baseMapSlug,
       tms: {
         lang: 'ja', title: { ja: 'ベースマップ' }, label: { ja: 'ベースマップ' },
-        attr: {}, url: 'https://example.com/tiles/{z}/{x}/{y}.png', minZoom: 0, maxZoom: 18, thumbnail: '',
+        attr: { ja: '© Example' }, url: 'https://example.com/tiles/{z}/{x}/{y}.png', minZoom: 0, maxZoom: 18, thumbnail: '',
         coverageLngLats: [[139.60, 35.60], [139.90, 35.60], [139.90, 35.80], [139.60, 35.80]],
       },
       create: true,

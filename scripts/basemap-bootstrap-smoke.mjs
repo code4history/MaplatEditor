@@ -277,7 +277,7 @@ try {
 
         SettingsService.set('saveFolder', folderA);
         await SqliteDataService.getDb();
-        const saved = await SqliteDataService.saveUserBaseMap({ slug: 'user-in-a', tms: { mapID: 'user-in-a', title: 'A', url: 'https://a.test/{z}/{x}/{y}.png' } });
+        const saved = await SqliteDataService.saveUserBaseMap({ slug: 'user-in-a', tms: { mapID: 'user-in-a', title: 'A', attr: { ja: '© A' }, url: 'https://a.test/{z}/{x}/{y}.png' } });
         const userAUid = saved.uid;
 
         // map draft 1 件 + staging dir

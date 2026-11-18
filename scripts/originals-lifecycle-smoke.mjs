@@ -151,7 +151,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveA1Create = await MapEditService.save({
           mapObject: {
-            mapID: 'a1-canonical-map', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
+            mapID: 'a1-canonical-map', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -165,7 +165,7 @@ try {
         const canonicalA1BytesBefore = await fs.readFile(canonicalA1);
 
         const saveA1Rename = await MapEditService.save({
-          mapObject: { mapID: 'a1-renamed', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'a1-renamed', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'a1-renamed',
           uid: UID_A1,
@@ -193,7 +193,7 @@ try {
         await fs.writeFile(path.join(originalsDir, 'b1-legacy-map.jpg'), 'legacy-bytes-b1');
 
         const saveB1Rename = await MapEditService.save({
-          mapObject: { mapID: 'b1-renamed', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'b1-renamed', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'b1-renamed',
           uid: UID_B1,
@@ -227,7 +227,7 @@ try {
 
         // naramachi のように DB imageExtension = 'png'(新しい方)を mapObject に渡して rename する
         const saveC1Rename = await MapEditService.save({
-          mapObject: { mapID: 'c1-renamed', imageExtension: 'png', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'c1-renamed', attr: { ja: '© Example' }, imageExtension: 'png', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'c1-renamed',
           uid: UID_C1,
@@ -268,7 +268,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveDSrc = await MapEditService.save({
           mapObject: {
-            mapID: 'd1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
+            mapID: 'd1-clone-src', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder),
             gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -283,7 +283,7 @@ try {
 
         const UID_D_DEST = 'd2222222-2222-4222-8222-222222222222';
         const saveDDest = await MapEditService.save({
-          mapObject: { mapID: 'd1-clone-dest', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'd1-clone-dest', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'd1-clone-dest',
           uid: UID_D_DEST,
@@ -318,7 +318,7 @@ try {
 
         const UID_E_DEST = 'e2222222-2222-4222-8222-222222222222';
         const saveEDest = await MapEditService.save({
-          mapObject: { mapID: 'e1-clone-dest-legacy', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'e1-clone-dest-legacy', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'e1-clone-dest-legacy',
           uid: UID_E_DEST,
@@ -358,7 +358,7 @@ try {
 
         const UID_F_DEST = 'f2222222-2222-4222-8222-222222222222';
         const { result: saveFDest, warnings } = await readWarn(() => MapEditService.save({
-          mapObject: { mapID: 'f1-clone-dest-missing', imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
+          mapObject: { mapID: 'f1-clone-dest-missing', attr: { ja: '© Example' }, imageExtension: 'jpg', gcps: [], edges: [], sub_maps: [] },
           tins: [],
           slug: 'f1-clone-dest-missing',
           uid: UID_F_DEST,

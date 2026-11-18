@@ -870,6 +870,9 @@
     "envelope_east_name": "Đông",
     "envelope_north_name": "Bắc",
     "envelope_coord_error_incomplete": "Hãy nhập đủ bốn giá trị: tây, nam, đông và bắc.",
+    "export_blocked_missing_attribution": "Đã dừng xuất vì một số bản đồ không có ghi công. Hãy thêm ghi công cho các bản đồ sau rồi xuất lại.",
+    "source_attribution_missing_map": "Bản đồ này không có ghi công. Trình xem không tự bổ sung ghi công nên không thể xuất ứng dụng như hiện tại. Hãy thêm ghi công trong màn hình chỉnh sửa bản đồ.",
+    "source_attribution_missing_base_map": "Bản đồ nền này không có ghi công. Trình xem không tự bổ sung ghi công nên không thể xuất ứng dụng như hiện tại. Hãy thêm ghi công trong màn hình chỉnh sửa bản đồ nền.",
     "source_no_cache_iiif_reason": "Trình xem không bao giờ lưu tile của bản đồ cung cấp từ IIIF trên thiết bị mà luôn tải từ dịch vụ ảnh IIIF. Không cần loại trừ ở đây."
   },
   "mapmodel": {
@@ -897,7 +900,7 @@
     "modal_select_description": "Đã tìm thấy các bộ tile Mercator được tạo từ bản đồ này. Hãy chọn một bộ để cập nhật, hoặc tạo mới.",
     "modal_create_new": "Tạo mới",
     "modal_create_confirm": "Tạo",
-    "modal_attr_help": "Bạn có thể nhập sau tại màn hình chỉnh sửa."
+    "modal_attr_help": "Ghi công của bản đồ nền mới. Ghi công từ bản đồ gốc sẽ được sao chép nếu có; nếu không, hãy nhập tại đây. Trình xem không tự thêm ghi công."
   },
   "menu": {
     "quit": "Thoát MaplatEditor",
@@ -1375,6 +1378,7 @@
     "recent_searches_label": "Tìm kiếm gần đây",
     "recent_search_apply": "Tìm \"{{q}}\"",
     "recent_search_remove": "Xóa \"{{q}}\" khỏi lịch sử",
-    "recent_search_record_failed": "Không thể lưu lịch sử tìm kiếm"
+    "recent_search_record_failed": "Không thể lưu lịch sử tìm kiếm",
+    "badge_missing_attribution": "Không có ghi công"
   }
 }

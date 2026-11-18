@@ -43,6 +43,7 @@ const SELF_E2E = "tests/e2e/editor-ui-help-and-defaults.spec.ts";
 const appEditVue = await readSrc(APP_EDIT);
 const mapEditVue = await readSrc(MAP_EDIT);
 const baseMapEditVue = await readSrc(BASE_MAP_EDIT);
+const mercTileSetModalVue = await readSrc("src/components/mapedit/MercTileSetModal.vue");
 
 const localesDir = path.join(projectRoot, "public/locales");
 const langs = (await readdir(localesDir, { withFileTypes: true }))
@@ -202,6 +203,11 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない
 {
+  assert.match(
+    mercTileSetModalVue,
+    /mode\.value\s*=\s*props\.existingEntries\.length\s*===\s*0\s*\?\s*['"]new['"]\s*:\s*['"]select['"]?/,
+    "空の既存セット一覧では初期表示を新規作成フォームにする",
+  );
   assert.ok(
     !/<p class="text-muted small">\{\{\s*t\("merc\.tab_description"\)\s*\}\}<\/p>/.test(mapEditVue),
     'S4/case 9: MapEdit.vue must not render merc.tab_description as a plain <p class="text-muted small">',

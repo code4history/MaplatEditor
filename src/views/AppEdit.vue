@@ -34,6 +34,7 @@ import ResourceEmptyState from "../components/resource-list/ResourceEmptyState.v
 import { createMapListAdapter, type MapListRow } from "./resource-adapters/mapListAdapter";
 import { baseMapSearchAdapter } from "./resource-adapters/baseMapSearchAdapter";
 import { createBaseMapMasterLookup, resolveAppSource } from "../utils/appSourceModel";
+import { findSourcesWithoutAttribution } from "../utils/attributionRequirement";
 import type { BaseMapCatalogItem } from "../utils/baseMapEditorDocument";
 import type { ResourceListItemViewModel } from "../components/resource-list/resourceListTypes";
 import { useSelectorSpatialContext } from "../composables/useSelectorSpatialContext";
@@ -555,9 +556,8 @@ async function confirmMaplibreExport(saved: any): Promise<boolean> {
 // 使う）。引けなかった地図は入れない（resolveMaplatFallbackCenter と同じくベストエフォート）。
 // 読み込み・下書きの復帰・Undo/Redo・地図の追加のどれでソースが変わっても拾えるよう、
 // maplat ソースの mapUid の並びを監視して未取得のものだけ引く。
-// iiifDelivery: IIIF のまま配る地図か（delivery を持つ）。ソースの欄の「オフライン表示から外す」を
-// 使えなくするのに使う（Viewer はこの地図をもともとキャッシュしない）
-const maplatMapDocs = ref<Record<string, { lang?: string; label?: unknown; iiifDelivery?: boolean }>>({});
+// attr / attrKnown は帰属表記警告、iiifDelivery は IIIF 配信時のキャッシュ設定を制御する。
+const maplatMapDocs = ref<Record<string, { lang?: string; label?: unknown; attr?: unknown; attrKnown?: true; iiifDelivery?: boolean }>>({});
 const maplatMapDocsRequested = new Set<string>();
 
 async function fetchMaplatMapDoc(mapUid: string) {
@@ -568,7 +568,7 @@ async function fetchMaplatMapDoc(mapUid: string) {
     if (mapDoc) {
       maplatMapDocs.value = {
         ...maplatMapDocs.value,
-        [mapUid]: { lang: mapDoc.lang, label: mapDoc.label, iiifDelivery: typeof mapDoc.delivery?.url === "string" },
+        [mapUid]: { lang: mapDoc.lang, label: mapDoc.label, attr: mapDoc.attr, attrKnown: true, iiifDelivery: typeof mapDoc.delivery?.url === "string" },
       };
     }
   } catch {
@@ -1233,10 +1233,38 @@ const closeAppExportOptions = (value: { includeTiles: boolean } | null) => {
   resolve?.(value ? { ...value } : null);
 };
 
+// 帰属表記が要るのに無い地図・ベースマップをソースに持つアプリは書き出さない。
+// Viewer は帰属表記を既定値で埋めないので、そのまま書き出すと帰属表記の無い地図が公開される。
+// 止めた理由は操作のエラーとして出し、どの地図かを detail に並べる（ソースの欄にも同じ警告が出ている）。
+// 判定は一覧の印（ResourceDiagnosticsService）と同じ関数で行う。マスタは書き出しの直前に引き直す
+async function sourcesWithoutAttribution(saved: { sources?: unknown; lang?: string } | null | undefined): Promise<string[]> {
+  if (!saved) return [];
+  const lang = saved.lang || "ja";
+  const rawSources: unknown[] = Array.isArray(saved.sources) ? saved.sources : [];
+  const sources = rawSources.map((source) => normalizeSource(source, lang));
+  await refreshBaseMapMasters();
+  const mapDocs = new Map<string, { attr?: unknown; mapID?: unknown; slug?: unknown } | null>();
+  for (const source of sources) {
+    if (source.sourceType !== "maplat" || mapDocs.has(source.mapUid)) continue;
+    mapDocs.set(source.mapUid, await window.mapedit.request(source.mapUid).catch(() => null));
+  }
+  return findSourcesWithoutAttribution(sources, baseMapLookup.value, (uid) => mapDocs.get(uid))
+    .map((found) => found.name);
+}
+
 async function exportSavedApp(): Promise<boolean> {
   if (!appUid.value) return false;
   // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
   clearOperationNotice();
+  const missingAttribution = await sourcesWithoutAttribution(await window.appedit.request(appUid.value));
+  if (missingAttribution.length > 0) {
+    notifyOperation({
+      type: "error",
+      message: t("appedit.export_blocked_missing_attribution"),
+      detail: missingAttribution.join("\n"),
+    });
+    return false;
+  }
   // 地図と同じ順序: 未保存のときの選択（runEditorExportDecision）→ この小窓 → 実施。
   // 小窓で取り消したら何もしない
   // MapLibre の版: 5 系のままで 6 系が要るベースマップがあれば、書き出しの小窓より前に確かめる（ここでは切り替えない）

@@ -6,6 +6,9 @@
 //        重複作成されず、title は保持される
 //   case 10: エディタ内アイコン生成（generateTmsThumbnail）が merc マスタに対して file://
 //         経由でタイルを読み、成功する
+//   case 11: 初回生成の帰属表記の空判定・既定値・書き込みは地図の既定言語で揃う。表示中の言語の
+//         値で空を判定して別の言語の欄へ書き込まない（mercDefaultAttr / wmtsGenerate /
+//         generateMercTileSet）
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -189,7 +192,7 @@ test.describe('メルカトルタイル生成', () => {
         const r = await window.baseMaps.saveUser({
           create: true,
           slug,
-          tms: { kind: 'tms', title: {}, label: {}, attr: {}, url: 'https://example.com/{z}/{x}/{y}.png' },
+          tms: { kind: 'tms', title: {}, label: {}, attr: { ja: '© Example' }, url: 'https://example.com/{z}/{x}/{y}.png' },
         });
         if (!r || !r.uid) throw new Error(`occupant seed failed: ${JSON.stringify(r)}`);
       }, `${mapSlug}-merc`);
@@ -237,6 +240,76 @@ test.describe('メルカトルタイル生成', () => {
       await expect(generateIconButton).toBeEnabled({ timeout: 15_000 });
       await generateIconButton.click();
       await expect(page.locator('img.base-map-icon')).toBeVisible({ timeout: 30_000 });
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  // 回帰: 表示中の言語 (en) の attr が空でも、地図の既定言語 (ja) に文があればモーダルを介さず
+  // 自動作成される（表示中の言語で空を判定して、別の言語の欄へ上書きしてはいけない）
+  test('初回生成の帰属表記の空判定は地図の既定言語で行う', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-merc-tile-set-lang-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+      // seedStrictMap の mapObject: lang='ja', attr={ ja: 'attribution' }
+      const { uid: mapUid } = await seedStrictMap(page, saveFolder);
+      await openHash(page, `#/mapedit?uid=${mapUid}`);
+      // 表示中の編集言語だけ en へ切り替える（地図の既定言語は ja のまま）
+      await page.getByTestId('editor-language').selectOption('en');
+      await page.getByTestId('map-tab-merc').click();
+      const generateButton = page.getByTestId('merc-generate-button');
+      await expect(generateButton).toBeEnabled({ timeout: 15_000 });
+      await generateButton.click();
+
+      // 既定言語 (ja) に 'attribution' があるため、表示中言語 (en) が空でも自動作成される。
+      // 旧い実装は表示中言語の空で判定してモーダルを開き、入力値を ja の欄へ書き込んでいた
+      await expectMercProgressText(page);
+      await expect(page.getByTestId('merc-tile-set-modal')).toBeHidden();
+      await generateAndWaitForCompletion(page);
+
+      const list = await page.evaluate(() => window.baseMaps.list());
+      const mercEntry = list.find((item) => item.data?.kind === 'merc' && item.data?.sourceMapUid === mapUid);
+      expect(mercEntry).toBeTruthy();
+      expect(mercEntry!.data.attr).toEqual({ ja: 'attribution' });
+      // タイトルの既定値も既定言語 (ja) の値から継承される（表示中言語の値を ja の欄へ書かない）
+      expect(mercEntry!.data.title.ja).toContain('テスト地図');
+      expect(mercEntry!.data.title.en).toBeUndefined();
+    } finally {
+      await quitElectronApplication(app);
+    }
+  });
+
+  // 回帰: 新規作成フォームの帰属表記の既定値は表示中言語ではなく地図の既定言語の値
+  test('新規作成フォームの帰属表記の既定値は地図の既定言語の値', async () => {
+    const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-merc-tile-set-attr-'));
+    const { app, page } = await launch(e2eRoot);
+    try {
+      const saveFolder = await page.evaluate(() => window.settings.get('saveFolder'));
+      const { uid: mapUid } = await seedStrictMap(page, saveFolder);
+      await openHash(page, `#/mapedit?uid=${mapUid}`);
+      await page.getByTestId('editor-language').selectOption('en');
+      await page.getByTestId('map-tab-merc').click();
+      const generateButton = page.getByTestId('merc-generate-button');
+      await expect(generateButton).toBeEnabled({ timeout: 15_000 });
+
+      // 1回目: 自動作成で既存 merc を 1 件つくり、2回目の選択モーダルへ進む
+      await generateButton.click();
+      await expectMercProgressText(page);
+      await generateAndWaitForCompletion(page);
+      await page.evaluate(() => {
+        (window as any).testDebug.mapData.value.wmtsHash = 'stale-hash-for-e2e';
+      });
+      await expect(generateButton).toBeEnabled({ timeout: 15_000 });
+
+      // 2回目: 選択モーダルから「新規作成」へ進む
+      await generateButton.click();
+      await expect(page.getByTestId('merc-tile-set-modal')).toBeVisible({ timeout: 15_000 });
+      await page.getByTestId('merc-start-new').click();
+
+      // 帰属表記の既定値は表示中言語 (en, 空) ではなく地図の既定言語 (ja) の 'attribution'
+      await expect(page.getByTestId('merc-new-attr')).toHaveValue('attribution');
+      await expect(page.getByTestId('merc-modal-confirm')).toBeEnabled();
     } finally {
       await quitElectronApplication(app);
     }

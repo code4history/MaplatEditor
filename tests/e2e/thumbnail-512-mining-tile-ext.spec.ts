@@ -34,7 +34,7 @@ async function seedMap(page: Page, name: string, width: number, height: number):
       mapObject: {
         mapID: mapSlug, title: { ja: `ext mining ${name}` },
         officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: {}, dataAttr: {}, description: {},
+        attr: { ja: '© Example' }, dataAttr: {}, description: {},
         license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
         imageExtension: 'tif', width, height,
         gcps: [[[0, 0], [15550000, 4160000]], [[width, 0], [15560000, 4160000]], [[width, height], [15560000, 4150000]]],

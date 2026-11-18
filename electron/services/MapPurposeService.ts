@@ -4,6 +4,7 @@ import SqliteDataService from './SqliteDataService';
 import MapEditService, { hasStrictError } from './MapEditService';
 import { normalizeAppSource } from '../../src/utils/appSourceModel';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import { normalizeMapExportOptions, type MapExportOptions } from '../../src/utils/exportOptions';
 
 // App save/preview/export と Viewer runtime ingress の入口ゲート。
@@ -88,6 +89,7 @@ class MapPurposeService {
                 ...(previewJson.sub_maps ?? []).map((subMap: any) => subMap.compiled ?? 'tooLessGcps'),
             ];
             const slug = mapDoc?.slug || previewJson.mapID;
+            if (lacksRequiredAttribution(mapDoc)) return 'Error';
             const fileKey = mapDoc?.uid || slug;
             const ret = await dialog.showSaveDialog(win, {
                 defaultPath: dialogDefaultPath('export', `${slug}.zip`),

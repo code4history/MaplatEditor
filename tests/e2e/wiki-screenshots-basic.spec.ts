@@ -193,7 +193,7 @@ test('capture current-1..4 wiki screenshots (MapList / MapEdit-GCP / PoiEdit / A
         slug,
         tms: {
           lang: 'en', title: { en: 'Screenshot Base Map' }, label: { en: 'Screenshot Base Map' },
-          attr: {}, url: 'https://example.com/tiles/{z}/{x}/{y}.png', minZoom: 0, maxZoom: 18, thumbnail: '',
+          attr: { ja: '© Example' }, url: 'https://example.com/tiles/{z}/{x}/{y}.png', minZoom: 0, maxZoom: 18, thumbnail: '',
           coverageLngLats: [[139.60, 35.60], [139.90, 35.60], [139.90, 35.80], [139.60, 35.80]],
         },
         create: true,

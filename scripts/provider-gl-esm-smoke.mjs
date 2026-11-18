@@ -128,7 +128,7 @@ try {
       await SqliteDataService.saveUserBaseMap({ uid: MB_UID, slug: 'glesm-mapbox', create: true,
         tms: master({ kind: 'mapbox', maptype: 'mapbox', style: 'mapbox://styles/mapbox/streets-v12' }) });
       const { uid: maplatUid } = await SqliteDataService.createMap('glesm-maplat', {
-        title: { ja: '地図' }, width: 400, height: 300, strictMode: 'loose', vertexMode: 'plain',
+        title: { ja: '地図' }, attr: { ja: '© Example' }, width: 400, height: 300, strictMode: 'loose', vertexMode: 'plain',
         // プレビューの compiled の生成に GCP が 3 点以上要る
         gcps: [[[0, 0], [135.0, 35.1]], [[400, 0], [135.1, 35.1]], [[200, 300], [135.05, 35.0]]],
       });

@@ -2,6 +2,8 @@ import type { ResourceListAdapter, ResourceListItemViewModel } from "../resource
 import type { BaseMapCatalogItem } from "../../utils/baseMapEditorDocument";
 import { filterBaseMapCatalog, type Wgs84Bbox } from "../../utils/baseMapCatalogFilter";
 import { localizeTitle } from "../../utils/langResource";
+import { lacksRequiredAttribution } from "../../utils/attributionRequirement";
+import { attributionBadge } from "../../utils/resourceDiagnosticsBadges";
 
 export interface BaseMapAdapterDeps {
   source: () => BaseMapCatalogItem[]; // 全件（BaseMapList が保持）
@@ -9,6 +11,8 @@ export interface BaseMapAdapterDeps {
   selectedUid: () => string | null;
   activeLang: () => string;
   batchSize?: number;
+  /** 帰属表記が無いことの印の文言（地図・アプリの一覧と同じ印）。渡さなければ出さない */
+  missingAttributionLabel?: () => string;
 }
 
 // client-side batch（配列スライス cursor=offset）。filter.bbox 実値を filterBaseMapCatalog へ渡す。
@@ -29,7 +33,10 @@ export function createBaseMapListAdapter(deps: BaseMapAdapterDeps): ResourceList
         title: localizeTitle(item.data.title as any, activeLang || deps.activeLang()) || item.mapID,
         thumbnailUrl: item.thumbnailUrl ?? null,
         metadata: [],
-        badges: [],
+        // 帰属表記が要るのに無いベースマップ（Google は対象外）に印を出す
+        badges: attributionBadge(lacksRequiredAttribution(item.data), {
+          missingAttribution: deps.missingAttributionLabel?.(),
+        }),
         selected: deps.selectedUid() === item.uid,
         hasDraft: deps.hasDraft(item.uid),
         // builtin は削除不可（現行区分維持）→ actions 空 → ⋮ 非表示。user のみ delete。

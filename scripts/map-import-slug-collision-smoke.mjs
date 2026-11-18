@@ -74,10 +74,10 @@ try {
     const { buildAndWriteMapZip } = await import(${JSON.stringify(path.join(projectRoot, 'electron/utils/mapDownloadZip.ts'))});
 
     // 地図 ZIP の最小 fixture。**ZIP 内の名前はすべて元 slug** である。
-    const makeMapZip = (slug: string, opts: { with512?: boolean } = {}) => {
+    const makeMapZip = (slug: string, opts: { with512?: boolean; noAttr?: boolean } = {}) => {
       const zip = new AdmZip();
       zip.addFile('maps/' + slug + '.json', Buffer.from(JSON.stringify({
-        mapID: slug, title: '衝突テスト ' + slug, attr: 'test', lang: 'ja',
+        mapID: slug, title: '衝突テスト ' + slug, attr: opts.noAttr ? '' : 'test', lang: 'ja',
         width: 400, height: 300, gcps: [], edges: [],
       })));
       zip.addFile('tmbs/' + slug + '.jpg', Buffer.from('THUMB:' + slug));
@@ -87,6 +87,11 @@ try {
       zip.writeZip(p);
       return p;
     };
+
+    const missingAttributionImport = await dataUploadService.extractZip(makeMapZip('missing-attribution-import', { noAttr: true }));
+    assert.equal(missingAttributionImport.err, 'AttributionRequired', '帰属表記の無い地図 ZIP は登録前に拒否するはず');
+    assert.equal(await SqliteDataService.findMapByRef('missing-attribution-import'), null, '拒否した ZIP が DB に登録されないはず');
+    console.log('ok: map ZIP import rejects missing attribution before registration');
 
     const slugOfUid = async (uid: string) => {
       const db = await SqliteDataService.getDb();

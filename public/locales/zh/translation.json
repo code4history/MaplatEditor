@@ -870,6 +870,9 @@
     "envelope_east_name": "东",
     "envelope_north_name": "北",
     "envelope_coord_error_incomplete": "请输入西、南、东、北全部四个值。",
+    "export_blocked_missing_attribution": "由于部分地图没有署名，已停止导出。请为以下地图填写署名后再导出。",
+    "source_attribution_missing_map": "此地图没有署名。查看器不会补充署名，因此无法按现状导出应用。请在地图编辑界面填写署名。",
+    "source_attribution_missing_base_map": "此底图没有署名。查看器不会补充署名，因此无法按现状导出应用。请在底图编辑界面填写署名。",
     "source_no_cache_iiif_reason": "查看器从不在设备上保留从 IIIF 提供的地图的瓦片，而是始终从 IIIF 图像服务读取。因此无需在此排除。"
   },
   "mapmodel": {
@@ -897,7 +900,7 @@
     "modal_select_description": "找到了由此地图生成的墨卡托瓦片集。请选择要更新的一项，或新建一个。",
     "modal_create_new": "新建",
     "modal_create_confirm": "创建",
-    "modal_attr_help": "您可以稍后在编辑界面中填写。"
+    "modal_attr_help": "新底图的署名。原地图有署名时会复制过来；否则请在此输入。查看器不会补充署名。"
   },
   "menu": {
     "quit": "退出MaplatEditor",
@@ -1375,6 +1378,7 @@
     "recent_searches_label": "最近的搜索条件",
     "recent_search_apply": "搜索“{{q}}”",
     "recent_search_remove": "从历史记录中删除“{{q}}”",
-    "recent_search_record_failed": "无法保存搜索历史"
+    "recent_search_record_failed": "无法保存搜索历史",
+    "badge_missing_attribution": "无署名"
   }
 }

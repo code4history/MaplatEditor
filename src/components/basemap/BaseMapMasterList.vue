@@ -175,6 +175,7 @@ const adapter = createBaseMapListAdapter({
   hasDraft: (uid) => props.draftUids.has(uid),
   selectedUid: () => props.selectedUid,
   activeLang: () => props.activeLang,
+  missingAttributionLabel: () => t("resource_list.badge_missing_attribution"),
 });
 const vmOf = (item: BaseMapCatalogItem) => adapter.toViewModel(item, props.activeLang);
 

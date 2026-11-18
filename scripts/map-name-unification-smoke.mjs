@@ -389,7 +389,7 @@ try {
         mapID: 'label-roundtrip-map',
         title: '高畑村公図 第一号',
         label: LABEL_FIXTURE,
-        attr: '',
+        attr: { ja: '© Example' },
         dataAttr: '',
         author: '',
         createdAt: '',

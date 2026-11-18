@@ -331,7 +331,7 @@ test.describe('地図 / ベースマップ管理の説明', () => {
             mapID: s,
             title: { ja: 'T4B 地図' },
             officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-            attr: {}, dataAttr: {}, description: {},
+            attr: { ja: '© Example' }, dataAttr: {}, description: {},
             license: 'PD', dataLicense: 'CC BY-SA', reference: '', url: '', lang: 'ja',
             imageExtension: 'jpg', width: 400, height: 300, gcps: [], edges: [], sub_maps: [],
             strictMode: 'strict', vertexMode: 'plain', status: 'New',

@@ -136,7 +136,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveASrc = await MapEditService.save({
           mapObject: {
-            mapID: 'a1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'a1-clone-src', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -156,7 +156,7 @@ try {
         // mapData.value.url_ は複製元自身の恒久タイルURL (= saveASrc.url) を保持したまま保存される。
         const saveADest = await MapEditService.save({
           mapObject: {
-            mapID: 'a1-clone-dest', imageExtension: 'jpg', url_: saveASrc.url,
+            mapID: 'a1-clone-dest', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: saveASrc.url,
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -258,7 +258,7 @@ try {
         const UID_D_DEST = 'd2222222-2222-4222-8222-222222222222';
         const saveDDest = await MapEditService.save({
           mapObject: {
-            mapID: 'd1-clone-dest-missing', imageExtension: 'jpg',
+            mapID: 'd1-clone-dest-missing', attr: { ja: '© Example' }, imageExtension: 'jpg',
             // url_ を敢えて設定しても(異常な入力として)、fs.pathExists(oldTile) ガードで
             // コピー自体が実行されないため url は構築されないはず
             url_: localFileUrl(path.join(tileFolder, UID_D_SRC)) + '/{z}/{x}/{y}.jpg',
@@ -291,7 +291,7 @@ try {
         const tmpTileFolder = await prepareTmpUpload('jpg');
         const saveESrc = await MapEditService.save({
           mapObject: {
-            mapID: 'e1-clone-src', imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
+            mapID: 'e1-clone-src', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: localFileUrl(tmpTileFolder) + '/{z}/{x}/{y}.jpg',
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],
@@ -314,7 +314,7 @@ try {
         const UID_E_DEST = 'e2222222-2222-4222-8222-222222222222';
         const saveEDest = await MapEditService.save({
           mapObject: {
-            mapID: 'e1-clone-dest', imageExtension: 'jpg', url_: maliciousUrl_,
+            mapID: 'e1-clone-dest', attr: { ja: '© Example' }, imageExtension: 'jpg', url_: maliciousUrl_,
             width: 100, height: 100, gcps: [], edges: [], sub_maps: [],
           },
           tins: [],

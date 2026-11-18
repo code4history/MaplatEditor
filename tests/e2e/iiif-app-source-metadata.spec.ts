@@ -41,7 +41,7 @@ async function seedTwoMapApp(page: Page, suffix: string): Promise<{ mapUid1: str
         title: { ja: '表題 ' + era },
         label: { ja: 'ラベル ' + era },
         officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-        attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+        attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
         reference: '', url: '', lang: 'ja', imageExtension: 'png', width: 400, height: 300,
         gcps: [], edges: [], sub_maps: [], strictMode: 'loose', vertexMode: 'plain', status: 'New',
       };

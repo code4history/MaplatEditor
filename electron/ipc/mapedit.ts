@@ -20,6 +20,7 @@ import MapPurposeService from '../services/MapPurposeService';
 import { buildAndWriteMapZip } from '../utils/mapDownloadZip';
 import type { MapExportOptions } from '../../src/utils/exportOptions';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
+import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
 import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
@@ -200,6 +201,7 @@ export const registerMapEditHandlers = () => {
     // win 解決・mapDoc/slug/fileKey 解決・dialog/Canceled 判定のみここに残す
     ipc.handle('mapedit:download', async (event, mapObject: any, tins: any[]) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
+        if (lacksRequiredAttribution(mapObject)) return 'Error';
 
         // 内部ファイル(tiles/tmbs)はuidキー、zip内の出力名はslug (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: viewer互換)。
         // mapObject.uid が正本参照。uid欠落の旧経路にはslugフォールバックで解決する

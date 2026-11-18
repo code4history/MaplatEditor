@@ -850,6 +850,9 @@
     "envelope_east_name": "East",
     "envelope_north_name": "North",
     "envelope_coord_error_incomplete": "Enter all four values: west, south, east and north.",
+    "export_blocked_missing_attribution": "Export was stopped because some maps have no attribution. Add an attribution to the following maps, then export again.",
+    "source_attribution_missing_map": "This map has no attribution. The viewer does not fill one in, so the app cannot be exported as it is. Add an attribution in the map editor.",
+    "source_attribution_missing_base_map": "This base map has no attribution. The viewer does not fill one in, so the app cannot be exported as it is. Add an attribution in the base map editor.",
     "source_no_cache_iiif_reason": "The viewer never keeps the tiles of a map delivered from IIIF on the device; it always loads them from the IIIF image service. There is no need to exclude it here."
   },
   "mapmodel": {
@@ -877,7 +880,7 @@
     "modal_select_description": "Existing Mercator tile sets generated from this map were found. Choose one to update, or create a new one.",
     "modal_create_new": "Create New",
     "modal_create_confirm": "Create",
-    "modal_attr_help": "You can fill this in later from the edit screen."
+    "modal_attr_help": "Attribution for the new base map. The original map attribution is copied when available; otherwise, enter it here. The viewer does not add attribution."
   },
   "menu": {
     "quit": "Quit MaplatEditor",
@@ -1375,6 +1378,7 @@
     "recent_searches_label": "Recent searches",
     "recent_search_apply": "Search for \"{{q}}\"",
     "recent_search_remove": "Remove \"{{q}}\" from history",
-    "recent_search_record_failed": "Could not save the search history"
+    "recent_search_record_failed": "Could not save the search history",
+    "badge_missing_attribution": "No attribution"
   }
 }

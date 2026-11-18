@@ -566,6 +566,12 @@
         "ja"
       ]
     },
+    "appedit.export_blocked_missing_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "appedit.export_button": {
       "by": [
         "en",
@@ -645,6 +651,18 @@
       ]
     },
     "appedit.site_url_note": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_map": {
       "by": [
         "en",
         "ja"
@@ -1081,6 +1099,12 @@
         "ja"
       ]
     },
+    "appedit.export_blocked_missing_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "appedit.home_modal_help": {
       "by": [
         "en",
@@ -1160,6 +1184,12 @@
       ]
     },
     "appedit.selected_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_map": {
       "by": [
         "en",
         "ja"
@@ -1835,6 +1865,12 @@
         "ja"
       ]
     },
+    "merc.modal_attr_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "merc.modal_select_description": {
       "by": [
         "en",
@@ -2006,6 +2042,12 @@
       ]
     },
     "appedit.search_base_maps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_base_map": {
       "by": [
         "en",
         "ja"
@@ -2273,6 +2315,12 @@
         "ja"
       ]
     },
+    "merc.modal_attr_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "merc.tab_description": {
       "by": [
         "en",
@@ -2474,6 +2522,18 @@
       ]
     },
     "appedit.selected_sources": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_map": {
       "by": [
         "en",
         "ja"
@@ -3262,6 +3322,24 @@
     }
   },
   "attribution": {
+    "appedit.export_blocked_missing_attribution": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "basemap.attribution": {
       "by": [
         "en",
@@ -3341,6 +3419,18 @@
       ]
     },
     "mapmodel.image_copyright": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.modal_attr_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "resource_list.badge_missing_attribution": {
       "by": [
         "en",
         "ja"
@@ -4222,6 +4312,18 @@
         "ja"
       ]
     },
+    "appedit.source_attribution_missing_base_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "appedit.source_attribution_missing_map": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "appedit.source_no_cache_iiif_reason": {
       "by": [
         "en",
@@ -4241,6 +4343,12 @@
       ]
     },
     "field_help.display_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "merc.modal_attr_help": {
       "by": [
         "en",
         "ja"

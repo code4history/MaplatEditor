@@ -54,6 +54,7 @@ try {
       export const ipcMain = { handle() {}, removeHandler() {} };
       export const dialog = {
         async showSaveDialog(_win: any, _opts: any) {
+          (globalThis as any).__saveDialogCalls = ((globalThis as any).__saveDialogCalls || 0) + 1;
           return (globalThis as any).__nextDialogResult || { canceled: true, filePath: undefined };
         },
         async showMessageBox() { return { response: 0 }; },
@@ -143,6 +144,24 @@ try {
       });
 
       const tmsSource = { sourceType: 'tms', mapUid: 'diff-tms', baseMapUid: TMS_UID, role: 'base', startFrom: true, overrides: {} };
+
+      // ============ attribution: アプリ書き出しは保存先ダイアログより前に検査 ==========
+      {
+        const { uid: mapUid } = await SqliteDataService.createMap('missing-attribution-app-map', {
+          mapID: 'missing-attribution-app-map', title: { ja: '帰属表記なし' }, attr: '', lang: 'ja',
+          gcps: [], edges: [], sub_maps: [], width: 400, height: 300, imageExtension: 'jpg',
+          license: 'PD', dataLicense: 'CC BY-SA',
+        });
+        const before = (globalThis as any).__saveDialogCalls || 0;
+        const result = await AppExportService.exportApp(fakeWin, {
+          appID: 'missing_attribution_app', title: { ja: '帰属表記なし' }, lang: 'ja',
+          sources: [{ sourceType: 'maplat', mapUid, mapSlug: 'missing-attribution-app-map', role: 'maplat' }],
+          appSettings: {}, httpSettings: {},
+        });
+        assert.equal(result.result, 'Error', '帰属表記のない地図を含むアプリ書き出しは拒否するはず');
+        assert.equal((globalThis as any).__saveDialogCalls || 0, before, '拒否は保存先ダイアログより前のはず');
+        console.log('ok: attribution app export is rejected before save dialog');
+      }
 
       // ============ case 8: maps/<slug>.json と settingFile 参照 ============
       {

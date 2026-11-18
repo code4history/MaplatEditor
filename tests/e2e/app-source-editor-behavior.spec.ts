@@ -61,7 +61,7 @@ async function seedMapAndApp(page: Page, suffix: string): Promise<{ mapUid: stri
       title: { ja: 'T4 地図表題' },
       label: { ja: 'T4 地図ラベル' },
       officialTitle: {}, author: {}, era: {}, createdAt: {}, contributor: {}, mapper: {},
-      attr: {}, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
+      attr: { ja: '© Example' }, dataAttr: {}, description: {}, license: 'PD', dataLicense: 'CC BY-SA',
       reference: '', url: '', lang: 'ja', imageExtension: 'png', width: 400, height: 300,
       gcps: [], edges: [], sub_maps: [], strictMode: 'loose', vertexMode: 'plain', status: 'New',
     };
