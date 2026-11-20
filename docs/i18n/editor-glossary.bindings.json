@@ -282,6 +282,18 @@
         "ja"
       ]
     },
+    "dataupload.error_poi_image_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_poi_too_many_entries": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "dataupload.error_too_large": {
       "by": [
         "en",
@@ -1370,6 +1382,18 @@
       ]
     },
     "dataupload.error_no_json": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_poi_image_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_poi_too_many_entries": {
       "by": [
         "en",
         "ja"
@@ -2734,6 +2758,18 @@
       ]
     },
     "assetlist.delete_referenced": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_poi_image_too_large": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "dataupload.error_poi_too_many_entries": {
       "by": [
         "en",
         "ja"

@@ -604,6 +604,8 @@
     "error_too_large": "Le ZIP des données de carte est trop volumineux (les fichiers de plus de 2 Gio ne peuvent pas être importés).",
     "error_too_many_entries": "Le ZIP des données de carte contient trop de fichiers et ne peut pas être importé.",
     "error_corrupt": "Le ZIP des données de carte est endommagé et ne peut pas être importé.",
+    "error_poi_image_too_large": "L'image POI {{name}} des données de carte est trop volumineuse et ne peut pas être importée (20 Mio maximum par image).",
+    "error_poi_too_many_entries": "Les données de carte contiennent trop de données et d'images POI et ne peuvent pas être importées (512 au maximum).",
     "error_no_json": "Importation impossible car le fichier de paramètres de la carte (JSON) n'est pas inclus"
   },
   "database": {

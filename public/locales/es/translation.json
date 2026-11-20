@@ -604,6 +604,8 @@
     "error_too_large": "El ZIP de datos del mapa es demasiado grande (no se pueden importar archivos de más de 2 GiB).",
     "error_too_many_entries": "El ZIP de datos del mapa contiene demasiados archivos y no se puede importar.",
     "error_corrupt": "El ZIP de datos del mapa está dañado y no se puede importar.",
+    "error_poi_image_too_large": "La imagen de POI {{name}} de los datos del mapa es demasiado grande y no se puede importar (máximo 20 MiB por imagen).",
+    "error_poi_too_many_entries": "Los datos del mapa contienen demasiados datos e imágenes de POI y no se pueden importar (máximo 512 en total).",
     "error_no_json": "No se puede importar porque no se incluye el archivo de configuración del mapa (JSON)"
   },
   "database": {

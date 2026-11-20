@@ -254,6 +254,7 @@ function makeAssetCleanup(createdAssetUids: readonly string[]): PoiZipImportClea
 export async function importManagedPoiDocuments(
   filePath: string,
   dests: readonly string[],
+  options: { applyTotalLimit?: boolean } = {},
 ): Promise<ManagedPoiDocumentsImport> {
   // 件数を細工した ZIP で new AdmZip がメモリを使い切らないよう、大きさと末尾の記録を先に検査する
   const archiveBytes = await assertZipImportable(filePath, 'POI package');
@@ -264,8 +265,16 @@ export async function importManagedPoiDocuments(
   // (a) 安全検証は **絞り込み前に ZIP 全体へ**。API 自衛であり冪等
   //     （地図 ZIP の主たる検証点は DataUploadService.extractZip の展開前である）。
   assertSafeArchiveEntries(infos);
-  // (b) 容量・件数上限は **POI payload にのみ**。地図 ZIP のタイルは既存形式どおり無制限
-  assertPoiPayloadLimits(infos.filter((info) => isPoiPayloadEntry(info.name)));
+  // (b) 容量・件数上限は **POI payload にのみ**。地図 ZIP のタイルは既存形式どおり無制限。
+  //     合計の上限の当否（applyTotalLimit）は**呼び出し側の関心事**:
+  //     - POI 単体パッケージ（importPoiZip）は true（既定）。payload 外 entry も勘定に入れる
+  //     - 地図 ZIP（DataUploadService.restoreManagedPois）は false。地図 ZIP 全体は
+  //       MAP_ARCHIVE_LIMITS で守られており、POI の中身の合計だけを止めた実績では
+  //       **書き出した本人が取り込めない地図**ができた（poiPackage.ts の定数の注釈を参照）。
+  //       1 枚あたり 20 MiB と 512 件の上限はどちらの経路でも残す
+  assertPoiPayloadLimits(infos.filter((info) => isPoiPayloadEntry(info.name)), {
+    applyTotalLimit: options.applyTotalLimit,
+  });
 
   const entries = zip.getEntries().filter((entry) => !entry.isDirectory);
   // 参照と entry 名の突合も重複検査（entryNameKey）と同じ鍵で畳む（畳み方を揃える）。
@@ -401,8 +410,9 @@ export async function importManagedPoiDocuments(
 
 export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   // 地図の取り込みと同じ 2 GiB の上限を new AdmZip の前に検査する。
-  // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
-  // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
+  // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後の合計の上限
+  // （POI_PACKAGE_MAX_EXPANDED_BYTES = 1 GiB、assertSafePoiPackageEntries）は
+  // ZIP を開けた後にしか効かない。
   // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない
   // 末尾の記録（件数・中央ディレクトリの大きさ）も new AdmZip の前に見る（件数を細工した ZIP でメモリが尽きる）
   const archiveBytes = await assertZipImportable(filePath, 'POI package');
@@ -420,7 +430,9 @@ export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   // 1件制約は POI 単体パッケージの入力検証として維持する（地図 ZIP の都合で緩めない）
   const poiEntryName = findPoiDocumentEntry(entries.map((entry) => entry.entryName));
 
-  const imported = await importManagedPoiDocuments(filePath, [poiEntryName]);
+  // 合計の上限も掛ける（true を明示）。上の assertSafePoiPackageEntries と同じ方針であり、
+  // 委譲先の既定に任せても同じ結果になるが、**どちらの経路の呼び出しか**を呼び口で読めるようにする
+  const imported = await importManagedPoiDocuments(filePath, [poiEntryName], { applyTotalLimit: true });
   return {
     fc: imported.documents.get(poiEntryName)!,
     createdAssetUids: imported.createdAssetUids,

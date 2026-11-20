@@ -1,13 +1,20 @@
 import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import fs from 'fs-extra';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import AdmZip from 'adm-zip';
 import { dialog, BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
-import { assertArchiveStructure, assertSafeArchiveEntries } from '../../src/utils/poiPackage';
+import {
+  assertArchiveStructure,
+  assertPoiPayloadLimits,
+  assertSafeArchiveEntries,
+  isPoiPayloadEntry,
+  PoiPayloadLimitError,
+} from '../../src/utils/poiPackage';
 import {
   zipEntryInfos,
   importManagedPoiDocuments,
@@ -155,8 +162,13 @@ class DataUploadService {
             }
         }
 
-        // 欠損 dest は importManagedPoiDocuments が Error にする（黙って落とさない）
-        const imported = await importManagedPoiDocuments(zipFile, referenced);
+        // 欠損 dest は importManagedPoiDocuments が Error にする（黙って落とさない）。
+        // **POI payload の合計の上限は掛けない**（applyTotalLimit: false）: 地図 ZIP 全体は
+        // 展開前の assertMapArchiveLimits と中央ディレクトリの検査で守られており、タイルにも
+        // 合計の上限は無い。POI の中身（pois/・imgs/）の合計だけを止めた実績では、
+        // 書き出した本人が取り込めない地図ができた（2026-11-20: 合計約 143 MB の POI 画像で
+        // 「POI package is too large」）。1 枚あたり 20 MiB と 512 件の上限は残す
+        const imported = await importManagedPoiDocuments(zipFile, referenced, { applyTotalLimit: false });
         warnings.push(...imported.warnings);
 
         const createdPoiUids: string[] = [];
@@ -200,13 +212,14 @@ class DataUploadService {
 
     /**
      * 補償（作成の逆順）。**途中で止めず**、到達できなかったものを残留として返す（補償は成功したことにできない）。
-     * 順序: 配置済みファイル → map 行 → poi_sources → asset
+     * 順序: 配置済みファイル → map 行 → poi_sources → asset → 展開先の一時フォルダ
      */
     private async compensate(handle: {
         placedPaths?: string[];
         mapUid?: string;
         createdPoiUids?: string[];
         cleanupAssets?: PoiZipImportCleanup | null;
+        tmpExtractFolder?: string;
     }): Promise<CompensationResidue[]> {
         const residue: CompensationResidue[] = [];
 
@@ -251,12 +264,29 @@ class DataUploadService {
         if (handle.cleanupAssets) {
             residue.push(...(await handle.cleanupAssets()));
         }
+        // 5) 展開先の一時フォルダ（tmpFolder/zip）。
+        //    extractZip の最初に作られるが、失敗時は次回の取り込みまで残るため、ここで消す。
+        //    消せなければ残留として申告する（残った展開物はファイル残留と同じ）
+        if (handle.tmpExtractFolder) {
+            try {
+                await fs.remove(handle.tmpExtractFolder);
+            } catch (e) {
+                residue.push({
+                    kind: 'file',
+                    path: handle.tmpExtractFolder,
+                    error: e instanceof Error ? e.message : String(e),
+                });
+            }
+        }
         return residue;
     }
 
     async extractZip(zipFile: string, deps?: { limits?: Partial<MapArchiveLimits> }): Promise<any> {
         const { tileFolder, uiThumbnailFolder, tmpFolder } = this.folders;
-        const dataTmpFolder = path.join(tmpFolder, 'zip');
+        // 展開先は取り込みごとに別のフォルダにする（tmpFolder/zip/<uuid>）。
+        // 共有の tmpFolder/zip を使うと、並行した取り込みの一方の後片付け（補償）や
+        // 開始時の削除が、もう一方の展開物を消してしまう
+        const dataTmpFolder = path.join(tmpFolder, 'zip', randomUUID());
 
         // 補償ハンドル。作成に成功したものだけを積み、失敗時に逆順で巻き戻す
         const placedPaths: string[] = [];
@@ -269,7 +299,6 @@ class DataUploadService {
         } | null = null;
 
         try {
-            await fs.remove(dataTmpFolder);
             await fs.ensureDir(dataTmpFolder);
 
             // 読取側 2 GiB 上限の fail-fast ガード。
@@ -307,12 +336,29 @@ class DataUploadService {
             // adm-zip 自身の zip-slip 対策には依存しない（バージョン依存の実装詳細であり、
             // 契約として保証されたものではない）。呼び出し側で明示的に検証する。
             //
-            // ここで throw しても **まだ何も書いていない** ため、補償は不要である
-            // （完全ロールバック。補償の申告の residue は付かない）。
+            // ここで throw しても **まだファイルを1つも書いていない**（配置されたものはない）。
+            // 展開先の一時フォルダだけが空のまま残るため、外側の補償がそれを消す
+            // （消せなければ residue として申告される）。
             const entryInfos = zipEntryInfos(zip, 'map package');
             assertArchiveStructure(entryInfos, zipSize, 'map package');
             assertSafeArchiveEntries(entryInfos, 'map package');
             assertMapArchiveLimits(entryInfos, zipSize, { ...MAP_ARCHIVE_LIMITS, ...deps?.limits });
+
+            // POI payload（pois/・imgs/）の **1 枚 20 MiB と 512 件**の検査も、
+            // **展開の前に** isPoiPayloadEntry で絞った entry へ当てる（合計の上限は掛けない。
+            // 方針と根拠は src/utils/poiPackage.ts の assertPoiPayloadLimits の注釈）。
+            //
+            // 展開後の restoreManagedPois → importManagedPoiDocuments の検査だけでは、
+            // **外部 POI 文書を参照しない地図では検査そのものが省略され**、上限を超えた
+            // 同梱ファイルがそのまま展開される。展開後に拒否しても既に書かれたファイルは
+            // 消えないため、entry 一覧（中央ディレクトリの宣言サイズ）でしか効かない。
+            //
+            // 失敗のコードは展開後の検査と同じ（catch が PoiPayloadLimitError を
+            // 'PoiImageTooLarge' / 'PoiTooManyEntries' へ写す。message の字面は読まない）。
+            assertPoiPayloadLimits(
+                entryInfos.filter((info) => isPoiPayloadEntry(info.name)),
+                { applyTotalLimit: false },
+            );
 
             zip.extractAllTo(dataTmpFolder, true);
 
@@ -526,6 +572,11 @@ class DataUploadService {
             const url_ = await deriveRuntimeTileUrl(mapData, path.join(tileToPath, '0', '0'));
             if (url_) (histMap as any).url_ = url_;
 
+            // 成功したら自分の展開先を片付ける（中身は移動済み。残りは置かなかった物だけ）。
+            // 片付けに失敗しても取り込みは成功しているので、結果は変えずにログだけ残す
+            await fs.remove(dataTmpFolder).catch((e: unknown) => {
+                console.warn('[DataUploadService] could not remove the import work folder', e);
+            });
             return { mapData: histMap, tins };
         } catch (err: any) {
             console.error('[DataUploadService] extractZip error', err);
@@ -534,16 +585,30 @@ class DataUploadService {
             // 重複名（duplicate-entry）は写さない（は too-large・corrupt の 2 つだけ。
             // 取り込みの安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
-            const zipError = classifyZipReadError(err);
-            // 件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries（「2 GiB を超える」とは別の文言）
-            const message = zipError?.kind === 'too-large' ||
-                zipError?.kind === 'expands-too-large'
-                ? 'TooLarge'
-                : zipError?.kind === 'too-many-entries'
-                    ? 'TooManyEntries'
-                : zipError?.kind === 'corrupt'
-                    ? 'Corrupt'
-                    : typeof err === 'string' ? err : (err.message || 'Unknown');
+            //
+            // POI payload の上限（1 枚の画像が大きすぎる・件数が多すぎる）は **専用のコード**へ写す。
+            // 汎用の error_upload（「地図データのインポートでエラーが発生しました。」）では
+            // どの画像が上限を超えたかが利用者に分からないため。判定は例外の kind（PoiPayloadLimitError）
+            // で行い、message の字面は読まない（文面を直しただけで分岐が壊れるため）。
+            // ZIP 側の件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries
+            // （「2 GiB を超える」とは別の文言）。POI payload の件数超過（PoiTooManyEntries）とは別コード
+            const poiLimit = err instanceof PoiPayloadLimitError ? err : null;
+            const zipError = poiLimit ? null : classifyZipReadError(err);
+            const message = poiLimit?.kind === 'image-too-large'
+                ? 'PoiImageTooLarge'
+                : poiLimit?.kind === 'too-many-entries'
+                    ? 'PoiTooManyEntries'
+                : zipError?.kind === 'too-large' ||
+                    zipError?.kind === 'expands-too-large'
+                    ? 'TooLarge'
+                    : zipError?.kind === 'too-many-entries'
+                        ? 'TooManyEntries'
+                    : zipError?.kind === 'corrupt'
+                        ? 'Corrupt'
+                        : typeof err === 'string' ? err : (err.message || 'Unknown');
+            // 上限を超えた entry 名（ZIP 内の名前のまま）。専用文言が「どの画像か」を言えるように
+            // 追加フィールドで渡す（err のコード文字列は従来どおり固定のまま）
+            const errEntry = poiLimit?.kind === 'image-too-large' ? poiLimit.entryName : undefined;
 
             // 補償し、**到達できなかったものを残留として申告する**。
             // 補償が全て到達した場合のみ従来どおり { err } を返す。
@@ -559,13 +624,18 @@ class DataUploadService {
                     mapUid,
                     createdPoiUids: restored?.createdPoiUids,
                     cleanupAssets: restored?.cleanupAssets,
+                    tmpExtractFolder: dataTmpFolder,
                 }),
             ];
             if (residue.length > 0) {
                 console.warn('[DataUploadService] 補償に到達できなかった残留物があります:', residue);
-                return { err: message, residue };
+                return errEntry !== undefined
+                    ? { err: message, errEntry, residue }
+                    : { err: message, residue };
             }
-            return { err: message };
+            return errEntry !== undefined
+                ? { err: message, errEntry }
+                : { err: message };
         }
     }
 }

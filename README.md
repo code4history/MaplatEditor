@@ -293,9 +293,15 @@ Documents otherwise.
 - Imported ZIPs (maps and POI packages) are checked before anything is
   extracted: a ZIP file over 2 GiB, too many entries, sizes that do not
   match the data, or an excessive total expansion are refused. Map ZIPs
-  may hold up to 50,000 entries; POI packages up to 512 entries and
-  100 MiB in total after expansion. Also refused are ZIPs with
-  entry names that cannot be stored on every OS (Windows reserved names,
+  are bounded as a whole before extraction — up to 50,000 entries, up to
+  12 GiB of declared expanded total, no single entry of 2 GiB or more,
+  and an expansion ratio of at most 80 (once the declared expanded total
+  reaches 1 GiB). POI packages may hold up to 512 entries and 1 GiB in
+  total after expansion. The bundled POI payload of a map ZIP (`pois/`
+  and `imgs/`) has no total limit, but both routes share the per-image
+  limit of 20 MiB and the payload limit of 512 entries. Also refused are
+  ZIPs with entry names that cannot be stored on every OS (Windows
+  reserved names,
   trailing dots or spaces, control characters, `<>:"|?*`, or names that
   differ only in letter case or Unicode normalization). Exports keep the
   letter case of names and number names that differ only in case

@@ -102,6 +102,28 @@ try {
       }],
     });
 
+    // 中央ディレクトリの宣言サイズ（展開後サイズ）だけを書き換える。
+    // 合計の上限（1 GiB）を超える**実データ**を fixture にしないための道具。
+    // 上限の検査は宣言サイズで行う（poiPackage.assertPoiPayloadLimits）ので、この形で
+    // 「合計が上限を超えた ZIP」を再現できる。DEFLATED（adm-zip 既定）に限る —
+    // STORED では宣言と実体の一致が assertArchiveStructure に要求されるため。
+    const patchDeclaredSize = async (zipPath: string, entryName: string, declared: number): Promise<void> => {
+      const buf = await fsReadFile(zipPath);
+      const name = Buffer.from(entryName);
+      let at = -1;
+      for (let i = 0; i + 46 <= buf.length; i += 1) {
+        if (buf.readUInt32LE(i) !== 0x02014b50) continue;
+        const nameLen = buf.readUInt16LE(i + 28);
+        if (nameLen === name.length && buf.compare(name, 0, name.length, i + 46, i + 46 + nameLen) === 0) {
+          at = i;
+          break;
+        }
+      }
+      assert.ok(at >= 0, 'fixture: 中央ディレクトリに ' + entryName + ' が無い');
+      buf.writeUInt32LE(declared, at + 24);
+      await fsWriteFile(zipPath, buf);
+    };
+
     const countPoiSources = async (): Promise<number> => {
       const db = await SqliteDataService.getDb();
       return (db.prepare('SELECT COUNT(*) AS n FROM poi_sources').get() as any).n as number;
@@ -239,18 +261,28 @@ try {
 
       // 【本題】payload 外 entry による上限超過が **製品経路で** 拒否されること。
       // 委譲のみの再実装だとここが素通りする（委譲先の (b) は pois/+imgs/ にしか効かない）。
+      // 合計の上限は 1 GiB（POI 単体パッケージのみに掛ける）なので、README の宣言サイズを
+      // 1 GiB + 1 に書き換えた ZIP で確かめる（実データは 1 KiB のまま）
       const bigReadmePath = nodePath.join(fixtureDir, 'poi-big-readme.zip');
       {
         const z = new AdmZip();
         z.addFile('pois/one.geojson', Buffer.from(JSON.stringify(fc())));
-        z.addFile('README', Buffer.alloc(101 * 1024 * 1024, 0x41));
+        z.addFile('README', Buffer.alloc(1024, 0x41));
         await fsWriteFile(bigReadmePath, z.toBuffer());
       }
+      await patchDeclaredSize(bigReadmePath, 'README', 1024 * 1024 * 1024 + 1);
       await assert.rejects(
         () => importPoiZip(bigReadmePath),
         /POI package is too large/,
-        'case 9/case 1(d): payload 外 entry（巨大 README）による超過が製品経路で拒否されること',
+        'case 9/case 1(d): payload 外 entry（巨大 README）による 1 GiB 超が製品経路で拒否されること',
       );
+      // 委譲先だけを呼ぶと（合計の上限は payload のみに掛かるため）README が勘定から外れて通る
+      // = この検査が importPoiZip 側に存在する意味
+      {
+        const r = await importManagedPoiDocuments(bigReadmePath, ['pois/one.geojson']);
+        assert.equal(r.documents.size, 1, 'case 9: payload へ絞った委譲では巨大 README が勘定外であること');
+        await r.cleanup();
+      }
       console.log('ok: case 9 importPoiZip の無変更 + payload 外超過の拒否');
     }
 

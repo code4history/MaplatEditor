@@ -584,6 +584,8 @@
     "error_too_large": "The map data ZIP is too large (files over 2 GiB cannot be imported).",
     "error_too_many_entries": "The map data ZIP contains too many files and cannot be imported.",
     "error_corrupt": "The map data ZIP is corrupted and cannot be imported.",
+    "error_poi_image_too_large": "The POI image {{name}} in the map data is too large and cannot be imported (up to 20 MiB per image).",
+    "error_poi_too_many_entries": "The map data contains too many POI data files and images and cannot be imported (up to 512 in total).",
     "error_no_json": "Cannot import because the map settings file (JSON) is not included"
   },
   "database": {

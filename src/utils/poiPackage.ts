@@ -1,5 +1,22 @@
 export const POI_PACKAGE_MAX_ENTRIES = 512;
-export const POI_PACKAGE_MAX_EXPANDED_BYTES = 100 * 1024 * 1024;
+// POI payload の**合計**の上限。**POI 単体パッケージだけ**に掛ける
+// （地図 ZIP 経路は assertPoiPayloadLimits の applyTotalLimit: false で外す。理由は下の
+// assertPoiPayloadLimits の注釈）。
+//
+// 1 GiB という値の根拠（2026-11-20 実測）:
+// - この上限は **展開後（圧縮前）** の宣言サイズの合計に掛かる。
+// - 実例（人間が書き出した地図 zip 20th_mapcontest_gp の POI の 1 つ）: pois/20th_mapcontest_gp_quiz.geojson は
+//   2,335 バイト、それが参照する hioki_quiz*.png（9 件）は展開後の合計 78,201,777 バイト
+//   （1 枚 1,929〜16,849,559 バイト）。画像は PNG のため zip にしてもほとんど縮まず、
+//   単体パッケージとして書き出した zip も約 78 MB になる。
+//   POI 1 件の書き出しだけで、旧値 100 MiB の 8 割近くに達する。
+// - POI 画像は 1 枚あたり 20 MiB（POI_PACKAGE_MAX_IMAGE_BYTES）までしか入れられないため、
+//   正当な書き出し物は「枚数 × 20 MiB」の範囲に収まる。
+// - 件数上限 512 × 1 枚上限 20 MiB の理論最大 約 10 GiB までは届かないが、
+//   zip-bomb 対策の主たる検査は assertArchiveStructure（宣言が書かれる量の上限）と
+//   ZIP 全体の MAP_ARCHIVE_LIMITS 側にあり、ここは**通常の書き出し物が確実に通る線**を
+//   引くための上限である。
+export const POI_PACKAGE_MAX_EXPANDED_BYTES = 1024 * 1024 * 1024;
 export const POI_PACKAGE_MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 export interface PoiPackageEntryInfo {
@@ -27,8 +44,9 @@ export interface PoiPackageEntryInfo {
 // （findPoiDocumentEntry / listPoiDocumentEntries と同じ切り分け方である:
 //  共通化するのは列挙・判定であって、個数や範囲の要求ではない）。
 //
-//   POI 単体パッケージ: (b) を全 entry へ（= assertSafePoiPackageEntries）
-//   地図 ZIP:           (a) を全 entry へ、(b) を isPoiPayloadEntry で絞った集合へ
+//   POI 単体パッケージ: (b) を全 entry へ（= assertSafePoiPackageEntries）。合計の上限も掛ける
+//   地図 ZIP:           (a) を全 entry へ、(b) を isPoiPayloadEntry で絞った集合へ。
+//                       **合計の上限は掛けない**（applyTotalLimit: false）
 
 // Windows の予約名。拡張子を付けても（CON.png）、末尾に空白があっても（CON .png）特別扱いされる。
 const WINDOWS_RESERVED_STEM = /^(CON|PRN|AUX|NUL|COM[0-9¹²³]|LPT[0-9¹²³]|CONIN\$|CONOUT\$)$/i;
@@ -129,19 +147,62 @@ export function assertSafeArchiveEntries(
   }
 }
 
-/** POI payload（ZIP 同梱の POI 実体）に当たる entry か。地図 ZIP 側の絞り込みに使う。 */
+/**
+ * POI payload（ZIP 同梱の POI 実体）に当たる entry か。地図 ZIP 側の絞り込みに使う。
+ * ディレクトリの entry（名前が `/` で終わる。`imgs/` など）は実体を持たないので数えない
+ * （数えると、ファイルがちょうど 512 件の正当な ZIP が件数の上限で拒まれる）。
+ */
 export function isPoiPayloadEntry(name: string): boolean {
-  return /^(?:pois|imgs)\//i.test(String(name));
+  const value = String(name);
+  return /^(?:pois|imgs)\//i.test(value) && !value.endsWith('/');
+}
+
+/**
+ * (b) の上限で投げる例外。**message の文面は従来どおり**（呼び出し側の文面契約・smoke を壊さない）が、
+ * 利用者向けの文言の分岐（地図の取り込みのエラーコード）のために**種別と entry 名を構造で添える**。
+ * message の字面から種別を読み取る実装は持たない（文面を直しただけで分岐が壊れるため）。
+ *
+ * - 'image-too-large'    1 枚の画像が POI_PACKAGE_MAX_IMAGE_BYTES を超えた（entryName がその entry）
+ * - 'too-many-entries'   POI payload の件数が POI_PACKAGE_MAX_ENTRIES を超えた
+ * - 'payload-too-large'  合計が POI_PACKAGE_MAX_EXPANDED_BYTES を超えた（POI 単体パッケージのみ）
+ */
+export type PoiPayloadLimitKind = 'image-too-large' | 'too-many-entries' | 'payload-too-large';
+
+export class PoiPayloadLimitError extends Error {
+  readonly kind: PoiPayloadLimitKind;
+  /** 上限を超えた entry 名（image-too-large のときだけ）。ZIP 内の名前のまま */
+  readonly entryName?: string;
+
+  constructor(kind: PoiPayloadLimitKind, message: string, entryName?: string) {
+    super(message);
+    this.name = 'PoiPayloadLimitError';
+    this.kind = kind;
+    this.entryName = entryName;
+  }
 }
 
 /**
  * (b) POI payload の容量・件数上限。**渡された集合に対して適用する**（絞り込みはしない）。
  * メッセージは kindLabel を取らない — 守っている対象が ZIP 種別に依らず POI payload であり、
- * 地図 ZIP で超過した場合も「POI package is too large」が事実として正しいためである。
+ * 地図 ZIP で件数・1 枚の上限を超過した場合も「POI package …」の文面が事実として正しいためである。
+ *
+ * **合計の上限の当否（applyTotalLimit）は呼び出し側の関心事**である:
+ * - POI 単体パッケージ（importPoiZip）: 掛ける（既定）。payload 外 entry（巨大 README 等）も
+ *   勘定に入れて zip-bomb を止める
+ * - 地図 ZIP（importManagedPoiDocuments を経由）: **掛けない**。地図 ZIP 全体は展開前の
+ *   MAP_ARCHIVE_LIMITS（宣言の総量・展開率・件数）と中央ディレクトリの検査で守られており、
+ *   タイルにも合計の上限は無い。POI の中身（pois/・imgs/）の合計だけを止めた実績では、
+ *   **アプリ自身が書き出した zip を同じアプリが取り込めない**地図ができた
+ *   （2026-11-20: imgs/ に 6.9〜19.3 MB の画像が 11 枚・合計約 143 MB の地図 zip が
+ *   「POI package is too large」で止まった）。1 枚あたりの上限と件数の上限は両経路で残す。
  */
-export function assertPoiPayloadLimits(entries: readonly PoiPackageEntryInfo[]): void {
+export function assertPoiPayloadLimits(
+  entries: readonly PoiPackageEntryInfo[],
+  options: { applyTotalLimit?: boolean } = {},
+): void {
+  const applyTotalLimit = options.applyTotalLimit !== false;
   if (entries.length > POI_PACKAGE_MAX_ENTRIES) {
-    throw new Error('POI package contains too many entries');
+    throw new PoiPayloadLimitError('too-many-entries', 'POI package contains too many entries');
   }
   let total = 0;
   for (const entry of entries) {
@@ -155,17 +216,17 @@ export function assertPoiPayloadLimits(entries: readonly PoiPackageEntryInfo[]):
     }
     total += entry.size;
     if (/^imgs\/.+[^/]$/i.test(name) && entry.size > POI_PACKAGE_MAX_IMAGE_BYTES) {
-      throw new Error(`Packaged image is too large: ${name}`);
+      throw new PoiPayloadLimitError('image-too-large', `Packaged image is too large: ${name}`, name);
     }
-    if (total > POI_PACKAGE_MAX_EXPANDED_BYTES) {
-      throw new Error('POI package is too large');
+    if (applyTotalLimit && total > POI_PACKAGE_MAX_EXPANDED_BYTES) {
+      throw new PoiPayloadLimitError('payload-too-large', 'POI package is too large');
     }
   }
 }
 
 /**
  * 既存契約の維持。POI 単体パッケージは**全 entry が payload** であるため、
- * (b) を絞り込まずに全 entry へ掛ける。
+ * (b) を絞り込まずに全 entry へ掛ける（合計の上限も掛ける = applyTotalLimit 既定のまま）。
  *
  * 分割前との差は「多重違反時にどちらのメッセージが返るか」だけである
  * （旧実装は entry ごとに (a)(b) を交互に評価していた）。単一違反の入力に対しては

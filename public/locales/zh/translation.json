@@ -604,6 +604,8 @@
     "error_too_large": "地图数据的 ZIP 过大（无法导入超过 2 GiB 的文件）。",
     "error_too_many_entries": "地图数据的 ZIP 包含的文件过多，无法导入。",
     "error_corrupt": "地图数据的 ZIP 已损坏，无法导入。",
+    "error_poi_image_too_large": "地图数据中的 POI 图像 {{name}} 过大，无法导入（每个图像最多 20 MiB）。",
+    "error_poi_too_many_entries": "地图数据中的 POI 数据与图像过多，无法导入（合计最多 512 个）。",
     "error_no_json": "未包含地图设置文件（JSON），无法导入"
   },
   "database": {
