@@ -63,9 +63,9 @@ const MiB = 1024 * 1024;
 const payloadOf = (entries) => entries.filter((e) => isPoiPayloadEntry(e.name));
 
 // 実地図 ZIP を模した entry 群。タイルは再帰的・無制限に同梱される既存形式である
-// （mapDownloadZip.ts:85-94）。1000 entry・累積 200 MiB で、512 entry と 100 MiB の
-// 両方を超える。
-function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } = {}) {
+// （mapDownloadZip.ts:85-94）。1000 entry・累積 2 GiB で、512 entry と合計の上限
+// （POI_PACKAGE_MAX_EXPANDED_BYTES = 1 GiB）の両方を超える。
+function mapArchiveEntries({ tiles = 1000, tileSize = 2 * 1024 * 1024, extra = [] } = {}) {
   const entries = [
     { name: 'maps/himeji.json', size: 4096 },
     { name: 'tmbs/himeji.jpg', size: 20 * 1024 },
@@ -93,7 +93,7 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
 }
 
 // ---------------------------------------------------------------------------
-// case 1(a)(b): タイルが 512 entry / 100 MiB を超えても地図 ZIP は通る
+// case 1(a)(b): タイルが 512 entry / 合計の上限を超えてても地図 ZIP は通る
 // ---------------------------------------------------------------------------
 {
   const entries = mapArchiveEntries();
@@ -104,13 +104,13 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
   );
   assert.ok(
     total > POI_PACKAGE_MAX_EXPANDED_BYTES,
-    `fixture 前提: 累積サイズが上限を超えていること (${total} > ${POI_PACKAGE_MAX_EXPANDED_BYTES})`,
+    `fixture 前提: 累積サイズが合計の上限を超えていること (${total} > ${POI_PACKAGE_MAX_EXPANDED_BYTES})`,
   );
 
-  // (a)(b) 安全検証は通り、容量上限は掛からない
+  // (a)(b) 安全検査は通り、容量上限は掛からない
   assert.doesNotThrow(
     () => assertSafeArchiveEntries(entries, 'map package'),
-    'case 1(a)(b): 512 entry 超・100 MiB 超のタイルを持つ地図 ZIP が安全検証を通ること',
+    'case 1(a)(b): 512 entry 超・合計の上限を超えるタイルを持つ地図 ZIP が安全検証を通ること',
   );
   assert.doesNotThrow(
     () => assertPoiPayloadLimits(payloadOf(entries)),
@@ -120,24 +120,42 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
 }
 
 // ---------------------------------------------------------------------------
-// case 1(c): POI payload は POI 単体パッケージと同じ上限で拒否される
-//          （地図 ZIP 経路にこの検査は従来存在しないため「両経路の同値性」が固定対象）
+// case 1(c): POI payload の「1枚あたり」と「件数」の上限は両経路で同じ。
+//          **合計の上限だけは経路で違う**（2026-11-20 の修正の固定）:
+//            POI 単体パッケージ: 1 GiB で拒否（既定 = applyTotalLimit: true）
+//            地図 ZIP 経路:     掛けない（呼び出し側が applyTotalLimit: false で外す）。
+//                               地図 ZIP 全体は MAP_ARCHIVE_LIMITS と中央ディレクトリの
+//                               検査で守られており、POI の中身の合計だけを止めた実績では
+//                               **書き出した本人が取り込めない地図**ができた
 // ---------------------------------------------------------------------------
 {
-  // pois/ + imgs/ の合計が 100 MiB 超（タイルは 1 MiB しかない = タイル由来ではない）
+  // pois/ + imgs/ の合計が合計の上限（1 GiB）を超える。
+  // 1 枚あたりの上限（20 MiB）と別件で止まらないよう、体積は pois/ 側に置く
+  // （imgs/ は 20 MiB で先に「Packaged image is too large」になる）
   const payloadHeavy = mapArchiveEntries({ tiles: 4, tileSize: 256 * 1024, extra: [
-    { name: 'pois/himeji.geojson', size: 60 * MiB },
-    { name: 'imgs/a.png', size: 19 * MiB },
-    { name: 'imgs/b.png', size: 19 * MiB },
-    { name: 'imgs/c.png', size: 19 * MiB },
+    { name: 'pois/himeji.geojson', size: POI_PACKAGE_MAX_EXPANDED_BYTES - 3 * MiB },
+    { name: 'pois/extra-a.geojson', size: 2 * MiB },
+    { name: 'pois/extra-b.geojson', size: 2 * MiB },
   ]});
+  const payloadTotal = payloadOf(payloadHeavy).reduce((sum, e) => sum + e.size, 0);
+  assert.ok(
+    payloadTotal > POI_PACKAGE_MAX_EXPANDED_BYTES,
+    `fixture 前提: POI payload の合計が上限を超えていること (${payloadTotal} > ${POI_PACKAGE_MAX_EXPANDED_BYTES})`,
+  );
+
+  // POI 単体パッケージ（既定 = 合計の上限を掛ける）は拒否される
   assert.throws(
     () => assertPoiPayloadLimits(payloadOf(payloadHeavy)),
     /POI package is too large/,
-    'case 1(c): pois/+imgs/ の合計が 100 MiB を超える地図 ZIP は拒否されること',
+    'case 1(c): POI 単体パッケージは payload の合計が 1 GiB を超えると拒否されること',
+  );
+  // 地図 ZIP 経路（applyTotalLimit: false）は **合計の上限を掛けない**
+  assert.doesNotThrow(
+    () => assertPoiPayloadLimits(payloadOf(payloadHeavy), { applyTotalLimit: false }),
+    'case 1(c): 地図 ZIP 経路は POI payload の合計の上限を掛けないこと',
   );
 
-  // imgs/ の1件が 20 MiB 超
+  // imgs/ の1件が 20 MiB 超 → **合計の上限を外した経路でも**拒否される（同じメッセージ）
   const oversizedImage = mapArchiveEntries({ tiles: 4, extra: [
     { name: 'pois/himeji.geojson', size: 1024 },
     { name: 'imgs/huge.png', size: POI_PACKAGE_MAX_IMAGE_BYTES + 1 },
@@ -147,8 +165,13 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
     /Packaged image is too large: imgs\/huge\.png/,
     'case 1(c): imgs/ の1件が 20 MiB を超える地図 ZIP は拒否されること',
   );
+  assert.throws(
+    () => assertPoiPayloadLimits(payloadOf(oversizedImage), { applyTotalLimit: false }),
+    /Packaged image is too large: imgs\/huge\.png/,
+    'case 1(c): 1 枚あたりの上限は合計の上限を外した経路でも残ること',
+  );
 
-  // 同じ payload を POI 単体パッケージ経路へ通しても同じ上限で落ちる（両経路の同値性）
+  // 同じ payload を POI 単体パッケージ経路へ通しても同じ上限で落ちる（1枚あたりの同値性）
   assert.throws(
     () => assertSafePoiPackageEntries([
       { name: 'pois/himeji.geojson', size: 1024 },
@@ -156,6 +179,23 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
     ]),
     /Packaged image is too large: imgs\/huge\.png/,
     'case 1(c): POI 単体パッケージ経路も同じ上限・同じメッセージであること',
+  );
+
+  // 件数の上限（512）も両経路で残る
+  const manyPayload = [{ name: 'pois/himeji.geojson', size: 16 }];
+  for (let i = 0; i < POI_PACKAGE_MAX_ENTRIES; i += 1) {
+    manyPayload.push({ name: `imgs/p-${i}.png`, size: 16 });
+  }
+  assert.ok(manyPayload.length > POI_PACKAGE_MAX_ENTRIES);
+  assert.throws(
+    () => assertPoiPayloadLimits(payloadOf(manyPayload)),
+    /POI package contains too many entries/,
+    'case 1(c): POI 単体パッケージは payload の件数が 512 を超えると拒否されること',
+  );
+  assert.throws(
+    () => assertPoiPayloadLimits(payloadOf(manyPayload), { applyTotalLimit: false }),
+    /POI package contains too many entries/,
+    'case 1(c): 件数の上限は地図 ZIP 経路（合計の上限なし）でも残ること',
   );
 }
 
@@ -322,7 +362,9 @@ function mapArchiveEntries({ tiles = 1000, tileSize = 200 * 1024, extra = [] } =
     { name: 'pois/himeji.geojson', size: 200 },
     { name: 'imgs/photo.png', size: 1000 },
   ]));
-  assert.throws(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: 101 * MiB }]));
+  assert.throws(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: POI_PACKAGE_MAX_EXPANDED_BYTES + 1 }]));
+  // 境界: ちょうど合計の上限（1 GiB）までは通る
+  assert.doesNotThrow(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: POI_PACKAGE_MAX_EXPANDED_BYTES }]));
   assert.throws(() => assertSafePoiPackageEntries([{
     name: 'imgs/icons/default/huge.png',
     size: POI_PACKAGE_MAX_IMAGE_BYTES + 1,

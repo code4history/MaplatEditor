@@ -8,8 +8,9 @@
 //   (c) 地図の取り込み（extractZip）の戻り値が { err: 'TooLarge' | 'Corrupt' }
 //   (d) どの戻り値の文字列にも 'ADM-ZIP'・'{0}'・'inflate'・fixture のパスが含まれない
 //   (e) どの呼び出しも 30 秒以内に settle する
-//   (f) 11 言語に 4 キーがあり、ja の値に '{0}' が無い
-//   (g) （設計レビューの申し送り）: MapEdit.vue が TooLarge／Corrupt を専用の i18n キーへ写す
+//   (f) 11 言語に 6 キーがあり、ja の値に '{0}' が無い
+//   (g) （設計レビューの申し送り）: MapEdit.vue が TooLarge／Corrupt／POI payload の上限
+//       （PoiImageTooLarge／PoiTooManyEntries）を専用の i18n キーへ写す
 //       （ソーステキスト。後続タスクが分岐を落としたら気づけるようにする）
 //   (h) R1: 利用者の操作による失敗（ENOENT）を「壊れた ZIP」と判定しない
 //
@@ -39,11 +40,13 @@ const bundled = path.join(outDir, 'entry.mjs');
 const MARKER = 'zip errors smoke passed';
 
 try {
-  // ---- (f) i18n: 11 言語に 4 キー ----
+  // ---- (f) i18n: 11 言語に 6 キー ----
   const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
   const KEYS = [
     ['dataupload', 'error_too_large'],
     ['dataupload', 'error_corrupt'],
+    ['dataupload', 'error_poi_image_too_large'],
+    ['dataupload', 'error_poi_too_many_entries'],
     ['poisource', 'errors', 'zip_too_large'],
     ['poisource', 'errors', 'zip_corrupt'],
   ];
@@ -62,7 +65,21 @@ try {
   if (i18nFailures.length > 0) {
     throw new Error('(f) i18n のキーが揃っていない:\n  ' + i18nFailures.join('\n  '));
   }
-  console.log('ok (f): 11 言語に 4 キーがあり、{0} や原文を含まない');
+  // 「どの画像が上限を超えたかが分かる文言」の固定: 画像の上限の文言は全言語で
+  // {{name}}（ZIP 内の名前）を差し込む。差し込み先が無いと専用文言の意味が無い
+  for (const lang of LANGS) {
+    const json = JSON.parse(await readFile(path.join(projectRoot, 'public/locales', lang, 'translation.json'), 'utf8'));
+    if (!String(json.dataupload?.error_poi_image_too_large ?? '').includes('{{name}}')) {
+      i18nFailures.push(`${lang}: dataupload.error_poi_image_too_large に {{name}} が無い`);
+    }
+    if (String(json.dataupload?.error_poi_too_many_entries ?? '').includes('{{name}}')) {
+      i18nFailures.push(`${lang}: dataupload.error_poi_too_many_entries に {{name}} が混ざる`);
+    }
+  }
+  if (i18nFailures.length > 0) {
+    throw new Error('(f) 専用文言の形が揃っていない:\n  ' + i18nFailures.join('\n  '));
+  }
+  console.log('ok (f): 11 言語に 6 キーがあり、{0} や原文を含まず、画像の上限の文言は {{name}} を持つ');
 
   // ---- (g) MapEdit.vue の分岐の写像（ソーステキスト）----
   {
@@ -70,6 +87,9 @@ try {
     const expected = [
       ["arg.err === 'TooLarge'", "modalFinish('dataupload.error_too_large')"],
       ["arg.err === 'Corrupt'", "modalFinish('dataupload.error_corrupt')"],
+      // POI payload の上限は専用文言。画像の上限は entry 名を {{name}} へ渡す
+      ["arg.err === 'PoiImageTooLarge'", "modalFinish('dataupload.error_poi_image_too_large'"],
+      ["arg.err === 'PoiTooManyEntries'", "modalFinish('dataupload.error_poi_too_many_entries')"],
     ];
     for (const [cond, call] of expected) {
       const ci = mapEdit.indexOf(cond);
@@ -80,7 +100,13 @@ try {
       const body = ei === -1 ? tail : tail.slice(0, ei);
       if (!body.includes(call)) throw new Error(`(g) ${cond} の分岐が ${call} を呼んでいない`);
     }
-    console.log('ok (g): MapEdit.vue が TooLarge／Corrupt を専用の i18n キーへ写す');
+    // 画像の上限の分岐は entry 名を補間パラメータとして渡すこと（どの画像かが分かる文言の固定）
+    const imageBranch = mapEdit.slice(mapEdit.indexOf("arg.err === 'PoiImageTooLarge'"));
+    const imageBody = imageBranch.slice(0, imageBranch.indexOf('} else'));
+    if (!/modalFinish\('dataupload\.error_poi_image_too_large',\s*\{\s*name:\s*arg\.errEntry/.test(imageBody)) {
+      throw new Error('(g) PoiImageTooLarge の分岐が arg.errEntry を {{name}} へ渡していない');
+    }
+    console.log('ok (g): MapEdit.vue が TooLarge／Corrupt／POI payload の上限を専用の i18n キーへ写す');
   }
 
   const dataDir = path.join(workDir, 'data');

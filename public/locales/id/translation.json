@@ -604,6 +604,8 @@
     "error_too_large": "ZIP data peta terlalu besar (file lebih dari 2 GiB tidak dapat diimpor).",
     "error_too_many_entries": "ZIP data peta berisi terlalu banyak file sehingga tidak dapat diimpor.",
     "error_corrupt": "ZIP data peta rusak sehingga tidak dapat diimpor.",
+    "error_poi_image_too_large": "Gambar POI {{name}} dalam data peta terlalu besar sehingga tidak dapat diimpor (maksimal 20 MiB per gambar).",
+    "error_poi_too_many_entries": "Data peta berisi terlalu banyak data dan gambar POI sehingga tidak dapat diimpor (maksimal 512 secara total).",
     "error_no_json": "Tidak dapat diimpor karena file pengaturan peta (JSON) tidak disertakan"
   },
   "database": {

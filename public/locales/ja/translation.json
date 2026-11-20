@@ -604,6 +604,8 @@
     "error_too_large": "地図データの ZIP が大きすぎます（2 GiB を超えるものはインポートできません）。",
     "error_too_many_entries": "地図データの ZIP に含まれるファイルが多すぎるためインポートできません。",
     "error_corrupt": "地図データの ZIP が壊れているためインポートできません。",
+    "error_poi_image_too_large": "地図データに含まれる POI の画像 {{name}} が大きすぎるためインポートできません（1 枚あたり 20 MiB まで）。",
+    "error_poi_too_many_entries": "地図データに含まれる POI のデータと画像が多すぎるためインポートできません（合計 512 件まで）。",
     "error_no_json": "地図の設定ファイル（JSON）が含まれていないためインポートできません"
   },
   "database": {

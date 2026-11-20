@@ -604,6 +604,8 @@
     "error_too_large": "Tệp ZIP dữ liệu bản đồ quá lớn (không thể nhập tệp vượt quá 2 GiB).",
     "error_too_many_entries": "Tệp ZIP dữ liệu bản đồ chứa quá nhiều tệp nên không thể nhập.",
     "error_corrupt": "Tệp ZIP dữ liệu bản đồ bị hỏng nên không thể nhập.",
+    "error_poi_image_too_large": "Ảnh POI {{name}} trong dữ liệu bản đồ quá lớn nên không thể nhập (tối đa 20 MiB mỗi ảnh).",
+    "error_poi_too_many_entries": "Dữ liệu bản đồ chứa quá nhiều dữ liệu và ảnh POI nên không thể nhập (tối đa 512 tổng cộng).",
     "error_no_json": "Không thể nhập vì không có tệp cài đặt bản đồ (JSON)"
   },
   "database": {

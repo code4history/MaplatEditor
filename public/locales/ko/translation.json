@@ -604,6 +604,8 @@
     "error_too_large": "지도 데이터 ZIP이 너무 큽니다(2 GiB를 초과하는 파일은 가져올 수 없습니다).",
     "error_too_many_entries": "지도 데이터 ZIP에 파일이 너무 많아 가져올 수 없습니다.",
     "error_corrupt": "지도 데이터 ZIP이 손상되어 가져올 수 없습니다.",
+    "error_poi_image_too_large": "지도 데이터의 POI 이미지 {{name}}이 너무 커서 가져올 수 없습니다(이미지당 최대 20 MiB).",
+    "error_poi_too_many_entries": "지도 데이터에 POI 데이터와 이미지가 너무 많아 가져올 수 없습니다(합계 최대 512개).",
     "error_no_json": "지도 설정 파일(JSON)이 포함되어 있지 않아 가져올 수 없습니다"
   },
   "database": {

@@ -46,7 +46,10 @@ assert.doesNotThrow(() => assertSafePoiPackageEntries([
 for (const name of ['/abs.geojson', '../escape.geojson', 'pois/../../escape.geojson', 'pois\\evil.geojson']) {
   assert.throws(() => assertSafePoiPackageEntries([{ name, size: 1 }]));
 }
-assert.throws(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: 101 * 1024 * 1024 }]));
+// 合計の上限（POI 単体パッケージ = 1 GiB）。1 GiB + 1 で拒否される
+assert.throws(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: 1024 * 1024 * 1024 + 1 }]));
+// 境界: ちょうど 1 GiB までは通る（`total > MAX` の等号を含まない判定の固定）
+assert.doesNotThrow(() => assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: 1024 * 1024 * 1024 }]));
 assert.throws(() => assertSafePoiPackageEntries([
   { name: 'pois/a.geojson', size: 1 },
   { name: 'pois/a.geojson', size: 1 },

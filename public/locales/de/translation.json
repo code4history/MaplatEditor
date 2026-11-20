@@ -604,6 +604,8 @@
     "error_too_large": "Die ZIP-Datei der Kartendaten ist zu groß (Dateien über 2 GiB können nicht importiert werden).",
     "error_too_many_entries": "Die ZIP-Datei der Kartendaten enthält zu viele Dateien und kann nicht importiert werden.",
     "error_corrupt": "Die ZIP-Datei der Kartendaten ist beschädigt und kann nicht importiert werden.",
+    "error_poi_image_too_large": "Das POI-Bild {{name}} in den Kartendaten ist zu groß und kann nicht importiert werden (maximal 20 MiB pro Bild).",
+    "error_poi_too_many_entries": "Die Kartendaten enthalten zu viele POI-Daten und Bilder und können nicht importiert werden (insgesamt maximal 512).",
     "error_no_json": "Import nicht möglich, da die Einstellungsdatei der Karte (JSON) fehlt"
   },
   "database": {

@@ -4534,6 +4534,12 @@ const importMap = async () => {
             } else if (arg.err === 'TooManyEntries') {
                 // 件数か中央ディレクトリの大きさが上限を超えた ZIP（末尾の記録で判定）
                 modalFinish('dataupload.error_too_many_entries');
+            } else if (arg.err === 'PoiImageTooLarge') {
+                // POI の画像1枚が 20 MiB の上限を超えた。どの画像かを ZIP 内の名前で添える
+                modalFinish('dataupload.error_poi_image_too_large', { name: arg.errEntry ?? '' });
+            } else if (arg.err === 'PoiTooManyEntries') {
+                // POI の中身（POI データと画像）の件数が 512 の上限を超えた
+                modalFinish('dataupload.error_poi_too_many_entries');
             } else if (arg.err === 'Corrupt') {
                 // adm-zip・zlib の読み取りの例外。原文は出さない
                 modalFinish('dataupload.error_corrupt');

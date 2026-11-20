@@ -7,7 +7,11 @@ import SettingsService from './SettingsService';
 import * as storeHandler from '../utils/store_handler';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
 import SqliteDataService from './SqliteDataService';
-import { assertArchiveStructure, assertSafeArchiveEntries } from '../../src/utils/poiPackage';
+import {
+  assertArchiveStructure,
+  assertSafeArchiveEntries,
+  PoiPayloadLimitError,
+} from '../../src/utils/poiPackage';
 import {
   zipEntryInfos,
   importManagedPoiDocuments,
@@ -155,8 +159,13 @@ class DataUploadService {
             }
         }
 
-        // 欠損 dest は importManagedPoiDocuments が Error にする（黙って落とさない）
-        const imported = await importManagedPoiDocuments(zipFile, referenced);
+        // 欠損 dest は importManagedPoiDocuments が Error にする（黙って落とさない）。
+        // **POI payload の合計の上限は掛けない**（applyTotalLimit: false）: 地図 ZIP 全体は
+        // 展開前の assertMapArchiveLimits と中央ディレクトリの検査で守られており、タイルにも
+        // 合計の上限は無い。POI の中身（pois/・imgs/）の合計だけを止めた実績では、
+        // 書き出した本人が取り込めない地図ができた（2026-11-20: 合計約 143 MB の POI 画像で
+        // 「POI package is too large」）。1 枚あたり 20 MiB と 512 件の上限は残す
+        const imported = await importManagedPoiDocuments(zipFile, referenced, { applyTotalLimit: false });
         warnings.push(...imported.warnings);
 
         const createdPoiUids: string[] = [];
@@ -534,16 +543,30 @@ class DataUploadService {
             // 重複名（duplicate-entry）は写さない（は too-large・corrupt の 2 つだけ。
             // 取り込みの安全検証の契約〔'Duplicate map package entry'〕を保つ。MapEdit では汎用の文言になり原文は出ない）。
             // それ以外（Exist・NoTile・NoTmb・ENOENT 等）も従来どおり
-            const zipError = classifyZipReadError(err);
-            // 件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries（「2 GiB を超える」とは別の文言）
-            const message = zipError?.kind === 'too-large' ||
-                zipError?.kind === 'expands-too-large'
-                ? 'TooLarge'
-                : zipError?.kind === 'too-many-entries'
-                    ? 'TooManyEntries'
-                : zipError?.kind === 'corrupt'
-                    ? 'Corrupt'
-                    : typeof err === 'string' ? err : (err.message || 'Unknown');
+            //
+            // POI payload の上限（1 枚の画像が大きすぎる・件数が多すぎる）は **専用のコード**へ写す。
+            // 汎用の error_upload（「地図データのインポートでエラーが発生しました。」）では
+            // どの画像が上限を超えたかが利用者に分からないため。判定は例外の kind（PoiPayloadLimitError）
+            // で行い、message の字面は読まない（文面を直しただけで分岐が壊れるため）。
+            // ZIP 側の件数・中央ディレクトリの上限（too-many-entries）は TooManyEntries
+            // （「2 GiB を超える」とは別の文言）。POI payload の件数超過（PoiTooManyEntries）とは別コード
+            const poiLimit = err instanceof PoiPayloadLimitError ? err : null;
+            const zipError = poiLimit ? null : classifyZipReadError(err);
+            const message = poiLimit?.kind === 'image-too-large'
+                ? 'PoiImageTooLarge'
+                : poiLimit?.kind === 'too-many-entries'
+                    ? 'PoiTooManyEntries'
+                : zipError?.kind === 'too-large' ||
+                    zipError?.kind === 'expands-too-large'
+                    ? 'TooLarge'
+                    : zipError?.kind === 'too-many-entries'
+                        ? 'TooManyEntries'
+                    : zipError?.kind === 'corrupt'
+                        ? 'Corrupt'
+                        : typeof err === 'string' ? err : (err.message || 'Unknown');
+            // 上限を超えた entry 名（ZIP 内の名前のまま）。専用文言が「どの画像か」を言えるように
+            // 追加フィールドで渡す（err のコード文字列は従来どおり固定のまま）
+            const errEntry = poiLimit?.kind === 'image-too-large' ? poiLimit.entryName : undefined;
 
             // 補償し、**到達できなかったものを残留として申告する**。
             // 補償が全て到達した場合のみ従来どおり { err } を返す。
@@ -563,9 +586,13 @@ class DataUploadService {
             ];
             if (residue.length > 0) {
                 console.warn('[DataUploadService] 補償に到達できなかった残留物があります:', residue);
-                return { err: message, residue };
+                return errEntry !== undefined
+                    ? { err: message, errEntry, residue }
+                    : { err: message, residue };
             }
-            return { err: message };
+            return errEntry !== undefined
+                ? { err: message, errEntry }
+                : { err: message };
         }
     }
 }
