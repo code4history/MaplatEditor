@@ -10,8 +10,10 @@
 //       POI の html から参照させる → 取り込みが成功し、html の参照が maplat-asset: に正本化される
 //   (B) 21 MiB の画像 1 枚 → 専用のコード 'PoiImageTooLarge' と entry 名が返る
 //       （1 枚あたり 20 MiB の上限は地図 zip 経路でも残す）
-//   (B2) POI payload が 513 件 → 専用のコード 'PoiTooManyEntries' が返る
-//       （件数の上限 512 も地図 zip 経路で残す）
+//   (B2) POI payload（pois/ + imgs/）の合計がちょうど 512 件なら通り、513 件なら
+//       専用のコード 'PoiTooManyEntries' が返る（件数の上限 512 も地図 zip 経路で残す）
+//   (B3) 外部 POI 文書を参照しない地図 zip でも、**展開の前の検査**で拒否される。
+//       展開（extractAllTo）は一度も呼ばれず、失敗後に一時展開先へ何も残らない
 //   (C) POI 単体パッケージの合計の上限は 1 GiB。ちょうど 1 GiB は通る / 1 GiB + 1 は拒否される
 //   (C2) importManagedPoiDocuments は既定で合計を掛け、applyTotalLimit: false では掛けない
 //       （地図 zip 経路が渡す値。**経路差の配線**の固定）
@@ -67,11 +69,13 @@ try {
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
     import { writeFile as fsWriteFile, readFile as fsReadFile } from 'node:fs/promises';
+    import { existsSync } from 'node:fs';
     import nodePath from 'node:path';
     import AdmZip from 'adm-zip';
 
     const workDir = ${JSON.stringify(workDir)};
     const fixtureDir = ${JSON.stringify(fixtureDir)};
+    const tmpDir = ${JSON.stringify(tmpDir)};
     const MiB = 1024 * 1024;
     const GiB = 1024 * MiB;
 
@@ -239,24 +243,71 @@ try {
       forbidden('(B)', result);
     });
 
-    // ---- (B2) POI payload の件数 513 件 → 専用のコード（件数の上限も残す）----
-    await check('(B2) POI payload 513 件 → PoiTooManyEntries', async () => {
-      const imgs: Record<string, Buffer> = {};
-      for (let i = 0; i < 513; i += 1) imgs['imgs/p' + i + '.png'] = Buffer.alloc(8);
-      const zipPath = await writeFixture('many-payload.zip', mapZip({
-        slug: 'poicount',
+    // ---- (B2) 件数の境界: POI payload（pois/ + imgs/）の合計がちょうど 512 件は通り、
+    //      513 件は拒否される（製品の経路 extractZip で固定する）----
+    await check('(B2) POI payload ちょうど 512 件は通り 513 件は PoiTooManyEntries', async () => {
+      // 512 件 = 画像 511 + GeoJSON 1（未参照の画像は取り込まれないだけで件数には数える）
+      const imgs512: Record<string, Buffer> = {};
+      for (let i = 0; i < 511; i += 1) imgs512['imgs/p' + i + '.png'] = Buffer.alloc(8);
+      const okPath = await writeFixture('payload-512.zip', mapZip({
+        slug: 'poicount512',
         docs: { 'pois/poi1.geojson': fc({ name: 'count' }) },
-        imgs,
+        imgs: imgs512,
       }));
-      const result = await dataUploadService.extractZip(zipPath);
+      const ok = await dataUploadService.extractZip(okPath);
+      assert.equal(ok.err, undefined,
+        'ちょうど 512 件は通ること（実際: ' + JSON.stringify(ok).slice(0, 300) + '）');
+      assert.ok(ok.mapData, 'mapData が返ること');
+
+      // 513 件 = 画像 512 + GeoJSON 1
+      const imgs513: Record<string, Buffer> = {};
+      for (let i = 0; i < 512; i += 1) imgs513['imgs/p' + i + '.png'] = Buffer.alloc(8);
+      const ngPath = await writeFixture('payload-513.zip', mapZip({
+        slug: 'poicount513',
+        docs: { 'pois/poi1.geojson': fc({ name: 'count' }) },
+        imgs: imgs513,
+      }));
+      const result = await dataUploadService.extractZip(ngPath);
       assert.equal(result.err, 'PoiTooManyEntries',
         '専用のコードになること（実際: ' + JSON.stringify(result).slice(0, 300) + '）');
       assert.equal(result.residue, undefined, '補償が完結していること（residue が無い）');
       forbidden('(B2)', result);
     });
 
+    // ---- (B3) 外部 POI 文書を参照しない地図 zip でも、展開の前の検査で拒否される ----
+    // （展開後の restoreManagedPois の検査だけでは、参照が無いと検査ごと省略される）
+    await check('(B3) POI 参照なしの地図 zip も展開前に拒否され一時フォルダに何も残らない', async () => {
+      const imgs: Record<string, Buffer> = {};
+      for (let i = 0; i < 513; i += 1) imgs['imgs/p' + i + '.png'] = Buffer.alloc(8);
+      const zipPath = await writeFixture('no-ref-many-payload.zip', mapZip({
+        slug: 'poinoref',
+        pois: [],   // map JSON は外部 POI 文書を参照しない
+        imgs,
+      }));
+      // 展開（extractAllTo）が呼ばれないことを観察する（展開の前に止まることの直接の証拠）
+      const extractCalls: string[] = [];
+      const originalExtract = AdmZip.prototype.extractAllTo;
+      AdmZip.prototype.extractAllTo = function (this: unknown, ...args: any[]) {
+        extractCalls.push(String(args[0]));
+        return (originalExtract as any).apply(this, args);
+      };
+      try {
+        const result = await dataUploadService.extractZip(zipPath);
+        assert.equal(result.err, 'PoiTooManyEntries',
+          '専用のコードになること（実際: ' + JSON.stringify(result).slice(0, 300) + '）');
+        assert.equal(result.residue, undefined, '補償が完結していること（residue が無い）');
+        assert.deepEqual(extractCalls, [],
+          '展開（extractAllTo）が一度も呼ばれないこと（実際: ' + JSON.stringify(extractCalls) + '）');
+        assert.equal(existsSync(nodePath.join(tmpDir, 'zip')), false,
+          '一時展開先が消えて何も残らないこと');
+        forbidden('(B3)', result);
+      } finally {
+        AdmZip.prototype.extractAllTo = originalExtract;
+      }
+    });
+
     // ---- (C) POI 単体パッケージの合計の上限は 1 GiB ----
-    await check('(C) POI 単体パッケージは合計 1 GiB で拒否される（境界と製品経路）', async () => {
+    await check('(C) POI 単体パッケージは合計 1 GiB 超で拒否される（境界と製品経路）', async () => {
       // 純関数の境界: ちょうど 1 GiB は通る / 1 GiB + 1 は拒否される
       assert.doesNotThrow(
         () => poiPackage.assertSafePoiPackageEntries([{ name: 'pois/a.geojson', size: GiB }]),

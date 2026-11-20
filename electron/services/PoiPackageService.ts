@@ -410,8 +410,9 @@ export async function importManagedPoiDocuments(
 
 export async function importPoiZip(filePath: string): Promise<PoiZipImport> {
   // 地図の取り込みと同じ 2 GiB の上限を new AdmZip の前に検査する。
-  // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後 100 MiB の上限
-  // （assertSafePoiPackageEntries）は ZIP を開けた後にしか効かない。
+  // adm-zip は 2 GiB 超を ERR_FS_FILE_TOO_LARGE で読めず、展開後の合計の上限
+  // （POI_PACKAGE_MAX_EXPANDED_BYTES = 1 GiB、assertSafePoiPackageEntries）は
+  // ZIP を開けた後にしか効かない。
   // 委譲先の importManagedPoiDocuments（2 回目の new AdmZip）は本関数の後にしか呼ばれない
   // 末尾の記録（件数・中央ディレクトリの大きさ）も new AdmZip の前に見る（件数を細工した ZIP でメモリが尽きる）
   const archiveBytes = await assertZipImportable(filePath, 'POI package');
