@@ -13,7 +13,9 @@
 //   (B2) POI payload（pois/ + imgs/）の合計がちょうど 512 件なら通り、513 件なら
 //       専用のコード 'PoiTooManyEntries' が返る（件数の上限 512 も地図 zip 経路で残す）
 //   (B3) 外部 POI 文書を参照しない地図 zip でも、**展開の前の検査**で拒否される。
-//       展開（extractAllTo）は一度も呼ばれず、失敗後に一時展開先へ何も残らない
+//       一時展開先（tmpFolder/zip）にファイルが 1 件も書かれず、失敗後に何も残らない
+//   (B4) ディレクトリの entry（imgs/ など）は件数に数えない。ファイルちょうど 512 件＋imgs/ は通る
+//   (B5) 並行した取り込みの一方が失敗しても、もう一方の展開物を消さない（展開先は取り込みごとに別）
 //   (C) POI 単体パッケージの合計の上限は 1 GiB。ちょうど 1 GiB は通る / 1 GiB + 1 は拒否される
 //   (C2) importManagedPoiDocuments は既定で合計を掛け、applyTotalLimit: false では掛けない
 //       （地図 zip 経路が渡す値。**経路差の配線**の固定）
@@ -69,7 +71,7 @@ try {
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
     import { writeFile as fsWriteFile, readFile as fsReadFile } from 'node:fs/promises';
-    import { existsSync } from 'node:fs';
+    import nodeFs, { existsSync } from 'node:fs';
     import nodePath from 'node:path';
     import AdmZip from 'adm-zip';
 
@@ -274,8 +276,22 @@ try {
       forbidden('(B2)', result);
     });
 
+    // 一時展開先（tmpFolder/zip 以下）に置かれたファイルの数（取り込みごとの <uuid> も含めて数える）
+    // tmpFolder は設定値ではなく SettingsService が OS の一時フォルダから求める（set した tmpDir ではない）
+    const zipWorkRoot = nodePath.join(SettingsService.get('tmpFolder'), 'zip');
+    const filesUnder = (dir: string): number => {
+      if (!existsSync(dir)) return 0;
+      let n = 0;
+      for (const e of nodeFs.readdirSync(dir, { withFileTypes: true })) {
+        n += e.isDirectory() ? filesUnder(nodePath.join(dir, e.name)) : 1;
+      }
+      return n;
+    };
+
     // ---- (B3) 外部 POI 文書を参照しない地図 zip でも、展開の前の検査で拒否される ----
     // （展開後の restoreManagedPois の検査だけでは、参照が無いと検査ごと省略される）
+    // 観察: adm-zip は展開を node:fs の openSync（＋writeSync）で書く。一時展開先へのファイルの作成を数え、
+    // 0 件であることで「展開の前に止まった」ことを直接確かめる（失敗後の後片付けで消えた、とは区別する）
     await check('(B3) POI 参照なしの地図 zip も展開前に拒否され一時フォルダに何も残らない', async () => {
       const imgs: Record<string, Buffer> = {};
       for (let i = 0; i < 513; i += 1) imgs['imgs/p' + i + '.png'] = Buffer.alloc(8);
@@ -284,26 +300,73 @@ try {
         pois: [],   // map JSON は外部 POI 文書を参照しない
         imgs,
       }));
-      // 展開（extractAllTo）が呼ばれないことを観察する（展開の前に止まることの直接の証拠）
-      const extractCalls: string[] = [];
-      const originalExtract = AdmZip.prototype.extractAllTo;
-      AdmZip.prototype.extractAllTo = function (this: unknown, ...args: any[]) {
-        extractCalls.push(String(args[0]));
-        return (originalExtract as any).apply(this, args);
+      const writesUnderWork: string[] = [];
+      const originalOpen = nodeFs.openSync;
+      (nodeFs as any).openSync = function (target: any, ...rest: any[]) {
+        if (String(target).startsWith(zipWorkRoot)) writesUnderWork.push(String(target));
+        return (originalOpen as any).call(this, target, ...rest);
       };
       try {
         const result = await dataUploadService.extractZip(zipPath);
         assert.equal(result.err, 'PoiTooManyEntries',
           '専用のコードになること（実際: ' + JSON.stringify(result).slice(0, 300) + '）');
         assert.equal(result.residue, undefined, '補償が完結していること（residue が無い）');
-        assert.deepEqual(extractCalls, [],
-          '展開（extractAllTo）が一度も呼ばれないこと（実際: ' + JSON.stringify(extractCalls) + '）');
-        assert.equal(existsSync(nodePath.join(tmpDir, 'zip')), false,
-          '一時展開先が消えて何も残らないこと');
+        assert.deepEqual(writesUnderWork, [],
+          '一時展開先へ 1 件も書かれないこと（実際: ' + JSON.stringify(writesUnderWork.slice(0, 5)) + '）');
+        assert.equal(filesUnder(zipWorkRoot), 0, '一時展開先に何も残らないこと');
         forbidden('(B3)', result);
       } finally {
-        AdmZip.prototype.extractAllTo = originalExtract;
+        (nodeFs as any).openSync = originalOpen;
       }
+    });
+
+    // ---- (B4) ディレクトリの entry は件数に数えない ----
+    await check('(B4) ファイルちょうど 512 件＋ディレクトリ entry imgs/ は通る', async () => {
+      const zip = new AdmZip(mapZip({ slug: 'poidirentry', pois: [] }));
+      zip.addFile('imgs/', Buffer.alloc(0));
+      for (let i = 0; i < 512; i += 1) zip.addFile('imgs/p' + i + '.png', Buffer.alloc(8));
+      const zipPath = await writeFixture('dir-entry-512.zip', zip.toBuffer());
+      const result = await dataUploadService.extractZip(zipPath);
+      assert.equal(result.err, undefined,
+        'ディレクトリ entry を数えずに通ること（実際: ' + JSON.stringify(result).slice(0, 300) + '）');
+      assert.ok(result.mapData, 'mapData が返ること');
+      assert.equal(poiPackage.isPoiPayloadEntry('imgs/'), false, 'imgs/ は payload に数えない');
+      assert.equal(poiPackage.isPoiPayloadEntry('POIS/'), false, 'POIS/ は payload に数えない');
+      assert.equal(poiPackage.isPoiPayloadEntry('imgs/a.png'), true, 'imgs/a.png は payload');
+      assert.equal(filesUnder(zipWorkRoot), 0, '成功後も一時展開先に何も残らないこと');
+    });
+
+    // ---- (B5) 並行した取り込み: 一方の失敗の後片付けが、もう一方の展開物を消さない ----
+    await check('(B5) 並行取り込みで失敗した側の後片付けが成功する側を壊さない', async () => {
+      const goodPath = await writeFixture('parallel-good.zip', mapZip({
+        slug: 'poiparallel',
+        docs: { 'pois/poi1.geojson': fc({ name: 'parallel' }) },
+      }));
+      const missingPath = nodePath.join(fixtureDir, 'parallel-missing.zip');
+      // 順序を決め打ちにする: 正常な側が展開を始めた瞬間（一時展開先への最初のファイル作成）に、
+      // 失敗する側の取り込みを始める。失敗する側の開始時の削除・失敗時の後片付けは、
+      // 正常な側が展開物を読む前に走る（共有の展開先だと、ここで正常な側の展開物が消える）
+      let badRun: Promise<any> | null = null;
+      const originalOpen = nodeFs.openSync;
+      (nodeFs as any).openSync = function (target: any, ...rest: any[]) {
+        if (!badRun && String(target).startsWith(zipWorkRoot)) {
+          badRun = dataUploadService.extractZip(missingPath);
+        }
+        return (originalOpen as any).call(this, target, ...rest);
+      };
+      let good: any;
+      try {
+        good = await dataUploadService.extractZip(goodPath);
+      } finally {
+        (nodeFs as any).openSync = originalOpen;
+      }
+      assert.ok(badRun, '正常な側の展開の途中で、失敗する側の取り込みが始まったこと');
+      const bad = await badRun;
+      assert.ok(bad.err, '存在しない zip は失敗すること');
+      assert.equal(good.err, undefined,
+        '並行する正常な取り込みは成功すること（実際: ' + JSON.stringify(good).slice(0, 300) + '）');
+      assert.ok(good.mapData, 'mapData が返ること');
+      assert.equal(filesUnder(zipWorkRoot), 0, '両方が終わった後、一時展開先に何も残らないこと');
     });
 
     // ---- (C) POI 単体パッケージの合計の上限は 1 GiB ----

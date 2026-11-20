@@ -1,6 +1,7 @@
 import { dialogDefaultPath, rememberDialogPath } from '../utils/dialogFolders';
 import fs from 'fs-extra';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import AdmZip from 'adm-zip';
 import { dialog, BrowserWindow } from 'electron';
 import SettingsService from './SettingsService';
@@ -282,7 +283,10 @@ class DataUploadService {
 
     async extractZip(zipFile: string, deps?: { limits?: Partial<MapArchiveLimits> }): Promise<any> {
         const { tileFolder, uiThumbnailFolder, tmpFolder } = this.folders;
-        const dataTmpFolder = path.join(tmpFolder, 'zip');
+        // 展開先は取り込みごとに別のフォルダにする（tmpFolder/zip/<uuid>）。
+        // 共有の tmpFolder/zip を使うと、並行した取り込みの一方の後片付け（補償）や
+        // 開始時の削除が、もう一方の展開物を消してしまう
+        const dataTmpFolder = path.join(tmpFolder, 'zip', randomUUID());
 
         // 補償ハンドル。作成に成功したものだけを積み、失敗時に逆順で巻き戻す
         const placedPaths: string[] = [];
@@ -295,7 +299,6 @@ class DataUploadService {
         } | null = null;
 
         try {
-            await fs.remove(dataTmpFolder);
             await fs.ensureDir(dataTmpFolder);
 
             // 読取側 2 GiB 上限の fail-fast ガード。
@@ -569,6 +572,11 @@ class DataUploadService {
             const url_ = await deriveRuntimeTileUrl(mapData, path.join(tileToPath, '0', '0'));
             if (url_) (histMap as any).url_ = url_;
 
+            // 成功したら自分の展開先を片付ける（中身は移動済み。残りは置かなかった物だけ）。
+            // 片付けに失敗しても取り込みは成功しているので、結果は変えずにログだけ残す
+            await fs.remove(dataTmpFolder).catch((e: unknown) => {
+                console.warn('[DataUploadService] could not remove the import work folder', e);
+            });
             return { mapData: histMap, tins };
         } catch (err: any) {
             console.error('[DataUploadService] extractZip error', err);

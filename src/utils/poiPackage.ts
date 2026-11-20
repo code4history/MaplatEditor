@@ -4,15 +4,12 @@ export const POI_PACKAGE_MAX_ENTRIES = 512;
 // assertPoiPayloadLimits の注釈）。
 //
 // 1 GiB という値の根拠（2026-11-20 実測）:
-// - 旧注釈の「約 83 MB」は、地図 1 件の POI を **単体パッケージとして書き出した zip ファイルの
-//   大きさ（圧縮後）** を測った値である（旧注釈は対象も圧縮の前後も書いておらず、この上限が
-//   掛かる **展開後（圧縮前）** の合計と直接比べられない書き方だった）。
-// - 展開後（圧縮前）の実測（gp の地図 zip の POI）: pois/20th_mapcontest_gp_quiz.geojson は
-//   2,335 バイト、それが参照する hioki_quiz*.png（9 件）は合計 78,201,777 バイト
-//   （1 枚 1,929〜16,849,559 バイト）。同じ中身を単体パッケージとして書き出した zip は
-//   78,203,556 バイトで、画像は PNG のため zip でも縮まず、圧縮の前後はほぼ同じである
-//   （旧記述の「約 83 MB」はこの書き出しの測定だったが、本エディタでの実測は約 78 MB）。
-//   1 件の書き出しだけで旧値 100 MiB の 8 割近くに達する。
+// - この上限は **展開後（圧縮前）** の宣言サイズの合計に掛かる。
+// - 実例（人間が書き出した地図 zip 20th_mapcontest_gp の POI の 1 つ）: pois/20th_mapcontest_gp_quiz.geojson は
+//   2,335 バイト、それが参照する hioki_quiz*.png（9 件）は展開後の合計 78,201,777 バイト
+//   （1 枚 1,929〜16,849,559 バイト）。画像は PNG のため zip にしてもほとんど縮まず、
+//   単体パッケージとして書き出した zip も約 78 MB になる。
+//   POI 1 件の書き出しだけで、旧値 100 MiB の 8 割近くに達する。
 // - POI 画像は 1 枚あたり 20 MiB（POI_PACKAGE_MAX_IMAGE_BYTES）までしか入れられないため、
 //   正当な書き出し物は「枚数 × 20 MiB」の範囲に収まる。
 // - 件数上限 512 × 1 枚上限 20 MiB の理論最大 約 10 GiB までは届かないが、
@@ -150,9 +147,14 @@ export function assertSafeArchiveEntries(
   }
 }
 
-/** POI payload（ZIP 同梱の POI 実体）に当たる entry か。地図 ZIP 側の絞り込みに使う。 */
+/**
+ * POI payload（ZIP 同梱の POI 実体）に当たる entry か。地図 ZIP 側の絞り込みに使う。
+ * ディレクトリの entry（名前が `/` で終わる。`imgs/` など）は実体を持たないので数えない
+ * （数えると、ファイルがちょうど 512 件の正当な ZIP が件数の上限で拒まれる）。
+ */
 export function isPoiPayloadEntry(name: string): boolean {
-  return /^(?:pois|imgs)\//i.test(String(name));
+  const value = String(name);
+  return /^(?:pois|imgs)\//i.test(value) && !value.endsWith('/');
 }
 
 /**
