@@ -161,6 +161,9 @@ try {
   {
     const r = run(root);
     check('実物: 検査が緑（exit 0・違反 0 件）', r.status === 0 && r.report?.violations?.length === 0, summarize(r));
+    const declared = new Set(readJson(path.join(root, 'docs', 'i18n', 'editor-glossary.json')).concepts.flatMap((c) => c.pendingKeys ?? []));
+    const pendingWarnings = (r.report?.warnings ?? []).filter((w) => w.kind === 'pending-key');
+    check('実物: pending-key の警告は先行登録したキーだけ', pendingWarnings.every((w) => declared.has(w.key)), JSON.stringify(pendingWarnings.filter((w) => !declared.has(w.key))));
     // Text edits make an exception stop matching. AGENTS.md removes the old exception in a later
     // guarded-side-only PR, so between the locale PR and that PR the real tree may carry unused
     // exceptions. They must stay warnings (exit 0, checked above); this only lists them.
@@ -227,6 +230,16 @@ try {
     check('configure: screen の役割で fr「page Réglages」は赤', res.bindings.configure?.role === 'screen' && langFindings(res, 'configure', 'fr').some((f) => f.kind === 'former'));
     const res2 = evaluate({ en: 'Please configure a value', ja: '値を設定してください', de: 'Bitte einen Wert angeben' });
     check('configure: item の役割の「設定してください」は必須形を求めない', !res2.findings.some((f) => f.concept === 'configure' && f.kind === 'required'));
+  }
+  {
+    const setup = evaluate({ en: 'Adopt this setup and save the settings file', ja: 'この変換の形を採用し、設定ファイルで値を設定する' });
+    check('禁止形: 単独の settings・設定ファイル・設定するは変換の形で赤にしない', has(setup, 'transform-setup') && !setup.findings.some((f) => f.concept === 'transform-setup' && f.kind === 'forbidden'), JSON.stringify(setup.findings));
+    const world = evaluate({ en: 'A: World file only; save the settings file', ja: 'A: ワールドファイルのみ。設定ファイルを保存する' });
+    check('禁止形: 単独の settings・設定ファイルは world file で赤にしない', has(world, 'world-file') && !world.findings.some((f) => ['world-file', 'transform-setup-a'].includes(f.concept) && f.kind === 'forbidden'), JSON.stringify(world.findings));
+    const setupBad = evaluate({ en: 'Adopt this setup; do not call it transform settings', ja: 'この変換の形を「変換の設定」と呼ばない' });
+    check('禁止形: 変換の設定・transform settings は赤', ['ja', 'en'].every((l) => setupBad.findings.some((f) => f.concept === 'transform-setup' && f.lang === l && f.kind === 'forbidden')), JSON.stringify(setupBad.findings));
+    const worldBad = evaluate({ en: 'A: World file only; do not call it world file settings', ja: 'A: ワールドファイルのみ。「ワールドファイル設定」と呼ばない' });
+    check('禁止形: ワールドファイル設定・world file settings は赤', ['ja', 'en'].every((l) => worldBad.findings.some((f) => f.concept === 'world-file' && f.lang === l && f.kind === 'forbidden')), JSON.stringify(worldBad.findings));
   }
   {
     const r1 = evaluate({ en: 'Layer list', ja: 'レイヤ一覧', de: 'die angegebenen Werte' });
@@ -541,23 +554,39 @@ try {
     check('代表語: 根拠キーの値から代表語を消すと赤', r.status === 1 && findings(r, (v) => v.kind === 'representative' && v.concept === 'asset' && v.lang === 'ja').length === 1, summarize(r));
   }
   {
+    const addFutureConcept = (dir, { declare = true, key = 'common.future_asset' } = {}) => {
+      editGlossary(dir, (g) => {
+        const asset = g.concepts.find((c) => c.id === 'asset');
+        const locales = {
+          ja: { preferred: '将来', acceptedForms: ['将来'] },
+          en: { preferred: 'Future', acceptedForms: ['Future'] },
+        };
+        g.concepts.push({ ...asset, id: 'future-asset', rootKey: key, requiredLocales: ['ja', 'en'], anchors: { disabled: ['ja', 'en'] }, locales, additionalBindings: [], ...(declare ? { pendingKeys: [key] } : {}) });
+      });
+    };
     const dir = makeRepo('pending-root-key');
-    editGlossary(dir, (g) => {
-      const asset = g.concepts.find((c) => c.id === 'asset');
-      const locales = {
-        ja: { preferred: '将来', acceptedForms: ['将来'] },
-        en: { preferred: 'Future', acceptedForms: ['Future'] },
-      };
-      g.concepts.push({ ...asset, id: 'future-asset', rootKey: 'common.future_asset', requiredLocales: ['ja', 'en'], anchors: { disabled: ['ja', 'en'] }, locales, additionalBindings: [] });
-    });
+    addFutureConcept(dir);
     run(dir, ['--write']);
     const r = run(dir);
-    check('代表語: 未導入の根拠キーは pending-key の警告で緑', r.status === 0 && (r.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.type === 'rootKey' && w.concept === 'future-asset' && w.key === 'common.future_asset'), summarize(r));
+    check('代表語: 先行登録した未導入の根拠キーは pending-key の警告で緑', r.status === 0 && (r.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.type === 'rootKey' && w.concept === 'future-asset' && w.key === 'common.future_asset'), summarize(r));
     setValue(dir, 'ja', 'common.future_asset', '将来');
-    setValue(dir, 'en', 'common.future_asset', 'Future');
+    const partial = run(dir);
+    check('代表語: 先行登録キーが一部の言語だけに現れたら赤', partial.status === 1 && findings(partial, (v) => v.kind === 'structure' && /future-asset.*common\.future_asset.*11 言語/.test(v.message ?? '')).length === 1, summarize(partial));
+    const futureValues = { de: 'Zukunft', en: 'Future', es: 'Futuro', fr: 'Avenir', id: 'Masa depan', ja: '将来', ko: '미래', th: 'อนาคต', vi: 'Tương lai', zh: '未来', 'zh-TW': '未來' };
+    for (const l of LANGS) setValue(dir, l, 'common.future_asset', futureValues[l]);
     run(dir, ['--write']);
     const r2 = run(dir);
-    check('代表語: locale の PR で根拠キーを足すと警告が消えて代表語を検査する', r2.status === 0 && !(r2.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === 'common.future_asset'), summarize(r2));
+    check('代表語: 先行登録キーを 11 言語へ足すと警告が消えて代表語を検査する', r2.status === 0 && !(r2.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === 'common.future_asset'), summarize(r2));
+
+    const undeclared = makeRepo('pending-root-key-undeclared');
+    addFutureConcept(undeclared, { declare: false });
+    const r3 = run(undeclared);
+    check('代表語: 先行登録のない未導入の根拠キーは構造エラー', r3.status === 1 && findings(r3, (v) => v.kind === 'structure' && /future-asset: rootKey common\.future_asset が locale に無い/.test(v.message ?? '')).length === 1 && !(r3.report?.warnings ?? []).some((w) => w.key === 'common.future_asset'), summarize(r3));
+
+    const typo = makeRepo('existing-root-key-typo');
+    editGlossary(typo, (g) => { g.concepts.find((c) => c.id === 'asset').rootKey = 'navbar.asssets'; });
+    const r4 = run(typo);
+    check('代表語: 既存の根拠キーの誤記は警告にせず構造エラー', r4.status === 1 && findings(r4, (v) => v.kind === 'structure' && /asset: rootKey navbar\.asssets が locale に無い/.test(v.message ?? '')).length === 1 && !(r4.report?.warnings ?? []).some((w) => w.key === 'navbar.asssets'), summarize(r4));
   }
   {
     const dir = makeRepo('missing-lang');

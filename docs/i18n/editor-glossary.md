@@ -5,7 +5,7 @@
 正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。
 検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
-まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
+新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。
 
 概念 41・結び付いたキー 524・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
@@ -568,7 +568,7 @@ MCP サーバー・タイルサーバー等
 
 座標参照系（CRS）。定義データを指して「設定」とは呼ばない
 
-根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_estimate_button`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -588,7 +588,7 @@ MCP サーバー・タイルサーバー等
 
 GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない
 
-根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_estimate_button`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -608,7 +608,7 @@ GCP から CRS を推定する明示的な操作。GCP 編集に追随する自�
 
 推定結果として比較する候補の CRS。採用済みの CRS とは区別する
 
-根拠キー `mapedit.crs_candidates_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_candidates_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_candidates_heading`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -628,7 +628,7 @@ GCP から CRS を推定する明示的な操作。GCP 編集に追随する自�
 
 相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score）
 
-根拠キー `mapedit.crs_setup_borderline_note`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_borderline_note`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_borderline_note`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -637,10 +637,10 @@ GCP から CRS を推定する明示的な操作。GCP 編集に追随する自�
 | es | score | score、puntuación de ajuste | — | — | — |
 | fr | score | score、score d’ajustement、indice d’ajustement | — | — | — |
 | id | skor | skor、skor kecocokan、score | — | — | — |
-| ja | score | score、当てはまりの指標、適合スコア | — | 精度 | — |
+| ja | 適合スコア | 適合スコア、score、当てはまりの指標 | — | 精度 | — |
 | ko | score | score、적합 점수、점수 | — | — | — |
 | th | score | score、คะแนนความพอดี、คะแนน | — | — | — |
-| vi | score | score、điểm phù hợp、điểm | — | — | — |
+| vi | score | score、điểm phù hợp | — | — | — |
 | zh | score | score、拟合分数、分数 | — | — | — |
 | zh-TW | score | score、擬合分數、分數 | — | — | — |
 
@@ -648,16 +648,16 @@ GCP から CRS を推定する明示的な操作。GCP 編集に追随する自�
 
 CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない
 
-根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_adopt_button`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | Aufbau | Aufbau、Transformationsaufbau | — | — | — |
-| en | setup | setup、setups、transform setup、transform setups | — | settings | — |
+| en | setup | setup、setups、transform setup、transform setups | — | transform settings | — |
 | es | forma de transformación | forma de transformación、configuración、configuraciones | — | — | — |
 | fr | forme de transformation | forme de transformation、configuration、configurations | — | — | — |
 | id | bentuk transformasi | bentuk transformasi、konfigurasi | — | — | — |
-| ja | 構成 | 構成、変換の形、変換方式 | — | 設定 | — |
+| ja | 変換の形 | 変換の形、構成、変換方式 | — | 変換の設定 | — |
 | ko | 구성 | 구성、변환 형태 | — | — | — |
 | th | รูปแบบการแปลง | รูปแบบการแปลง、โครงสร้าง | — | — | — |
 | vi | dạng biến đổi | dạng biến đổi、cấu hình | — | — | — |
@@ -668,16 +668,16 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 変換の形 A: CRS と world file だけを使い、三角網を持たない形
 
-根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_a`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | A: nur World file | A: nur World file、nur World file、World file only | — | — | — |
-| en | A: World file only | A: World file only、World file only、A: CRS + World file | — | settings | — |
+| en | A: World file only | A: World file only、World file only、A: CRS + World file | — | transform settings | — |
 | es | A: solo World file | A: solo World file、solo World file、World file only | — | — | — |
 | fr | A : World file uniquement | A : World file uniquement、World file uniquement、World file only | — | — | — |
 | id | A: hanya World file | A: hanya World file、hanya World file、World file only | — | — | — |
-| ja | A: ワールドファイルのみ | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | — | 設定 | — |
+| ja | A: ワールドファイルのみ | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | — | 変換の設定 | — |
 | ko | A: 월드 파일만 | A: 월드 파일만、월드 파일만、World file only | — | — | — |
 | th | A: World file เท่านั้น | A: World file เท่านั้น、World file เท่านั้น、World file only | — | — | — |
 | vi | A: chỉ World file | A: chỉ World file、chỉ World file、World file only | — | — | — |
@@ -688,7 +688,7 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形
 
-根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_b`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -708,7 +708,7 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形
 
-根拠キー `mapedit.crs_setup_c`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_c`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_c`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -728,16 +728,16 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない
 
-根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_a`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | World file | World file、World files、WF | — | — | — |
-| en | world file | world file、world files、WF | — | settings | — |
+| en | world file | world file、world files、WF | — | world file settings | — |
 | es | World file | World file、archivo world、WF | — | — | — |
 | fr | World file | World file、fichier world、WF | — | — | — |
 | id | World file | World file、berkas world、WF | — | — | — |
-| ja | ワールドファイル | ワールドファイル、world file、WF | — | 設定 | — |
+| ja | ワールドファイル | ワールドファイル、world file、WF | — | ワールドファイル設定 | — |
 | ko | 월드 파일 | 월드 파일、world file、WF | — | — | — |
 | th | World file | World file、เวิลด์ไฟล์、WF | — | — | — |
 | vi | World file | World file、tệp world、WF | — | — | — |
@@ -768,13 +768,13 @@ GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A
 
 変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する
 
-根拠キー `mapedit.crs_residuals_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_residuals_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_residuals_heading`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | Residuum | Residuum、Residuen、Abweichung | — | — | — |
 | en | residual | residual、residuals、offset、offsets | — | error | — |
-| es | residual | residual、residuos、desviación | — | — | — |
+| es | residual | residual、residuo、residuos、desviación | — | — | — |
 | fr | résidu | résidu、résidus、écart | — | — | — |
 | id | residual | residual、residu、selisih | — | — | — |
 | ja | 残差 | 残差、ずれ | — | 誤差 | — |
@@ -788,7 +788,7 @@ GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A
 
 形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）
 
-根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_b`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -808,7 +808,7 @@ GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A
 
 score と閾値から示す推奨。採用を強制するものではない
 
-根拠キー `mapedit.crs_setup_recommended_badge`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_recommended_badge`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_recommended_badge`、`mapedit.crs_switch_recommended`、`mapedit.crs_keep_3857_recommended`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -828,7 +828,7 @@ score と閾値から示す推奨。採用を強制するものではない
 
 推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する
 
-根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_adopt_button`、`mapedit.crs_core_incompatible`、`mapedit.crs_reproject_error`、`mapedit.crs_setup_fallback_notice`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -848,7 +848,7 @@ score と閾値から示す推奨。採用を強制するものではない
 
 形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する
 
-根拠キー `mapedit.crs_setup_fallback_notice`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+根拠キー `mapedit.crs_setup_fallback_notice`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_fallback_notice`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -861,6 +861,6 @@ score と閾値から示す推奨。採用を強制するものではない
 | ko | 부채꼴로 전환 | 부채꼴로 전환、부채꼴 모드로 전환、부채꼴 외삽 | — | — | — |
 | th | สลับเป็นโหมดรูปพัด | สลับเป็นโหมดรูปพัด、สลับเป็นการคาดคะเนแบบรูปพัด、การคาดคะเนแบบรูปพัด | — | — | — |
 | vi | chuyển sang chế độ hình quạt | chuyển sang chế độ hình quạt、chuyển sang ngoại suy hình quạt、ngoại suy hình quạt | — | — | — |
-| zh | 切换为扇形模式 | 切换为扇形模式、切换为扇形外推、扇形外推 | — | — | — |
-| zh-TW | 切換為扇形模式 | 切換為扇形模式、切換為扇形外推、扇形外推 | — | — | — |
+| zh | 切换为扇形模式 | 切换为扇形模式、切换为扇形外推 | — | — | — |
+| zh-TW | 切換為扇形模式 | 切換為扇形模式、切換為扇形外推 | — | — | — |
 

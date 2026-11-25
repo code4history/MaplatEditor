@@ -267,10 +267,11 @@ export function loadCanonical(root) {
 
 /**
  * 正本の意味の整合。schema で書けないものだけ。
- * 例外・additionalBindings・rootKey のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（正本だけの PR で
- * 新しい概念や例外を先に足し、後の locale の PR でキーを足す）
+ * 新しい概念が後の locale の PR で足す rootKey・additionalBindings は pendingKeys に先行登録したものだけを警告にする。
+ * 既存のキーの誤記・削除と、登録のない未知キーは構造エラー。例外のキーは従来の 2 段の手順どおり警告にする。
+ * 先行登録キーは、どれか 1 言語に現れた時点で 11 言語への追加を必須にする。
  */
-export function validateSemantics(glossary, exceptions, keys, pending = []) {
+export function validateSemantics(glossary, exceptions, keys, pending = [], localeValues = null) {
   const errors = [];
   const langs = new Set(glossary.locales);
   const ids = new Set();
@@ -278,14 +279,20 @@ export function validateSemantics(glossary, exceptions, keys, pending = []) {
   for (const c of glossary.concepts) {
     if (ids.has(c.id)) errors.push(`概念 ID の重複: ${c.id}`);
     ids.add(c.id);
-    if (!keys.has(c.rootKey)) pending.push({ kind: 'pending-key', type: 'rootKey', concept: c.id, lang: '-', key: c.rootKey, message: '根拠キーがまだ locale に無い（locale の PR で足す）' });
+    const declared = new Set(c.pendingKeys ?? []);
+    const missingRoot = (key, lang = null) => {
+      if (keys.has(key)) return;
+      if (declared.has(key)) pending.push({ kind: 'pending-key', type: 'rootKey', concept: c.id, lang: lang ?? '-', key, message: `先行登録した根拠キーがまだ locale に無い（${lang ? '言語別の根拠キー。' : ''}locale の PR で足す）` });
+      else errors.push(`${c.id}${lang ? `/${lang}` : ''}: rootKey ${key} が locale に無い`);
+    };
+    missingRoot(c.rootKey);
     for (const l of c.requiredLocales) {
       if (!langs.has(l)) errors.push(`${c.id}: requiredLocales に未知の言語 ${l}`);
       if (!c.locales[l]) errors.push(`${c.id}: requiredLocales の ${l} に locales の項目が無い`);
     }
     for (const [l, e] of Object.entries(c.locales)) {
       if (!langs.has(l)) errors.push(`${c.id}: 未知の言語 ${l}`);
-      if (e.rootKey && !keys.has(e.rootKey)) pending.push({ kind: 'pending-key', type: 'rootKey', concept: c.id, lang: l, key: e.rootKey, message: '言語別の根拠キーがまだ locale に無い（locale の PR で足す）' });
+      if (e.rootKey) missingRoot(e.rootKey, l);
       const acc = new Set(e.acceptedForms.map(fold));
       if (!acc.has(fold(e.preferred))) errors.push(`${c.id}/${l}: 代表語 ${e.preferred} が acceptedForms に無い`);
       for (const f of [...(e.formerForms ?? []), ...(e.forbidden ?? []).map((x) => x.literal)]) {
@@ -297,7 +304,18 @@ export function validateSemantics(glossary, exceptions, keys, pending = []) {
       }
     }
     for (const l of Object.keys(c.excludePhrases ?? {})) if (l !== '*' && !langs.has(l)) errors.push(`${c.id}: excludePhrases に未知の言語 ${l}`);
-    for (const k of c.additionalBindings ?? []) if (!keys.has(k)) pending.push({ kind: 'pending-key', type: 'additionalBindings', concept: c.id, lang: '-', key: k, message: 'キーがまだ locale に無い（locale の PR で足す）' });
+    for (const k of c.additionalBindings ?? []) {
+      if (keys.has(k)) continue;
+      if (declared.has(k)) pending.push({ kind: 'pending-key', type: 'additionalBindings', concept: c.id, lang: '-', key: k, message: '先行登録したキーがまだ locale に無い（locale の PR で足す）' });
+      else errors.push(`${c.id}: additionalBindings ${k} が locale に無い（新しいキーは pendingKeys に先行登録する）`);
+    }
+    for (const k of declared) {
+      const present = glossary.locales.filter((l) => localeValues ? localeValues[l]?.has(k) : l === 'ja' && keys.has(k));
+      if (present.length && present.length !== glossary.locales.length) {
+        const missing = glossary.locales.filter((l) => !present.includes(l));
+        errors.push(`${c.id}: pendingKeys ${k} が一部の言語だけにある（11 言語すべてに足す。不足: ${missing.join(', ')}）`);
+      }
+    }
   }
   for (const s of glossary.sharedForms ?? []) {
     for (const cid of s.concepts) if (!ids.has(cid)) errors.push(`sharedForms: 未知の概念 ${cid}`);
@@ -561,7 +579,7 @@ export function renderMarkdown(glossary, exceptions, all) {
   lines.push('正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。');
   lines.push('検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。');
   lines.push('正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。');
-  lines.push('まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。');
+  lines.push('新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。');
   lines.push('');
   const counts = {};
   for (const x of exceptions) counts[x.type] = (counts[x.type] ?? 0) + 1;
@@ -577,7 +595,7 @@ export function renderMarkdown(glossary, exceptions, all) {
     lines.push(md(c.description));
     lines.push('');
     const roles = c.roles ? Object.entries(c.roles).map(([n, r]) => `${n}（${r.strict ? 'strict' : 'weak'}）`).join('・') : '';
-    lines.push(`根拠キー \`${c.rootKey}\`。必須形を求める言語: ${c.requiredLocales.join(', ')}${roles ? `。役割: ${roles}` : ''}`);
+    lines.push(`根拠キー \`${c.rootKey}\`。必須形を求める言語: ${c.requiredLocales.join(', ')}${roles ? `。役割: ${roles}` : ''}${c.pendingKeys?.length ? `。先行登録キー: ${c.pendingKeys.map((k) => `\`${k}\``).join('、')}` : ''}`);
     lines.push('');
     lines.push('| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |');
     lines.push('|---|---|---|---|---|---|');
@@ -648,6 +666,7 @@ export function diffCanonical(oldG, oldEx, newG, newEx) {
     const na = (c) => Object.entries(c.anchors?.notAnchor ?? {}).flatMap(([l, xs]) => xs.map((x) => `${l} ${id}: ${x}`)).concat((c.anchors?.disabled ?? []).map((l) => `${l} ${id}: （錨を使わない）`));
     listDiff(na(a), na(b), loosen, '錨から外した', tighten, '錨に戻した');
     listDiff((a.additionalBindings ?? []).map((k) => `${id}: ${k}`), (b.additionalBindings ?? []).map((k) => `${id}: ${k}`), loosen, 'additionalBindings を足した', tighten, 'additionalBindings を外した');
+    listDiff((a.pendingKeys ?? []).map((k) => `${id}: ${k}`), (b.pendingKeys ?? []).map((k) => `${id}: ${k}`), loosen, 'pendingKeys に先行登録した', tighten, 'pendingKeys の先行登録を外した');
     listDiff(a.requiredLocales.map((l) => `${id}: ${l}`), b.requiredLocales.map((l) => `${id}: ${l}`), tighten, 'requiredLocales に足した', loosen, 'requiredLocales から外した');
     if (JSON.stringify(a.roles ?? null) !== JSON.stringify(b.roles ?? null)) other.push(`役割のパラメータを変えた: ${id}`);
     if (a.rootKey !== b.rootKey) other.push(`根拠キーを変えた: ${id}: ${a.rootKey} → ${b.rootKey}`);
@@ -752,7 +771,7 @@ export function runCheck({ root, write = false, base = null }) {
   const g = canon.glossary;
   const keys = new Set(loc.values.ja?.keys() ?? []);
   const pending = [];
-  validateSemantics(g, canon.exceptions, keys, pending).forEach(structure);
+  validateSemantics(g, canon.exceptions, keys, pending, loc.values).forEach(structure);
   if (violations.length) return result;
   warnings.push(...pending);
 

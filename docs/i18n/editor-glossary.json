@@ -3519,6 +3519,9 @@
       "id": "crs",
       "description": "座標参照系（CRS）。定義データを指して「設定」とは呼ばない",
       "rootKey": "mapedit.crs_estimate_button",
+      "pendingKeys": [
+        "mapedit.crs_estimate_button"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -3646,6 +3649,9 @@
       "id": "crs-estimation",
       "description": "GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない",
       "rootKey": "mapedit.crs_estimate_button",
+      "pendingKeys": [
+        "mapedit.crs_estimate_button"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -3785,6 +3791,9 @@
       "id": "crs-candidate",
       "description": "推定結果として比較する候補の CRS。採用済みの CRS とは区別する",
       "rootKey": "mapedit.crs_candidates_heading",
+      "pendingKeys": [
+        "mapedit.crs_candidates_heading"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -3926,6 +3935,9 @@
       "id": "crs-score",
       "description": "相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score）",
       "rootKey": "mapedit.crs_setup_borderline_note",
+      "pendingKeys": [
+        "mapedit.crs_setup_borderline_note"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -3998,11 +4010,11 @@
           ]
         },
         "ja": {
-          "preferred": "score",
+          "preferred": "適合スコア",
           "acceptedForms": [
+            "適合スコア",
             "score",
-            "当てはまりの指標",
-            "適合スコア"
+            "当てはまりの指標"
           ],
           "forbidden": [
             {
@@ -4010,7 +4022,7 @@
               "literal": "精度",
               "scope": "bindings",
               "reason": "大きいほど良い精度と誤解させない。score は小さいほど良い",
-              "alternative": "score"
+              "alternative": "適合スコア"
             }
           ]
         },
@@ -4034,8 +4046,7 @@
           "preferred": "score",
           "acceptedForms": [
             "score",
-            "điểm phù hợp",
-            "điểm"
+            "điểm phù hợp"
           ]
         },
         "zh": {
@@ -4061,6 +4072,9 @@
       "id": "transform-setup",
       "description": "CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない",
       "rootKey": "mapedit.crs_adopt_button",
+      "pendingKeys": [
+        "mapedit.crs_adopt_button"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4102,8 +4116,8 @@
           ],
           "forbidden": [
             {
-              "ruleId": "transform-setup.en.settings",
-              "literal": "settings",
+              "ruleId": "transform-setup.en.transform settings",
+              "literal": "transform settings",
               "scope": "bindings",
               "reason": "変換の形という定義データを動作の settings と混同しない",
               "alternative": "setup"
@@ -4134,19 +4148,19 @@
           ]
         },
         "ja": {
-          "preferred": "構成",
+          "preferred": "変換の形",
           "acceptedForms": [
-            "構成",
             "変換の形",
+            "構成",
             "変換方式"
           ],
           "forbidden": [
             {
-              "ruleId": "transform-setup.ja.設定",
-              "literal": "設定",
+              "ruleId": "transform-setup.ja.変換の設定",
+              "literal": "変換の設定",
               "scope": "bindings",
               "reason": "変換の形という定義データを指す名詞に「設定」を使わない",
-              "alternative": "構成"
+              "alternative": "変換の形"
             }
           ]
         },
@@ -4194,6 +4208,9 @@
       "id": "transform-setup-a",
       "description": "変換の形 A: CRS と world file だけを使い、三角網を持たない形",
       "rootKey": "mapedit.crs_setup_a",
+      "pendingKeys": [
+        "mapedit.crs_setup_a"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4235,8 +4252,8 @@
           ],
           "forbidden": [
             {
-              "ruleId": "transform-setup-a.en.settings",
-              "literal": "settings",
+              "ruleId": "transform-setup-a.en.transform settings",
+              "literal": "transform settings",
               "scope": "bindings",
               "reason": "形 A の定義データを動作の settings と混同しない",
               "alternative": "World file only"
@@ -4276,8 +4293,8 @@
           ],
           "forbidden": [
             {
-              "ruleId": "transform-setup-a.ja.設定",
-              "literal": "設定",
+              "ruleId": "transform-setup-a.ja.変換の設定",
+              "literal": "変換の設定",
               "scope": "bindings",
               "reason": "形 A の定義データを指す名詞に「設定」を使わない",
               "alternative": "ワールドファイルのみ"
@@ -4331,6 +4348,9 @@
       "id": "transform-setup-b",
       "description": "変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形",
       "rootKey": "mapedit.crs_setup_b",
+      "pendingKeys": [
+        "mapedit.crs_setup_b"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4476,6 +4496,9 @@
       "id": "transform-setup-c",
       "description": "変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形",
       "rootKey": "mapedit.crs_setup_c",
+      "pendingKeys": [
+        "mapedit.crs_setup_c"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4613,6 +4636,9 @@
       "id": "world-file",
       "description": "画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない",
       "rootKey": "mapedit.crs_setup_a",
+      "pendingKeys": [
+        "mapedit.crs_setup_a"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4654,8 +4680,8 @@
           ],
           "forbidden": [
             {
-              "ruleId": "world-file.en.settings",
-              "literal": "settings",
+              "ruleId": "world-file.en.world file settings",
+              "literal": "world file settings",
               "scope": "bindings",
               "reason": "world file の定義データを動作の settings と混同しない",
               "alternative": "world file"
@@ -4695,8 +4721,8 @@
           ],
           "forbidden": [
             {
-              "ruleId": "world-file.ja.設定",
-              "literal": "設定",
+              "ruleId": "world-file.ja.ワールドファイル設定",
+              "literal": "ワールドファイル設定",
               "scope": "bindings",
               "reason": "world file の定義データを指す名詞に「設定」を使わない",
               "alternative": "ワールドファイル"
@@ -4883,6 +4909,9 @@
       "id": "residual",
       "description": "変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する",
       "rootKey": "mapedit.crs_residuals_heading",
+      "pendingKeys": [
+        "mapedit.crs_residuals_heading"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -4937,6 +4966,7 @@
           "preferred": "residual",
           "acceptedForms": [
             "residual",
+            "residuo",
             "residuos",
             "desviación"
           ]
@@ -5015,6 +5045,9 @@
       "id": "global-model",
       "description": "形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）",
       "rootKey": "mapedit.crs_setup_b",
+      "pendingKeys": [
+        "mapedit.crs_setup_b"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -5164,6 +5197,11 @@
       "id": "recommendation",
       "description": "score と閾値から示す推奨。採用を強制するものではない",
       "rootKey": "mapedit.crs_setup_recommended_badge",
+      "pendingKeys": [
+        "mapedit.crs_setup_recommended_badge",
+        "mapedit.crs_switch_recommended",
+        "mapedit.crs_keep_3857_recommended"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -5311,6 +5349,12 @@
       "id": "adoption",
       "description": "推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する",
       "rootKey": "mapedit.crs_adopt_button",
+      "pendingKeys": [
+        "mapedit.crs_adopt_button",
+        "mapedit.crs_core_incompatible",
+        "mapedit.crs_reproject_error",
+        "mapedit.crs_setup_fallback_notice"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -5476,6 +5520,9 @@
       "id": "fan-fallback",
       "description": "形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する",
       "rootKey": "mapedit.crs_setup_fallback_notice",
+      "pendingKeys": [
+        "mapedit.crs_setup_fallback_notice"
+      ],
       "requiredLocales": [
         "de",
         "en",
@@ -5610,16 +5657,14 @@
           "preferred": "切换为扇形模式",
           "acceptedForms": [
             "切换为扇形模式",
-            "切换为扇形外推",
-            "扇形外推"
+            "切换为扇形外推"
           ]
         },
         "zh-TW": {
           "preferred": "切換為扇形模式",
           "acceptedForms": [
             "切換為扇形模式",
-            "切換為扇形外推",
-            "扇形外推"
+            "切換為扇形外推"
           ]
         }
       },
