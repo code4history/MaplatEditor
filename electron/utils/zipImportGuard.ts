@@ -179,8 +179,39 @@ function toSafeNumber(value: bigint, label: string, field: string): number {
   return Number(value);
 }
 
+// adm-zip（0.6.1 の zipFile.js・readMainHeader）が末尾の記録を探す走査を、そのままなぞる。
+// 返すのは adm-zip が件数を読む記録の位置（tail の中）と種類。見つからなければ null。
+//
+// adm-zip は末尾から前へ 1 バイトずつ 3 種の署名を探す: EOCD を見つけても 20 バイト手前まで探し続け、
+// その間に locator の署名があれば探す範囲を末尾 64 KiB へ戻し、ZIP64 EOCD の署名があればそれを採る。
+// readZipCentralDirectoryInfo は「最初に見つかった EOCD」と「そのちょうど 20 バイト前の locator が指す記録」を
+// 読むので、署名の置き方によっては adm-zip と別の記録を読む。∴ 両者が同じ記録に着くことを確かめ、
+// 食い違う ZIP は開かない。正当な書き手は EOCD の直前 20 バイト・ZIP64 EOCD の中に署名を置かない。
+//
+// tail はファイルの末尾 EOCD_SEARCH_BYTES + ZIP64_LOCATOR_SIZE バイト（短いファイルは全体）。
+// adm-zip の走査の下限（末尾から 22 + 65,535 バイト）と、そこから 20 バイト手前までを含む。
+// adm-zip を上げるときは readMainHeader の差分を見て、この関数を合わせる。
+function locateAdmZipEndRecord(tail: Buffer): { at: number; zip64: boolean } | null {
+  const floor = Math.max(0, tail.length - EOCD_SEARCH_BYTES);
+  let lowest = floor;
+  let found: { at: number; zip64: boolean } | null = null;
+  for (let i = tail.length - EOCD_SIZE; i >= lowest && i >= 0; i--) {
+    if (tail[i] !== 0x50) continue;
+    const signature = tail.readUInt32LE(i);
+    if (signature === EOCD_SIG) {
+      found = { at: i, zip64: false };
+      lowest = i - ZIP64_LOCATOR_SIZE;
+    } else if (signature === ZIP64_LOCATOR_SIG) {
+      lowest = floor;
+    } else if (signature === ZIP64_EOCD_SIG) {
+      return { at: i, zip64: true };
+    }
+  }
+  return found;
+}
+
 // ZIP の末尾（EOCD・ZIP64 EOCD）だけを読み、中央ディレクトリの件数・大きさ・位置を返す。
-// 壊れた／矛盾した値は ZipImportError('corrupt')。ファイル全体はメモリに読まない。
+// 壊れた／矛盾した値と、adm-zip が別の記録を読む形は ZipImportError('corrupt')。ファイル全体はメモリに読まない。
 export async function readZipCentralDirectoryInfo(
   zipPath: string,
   label: string,
@@ -238,16 +269,6 @@ export async function readZipCentralDirectoryInfo(
       }
       const extensibleBytes = recordSize - (ZIP64_EOCD_MIN_SIZE - 12);
       if (extensibleBytes > ZIP64_EXTENSIBLE_MAX) throw corrupt(label, 'ZIP64 extensible data is too large');
-      if (extensibleBytes > 0) {
-        // adm-zip は locator から前へ ZIP64 EOCD の署名を探すので、可変部に署名があると別の値を読む
-        const extensible = await readAt(handle, recordOffset + ZIP64_EOCD_MIN_SIZE, extensibleBytes);
-        if (extensible.length !== extensibleBytes) throw corrupt(label, 'ZIP64 record is truncated');
-        for (let i = 0; i + 4 <= extensible.length; i++) {
-          if (extensible[i] === 0x50 && extensible.readUInt32LE(i) === ZIP64_EOCD_SIG) {
-            throw corrupt(label, 'ZIP64 extensible data contains a record signature');
-          }
-        }
-      }
       const disk64 = record.readUInt32LE(16);
       const cdDisk64 = record.readUInt32LE(20);
       if (disk64 !== 0 || cdDisk64 !== 0) throw corrupt(label, 'multi-disk ZIP64 is not supported');
@@ -259,6 +280,13 @@ export async function readZipCentralDirectoryInfo(
       directoryEnd = recordOffset;
     } else if (diskNumber !== 0 || cdDisk !== 0) {
       throw corrupt(label, 'multi-disk ZIP is not supported');
+    }
+
+    // adm-zip が読む記録が、ここで読んだ記録（ZIP64 なら ZIP64 EOCD、でなければ EOCD）と同じであること
+    const admZipRecord = locateAdmZipEndRecord(tail);
+    const expectedOffset = zip64 ? directoryEnd : eocdOffset;
+    if (!admZipRecord || admZipRecord.zip64 !== zip64 || tailStart + admZipRecord.at !== expectedOffset) {
+      throw corrupt(label, 'end records are ambiguous');
     }
 
     if (centralDirectoryOffset + centralDirectoryBytes > directoryEnd) {

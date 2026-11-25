@@ -52,6 +52,7 @@ import {
 } from '../../src/utils/appSourceModel';
 import { detectRequiredProviderGlFromAppSources, renderProviderGlCdnTags, renderViewerStartupScript, resolveMaplibreMajor } from './providerGlCdn';
 import { renderExportedAppQueryScript } from './exportedAppQuery';
+import { isValidSlug } from './assetIdentity';
 import { compactIiifCopiedMetadata, compactMapLangFields, localizeTitle } from '../../src/utils/langResource';
 import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 // 512px パスの派生は単一関数へ集約する（マイルストーン）
@@ -299,7 +300,8 @@ class AppExportService {
     const { includeTiles } = normalizeAppExportOptions(options);
     const warnings: string[] = [];
     const appID = String(document?.appID || '').trim();
-    if (!appID) return { result: 'Error', warnings, message: 'appedit.no_appid' };
+    // appID は書き出し物のパスと index.html に入る。renderer の値を信じず、画面の入力欄と同じ字種（slug）を main でも確かめる
+    if (!appID || !isValidSlug(appID)) return { result: 'Error', warnings, message: 'appedit.no_appid' };
 
     const baseMapLookupForAttribution = createBaseMapMasterLookup(await SettingsService.listBaseMaps());
     const attributionSources = (Array.isArray(document?.sources) ? document.sources : [])
