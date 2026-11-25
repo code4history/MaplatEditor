@@ -436,6 +436,11 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
   const dl = wf.jobs.release.steps.find((st) => (st.uses ?? '').startsWith('actions/download-artifact'));
   assert.equal(dl?.with?.pattern, '{build-meta,mac-artifacts,win-artifacts,linux-artifacts}',
     'SAC: release は配布物の artifact だけを落とす');
+  // SR-DEC26-C2-05: draft Release のタグの指す先は、build した commit（全 checkout を固定した expected_editor_sha）
+  const ghRelease = wf.jobs.release.steps.filter((st) => (st.uses ?? '').startsWith('softprops/action-gh-release@'));
+  assert.equal(ghRelease.length, 1, 'release の Release 作成の step は 1 つ');
+  assert.equal(ghRelease[0].with?.target_commitish, '${{ inputs.expected_editor_sha }}',
+    'SR-DEC26-C2-05: Release の target_commitish は expected_editor_sha（タグが build した commit を指す）');
   for (const job of ['prepare', 'build-mac', 'build-win', 'build-linux']) {
     assert.notEqual(
       wf.jobs[job].permissions?.contents, 'write',

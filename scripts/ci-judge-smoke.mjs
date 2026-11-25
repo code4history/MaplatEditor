@@ -319,10 +319,50 @@ const green = (r, msg, re) => {
   assert.ok(!('pull_request_target' in (wf.on ?? {})) && !text.includes('pull_request_target'), 'pull_request_target を使わない');
   assert.equal(/secrets\./.test(text), false, 'secrets. 参照 0');
   assert.match(String(wf.concurrency?.['cancel-in-progress']), /github\.event_name\s*==\s*'pull_request'/, 'cancel-in-progress は PR のときだけ');
-  assert.deepEqual(Object.keys(wf.jobs).sort(), ['e2e', 'smoke'], 'job は smoke と e2e');
+  assert.deepEqual(Object.keys(wf.jobs).sort(), ['e2e', 'glossary-summary', 'smoke'], 'job は smoke・e2e・glossary-summary');
+
+  // SR-DEC26-C2-04: PR のコード（依存・lint・build・smoke・e2e）を動かす job は書き込みのトークンを持たない。
+  // PR へのコメントは、PR のコードを動かさない別の job（glossary-summary）だけが行う
+  const TEST_JOBS = ['smoke', 'e2e'];
+  for (const jobName of TEST_JOBS) {
+    const perms = wf.jobs[jobName].permissions;
+    assert.ok(perms === undefined || (Object.keys(perms).length === 1 && perms.contents === 'read'),
+      `${jobName}: PR のコードを動かす job の permissions は contents: read だけ（${JSON.stringify(perms)}）`);
+    for (const step of wf.jobs[jobName].steps) {
+      assert.equal(/github\.token|GITHUB_TOKEN/.test(JSON.stringify(step)), false, `${jobName}: step「${step.name ?? step.uses}」にトークンを渡さない`);
+    }
+  }
+  {
+    const gs = wf.jobs['glossary-summary'];
+    assert.deepEqual(gs.permissions, { contents: 'read', 'pull-requests': 'write' }, 'glossary-summary: permissions は contents: read と pull-requests: write だけ');
+    assert.deepEqual([gs.needs].flat(), ['smoke'], 'glossary-summary: needs は smoke');
+    assert.match(String(gs.if), /github\.event_name\s*==\s*'pull_request'/, 'glossary-summary: PR のときだけ動く');
+    assert.match(String(gs.if), /!cancelled\(\)/, 'glossary-summary: smoke が赤でも動く（!cancelled()）');
+    assert.equal('continue-on-error' in gs, false, 'glossary-summary: job に continue-on-error を持たない');
+    assert.ok(gs.steps.every((s) => !('continue-on-error' in s)), 'glossary-summary: step に continue-on-error を持たない');
+    const uses = gs.steps.filter((s) => s.uses);
+    for (const step of uses) assert.match(step.uses, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `glossary-summary: action は 40 桁 SHA 固定（${step.uses}）`);
+    assert.deepEqual(uses.map((s) => s.uses.split('@')[0]), ['actions/checkout', 'actions/download-artifact'], 'glossary-summary: action は checkout と download-artifact だけ（pnpm・setup-node を使わない）');
+    const co = uses[0];
+    assert.equal(co.with?.ref, '${{ github.event.pull_request.base.sha }}', 'glossary-summary: checkout は base の commit（PR のコードを持ち込まない）');
+    assert.equal(co.with?.['persist-credentials'], false, 'glossary-summary: checkout は persist-credentials: false');
+    const dl = uses[1];
+    assert.equal(dl.with?.pattern, 'editor-glossary-report', 'glossary-summary: 受け取る artifact は用語集の報告だけ（無くても落ちない pattern 指定）');
+    assert.match(String(dl.with?.path), /^\$\{\{ runner\.temp \}\}\//, 'glossary-summary: 報告は作業ツリーの外（runner.temp）に置く');
+    const runs = gs.steps.filter((s) => typeof s.run === 'string');
+    assert.equal(runs.length, 1, 'glossary-summary: run の step は 1 つ');
+    assert.match(runs[0].run, /node scripts\/ci\/post-editor-glossary-summary\.mjs --report "\$RUNNER_TEMP\//, 'glossary-summary: base の script で報告を読む');
+    assert.equal(/pnpm|npm |npx|git show/.test(runs[0].run), false, 'glossary-summary: 依存の導入・PR 側のファイルの取り出しをしない');
+    assert.equal(runs[0].env?.GITHUB_TOKEN, '${{ github.token }}', 'glossary-summary: トークンはコメントの step にだけ渡す');
+    // smoke job は報告を artifact で渡す（判定 step の後ろの upload）
+    const up = wf.jobs.smoke.steps.find((s) => s.uses?.startsWith('actions/upload-artifact@') && s.with?.name === 'editor-glossary-report');
+    assert.ok(up && up.with?.path === 'editor-glossary-report.json' && up.if === 'always()', 'smoke: 用語集の報告を artifact（editor-glossary-report）で上げる');
+    assert.equal(up.with?.['if-no-files-found'], 'ignore', 'smoke: 報告が無い run では artifact を作らない');
+  }
 
   const allSteps = [];
   for (const [jobName, job] of Object.entries(wf.jobs)) {
+    if (!TEST_JOBS.includes(jobName)) continue;
     assert.equal(job['runs-on'], 'macos-26', `${jobName}: runs-on は macos-26`);
     for (const step of job.steps) allSteps.push({ jobName, step });
     for (const step of job.steps) {
