@@ -3514,6 +3514,2116 @@
         }
       },
       "additionalBindings": []
+    },
+    {
+      "id": "crs",
+      "description": "座標参照系（CRS）。定義データを指して「設定」とは呼ばない",
+      "rootKey": "mapedit.crs_estimate_button",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "CRS 設定"
+          ],
+          "en": [
+            "CRS settings"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "Koordinatenreferenzsystem"
+          ]
+        },
+        "en": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "coordinate reference system",
+            "coordinate reference systems"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs.en.CRS settings",
+              "literal": "CRS settings",
+              "scope": "bindings",
+              "reason": "定義データを動作の settings と混同しない",
+              "alternative": "CRS"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "sistema de referencia de coordenadas"
+          ]
+        },
+        "fr": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "système de référence de coordonnées"
+          ]
+        },
+        "id": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "sistem referensi koordinat"
+          ]
+        },
+        "ja": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "座標参照系"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs.ja.CRS 設定",
+              "literal": "CRS 設定",
+              "scope": "bindings",
+              "reason": "定義データを指す名詞に「設定」を使わない",
+              "alternative": "CRS"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "좌표 참조 시스템"
+          ]
+        },
+        "th": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "ระบบพิกัดอ้างอิง"
+          ]
+        },
+        "vi": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "hệ quy chiếu tọa độ"
+          ]
+        },
+        "zh": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "坐标参照系"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "CRS",
+          "acceptedForms": [
+            "CRS",
+            "座標參照系"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "crs-estimation",
+      "description": "GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない",
+      "rootKey": "mapedit.crs_estimate_button",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "自動推定"
+          ],
+          "en": [
+            "automatic estimation"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "CRS schätzen",
+          "acceptedForms": [
+            "CRS schätzen",
+            "CRS schätz",
+            "CRS-Schätzung",
+            "neu schätzen"
+          ]
+        },
+        "en": {
+          "preferred": "estimate CRS",
+          "acceptedForms": [
+            "estimate CRS",
+            "estimating CRS",
+            "CRS estimation",
+            "re-estimate",
+            "re-estimation"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-estimation.en.automatic estimation",
+              "literal": "automatic estimation",
+              "scope": "bindings",
+              "reason": "推定はユーザーの明示操作だけで行う",
+              "alternative": "estimate CRS"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "estimar CRS",
+          "acceptedForms": [
+            "estimar CRS",
+            "estimación de CRS",
+            "reestimar"
+          ]
+        },
+        "fr": {
+          "preferred": "estimer le CRS",
+          "acceptedForms": [
+            "estimer le CRS",
+            "estimation du CRS",
+            "réestimer"
+          ]
+        },
+        "id": {
+          "preferred": "estimasi CRS",
+          "acceptedForms": [
+            "estimasi CRS",
+            "memperkirakan CRS",
+            "estimasi ulang"
+          ]
+        },
+        "ja": {
+          "preferred": "CRS を推定",
+          "acceptedForms": [
+            "CRS を推定",
+            "CRS の推定",
+            "再推定"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-estimation.ja.自動推定",
+              "literal": "自動推定",
+              "scope": "bindings",
+              "reason": "推定はユーザーの明示操作だけで行う",
+              "alternative": "CRS を推定"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "CRS 추정",
+          "acceptedForms": [
+            "CRS 추정",
+            "재추정"
+          ]
+        },
+        "th": {
+          "preferred": "ประเมิน CRS",
+          "acceptedForms": [
+            "ประเมิน CRS",
+            "การประเมิน CRS",
+            "ประเมินใหม่"
+          ]
+        },
+        "vi": {
+          "preferred": "ước tính CRS",
+          "acceptedForms": [
+            "ước tính CRS",
+            "ước lượng CRS",
+            "ước tính lại"
+          ]
+        },
+        "zh": {
+          "preferred": "估计 CRS",
+          "acceptedForms": [
+            "估计 CRS",
+            "CRS 估计",
+            "重新估计"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "推定 CRS",
+          "acceptedForms": [
+            "推定 CRS",
+            "CRS 推定",
+            "重新推定"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "crs-candidate",
+      "description": "推定結果として比較する候補の CRS。採用済みの CRS とは区別する",
+      "rootKey": "mapedit.crs_candidates_heading",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "採用済み CRS"
+          ],
+          "en": [
+            "adopted CRS"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "CRS-Kandidat",
+          "acceptedForms": [
+            "CRS-Kandidat",
+            "CRS-Kandidaten",
+            "Kandidat"
+          ]
+        },
+        "en": {
+          "preferred": "candidate CRS",
+          "acceptedForms": [
+            "candidate CRS",
+            "CRS candidate",
+            "CRS candidates",
+            "candidate",
+            "candidates"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-candidate.en.adopted CRS",
+              "literal": "adopted CRS",
+              "scope": "bindings",
+              "reason": "比較中の候補と採用済みの CRS を混同しない",
+              "alternative": "candidate CRS"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "CRS candidato",
+          "acceptedForms": [
+            "CRS candidato",
+            "CRS candidatos",
+            "candidato",
+            "candidatos"
+          ]
+        },
+        "fr": {
+          "preferred": "CRS candidat",
+          "acceptedForms": [
+            "CRS candidat",
+            "CRS candidats",
+            "candidat",
+            "candidats"
+          ]
+        },
+        "id": {
+          "preferred": "CRS kandidat",
+          "acceptedForms": [
+            "CRS kandidat",
+            "kandidat CRS",
+            "kandidat"
+          ]
+        },
+        "ja": {
+          "preferred": "候補の CRS",
+          "acceptedForms": [
+            "候補の CRS",
+            "CRS 候補",
+            "候補"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-candidate.ja.採用済み CRS",
+              "literal": "採用済み CRS",
+              "scope": "bindings",
+              "reason": "比較中の候補と採用済みの CRS を混同しない",
+              "alternative": "候補の CRS"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "후보 CRS",
+          "acceptedForms": [
+            "후보 CRS",
+            "CRS 후보",
+            "후보"
+          ]
+        },
+        "th": {
+          "preferred": "CRS ที่เป็นตัวเลือก",
+          "acceptedForms": [
+            "CRS ที่เป็นตัวเลือก",
+            "ตัวเลือก CRS",
+            "ตัวเลือก"
+          ]
+        },
+        "vi": {
+          "preferred": "CRS ứng viên",
+          "acceptedForms": [
+            "CRS ứng viên",
+            "ứng viên CRS",
+            "ứng viên"
+          ]
+        },
+        "zh": {
+          "preferred": "候选 CRS",
+          "acceptedForms": [
+            "候选 CRS",
+            "CRS 候选",
+            "候选"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "候選 CRS",
+          "acceptedForms": [
+            "候選 CRS",
+            "CRS 候選",
+            "候選"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "crs-score",
+      "description": "相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score）",
+      "rootKey": "mapedit.crs_setup_borderline_note",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "精度"
+          ],
+          "en": [
+            "accuracy"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "Score",
+          "acceptedForms": [
+            "Score",
+            "Passungsgüte-Score"
+          ]
+        },
+        "en": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "fit score",
+            "goodness-of-fit score"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-score.en.accuracy",
+              "literal": "accuracy",
+              "scope": "bindings",
+              "reason": "大きいほど良い精度と誤解させない。score は小さいほど良い",
+              "alternative": "score"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "puntuación de ajuste"
+          ]
+        },
+        "fr": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "score d’ajustement",
+            "indice d’ajustement"
+          ]
+        },
+        "id": {
+          "preferred": "skor",
+          "acceptedForms": [
+            "skor",
+            "skor kecocokan",
+            "score"
+          ]
+        },
+        "ja": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "当てはまりの指標",
+            "適合スコア"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "crs-score.ja.精度",
+              "literal": "精度",
+              "scope": "bindings",
+              "reason": "大きいほど良い精度と誤解させない。score は小さいほど良い",
+              "alternative": "score"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "적합 점수",
+            "점수"
+          ]
+        },
+        "th": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "คะแนนความพอดี",
+            "คะแนน"
+          ]
+        },
+        "vi": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "điểm phù hợp",
+            "điểm"
+          ]
+        },
+        "zh": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "拟合分数",
+            "分数"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "score",
+          "acceptedForms": [
+            "score",
+            "擬合分數",
+            "分數"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "transform-setup",
+      "description": "CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない",
+      "rootKey": "mapedit.crs_adopt_button",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "設定"
+          ],
+          "en": [
+            "settings"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "Aufbau",
+          "acceptedForms": [
+            "Aufbau",
+            "Transformationsaufbau"
+          ]
+        },
+        "en": {
+          "preferred": "setup",
+          "acceptedForms": [
+            "setup",
+            "setups",
+            "transform setup",
+            "transform setups"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup.en.settings",
+              "literal": "settings",
+              "scope": "bindings",
+              "reason": "変換の形という定義データを動作の settings と混同しない",
+              "alternative": "setup"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "forma de transformación",
+          "acceptedForms": [
+            "forma de transformación",
+            "configuración",
+            "configuraciones"
+          ]
+        },
+        "fr": {
+          "preferred": "forme de transformation",
+          "acceptedForms": [
+            "forme de transformation",
+            "configuration",
+            "configurations"
+          ]
+        },
+        "id": {
+          "preferred": "bentuk transformasi",
+          "acceptedForms": [
+            "bentuk transformasi",
+            "konfigurasi"
+          ]
+        },
+        "ja": {
+          "preferred": "構成",
+          "acceptedForms": [
+            "構成",
+            "変換の形",
+            "変換方式"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup.ja.設定",
+              "literal": "設定",
+              "scope": "bindings",
+              "reason": "変換の形という定義データを指す名詞に「設定」を使わない",
+              "alternative": "構成"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "구성",
+          "acceptedForms": [
+            "구성",
+            "변환 형태"
+          ]
+        },
+        "th": {
+          "preferred": "รูปแบบการแปลง",
+          "acceptedForms": [
+            "รูปแบบการแปลง",
+            "โครงสร้าง"
+          ]
+        },
+        "vi": {
+          "preferred": "dạng biến đổi",
+          "acceptedForms": [
+            "dạng biến đổi",
+            "cấu hình"
+          ]
+        },
+        "zh": {
+          "preferred": "转换形式",
+          "acceptedForms": [
+            "转换形式",
+            "构成",
+            "配置"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "轉換形式",
+          "acceptedForms": [
+            "轉換形式",
+            "構成",
+            "組態"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "transform-setup-a",
+      "description": "変換の形 A: CRS と world file だけを使い、三角網を持たない形",
+      "rootKey": "mapedit.crs_setup_a",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "設定"
+          ],
+          "en": [
+            "settings"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "A: nur World file",
+          "acceptedForms": [
+            "A: nur World file",
+            "nur World file",
+            "World file only"
+          ]
+        },
+        "en": {
+          "preferred": "A: World file only",
+          "acceptedForms": [
+            "A: World file only",
+            "World file only",
+            "A: CRS + World file"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-a.en.settings",
+              "literal": "settings",
+              "scope": "bindings",
+              "reason": "形 A の定義データを動作の settings と混同しない",
+              "alternative": "World file only"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "A: solo World file",
+          "acceptedForms": [
+            "A: solo World file",
+            "solo World file",
+            "World file only"
+          ]
+        },
+        "fr": {
+          "preferred": "A : World file uniquement",
+          "acceptedForms": [
+            "A : World file uniquement",
+            "World file uniquement",
+            "World file only"
+          ]
+        },
+        "id": {
+          "preferred": "A: hanya World file",
+          "acceptedForms": [
+            "A: hanya World file",
+            "hanya World file",
+            "World file only"
+          ]
+        },
+        "ja": {
+          "preferred": "A: ワールドファイルのみ",
+          "acceptedForms": [
+            "A: ワールドファイルのみ",
+            "ワールドファイルのみ",
+            "world file のみ"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-a.ja.設定",
+              "literal": "設定",
+              "scope": "bindings",
+              "reason": "形 A の定義データを指す名詞に「設定」を使わない",
+              "alternative": "ワールドファイルのみ"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "A: 월드 파일만",
+          "acceptedForms": [
+            "A: 월드 파일만",
+            "월드 파일만",
+            "World file only"
+          ]
+        },
+        "th": {
+          "preferred": "A: World file เท่านั้น",
+          "acceptedForms": [
+            "A: World file เท่านั้น",
+            "World file เท่านั้น",
+            "World file only"
+          ]
+        },
+        "vi": {
+          "preferred": "A: chỉ World file",
+          "acceptedForms": [
+            "A: chỉ World file",
+            "chỉ World file",
+            "World file only"
+          ]
+        },
+        "zh": {
+          "preferred": "A: 仅世界文件",
+          "acceptedForms": [
+            "A: 仅世界文件",
+            "仅世界文件",
+            "World file only"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "A: 僅世界檔案",
+          "acceptedForms": [
+            "A: 僅世界檔案",
+            "僅世界檔案",
+            "World file only"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "transform-setup-b",
+      "description": "変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形",
+      "rootKey": "mapedit.crs_setup_b",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "扇形"
+          ],
+          "en": [
+            "fan mode",
+            "fan extrapolation"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "B: TIN + globales Modell",
+          "acceptedForms": [
+            "B: TIN + globales Modell",
+            "B: CRS + TIN",
+            "TIN + globales Modell"
+          ]
+        },
+        "en": {
+          "preferred": "B: TIN + global model",
+          "acceptedForms": [
+            "B: TIN + global model",
+            "B: CRS + TIN",
+            "TIN + global model"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-b.en.fan mode",
+              "literal": "fan mode",
+              "scope": "bindings",
+              "reason": "形 B の外側は扇形ではなく大域モデル",
+              "alternative": "global model"
+            },
+            {
+              "ruleId": "transform-setup-b.en.fan extrapolation",
+              "literal": "fan extrapolation",
+              "scope": "bindings",
+              "reason": "形 B の外側は扇形ではなく大域モデル",
+              "alternative": "global model"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "B: TIN + modelo global",
+          "acceptedForms": [
+            "B: TIN + modelo global",
+            "B: CRS + TIN",
+            "TIN + modelo global"
+          ]
+        },
+        "fr": {
+          "preferred": "B : TIN + modèle global",
+          "acceptedForms": [
+            "B : TIN + modèle global",
+            "B : CRS + TIN",
+            "TIN + modèle global"
+          ]
+        },
+        "id": {
+          "preferred": "B: TIN + model global",
+          "acceptedForms": [
+            "B: TIN + model global",
+            "B: CRS + TIN",
+            "TIN + model global"
+          ]
+        },
+        "ja": {
+          "preferred": "B: 三角網＋大域モデル",
+          "acceptedForms": [
+            "B: 三角網＋大域モデル",
+            "B: CRS＋三角網",
+            "三角網＋大域モデル"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-b.ja.扇形",
+              "literal": "扇形",
+              "scope": "bindings",
+              "reason": "形 B の外側は扇形ではなく大域モデル",
+              "alternative": "大域モデル"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "B: TIN + 전역 모델",
+          "acceptedForms": [
+            "B: TIN + 전역 모델",
+            "B: CRS + TIN",
+            "TIN + 전역 모델"
+          ]
+        },
+        "th": {
+          "preferred": "B: TIN + แบบจำลองโกลบอล",
+          "acceptedForms": [
+            "B: TIN + แบบจำลองโกลบอล",
+            "B: CRS + TIN",
+            "TIN + แบบจำลองโกลบอล"
+          ]
+        },
+        "vi": {
+          "preferred": "B: TIN + mô hình toàn cục",
+          "acceptedForms": [
+            "B: TIN + mô hình toàn cục",
+            "B: CRS + TIN",
+            "TIN + mô hình toàn cục"
+          ]
+        },
+        "zh": {
+          "preferred": "B: TIN + 全局模型",
+          "acceptedForms": [
+            "B: TIN + 全局模型",
+            "B: CRS + TIN",
+            "TIN + 全局模型"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "B: TIN + 全域模型",
+          "acceptedForms": [
+            "B: TIN + 全域模型",
+            "B: CRS + TIN",
+            "TIN + 全域模型"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "transform-setup-c",
+      "description": "変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形",
+      "rootKey": "mapedit.crs_setup_c",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "大域モデル"
+          ],
+          "en": [
+            "global model"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "C: TIN + Fächer",
+          "acceptedForms": [
+            "C: TIN + Fächer",
+            "C: CRS + TIN",
+            "TIN + Fächer-Extrapolation"
+          ]
+        },
+        "en": {
+          "preferred": "C: TIN + fan",
+          "acceptedForms": [
+            "C: TIN + fan",
+            "C: CRS + TIN",
+            "TIN + fan extrapolation"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-c.en.global model",
+              "literal": "global model",
+              "scope": "bindings",
+              "reason": "形 C の外側は大域モデルではなく扇形",
+              "alternative": "fan extrapolation"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "C: TIN + abanico",
+          "acceptedForms": [
+            "C: TIN + abanico",
+            "C: CRS + TIN",
+            "TIN + extrapolación en abanico"
+          ]
+        },
+        "fr": {
+          "preferred": "C : TIN + éventail",
+          "acceptedForms": [
+            "C : TIN + éventail",
+            "C : CRS + TIN",
+            "TIN + extrapolation en éventail"
+          ]
+        },
+        "id": {
+          "preferred": "C: TIN + kipas",
+          "acceptedForms": [
+            "C: TIN + kipas",
+            "C: CRS + TIN",
+            "TIN + ekstrapolasi kipas"
+          ]
+        },
+        "ja": {
+          "preferred": "C: 三角網＋扇形",
+          "acceptedForms": [
+            "C: 三角網＋扇形",
+            "C: CRS＋三角網",
+            "三角網＋扇形"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "transform-setup-c.ja.大域モデル",
+              "literal": "大域モデル",
+              "scope": "bindings",
+              "reason": "形 C の外側は大域モデルではなく扇形",
+              "alternative": "扇形"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "C: TIN + 부채꼴",
+          "acceptedForms": [
+            "C: TIN + 부채꼴",
+            "C: CRS + TIN",
+            "TIN + 부채꼴 외삽"
+          ]
+        },
+        "th": {
+          "preferred": "C: TIN + รูปพัด",
+          "acceptedForms": [
+            "C: TIN + รูปพัด",
+            "C: CRS + TIN",
+            "TIN + การคาดคะเนแบบรูปพัด"
+          ]
+        },
+        "vi": {
+          "preferred": "C: TIN + hình quạt",
+          "acceptedForms": [
+            "C: TIN + hình quạt",
+            "C: CRS + TIN",
+            "TIN + ngoại suy hình quạt"
+          ]
+        },
+        "zh": {
+          "preferred": "C: TIN + 扇形",
+          "acceptedForms": [
+            "C: TIN + 扇形",
+            "C: CRS + TIN",
+            "TIN + 扇形外推"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "C: TIN + 扇形",
+          "acceptedForms": [
+            "C: TIN + 扇形",
+            "C: CRS + TIN",
+            "TIN + 扇形外推"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "world-file",
+      "description": "画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない",
+      "rootKey": "mapedit.crs_setup_a",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "設定"
+          ],
+          "en": [
+            "settings"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "World files",
+            "WF"
+          ]
+        },
+        "en": {
+          "preferred": "world file",
+          "acceptedForms": [
+            "world file",
+            "world files",
+            "WF"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "world-file.en.settings",
+              "literal": "settings",
+              "scope": "bindings",
+              "reason": "world file の定義データを動作の settings と混同しない",
+              "alternative": "world file"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "archivo world",
+            "WF"
+          ]
+        },
+        "fr": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "fichier world",
+            "WF"
+          ]
+        },
+        "id": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "berkas world",
+            "WF"
+          ]
+        },
+        "ja": {
+          "preferred": "ワールドファイル",
+          "acceptedForms": [
+            "ワールドファイル",
+            "world file",
+            "WF"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "world-file.ja.設定",
+              "literal": "設定",
+              "scope": "bindings",
+              "reason": "world file の定義データを指す名詞に「設定」を使わない",
+              "alternative": "ワールドファイル"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "월드 파일",
+          "acceptedForms": [
+            "월드 파일",
+            "world file",
+            "WF"
+          ]
+        },
+        "th": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "เวิลด์ไฟล์",
+            "WF"
+          ]
+        },
+        "vi": {
+          "preferred": "World file",
+          "acceptedForms": [
+            "World file",
+            "tệp world",
+            "WF"
+          ]
+        },
+        "zh": {
+          "preferred": "世界文件",
+          "acceptedForms": [
+            "世界文件",
+            "world file",
+            "WF"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "世界檔案",
+          "acceptedForms": [
+            "世界檔案",
+            "world file",
+            "WF"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "tin",
+      "description": "GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A では持たない",
+      "rootKey": "appedit.preview.compiled_required",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "TIN 設定"
+          ],
+          "en": [
+            "TIN settings"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "trianguliertes unregelmäßiges Netz"
+          ]
+        },
+        "en": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "triangular irregular network",
+            "triangulated irregular network",
+            "triangulation"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "tin.en.TIN settings",
+              "literal": "TIN settings",
+              "scope": "bindings",
+              "reason": "三角網の定義データを動作の settings と混同しない",
+              "alternative": "TIN"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "red irregular de triángulos",
+            "triangulación"
+          ]
+        },
+        "fr": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "réseau irrégulier de triangles",
+            "triangulation"
+          ]
+        },
+        "id": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "jaring segitiga tidak beraturan",
+            "triangulasi"
+          ]
+        },
+        "ja": {
+          "preferred": "三角網",
+          "acceptedForms": [
+            "三角網",
+            "TIN"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "tin.ja.TIN 設定",
+              "literal": "TIN 設定",
+              "scope": "bindings",
+              "reason": "三角網の定義データを指す名詞に「設定」を使わない",
+              "alternative": "三角網"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "삼각망",
+          "acceptedForms": [
+            "삼각망",
+            "TIN"
+          ]
+        },
+        "th": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "เครือข่ายสามเหลี่ยม",
+            "โครงข่ายสามเหลี่ยม"
+          ]
+        },
+        "vi": {
+          "preferred": "TIN",
+          "acceptedForms": [
+            "TIN",
+            "lưới tam giác",
+            "mạng tam giác"
+          ]
+        },
+        "zh": {
+          "preferred": "三角网",
+          "acceptedForms": [
+            "三角网",
+            "TIN"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "三角網",
+          "acceptedForms": [
+            "三角網",
+            "TIN"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "residual",
+      "description": "変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する",
+      "rootKey": "mapedit.crs_residuals_heading",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "誤差"
+          ],
+          "en": [
+            "error"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "Residuum",
+          "acceptedForms": [
+            "Residuum",
+            "Residuen",
+            "Abweichung"
+          ]
+        },
+        "en": {
+          "preferred": "residual",
+          "acceptedForms": [
+            "residual",
+            "residuals",
+            "offset",
+            "offsets"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "residual.en.error",
+              "literal": "error",
+              "scope": "bindings",
+              "reason": "GCP ごとの残差と変換失敗・往復検査の誤差を混同しない",
+              "alternative": "residual"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "residual",
+          "acceptedForms": [
+            "residual",
+            "residuos",
+            "desviación"
+          ]
+        },
+        "fr": {
+          "preferred": "résidu",
+          "acceptedForms": [
+            "résidu",
+            "résidus",
+            "écart"
+          ]
+        },
+        "id": {
+          "preferred": "residual",
+          "acceptedForms": [
+            "residual",
+            "residu",
+            "selisih"
+          ]
+        },
+        "ja": {
+          "preferred": "残差",
+          "acceptedForms": [
+            "残差",
+            "ずれ"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "residual.ja.誤差",
+              "literal": "誤差",
+              "scope": "bindings",
+              "reason": "GCP ごとの残差と変換失敗・往復検査の誤差を混同しない",
+              "alternative": "残差"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "잔차",
+          "acceptedForms": [
+            "잔차",
+            "차이"
+          ]
+        },
+        "th": {
+          "preferred": "ค่าตกค้าง",
+          "acceptedForms": [
+            "ค่าตกค้าง",
+            "ความคลาดเคลื่อน"
+          ]
+        },
+        "vi": {
+          "preferred": "phần dư",
+          "acceptedForms": [
+            "phần dư",
+            "độ lệch"
+          ]
+        },
+        "zh": {
+          "preferred": "残差",
+          "acceptedForms": [
+            "残差",
+            "偏差"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "殘差",
+          "acceptedForms": [
+            "殘差",
+            "偏差"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "global-model",
+      "description": "形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）",
+      "rootKey": "mapedit.crs_setup_b",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "大域設定",
+            "全体モデル"
+          ],
+          "en": [
+            "global settings",
+            "global configuration"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "globales Modell",
+          "acceptedForms": [
+            "globales Modell",
+            "globale Modelle",
+            "Globalmodell"
+          ]
+        },
+        "en": {
+          "preferred": "global model",
+          "acceptedForms": [
+            "global model",
+            "global models",
+            "global affine model"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "global-model.en.global settings",
+              "literal": "global settings",
+              "scope": "bindings",
+              "reason": "大域モデルの定義データを動作の settings と混同しない",
+              "alternative": "global model"
+            },
+            {
+              "ruleId": "global-model.en.global configuration",
+              "literal": "global configuration",
+              "scope": "bindings",
+              "reason": "変換モデルを画面や動作の構成と混同しない",
+              "alternative": "global model"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "modelo global",
+          "acceptedForms": [
+            "modelo global",
+            "modelos globales",
+            "modelo afín global"
+          ]
+        },
+        "fr": {
+          "preferred": "modèle global",
+          "acceptedForms": [
+            "modèle global",
+            "modèles globaux",
+            "modèle affine global"
+          ]
+        },
+        "id": {
+          "preferred": "model global",
+          "acceptedForms": [
+            "model global",
+            "model afine global"
+          ]
+        },
+        "ja": {
+          "preferred": "大域モデル",
+          "acceptedForms": [
+            "大域モデル",
+            "グローバルモデル",
+            "大域アフィンモデル"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "global-model.ja.大域設定",
+              "literal": "大域設定",
+              "scope": "bindings",
+              "reason": "大域モデルの定義データを指す名詞に「設定」を使わない",
+              "alternative": "大域モデル"
+            },
+            {
+              "ruleId": "global-model.ja.全体モデル",
+              "literal": "全体モデル",
+              "scope": "bindings",
+              "reason": "大域モデルの代表語に統一する",
+              "alternative": "大域モデル"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "전역 모델",
+          "acceptedForms": [
+            "전역 모델",
+            "글로벌 모델",
+            "전역 아핀 모델"
+          ]
+        },
+        "th": {
+          "preferred": "แบบจำลองโกลบอล",
+          "acceptedForms": [
+            "แบบจำลองโกลบอล",
+            "แบบจำลองทั่วทั้งแผนที่",
+            "แบบจำลองอะฟินโกลบอล"
+          ]
+        },
+        "vi": {
+          "preferred": "mô hình toàn cục",
+          "acceptedForms": [
+            "mô hình toàn cục",
+            "mô hình affine toàn cục"
+          ]
+        },
+        "zh": {
+          "preferred": "全局模型",
+          "acceptedForms": [
+            "全局模型",
+            "全局仿射模型"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "全域模型",
+          "acceptedForms": [
+            "全域模型",
+            "全域仿射模型"
+          ]
+        }
+      },
+      "additionalBindings": []
+    },
+    {
+      "id": "recommendation",
+      "description": "score と閾値から示す推奨。採用を強制するものではない",
+      "rootKey": "mapedit.crs_setup_recommended_badge",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "disabled": [
+          "ja",
+          "en"
+        ]
+      },
+      "locales": {
+        "de": {
+          "preferred": "empfohlen",
+          "acceptedForms": [
+            "empfohlen",
+            "empfehl",
+            "empfohl"
+          ]
+        },
+        "en": {
+          "preferred": "recommended",
+          "acceptedForms": [
+            "recommend",
+            "recommends",
+            "recommended",
+            "recommendation"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "recommendation.en.required",
+              "literal": "required",
+              "scope": "bindings",
+              "reason": "推奨は必須や強制ではない",
+              "alternative": "recommended"
+            },
+            {
+              "ruleId": "recommendation.en.mandatory",
+              "literal": "mandatory",
+              "scope": "bindings",
+              "reason": "推奨は必須や強制ではない",
+              "alternative": "recommended"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "recomendado",
+          "acceptedForms": [
+            "recomendado",
+            "recomendada",
+            "recomendar",
+            "recomendación"
+          ]
+        },
+        "fr": {
+          "preferred": "recommandé",
+          "acceptedForms": [
+            "recommandé",
+            "recommandée",
+            "recommander",
+            "recommandation"
+          ]
+        },
+        "id": {
+          "preferred": "direkomendasikan",
+          "acceptedForms": [
+            "rekomendasi",
+            "direkomendasikan",
+            "merekomendasikan"
+          ]
+        },
+        "ja": {
+          "preferred": "推奨",
+          "acceptedForms": [
+            "推奨",
+            "おすすめ"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "recommendation.ja.必須",
+              "literal": "必須",
+              "scope": "bindings",
+              "reason": "推奨は必須や強制ではない",
+              "alternative": "推奨"
+            },
+            {
+              "ruleId": "recommendation.ja.強制",
+              "literal": "強制",
+              "scope": "bindings",
+              "reason": "推奨は必須や強制ではない",
+              "alternative": "推奨"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "권장",
+          "acceptedForms": [
+            "권장",
+            "추천"
+          ]
+        },
+        "th": {
+          "preferred": "แนะนำ",
+          "acceptedForms": [
+            "แนะนำ"
+          ]
+        },
+        "vi": {
+          "preferred": "đề xuất",
+          "acceptedForms": [
+            "đề xuất",
+            "được đề xuất",
+            "khuyến nghị"
+          ]
+        },
+        "zh": {
+          "preferred": "推荐",
+          "acceptedForms": [
+            "推荐"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "建議",
+          "acceptedForms": [
+            "建議",
+            "推薦"
+          ]
+        }
+      },
+      "additionalBindings": [
+        "mapedit.crs_setup_recommended_badge",
+        "mapedit.crs_switch_recommended",
+        "mapedit.crs_keep_3857_recommended"
+      ]
+    },
+    {
+      "id": "adoption",
+      "description": "推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する",
+      "rootKey": "mapedit.crs_adopt_button",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "disabled": [
+          "ja",
+          "en"
+        ],
+        "notAnchor": {
+          "ja": [
+            "自動採用",
+            "自動で採用"
+          ],
+          "en": [
+            "automatically adopt",
+            "automatic adoption"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "übernehmen",
+          "acceptedForms": [
+            "übernehmen",
+            "übernehm",
+            "übernommen"
+          ]
+        },
+        "en": {
+          "preferred": "adopt",
+          "acceptedForms": [
+            "adopt",
+            "adopts",
+            "adopted",
+            "adopting",
+            "adoption",
+            "re-adopt"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "adoption.en.automatically adopt",
+              "literal": "automatically adopt",
+              "scope": "bindings",
+              "reason": "採用はユーザーの明示操作だけで行う",
+              "alternative": "adopt"
+            },
+            {
+              "ruleId": "adoption.en.automatic adoption",
+              "literal": "automatic adoption",
+              "scope": "bindings",
+              "reason": "採用はユーザーの明示操作だけで行う",
+              "alternative": "adopt"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "adoptar",
+          "acceptedForms": [
+            "adoptar",
+            "adoptado",
+            "adoptada",
+            "adopción",
+            "readoptar"
+          ]
+        },
+        "fr": {
+          "preferred": "adopter",
+          "acceptedForms": [
+            "adopter",
+            "adopté",
+            "adoptée",
+            "adoption",
+            "réadopter"
+          ]
+        },
+        "id": {
+          "preferred": "adopsi",
+          "acceptedForms": [
+            "adopsi",
+            "mengadopsi",
+            "diadopsi"
+          ]
+        },
+        "ja": {
+          "preferred": "採用",
+          "acceptedForms": [
+            "採用",
+            "適用"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "adoption.ja.自動採用",
+              "literal": "自動採用",
+              "scope": "bindings",
+              "reason": "採用はユーザーの明示操作だけで行う",
+              "alternative": "採用"
+            },
+            {
+              "ruleId": "adoption.ja.自動で採用",
+              "literal": "自動で採用",
+              "scope": "bindings",
+              "reason": "採用はユーザーの明示操作だけで行う",
+              "alternative": "採用"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "채택",
+          "acceptedForms": [
+            "채택",
+            "적용"
+          ]
+        },
+        "th": {
+          "preferred": "นำมาใช้",
+          "acceptedForms": [
+            "นำมาใช้",
+            "การนำไปใช้",
+            "ใช้"
+          ]
+        },
+        "vi": {
+          "preferred": "áp dụng",
+          "acceptedForms": [
+            "áp dụng",
+            "chấp nhận",
+            "sử dụng"
+          ]
+        },
+        "zh": {
+          "preferred": "采用",
+          "acceptedForms": [
+            "采用",
+            "应用"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "採用",
+          "acceptedForms": [
+            "採用",
+            "套用"
+          ]
+        }
+      },
+      "additionalBindings": [
+        "mapedit.crs_adopt_button",
+        "mapedit.crs_core_incompatible",
+        "mapedit.crs_reproject_error",
+        "mapedit.crs_setup_fallback_notice"
+      ]
+    },
+    {
+      "id": "fan-fallback",
+      "description": "形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する",
+      "rootKey": "mapedit.crs_setup_fallback_notice",
+      "requiredLocales": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "id",
+        "ja",
+        "ko",
+        "th",
+        "vi",
+        "zh",
+        "zh-TW"
+      ],
+      "anchors": {
+        "notAnchor": {
+          "ja": [
+            "降格",
+            "フォールバック"
+          ],
+          "en": [
+            "downgrade",
+            "fallback"
+          ]
+        }
+      },
+      "locales": {
+        "de": {
+          "preferred": "Wechsel zum Fächermodus",
+          "acceptedForms": [
+            "Wechsel zum Fächermodus",
+            "zum Fächermodus gewechselt",
+            "Fächer-Extrapolation"
+          ]
+        },
+        "en": {
+          "preferred": "switch to fan mode",
+          "acceptedForms": [
+            "switch to fan mode",
+            "switched outer extrapolation to fan mode",
+            "switch outer extrapolation to fan mode"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "fan-fallback.en.downgrade",
+              "literal": "downgrade",
+              "scope": "bindings",
+              "reason": "安全網による切り替えを格下げと表現しない",
+              "alternative": "switch to fan mode"
+            },
+            {
+              "ruleId": "fan-fallback.en.fallback",
+              "literal": "fallback",
+              "scope": "bindings",
+              "reason": "利用者向けには内部用語ではなく切り替え先を示す",
+              "alternative": "switch to fan mode"
+            }
+          ]
+        },
+        "es": {
+          "preferred": "cambio a modo abanico",
+          "acceptedForms": [
+            "cambio a modo abanico",
+            "cambiado a modo abanico",
+            "extrapolación en abanico"
+          ]
+        },
+        "fr": {
+          "preferred": "passage en mode éventail",
+          "acceptedForms": [
+            "passage en mode éventail",
+            "passé en mode éventail",
+            "extrapolation en éventail"
+          ]
+        },
+        "id": {
+          "preferred": "beralih ke mode kipas",
+          "acceptedForms": [
+            "beralih ke mode kipas",
+            "beralih ke ekstrapolasi kipas",
+            "ekstrapolasi kipas"
+          ]
+        },
+        "ja": {
+          "preferred": "扇形への切り替え",
+          "acceptedForms": [
+            "扇形への切り替え",
+            "扇形に切り替え",
+            "扇形（従来の外挿）に切り替え"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "fan-fallback.ja.降格",
+              "literal": "降格",
+              "scope": "bindings",
+              "reason": "安全網による切り替えを格下げと表現しない",
+              "alternative": "扇形への切り替え"
+            },
+            {
+              "ruleId": "fan-fallback.ja.フォールバック",
+              "literal": "フォールバック",
+              "scope": "bindings",
+              "reason": "利用者向けには内部用語ではなく切り替え先を示す",
+              "alternative": "扇形への切り替え"
+            }
+          ]
+        },
+        "ko": {
+          "preferred": "부채꼴로 전환",
+          "acceptedForms": [
+            "부채꼴로 전환",
+            "부채꼴 모드로 전환",
+            "부채꼴 외삽"
+          ]
+        },
+        "th": {
+          "preferred": "สลับเป็นโหมดรูปพัด",
+          "acceptedForms": [
+            "สลับเป็นโหมดรูปพัด",
+            "สลับเป็นการคาดคะเนแบบรูปพัด",
+            "การคาดคะเนแบบรูปพัด"
+          ]
+        },
+        "vi": {
+          "preferred": "chuyển sang chế độ hình quạt",
+          "acceptedForms": [
+            "chuyển sang chế độ hình quạt",
+            "chuyển sang ngoại suy hình quạt",
+            "ngoại suy hình quạt"
+          ]
+        },
+        "zh": {
+          "preferred": "切换为扇形模式",
+          "acceptedForms": [
+            "切换为扇形模式",
+            "切换为扇形外推",
+            "扇形外推"
+          ]
+        },
+        "zh-TW": {
+          "preferred": "切換為扇形模式",
+          "acceptedForms": [
+            "切換為扇形模式",
+            "切換為扇形外推",
+            "扇形外推"
+          ]
+        }
+      },
+      "additionalBindings": []
     }
   ]
 }

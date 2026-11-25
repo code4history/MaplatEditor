@@ -267,8 +267,8 @@ export function loadCanonical(root) {
 
 /**
  * 正本の意味の整合。schema で書けないものだけ。
- * 例外・additionalBindings のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（正本だけの PR で
- * 新しいキーの例外を先に足し、後の locale の PR でキーを足す）
+ * 例外・additionalBindings・rootKey のキーがまだ locale に無いのは不備にせず、pending（警告）に積む（正本だけの PR で
+ * 新しい概念や例外を先に足し、後の locale の PR でキーを足す）
  */
 export function validateSemantics(glossary, exceptions, keys, pending = []) {
   const errors = [];
@@ -278,14 +278,14 @@ export function validateSemantics(glossary, exceptions, keys, pending = []) {
   for (const c of glossary.concepts) {
     if (ids.has(c.id)) errors.push(`概念 ID の重複: ${c.id}`);
     ids.add(c.id);
-    if (!keys.has(c.rootKey)) errors.push(`${c.id}: rootKey ${c.rootKey} が locale に無い`);
+    if (!keys.has(c.rootKey)) pending.push({ kind: 'pending-key', type: 'rootKey', concept: c.id, lang: '-', key: c.rootKey, message: '根拠キーがまだ locale に無い（locale の PR で足す）' });
     for (const l of c.requiredLocales) {
       if (!langs.has(l)) errors.push(`${c.id}: requiredLocales に未知の言語 ${l}`);
       if (!c.locales[l]) errors.push(`${c.id}: requiredLocales の ${l} に locales の項目が無い`);
     }
     for (const [l, e] of Object.entries(c.locales)) {
       if (!langs.has(l)) errors.push(`${c.id}: 未知の言語 ${l}`);
-      if (e.rootKey && !keys.has(e.rootKey)) errors.push(`${c.id}/${l}: rootKey ${e.rootKey} が locale に無い`);
+      if (e.rootKey && !keys.has(e.rootKey)) pending.push({ kind: 'pending-key', type: 'rootKey', concept: c.id, lang: l, key: e.rootKey, message: '言語別の根拠キーがまだ locale に無い（locale の PR で足す）' });
       const acc = new Set(e.acceptedForms.map(fold));
       if (!acc.has(fold(e.preferred))) errors.push(`${c.id}/${l}: 代表語 ${e.preferred} が acceptedForms に無い`);
       for (const f of [...(e.formerForms ?? []), ...(e.forbidden ?? []).map((x) => x.literal)]) {
@@ -530,7 +530,8 @@ function checkRepresentatives(glossary, values) {
       if (!e) continue;
       const rk = e.rootKey ?? c.rootKey;
       const raw = values[l].get(rk);
-      const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw ?? ''), ix.excl(c, l)), true);
+      if (raw === undefined) continue;
+      const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw), ix.excl(c, l)), true);
       const ok = raw !== undefined && j.accepted && !j.forbHits.length && !j.formerHits.length;
       if (!ok) out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
     }

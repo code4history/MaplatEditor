@@ -7,7 +7,7 @@
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
 まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 524・例外 293（anchorExclusion 12・omission 100・untranslated 181）
+概念 41・結び付いたキー 524・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
@@ -37,6 +37,21 @@
 | [preview](#preview) | エクスポートする前の確認表示 | `editor_ui.tabs.preview` | 20 |
 | [publish-key](#publish-key) | エクスポートしたアプリが使う API キー（公開用キー） | `settings.default_publish_api_key_heading` | 5 |
 | [server](#server) | MCP サーバー・タイルサーバー等 | `settings.mcp_tab` | 4 |
+| [crs](#crs) | 座標参照系（CRS）。定義データを指して「設定」とは呼ばない | `mapedit.crs_estimate_button` | 0 |
+| [crs-estimation](#crs-estimation) | GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない | `mapedit.crs_estimate_button` | 0 |
+| [crs-candidate](#crs-candidate) | 推定結果として比較する候補の CRS。採用済みの CRS とは区別する | `mapedit.crs_candidates_heading` | 0 |
+| [crs-score](#crs-score) | 相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score） | `mapedit.crs_setup_borderline_note` | 0 |
+| [transform-setup](#transform-setup) | CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない | `mapedit.crs_adopt_button` | 0 |
+| [transform-setup-a](#transform-setup-a) | 変換の形 A: CRS と world file だけを使い、三角網を持たない形 | `mapedit.crs_setup_a` | 0 |
+| [transform-setup-b](#transform-setup-b) | 変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形 | `mapedit.crs_setup_b` | 0 |
+| [transform-setup-c](#transform-setup-c) | 変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形 | `mapedit.crs_setup_c` | 0 |
+| [world-file](#world-file) | 画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない | `mapedit.crs_setup_a` | 0 |
+| [tin](#tin) | GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A では持たない | `appedit.preview.compiled_required` | 1 |
+| [residual](#residual) | 変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する | `mapedit.crs_residuals_heading` | 0 |
+| [global-model](#global-model) | 形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル） | `mapedit.crs_setup_b` | 0 |
+| [recommendation](#recommendation) | score と閾値から示す推奨。採用を強制するものではない | `mapedit.crs_setup_recommended_badge` | 0 |
+| [adoption](#adoption) | 推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する | `mapedit.crs_adopt_button` | 0 |
+| [fan-fallback](#fan-fallback) | 形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する | `mapedit.crs_setup_fallback_notice` | 0 |
 
 ## asset
 
@@ -548,4 +563,304 @@ MCP サーバー・タイルサーバー等
 | vi | máy chủ | máy chủ | — | — | — |
 | zh | 服务器 | 服务器 | — | — | — |
 | zh-TW | 伺服器 | 伺服器 | — | — | — |
+
+## crs
+
+座標参照系（CRS）。定義データを指して「設定」とは呼ばない
+
+根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | CRS | CRS、Koordinatenreferenzsystem | — | — | — |
+| en | CRS | CRS、coordinate reference system、coordinate reference systems | — | CRS settings | — |
+| es | CRS | CRS、sistema de referencia de coordenadas | — | — | — |
+| fr | CRS | CRS、système de référence de coordonnées | — | — | — |
+| id | CRS | CRS、sistem referensi koordinat | — | — | — |
+| ja | CRS | CRS、座標参照系 | — | CRS 設定 | — |
+| ko | CRS | CRS、좌표 참조 시스템 | — | — | — |
+| th | CRS | CRS、ระบบพิกัดอ้างอิง | — | — | — |
+| vi | CRS | CRS、hệ quy chiếu tọa độ | — | — | — |
+| zh | CRS | CRS、坐标参照系 | — | — | — |
+| zh-TW | CRS | CRS、座標參照系 | — | — | — |
+
+## crs-estimation
+
+GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない
+
+根拠キー `mapedit.crs_estimate_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | CRS schätzen | CRS schätzen、CRS schätz、CRS-Schätzung、neu schätzen | — | — | — |
+| en | estimate CRS | estimate CRS、estimating CRS、CRS estimation、re-estimate、re-estimation | — | automatic estimation | — |
+| es | estimar CRS | estimar CRS、estimación de CRS、reestimar | — | — | — |
+| fr | estimer le CRS | estimer le CRS、estimation du CRS、réestimer | — | — | — |
+| id | estimasi CRS | estimasi CRS、memperkirakan CRS、estimasi ulang | — | — | — |
+| ja | CRS を推定 | CRS を推定、CRS の推定、再推定 | — | 自動推定 | — |
+| ko | CRS 추정 | CRS 추정、재추정 | — | — | — |
+| th | ประเมิน CRS | ประเมิน CRS、การประเมิน CRS、ประเมินใหม่ | — | — | — |
+| vi | ước tính CRS | ước tính CRS、ước lượng CRS、ước tính lại | — | — | — |
+| zh | 估计 CRS | 估计 CRS、CRS 估计、重新估计 | — | — | — |
+| zh-TW | 推定 CRS | 推定 CRS、CRS 推定、重新推定 | — | — | — |
+
+## crs-candidate
+
+推定結果として比較する候補の CRS。採用済みの CRS とは区別する
+
+根拠キー `mapedit.crs_candidates_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | CRS-Kandidat | CRS-Kandidat、CRS-Kandidaten、Kandidat | — | — | — |
+| en | candidate CRS | candidate CRS、CRS candidate、CRS candidates、candidate、candidates | — | adopted CRS | — |
+| es | CRS candidato | CRS candidato、CRS candidatos、candidato、candidatos | — | — | — |
+| fr | CRS candidat | CRS candidat、CRS candidats、candidat、candidats | — | — | — |
+| id | CRS kandidat | CRS kandidat、kandidat CRS、kandidat | — | — | — |
+| ja | 候補の CRS | 候補の CRS、CRS 候補、候補 | — | 採用済み CRS | — |
+| ko | 후보 CRS | 후보 CRS、CRS 후보、후보 | — | — | — |
+| th | CRS ที่เป็นตัวเลือก | CRS ที่เป็นตัวเลือก、ตัวเลือก CRS、ตัวเลือก | — | — | — |
+| vi | CRS ứng viên | CRS ứng viên、ứng viên CRS、ứng viên | — | — | — |
+| zh | 候选 CRS | 候选 CRS、CRS 候选、候选 | — | — | — |
+| zh-TW | 候選 CRS | 候選 CRS、CRS 候選、候選 | — | — | — |
+
+## crs-score
+
+相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score）
+
+根拠キー `mapedit.crs_setup_borderline_note`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Score | Score、Passungsgüte-Score | — | — | — |
+| en | score | score、fit score、goodness-of-fit score | — | accuracy | — |
+| es | score | score、puntuación de ajuste | — | — | — |
+| fr | score | score、score d’ajustement、indice d’ajustement | — | — | — |
+| id | skor | skor、skor kecocokan、score | — | — | — |
+| ja | score | score、当てはまりの指標、適合スコア | — | 精度 | — |
+| ko | score | score、적합 점수、점수 | — | — | — |
+| th | score | score、คะแนนความพอดี、คะแนน | — | — | — |
+| vi | score | score、điểm phù hợp、điểm | — | — | — |
+| zh | score | score、拟合分数、分数 | — | — | — |
+| zh-TW | score | score、擬合分數、分數 | — | — | — |
+
+## transform-setup
+
+CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない
+
+根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Aufbau | Aufbau、Transformationsaufbau | — | — | — |
+| en | setup | setup、setups、transform setup、transform setups | — | settings | — |
+| es | forma de transformación | forma de transformación、configuración、configuraciones | — | — | — |
+| fr | forme de transformation | forme de transformation、configuration、configurations | — | — | — |
+| id | bentuk transformasi | bentuk transformasi、konfigurasi | — | — | — |
+| ja | 構成 | 構成、変換の形、変換方式 | — | 設定 | — |
+| ko | 구성 | 구성、변환 형태 | — | — | — |
+| th | รูปแบบการแปลง | รูปแบบการแปลง、โครงสร้าง | — | — | — |
+| vi | dạng biến đổi | dạng biến đổi、cấu hình | — | — | — |
+| zh | 转换形式 | 转换形式、构成、配置 | — | — | — |
+| zh-TW | 轉換形式 | 轉換形式、構成、組態 | — | — | — |
+
+## transform-setup-a
+
+変換の形 A: CRS と world file だけを使い、三角網を持たない形
+
+根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | A: nur World file | A: nur World file、nur World file、World file only | — | — | — |
+| en | A: World file only | A: World file only、World file only、A: CRS + World file | — | settings | — |
+| es | A: solo World file | A: solo World file、solo World file、World file only | — | — | — |
+| fr | A : World file uniquement | A : World file uniquement、World file uniquement、World file only | — | — | — |
+| id | A: hanya World file | A: hanya World file、hanya World file、World file only | — | — | — |
+| ja | A: ワールドファイルのみ | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | — | 設定 | — |
+| ko | A: 월드 파일만 | A: 월드 파일만、월드 파일만、World file only | — | — | — |
+| th | A: World file เท่านั้น | A: World file เท่านั้น、World file เท่านั้น、World file only | — | — | — |
+| vi | A: chỉ World file | A: chỉ World file、chỉ World file、World file only | — | — | — |
+| zh | A: 仅世界文件 | A: 仅世界文件、仅世界文件、World file only | — | — | — |
+| zh-TW | A: 僅世界檔案 | A: 僅世界檔案、僅世界檔案、World file only | — | — | — |
+
+## transform-setup-b
+
+変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形
+
+根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | B: TIN + globales Modell | B: TIN + globales Modell、B: CRS + TIN、TIN + globales Modell | — | — | — |
+| en | B: TIN + global model | B: TIN + global model、B: CRS + TIN、TIN + global model | — | fan mode、fan extrapolation | — |
+| es | B: TIN + modelo global | B: TIN + modelo global、B: CRS + TIN、TIN + modelo global | — | — | — |
+| fr | B : TIN + modèle global | B : TIN + modèle global、B : CRS + TIN、TIN + modèle global | — | — | — |
+| id | B: TIN + model global | B: TIN + model global、B: CRS + TIN、TIN + model global | — | — | — |
+| ja | B: 三角網＋大域モデル | B: 三角網＋大域モデル、B: CRS＋三角網、三角網＋大域モデル | — | 扇形 | — |
+| ko | B: TIN + 전역 모델 | B: TIN + 전역 모델、B: CRS + TIN、TIN + 전역 모델 | — | — | — |
+| th | B: TIN + แบบจำลองโกลบอล | B: TIN + แบบจำลองโกลบอล、B: CRS + TIN、TIN + แบบจำลองโกลบอล | — | — | — |
+| vi | B: TIN + mô hình toàn cục | B: TIN + mô hình toàn cục、B: CRS + TIN、TIN + mô hình toàn cục | — | — | — |
+| zh | B: TIN + 全局模型 | B: TIN + 全局模型、B: CRS + TIN、TIN + 全局模型 | — | — | — |
+| zh-TW | B: TIN + 全域模型 | B: TIN + 全域模型、B: CRS + TIN、TIN + 全域模型 | — | — | — |
+
+## transform-setup-c
+
+変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形
+
+根拠キー `mapedit.crs_setup_c`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | C: TIN + Fächer | C: TIN + Fächer、C: CRS + TIN、TIN + Fächer-Extrapolation | — | — | — |
+| en | C: TIN + fan | C: TIN + fan、C: CRS + TIN、TIN + fan extrapolation | — | global model | — |
+| es | C: TIN + abanico | C: TIN + abanico、C: CRS + TIN、TIN + extrapolación en abanico | — | — | — |
+| fr | C : TIN + éventail | C : TIN + éventail、C : CRS + TIN、TIN + extrapolation en éventail | — | — | — |
+| id | C: TIN + kipas | C: TIN + kipas、C: CRS + TIN、TIN + ekstrapolasi kipas | — | — | — |
+| ja | C: 三角網＋扇形 | C: 三角網＋扇形、C: CRS＋三角網、三角網＋扇形 | — | 大域モデル | — |
+| ko | C: TIN + 부채꼴 | C: TIN + 부채꼴、C: CRS + TIN、TIN + 부채꼴 외삽 | — | — | — |
+| th | C: TIN + รูปพัด | C: TIN + รูปพัด、C: CRS + TIN、TIN + การคาดคะเนแบบรูปพัด | — | — | — |
+| vi | C: TIN + hình quạt | C: TIN + hình quạt、C: CRS + TIN、TIN + ngoại suy hình quạt | — | — | — |
+| zh | C: TIN + 扇形 | C: TIN + 扇形、C: CRS + TIN、TIN + 扇形外推 | — | — | — |
+| zh-TW | C: TIN + 扇形 | C: TIN + 扇形、C: CRS + TIN、TIN + 扇形外推 | — | — | — |
+
+## world-file
+
+画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない
+
+根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | World file | World file、World files、WF | — | — | — |
+| en | world file | world file、world files、WF | — | settings | — |
+| es | World file | World file、archivo world、WF | — | — | — |
+| fr | World file | World file、fichier world、WF | — | — | — |
+| id | World file | World file、berkas world、WF | — | — | — |
+| ja | ワールドファイル | ワールドファイル、world file、WF | — | 設定 | — |
+| ko | 월드 파일 | 월드 파일、world file、WF | — | — | — |
+| th | World file | World file、เวิลด์ไฟล์、WF | — | — | — |
+| vi | World file | World file、tệp world、WF | — | — | — |
+| zh | 世界文件 | 世界文件、world file、WF | — | — | — |
+| zh-TW | 世界檔案 | 世界檔案、world file、WF | — | — | — |
+
+## tin
+
+GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A では持たない
+
+根拠キー `appedit.preview.compiled_required`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | TIN | TIN、trianguliertes unregelmäßiges Netz | — | — | — |
+| en | TIN | TIN、triangular irregular network、triangulated irregular network、triangulation | — | TIN settings | — |
+| es | TIN | TIN、red irregular de triángulos、triangulación | — | — | — |
+| fr | TIN | TIN、réseau irrégulier de triangles、triangulation | — | — | — |
+| id | TIN | TIN、jaring segitiga tidak beraturan、triangulasi | — | — | — |
+| ja | 三角網 | 三角網、TIN | — | TIN 設定 | — |
+| ko | 삼각망 | 삼각망、TIN | — | — | — |
+| th | TIN | TIN、เครือข่ายสามเหลี่ยม、โครงข่ายสามเหลี่ยม | — | — | — |
+| vi | TIN | TIN、lưới tam giác、mạng tam giác | — | — | — |
+| zh | 三角网 | 三角网、TIN | — | — | — |
+| zh-TW | 三角網 | 三角網、TIN | — | — | — |
+
+## residual
+
+変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する
+
+根拠キー `mapedit.crs_residuals_heading`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Residuum | Residuum、Residuen、Abweichung | — | — | — |
+| en | residual | residual、residuals、offset、offsets | — | error | — |
+| es | residual | residual、residuos、desviación | — | — | — |
+| fr | résidu | résidu、résidus、écart | — | — | — |
+| id | residual | residual、residu、selisih | — | — | — |
+| ja | 残差 | 残差、ずれ | — | 誤差 | — |
+| ko | 잔차 | 잔차、차이 | — | — | — |
+| th | ค่าตกค้าง | ค่าตกค้าง、ความคลาดเคลื่อน | — | — | — |
+| vi | phần dư | phần dư、độ lệch | — | — | — |
+| zh | 残差 | 残差、偏差 | — | — | — |
+| zh-TW | 殘差 | 殘差、偏差 | — | — | — |
+
+## global-model
+
+形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）
+
+根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | globales Modell | globales Modell、globale Modelle、Globalmodell | — | — | — |
+| en | global model | global model、global models、global affine model | — | global settings、global configuration | — |
+| es | modelo global | modelo global、modelos globales、modelo afín global | — | — | — |
+| fr | modèle global | modèle global、modèles globaux、modèle affine global | — | — | — |
+| id | model global | model global、model afine global | — | — | — |
+| ja | 大域モデル | 大域モデル、グローバルモデル、大域アフィンモデル | — | 大域設定、全体モデル | — |
+| ko | 전역 모델 | 전역 모델、글로벌 모델、전역 아핀 모델 | — | — | — |
+| th | แบบจำลองโกลบอล | แบบจำลองโกลบอล、แบบจำลองทั่วทั้งแผนที่、แบบจำลองอะฟินโกลบอล | — | — | — |
+| vi | mô hình toàn cục | mô hình toàn cục、mô hình affine toàn cục | — | — | — |
+| zh | 全局模型 | 全局模型、全局仿射模型 | — | — | — |
+| zh-TW | 全域模型 | 全域模型、全域仿射模型 | — | — | — |
+
+## recommendation
+
+score と閾値から示す推奨。採用を強制するものではない
+
+根拠キー `mapedit.crs_setup_recommended_badge`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | empfohlen | empfohlen、empfehl、empfohl | — | — | — |
+| en | recommended | recommend、recommends、recommended、recommendation | — | required、mandatory | — |
+| es | recomendado | recomendado、recomendada、recomendar、recomendación | — | — | — |
+| fr | recommandé | recommandé、recommandée、recommander、recommandation | — | — | — |
+| id | direkomendasikan | rekomendasi、direkomendasikan、merekomendasikan | — | — | — |
+| ja | 推奨 | 推奨、おすすめ | — | 必須、強制 | — |
+| ko | 권장 | 권장、추천 | — | — | — |
+| th | แนะนำ | แนะนำ | — | — | — |
+| vi | đề xuất | đề xuất、được đề xuất、khuyến nghị | — | — | — |
+| zh | 推荐 | 推荐 | — | — | — |
+| zh-TW | 建議 | 建議、推薦 | — | — | — |
+
+## adoption
+
+推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する
+
+根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | übernehmen | übernehmen、übernehm、übernommen | — | — | — |
+| en | adopt | adopt、adopts、adopted、adopting、adoption、re-adopt | — | automatically adopt、automatic adoption | — |
+| es | adoptar | adoptar、adoptado、adoptada、adopción、readoptar | — | — | — |
+| fr | adopter | adopter、adopté、adoptée、adoption、réadopter | — | — | — |
+| id | adopsi | adopsi、mengadopsi、diadopsi | — | — | — |
+| ja | 採用 | 採用、適用 | — | 自動採用、自動で採用 | — |
+| ko | 채택 | 채택、적용 | — | — | — |
+| th | นำมาใช้ | นำมาใช้、การนำไปใช้、ใช้ | — | — | — |
+| vi | áp dụng | áp dụng、chấp nhận、sử dụng | — | — | — |
+| zh | 采用 | 采用、应用 | — | — | — |
+| zh-TW | 採用 | 採用、套用 | — | — | — |
+
+## fan-fallback
+
+形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する
+
+根拠キー `mapedit.crs_setup_fallback_notice`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Wechsel zum Fächermodus | Wechsel zum Fächermodus、zum Fächermodus gewechselt、Fächer-Extrapolation | — | — | — |
+| en | switch to fan mode | switch to fan mode、switched outer extrapolation to fan mode、switch outer extrapolation to fan mode | — | downgrade、fallback | — |
+| es | cambio a modo abanico | cambio a modo abanico、cambiado a modo abanico、extrapolación en abanico | — | — | — |
+| fr | passage en mode éventail | passage en mode éventail、passé en mode éventail、extrapolation en éventail | — | — | — |
+| id | beralih ke mode kipas | beralih ke mode kipas、beralih ke ekstrapolasi kipas、ekstrapolasi kipas | — | — | — |
+| ja | 扇形への切り替え | 扇形への切り替え、扇形に切り替え、扇形（従来の外挿）に切り替え | — | 降格、フォールバック | — |
+| ko | 부채꼴로 전환 | 부채꼴로 전환、부채꼴 모드로 전환、부채꼴 외삽 | — | — | — |
+| th | สลับเป็นโหมดรูปพัด | สลับเป็นโหมดรูปพัด、สลับเป็นการคาดคะเนแบบรูปพัด、การคาดคะเนแบบรูปพัด | — | — | — |
+| vi | chuyển sang chế độ hình quạt | chuyển sang chế độ hình quạt、chuyển sang ngoại suy hình quạt、ngoại suy hình quạt | — | — | — |
+| zh | 切换为扇形模式 | 切换为扇形模式、切换为扇形外推、扇形外推 | — | — | — |
+| zh-TW | 切換為扇形模式 | 切換為扇形模式、切換為扇形外推、扇形外推 | — | — | — |
 

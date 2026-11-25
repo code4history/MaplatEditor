@@ -4661,5 +4661,27 @@
         "ja"
       ]
     }
-  }
+  },
+  "crs": {},
+  "crs-estimation": {},
+  "crs-candidate": {},
+  "crs-score": {},
+  "transform-setup": {},
+  "transform-setup-a": {},
+  "transform-setup-b": {},
+  "transform-setup-c": {},
+  "world-file": {},
+  "tin": {
+    "appedit.preview.compiled_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "residual": {},
+  "global-model": {},
+  "recommendation": {},
+  "adoption": {},
+  "fan-fallback": {}
 }

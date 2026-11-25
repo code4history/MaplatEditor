@@ -541,6 +541,25 @@ try {
     check('代表語: 根拠キーの値から代表語を消すと赤', r.status === 1 && findings(r, (v) => v.kind === 'representative' && v.concept === 'asset' && v.lang === 'ja').length === 1, summarize(r));
   }
   {
+    const dir = makeRepo('pending-root-key');
+    editGlossary(dir, (g) => {
+      const asset = g.concepts.find((c) => c.id === 'asset');
+      const locales = {
+        ja: { preferred: '将来', acceptedForms: ['将来'] },
+        en: { preferred: 'Future', acceptedForms: ['Future'] },
+      };
+      g.concepts.push({ ...asset, id: 'future-asset', rootKey: 'common.future_asset', requiredLocales: ['ja', 'en'], anchors: { disabled: ['ja', 'en'] }, locales, additionalBindings: [] });
+    });
+    run(dir, ['--write']);
+    const r = run(dir);
+    check('代表語: 未導入の根拠キーは pending-key の警告で緑', r.status === 0 && (r.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.type === 'rootKey' && w.concept === 'future-asset' && w.key === 'common.future_asset'), summarize(r));
+    setValue(dir, 'ja', 'common.future_asset', '将来');
+    setValue(dir, 'en', 'common.future_asset', 'Future');
+    run(dir, ['--write']);
+    const r2 = run(dir);
+    check('代表語: locale の PR で根拠キーを足すと警告が消えて代表語を検査する', r2.status === 0 && !(r2.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === 'common.future_asset'), summarize(r2));
+  }
+  {
     const dir = makeRepo('missing-lang');
     rmSync(path.join(dir, 'public', 'locales', 'th'), { recursive: true });
     const r = run(dir);
