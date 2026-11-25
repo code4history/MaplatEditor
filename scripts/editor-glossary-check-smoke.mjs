@@ -577,11 +577,20 @@ try {
     run(dir, ['--write']);
     const r2 = run(dir);
     check('代表語: 先行登録キーを 11 言語へ足すと警告が消えて代表語を検査する', r2.status === 0 && !(r2.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === 'common.future_asset'), summarize(r2));
+    check('代表語: 11 言語にそろった先行登録キーは消し待ち（unused-pending-key）の警告を出す', (r2.report?.warnings ?? []).some((w) => w.kind === 'unused-pending-key' && w.concept === 'future-asset' && w.key === 'common.future_asset'), summarize(r2));
 
     const undeclared = makeRepo('pending-root-key-undeclared');
     addFutureConcept(undeclared, { declare: false });
     const r3 = run(undeclared);
     check('代表語: 先行登録のない未導入の根拠キーは構造エラー', r3.status === 1 && findings(r3, (v) => v.kind === 'structure' && /future-asset: rootKey common\.future_asset が locale に無い/.test(v.message ?? '')).length === 1 && !(r3.report?.warnings ?? []).some((w) => w.key === 'common.future_asset'), summarize(r3));
+
+    const missing = makeRepo('existing-root-key-missing-one-locale');
+    const deFile = localePath(missing, 'de');
+    const deJson = readJson(deFile);
+    delete deJson.navbar.assets;
+    writeJson(deFile, deJson);
+    const r5 = run(missing);
+    check('代表語: 既存の根拠キーが 1 言語だけ欠けたら、その言語の代表語の違反として赤', r5.status === 1 && findings(r5, (v) => v.kind === 'representative' && v.concept === 'asset' && v.lang === 'de').length === 1, summarize(r5));
 
     const typo = makeRepo('existing-root-key-typo');
     editGlossary(typo, (g) => { g.concepts.find((c) => c.id === 'asset').rootKey = 'navbar.asssets'; });

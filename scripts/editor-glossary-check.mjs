@@ -548,8 +548,9 @@ function checkRepresentatives(glossary, values) {
       if (!e) continue;
       const rk = e.rootKey ?? c.rootKey;
       const raw = values[l].get(rk);
-      if (raw === undefined) continue;
-      const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw), ix.excl(c, l)), true);
+      // 先行登録（pendingKeys）したキーがまだ locale に無いときだけ飛ばす。既存のキーの欠落は代表語の違反として出す
+      if (raw === undefined && (c.pendingKeys ?? []).includes(rk)) continue;
+      const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw ?? ''), ix.excl(c, l)), true);
       const ok = raw !== undefined && j.accepted && !j.forbHits.length && !j.formerHits.length;
       if (!ok) out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
     }
@@ -797,6 +798,12 @@ export function runCheck({ root, write = false, base = null }) {
   canon.exceptions.forEach((x, i) => {
     if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, index: i, message: '違反を抑えなかった例外（消し待ちか locale の変更待ち。消すのは正本だけの PR で）' });
   });
+  // 先行登録したキーが 11 言語すべてにそろったら、pendingKeys から消し待ちであることを知らせる
+  for (const c of g.concepts) {
+    for (const k of c.pendingKeys ?? []) {
+      if (langs.every((l) => loc.values[l]?.has(k))) warnings.push({ kind: 'unused-pending-key', type: 'pendingKeys', concept: c.id, lang: '-', key: k, message: '先行登録したキーが 11 言語すべてにそろった（pendingKeys から消す。消すのは正本だけの PR で）' });
+    }
+  }
   // (7) 生成物
   const genBindings = renderBindings(g, all);
   const genMd = renderMarkdown(g, canon.exceptions, all);

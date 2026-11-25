@@ -4088,16 +4088,6 @@
         "zh",
         "zh-TW"
       ],
-      "anchors": {
-        "notAnchor": {
-          "ja": [
-            "設定"
-          ],
-          "en": [
-            "settings"
-          ]
-        }
-      },
       "locales": {
         "de": {
           "preferred": "Aufbau",
@@ -4224,16 +4214,6 @@
         "zh",
         "zh-TW"
       ],
-      "anchors": {
-        "notAnchor": {
-          "ja": [
-            "設定"
-          ],
-          "en": [
-            "settings"
-          ]
-        }
-      },
       "locales": {
         "de": {
           "preferred": "A: nur World file",
@@ -4652,16 +4632,6 @@
         "zh",
         "zh-TW"
       ],
-      "anchors": {
-        "notAnchor": {
-          "ja": [
-            "設定"
-          ],
-          "en": [
-            "settings"
-          ]
-        }
-      },
       "locales": {
         "de": {
           "preferred": "World file",
