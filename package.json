@@ -418,7 +418,7 @@
     "app-builder-bin": "4.0.0",
     "dotenv": "^18.0.8",
     "electrobun": "^1.18.1",
-    "electron": "^43.8.6",
+    "electron": "^43.8.13",
     "electron-builder": "^26.17.0",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
