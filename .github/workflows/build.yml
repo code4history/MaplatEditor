@@ -1648,6 +1648,8 @@ jobs:
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
+          # タグの指す先を build した commit にする（全 checkout を固定した SHA。省くと既定ブランチの先頭になる）
+          target_commitish: ${{ inputs.expected_editor_sha }}
           name: MaplatEditor v${{ needs.prepare.outputs.version }}
           draft: true
           generate_release_notes: true
