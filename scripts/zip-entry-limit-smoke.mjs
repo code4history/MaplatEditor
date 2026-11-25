@@ -15,6 +15,8 @@
 //   (c) EOCD が無い・途中で切れた・記録が矛盾したファイルは 'corrupt'（Corrupt／zip-corrupt）で拒む
 //   (d) new AdmZip を呼ぶ取り込みの関数（4 か所）が、どれも new AdmZip の前に assertZipImportable を呼ぶ（ソース）
 //   (e) 11 言語に新しい 2 キーがある
+//   (f) 末尾の記録を adm-zip が検査と別の位置から読む ZIP は 'corrupt' で拒む（検査を通ったら件数は adm-zip と同じ）
+//   (g) 正当な ZIP（最小の形・ZIP64・大きな地図・OS に付属の書き手で作ったもの）は通り、件数が adm-zip と一致する
 //
 // 実行方法: node scripts/zip-entry-limit-smoke.mjs（zip-errors-smoke と同じ vite SSR ビルド＋
 // electron／electron-store のスタブ方式）。作業場所は .tmp-smoke/ の下に作り、終わりに消す。
@@ -114,7 +116,8 @@ try {
 
   await writeFile(entryFile, `
     import assert from 'node:assert/strict';
-    import { writeFile as fsWriteFile, open as fsOpen, stat as fsStat } from 'node:fs/promises';
+    import { writeFile as fsWriteFile, open as fsOpen, stat as fsStat, mkdir as fsMkdir } from 'node:fs/promises';
+    import { execFileSync } from 'node:child_process';
     import nodePath from 'node:path';
     import AdmZip from 'adm-zip';
 
@@ -291,6 +294,168 @@ try {
       const map = await dataUploadService.extractZip(await writeFixture('c-map.zip', cases['no-end']));
       assert.equal(map.err, 'Corrupt', '(c) 地図（実際: ' + JSON.stringify(map).slice(0, 200) + '）');
       console.log('ok (c): ' + Object.keys(cases).join('・') + ' は corrupt（POI zip-corrupt・地図 Corrupt）');
+    }
+
+    // ---- (f)(g) で使う部品 ----
+    const centralHeader = (name, offset) => {
+      const nm = Buffer.from(name);
+      const h = Buffer.alloc(46);
+      h.writeUInt32LE(0x02014b50, 0); h.writeUInt16LE(20, 4); h.writeUInt16LE(20, 6);
+      h.writeUInt16LE(nm.length, 28); h.writeUInt32LE(offset, 42);
+      return Buffer.concat([h, nm]);
+    };
+    const localHeader = (name) => {
+      const nm = Buffer.from(name);
+      const h = Buffer.alloc(30);
+      h.writeUInt32LE(0x04034b50, 0); h.writeUInt16LE(20, 4); h.writeUInt16LE(nm.length, 26);
+      return Buffer.concat([h, nm]);
+    };
+    const plainEocd = (entries, cdBytes, cdOffset, comment = Buffer.alloc(0)) => {
+      const eocd = Buffer.alloc(22);
+      eocd.writeUInt32LE(0x06054b50, 0);
+      eocd.writeUInt16LE(entries, 8); eocd.writeUInt16LE(entries, 10);
+      eocd.writeUInt32LE(cdBytes, 12); eocd.writeUInt32LE(cdOffset, 16);
+      eocd.writeUInt16LE(comment.length, 20);
+      return Buffer.concat([eocd, comment]);
+    };
+    // 中央ディレクトリ（ゼロ埋め cdBytes）＋ ZIP64 EOCD（可変部つき）＋ locator ＋ EOCD（コメントつき）
+    const zip64File = (entries, cdBytes, extensible = Buffer.alloc(0), comment = Buffer.alloc(0)) => {
+      const rec = Buffer.alloc(56);
+      rec.writeUInt32LE(0x06064b50, 0);
+      rec.writeBigUInt64LE(BigInt(44 + extensible.length), 4);
+      rec.writeUInt16LE(45, 12); rec.writeUInt16LE(45, 14);
+      rec.writeBigUInt64LE(BigInt(entries), 24);
+      rec.writeBigUInt64LE(BigInt(entries), 32);
+      rec.writeBigUInt64LE(BigInt(cdBytes), 40);
+      const loc = Buffer.alloc(20);
+      loc.writeUInt32LE(0x07064b50, 0);
+      loc.writeBigUInt64LE(BigInt(cdBytes), 8);
+      loc.writeUInt32LE(1, 16);
+      return Buffer.concat([Buffer.alloc(cdBytes), rec, extensible, loc, plainEocd(0xffff, 0xffffffff, 0xffffffff, comment)]);
+    };
+    // 検査を通ったら、検査が読んだ件数は adm-zip が読む件数と同じ
+    const agreesWithAdmZip = async (label, p) => {
+      const info = await guard.assertZipCentralDirectory(p, label);
+      const n = new AdmZip(p).getEntries().length;
+      assert.equal(info.entries, n, label + ': 検査の件数 ' + info.entries + ' が adm-zip の件数 ' + n + ' と違う');
+      return info;
+    };
+    const isCorrupt = (e) => e instanceof guard.ZipImportError && e.kind === 'corrupt';
+
+    // ---- (f) 末尾の記録を adm-zip が別の位置から読む ZIP は corrupt（SR-DEC26-C1-1） ----
+    {
+      const N = 300;
+      const first = localHeader('maps/a.json');
+      const otherCd = Buffer.concat(Array.from({ length: N }, (_, i) => centralHeader('t/' + String(i).padStart(5, '0'), 0)));
+      const realCd = centralHeader('maps/a.json', 0);
+      const otherRecord = Buffer.alloc(56);
+      otherRecord.writeUInt32LE(0x06064b50, 0); otherRecord.writeBigUInt64LE(44n, 4);
+      otherRecord.writeBigUInt64LE(BigInt(N), 24); otherRecord.writeBigUInt64LE(BigInt(N), 32);
+      otherRecord.writeBigUInt64LE(BigInt(otherCd.length), 40); otherRecord.writeBigUInt64LE(BigInt(first.length), 48);
+      const withStraySignature = (signature, distance) => {
+        const pad = Buffer.alloc(32);
+        pad.writeUInt32LE(signature, pad.length - distance);
+        return Buffer.concat([first, otherCd, realCd, otherRecord, pad,
+          plainEocd(1, realCd.length, first.length + otherCd.length)]);
+      };
+      const fixedPart = zip64File(10, 1000);
+      fixedPart.writeUInt32LE(0x06064b50, 1000 + 12);
+      const extensible = Buffer.alloc(16);
+      extensible.writeUInt32LE(0x06064b50, 4);
+      const cases = {
+        'stray-locator-16': withStraySignature(0x07064b50, 16),
+        'stray-locator-4': withStraySignature(0x07064b50, 4),
+        'stray-locator-19': withStraySignature(0x07064b50, 19),
+        'stray-end-20': withStraySignature(0x06054b50, 20),
+        'stray-end-9': withStraySignature(0x06054b50, 9),
+        'zip64-fixed-part-signature': fixedPart,
+        'zip64-extensible-signature': zip64File(10, 1000, extensible),
+        'zip64-record-out-of-scan-range': zip64File(10, 1000, Buffer.alloc(0), Buffer.alloc(65500, 0x20)),
+      };
+      const passed = [];
+      for (const [label, buf] of Object.entries(cases)) {
+        const p = await writeFixture('f-' + label + '.zip', buf);
+        try {
+          const info = await guard.assertZipCentralDirectory(p, 'x');
+          let admZip;
+          try { admZip = new AdmZip(p).getEntries().length + ' 件'; } catch (e) { admZip = '例外 ' + e.message; }
+          passed.push(label + '（検査 ' + info.entries + ' 件・adm-zip ' + admZip + '）');
+        } catch (e) {
+          assert.ok(isCorrupt(e), '(f) ' + label + ' は corrupt（実際: ' + (e && e.message) + '）');
+        }
+      }
+      assert.deepEqual(passed, [], '(f) 検査を通ってはいけない ZIP が通った');
+      const map = await settle('extractZip stray', dataUploadService.extractZip(await writeFixture('f-map.zip', cases['stray-locator-16'])));
+      assert.equal(map.err, 'Corrupt', '(f) 地図（実際: ' + JSON.stringify(map).slice(0, 200) + '）');
+      const poi = await settle('POI importFile stray', poiSourceService.importFile({ slug: 'zl-f', title: { ja: 'f' }, filePath: await writeFixture('f-poi.zip', cases['stray-end-20']) }));
+      assert.deepEqual(poi, { result: 'Error', code: 'zip-corrupt' }, '(f) POI（実際: ' + JSON.stringify(poi) + '）');
+      console.log('ok (f): ' + Object.keys(cases).join('・') + ' は corrupt（地図 Corrupt・POI zip-corrupt）');
+    }
+
+    // ---- (g) 正当な ZIP は通り、件数は adm-zip と一致する ----
+    {
+      // 手で組んだ最小の ZIP（extra・コメント・ディレクトリの entry が無い形）
+      const name = 'maps/a.json';
+      const minimal = Buffer.concat([localHeader(name), centralHeader(name, 0), plainEocd(1, 46 + name.length, 30 + name.length)]);
+      await agreesWithAdmZip('minimal', await writeFixture('g-minimal.zip', minimal));
+
+      // ZIP64（可変部とコメントつき）。中央ディレクトリは穴なので adm-zip では開かない
+      const z64 = await guard.assertZipCentralDirectory(
+        await writeFixture('g-zip64.zip', zip64File(10, 1000, Buffer.alloc(32, 0x41), Buffer.from('comment '.repeat(12)))), 'x');
+      assert.deepEqual([z64.entries, z64.zip64], [10, true], '(g) ZIP64');
+
+      // 大きな地図: 正当な地図 ZIP の理論上の最大（約 12,216 件）
+      const BIG = 12216;
+      const big = new AdmZip();
+      big.addFile('maps/big.json', Buffer.from('{}'));
+      big.addFile('tmbs/big.jpg', Buffer.from('T'));
+      for (let i = 0; big.getEntries().length < BIG; i++) {
+        big.addFile('tiles/big/7/' + (i >> 7) + '/' + (i & 127) + '.jpg', Buffer.from('T'));
+      }
+      const bigInfo = await agreesWithAdmZip('big map', await writeFixture('g-big.zip', big.toBuffer()));
+      assert.equal(bigInfo.entries, BIG, '(g) 大きな地図の件数');
+      // 同じ件数で 2 GiB ちょうどの大きさ（スパース。末尾に本物の中央ディレクトリと EOCD）
+      const bigCd = Buffer.concat(Array.from({ length: BIG }, (_, i) => centralHeader('tiles/big/7/' + (i >> 7) + '/' + (i & 127) + '.jpg', 0)));
+      const bigCdOffset = guard.ZIP_IMPORT_MAX_BYTES - bigCd.length - 22;
+      const huge = await sparseWithTail('g-huge.zip', bigCdOffset, Buffer.concat([bigCd, plainEocd(BIG, bigCd.length, bigCdOffset)]));
+      assert.equal(await guard.assertZipImportable(huge, 'x'), guard.ZIP_IMPORT_MAX_BYTES, '(g) 2 GiB ちょうどの地図');
+      assert.equal((await guard.readZipCentralDirectoryInfo(huge, 'x')).entries, BIG);
+
+      // OS に付属の書き手で作った ZIP（macOS: zip・ditto（Finder の圧縮と同じ）・bsdtar。
+      // Windows: Compress-Archive・tar.exe（bsdtar と同じ libarchive）。その他: zip があれば）
+      const src = nodePath.join(fixtureDir, 'g-src');
+      for (const [rel, body] of [['maps/sample.json', '{"mapID":"sample"}'], ['tmbs/sample.jpg', 'THUMB'],
+        ['tiles/sample/0/0/0.jpg', 'TILE'], ['tiles/sample/1/0/1.jpg', 'TILE'.repeat(5000)], ['pois/日本語の名前.geojson', '{}']]) {
+        await fsMkdir(nodePath.dirname(nodePath.join(src, rel)), { recursive: true });
+        await fsWriteFile(nodePath.join(src, rel), body);
+      }
+      const out = (n) => nodePath.join(fixtureDir, 'g-' + n + '.zip');
+      const writers = process.platform === 'darwin' ? [
+        ['zip', '/usr/bin/zip', ['-r', '-q', out('zip'), '.'], src],
+        ['ditto', '/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', src, out('ditto')], fixtureDir],
+        ['bsdtar', '/usr/bin/bsdtar', ['-a', '-cf', out('bsdtar'), '-C', src, '.'], fixtureDir],
+      ] : process.platform === 'win32' ? [
+        ['compress-archive', 'powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+          'Compress-Archive -Path ' + JSON.stringify(nodePath.join(src, '*')) + ' -DestinationPath ' + JSON.stringify(out('compress-archive'))], fixtureDir],
+        ['tar', 'tar.exe', ['-a', '-cf', out('tar'), '-C', src, '.'], fixtureDir],
+      ] : [
+        ['zip', 'zip', ['-r', '-q', out('zip'), '.'], src],
+      ];
+      const ran = [];
+      for (const [label, command, args, cwd] of writers) {
+        try {
+          execFileSync(command, args, { cwd, stdio: 'ignore' });
+        } catch (e) {
+          if (e && e.code === 'ENOENT') { console.log('skip (g): ' + label + ' が無い'); continue; }
+          throw e;
+        }
+        const info = await agreesWithAdmZip(label, out(label));
+        assert.equal(info.zip64, false, '(g) ' + label + ' は ZIP64 ではない');
+        assert.ok(info.entries >= 5, '(g) ' + label + ' の件数 ' + info.entries);
+        ran.push(label + ' ' + info.entries + ' 件');
+      }
+      if (process.platform === 'darwin') assert.equal(ran.length, 3, '(g) macOS の 3 つの書き手がすべて動く');
+      console.log('ok (g): 最小の ZIP・ZIP64・大きな地図（' + BIG + ' 件・2 GiB ちょうど）・OS の書き手（' + (ran.join('・') || 'なし') + '）は通り、件数は adm-zip と一致');
     }
 
     console.log(${JSON.stringify(MARKER)});
