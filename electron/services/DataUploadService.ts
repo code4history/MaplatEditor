@@ -393,7 +393,13 @@ class DataUploadService {
             const mapID   = mapFile.split('.')[0];
             const mapPath = path.join(mapTmpFolder, mapFile);
             // IIIF のまま配る地図に手で入れたタイルの URL は取り込まない（url_ も作らない）
-            const mapData = withoutManualTileUrl(await fs.readJson(mapPath));
+            let mapData;
+            try {
+                mapData = storeHandler.prepareImportedMap(withoutManualTileUrl(await fs.readJson(mapPath)));
+            } catch (error) {
+                console.error('[DataUploadService] 地図 JSON の形式が不正です', error);
+                throw 'Corrupt';
+            }
             if (lacksRequiredAttribution(mapData)) throw 'AttributionRequired';
 
             // 配信先の URL の文字列を検査する。通らない地図は取り込まない
