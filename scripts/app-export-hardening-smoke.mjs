@@ -5,6 +5,7 @@
 //   (1) スプラッシュの複製元は保存フォルダの img/ の中だけ
 //   (3) 既定の session の権限は拒否が既定で、許すのはクリップボードの書き込みだけ
 //   (5) <script> へ埋める JSON は </script> で閉じられない（書き出しとプレビュー）
+//   (6) 書き出しの appID は main でも slug の字種（画面の入力欄と同じ）を確かめる
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -155,6 +156,23 @@ try {
       const danger = (await exportDoc({}, { mapboxToken: DANGER })).text('index.html');
       assert.equal(count(danger, '</script>'), count(plain, '</script>'));
       assert.ok(danger.includes('\\\\u003c/script'), 'the escaped form is in the page');
+    });
+    await check('(6) an appID outside the slug charset is rejected before the save dialog', async () => {
+      const win = { webContents: { send() {} } } as any;
+      const bad = ['../x', 'a/b', 'a\\\\b', 'a.b', 'a b', 'a"b', 'a<b', 'アプリ', '..', 'a\\u0000b', { toString() { return '../x'; } }, ['a', 'b']];
+      for (const appID of bad) {
+        const out = nodePath.join(workDir, 'bad-' + (seq++) + '.zip');
+        (globalThis as any).__nextDialogResult = { canceled: false, filePath: out };
+        const r = await (AppExportService.exportApp as any)(win, { appID, title: { ja: 'アプリ' }, lang: 'ja', sources: [] });
+        assert.deepEqual([r.result, r.message], ['Error', 'appedit.no_appid'], JSON.stringify(String(appID)) + ': ' + JSON.stringify(r));
+        assert.equal(nodeFs.existsSync(out), false, JSON.stringify(String(appID)) + ' wrote a file');
+      }
+    });
+    await check('(6) an appID in the slug charset is exported', async () => {
+      for (const appID of ['A-b_9', 'x', ' padded_app ', 'a'.repeat(120)]) {
+        const { names } = await exportDoc({ appID });
+        assert.ok(names.includes('apps/' + appID.trim() + '.json'), JSON.stringify(names.slice(0, 5)));
+      }
     });
     if (failed.length > 0) process.exit(1);
   `);
