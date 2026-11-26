@@ -124,13 +124,17 @@ assert.equal(
 console.log("✅ case 3a: コピー元に heightGetter は 0 件（stale ではない）");
 passed++;
 
-// (c) .swiper-navigation-icon が CSS に出現する
+// (c) .swiper-navigation-icon の CSS の規則が同梱に出現する
+// UI 1.2 までは maplat_ui.css に入っていた。UI 1.3 からは swiper の CSS を部品の中（shadow DOM）に
+// 差し込むため、規則は maplat_ui.umd.js の文字列に入る。どちらかにあればよい
 const cssContent = await readFile(path.join(dstDir, "maplat_ui.css"), "utf8");
+const inCss = /\.swiper-navigation-icon/.test(cssContent);
+const inUmd = /\.swiper-navigation-icon/.test(umdContent);
 assert.ok(
-  /\.swiper-navigation-icon/.test(cssContent),
-  "case 3(c): maplat_ui.css に .swiper-navigation-icon が出現すること（是正の到達確認）"
+  inCss || inUmd,
+  "case 3(c): maplat_ui.css か maplat_ui.umd.js に .swiper-navigation-icon の規則が出現すること（是正の到達確認）"
 );
-console.log("✅ case 3(c): .swiper-navigation-icon が CSS に含まれる（到達）");
+console.log(`✅ case 3(c): .swiper-navigation-icon の規則が ${inCss ? "CSS" : "umd.js"} に含まれる（到達）`);
 passed++;
 
 // ── case 4: 冪等性 ──────────────────────────────────────
