@@ -2369,6 +2369,7 @@ function seedTinObjects(tins: any[] | null, keepErrors = false): void {
         if (layer?.tinEnabled === false || entry === 'worldFile') return 'worldFile';
         if (entry && typeof entry === 'object') {
             if (entry.outerTransform !== undefined) return new StoredOuterTin(entry);
+            // 保存済み compiled を復元して参照するだけで、ここでは GCP から再構築しない。
             const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(entry);
             return tin;

@@ -17,10 +17,9 @@ import { draftTileRoot, isDraftTileUrl, resolveDraftTileDir, resolveStagingDirFr
 // 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
 // （インライン派生を製品コードに残さない）。
 import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
 // @ts-ignore
 import Tin from '@maplat/tin';
-
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 // MapDataService.ts の isPreviewDisabled/isStrictErrorCompiled と同一ロジックの
 // 3個目の重複実装を避けるため、モジュールレベルの export 関数へ昇格する。
@@ -113,6 +112,7 @@ class MapEditService {
                 null,
                 json.strictMode,
                 json.vertexMode,
+                json,
             );
         }
 
@@ -128,6 +128,7 @@ class MapEditService {
                         subMap.bounds,
                         json.strictMode,
                         json.vertexMode,
+                        subMap,
                     ),
                 };
             }));
@@ -136,9 +137,14 @@ class MapEditService {
         return json;
     }
 
-    private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any) {
+    private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any, layer: any = {}) {
         if (gcps.length < 3) throw new Error('appedit.preview.too_less_gcps');
-        const tin = new Tin(TIN_V2_OPTIONS);
+        const tinOptions = resolveTinBuildOptions(layer, {
+            strictMode: strict || 'strict',
+            vertexMode: vertex || 'plain',
+            yaxisMode: layer?.compiled?.yaxisMode,
+        });
+        const tin = new Tin(tinOptions);
         if (wh?.[0] && wh?.[1]) {
             tin.setWh(wh);
         } else if (bounds) {
@@ -146,8 +152,6 @@ class MapEditService {
         } else {
             throw new Error('appedit.preview.missing_bounds');
         }
-        tin.setStrictMode(strict || 'strict');
-        tin.setVertexMode(vertex || 'plain');
         tin.setPoints(gcps);
         tin.setEdges(edges || []);
         await tin.updateTinAsync();

@@ -371,6 +371,7 @@
     "smoke:db-open-reason": "node scripts/db-open-reason-smoke.mjs",
     "test:e2e:db-open-reason": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/db-open-reason.spec.ts",
     "smoke:j6-t1b-v4-projection-paths": "node --experimental-strip-types scripts/j6-t1b-v4-projection-paths-smoke.mjs",
+    "smoke:j6-t1b-preview-rebuild": "node --experimental-strip-types scripts/j6-t1b-preview-rebuild-smoke.mjs",
     "smoke:m4-tin-v2-mode": "node --experimental-strip-types scripts/m4-tin-v2-mode-smoke.mjs"
   },
   "dependencies": {
