@@ -4220,7 +4220,9 @@
             "A: nur CRS"
           ],
           "formerForms": [
-            "A: nur World file"
+            "A: nur World file",
+            "nur World file",
+            "World file only"
           ],
           "forbidden": [
             {
@@ -4261,7 +4263,9 @@
             "A: solo CRS"
           ],
           "formerForms": [
-            "A: solo World file"
+            "A: solo World file",
+            "solo World file",
+            "World file only"
           ]
         },
         "fr": {
@@ -4272,7 +4276,9 @@
             "A : CRS uniquement"
           ],
           "formerForms": [
-            "A : World file uniquement"
+            "A : World file uniquement",
+            "World file uniquement",
+            "World file only"
           ]
         },
         "id": {
@@ -4284,7 +4290,8 @@
           ],
           "formerForms": [
             "A: hanya World file",
-            "hanya World file"
+            "hanya World file",
+            "World file only"
           ]
         },
         "ja": {
@@ -4352,7 +4359,8 @@
           ],
           "formerForms": [
             "A: chỉ World file",
-            "chỉ World file"
+            "chỉ World file",
+            "World file only"
           ]
         },
         "zh": {
@@ -4365,7 +4373,8 @@
           ],
           "formerForms": [
             "A: 仅世界文件",
-            "仅世界文件"
+            "仅世界文件",
+            "World file only"
           ]
         },
         "zh-TW": {
@@ -4377,7 +4386,8 @@
           ],
           "formerForms": [
             "A: 僅世界檔案",
-            "僅世界檔案"
+            "僅世界檔案",
+            "World file only"
           ],
           "forbidden": [
             {
@@ -4419,17 +4429,6 @@
         "zh",
         "zh-TW"
       ],
-      "anchors": {
-        "notAnchor": {
-          "ja": [
-            "扇形"
-          ],
-          "en": [
-            "fan mode",
-            "fan extrapolation"
-          ]
-        }
-      },
       "locales": {
         "de": {
           "preferred": "TIN + globale Extrapolation",
@@ -4439,7 +4438,8 @@
           ],
           "formerForms": [
             "B: TIN + globales Modell",
-            "TIN + globales Modell"
+            "TIN + globales Modell",
+            "B: CRS + TIN"
           ],
           "forbidden": [
             {
@@ -4471,7 +4471,8 @@
           ],
           "formerForms": [
             "B: TIN + modelo global",
-            "TIN + modelo global"
+            "TIN + modelo global",
+            "B: CRS + TIN"
           ]
         },
         "fr": {
@@ -4482,7 +4483,8 @@
           ],
           "formerForms": [
             "B : TIN + modèle global",
-            "TIN + modèle global"
+            "TIN + modèle global",
+            "B : CRS + TIN"
           ]
         },
         "id": {
@@ -4492,7 +4494,9 @@
             "B: TIN + ekstrapolasi global"
           ],
           "formerForms": [
-            "B: TIN + model global"
+            "B: TIN + model global",
+            "B: CRS + TIN",
+            "TIN + model global"
           ]
         },
         "ja": {
@@ -4527,7 +4531,8 @@
           ],
           "formerForms": [
             "B: TIN + แบบจำลองโกลบอล",
-            "TIN + แบบจำลองโกลบอล"
+            "TIN + แบบจำลองโกลบอล",
+            "B: CRS + TIN"
           ],
           "forbidden": [
             {
@@ -4546,7 +4551,9 @@
             "B: TIN + ngoại suy toàn cục"
           ],
           "formerForms": [
-            "TIN + mô hình toàn cục"
+            "TIN + mô hình toàn cục",
+            "B: TIN + mô hình toàn cục",
+            "B: CRS + TIN"
           ]
         },
         "zh": {
@@ -4570,7 +4577,8 @@
           ],
           "formerForms": [
             "B: TIN + 全域模型",
-            "TIN + 全域模型"
+            "TIN + 全域模型",
+            "B: CRS + TIN"
           ],
           "forbidden": [
             {
@@ -4605,16 +4613,6 @@
         "zh",
         "zh-TW"
       ],
-      "anchors": {
-        "notAnchor": {
-          "ja": [
-            "大域モデル"
-          ],
-          "en": [
-            "global model"
-          ]
-        }
-      },
       "locales": {
         "de": {
           "preferred": "TIN + Fächer-Extrapolation",
@@ -4631,6 +4629,9 @@
               "reason": "定義データを動作の Einstellungen と混同しない",
               "alternative": "TIN + Fächer-Extrapolation"
             }
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         },
         "en": {
@@ -4651,6 +4652,9 @@
             "C: TIN + extrapolación en abanico",
             "C: TIN + abanico",
             "TIN + abanico"
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         },
         "fr": {
@@ -4660,6 +4664,9 @@
             "C : TIN + extrapolation en éventail",
             "C : TIN + éventail",
             "TIN + éventail"
+          ],
+          "formerForms": [
+            "C : CRS + TIN"
           ]
         },
         "id": {
@@ -4668,6 +4675,9 @@
             "TIN + ekstrapolasi kipas",
             "C: TIN + ekstrapolasi kipas",
             "C: TIN + kipas"
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         },
         "ja": {
@@ -4709,6 +4719,9 @@
               "reason": "定義データに設定を使わない",
               "alternative": "TIN + การคาดคะเนแบบรูปพัด"
             }
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         },
         "vi": {
@@ -4716,7 +4729,11 @@
           "acceptedForms": [
             "TIN + ngoại suy hình quạt",
             "C: TIN + ngoại suy hình quạt",
-            "TIN + hình quạt"
+            "TIN + hình quạt",
+            "C: TIN + hình quạt"
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         },
         "zh": {
@@ -4748,6 +4765,9 @@
               "reason": "定義データに設定を使わない",
               "alternative": "TIN + 扇形外插"
             }
+          ],
+          "formerForms": [
+            "C: CRS + TIN"
           ]
         }
       },
@@ -5430,6 +5450,21 @@
       "pendingKeys": [
         "mapedit.context_marker_on_line"
       ],
+      "pendingTexts": {
+        "mapedit.context_marker_on_line": {
+          "de": "Marker auf Verbindungslinie hinzufügen",
+          "en": "Add Marker On Corresponding Line",
+          "es": "Añadir marcador en la línea de correspondencia",
+          "fr": "Ajouter un marqueur sur la ligne de correspondance",
+          "id": "Tambah penanda pada garis korespondensi",
+          "ja": "対応線上にマーカー追加",
+          "ko": "대응선 위에 마커 추가",
+          "th": "เพิ่มหมุดบนเส้นที่สอดคล้อง",
+          "vi": "Thêm điểm đánh dấu trên đường tương ứng",
+          "zh": "在对应线上添加标记",
+          "zh-TW": "在對應線上新增標記"
+        }
+      },
       "requiredLocales": [
         "de",
         "en",
@@ -5895,6 +5930,15 @@
           "acceptedForms": [
             "supplement point",
             "supplement points"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "supplement-point.en.auxiliary point",
+              "literal": "auxiliary point",
+              "scope": "bindings",
+              "reason": "\"auxiliary\"（補助）は補助頂点だけに使う（補完点には使わない）",
+              "alternative": "supplement point"
+            }
           ]
         },
         "es": {
@@ -5989,6 +6033,15 @@
           "preferred": "補完点",
           "acceptedForms": [
             "補完点"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "supplement-point.ja.補助点",
+              "literal": "補助点",
+              "scope": "bindings",
+              "reason": "「補助」は補助頂点だけに使う（補完点には使わない）",
+              "alternative": "補完点"
+            }
           ]
         },
         "ko": {
@@ -6327,6 +6380,15 @@
           "acceptedForms": [
             "auxiliary vertex",
             "auxiliary vertices"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "auxiliary-vertex.en.supplement vertex",
+              "literal": "supplement vertex",
+              "scope": "bindings",
+              "reason": "\"supplement\"（補完）は補完点だけに使う（補助頂点には使わない）",
+              "alternative": "auxiliary vertex"
+            }
           ]
         },
         "es": {
@@ -6390,6 +6452,15 @@
           "preferred": "補助頂点",
           "acceptedForms": [
             "補助頂点"
+          ],
+          "forbidden": [
+            {
+              "ruleId": "auxiliary-vertex.ja.補完頂点",
+              "literal": "補完頂点",
+              "scope": "bindings",
+              "reason": "「補完」は補完点だけに使う（補助頂点には使わない）",
+              "alternative": "補助頂点"
+            }
           ]
         },
         "ko": {

@@ -25,20 +25,22 @@
 | zh-TW（中国語（繁体字）） | 在對應線上新增標記 | 在對應線上新增折點 |
 
 確かめたこと: この 11 言語の訳を別の作業場所へ入れて `node scripts/editor-glossary-check.mjs --write` を走らせると、違反は 0 件でした。
-入れたあとは、`bend-point` の `pendingKeys` が消し待ちの警告（`unused-pending-key`）になります。消すのは、正本だけの別の PR でします。
+`bend-point` の旧い文言は、正本の `pendingTexts` に 11 言語分を全文で記録しています。この全文と一致するあいだだけ警告で、1 言語でも変えたら 11 言語すべてで代表語を検査します。入れたあとは `unused-pending-key` の警告になるので、`pendingKeys` と `pendingTexts` の記録を、正本だけの別の PR で消します。
 
 ## 2. 先行登録した新しいキー（画面にまだ出ない概念）
 
 次の概念は、画面にまだ出ないため、根拠キーを `pendingKeys` に先行登録しました。画面を作る PR は、このキー名で 11 言語すべてに足してください
 （キー名を変えるときは、先に正本だけの PR で `rootKey` と `pendingKeys` を直します）。各言語の代表語は `editor-glossary.md` の表のとおりです。
 
-| 概念 | 根拠キー（先行登録） | 日本語の代表語 | 英語の代表語 |
-|---|---|---|---|
-| transform-setup-legacy | `mapedit.crs_setup_legacy` | 従来型 | legacy |
-| proportional-point | `mapedit.tin_proportional_point` | 内分点 | proportional point |
-| supplement-point | `mapedit.tin_supplement_point` | 補完点 | supplement point |
-| extrapolation-quadrilateral | `mapedit.tin_extrapolation_quadrilateral` | 外挿四辺形 | extrapolation quadrilateral |
-| auxiliary-vertex | `mapedit.tin_auxiliary_vertex` | 補助頂点 | auxiliary vertex |
+画面に出す持ち主は、J6 設計書（`2026-11-26-jan27-j6-editor-crs-estimation-task-design.md`）の §4.7 で決めました。
+
+| 概念 | 根拠キー（先行登録） | 日本語の代表語 | 英語の代表語 | 画面に出す持ち主 |
+|---|---|---|---|---|
+| transform-setup-legacy | `mapedit.crs_setup_legacy` | 従来型 | legacy | J6-T5a |
+| proportional-point | `mapedit.tin_proportional_point` | 内分点 | proportional point | MaplatEditor#321 |
+| supplement-point | `mapedit.tin_supplement_point` | 補完点 | supplement point | MaplatEditor#321 |
+| extrapolation-quadrilateral | `mapedit.tin_extrapolation_quadrilateral` | 外挿四辺形 | extrapolation quadrilateral | MaplatEditor#321 |
+| auxiliary-vertex | `mapedit.tin_auxiliary_vertex` | 補助頂点 | auxiliary vertex | MaplatEditor#321 |
 
 このほか、変換の形（`transform-setup-a`・`-b`・`-c`）の根拠キー `mapedit.crs_setup_a`・`_b`・`_c` の文言は、記号の付かない代表語
 （CRS／三角網＋大域外挿／三角網＋扇形外挿。英語は CRS only／TIN + global extrapolation／TIN + fan extrapolation）にします。画面には A〜C の記号を出しません。

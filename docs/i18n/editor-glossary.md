@@ -5,7 +5,7 @@
 正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。
 検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
-新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言がまだ旧いときも、直るまで警告（pending-key）にとどめる。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。
+新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言が旧いときは、その旧文言の全文を pendingTexts に記録する。11 言語すべてが記録どおりのあいだだけ警告（pending-key）にとどめ、1 言語でも変わったら 11 言語で代表語を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。
 
 概念 48・結び付いたキー 534・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
@@ -679,17 +679,17 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | nur CRS | nur CRS、CRS only、A: nur CRS | A: nur World file | Transformationseinstellungen | — |
+| de | nur CRS | nur CRS、CRS only、A: nur CRS | A: nur World file、nur World file、World file only | Transformationseinstellungen | — |
 | en | CRS only | CRS only、A: CRS only | A: World file only、World file only、A: CRS + World file | transform settings | — |
-| es | solo CRS | solo CRS、CRS only、A: solo CRS | A: solo World file | — | — |
-| fr | CRS uniquement | CRS uniquement、CRS seul、A : CRS uniquement | A : World file uniquement | — | — |
-| id | hanya CRS | hanya CRS、CRS saja、A: hanya CRS | A: hanya World file、hanya World file | — | — |
+| es | solo CRS | solo CRS、CRS only、A: solo CRS | A: solo World file、solo World file、World file only | — | — |
+| fr | CRS uniquement | CRS uniquement、CRS seul、A : CRS uniquement | A : World file uniquement、World file uniquement、World file only | — | — |
+| id | hanya CRS | hanya CRS、CRS saja、A: hanya CRS | A: hanya World file、hanya World file、World file only | — | — |
 | ja | CRS | CRS、A: CRS | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | 変換の設定 | — |
 | ko | CRS만 | CRS만、CRS only、A: CRS만 | A: 월드 파일만、월드 파일만、World file only | — | — |
 | th | CRS เท่านั้น | CRS เท่านั้น、CRS only、A: CRS เท่านั้น | A: World file เท่านั้น、World file เท่านั้น、World file only | การตั้งค่าการแปลง | — |
-| vi | chỉ CRS | chỉ CRS、CRS only、A: chỉ CRS | A: chỉ World file、chỉ World file | — | — |
-| zh | 仅 CRS | 仅 CRS、CRS only、A: 仅 CRS、A: CRS | A: 仅世界文件、仅世界文件 | — | — |
-| zh-TW | 僅 CRS | 僅 CRS、CRS only、A: 僅 CRS | A: 僅世界檔案、僅世界檔案 | 轉換設定 | — |
+| vi | chỉ CRS | chỉ CRS、CRS only、A: chỉ CRS | A: chỉ World file、chỉ World file、World file only | — | — |
+| zh | 仅 CRS | 仅 CRS、CRS only、A: 仅 CRS、A: CRS | A: 仅世界文件、仅世界文件、World file only | — | — |
+| zh-TW | 僅 CRS | 僅 CRS、CRS only、A: 僅 CRS | A: 僅世界檔案、僅世界檔案、World file only | 轉換設定 | — |
 
 ## transform-setup-b
 
@@ -699,17 +699,17 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | TIN + globale Extrapolation | TIN + globale Extrapolation、B: TIN + globale Extrapolation | B: TIN + globales Modell、TIN + globales Modell | Transformationseinstellungen | — |
+| de | TIN + globale Extrapolation | TIN + globale Extrapolation、B: TIN + globale Extrapolation | B: TIN + globales Modell、TIN + globales Modell、B: CRS + TIN | Transformationseinstellungen | — |
 | en | TIN + global extrapolation | TIN + global extrapolation、B: TIN + global extrapolation | B: TIN + global model、TIN + global model、B: CRS + TIN | — | — |
-| es | TIN + extrapolación global | TIN + extrapolación global、B: TIN + extrapolación global | B: TIN + modelo global、TIN + modelo global | — | — |
-| fr | TIN + extrapolation globale | TIN + extrapolation globale、B : TIN + extrapolation globale | B : TIN + modèle global、TIN + modèle global | — | — |
-| id | TIN + ekstrapolasi global | TIN + ekstrapolasi global、B: TIN + ekstrapolasi global | B: TIN + model global | — | — |
+| es | TIN + extrapolación global | TIN + extrapolación global、B: TIN + extrapolación global | B: TIN + modelo global、TIN + modelo global、B: CRS + TIN | — | — |
+| fr | TIN + extrapolation globale | TIN + extrapolation globale、B : TIN + extrapolation globale | B : TIN + modèle global、TIN + modèle global、B : CRS + TIN | — | — |
+| id | TIN + ekstrapolasi global | TIN + ekstrapolasi global、B: TIN + ekstrapolasi global | B: TIN + model global、B: CRS + TIN、TIN + model global | — | — |
 | ja | 三角網＋大域外挿 | 三角網＋大域外挿、B: 三角網＋大域外挿 | B: 三角網＋大域モデル、三角網＋大域モデル、B: CRS＋三角網 | — | — |
 | ko | TIN + 전역 외삽 | TIN + 전역 외삽、B: TIN + 전역 외삽 | B: TIN + 전역 모델、TIN + 전역 모델、B: CRS + TIN | — | — |
-| th | TIN + การคาดคะเนแบบโกลบอล | TIN + การคาดคะเนแบบโกลบอล、B: TIN + การคาดคะเนแบบโกลบอล | B: TIN + แบบจำลองโกลบอล、TIN + แบบจำลองโกลบอล | การตั้งค่าการแปลง | — |
-| vi | TIN + ngoại suy toàn cục | TIN + ngoại suy toàn cục、B: TIN + ngoại suy toàn cục | TIN + mô hình toàn cục | — | — |
+| th | TIN + การคาดคะเนแบบโกลบอล | TIN + การคาดคะเนแบบโกลบอล、B: TIN + การคาดคะเนแบบโกลบอล | B: TIN + แบบจำลองโกลบอล、TIN + แบบจำลองโกลบอล、B: CRS + TIN | การตั้งค่าการแปลง | — |
+| vi | TIN + ngoại suy toàn cục | TIN + ngoại suy toàn cục、B: TIN + ngoại suy toàn cục | TIN + mô hình toàn cục、B: TIN + mô hình toàn cục、B: CRS + TIN | — | — |
 | zh | TIN + 全局外推 | TIN + 全局外推、B: TIN + 全局外推、三角网 + 全局外推 | B: TIN + 全局模型、B: CRS + TIN、TIN + 全局模型 | — | — |
-| zh-TW | TIN + 全域外插 | TIN + 全域外插、B: TIN + 全域外插 | B: TIN + 全域模型、TIN + 全域模型 | 轉換設定 | — |
+| zh-TW | TIN + 全域外插 | TIN + 全域外插、B: TIN + 全域外插 | B: TIN + 全域模型、TIN + 全域模型、B: CRS + TIN | 轉換設定 | — |
 
 ## transform-setup-c
 
@@ -719,17 +719,17 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | TIN + Fächer-Extrapolation | TIN + Fächer-Extrapolation、C: TIN + Fächer-Extrapolation、C: TIN + Fächer | — | Transformationseinstellungen | — |
+| de | TIN + Fächer-Extrapolation | TIN + Fächer-Extrapolation、C: TIN + Fächer-Extrapolation、C: TIN + Fächer | C: CRS + TIN | Transformationseinstellungen | — |
 | en | TIN + fan extrapolation | TIN + fan extrapolation、C: TIN + fan extrapolation、C: TIN + fan | C: CRS + TIN | — | — |
-| es | TIN + extrapolación en abanico | TIN + extrapolación en abanico、C: TIN + extrapolación en abanico、C: TIN + abanico、TIN + abanico | — | — | — |
-| fr | TIN + extrapolation en éventail | TIN + extrapolation en éventail、C : TIN + extrapolation en éventail、C : TIN + éventail、TIN + éventail | — | — | — |
-| id | TIN + ekstrapolasi kipas | TIN + ekstrapolasi kipas、C: TIN + ekstrapolasi kipas、C: TIN + kipas | — | — | — |
+| es | TIN + extrapolación en abanico | TIN + extrapolación en abanico、C: TIN + extrapolación en abanico、C: TIN + abanico、TIN + abanico | C: CRS + TIN | — | — |
+| fr | TIN + extrapolation en éventail | TIN + extrapolation en éventail、C : TIN + extrapolation en éventail、C : TIN + éventail、TIN + éventail | C : CRS + TIN | — | — |
+| id | TIN + ekstrapolasi kipas | TIN + ekstrapolasi kipas、C: TIN + ekstrapolasi kipas、C: TIN + kipas | C: CRS + TIN | — | — |
 | ja | 三角網＋扇形外挿 | 三角網＋扇形外挿、C: 三角網＋扇形外挿、C: 三角網＋扇形、三角網＋扇形 | C: CRS＋三角網 | — | — |
 | ko | TIN + 부채꼴 외삽 | TIN + 부채꼴 외삽、C: TIN + 부채꼴 외삽、C: TIN + 부채꼴、TIN + 부채꼴 | C: CRS + TIN | — | — |
-| th | TIN + การคาดคะเนแบบรูปพัด | TIN + การคาดคะเนแบบรูปพัด、C: TIN + การคาดคะเนแบบรูปพัด、C: TIN + รูปพัด | — | การตั้งค่าการแปลง | — |
-| vi | TIN + ngoại suy hình quạt | TIN + ngoại suy hình quạt、C: TIN + ngoại suy hình quạt、TIN + hình quạt | — | — | — |
+| th | TIN + การคาดคะเนแบบรูปพัด | TIN + การคาดคะเนแบบรูปพัด、C: TIN + การคาดคะเนแบบรูปพัด、C: TIN + รูปพัด | C: CRS + TIN | การตั้งค่าการแปลง | — |
+| vi | TIN + ngoại suy hình quạt | TIN + ngoại suy hình quạt、C: TIN + ngoại suy hình quạt、TIN + hình quạt、C: TIN + hình quạt | C: CRS + TIN | — | — |
 | zh | TIN + 扇形外推 | TIN + 扇形外推、C: TIN + 扇形外推、三角网 + 扇形外推、C: TIN + 扇形 | C: CRS + TIN | — | — |
-| zh-TW | TIN + 扇形外插 | TIN + 扇形外插、C: TIN + 扇形外插、C: TIN + 扇形、TIN + 扇形、TIN + 扇形外推 | — | 轉換設定 | — |
+| zh-TW | TIN + 扇形外插 | TIN + 扇形外插、C: TIN + 扇形外插、C: TIN + 扇形、TIN + 扇形、TIN + 扇形外推 | C: CRS + TIN | 轉換設定 | — |
 
 ## transform-setup-legacy
 
@@ -815,7 +815,7 @@ GCP と補助頂点で構成する三角網（TIN）。CRS だけの形では持
 
 対応線を折れ線にするための点。紙の面と地理の面で、別々に打てる。人間が打つ。GCP のマーカーとは別
 
-根拠キー `mapedit.context_marker_on_line`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.context_marker_on_line`
+根拠キー `mapedit.context_marker_on_line`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.context_marker_on_line`（旧文言を記録）
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -860,11 +860,11 @@ strict を保つために制約から外した凸包の辺や、向きが食い�
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | Ergänzungspunkt | Ergänzungspunkt、Ergänzungspunkte、Ergänzungspunkten、Ergänzungspunkts | — | Hilfspunkt | — |
-| en | supplement point | supplement point、supplement points | — | — | — |
+| en | supplement point | supplement point、supplement points | — | auxiliary point | — |
 | es | punto complementario | punto complementario、puntos complementarios、par complementario、pares complementarios | — | punto auxiliar、vértice complementario、punto suplementario | — |
 | fr | point complémentaire | point complémentaire、points complémentaires、paire complémentaire、paires complémentaires | — | point auxiliaire、point supplémentaire | — |
 | id | titik pelengkap | titik pelengkap、titik-titik pelengkap、pasangan pelengkap | — | titik tambahan、titik bantu、simpul pelengkap | — |
-| ja | 補完点 | 補完点 | — | — | — |
+| ja | 補完点 | 補完点 | — | 補助点 | — |
 | ko | 보완점 | 보완점、보완 점 | — | 보조점、보충점 | — |
 | th | จุดเติมเต็ม | จุดเติมเต็ม、คู่จุดเติมเต็ม | — | จุดเสริม、จุดช่วย、จุดเพิ่มเติม | — |
 | vi | điểm bổ sung | điểm bổ sung、các điểm bổ sung、cặp điểm bổ sung | — | điểm phụ trợ、điểm bổ trợ、đỉnh bổ sung | — |
@@ -900,11 +900,11 @@ GCP の外側を受け持つ範囲の枠。内側は三角網、外側は大域�
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | Hilfsknoten | Hilfsknoten、Eck-Hilfsknoten、Seiten-Hilfsknoten | — | Hilfspunkt | — |
-| en | auxiliary vertex | auxiliary vertex、auxiliary vertices | — | — | — |
+| en | auxiliary vertex | auxiliary vertex、auxiliary vertices | — | supplement vertex | — |
 | es | vértice auxiliar | vértice auxiliar、vértices auxiliares、vértice auxiliar de esquina、vértices auxiliares de esquina、vértice auxiliar de lado、vértices auxiliares de lado | — | punto auxiliar、vértice complementario | — |
 | fr | sommet auxiliaire | sommet auxiliaire、sommets auxiliaires、sommet auxiliaire de coin、sommet auxiliaire de côté、sommets auxiliaires de coin、sommets auxiliaires de côté | — | point auxiliaire | — |
 | id | simpul bantu | simpul bantu、simpul-simpul bantu、simpul bantu sudut、simpul bantu sisi、verteks bantu | — | — | — |
-| ja | 補助頂点 | 補助頂点 | — | — | — |
+| ja | 補助頂点 | 補助頂点 | — | 補完頂点 | — |
 | ko | 보조 정점 | 보조 정점、모서리 보조 정점、변 보조 정점 | — | 보완 정점、꼭짓점 | — |
 | th | จุดยอดช่วย | จุดยอดช่วย、จุดยอดช่วยที่มุม、จุดยอดช่วยที่ขอบ | — | จุดเสริม | — |
 | vi | đỉnh phụ trợ | đỉnh phụ trợ、các đỉnh phụ trợ、đỉnh phụ trợ ở góc、đỉnh phụ trợ ở cạnh | — | đỉnh bổ sung | — |

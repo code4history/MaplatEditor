@@ -309,6 +309,11 @@ export function validateSemantics(glossary, exceptions, keys, pending = [], loca
       if (declared.has(k)) pending.push({ kind: 'pending-key', type: 'additionalBindings', concept: c.id, lang: '-', key: k, message: '先行登録したキーがまだ locale に無い（locale の PR で足す）' });
       else errors.push(`${c.id}: additionalBindings ${k} が locale に無い（新しいキーは pendingKeys に先行登録する）`);
     }
+    for (const [k, texts] of Object.entries(c.pendingTexts ?? {})) {
+      if (!declared.has(k)) errors.push(`${c.id}: pendingTexts ${k} は pendingKeys に無い（旧文言を記録できるのは先行登録したキーだけ）`);
+      const lacking = glossary.locales.filter((l) => typeof texts[l] !== 'string');
+      if (lacking.length) errors.push(`${c.id}: pendingTexts ${k} に旧文言が無い言語がある（11 言語すべての全文を記録する。不足: ${lacking.join(', ')}）`);
+    }
     for (const k of declared) {
       const present = glossary.locales.filter((l) => localeValues ? localeValues[l]?.has(k) : l === 'ja' && keys.has(k));
       if (present.length && present.length !== glossary.locales.length) {
@@ -540,27 +545,35 @@ export function indexExceptions(exceptions) {
 
 /**
  * 代表語の検査: 根拠キーの値がその概念の許容形を満たす。
- * 先行登録（pendingKeys）した根拠キーが locale に既にあり、文言がまだ旧い（代表語を満たさない）ときは、違反にせず stale として返す。
- * 正本だけの PR で新しい語を先に決め、既存キーの文言は後の locale の PR で直すため（2 PR の関門）。
- * 文言が直れば stale は消え、11 言語すべてが満たした時点で pendingKeys の消し待ちを知らせる
+ * 先行登録（pendingKeys）した根拠キーが locale に既にあって文言が旧いときだけ、旧い文言の全文を正本の pendingTexts に記録しておく
+ * （正本だけの PR で新しい語を先に決め、既存キーの文言は後の locale の PR で直すため）。
+ * 11 言語すべての値が記録した全文と一致するあいだだけ、違反にせず stale として返す。1 言語でも変わったら、11 言語すべてで代表語を検査する。
+ * 記録のないキー・locale にまだ無いキー・記録と違う文言は、従来どおり厳しく見る
  */
 function checkRepresentatives(glossary, values) {
   const ix = conceptIndex(glossary);
   const out = [];
   const stale = [];
+  const nfc = (x) => (typeof x === 'string' ? x.normalize('NFC') : x);
   for (const c of glossary.concepts) {
+    const frozenKeys = new Set();
+    for (const [key, texts] of Object.entries(c.pendingTexts ?? {})) {
+      if (glossary.locales.every((l) => values[l]?.get(key) !== undefined && values[l].get(key) === nfc(texts[l]))) frozenKeys.add(key);
+    }
     for (const l of c.requiredLocales) {
       const e = c.locales[l];
       if (!e) continue;
       const rk = e.rootKey ?? c.rootKey;
+      if (frozenKeys.has(rk)) {
+        stale.push({ concept: c.id, lang: l, key: rk });
+        continue;
+      }
       const raw = values[l].get(rk);
       // 先行登録（pendingKeys）したキーがまだ locale に無いときだけ飛ばす。既存のキーの欠落は代表語の違反として出す
       if (raw === undefined && (c.pendingKeys ?? []).includes(rk)) continue;
       const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw ?? ''), ix.excl(c, l)), true);
       const ok = raw !== undefined && j.accepted && !j.forbHits.length && !j.formerHits.length;
-      if (ok) continue;
-      if (raw !== undefined && (c.pendingKeys ?? []).includes(rk)) stale.push({ concept: c.id, lang: l, key: rk });
-      else out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
+      if (!ok) out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
     }
   }
   return { violations: out, stale };
@@ -588,7 +601,7 @@ export function renderMarkdown(glossary, exceptions, all) {
   lines.push('正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。');
   lines.push('検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。');
   lines.push('正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。');
-  lines.push('新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言がまだ旧いときも、直るまで警告（pending-key）にとどめる。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。');
+  lines.push('新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言が旧いときは、その旧文言の全文を pendingTexts に記録する。11 言語すべてが記録どおりのあいだだけ警告（pending-key）にとどめ、1 言語でも変わったら 11 言語で代表語を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。');
   lines.push('');
   const counts = {};
   for (const x of exceptions) counts[x.type] = (counts[x.type] ?? 0) + 1;
@@ -604,7 +617,7 @@ export function renderMarkdown(glossary, exceptions, all) {
     lines.push(md(c.description));
     lines.push('');
     const roles = c.roles ? Object.entries(c.roles).map(([n, r]) => `${n}（${r.strict ? 'strict' : 'weak'}）`).join('・') : '';
-    lines.push(`根拠キー \`${c.rootKey}\`。必須形を求める言語: ${c.requiredLocales.join(', ')}${roles ? `。役割: ${roles}` : ''}${c.pendingKeys?.length ? `。先行登録キー: ${c.pendingKeys.map((k) => `\`${k}\``).join('、')}` : ''}`);
+    lines.push(`根拠キー \`${c.rootKey}\`。必須形を求める言語: ${c.requiredLocales.join(', ')}${roles ? `。役割: ${roles}` : ''}${c.pendingKeys?.length ? `。先行登録キー: ${c.pendingKeys.map((k) => `\`${k}\`${c.pendingTexts?.[k] ? '（旧文言を記録）' : ''}`).join('、')}` : ''}`);
     lines.push('');
     lines.push('| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |');
     lines.push('|---|---|---|---|---|---|');
@@ -676,6 +689,8 @@ export function diffCanonical(oldG, oldEx, newG, newEx) {
     listDiff(na(a), na(b), loosen, '錨から外した', tighten, '錨に戻した');
     listDiff((a.additionalBindings ?? []).map((k) => `${id}: ${k}`), (b.additionalBindings ?? []).map((k) => `${id}: ${k}`), loosen, 'additionalBindings を足した', tighten, 'additionalBindings を外した');
     listDiff((a.pendingKeys ?? []).map((k) => `${id}: ${k}`), (b.pendingKeys ?? []).map((k) => `${id}: ${k}`), loosen, 'pendingKeys に先行登録した', tighten, 'pendingKeys の先行登録を外した');
+    const pt = (c) => Object.entries(c.pendingTexts ?? {}).flatMap(([k, m]) => Object.entries(m).map(([l, t]) => `${id}: ${k} ${l}: ${t}`));
+    listDiff(pt(a), pt(b), loosen, '旧文言のまま先行登録できるようにした（pendingTexts）', tighten, 'pendingTexts の旧文言の記録を外した');
     listDiff(a.requiredLocales.map((l) => `${id}: ${l}`), b.requiredLocales.map((l) => `${id}: ${l}`), tighten, 'requiredLocales に足した', loosen, 'requiredLocales から外した');
     if (JSON.stringify(a.roles ?? null) !== JSON.stringify(b.roles ?? null)) other.push(`役割のパラメータを変えた: ${id}`);
     if (a.rootKey !== b.rootKey) other.push(`根拠キーを変えた: ${id}: ${a.rootKey} → ${b.rootKey}`);
@@ -814,7 +829,7 @@ export function runCheck({ root, write = false, base = null }) {
     if (!staleBy.has(id)) staleBy.set(id, { concept: x.concept, key: x.key, langs: [] });
     staleBy.get(id).langs.push(x.lang);
   }
-  for (const x of staleBy.values()) warnings.push({ kind: 'pending-key', type: 'rootKeyText', concept: x.concept, lang: '-', key: x.key, message: `先行登録した根拠キーが locale に既にあるが、文言がまだ旧い（${x.langs.join(', ')}。locale の PR で直す）` });
+  for (const x of staleBy.values()) warnings.push({ kind: 'pending-key', type: 'rootKeyText', concept: x.concept, lang: '-', key: x.key, message: `先行登録した根拠キーが locale に既にあり、11 言語すべてが正本に記録した旧文言のまま（pendingTexts。locale の PR で直す。1 言語でも変えたら 11 言語で代表語を検査する）` });
   // 先行登録したキーが 11 言語すべてにそろい、文言も代表語を満たしたら、pendingKeys から消し待ちであることを知らせる
   for (const c of g.concepts) {
     for (const k of c.pendingKeys ?? []) {
