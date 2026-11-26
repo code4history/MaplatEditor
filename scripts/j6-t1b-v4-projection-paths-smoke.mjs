@@ -22,4 +22,6 @@ assert.equal(b.boundaryDiagnostics?.fallbackReason, 'boundaryFlips');
 const cOptions = resolveTinBuildOptions({ crs: { epsg: 6674 }, compiled: {} }, {}, 'C');
 assert.equal(cOptions.outerTransform, 'extrapolate');
 assert.equal(cOptions.useV2Algorithm, false);
+assert.equal(resolveTinBuildOptions({ tinEnabled: false, crs: { epsg: 6677 }, worldFile }), null, 'A は三角網を作らない');
+assert.deepEqual(resolveTinBuildOptions({ crs: { epsg: 3857 }, compiled: {} }), { useV2Algorithm: false, outerTransform: 'extrapolate' }, 'C は常に extrapolate を明示する');
 console.log('J6-T1b V4 projection paths smoke passed');

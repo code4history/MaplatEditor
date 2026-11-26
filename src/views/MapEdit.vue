@@ -91,7 +91,7 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 // @ts-ignore
 import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
-import { Transform, type CompiledTransformData } from '@maplat/transform';
+import { Transform, type CompiledTransformData, type StrictMode } from '@maplat/transform';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
@@ -653,7 +653,7 @@ watch(currentEditingLayer, (newLayer) => {
 });
 
 // const editingID_ = ref('');
-const strictMode = ref('auto');
+const strictMode = ref<StrictMode>('auto');
 const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
 // const editableGCPID = computed({
@@ -685,7 +685,7 @@ type MapEditHistoryState = {
     edges: any[];
     homePosition: any;
     mercZoom: number | undefined;
-    strictMode: string;
+    strictMode: StrictMode;
     vertexMode: 'plain' | 'birdeye';
     currentEditingLayer: number;
 };
@@ -2891,12 +2891,18 @@ const updateTin = async (opts?: { force?: boolean }) => {
         const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
         const buildLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
         const intent = buildLayer?.compiled?.outerTransform === 'worldFile' ? 'B' :
-            buildLayer?.compiled?.outerTransform === 'extrapolate' && Object.prototype.hasOwnProperty.call(buildLayer, 'crs') ? 'C' : undefined;
+            buildLayer?.compiled?.outerTransform === 'extrapolate' && buildLayer?.crs != null ? 'C' : undefined;
+        // yaxisMode は層の直下、無ければ compiled から resolveTinBuildOptions が拾う。
         const tinOptions = resolveTinBuildOptions(buildLayer ?? {}, {
             strictMode: strictMode.value,
             vertexMode: vertexMode.value,
-            yaxisMode: buildLayer?.compiled?.yaxisMode,
         }, intent);
+        if (!tinOptions) {
+            // A（三角網なし）は計算しない。印だけ付けて描画を更新する。
+            tinObject.value = 'worldFile';
+            tinResultUpdate();
+            return;
+        }
         const [, compiled] = await editorComputeBackend.updateTin({
             gcps: plainGcps,
             edges: plainEdges,

@@ -1,4 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import type { Options as TinOptions } from '@maplat/tin'
+import type { CrsObject } from '@maplat/transform'
 
 // バックエンド(メインプロセス)から転送されたエラー/警告をDevToolsコンソールに出す (#18)
 ipcRenderer.on('backend:log', (_event, payload: { level: 'error' | 'warn'; message: string; timestamp: string }) => {
@@ -43,8 +45,8 @@ contextBridge.exposeInMainWorld('mapedit', {
   getBaseMapShiftsOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-base-map-shifts', mapRef),
   setBaseMapShiftForMapID: (mapRef: string, baseMapRef: string, x: number, y: number) =>
     ipcRenderer.invoke('mapedit:set-base-map-shift', mapRef, baseMapRef, x, y),
-  updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
-    ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
+  updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions) =>
+    ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex, tinOptions),
   // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
   save: (payload: any) =>
     ipcRenderer.invoke('mapedit:save', payload),
@@ -85,7 +87,7 @@ contextBridge.exposeInMainWorld('dataupload', {
 contextBridge.exposeInMainWorld('wmtsGen', {
   // uid 追加。runtime read の canonical-first 解決に必要
   // targetBaseMapUid を末尾に追加（出力先ベースマップの UID。メルカトルタイルは元の地図ではなく出力先のベースマップ自身の uid が持つ決まり）
-  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string, crs?: any) =>
+  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string, crs?: CrsObject) =>
     ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid, crs),
 })
 
