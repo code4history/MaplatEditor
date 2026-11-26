@@ -8,6 +8,7 @@ import { _electron as electron, type ElectronApplication, type Page } from '@pla
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pickImageToken } from './pickedImage';
+import { evalMain } from './evalMain';
 
 export const projectRoot = path.resolve(import.meta.dirname, '../../..');
 
@@ -37,7 +38,7 @@ export async function saveFolderOf(page: Page): Promise<string> {
 
 /** 保存/インポート完了ダイアログを自動 OK する（ネイティブダイアログ待ちで止まらないように） */
 export async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }
@@ -48,7 +49,7 @@ export async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<vo
  * 成功モーダルだけが出る — 自由操作のための引き渡しなのにダイアログを潰してしまう。
  */
 export async function snapshotDialogs(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     const g = globalThis as unknown as Record<string, unknown>;
     if (!g.__mapPackageDialogOriginals) {
       g.__mapPackageDialogOriginals = {
@@ -61,7 +62,7 @@ export async function snapshotDialogs(app: ElectronApplication): Promise<void> {
 }
 
 export async function restoreDialogs(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     const g = globalThis as unknown as Record<string, unknown>;
     const originals = g.__mapPackageDialogOriginals as Record<string, unknown> | undefined;
     if (!originals) throw new Error('snapshotDialogs を先に呼んでいない');
@@ -75,7 +76,7 @@ export async function restoreDialogs(app: ElectronApplication): Promise<void> {
 export async function dialogsAreOriginal(app: ElectronApplication): Promise<{
   save: boolean; open: boolean; message: boolean;
 }> {
-  return app.evaluate(async ({ dialog }) => {
+  return evalMain(app, async ({ dialog }) => {
     const g = globalThis as unknown as Record<string, unknown>;
     const o = g.__mapPackageDialogOriginals as Record<string, unknown>;
     return {

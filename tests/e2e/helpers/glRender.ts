@@ -16,6 +16,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { quitElectronApplication } from './electronLifecycle';
+import { evalMain } from './evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../../..');
 
@@ -63,7 +64,7 @@ export async function launchGl(root: string, extraArgs: string[]): Promise<{ app
 /** WebGL 2 が使えれば true、getContext('webgl2') が厳密に null なら false。それ以外はすべて例外 */
 export async function probeWebGl2(app: ElectronApplication): Promise<boolean> {
   const result = await withTimeout(
-    app.evaluate(async ({ BrowserWindow }) => {
+    evalMain(app, async ({ BrowserWindow }) => {
       const win = new BrowserWindow({ show: false, width: 64, height: 64 });
       try {
         await win.loadURL('about:blank');
@@ -147,8 +148,10 @@ export async function sampleWindow(
   rect: { x: number; y: number; width: number; height: number },
 ): Promise<Sample> {
   const bw = await app.browserWindow(target);
-  const b64 = await bw.evaluate(async (w, r) => (await w.webContents.capturePage(r)).toPNG().toString('base64'), {
-    x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height),
+  // BrowserWindow の JSHandle も main の中のオブジェクトなので、handle の evaluate ではなく evalMain に引数で渡す
+  const b64 = await evalMain<string>(app, async (_electron, { w, r }) => (await w.webContents.capturePage(r)).toPNG().toString('base64'), {
+    w: bw,
+    r: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
   });
   const png = Buffer.from(b64, 'base64');
   const { Jimp } = await import('jimp');

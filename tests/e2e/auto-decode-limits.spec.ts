@@ -14,6 +14,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -45,7 +46,7 @@ async function installDialogHarness(
   imagePath: string | null,
   messageBoxResponse: number,
 ): Promise<void> {
-  await app.evaluate(async ({ dialog }, { selectedImage, response }) => {
+  await evalMain(app, async ({ dialog }, { selectedImage, response }) => {
     const g = globalThis as any;
     g.__fxOpenDialogCalls = 0;
     g.__fxMessageBoxMessages = [];
@@ -64,7 +65,7 @@ async function installDialogHarness(
 }
 
 const readHarness = (app: ElectronApplication) =>
-  app.evaluate(() => ({
+  evalMain(app, () => ({
     openDialogCalls: (globalThis as any).__fxOpenDialogCalls as number,
     messages: (globalThis as any).__fxMessageBoxMessages as string[],
   }));
@@ -105,7 +106,7 @@ async function writeSofOnlyJpeg(filePath: string, w: number, h: number): Promise
  * 単位はキロバイト。
  */
 const readHeapStats = (app: ElectronApplication) =>
-  app.evaluate(() => {
+  evalMain(app, () => {
     const s = (process as any).getHeapStatistics();
     return {
       heapSizeLimitMB: s.heapSizeLimit / 1024,

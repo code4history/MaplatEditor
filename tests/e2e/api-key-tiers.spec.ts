@@ -22,6 +22,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -386,7 +387,7 @@ test('書き出しは鍵未解決の provider ソースを除外し、overrideKe
     };
 
     // ---- (a) overrideKeys を渡さない: mapbox ソースは除外され warnings に積まれる ----
-    await app.evaluate(async ({ dialog }, outZip) => {
+    await evalMain(app, async ({ dialog }, outZip) => {
       dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
     }, zipPathA);
     const resultA = await page.evaluate(async (doc) => {
@@ -407,7 +408,7 @@ test('書き出しは鍵未解決の provider ソースを除外し、overrideKe
     expect(JSON.stringify(appJsonA.sources)).not.toContain('mapbox');
 
     // ---- (b) overrideKeys を渡す: mapbox ソースが含まれる ----
-    await app.evaluate(async ({ dialog }, outZip) => {
+    await evalMain(app, async ({ dialog }, outZip) => {
       dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
     }, zipPathB);
     const resultB = await page.evaluate(async (doc) => {

@@ -35,6 +35,7 @@ import { pathToFileURL } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const CORS_BLOCKED = /blocked by CORS policy/;
@@ -244,7 +245,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30_000 });
 
       // ---- AC-FF-1 (i): 画像アップロード直後（保存前）の下書きタイル ----
-      await app.evaluate(async ({ dialog }, selected) => {
+      await evalMain(app, async ({ dialog }, selected) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selected] })) as typeof dialog.showOpenDialog;
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       }, imagePath);
@@ -370,7 +371,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
       // ---- AC-FF-5: 存在しないファイルは例外（net::ERR_UNEXPECTED）ではなく 404 で返り、
       //      許可 origin からは CORS 越しに status を読める（許可外は従来どおり 403）----
       const missingLocal = sameOriginLocalUrl(path.join(savedTilesDir, '99', '0', '0.jpg'));
-      const mainStatus = await launched.app.evaluate(async ({ net }, urls) => {
+      const mainStatus = await evalMain(launched.app, async ({ net }, urls) => {
         const one = async (u: string) => {
           try { return (await net.fetch(u)).status; } catch (e) { return String(e); }
         };
@@ -425,7 +426,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
       }
 
       // ---- AC-FF-6: 他 origin のページ（非表示 BrowserWindow）から fetch / crossOrigin <img> で読めない ----
-      const otherOrigins = await app.evaluate(async ({ BrowserWindow }, urls) => {
+      const otherOrigins = await evalMain(app, async ({ BrowserWindow }, urls) => {
         const http = process.getBuiltinModule('node:http') as typeof import('node:http');
         const server = http.createServer((_req, res) => {
           res.writeHead(200, { 'content-type': 'text/html' });
@@ -488,7 +489,7 @@ test.describe('ローカルデータの同一 origin 配信', () => {
 
       // ---- AC-FF-7b（CSP の導入で足した条件 (b)）: renderer CSP の無い文書（トップレベル）で開いたローカル HTML のスクリプトが走らない
       //      （__local の sandbox CSP の効き。renderer CSP の frame-src に隠れないよう iframe を使わない）----
-      const topLevel = await app.evaluate(async ({ BrowserWindow }, u) => {
+      const topLevel = await evalMain(app, async ({ BrowserWindow }, u) => {
         const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });
         try {
           await w.loadURL(u);

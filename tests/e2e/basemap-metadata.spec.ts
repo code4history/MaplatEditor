@@ -3,6 +3,7 @@ import { _electron as electron, expect, test, type Page } from '@playwright/test
 import { mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const keys = ['createdAt', 'era', 'contributor', 'mapper', 'reference', 'description'];
@@ -77,7 +78,7 @@ test('ベースマップ保存の直後に一覧へ戻ると、一覧の読み�
   await page.getByTestId('basemap-meta-era').fill('era 日本語');
   await page.getByTestId('basemap-meta-era').press('Tab');
   // 保存の後の一覧の読み直しを遅らせる（遅い CI と同じ順序を確実に作る）
-  await app.evaluate(({ ipcMain }) => {
+  await evalMain(app, ({ ipcMain }) => {
    const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: unknown[]) => unknown>;
    const original = handlers.get('search:baseMaps');
    if (!original) throw new Error('search:baseMaps の handler がない');

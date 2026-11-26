@@ -157,7 +157,7 @@ test.describe('インポート直後サムネイルの相対 fetch 死除去', (
 
       // 地図 ZIP を実 UI の搬出ボタンから作る（書き出しの統一の往復の e2e と同じ導線）
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
@@ -171,7 +171,7 @@ test.describe('インポート直後サムネイルの相対 fetch 死除去', (
       const copySlug = `${seeded.mapSlug}-copy`;
       const copyZip = path.join(e2eRoot, 'map-copy.zip');
       await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
-      await app.evaluate(async ({ dialog }, inZip) => {
+      await evalMain(app, async ({ dialog }, inZip) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
       }, copyZip);
 

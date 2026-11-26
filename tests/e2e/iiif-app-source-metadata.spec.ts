@@ -11,6 +11,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -26,7 +27,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   // 外部へ出ない（中身は断言しない）
   await page.route('**/tile.openstreetmap.org/**', (route) => route.fulfill({ status: 404, body: '' }));
   // アプリの保存は main 側の確認ダイアログを挟む（既存のアプリの編集の e2e と同じ stub）
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page };

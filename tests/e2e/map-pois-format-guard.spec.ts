@@ -22,6 +22,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -47,7 +48,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 // MapEdit の保存は confirm ダイアログを挟むため OK 自動応答へ差し替える（map-poi-hide-override と同方式）
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

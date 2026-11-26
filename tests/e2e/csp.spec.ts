@@ -23,6 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const FAKE_TILE_PATH = path.resolve(import.meta.dirname, 'fixtures/fake-osm-tile.png');
@@ -56,7 +57,7 @@ async function launch(e2eRoot: string): Promise<Launched> {
 // main process で全 webContents（main window・about・非表示ウィンドウ）の CSP 違反のコンソール行を集める。
 // 以後に作られる webContents も web-contents-created で拾う。
 async function installCspCollector(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ app: electronApp, webContents }) => {
+  await evalMain(app, ({ app: electronApp, webContents }) => {
     const g = globalThis as unknown as { __e2eCsp?: { url: string; msg: string }[]; __e2eHooked?: WeakSet<object> };
     g.__e2eCsp = [];
     g.__e2eHooked = new WeakSet();
@@ -78,7 +79,7 @@ async function installCspCollector(app: ElectronApplication): Promise<void> {
 }
 
 async function cspLines(app: ElectronApplication): Promise<{ url: string; msg: string }[]> {
-  return app.evaluate(() => ((globalThis as any).__e2eCsp ?? []) as { url: string; msg: string }[]);
+  return evalMain(app, () => ((globalThis as any).__e2eCsp ?? []) as { url: string; msg: string }[]);
 }
 
 async function openHash(page: Page, hash: string): Promise<void> {
@@ -213,7 +214,7 @@ test.describe('renderer の Content-Security-Policy', () => {
       const uid = await seedMap(page);
       await openHash(page, `#/mapedit?uid=${uid}`);
       await expect(page.getByTestId('map-title')).toBeVisible({ timeout: 30_000 });
-      await app.evaluate(async ({ dialog }, selected) => {
+      await evalMain(app, async ({ dialog }, selected) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selected] })) as typeof dialog.showOpenDialog;
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       }, imagePath);

@@ -1,4 +1,5 @@
 import type { ElectronApplication, Page } from '@playwright/test';
+import { evalMain } from './evalMain';
 
 /**
  * 画像アセットを API で用意するための token を得る。
@@ -9,7 +10,7 @@ import type { ElectronApplication, Page } from '@playwright/test';
  * （spec が先に入れたダイアログのスタブも壊さない）。
  */
 export async function pickImageToken(app: ElectronApplication, page: Page, filePath: string): Promise<string> {
-  await app.evaluate(({ dialog }, target) => {
+  await evalMain(app, ({ dialog }, target) => {
     const original = dialog.showOpenDialog;
     dialog.showOpenDialog = (async () => {
       dialog.showOpenDialog = original;

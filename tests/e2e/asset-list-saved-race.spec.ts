@@ -8,6 +8,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 import { pickImageToken } from './helpers/pickedImage';
 import { takeScreenshot } from './helpers/screenshot';
+import { evalMain } from './helpers/evalMain';
 
 test('保存の直後に一覧へ戻ると、一覧の読み直しが遅れても編集画面が開き直さない', async ({}, testInfo) => {
   test.setTimeout(180_000);
@@ -36,7 +37,7 @@ test('保存の直後に一覧へ戻ると、一覧の読み直しが遅れて�
     await title.press('Tab');
 
     // 保存の後の一覧の読み直しを遅らせる（遅い CI と同じ順序を確実に作る）
-    await app.evaluate(({ ipcMain }) => {
+    await evalMain(app, ({ ipcMain }) => {
       const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: unknown[]) => unknown>;
       const original = handlers.get('search:imageAssets');
       if (!original) throw new Error('search:imageAssets の handler がない');

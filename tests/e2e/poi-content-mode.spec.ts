@@ -8,6 +8,7 @@ import AdmZip from 'adm-zip';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { pickImageToken } from './helpers/pickedImage';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -314,7 +315,7 @@ test.describe('POI Content Mode', () => {
 
       // 保存ダイアログを stub して zip 出力先を固定（既存 等と同型）
       const zipPath = path.join(e2eRoot, 'ac13-export.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       }, zipPath);

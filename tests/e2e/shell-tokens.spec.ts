@@ -5,6 +5,7 @@ import path from 'node:path';
 import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'shell-tokens-screenshots');
@@ -16,7 +17,7 @@ const artifactDir = path.join(projectRoot, 'test-results', 'shell-tokens-screens
 
 // master-detail と同じ dialog stub 先例を踏襲（Electron main の dialog を差し替える）。
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   }, imagePath);

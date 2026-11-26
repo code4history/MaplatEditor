@@ -5,6 +5,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const artifactDir = path.join(projectRoot, 'test-results', 'slug-reservation-screenshots');
@@ -34,7 +35,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 // dialog を承認へ倒しつつ、表示 message を main プロセス側 global に記録する
 // (copy_or_move が「出ない」ことを message 履歴で検証するため)
 async function installDialogHarness(app: ElectronApplication, imagePath?: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     (globalThis as any).__dialogMessages = [];
     if (selectedImage) {
       dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
@@ -48,11 +49,11 @@ async function installDialogHarness(app: ElectronApplication, imagePath?: string
 }
 
 async function dialogMessages(app: ElectronApplication): Promise<string[]> {
-  return app.evaluate(() => ((globalThis as any).__dialogMessages ?? []) as string[]);
+  return evalMain(app, () => ((globalThis as any).__dialogMessages ?? []) as string[]);
 }
 
 async function installDeferredReserveHarness(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ ipcMain }) => {
+  await evalMain(app, ({ ipcMain }) => {
     const channel = 'slug-reservations:reserve';
     const moveChannel = 'slug-reservations:move';
     const checkChannel = 'slug-reservations:check';
@@ -114,7 +115,7 @@ async function installDeferredReserveHarness(app: ElectronApplication): Promise<
 // pending 未登録(false)・一過性の context destroyed(throw)の両方を expect.poll で retry する。
 // 既に resolve 済み(pending なし かつ calls に slug あり)も冪等に true 扱いとする。
 async function resolveDeferredReserve(app: ElectronApplication, slug: string): Promise<void> {
-  await expect.poll(async () => app.evaluate(async (_, targetSlug) => {
+  await expect.poll(async () => evalMain(app, async (_, targetSlug) => {
     const harness = (globalThis as any).__fxReserveHarness;
     const pendingList = harness?.pending?.get(targetSlug);
     if (pendingList && pendingList.length > 0) {
@@ -129,7 +130,7 @@ async function resolveDeferredReserve(app: ElectronApplication, slug: string): P
 
 async function restoreDeferredReserveHarness(app: ElectronApplication): Promise<void> {
   try {
-    await app.evaluate(({ ipcMain }) => {
+    await evalMain(app, ({ ipcMain }) => {
       const channel = 'slug-reservations:reserve';
       const moveChannel = 'slug-reservations:move';
       const checkChannel = 'slug-reservations:check';
@@ -151,7 +152,7 @@ async function restoreDeferredReserveHarness(app: ElectronApplication): Promise<
 }
 
 async function installReleaseFailureHarness(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ ipcMain }) => {
+  await evalMain(app, ({ ipcMain }) => {
     const channel = 'slug-reservations:release';
     const handlers = (ipcMain as any)._invokeHandlers as Map<string, (...args: any[]) => any> | undefined;
     const original = handlers?.get(channel);
@@ -168,7 +169,7 @@ async function installReleaseFailureHarness(app: ElectronApplication): Promise<v
 }
 
 async function setReleaseFailure(app: ElectronApplication, fail: boolean): Promise<void> {
-  await app.evaluate((_, shouldFail) => {
+  await evalMain(app, (_, shouldFail) => {
     const harness = (globalThis as any).__fxReleaseHarness;
     if (!harness) throw new Error('Release harness not installed');
     harness.fail = shouldFail;
@@ -176,7 +177,7 @@ async function setReleaseFailure(app: ElectronApplication, fail: boolean): Promi
 }
 
 async function restoreReleaseFailureHarness(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ ipcMain }) => {
+  await evalMain(app, ({ ipcMain }) => {
     const channel = 'slug-reservations:release';
     const harness = (globalThis as any).__fxReleaseHarness;
     if (!harness) return;
@@ -753,14 +754,14 @@ test('stale reserve completion cannot publish available or create a draft while 
 
     await page.getByTestId('basemap-slug').fill('latest-slug-a');
     await page.getByTestId('basemap-slug').press('Tab');
-    await expect.poll(() => app.evaluate(async () =>
+    await expect.poll(() => evalMain(app, async () =>
       (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-a') ?? false
     ), { timeout: 15_000 }).toBe(true);
 
     // Aを未解決のままBへ変更し、両requestを同時pendingにする。
     await page.getByTestId('basemap-slug').fill('latest-slug-b');
     await page.getByTestId('basemap-slug').press('Tab');
-    await expect.poll(() => app.evaluate(async () =>
+    await expect.poll(() => evalMain(app, async () =>
       ((globalThis as any).__fxReserveHarness?.checks ?? [])
         .some((payload: any) => payload.slug === 'latest-slug-b')
     ), { timeout: 15_000 }).toBe(true);
@@ -774,7 +775,7 @@ test('stale reserve completion cannot publish available or create a draft while 
 
     // stale Aだけを完了させる。Bは未解決なのでavailable/draftは禁止。
     await resolveDeferredReserve(app, 'latest-slug-a');
-    await expect.poll(() => app.evaluate(async () => ({
+    await expect.poll(() => evalMain(app, async () => ({
       a: (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-a') ?? false,
       b: (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-b') ?? false,
     })), { timeout: 15_000 }).toEqual({ a: false, b: true });
@@ -832,10 +833,10 @@ test('release failure keeps the editor uid and draft until discard retry succeed
 
     // 1回目はrelease reject。callerはclose/reset/draft削除へ進んではならない。
     await page.getByTestId('editor-discard-draft').click();
-    await expect.poll(() => app.evaluate(async () =>
+    await expect.poll(() => evalMain(app, async () =>
       ((globalThis as any).__fxReleaseHarness?.calls ?? []).length
     )).toBe(1);
-    const firstCall = await app.evaluate(() => (globalThis as any).__fxReleaseHarness.calls[0]);
+    const firstCall = await evalMain(app, () => (globalThis as any).__fxReleaseHarness.calls[0]);
     expect(firstCall).toMatchObject({ slug: 'release-discard-test', assetUid: uid });
     await expect(page.locator('[data-diagnostic-scope="operation"]')).toBeVisible();
     await expect(page.getByTestId('basemap-editor')).toBeVisible();
@@ -847,7 +848,7 @@ test('release failure keeps the editor uid and draft until discard retry succeed
     // 2回目は実original handlerへ通し、release成功後にだけclose/draft削除が完了する。
     await setReleaseFailure(app, false);
     await page.getByTestId('editor-discard-draft').click();
-    await expect.poll(() => app.evaluate(async () =>
+    await expect.poll(() => evalMain(app, async () =>
       ((globalThis as any).__fxReleaseHarness?.calls ?? []).length
     )).toBe(2);
     await expect(page.getByTestId('basemap-editor')).toHaveCount(0);

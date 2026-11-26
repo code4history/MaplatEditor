@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 const APP_ID = 'pwa-export-app';
 const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/pwa-baseline.json');
@@ -37,7 +38,7 @@ test.describe('PWA 画像を Electron の Chromium で描く', () => {
     try {
       await stubMessageBoxAutoOk(app);
       const zipPath = path.join(e2eRoot, 'pwa-app.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
       }, zipPath);
 
@@ -69,7 +70,7 @@ test.describe('PWA 画像を Electron の Chromium で描く', () => {
 
       // Chrome 起動の見張りを main に入れる。main は ESM なので dynamic import は使えず、
       // Node の組み込みモジュールは process.getBuiltinModule で取る（CJS の実体を横取りする）
-      const spyInstalled = await app.evaluate(() => {
+      const spyInstalled = await evalMain(app, () => {
         const cp = (process as unknown as {
           getBuiltinModule: (id: string) => Record<string, unknown>;
         }).getBuiltinModule('node:child_process');
@@ -107,7 +108,7 @@ test.describe('PWA 画像を Electron の Chromium で描く', () => {
       }
 
       // (b) Chrome を起動していない
-      const cpCalls = await app.evaluate(async () => {
+      const cpCalls = await evalMain(app, async () => {
         const g = globalThis as unknown as { __editor174CpCalls?: string[] };
         return g.__editor174CpCalls ?? [];
       });
@@ -145,7 +146,7 @@ test.describe('PWA 画像を Electron の Chromium で描く', () => {
       expect(sampleAlpha.length).toBe(54);
 
       // (c) 例外が出ない（見張りが空振りしていないことも確かめる）
-      await app.evaluate(() => { console.error('editor174-probe'); });
+      await evalMain(app, () => { console.error('editor174-probe'); });
       await expect.poll(() => mainErrors.includes('editor174-probe'), { timeout: 10000 }).toBe(true);
       mainErrors.length = 0;
       expect(pageErrors, 'renderer に例外が出ない').toEqual([]);

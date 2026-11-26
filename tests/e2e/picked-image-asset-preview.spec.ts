@@ -16,6 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { pickImageToken } from './helpers/pickedImage';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const LOCAL_URL_PREFIX = 'app://bundle/__local';
@@ -37,7 +38,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 // 次のクリックで選ばれる画像を差し替える（実 main の dialog を差し替える。前例）
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   }, imagePath);

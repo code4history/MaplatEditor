@@ -10,6 +10,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -33,7 +34,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 // 同文法）。未 stub のままだとネイティブダイアログ待ちで saveHandle.applySuccess が返らず、
 // 保存状態が「保存中…」のまま止まる（saveHandle は showMessageBox の resolve を await する）
 async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

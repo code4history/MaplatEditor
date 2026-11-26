@@ -13,6 +13,7 @@ import AdmZip from 'adm-zip';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -26,7 +27,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
   // 保存の途中で出る native の確認の窓は既定のボタンで閉じる
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page };
@@ -258,7 +259,7 @@ test.describe('directgo edit', () => {
       const slug = 'directgo-demo-pois';
       const uid = await seedSource(page, slug, fixture.features);
       const zipPath = process.env.DIRECTGO_DEMO_EXPORT_PATH || path.join(e2eRoot, 'directgo-demo.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
       }, zipPath);
       const exportResult = await page.evaluate(async (poiUid) => window.appedit.export({

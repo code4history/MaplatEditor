@@ -18,6 +18,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -91,7 +92,7 @@ test('取込で作られた地図とは別に、身寄りのない下書きが�
     // ファイル選択に **数秒かかる**状態を作る。実際の利用ではファイルピッカーを操作する間、
     // エディタは「新規」のまま待機し、その窓で useInitialDraftPersist が初期下書きを書く。
     // 即時 resolve するスタブでは窓が開かず欠陥が出ない（＝ 競合の忠実な再現に必要）
-    await app.evaluate(async ({ dialog }, inZip) => {
+    await evalMain(app, async ({ dialog }, inZip) => {
       dialog.showOpenDialog = (async () => {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         return { canceled: false, filePaths: [inZip] };

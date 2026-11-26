@@ -12,6 +12,7 @@ import AdmZip from 'adm-zip';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { serveStatic } from './glRender';
+import { evalMain } from './evalMain';
 
 export type RequestRecord = { path: string; status: number };
 
@@ -33,7 +34,7 @@ export async function openInWindow(app: ElectronApplication, url: string, size =
   win: Page; consoleLines: { type: string; text: string }[]; pageErrors: string[];
 }> {
   const windowPromise = app.waitForEvent('window');
-  await app.evaluate(({ BrowserWindow }, s) => {
+  await evalMain(app, ({ BrowserWindow }, s) => {
     const w = new BrowserWindow({ width: s.width, height: s.height, show: true });
     void w.loadURL('about:blank');
   }, size);
@@ -55,7 +56,7 @@ export async function routeOsmTilesToFixture(app: ElectronApplication): Promise<
 }> {
   const requests: RequestRecord[] = [];
   const server = await serveStatic(OSM_TILE_FIXTURE_ROOT, { cors: true, requests });
-  await app.evaluate(({ session }, origin) => {
+  await evalMain(app, ({ session }, origin) => {
     session.defaultSession.webRequest.onBeforeRequest({ urls: ['https://tile.openstreetmap.org/*', 'https://*.tile.openstreetmap.org/*'] }, (details, callback) => {
       const u = new URL(details.url);
       callback({ redirectURL: `${origin}${u.pathname}` });
@@ -65,7 +66,7 @@ export async function routeOsmTilesToFixture(app: ElectronApplication): Promise<
     origin: server.origin,
     requests,
     unroute: async () => {
-      await app.evaluate(({ session }) => { session.defaultSession.webRequest.onBeforeRequest(null); });
+      await evalMain(app, ({ session }) => { session.defaultSession.webRequest.onBeforeRequest(null); });
       await server.close();
     },
   };

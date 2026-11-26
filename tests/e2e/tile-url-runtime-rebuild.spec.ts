@@ -21,6 +21,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const EXT_URL = 'https://example.com/tiles/{z}/{x}/{y}.png';
@@ -47,7 +48,7 @@ async function openHash(page: Page, hash: string, waitFor?: string): Promise<voi
 
 /** upload-tile-refresh・tile-restore-on-undo と同型のダイアログ差し替えハーネス */
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   }, imagePath);
@@ -246,7 +247,7 @@ test.describe('編集済みタイルURLのランタイムタイル源再構築',
     try {
       // 既存の保存済み地図を開いて編集する（新規地図の保存は本 AC の関心ではない）
       const { uid } = await seedSavedMap(page);
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       await openHash(page, `#/mapedit?uid=${uid}`, '[data-testid="map-title"]');

@@ -24,6 +24,7 @@ import {
   COLOR_HITS_MIN, FIXTURE_STYLE, OSM_BRIGHT_STYLE, STYLE_ERROR, launchWithWebGlStage, sampleWindow, saveShot,
   serveStatic, stageNote, type Stage,
 } from './helpers/glRender';
+import { evalMain } from './helpers/evalMain';
 
 // 他の spec と衝突しない固定ポート
 const PREVIEW_PORT = 45793;
@@ -38,7 +39,7 @@ let styleServer: { origin: string; close: () => Promise<void> };
 
 /** main の dialog.showMessageBox を差し替え、引数を記録して、responses の順に答える（尽きたら 0） */
 async function stubDialogs(responses: number[] = []): Promise<void> {
-  await app.evaluate(async ({ dialog }, rs) => {
+  await evalMain(app, async ({ dialog }, rs) => {
     const g = globalThis as Record<string, unknown>;
     g.__mvDialogLog = [];
     g.__mvDialogResponses = [...rs];
@@ -52,7 +53,7 @@ async function stubDialogs(responses: number[] = []): Promise<void> {
 }
 
 async function dialogLog(): Promise<DialogCall[]> {
-  return app.evaluate(() => ((globalThis as Record<string, unknown>).__mvDialogLog as DialogCall[]) ?? []);
+  return evalMain(app, () => ((globalThis as Record<string, unknown>).__mvDialogLog as DialogCall[]) ?? []);
 }
 
 async function saveFolder(): Promise<string> {
@@ -131,7 +132,7 @@ async function save(): Promise<void> {
 /** 画面の書き出しのボタンから書き出す（書き出しの小窓は「書き出す」で閉じる）。zip を展開したディレクトリを返す */
 async function exportFromUi(label: string): Promise<string> {
   const zip = path.join(e2eRoot, `${label}.zip`);
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zip);
   await page.locator('[data-editor-action="export"]').click();
@@ -303,7 +304,7 @@ test.describe('MapLibre GL JS の版の選択とスタイルの判定', () => {
     expect(v6Html).toContain('<script type="importmap">');
     const server = await serveStatic(v6Dir);
     const windowPromise = app.waitForEvent('window');
-    await app.evaluate(({ BrowserWindow }) => {
+    await evalMain(app, ({ BrowserWindow }) => {
       const w = new BrowserWindow({ width: 1000, height: 700, show: true });
       void w.loadURL('about:blank');
     });

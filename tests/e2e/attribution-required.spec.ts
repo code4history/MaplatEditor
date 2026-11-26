@@ -18,6 +18,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
+import { evalMain } from './helpers/evalMain';
 
 async function forceJapanese(page: Page): Promise<void> {
   await page.evaluate(() => window.settings.set('lang', 'ja'));
@@ -115,7 +116,7 @@ test('帰属表記の無い地図・ベースマップは一覧と編集画面�
   page.on('pageerror', (error) => pageErrors.push(error.message));
   try {
     // 保存の確かめなどのネイティブのダイアログは OK で答える
-    await app.evaluate(async ({ dialog }) => {
+    await evalMain(app, async ({ dialog }) => {
       dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
     });
     await seedE2EProviderKeys(page);
@@ -298,7 +299,7 @@ test('新規のベースマップは出典が空だと保存できず、main の
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   try {
-    await app.evaluate(async ({ dialog }) => {
+    await evalMain(app, async ({ dialog }) => {
       dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
     });
     await forceJapanese(page);

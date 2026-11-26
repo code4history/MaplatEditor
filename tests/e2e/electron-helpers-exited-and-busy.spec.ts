@@ -28,7 +28,6 @@ async function startBusyMain(
   app: ElectronApplication,
   options: { busyMs: number; rounds: number; dialogAtRound?: number; gcInMicrotask?: boolean },
 ): Promise<void> {
-  // 仕込みは塞ぐ前に届くので、どの形の evaluate でも落ちない
   await evalMain(app, async ({ dialog }, { busyMs, rounds, dialogAtRound, gcInMicrotask }) => {
     const state = globalThis as any;
     state.__busyRounds = 0;
@@ -77,7 +76,7 @@ test.describe('e2e の共通 helper（終わったアプリ・忙しい main）'
     const child = app.process();
     try {
       const closed = new Promise<void>((resolve) => app.once('close', () => resolve()));
-      await app.evaluate(async ({ app: electronApp }) => {
+      await evalMain(app, async ({ app: electronApp }) => {
         setTimeout(() => electronApp.quit(), 0);
       }).catch(() => undefined); // 終わるのが速いと evaluate の応答が届かない
       await closed;
@@ -97,44 +96,18 @@ test.describe('e2e の共通 helper（終わったアプリ・忙しい main）'
     const { app } = await launch(root);
     try {
       const confirmation = await captureNativeConfirmation(app);
-
-      // main を、メモリを確保し続ける JS で細切れに塞ぐ。塞いでいる間に届いた evaluate は実行中の JS に割り込んで
-      // 処理され、同期の値を返す evaluate だと、結果を運ぶ Promise が次の GC で回収されて
-      // 「Resulting promise was garbage collected.」になる。2 回目の区切りで確認を出す
-      await app.evaluate(async ({ dialog }, { busyMs, rounds }) => {
-        const state = globalThis as any;
-        state.__busyRounds = 0;
-        state.__busyStop = false;
-        const burn = () => {
-          const end = Date.now() + busyMs;
-          const keep: unknown[] = [];
-          while (Date.now() < end) {
-            for (let i = 0; i < 2000; i++) keep.push({ i, text: 'x'.repeat(64) + i });
-            if (keep.length > 200_000) keep.length = 0;
-          }
-          state.__busyRounds += 1;
-          if (state.__busyRounds === 2) {
-            void dialog.showMessageBox({ message: 'busy-main', buttons: ['いいえ', 'はい'] })
-              .then((result) => { state.__busyAnswer = result.response; });
-          }
-          if (!state.__busyStop && state.__busyRounds < rounds) setTimeout(burn, 0);
-        };
-        setTimeout(burn, 0);
-      }, { busyMs: 250, rounds: 40 });
+      // 2 回目の区切りで確認を出す
+      await startBusyMain(app, { busyMs: 250, rounds: 40, dialogAtRound: 2 });
 
       const prompt = await confirmation.wait();
       expect(prompt.message).toBe('busy-main');
       expect(prompt.buttons).toEqual(['いいえ', 'はい']);
       await confirmation.answer(1);
-      await expect.poll(() => app.evaluate(async () => (globalThis as any).__busyAnswer)).toBe(1);
+      await expect.poll(() => evalMain(app, () => (globalThis as any).__busyAnswer)).toBe(1);
       await confirmation.restore();
 
       // ここまでの間、main は塞がり続けていた（塞ぐ区切りを使い切っていない）
-      const rounds = await app.evaluate(async () => {
-        const state = globalThis as any;
-        state.__busyStop = true;
-        return state.__busyRounds as number;
-      });
+      const rounds = await stopBusyMain(app);
       expect(rounds).toBeGreaterThanOrEqual(2);
       expect(rounds).toBeLessThan(40);
     } finally {

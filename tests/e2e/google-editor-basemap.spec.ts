@@ -17,6 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const GOOGLE_HOST = 'tile.googleapis.com';
@@ -50,7 +51,7 @@ async function resetEditorKeys(page: Page): Promise<void> {
  * 保持するのは host/method/path のみ（URL 全体・クエリのキーは保持しない）。
  */
 async function installGoogleRequestBlocker(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ session }, host) => {
+  await evalMain(app, ({ session }, host) => {
     const state = ((globalThis as any).__feat3 = (globalThis as any).__feat3 ?? { observed: [], served403: 0 });
     state.observed = [];
     state.served403 = 0;
@@ -68,7 +69,7 @@ async function installGoogleRequestBlocker(app: ElectronApplication): Promise<vo
 
 /** 観測結果の集計だけを返す（キーを含み得る URL は返さない） */
 async function googleRequestSummary(app: ElectronApplication): Promise<{ total: number; createSession: number }> {
-  return app.evaluate(({ }, host) => {
+  return evalMain(app, ({ }, host) => {
     const state = (globalThis as any).__feat3 ?? { observed: [] };
     const rows: { method: string; host: string; path: string }[] = state.observed ?? [];
     return {
@@ -170,7 +171,7 @@ test('キー設定済みなら google が出て、選ぶと createSession への
 
     // 指示1 の後段: webRequest を外し、https を protocol.handle で受けて 403 を返す。
     // そのうえで別の google を選び直し、403 応答の本文が注記へ載ることを確かめる
-    await app.evaluate(({ session, net }) => {
+    await evalMain(app, ({ session, net }) => {
       const state = (globalThis as any).__feat3;
       (session.defaultSession.webRequest as any).onBeforeRequest(null);
       session.defaultSession.protocol.handle('https', (request: any) => {
@@ -189,7 +190,7 @@ test('キー設定済みなら google が出て、選ぶと createSession への
       page.getByTestId('base-map-google-failed'),
       '403 を受けたときの注記が出ていない（または API の文言が載っていない）',
     ).toContainText('e2e forced forbidden', { timeout: 30_000 });
-    const served403 = await app.evaluate(() => (globalThis as any).__feat3.served403 as number);
+    const served403 = await evalMain(app, () => (globalThis as any).__feat3.served403 as number);
     expect(served403, '403 を返す経路が実際には走っていない').toBeGreaterThan(0);
 
     expect(pageErrors, 'pageerror が出ている').toEqual([]);

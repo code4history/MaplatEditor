@@ -3,6 +3,7 @@ import { copyFile, mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -22,7 +23,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 }
 
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   }, imagePath);

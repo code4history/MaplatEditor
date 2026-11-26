@@ -28,6 +28,7 @@ import {
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 import { seedE2EProviderKeys } from './helpers/providerKeys';
 import { PROVIDER_GL_CDN } from '../../electron/services/providerGlCdn';
+import { evalMain } from './helpers/evalMain';
 
 // 他の spec（45782・45784 等）と衝突しない固定ポート
 const PREVIEW_PORT = 45791;
@@ -129,7 +130,7 @@ async function iframeRect(): Promise<{ x: number; y: number; width: number; heig
 /** アプリを書き出し、zip を展開して配り、BrowserWindow で開く */
 async function openExport(uid: string, label: string): Promise<{ win: Page; lines: ConsoleLine[]; close: () => Promise<void> }> {
   const zipPath = path.join(e2eRoot, `${label}.zip`);
-  await app.evaluate(async ({ dialog }, outZip) => {
+  await evalMain(app, async ({ dialog }, outZip) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
   }, zipPath);
   const result = await page.evaluate(async (u) => {
@@ -150,7 +151,7 @@ async function openExport(uid: string, label: string): Promise<{ win: Page; line
   new AdmZip(zipPath).extractAllTo(dir, true);
   const server = await serveStatic(dir);
   const windowPromise = app.waitForEvent('window');
-  await app.evaluate(({ BrowserWindow }) => {
+  await evalMain(app, ({ BrowserWindow }) => {
     const w = new BrowserWindow({ width: 1000, height: 700, show: true });
     void w.loadURL('about:blank');
   });
@@ -211,7 +212,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
   test('case 4 MapLibre GL JS の読み込みが失敗しても、プレビューのアプリは起動する', async () => {
     annotateStage();
     const from = consoleLines.length;
-    await app.evaluate(({ session }) => {
+    await evalMain(app, ({ session }) => {
       session.defaultSession.webRequest.onBeforeRequest({ urls: ['https://cdn.jsdelivr.net/npm/maplibre-gl@*'] }, (_d, cb) => cb({ cancel: true }));
     });
     try {
@@ -226,7 +227,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
       expect(lines.some((l) => l.text.includes(LOAD_FAILED)), 'コンソールに読み込みの失敗の行が無い').toBe(true);
       expect(started, `アプリが起動しない（window.__maplatPreview が無い）: ${bodyText}`).toBe(true);
     } finally {
-      await app.evaluate(({ session }) => { session.defaultSession.webRequest.onBeforeRequest(null); });
+      await evalMain(app, ({ session }) => { session.defaultSession.webRequest.onBeforeRequest(null); });
     }
   });
 

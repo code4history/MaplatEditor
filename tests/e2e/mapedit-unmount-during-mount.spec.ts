@@ -16,6 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+import { evalMain } from './helpers/evalMain';
 
 // 関門を開けたあと、onMounted の続き（router.replace・リスナー登録）が走りきるまで待つ時間
 const SETTLE_MS = 2_000;
@@ -42,7 +43,7 @@ test.describe('MapEdit: mount の途中で画面を離れたとき', () => {
       const wmtsFolder = path.join(saveFolder, 'wmts');
 
       // onMounted の最初の await（mapedit:getWmtsFolder）を関門で止める
-      await app.evaluate(({ ipcMain }, folder) => {
+      await evalMain(app, ({ ipcMain }, folder) => {
         const g = globalThis as unknown as { __unmountGate: { calls: number; release: () => void } };
         let release!: () => void;
         const gate = new Promise<void>((resolve) => { release = resolve; });
@@ -59,7 +60,7 @@ test.describe('MapEdit: mount の途中で画面を離れたとき', () => {
 
       // 新規地図の編集画面を開き、onMounted が関門で止まるのを待つ
       await page.evaluate(() => { location.hash = '#/mapedit?new=1'; });
-      await expect.poll(() => app.evaluate(async () =>
+      await expect.poll(() => evalMain(app, async () =>
         (globalThis as unknown as { __unmountGate: { calls: number } }).__unmountGate.calls), { timeout: 20000 }).toBe(1);
 
       // mount の途中で一覧へ移り、一覧が出て編集画面が消えるのを待つ
@@ -69,7 +70,7 @@ test.describe('MapEdit: mount の途中で画面を離れたとき', () => {
       expect(await page.evaluate(() => location.hash)).toBe('#/maplist');
 
       // 関門を開け、onMounted の続きが走りきるのを待つ
-      await app.evaluate(() => {
+      await evalMain(app, () => {
         (globalThis as unknown as { __unmountGate: { release: () => void } }).__unmountGate.release();
       });
       await page.waitForTimeout(SETTLE_MS);

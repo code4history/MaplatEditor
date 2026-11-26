@@ -23,6 +23,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch, openHash, stubMessageBoxAutoOk } from './helpers/mapPackage';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 import { openInWindow, routeOsmTilesToFixture, serveExportedZip } from './helpers/exportedApp';
+import { evalMain } from './helpers/evalMain';
 
 const UI_APP_ID = 'map-cache-exclusion-ui';
 const EXPORT_APP_ID = 'map-cache-exclusion-export';
@@ -97,7 +98,7 @@ async function savedSources(uid: string): Promise<any[]> {
 
 async function exportFromUi(label: string): Promise<string> {
   const zip = path.join(e2eRoot, `${label}.zip`);
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zip);
   await page.locator('[data-editor-action="export"]').click();

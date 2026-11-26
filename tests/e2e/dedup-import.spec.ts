@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { expectNoFailureNotice } from './helpers/operationNotice';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -172,7 +173,7 @@ test.describe('Dedup/Import', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       // 保存成功ダイアログを自動承認
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       await openHash(page, '#/poisources');
@@ -214,7 +215,7 @@ test.describe('Dedup/Import', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       // まずキャンセル経路: picker がキャンセルを返すと未作成モードのまま何も作られない
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showOpenDialog = (async () => ({ canceled: true, filePaths: [] })) as typeof dialog.showOpenDialog;
       });
       await openHash(page, '#/poisources');
@@ -232,7 +233,7 @@ test.describe('Dedup/Import', () => {
         type: 'FeatureCollection',
         features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [139.7, 35.6] }, properties: { name: 'Imported POI' } }],
       }));
-      await app.evaluate(async ({ dialog }, filePath) => {
+      await evalMain(app, async ({ dialog }, filePath) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [filePath] })) as typeof dialog.showOpenDialog;
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       }, geojsonPath);
@@ -256,7 +257,7 @@ test.describe('Dedup/Import', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       // MapEdit の保存は確認ダイアログ(main process)を経由するため stub で承認する
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const seeded = await seedMap(page);
@@ -424,7 +425,7 @@ test.describe('Dedup/Import', () => {
       await expect(page.locator('[data-resource-import]')).toBeVisible({ timeout: 5000 });
 
       // POI複製 → 未作成モード（/poisources/new?duplicateFrom=...）で dirty に開き、保存まで行は増えない
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const poi = await seedPoi(page, true);
@@ -466,7 +467,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-draft-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       // removeNewDraft の native confirm は protocol dialog より renderer 側 stub が確実
@@ -551,7 +552,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-live-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
 
@@ -601,7 +602,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-release-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
 
@@ -651,7 +652,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-reload-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       // 複製で開き、feature を1件追加してからリロード（復元競合なく dirty 復元されること）
@@ -685,7 +686,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-postsave-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       // 新規作成 → slug 入力 → 保存（行作成 + draft lifecycle が保存済み行 identity へ再構成される）
@@ -730,7 +731,7 @@ test.describe('Dedup/Import', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-t10b-restored-save-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       // 下書きを作成（新規で slug 入力 → focus 維持 flush）

@@ -18,6 +18,7 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -56,7 +57,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 // MapEdit の保存は confirm ダイアログ（「変更を保存します。よろしいですか?」）を挟むため、
 // これを入れないと editor-save-state が「保存済み」にならずタイムアウトする。
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

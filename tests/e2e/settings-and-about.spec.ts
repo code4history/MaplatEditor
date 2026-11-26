@@ -118,7 +118,7 @@ test.describe('設定画面・アプリケーションメニュー・About ウ�
     try {
       await forceJapanese(page);
       await openHash(page, '#/settings', '#langSwitcher');
-      await app.evaluate(({ dialog }) => {
+      await evalMain(app, ({ dialog }) => {
         const g = globalThis as any;
         g.__messages = [];
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: ['//server/share'] })) as any;
@@ -134,7 +134,7 @@ test.describe('設定画面・アプリケーションメニュー・About ウ�
       // 失敗は通知だけなので、ネイティブのダイアログではなく画面上部のバナーに出る（docs/ui-grammar.md §5.3）
       await expect(page.getByTestId('operation-notice')).toContainText('データフォルダを保存できませんでした');
       await expect(page.getByTestId('operation-notice')).toHaveAttribute('data-diagnostic-severity', 'danger');
-      expect(await app.evaluate(() => (globalThis as any).__messages)).toEqual([]);
+      expect(await evalMain(app, () => (globalThis as any).__messages)).toEqual([]);
       expect(await page.evaluate(() => window.settings.get('saveFolder'))).not.toBe('//server/share');
       expect(await page.evaluate(() => window.settings.get('updateCheckEnabled'))).toBe(before);
     } finally {

@@ -20,6 +20,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { readOperationNotice } from './helpers/operationNotice';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 const APP_ID = 'editor-splash-svg-app';
 /** 図柄の色（青）。背景色 #f6f0d3 と区別できる色を選ぶ */
@@ -54,7 +55,7 @@ test.describe('editor-splash-svg: スプラッシュに SVG を指定する', ()
     try {
       await stubMessageBoxAutoOk(app);
       const zipPath = path.join(e2eRoot, 'splash-svg-app.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
       }, zipPath);
 
@@ -96,7 +97,7 @@ test.describe('editor-splash-svg: スプラッシュに SVG を指定する', ()
 
       // スプラッシュの指定ダイアログを差し替える（実 main の dialog。前例）
       const installDialog = async (file: string) => {
-        await app.evaluate(async ({ dialog }, selected) => {
+        await evalMain(app, async ({ dialog }, selected) => {
           dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selected] })) as typeof dialog.showOpenDialog;
         }, file);
       };
@@ -217,7 +218,7 @@ test.describe('editor-splash-svg: og:image を描けないとき', () => {
     const { app, page } = await launch(e2eRoot);
     try {
       const zipPath = path.join(e2eRoot, 'missing-svg-app.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
         // 書き出し結果の警告（detail）を読めるように、自動 OK しつつ控える
         const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
@@ -270,7 +271,7 @@ test.describe('editor-splash-svg: og:image を描けないとき', () => {
       const pngEntries = zip.getEntries().filter((e) => /_og\.png$/.test(e.entryName));
       expect(pngEntries, 'og:image の PNG を残さない').toEqual([]);
 
-      const nativeMessages = await app.evaluate(async () => {
+      const nativeMessages = await evalMain(app, async () => {
         const g = globalThis as unknown as { __splashSvgMessages?: { message?: string; detail?: string }[] };
         return g.__splashSvgMessages ?? [];
       });
