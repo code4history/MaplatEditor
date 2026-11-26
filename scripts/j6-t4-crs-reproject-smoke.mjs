@@ -288,3 +288,13 @@ test('実 Tin の B 採用、GCP 編集による降格、Undo・Redo・下書き
   });
   assert.deepEqual(saved, { ok: true });
 });
+
+test('外周を持たない旧 V2 副層は主図の外周または画像矩形を使う', () => {
+  const customBounds = [[0, 0], [20, 0], [15, 20], [0, 15]];
+  assert.deepEqual(transformLayerFromDocument('sub:1', {}, undefined, {
+    width: 20, height: 20, bounds: customBounds,
+  }).bounds, customBounds);
+  assert.deepEqual(transformLayerFromDocument('sub:1', {}, undefined, {
+    width: 30, height: 20,
+  }).bounds, [[0, 0], [30, 0], [30, 20], [0, 20]]);
+});

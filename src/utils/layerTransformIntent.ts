@@ -45,14 +45,22 @@ export function seedCompiledTin(layer: TransformLayer, compiled: CompiledTransfo
   return tin;
 }
 
+type LayerDocumentDefaults = Partial<LayerBuildOptions> & { width?: number; height?: number; bounds?: number[][] };
+
 export function transformLayerFromDocument(
   layerId: string,
   layer: any,
   compiled: any,
-  defaults?: Partial<LayerBuildOptions>,
+  defaults?: LayerDocumentDefaults,
 ): TransformLayer {
   const actual = typeof compiled === 'object' && compiled !== null ? compiled : layer?.compiled;
   const intent = deriveIntentFromStoredLayer(layer, actual);
+  const width = Number(defaults?.width) || 0;
+  const height = Number(defaults?.height) || 0;
+  const defaultBounds = defaults?.bounds ?? (width && height ? [[0, 0], [width, 0], [width, height], [0, height]] : undefined);
+  const bounds = layerId === 'main'
+    ? [Number(layer?.width) || 0, Number(layer?.height) || 0]
+    : layer?.bounds ?? actual?.bounds ?? defaultBounds;
   const gcps: TransformLayer['gcps'] = cloneDeep(layer?.gcps ?? actual?.points ?? []);
   const edges: TransformLayer['edges'] = cloneDeep(normalizeEdges(layer?.edges ?? actual?.edges ?? []));
   // 投影済み層の編集・履歴・下書きには、東・北の外部 CRS 座標を入れる。
@@ -67,9 +75,7 @@ export function transformLayerFromDocument(
     buildOptions: deriveLayerBuildOptions(layer, actual, defaults),
     gcps,
     edges: fromFollow ? reverseFollowEdgeAxis(edges) : edges,
-    ...(layer?.bounds !== undefined || layerId === 'main'
-      ? { bounds: cloneDeep(layerId === 'main' ? [Number(layer?.width) || 0, Number(layer?.height) || 0] : layer.bounds) }
-      : {}),
+    ...(bounds !== undefined ? { bounds: cloneDeep(bounds) } : {}),
     ...(layer?.importance !== undefined ? { importance: layer.importance } : {}),
     ...(layer?.priority !== undefined ? { priority: layer.priority } : {}),
   };

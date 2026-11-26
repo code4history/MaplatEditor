@@ -208,6 +208,11 @@ async function seedMapWithEdge(page: Page): Promise<{ uid: string; slug: string 
 // backend の load 経路は url_ を再導出するため seed 時の url_ は保持されない。
 // GCP タブを使える状態にするため page 側で url_ を設定して loadMapTiles を起動する（edge-split と同型）
 async function forceGcpsTabReady(page: Page): Promise<void> {
+  // 初期化が終わる前に URL を注入すると、初回のタイル読み込みと試験の読み込みが重なる。
+  await page.waitForFunction(() => {
+    const debug = (window as any).testDebug;
+    return Boolean(debug?.illstMapInfo().map && debug?.mercMapInfo().map);
+  });
   await page.evaluate(() => {
     (window as any).testDebug.mapData.value.url_ =
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';

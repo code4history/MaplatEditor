@@ -808,6 +808,7 @@ function snapshotForHistoryState(state: MapEditHistoryState): LayerTransformSnap
             : document;
         const layer = transformLayerFromDocument(layerId, source, document.compiled, {
             strictMode: state.strictMode, vertexMode: state.vertexMode, yaxisMode: state.mapData.yaxisMode,
+            width: state.mapData.width, height: state.mapData.height, bounds: state.mapData.bounds,
         });
         layer.intent = state.layerTransformIntents?.[layerId] ?? layer.intent;
         layer.buildOptions = state.layerBuildOptions?.[layerId] ?? layer.buildOptions;
