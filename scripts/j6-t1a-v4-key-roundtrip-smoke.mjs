@@ -45,7 +45,7 @@ try {
     import DataUploadService from '../../electron/services/DataUploadService';
     import MapEditService from '../../electron/services/MapEditService';
     import MapPurposeService from '../../electron/services/MapPurposeService';
-    import { store2HistMap, histMap2Store } from '../../electron/utils/store_handler';
+    import { store2HistMap, store2HistMap4Core, histMap2Store } from '../../electron/utils/store_handler';
     import { composeDownloadMapJson } from '../../electron/utils/mapDownloadZip';
     import { buildExportManifest, EXPORT_MANIFEST_NAME } from '../../src/utils/exportOptions';
 
@@ -259,6 +259,23 @@ try {
     assert.equal(sqlBbox.get(JSON.stringify(map(legacy, [bSub].map(layer => ({ compiled: { ...layer.compiled, outerTransform: undefined } }))))).bbox,
       '[-100,10,300,50]', '従来形式は主図の範囲を返す');
     console.log('受け入れ条件5: 半画素・非 3857・follow の主図と副層の bbox が一致し、不正値は null');
+
+    // 再レビューの軽微な指摘: sub_maps: null は「副層なし」として開ける（master・Core と同じ）
+    {
+      const nullSub = { title: 'null-sub', width: 100, height: 100, gcps: [], edges: [], sub_maps: null };
+      const [opened] = await store2HistMap(structuredClone(nullSub));
+      assert.ok(opened.sub_maps === undefined || (Array.isArray(opened.sub_maps) && opened.sub_maps.length === 0));
+      await assert.rejects(() => store2HistMap({ ...structuredClone(nullSub), sub_maps: 'x' }), /sub_maps/);
+      console.log('再レビュー: sub_maps が null の地図は副層なしとして開ける');
+    }
+    // 再レビューの軽微な指摘: store2HistMap4Core が副層を落とさない
+    {
+      const sub = { importance: 1, priority: 1, gcps: [], edges: [], bounds: [[0, 0], [50, 0], [50, 50], [0, 50]] };
+      const two = { title: 'two-sub', width: 100, height: 100, gcps: [], edges: [], sub_maps: [structuredClone(sub), structuredClone(sub)] };
+      const [core] = await store2HistMap4Core(structuredClone(two));
+      assert.equal(core.sub_maps.length, 2);
+      console.log('再レビュー: store2HistMap4Core が副層を落とさない');
+    }
   `);
 
   await build({

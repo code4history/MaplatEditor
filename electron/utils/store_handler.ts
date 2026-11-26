@@ -188,7 +188,8 @@ function cleanStoredLayer<T extends StoredLayer>(layer: T): T {
 
 export function normalizeStoredTransformKeys<T extends HistMapStore>(store: T): T {
   const cleaned = cleanStoredLayer(store);
-  if (store.sub_maps !== undefined) {
+  // null は「副層なし」として扱う（master と Core の読み込みと同じ）
+  if (store.sub_maps != null) {
     if (!Array.isArray(store.sub_maps)) throw new Error("sub_maps は配列で指定してください");
     cleaned.sub_maps = store.sub_maps.map(cleanStoredLayer);
   }
@@ -342,8 +343,10 @@ async function store2HistMap_internal(
   }
 
   if (store.sub_maps) {
+    // coreLogic では ret と store が同じオブジェクトなので、元の配列を控えてから置き換える
+    const sourceSubMaps = store.sub_maps;
     ret.sub_maps = [];
-    for (const layer of store.sub_maps) {
+    for (const layer of sourceSubMaps) {
       const sub: SubMap = { importance: layer.importance, priority: layer.priority };
       if (layer.crs !== undefined) sub.crs = layer.crs;
       if (layer.tinEnabled === false) {
