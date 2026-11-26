@@ -175,6 +175,39 @@ test('表 4　層の削除は記録・世代を進めてその層の揮発状態
     assert.equal(requests.length, 1);
 });
 
+for (const [operation, apply] of [
+    ['別の層の編集', (model) => model.editLayer('sub:a', { edges })],
+    ['順位の変更', (model) => model.changeLayerRanks([{ layerId: 'sub:a', priority: 2 }])],
+    ['層の追加', (model) => model.addLayer({ buildOptions: subOptions })],
+    ['別の層の削除', (model) => model.removeLayer('sub:a')],
+]) {
+    test(`生成中の引き継ぎ　${operation}の後も主図の生成が完了する`, async () => {
+        const jobs = controlledTin();
+        const { model } = fixture({
+            initial: [layer('main'), layer('sub:a')], build: jobs.build,
+        });
+        const original = model.requestTin('main');
+        await tick();
+        const [old] = jobs.waiting;
+        assert.equal(old.request.reqGen, 0);
+
+        assert.ok(apply(model));
+        assert.equal(model.editGeneration.value, 1);
+        await tick();
+        old.resolve({ tin: '古い主図' });
+        assert.equal(await original, false);
+        const retries = jobs.waiting.slice(1);
+        for (const { request, resolve } of retries) {
+            resolve({ tin: request.layerId === 'main' ? '新しい主図' : '操作対象の層' });
+        }
+        await tick();
+        assert.equal(tinState(model).status, 'ready');
+        assert.equal(tinState(model).tin, '新しい主図');
+        assert.deepEqual(retries.filter(({ request }) => request.layerId === 'main')
+            .map(({ request }) => request.reqGen), [1]);
+    });
+}
+
 test('表 5　採用開始は一時コピーだけを操作し採用 ID 付きで生成する', async () => {
     const jobs = controlledTin();
     const { model, history, events } = fixture({
@@ -437,6 +470,37 @@ test('追加 4　A・B・C・降格を含む下書きの再生成で三つの設
     assert.deepEqual(rebuilt.map(({ layer }) => layer), original.map(({ layer }) => layer));
     for (const { layerId } of initial) assert.deepEqual(tinState(after, layerId), tinState(before, layerId));
 });
+
+test('下書き復元で登録した副層 ID を直後の層追加で再使用しない', async () => {
+    const { model } = fixture();
+    assert.equal(await model.restoreDraft([layer('main'), layer('sub:1')]), true);
+    const added = model.addLayer({ buildOptions: subOptions });
+    assert.ok(added && added !== 'sub:1');
+    assert.deepEqual(model.layers.value.map(({ layerId }) => layerId), ['main', 'sub:1', added]);
+});
+
+for (const [invalid, ids] of [
+    ['重複する層 ID', ['main', 'sub:1', 'sub:1']],
+    ['空の層 ID', ['main', '']],
+    ['先頭が主図以外', ['sub:1', 'main']],
+]) {
+    test(`下書き復元で${invalid}を拒否し状態を保つ`, async () => {
+        const { model, history, requests } = fixture({ initial: [layer('main'), layer('sub:a')] });
+        await Promise.all(model.layers.value.map(({ layerId }) => model.requestTin(layerId)));
+        const before = model.capture();
+        const states = before.map(({ layerId }) => tinState(model, layerId));
+        const generation = model.editGeneration.value;
+        const requestCount = requests.length;
+
+        await assert.rejects(model.restoreDraft(ids.map((id) => layer(id, { gcps: gcps(9) }))),
+            /先頭の主図と重複のない層 ID が必要/);
+        assert.deepEqual(model.capture(), before);
+        assert.equal(model.editGeneration.value, generation);
+        assert.deepEqual(history, [before]);
+        assert.equal(requests.length, requestCount);
+        before.forEach(({ layerId }, index) => assert.equal(tinState(model, layerId), states[index]));
+    });
+}
 
 test('追加 5　検証待ちの採用中は編集・Undo・保存を拒否する', async () => {
     const validation = Promise.withResolvers();

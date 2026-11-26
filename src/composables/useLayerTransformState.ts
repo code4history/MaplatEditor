@@ -176,6 +176,17 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         state.value = { layers: next, editGeneration: state.value.editGeneration + 1, volatile };
     }
 
+    // editGeneration は全層で共通なので、世代を進める操作は対象外の層の未完の要求も古くする。
+    // 世代を進める前に要求が飛んでいる層を控え、操作の後も残っている層を新しい reqGen で要求し直す。
+    // §4.2 の「順位の変更は要求なし」は「最新（ready）の層には新しく要求しないが、生成中の要求は
+    // 新しい世代へ付け替える」と読む。対象の層と重なる要求は requestTin 内の
+    // 「同じ層・同じ世代の要求の共有」で一本に抑えられる。
+    function carryOverInFlight(inFlight: readonly string[]) {
+        for (const layerId of inFlight) {
+            if (state.value.volatile.has(layerId)) void requestTin(layerId);
+        }
+    }
+
     function setTin(layerId: string, tin: Volatile) {
         const volatile = new Map(state.value.volatile);
         volatile.set(layerId, tin);
@@ -247,9 +258,11 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
             status: 'stale', tin: previous?.tin,
             diagnostics: previous && 'diagnostics' in previous ? previous.diagnostics : undefined,
         });
+        const inFlight = [...jobs.keys()];
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
         void requestTin(layerId);
+        carryOverInFlight(inFlight);
         return true;
     }
 
@@ -258,8 +271,10 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const current = state.value.layers;
         const next = applyRanks(current, updates);
         if (next.every((layer, index) => layer === current[index])) return false;
+        const inFlight = [...jobs.keys()];
         replaceDocument(next);
         dependencies.history.commit(capture());
+        carryOverInFlight(inFlight);
         return true;
     }
 
@@ -275,9 +290,11 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const next = [...applyRanks(state.value.layers, ranks), layer];
         const volatile = new Map(state.value.volatile);
         volatile.set(layerId, { status: 'empty' });
+        const inFlight = [...jobs.keys()];
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
         void requestTin(layerId);
+        carryOverInFlight(inFlight);
         return layerId;
     }
 
@@ -287,8 +304,10 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const volatile = new Map(state.value.volatile);
         volatile.delete(layerId);
         jobs.delete(layerId);
+        const inFlight = [...jobs.keys()];
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
+        carryOverInFlight(inFlight);
         return true;
     }
 
