@@ -1,5 +1,9 @@
 import { cloneDeep } from 'lodash-es';
-import type { CrsObject, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
+import Tin from '@maplat/tin';
+import { normalizeEdges } from '@maplat/transform';
+import { compiledPointToExternalCrs, reverseFollowEdgeAxis } from './compiledGeo.ts';
+import { resolveTinBuildOptions } from './tinOptions.ts';
+import type { CompiledTransformData, CrsObject, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
 import type { LayerBuildOptions, LayerTransformIntent, TransformLayer } from '../composables/useLayerTransformState';
 
 export function deriveIntentFromStoredLayer(layer: any, compiled?: any): LayerTransformIntent {
@@ -19,8 +23,26 @@ export function deriveLayerBuildOptions(layer: any, compiled?: any, defaults?: P
   return {
     strictMode: (actual?.strictMode ?? layer?.strictMode ?? defaults?.strictMode ?? 'strict') as StrictMode,
     vertexMode: (actual?.vertexMode ?? layer?.vertexMode ?? defaults?.vertexMode ?? 'plain') as VertexMode,
-    yaxisMode: (actual?.yaxisMode ?? defaults?.yaxisMode ?? 'invert') as YaxisMode,
+    yaxisMode: (actual?.yaxisMode ?? layer?.yaxisMode ?? defaults?.yaxisMode ?? 'invert') as YaxisMode,
   };
+}
+
+export function resolveTransformLayerTinOptions(layer: TransformLayer) {
+  const { intent, buildOptions } = layer;
+  const document = intent.setup === 'legacyV2' ? {} : {
+    crs: intent.crs,
+    ...(intent.setup === 'A' ? { tinEnabled: false } : {}),
+    ...('worldFile' in intent ? { worldFile: intent.worldFile } : {}),
+  };
+  return resolveTinBuildOptions(document, buildOptions, intent.setup);
+}
+
+export function seedCompiledTin(layer: TransformLayer, compiled: CompiledTransformData): Tin {
+  const options = resolveTransformLayerTinOptions(layer);
+  if (!options) throw new Error('ワールドファイルだけの層に三角網は設定できません');
+  const tin = new Tin(options);
+  tin.setCompiled(compiled);
+  return tin;
 }
 
 export function transformLayerFromDocument(
@@ -29,13 +51,22 @@ export function transformLayerFromDocument(
   compiled: any,
   defaults?: Partial<LayerBuildOptions>,
 ): TransformLayer {
-  const intent = deriveIntentFromStoredLayer(layer, compiled);
+  const actual = typeof compiled === 'object' && compiled !== null ? compiled : layer?.compiled;
+  const intent = deriveIntentFromStoredLayer(layer, actual);
+  const gcps: TransformLayer['gcps'] = cloneDeep(layer?.gcps ?? actual?.points ?? []);
+  const edges: TransformLayer['edges'] = cloneDeep(normalizeEdges(layer?.edges ?? actual?.edges ?? []));
+  // 投影済み層の編集・履歴・下書きには、東・北の外部 CRS 座標を入れる。
+  // compiled 由来の点列だけ、読み込み時に Tin の内部軸を戻す。
+  const fromFollow = intent.setup !== 'legacyV2' && intent.setup !== 'A' && actual?.yaxisMode === 'follow';
+  if (fromFollow) {
+    for (const gcp of gcps) gcp[1] = compiledPointToExternalCrs(gcp[1], 'follow');
+  }
   return {
     layerId,
     intent,
-    buildOptions: deriveLayerBuildOptions(layer, compiled, defaults),
-    gcps: cloneDeep(layer?.gcps ?? []),
-    edges: cloneDeep(layer?.edges ?? []),
+    buildOptions: deriveLayerBuildOptions(layer, actual, defaults),
+    gcps,
+    edges: fromFollow ? reverseFollowEdgeAxis(edges) : edges,
     ...(layer?.bounds !== undefined || layerId === 'main'
       ? { bounds: cloneDeep(layerId === 'main' ? [Number(layer?.width) || 0, Number(layer?.height) || 0] : layer.bounds) }
       : {}),

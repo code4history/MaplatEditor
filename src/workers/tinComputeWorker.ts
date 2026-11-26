@@ -1,16 +1,6 @@
 import Tin from '@maplat/tin';
-import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
-import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions';
-
-interface TinUpdateRequest {
-  gcps: any[];
-  edges: any[];
-  index: number;
-  bounds: any;
-  strict: any;
-  vertex: any;
-  tinOptions?: TinOptions;
-}
+import type { TinUpdateRequest, TinUpdateResult } from '../services/editorComputeBackend';
+import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions.ts';
 
 interface WorkerRequest {
   id: number;
@@ -32,15 +22,15 @@ function normalizeTinError(err: unknown): string | null {
   return null;
 }
 
-async function updateTin(payload: TinUpdateRequest): Promise<[number, any, BoundaryDiagnostics | null]> {
+export async function updateTin(payload: TinUpdateRequest): Promise<TinUpdateResult> {
   const { gcps, edges, index, bounds, strict, vertex, tinOptions } = payload;
   if (gcps.length < 3) return [index, 'tooLessGcps', null];
 
   // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
   const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
   const tin = new Tin(options);
-  const wh = index === 0 ? bounds : null;
-  const bd = index !== 0 ? bounds : null;
+  const wh = index === 0 ? bounds as number[] | undefined : undefined;
+  const bd = index !== 0 ? bounds as number[][] | undefined : undefined;
   if (!applyTinGeometry(tin, options, { wh, bounds: bd })) {
     throw new Error('Both wh and bounds are missing');
   }
@@ -57,7 +47,7 @@ async function updateTin(payload: TinUpdateRequest): Promise<[number, any, Bound
   }
 }
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+if (typeof self !== 'undefined') self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { id, type, payload } = event.data;
   try {
     if (type !== 'updateTin') throw new Error(`Unknown worker request: ${type}`);

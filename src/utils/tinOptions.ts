@@ -36,16 +36,18 @@ export function resolveTinBuildOptions(
   intent?: LayerTransformIntent,
 ): TinOptions | null {
   if (layer.tinEnabled === false) return null;
+  const isLegacy = layer.crs === undefined || layer.crs === null;
   const yaxisMode = buildOptions.yaxisMode ?? layer.yaxisMode ?? layer.compiled?.yaxisMode;
   const common: TinOptions = {
     ...(buildOptions.strictMode !== undefined ? { strictMode: buildOptions.strictMode } : {}),
     ...(buildOptions.vertexMode !== undefined ? { vertexMode: buildOptions.vertexMode } : {}),
-    ...(yaxisMode !== undefined ? { yaxisMode } : {}),
+    ...(!isLegacy && yaxisMode !== undefined ? { yaxisMode } : {}),
   };
-  if (layer.crs === undefined || layer.crs === null) return { useV2Algorithm: true, ...common };
+  if (isLegacy) return { useV2Algorithm: true, ...common };
   const compiled = layer.compiled ?? {};
   const wantsWorldFile = intent === 'B' || (intent !== 'C' && compiled.outerTransform === 'worldFile');
   const worldFile = compiled.worldFile ?? layer.worldFile;
+  if (intent === 'B' && !worldFile) throw new Error('B の三角網にはワールドファイルが必要です');
   if (wantsWorldFile && worldFile) {
     return { useV2Algorithm: false, ...common, outerTransform: 'worldFile', worldFile };
   }

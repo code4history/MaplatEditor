@@ -1,12 +1,13 @@
 import geographiclib from 'geographiclib-geodesic';
-
-const { Geodesic } = geographiclib;
 import { builtinProjectionEngine, type CrsObject } from '@maplat/transform';
+import type { TransformLayer } from '../composables/useLayerTransformState';
 import { projectionEngineForCrs } from './compiledGeo.ts';
 
+const { Geodesic } = geographiclib;
+
 export type GeoPoint = [number, number];
-export type LayerGcp = [number[], number[], ...unknown[]];
-export type LayerEdge = [number[][], number[][], ...unknown[]];
+type LayerGcp = TransformLayer['gcps'][number];
+type LayerEdge = TransformLayer['edges'][number];
 
 export class CrsReprojectionError extends Error {
   readonly code: 'transform_failed' | 'roundtrip_exceeded' | 'reference_mismatch';
@@ -53,6 +54,7 @@ export function lonLatToCrs(point: readonly number[], crs?: CrsObject): GeoPoint
 }
 
 export function crsToMercator(point: readonly number[], crs?: CrsObject): GeoPoint | false {
+  if (!crs || crs.epsg === 3857) return finitePoint(point) ? [point[0], point[1]] : false;
   const lonLat = crsToLonLat(point, crs);
   if (lonLat === false) return false;
   const result = builtinProjectionEngine.fromLonLat(lonLat, { epsg: 3857 });
@@ -60,6 +62,8 @@ export function crsToMercator(point: readonly number[], crs?: CrsObject): GeoPoi
 }
 
 export function mercatorToCrs(point: readonly number[], crs?: CrsObject): GeoPoint | false {
+  if (!finitePoint(point)) return false;
+  if (!crs || crs.epsg === 3857) return [point[0], point[1]];
   const lonLat = builtinProjectionEngine.toLonLat([point[0], point[1]], { epsg: 3857 });
   return lonLat === false ? false : lonLatToCrs(lonLat, crs);
 }
@@ -78,23 +82,10 @@ export function validateRoundtrip(
   location: { kind: 'gcp' | 'edge'; index: number; nodeIndex?: number },
 ): number {
   const back = crsToLonLat(projected, newCrs);
-  const distance = back === false ? Number.NaN : geodesicDistanceMeters(original, back);
+  if (back === false) throw new CrsReprojectionError('transform_failed', location);
+  const distance = geodesicDistanceMeters(original, back);
   if (!(distance <= 1.0)) throw new CrsReprojectionError('roundtrip_exceeded', location, distance);
   return distance;
-}
-
-function convertPoint(
-  point: readonly number[],
-  oldCrs: CrsObject | undefined,
-  newCrs: CrsObject | undefined,
-  location: { kind: 'gcp' | 'edge'; index: number; nodeIndex?: number },
-): GeoPoint {
-  const original = crsToLonLat(point, oldCrs);
-  if (original === false) throw new CrsReprojectionError('transform_failed', location);
-  const projected = lonLatToCrs(original, newCrs);
-  if (projected === false) throw new CrsReprojectionError('transform_failed', location);
-  validateRoundtrip(original, projected, newCrs, location);
-  return projected;
 }
 
 export function csvGeoCoordToTarget(
@@ -126,14 +117,16 @@ export function reprojectLayerCoords(
   const convert = (point: readonly number[], location: { kind: 'gcp' | 'edge'; index: number; nodeIndex?: number }) => {
     const original = crsToLonLat(point, oldCrs);
     if (original === false) throw new CrsReprojectionError('transform_failed', location);
-    const projected = convertPoint(point, oldCrs, newCrs, location);
-    const back = crsToLonLat(projected, newCrs);
-    if (back !== false) maxRoundtripMeters = Math.max(maxRoundtripMeters, geodesicDistanceMeters(original, back));
+    const projected = lonLatToCrs(original, newCrs);
+    if (projected === false) throw new CrsReprojectionError('transform_failed', location);
+    maxRoundtripMeters = Math.max(maxRoundtripMeters, validateRoundtrip(original, projected, newCrs, location));
     return projected;
   };
   const nextGcps = gcps.map((gcp, index) => {
     if (!Array.isArray(gcp) || !finitePoint(gcp[1])) throw new CrsReprojectionError('transform_failed', { kind: 'gcp', index });
-    return [structuredClone(gcp[0]), convert(gcp[1], { kind: 'gcp', index }), ...structuredClone(gcp.slice(2))] as LayerGcp;
+    const copy = structuredClone(gcp);
+    copy[1] = convert(gcp[1], { kind: 'gcp', index });
+    return copy;
   });
   const nextEdges = edges.map((edge, index) => {
     if (!Array.isArray(edge) || !Array.isArray(edge[0]) || !Array.isArray(edge[1])) {
@@ -143,7 +136,9 @@ export function reprojectLayerCoords(
       if (!finitePoint(node)) throw new CrsReprojectionError('transform_failed', { kind: 'edge', index, nodeIndex });
       return convert(node, { kind: 'edge', index, nodeIndex });
     });
-    return [structuredClone(edge[0]), nodes, ...structuredClone(edge.slice(2))] as LayerEdge;
+    const copy = structuredClone(edge);
+    copy[1] = nodes;
+    return copy;
   });
   return { gcps: nextGcps, edges: nextEdges, maxRoundtripMeters };
 }

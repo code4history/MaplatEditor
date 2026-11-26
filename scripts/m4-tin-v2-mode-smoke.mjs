@@ -38,8 +38,12 @@ assert.deepEqual(
   { useV2Algorithm: false, strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow', outerTransform: 'extrapolate' },
   'yaxisMode は引数、層の直下、compiled の順');
 assert.deepEqual(
-  resolveTinBuildOptions({ compiled: { yaxisMode: 'follow' } }),
-  { useV2Algorithm: true, yaxisMode: 'follow' }, '層の直下に無ければ compiled の yaxisMode');
+  resolveTinBuildOptions({ crs: { epsg: 6677 }, compiled: { yaxisMode: 'follow' } }),
+  { useV2Algorithm: false, outerTransform: 'extrapolate', yaxisMode: 'follow' }, '投影済みの層では compiled の yaxisMode を使う');
+assert.deepEqual(
+  resolveTinBuildOptions({ yaxisMode: 'follow', compiled: { yaxisMode: 'follow' } }, { yaxisMode: 'follow' }),
+  { useV2Algorithm: true }, '従来 V2 の生成では内部軸の既定を使う');
+assert.throws(() => resolveTinBuildOptions({ crs: { epsg: 6677 } }, {}, 'B'), /ワールドファイル/);
 // 主図だけ crs を持つ混在は層ごとに判定する。
 assert.equal(resolveTinBuildOptions({ crs: { epsg: 6677 } }).useV2Algorithm, false);
 assert.equal(resolveTinBuildOptions({}).useV2Algorithm, true);
@@ -257,7 +261,7 @@ try {
     // ---------------- MapEditService: 未作成の層も resolveTinBuildOptions ----------------
     const service: any = MapEditService;
     {
-      // 主図は従来(follow)、副層は C（crs 有り）・A・従来(follow)。未作成の層の直下の yaxisMode を使うこと。
+      // 投影済みの副層は主図の軸を引き継ぎ、従来の層では内部軸の既定を使う。
       const main = { gcps: legacyGcps, edges: [], width: W, height: H, strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' };
       const subs = [
         { gcps: crsGcps, edges: [], bounds: wholeBounds, crs: IX },
@@ -272,13 +276,14 @@ try {
       assert.equal(tinLog.length, 4, 'A の副層は Tin を作らない（主図 + 副層 3）');
       const options = { strictMode: 'loose', vertexMode: 'birdeye' } as const;
       expectBuiltLike(tinLog[0], resolveTinBuildOptions(main, options), 'MapEditService 主図');
-      expectBuiltLike(tinLog[1], resolveTinBuildOptions(subs[0], options), 'MapEditService 副層 C');
+      expectBuiltLike(tinLog[1], resolveTinBuildOptions({ ...subs[0], yaxisMode: main.yaxisMode }, options), 'MapEditService 副層 C');
       expectBuiltLike(tinLog[2], resolveTinBuildOptions(subs[2], options), 'MapEditService 副層 follow');
       expectBuiltLike(tinLog[3], resolveTinBuildOptions(subs[3], options), 'MapEditService 副層 従来');
-      assert.equal(tinLog[0].snapshot.yaxisMode, 'follow', '主図の直下の yaxisMode（follow）で作られる');
+      assert.equal(tinLog[0].snapshot.yaxisMode, 'invert', 'V2 の主図は内部軸の既定で作る');
       assert.equal(tinLog[1].snapshot.useV2Algorithm, false, 'crs を持つ副層だけ V4');
       assert.equal(tinLog[1].snapshot.requestedWorldFile, undefined);
-      assert.equal(tinLog[2].snapshot.yaxisMode, 'follow', '未作成の副層も層の直下の yaxisMode（follow）で作られる');
+      assert.equal(tinLog[1].snapshot.yaxisMode, 'follow', '投影済み副層は地図全体の軸を引き継ぐ');
+      assert.equal(tinLog[2].snapshot.yaxisMode, 'invert', 'V2 の副層は内部軸の既定で作る');
       assert.equal(tinLog[3].snapshot.yaxisMode, 'invert', 'yaxisMode が無ければ既定');
       for (const entry of tinLog) assert.equal(entry.snapshot.vertexMode, 'birdeye', '副層の setBounds で vertexMode が plain に戻らない');
       assert.equal(result.sub_maps[1].compiled, undefined, 'A の副層に compiled は作らない');
@@ -287,7 +292,7 @@ try {
       await service.ensurePreviewCompiled({ gcps: legacyGcps, edges: [], width: W, height: H, sub_maps: [{ gcps: crsGcps, edges: [], bounds: wholeBounds, crs: IX }] });
       assert.deepEqual([tinLog[0].snapshot.useV2Algorithm, tinLog[1].snapshot.useV2Algorithm], [true, false], '混在は層ごとに V2／V4');
     }
-    console.log('ok: MapEditService は未作成の層を層ごとに resolveTinBuildOptions で作り、層の直下の yaxisMode を使う');
+    console.log('ok: MapEditService は未作成の層を層ごとに resolveTinBuildOptions で作り、投影済み副層は地図全体の軸を引き継ぐ');
 
     // ---------------- WMTS: crs 無しは resolveTinBuildOptions の V2 で復元、crs 有りは Tin を作らない ----------------
     {

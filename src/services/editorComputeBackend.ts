@@ -1,19 +1,23 @@
 import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
+import type { CompiledTransformData, EdgeSet, PointSet, StrictMode, VertexMode } from '@maplat/transform';
+import type { LayerTinRequest } from '../composables/useLayerTransformState';
+import { reverseFollowEdgeAxis } from '../utils/compiledGeo.ts';
+import { resolveTransformLayerTinOptions, seedCompiledTin } from '../utils/layerTransformIntent.ts';
 
 export interface TinUpdateRequest {
-  gcps: any[];
-  edges: any[];
+  gcps: PointSet[];
+  edges: EdgeSet[];
   index: number;
-  bounds: any;
-  strict: any;
-  vertex: any;
+  bounds?: number[] | number[][];
+  strict: StrictMode;
+  vertex: VertexMode;
   tinOptions?: TinOptions;
 }
 
-export type TinUpdateResult = [number, any, BoundaryDiagnostics | null];
+export type TinUpdateResult = [number, CompiledTransformData | string, BoundaryDiagnostics | null];
 
 export interface EditorComputeBackend {
-  updateTin(request: TinUpdateRequest): Promise<TinUpdateResult>;
+  updateTin(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinUpdateResult>;
   dispose(): void;
 }
 
@@ -27,12 +31,24 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
   private nextID = 1;
   private readonly pending = new Map<number, PendingRequest>();
 
-  async updateTin(request: TinUpdateRequest): Promise<TinUpdateResult> {
+  private queue: Promise<unknown> = Promise.resolve();
+
+  updateTin(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinUpdateResult> {
+    const next = this.queue.then(() => {
+      if (isCurrent && !isCurrent()) throw new Error('三角網の生成依頼が失効しました');
+      return this.send({ ...request, tinOptions: request.tinOptions && JSON.parse(JSON.stringify(request.tinOptions)) });
+    });
+    // 失敗した依頼が後続の生成を止めないようにする。
+    this.queue = next.catch(() => undefined);
+    return next;
+  }
+
+  private send(request: TinUpdateRequest): Promise<TinUpdateResult> {
     const worker = this.getWorker();
     const id = this.nextID++;
-    return await new Promise<TinUpdateResult>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+    return new Promise<TinUpdateResult>((resolve, reject) => {
       worker.postMessage({ id, type: 'updateTin', payload: request });
+      this.pending.set(id, { resolve, reject });
     });
   }
 
@@ -70,3 +86,29 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
 }
 
 export const editorComputeBackend: EditorComputeBackend = new WorkerEditorComputeBackend();
+
+export async function buildEditorLayerTin(
+  request: LayerTinRequest,
+  index: number,
+  compute: EditorComputeBackend['updateTin'],
+) {
+  if (!request.isCurrent()) throw new Error('三角網の生成依頼が失効しました');
+  if (index < 0) throw new Error('対象の層が見つかりません');
+  const { layer } = request;
+  const { buildOptions, gcps, edges, bounds } = layer;
+  const tinOptions = resolveTransformLayerTinOptions(layer);
+  if (!tinOptions) throw new Error('三角網の生成設定がありません');
+  // Tin は GCP を内部軸に直すが、対応線は内部軸の入力を受け取る。
+  const tinEdges = tinOptions.yaxisMode === 'follow' ? reverseFollowEdgeAxis(edges) : edges;
+  const [, compiled, diagnostics] = await compute({
+    gcps: gcps.map(([pixel, geo]) => [pixel, geo]),
+    edges: tinEdges, index, bounds,
+    strict: buildOptions.strictMode, vertex: buildOptions.vertexMode, tinOptions,
+  }, request.isCurrent);
+  if (!request.isCurrent()) throw new Error('三角網の生成依頼が失効しました');
+  if (typeof compiled === 'string') {
+    if (request.kind === 'adoption') throw new Error(compiled);
+    return { tin: compiled };
+  }
+  return { tin: seedCompiledTin(layer, compiled), diagnostics: diagnostics ?? undefined };
+}

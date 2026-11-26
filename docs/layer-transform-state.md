@@ -25,6 +25,7 @@
 
 - `extractCompiledTins` が保存済みの `compiledTins` を文書から取り出す。読み込み時は保存上の層順を ID に対応づけ、保存された変換形から意図を復元し、各層の compiled の生成設定を優先する。compiled 側に無い設定は地図全体の値や既定値で補う。旧形式の下書きも同じ形に補完する。
 - `seedTinObjects` に相当する処理で、利用できる compiled を `setCompiled` 相当で読み込み、診断があれば合わせてモデルの `initialTins` に渡す。`tooLessGcps` や `compiledRequired` などの文字列は従来どおり未計算として扱う。初回表示は `ready` の層を描画し、種がなく生成が必要な層だけを依頼する。初回読み込み・`reloadFromStore`・`importMap` は同じ初期化を使い、旧モデルを `dispose()` して新しい文書と種を入れたモデルへ差し替える。
+- CRS のある `follow` の層は、読み込み時に compiled の GCP と対応線の中継点を外部 CRS の東・北へ戻す。履歴・下書きにもその座標を記録する。再生成時、GCP は Tin の `setPoints` が内部軸に直す。対応線の中継点は Editor が `compiledGeo.ts` と同じ符号反転を通し、内部軸の点列として `setEdges` に渡す。
 - 「外周」の `vertexMode` と「エラー」の `strictMode` は地図全体に効く。ラジオの表示値を主図の `buildOptions` から読み、ユーザーが値を選んだときは値が同じでも setter から変更対象の設定を全層の `buildOptions` に入れる `editLayers` を一度呼ぶ。他方の設定と `yaxisMode` は各層の値を引き継ぐ。新規副層には主図の `strictMode`・`vertexMode` を初期値として渡す。既存地図で compiled の層別設定と地図全体のラジオ値が食い違う場合も読み込みは compiled を優先する。ラジオを選び直すと全層を選択値へそろえるため、従来は編集した層だけがラジオ値で作り直されていた挙動が変わる。
 - 未編集で種付け済みの層は元の compiled を保持するが、Undo・Redo・下書き復元では全層を再生成する。復元直後は描画の継続用に以前の `tin` と診断を stale 状態へ持ち越し、現在世代の生成結果が届いた時点で置き換える。この保持・置換を状態試験で固定する。
 - 保存ペイロードの `tins` は `layers` と同じ配列順で、`tins[i]` は `layers[i]` の結果に対応する。

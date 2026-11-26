@@ -31,8 +31,8 @@ try {
   assert.match(mapEdit, /historyStack\s*=\s*ref<UndoStack<MapEditHistoryState>\s*\|\s*null>/, 'MapEdit.vue must own an UndoStack ref');
   assert.match(mapEdit, /canUndo\s*=\s*computed/, 'MapEdit.vue must expose canUndo');
   assert.match(mapEdit, /canRedo\s*=\s*computed/, 'MapEdit.vue must expose canRedo');
-  assert.match(mapEdit, /performUndo\s*=\s*async/, 'MapEdit.vue must implement performUndo');
-  assert.match(mapEdit, /performRedo\s*=\s*async/, 'MapEdit.vue must implement performRedo');
+  assert.match(mapEdit, /performUndo\s*=/, 'MapEdit.vue must implement performUndo');
+  assert.match(mapEdit, /performRedo\s*=/, 'MapEdit.vue must implement performRedo');
   assert.match(mapEdit, /recordHistorySnapshot/, 'MapEdit.vue must record history snapshots');
   // 履歴記録契約は「文書の編集だけを記録し、読み込み・再同期は記録しない」
   // 抑止は useHistorySuppression のスコープが担い、MapEdit は履歴タイマーを直接操作しない。
@@ -69,9 +69,9 @@ try {
   assert.match(flushCallback, /'\(flush\)'/, "C7 must tag its origin with '(flush)'");
   assert.doesNotMatch(flushCallback, /\bcatch\b/, 'C7 callback must not catch (the composable catches and reports)');
   // === 復元時のタイルソース再構築===
-  // restoreHistoryState の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
+  // syncRestoredTiles の本体で exchangeTileSource( が gcpsToMarkers( より前に現れる
   {
-    const body = mapEdit.match(/const restoreHistoryState = async[\s\S]*?\n\}\);/)?.[0] ?? '';
+    const body = mapEdit.match(/async function syncRestoredTiles\([\s\S]*?\n\}/)?.[0] ?? '';
     assert.ok(body, 'restoreHistoryState could not be located');
     // 位置比較はコメントを除いた実コードで行う（説明コメントが呼び出しより前に
     // 同名を含むと偽陰性になるため）
@@ -101,16 +101,16 @@ try {
 
   // INV-8 (C8): 保留中の編集はポインタ移動より前に確定させる（b）。
   // needle を一意にするため commitPendingBeforeNavigate() ラッパ経由であることを検査する。
-  for (const fn of ['performUndo', 'performRedo']) {
-    const body = mapEdit.match(new RegExp(`const ${fn} = async \\(\\) => \\{[\\s\\S]*?\\n\\};`))?.[0] ?? '';
-    assert.ok(body, `${fn} could not be located`);
-    const flushAt = body.indexOf('commitPendingBeforeNavigate()');
-    const direction = fn === 'performUndo' ? 'undo' : 'redo';
-    assert.ok(flushAt >= 0, `${fn} must flush the pending snapshot via commitPendingBeforeNavigate() (INV-8)`);
-    assert.match(body, new RegExp(`layerTransformState\\.${direction}\\(\\)`), `${fn} must navigate through the layer model`);
-    const adapter = mapEdit.match(new RegExp(`${direction}: \\(\\) => \\{[\\s\\S]*?\\n        \\},`))?.[0] ?? '';
-    assert.match(adapter, new RegExp(`historyStack\\.value\\.${direction}\\(\\)`), `${direction} adapter must move the history pointer`);
+  const navigation = mapEdit.match(/const restoreHistoryNavigation = async [\s\S]*?\n\};/)?.[0] ?? '';
+  const flushAt = navigation.indexOf('commitPendingBeforeNavigate()');
+  const restoreAt = navigation.indexOf('layerTransformState.value[direction]()');
+  assert.ok(flushAt >= 0 && restoreAt > flushAt, 'ポインタ移動の前に保留中の履歴を確定する');
+  for (const [fn, direction] of [['performUndo', 'undo'], ['performRedo', 'redo']]) {
+    assert.ok(mapEdit.includes(`const ${fn} = () => restoreHistoryNavigation('${direction}')`));
+    assert.ok(mapEdit.includes(`${direction}: () => moveHistoryPointer('${direction}')`));
   }
+  assert.match(mapEdit, /function moveHistoryPointer[\s\S]*?stack\[direction\]\(\)/);
+  assert.match(navigation, /if \(!result\.restored/);
 
   // INV-3: origin は引数で渡る（取得と消費の責務分離）
   assert.match(mapEdit, /const recordHistorySnapshot = \(origin/, 'recordHistorySnapshot must take an explicit origin (INV-3)');

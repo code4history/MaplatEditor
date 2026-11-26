@@ -2,6 +2,7 @@ import {
   builtinProjectionEngine,
   createProj4ProjectionEngine,
   type CrsObject,
+  type EdgeSet,
   type YaxisMode,
 } from '@maplat/transform';
 import proj4 from 'proj4';
@@ -22,6 +23,13 @@ export function compiledPointToExternalCrs(
   yaxisMode?: YaxisMode,
 ): [number, number] {
   return [point[0], yaxisMode === 'follow' ? -point[1] : point[1]];
+}
+
+/** Tin の対応線は GCP と違い、受け渡しの両方向で内部軸と外部軸を変換する。 */
+export function reverseFollowEdgeAxis(edges: EdgeSet[]): EdgeSet[] {
+  return edges.map(([pixels, geo, endpoints]) => [
+    pixels, geo.map((point) => compiledPointToExternalCrs(point, 'follow')), endpoints,
+  ]);
 }
 
 /** compiled 内部の地理座標を、外部 CRS と経緯度を経て Web メルカトルに写す。 */
