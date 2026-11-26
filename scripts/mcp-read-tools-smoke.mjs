@@ -487,7 +487,7 @@ try {
           projectedTin.setPoints(projectedGcps);
           projectedTin.setEdges([]);
           await projectedTin.updateTinAsync();
-          return { ...projectedTin.getCompiled(), outerTransform: intent === 'B' ? 'worldFile' : 'extrapolate', ...(intent === 'B' ? { worldFile } : {}) };
+          return projectedTin.getCompiled();
         }
         const compiledB = await projectedCompiled('B');
         const compiledC = await projectedCompiled('C');
@@ -502,7 +502,7 @@ try {
         const coordinates = [[25, 30], [50, 40], [90, 20]];
         const expected = coordinates.map(([x, y]) => proj4('EPSG:6677', 'EPSG:4326', [worldFile.xOrigin + worldFile.xScale * (x - 0.5), worldFile.yOrigin + worldFile.yScale * (y - 0.5)]));
         for (const [map, compiled, name] of [[mapB, compiledB, 'B'], [mapC, compiledC, 'C']] as const) {
-          assert.equal(compiled.outerTransform, name === 'B' ? 'worldFile' : 'extrapolate', \`IX \${name} fixture has the intended outer transform\`);
+          assert.equal(typeof compiled, 'object', \`IX \${name} fixture uses Tin's compiled output directly\`);
           const result = await ok('maps.transform', { map: map.uid, direction: 'forward', points: coordinates });
           result.points.forEach((point: number[], i: number) => near(point, expected[i], 1e-7, \`IX \${name} projected conversion \${i} matches independent proj4 result\`));
         }

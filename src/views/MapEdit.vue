@@ -2889,10 +2889,15 @@ const updateTin = async (opts?: { force?: boolean }) => {
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
         const plainEdges = JSON.parse(JSON.stringify(edges.value));
         const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
-        const buildLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
+        const storedLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
+        // 副層に yaxisMode の保存欄はないため、CRS 層では地図最上位の値を継承する。
+        const buildLayer = {
+            ...storedLayer,
+            yaxisMode: storedLayer?.yaxisMode ?? mapData.value.yaxisMode,
+        };
         const intent = buildLayer?.compiled?.outerTransform === 'worldFile' ? 'B' :
             buildLayer?.compiled?.outerTransform === 'extrapolate' && buildLayer?.crs != null ? 'C' : undefined;
-        // yaxisMode は層の直下、無ければ compiled から resolveTinBuildOptions が拾う。
+        // CRS 層では yaxisMode を解決する。V2 層では内部座標が反転済みなので Tin に渡さない。
         const tinOptions = resolveTinBuildOptions(buildLayer ?? {}, {
             strictMode: strictMode.value,
             vertexMode: vertexMode.value,
@@ -2903,6 +2908,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             tinResultUpdate();
             return;
         }
+        const plainTinOptions = JSON.parse(JSON.stringify(tinOptions));
         const [, compiled] = await editorComputeBackend.updateTin({
             gcps: plainGcps,
             edges: plainEdges,
@@ -2910,7 +2916,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             bounds: plainBounds,
             strict: strictMode.value,
             vertex: vertexMode.value,
-            tinOptions,
+            tinOptions: plainTinOptions,
         });
         if (isStoredTransform()) return;
         if (typeof compiled === 'string') {
@@ -2918,7 +2924,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             tinObject.value = compiled;
         } else {
             // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
-            const tin = new Tin(tinOptions);
+            const tin = new Tin(plainTinOptions);
             tin.setCompiled(compiled);
             tinObject.value = tin;
         }

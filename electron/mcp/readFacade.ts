@@ -9,9 +9,8 @@ import fs from 'fs-extra';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import { UUID_PATTERN, type MapListOptions, type MapListRequest, type MapListResult } from '../adapters/StorageAdapter';
 import SettingsService from '../services/SettingsService';
-import { Transform, MapTransform, createProj4ProjectionEngine, type SurfaceLike } from '@maplat/transform';
-// @ts-ignore
-import proj4 from 'proj4';
+import { Transform, MapTransform, type SurfaceLike } from '@maplat/transform';
+import { projectionEngineForCrs } from '../../src/utils/compiledGeo';
 import { WEB_MERCATOR_MAX_LAT, mercatorToWgs84, wgs84ToMercator } from '../utils/webMercator';
 import { resolveLocalReal } from '../utils/appScheme';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
@@ -189,7 +188,7 @@ export async function transformPoints(
   // 渡すと初期化で落ちるので渡さない。
   const mapTransform = new MapTransform();
   mapTransform.setLayeredMapData({
-    main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) },
+    main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: projectionEngineForCrs(map.crs) },
   });
   const transform = mapTransform.getSurfaceTransform(0);
   if (!transform) return null;

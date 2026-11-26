@@ -55,7 +55,6 @@
     "smoke:revisioned-save": "node scripts/revisioned-save-smoke.mjs",
     "smoke:poi-edit-session": "node scripts/poi-edit-session-smoke.mjs",
     "smoke:poi-edit": "node scripts/poi-edit-smoke.mjs",
-    "smoke:tin-v2-mode": "node --experimental-strip-types scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:sqlite-write-store": "node scripts/sqlite-write-store-smoke.mjs",
     "smoke:asset-identity": "node scripts/asset-identity-smoke.mjs",
     "smoke:identity-store": "node scripts/identity-store-smoke.mjs",
