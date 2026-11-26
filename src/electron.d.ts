@@ -1,4 +1,5 @@
 import type { PoiImportParseResult } from './utils/poiImportRows';
+import type { CrsEstimationAPI } from './types/crsEstimation';
 import type { LoadFailureReason } from './components/resource-list/loadFailure';
 
 export interface SettingsAPI {
@@ -497,6 +498,7 @@ export interface IiifImportAPI {
 
 declare global {
   interface Window {
+    crs: CrsEstimationAPI;
     /** preload が渡す OS の種類（process.platform）。Electron の外（ブラウザだけの試験等）では無い */
     runtimeInfo?: { platform: string };
     externalLinks?: { openHttps(url: string): Promise<boolean> };
