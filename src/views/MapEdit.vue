@@ -91,7 +91,12 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 // @ts-ignore
 import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
-import { Transform, type CompiledTransformData } from '@maplat/transform';
+import { WorldFileSurface, type CrsObject } from '@maplat/transform';
+import { crsToLonLat, crsToMercator, mercatorToCrs, lonLatToCrs, CrsReprojectionError } from '../utils/crsProjection';
+import { compiledGeoJsonToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
+import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
+import { transformLayerFromDocument } from '../utils/layerTransformIntent';
+import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
@@ -119,7 +124,6 @@ import type { SimpleGeometry } from 'ol/geom';
 
 const { t, i18next } = useTranslation();
 const { notifyOperation, clearOperationNotice } = useOperationNotice();
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
 const router = useRouter();
 const route = useRoute();
 
@@ -355,12 +359,12 @@ const createCoordinateComputed = (isX: boolean, isIllst: boolean) => computed({
         if (isIllst) {
             return pt[isX ? 0 : 1];
         } else {
-            const lonlat = transform(pt, 'EPSG:3857', 'EPSG:4326');
-            return arrayRoundTo(lonlat, 6)[isX ? 0 : 1];
+            const lonlat = crsToLonLat(pt, activeLayerCrs.value);
+            return lonlat === false ? '' : arrayRoundTo(lonlat, 6)[isX ? 0 : 1];
         }
     },
     set: (val: number | string) => {
-        if (!editingID.value || val === '') return;
+        if (adoptionInProgress.value || !editingID.value || val === '') return;
         const numVal = Number(val);
         const isNew = newGcp.value && Number(editingID.value) === newGcp.value[2];
         
@@ -374,11 +378,13 @@ const createCoordinateComputed = (isX: boolean, isIllst: boolean) => computed({
         if (isIllst) {
             targetPoint[isX ? 0 : 1] = numVal;
         } else {
-            const lonlat = transform(targetPoint, 'EPSG:3857', 'EPSG:4326');
+            const lonlat = crsToLonLat(targetPoint, activeLayerCrs.value);
+            if (lonlat === false) return;
             lonlat[isX ? 0 : 1] = numVal;
-            const merc = transform(lonlat, 'EPSG:4326', 'EPSG:3857');
-            targetPoint[0] = merc[0];
-            targetPoint[1] = merc[1];
+            const native = lonLatToCrs(lonlat, activeLayerCrs.value);
+            if (native === false) return;
+            targetPoint[0] = native[0];
+            targetPoint[1] = native[1];
         }
         
         // OpenLayers マーカー座標を更新（旧実装の Vue Event Bus 相当）
@@ -388,8 +394,9 @@ const createCoordinateComputed = (isX: boolean, isIllst: boolean) => computed({
             const feature = source.getFeatures().find((f: any) => f.get('gcpIndex') === (isNew ? 'new' : Number(editingID.value) - 1));
             if (feature) {
                 const geom = feature.getGeometry();
-                const coords = (isIllst && illstSource) ? illstSource.xy2SysCoord(targetPoint) : targetPoint;
-                if (geom) geom.setCoordinates(coords);
+                const mercator = isIllst ? targetPoint : crsToMercator(targetPoint, activeLayerCrs.value);
+                const coords = (isIllst && illstSource) ? illstSource.xy2SysCoord(targetPoint) : mercator;
+                if (geom && coords) geom.setCoordinates(coords);
             }
         }
     }
@@ -572,7 +579,9 @@ const poiRangeState = computed<"none" | "auto" | "manual">(() => {
 const activeTab = ref('metadata');
 
 const gcps = ref<any[]>([]);
-const gcpAutoRange = useGcpAutoRange({ gcps });
+const activeLayerCrs = computed<CrsObject | undefined>(() =>
+    currentEditingLayer.value === 0 ? mapData.value.crs : sub_maps.value[currentEditingLayer.value - 1]?.crs);
+const gcpAutoRange = useGcpAutoRange({ gcps, crs: activeLayerCrs });
 const newGcp = ref<any>(undefined);
 const homePosition = ref<any>(undefined);
 const mercZoom = ref<number | undefined>(undefined);
@@ -688,6 +697,10 @@ type MapEditHistoryState = {
     strictMode: string;
     vertexMode: 'plain' | 'birdeye';
     currentEditingLayer: number;
+    layerIds?: string[];
+    layerTransformIntents?: Record<string, LayerTransformIntent>;
+    layerBuildOptions?: Record<string, TransformLayer['buildOptions']>;
+    layerSnapshot?: LayerTransformSnapshot;
 };
 
 const historyStack = ref<UndoStack<MapEditHistoryState> | null>(null);
@@ -708,6 +721,7 @@ let historyShadow: Record<string, unknown> | null = null;
 const WATCHED_FIELDS = [
     'mapData', 'sub_maps', 'gcps', 'edges', 'homePosition',
     'mercZoom', 'strictMode', 'vertexMode', 'currentEditingLayer',
+    'layerIds', 'layerTransformIntents', 'layerBuildOptions',
 ] as const;
 
 const watchedSnapshotForDiag = (): Record<string, unknown> => ({
@@ -720,6 +734,9 @@ const watchedSnapshotForDiag = (): Record<string, unknown> => ({
     strictMode: strictMode.value,
     vertexMode: vertexMode.value,
     currentEditingLayer: currentEditingLayer.value,
+    layerIds: [...layerIds.value],
+    layerTransformIntents: cloneDeep(layerTransformIntents.value),
+    layerBuildOptions: cloneDeep(layerBuildOptions.value),
 });
 
 /**
@@ -797,6 +814,7 @@ const { withoutHistory, withoutHistoryAsync, cancelPendingSnapshot, mergeOrigin,
 const historyRestoring = historySuppression.suppressed;
 
 const captureHistoryState = (): MapEditHistoryState => ({
+    layerSnapshot: layerTransformState.capture(),
     // 複製元UID。draft 経由(hot-exit→復元→保存)でもタイル/サムネイル複製を失わない
     copyFromUid: copyFromUidSource.value,
     mapData: cloneDeep(mapData.value),
@@ -808,9 +826,12 @@ const captureHistoryState = (): MapEditHistoryState => ({
     strictMode: strictMode.value,
     vertexMode: vertexMode.value,
     currentEditingLayer: currentEditingLayer.value,
+    layerIds: [...layerIds.value],
+    layerTransformIntents: cloneDeep(layerTransformIntents.value),
+    layerBuildOptions: cloneDeep(layerBuildOptions.value),
 });
 
-const restoreHistoryState = async (state: MapEditHistoryState) => await withoutHistoryAsync('W1', async () => {
+const restoreHistoryState = async (state: MapEditHistoryState, restoreModel = true) => await withoutHistoryAsync('W1', async () => {
     // W1: 復元。源が復元スナップショットで宛先が ref = 読み込み・再同期（S2）
     copyFromUidSource.value = state.copyFromUid;
     mapData.value = cloneDeep(state.mapData);
@@ -825,7 +846,12 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     mercZoom.value = state.mercZoom;
     strictMode.value = state.strictMode || 'strict';
     vertexMode.value = state.vertexMode || 'plain';
-    seedTinObjects(null);
+    const snapshot = state.layerSnapshot ?? [state.mapData, ...state.sub_maps].map((document, index) =>
+        transformLayerFromDocument(index === 0 ? 'main' : `sub:${crypto.randomUUID()}`, document, document.compiled, {
+            strictMode: strictMode.value as any, vertexMode: vertexMode.value,
+        }));
+    if (restoreModel) await layerTransformState.restoreDraft(snapshot);
+    applyLayerSnapshotToDocuments(snapshot);
     editingID.value = '';
     newGcp.value = undefined;
     newlyAddEdge.value = undefined;
@@ -847,7 +873,7 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
             await exchangeTileSource();
         }
         gcpsToMarkers();
-        updateTin();
+        tinResultUpdate();
     }
 });
 
@@ -889,6 +915,191 @@ const commitHistorySnapshot = () => {
     recordHistorySnapshot(mergeOrigin(pending, ['(direct)', ...snapshotScope()]));
     journal('commit', mergeOrigin(pending, ['(direct)']));
 };
+
+const layerTransformState = useLayerTransformState<any, any, CrsAdoptionSelection>([
+    {
+        layerId: 'main', intent: { setup: 'legacyV2' },
+        buildOptions: { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' },
+        gcps: [], edges: [], bounds: [0, 0],
+    },
+], {
+    history: {
+        commit: () => {
+            applyLayerSnapshotToDocuments(layerTransformState.capture());
+            commitHistorySnapshot();
+        },
+        undo: () => {
+            if (!historyStack.value?.canUndo()) return undefined;
+            historyStack.value.undo();
+            navigationRestoreState = historyStack.value.current();
+            return navigationRestoreState.layerSnapshot;
+        },
+        redo: () => {
+            if (!historyStack.value?.canRedo()) return undefined;
+            historyStack.value.redo();
+            navigationRestoreState = historyStack.value.current();
+            return navigationRestoreState.layerSnapshot;
+        },
+        withoutHistoryAsync: (apply) => withoutHistoryAsync('adopt-crs', apply),
+    },
+    buildTin: buildTinForLayerRequest,
+    prepareAdoption: prepareCrsAdoption,
+});
+const layerIds = computed(() => layerTransformState.layers.value.map(({ layerId }) => layerId));
+const layerTransformIntents = computed(() => Object.fromEntries(
+    layerTransformState.layers.value.map(({ layerId, intent }) => [layerId, intent])));
+const layerBuildOptions = computed(() => Object.fromEntries(
+    layerTransformState.layers.value.map(({ layerId, buildOptions }) => [layerId, buildOptions])));
+const editGeneration = layerTransformState.editGeneration;
+const adoptionInProgress = layerTransformState.adoptionInProgress;
+const tinDiagnostics = ref<Record<string, any>>({});
+const crsAdoptionDiagnostic = ref<Record<string, unknown> | null>(null);
+let navigationRestoreState: MapEditHistoryState | undefined;
+
+watch(() => layerTransformState.layers.value.map(({ layerId }) => ({
+    layerId, state: layerTransformState.getTinState(layerId),
+})), (entries) => {
+    tinObjects.value = entries.map(({ state }) => {
+        if (state?.status === 'ready') return state.tin;
+        if (state?.status === 'failed') return 'unknownError';
+        return state?.tin;
+    });
+    tinDiagnostics.value = Object.fromEntries(entries.flatMap(({ layerId, state }) =>
+        state && 'diagnostics' in state && state.diagnostics !== undefined ? [[layerId, state.diagnostics]] : []));
+    if (illstMap && mercMap && illstSource) {
+        tinResultUpdate();
+        gcpsToMarkers();
+    }
+}, { flush: 'post' });
+
+function syncActiveLayerToModel(): void {
+    if (historyRestoring.value || adoptionInProgress.value) return;
+    const layerId = layerIds.value[currentEditingLayer.value];
+    const current = layerTransformState.layers.value.find((layer) => layer.layerId === layerId);
+    if (!current) return;
+    const buildOptions = { ...current.buildOptions, strictMode: strictMode.value as any, vertexMode: vertexMode.value };
+    const bounds = currentEditingLayer.value === 0
+        ? [Number(mapData.value.width) || 0, Number(mapData.value.height) || 0]
+        : sub_maps.value[currentEditingLayer.value - 1]?.bounds;
+    if (isEqual(current.gcps, gcps.value) && isEqual(current.edges, edges.value) &&
+        isEqual(current.buildOptions, buildOptions) && isEqual(current.bounds, bounds)) return;
+    layerTransformState.editLayer(layerId, {
+        gcps: cloneDeep(gcps.value), edges: cloneDeep(edges.value), buildOptions, bounds,
+    });
+}
+
+function applyIntentToDocument(document: any, intent: LayerTransformIntent): void {
+    delete document.compiled;
+    if (intent.setup === 'legacyV2') return;
+    document.crs = cloneDeep(intent.crs);
+    if (intent.setup === 'A') {
+        document.tinEnabled = false;
+        document.worldFile = cloneDeep(intent.worldFile);
+    } else {
+        delete document.tinEnabled;
+        delete document.worldFile;
+        delete document.outerTransform;
+    }
+}
+
+function applyLayerSnapshotToDocuments(snapshot: LayerTransformSnapshot): void {
+    if (snapshot.length === 0 || snapshot[0]?.layerId !== 'main') return;
+    applyIntentToDocument(mapData.value, snapshot[0].intent);
+    mapData.value.gcps = cloneDeep(snapshot[0].gcps);
+    mapData.value.edges = cloneDeep(snapshot[0].edges);
+    mapData.value.strictMode = snapshot[0].buildOptions.strictMode;
+    mapData.value.vertexMode = snapshot[0].buildOptions.vertexMode;
+    const nextSubMaps = snapshot.slice(1).map((layer, index) => {
+        const document = sub_maps.value[index] ?? {};
+        applyIntentToDocument(document, layer.intent);
+        document.gcps = cloneDeep(layer.gcps);
+        document.edges = cloneDeep(layer.edges);
+        if (layer.bounds !== undefined) document.bounds = cloneDeep(layer.bounds);
+        if (layer.importance !== undefined) document.importance = layer.importance;
+        if (layer.priority !== undefined) document.priority = layer.priority;
+        return document;
+    });
+    sub_maps.value = nextSubMaps;
+    mapData.value.sub_maps = nextSubMaps;
+    if (currentEditingLayer.value >= snapshot.length) currentEditingLayer.value = 0;
+    const active = snapshot[currentEditingLayer.value];
+    if (active) {
+        gcps.value = cloneDeep(active.gcps);
+        edges.value = cloneDeep(active.edges);
+        strictMode.value = active.buildOptions.strictMode;
+        vertexMode.value = active.buildOptions.vertexMode as 'plain' | 'birdeye';
+    }
+}
+
+function buildLayerSnapshotFromDocuments(compiledTins: any[] | null = null): LayerTransformSnapshot {
+    const documents = [mapData.value, ...sub_maps.value];
+    const previousIds = layerTransformState.layers.value.map(({ layerId }) => layerId);
+    return documents.map((document, index) => {
+        const layerId = index === 0 ? 'main' : previousIds[index] ?? `sub:${crypto.randomUUID()}`;
+        const layer = transformLayerFromDocument(layerId, document, compiledTins?.[index], {
+            strictMode: strictMode.value as any,
+            vertexMode: vertexMode.value,
+        });
+        if (index === currentEditingLayer.value) {
+            layer.gcps = cloneDeep(gcps.value);
+            layer.edges = cloneDeep(edges.value);
+            layer.buildOptions.strictMode = strictMode.value as any;
+            layer.buildOptions.vertexMode = vertexMode.value;
+        }
+        return layer;
+    });
+}
+
+async function buildTinForLayerRequest(request: LayerTinRequest) {
+    const { layer } = request;
+    if (layer.gcps.length < 3) return { tin: 'tooLessGcps' };
+    const index = layerTransformState.layers.value.findIndex(({ layerId }) => layerId === request.layerId);
+    if (index < 0) throw new Error('対象の層が見つかりません');
+    const intent = layer.intent;
+    const layerDocument = intent.setup === 'legacyV2' ? {} : {
+        crs: intent.crs,
+        ...(intent.setup === 'A' || intent.setup === 'B' ? { worldFile: intent.worldFile } : {}),
+    };
+    const tinOptions = resolveTinBuildOptions(layerDocument, layer.buildOptions, intent.setup);
+    const [, compiled, diagnostics] = await editorComputeBackend.updateTin({
+        gcps: cloneDeep(layer.gcps.map((gcp: any[]) => [gcp[0], gcp[1]])),
+        edges: cloneDeep(layer.edges), index, bounds: cloneDeep(layer.bounds),
+        strict: layer.buildOptions.strictMode, vertex: layer.buildOptions.vertexMode, tinOptions,
+    });
+    if (request.kind === 'adoption' && request.signal.aborted) throw new Error('採用が取り消されました');
+    if (typeof compiled === 'string') return { tin: compiled, diagnostics };
+    const tin = new Tin(tinOptions);
+    tin.setCompiled(compiled);
+    return { tin, diagnostics };
+}
+
+async function adoptCrsEstimation(selection: CrsAdoptionSelection) {
+    if (adoptionInProgress.value || saving.value || preparingSave.value) return { status: 'rejected' as const };
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    crsAdoptionDiagnostic.value = null;
+    syncActiveLayerToModel();
+    commitPendingBeforeNavigate();
+    const targetLayerId = layerIds.value[currentEditingLayer.value];
+    const outcome = await layerTransformState.startAdoption(targetLayerId, selection);
+    if (outcome.status === 'failed') {
+        crsAdoptionDiagnostic.value = {
+            code: outcome.error instanceof CrsReprojectionError ? outcome.error.code : 'adoption_failed',
+            cause: outcome.error,
+        };
+        return outcome;
+    }
+    if (outcome.status === 'adopted') {
+        const volatile = layerTransformState.getTinState(targetLayerId);
+        const diagnostics = volatile && 'diagnostics' in volatile ? volatile.diagnostics : undefined;
+        if (diagnostics?.requestedOuterTransform === 'worldFile' && diagnostics?.outerTransform === 'extrapolate') {
+            crsAdoptionDiagnostic.value = {
+                code: 'setup_fallback', requestedOuterTransform: 'worldFile',
+                outerTransform: 'extrapolate', fallbackReason: diagnostics.fallbackReason,
+            };
+        }
+    }
+    return outcome;
+}
 
 const markHistorySaved = () => {
     // 直接確定。保留 origin は破棄せず引き継ぐ
@@ -984,7 +1195,7 @@ class Drag extends Pointer {
     }
 
     handleDownEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2) return false;
+        if (adoptionInProgress.value || evt.originalEvent.button === 2) return false;
         const map = evt.map;
         const this_ = this;
         let feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f as Feature, {
@@ -1055,7 +1266,7 @@ class Drag extends Pointer {
     }
 
     handleUpEvent(evt: MapBrowserEvent<any>) {
-        if (evt.originalEvent.button === 2 || !this.feature_) return false;
+        if (adoptionInProgress.value || evt.originalEvent.button === 2 || !this.feature_) return false;
         const map = evt.map;
         const isIllst = map === illstMap;
         const feature = this.feature_;
@@ -1065,6 +1276,11 @@ class Drag extends Pointer {
         
         let xy = geom.getCoordinates();
         xy = isIllst && illstSource ? arrayRoundTo(illstSource.sysCoord2Xy(xy as number[]) as number[], 2) : arrayRoundTo(xy as number[], 6);
+        if (!isIllst) {
+            const native = mercatorToCrs(xy, activeLayerCrs.value);
+            if (native === false) return false;
+            xy = native;
+        }
 
         const gcpIndex = feature.get('gcpIndex');
         if (gcpIndex !== 'new') {
@@ -1292,6 +1508,15 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         // 到達不能。実関数を直接駆動して検証するための公開口（実経路そのものを呼ぶ）
         addMarkerOnEdge: (arg: any, map: any) => addMarkerOnEdge(arg, map),
         currentEditingLayer,
+        layerIds,
+        layerTransformIntents,
+        layerBuildOptions,
+        editGeneration,
+        adoptionInProgress,
+        tinDiagnostics,
+        crsAdoptionDiagnostic,
+        adoptCrsEstimation,
+        saveMapAfterConfirm: () => saveMapAfterConfirm(),
         baseMapFilterRegion,
         estimateHomeFromGcps,
         // タイルソース診断（a）
@@ -1362,13 +1587,15 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
     };
 }
 
+watch([gcps, edges, strictMode, vertexMode], syncActiveLayerToModel, { deep: true });
+
 watch(
-    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
+    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer, layerIds, layerTransformIntents, layerBuildOptions],
     scheduleHistorySnapshot,
     { deep: true }
 );
 watch(
-    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer],
+    [mapData, sub_maps, gcps, edges, homePosition, mercZoom, strictMode, vertexMode, currentEditingLayer, layerIds, layerTransformIntents, layerBuildOptions],
     () => nextTick(() => draftLifecycle.schedule(isDirty.value)),
     { deep: true, flush: 'post' }
 );
@@ -1408,22 +1635,30 @@ const commitPendingBeforeNavigate = () => {
 };
 
 const performUndo = async () => {
-    if (!historyStack.value) return;
+    if (adoptionInProgress.value || !historyStack.value) return;
     commitPendingBeforeNavigate();
-    if (!historyStack.value.canUndo()) return;
-    historyStack.value.undo();
-    await restoreHistoryState(historyStack.value.current());
+    navigationRestoreState = undefined;
+    await withoutHistoryAsync('W1', async () => {
+        if (!await layerTransformState.undo() || !navigationRestoreState) return;
+        await restoreHistoryState(navigationRestoreState, false);
+    });
 };
 
 const performRedo = async () => {
-    if (!historyStack.value) return;
+    if (adoptionInProgress.value || !historyStack.value) return;
     commitPendingBeforeNavigate();
-    if (!historyStack.value.canRedo()) return;
-    historyStack.value.redo();
-    await restoreHistoryState(historyStack.value.current());
+    navigationRestoreState = undefined;
+    await withoutHistoryAsync('W1', async () => {
+        if (!await layerTransformState.redo() || !navigationRestoreState) return;
+        await restoreHistoryState(navigationRestoreState, false);
+    });
 };
 
 const onHistoryKeydown = (event: KeyboardEvent) => {
+    if (adoptionInProgress.value) {
+        if (event.metaKey || event.ctrlKey) event.preventDefault();
+        return;
+    }
     if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     if (!(event.metaKey || event.ctrlKey)) return;
     const key = event.key.toLowerCase();
@@ -1449,6 +1684,7 @@ const onHistoryKeydown = (event: KeyboardEvent) => {
 let removeMainProcessListener: (() => void) | undefined;
 
 const onMainProcessMessage = (message: string) => {
+    if (adoptionInProgress.value) return;
     if (poiRefEditor.value?.pickerOpen) return; // picker 表示中はグローバルキーを抑止 (品質の確認での追加)
     // 編集可能フィールドにフォーカス中はネイティブのテキスト undo が対象
     // (App.vue のグローバルリスナーが実行済み。セッション undo は発動しない)
@@ -1729,6 +1965,40 @@ const edgesClear = () => {
     }
 };
 
+function worldFileSurfaceAt(index: number): WorldFileSurface | null {
+    const layer = layerDocumentAt(index);
+    if (layer?.tinEnabled !== false || !layer.worldFile) return null;
+    try {
+        const crs = (layer.crs ?? { epsg: 3857 }) as CrsObject;
+        return new WorldFileSurface({
+            crs, worldFile: layer.worldFile, projectionEngine: projectionEngineForCrs(crs),
+            ...(index === 0
+                ? { wh: [Number(layer.width) || 0, Number(layer.height) || 0] }
+                : { bounds: layer.bounds }),
+        });
+    } catch {
+        return null;
+    }
+}
+
+function transformMercatorToXy(mercator: number[], index: number): number[] | false {
+    const surface = worldFileSurfaceAt(index);
+    if (surface) return surface.transform(mercator, true);
+    const tin = tinObjects.value[index];
+    if (!tin || typeof tin !== 'object') return false;
+    const native = mercatorToCrs(mercator, layerDocumentAt(index)?.crs);
+    return native === false ? false : tin.transform(native, true);
+}
+
+function transformXyToMercator(xy: number[], index: number): number[] | false {
+    const surface = worldFileSurfaceAt(index);
+    if (surface) return surface.transform(xy, false);
+    const tin = tinObjects.value[index];
+    if (!tin || typeof tin !== 'object') return false;
+    const native = tin.transform(xy, false);
+    return native === false ? false : crsToMercator(native, layerDocumentAt(index)?.crs);
+}
+
 const gcpsToMarkers = () => {
     edgesClear();
 
@@ -1739,7 +2009,7 @@ const gcpsToMarkers = () => {
     if (illstSourceMarker) illstSourceMarker.clear();
     if (mercSourceMarker) mercSourceMarker.clear();
 
-    const addMarkerToMap = (pt1: number[], pt2: number[], index: number | string, _isCurrentEditing: boolean) => {
+    const addMarkerToMap = (pt1: number[] | undefined, pt2: number[] | undefined, index: number | string, _isCurrentEditing: boolean) => {
         const _isEditing = typeof index === 'number' && currentEditingLayer.value !== 0 && currentEditingLayer.value !== (gcps.value[index] ? gcps.value[index][2] : 0);
         if (_isEditing) { /* console.log("Currently editing this layer"); */ }
         
@@ -1782,24 +2052,23 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
 
     // 既存の全 GCP をマーカーとして追加
     gcps.value.forEach((gcp, index) => {
-        addMarkerToMap(gcp[0], gcp[1], index, currentEditingLayer.value === gcp[2]);
+        const mercator = crsToMercator(gcp[1], activeLayerCrs.value);
+        addMarkerToMap(gcp[0], mercator === false ? undefined : mercator, index, currentEditingLayer.value === gcp[2]);
     });
 
     // 未確定 GCP（新規追加中）があれば追加
     if (newGcp.value) {
-        addMarkerToMap(newGcp.value[0], newGcp.value[1], 'new', true);
+        const native = newGcp.value[1];
+        const mercator = native ? crsToMercator(native, activeLayerCrs.value) : undefined;
+        addMarkerToMap(newGcp.value[0], mercator === false ? undefined : mercator, 'new', true);
     }
     
     // ホームポジションマーカーを追加
     // 旧実装 homeToMarkers() に準拠: mercMap は常に表示、illstMap は TIN が valid な場合のみ逆変換で表示
     if (homePosition.value) {
         const merc = transform(homePosition.value, 'EPSG:4326', 'EPSG:3857');
-        let illstXy: number[] | undefined;
-        if ((errorStatus.value === 'strict' || errorStatus.value === 'loose') &&
-            tinObjects.value[0] && typeof tinObjects.value[0] !== 'string') {
-            // merc→illst 逆変換（第2引数 true = backward transform）
-            illstXy = tinObjects.value[0].transform(merc, true);
-        }
+        const transformed = transformMercatorToXy(merc, 0);
+        const illstXy = transformed === false ? undefined : transformed;
         addMarkerToMap(illstXy as any, merc, 'home', false);
     }
 
@@ -1814,11 +2083,11 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
         // ui-map-overlay-proposal §5-7: 対応線（編集中の図形）に縁取りを付ける
         const style = haloLineStyles('red', 2);
 
-        const mercCoords = [gcp1[1]];
-        edge[1].forEach((node: any) => mercCoords.push(node));
-        mercCoords.push(gcp2[1]);
+        const nativeCoords = [gcp1[1], ...edge[1], gcp2[1]];
+        const mercCoords = nativeCoords.map((node: number[]) => crsToMercator(node, activeLayerCrs.value));
+        if (mercCoords.some((coord: number[] | false) => coord === false)) return;
         const mercLine = {
-            geometry: new LineString(mercCoords),
+            geometry: new LineString(mercCoords as number[][]),
             startEnd: edge[2]
         };
 
@@ -1837,7 +2106,7 @@ ${(labelWidth / 2)},20 ${(labelWidth / 2 - 4)},16 0,16 0,0" stroke="#000000" fil
 
 // 旧実装 map.js L.413-415: errorStatus が strict/loose かつ homePosition が未設定の場合のみ
 const enableSetHomeIllst = computed(() =>
-    (errorStatus.value === 'strict' || errorStatus.value === 'loose') && !homePosition.value
+    !homePosition.value && (worldFileSurfaceAt(0) !== null || errorStatus.value === 'strict' || errorStatus.value === 'loose')
 );
 
 // 旧実装 map.js L.416-418: homePosition が未設定の場合のみ
@@ -1904,14 +2173,14 @@ const showHomePosition = () => {
     mercView.setCenter(merc);
     mercView.setZoom(mercZoom.value ?? 14);
 
-    if ((errorStatus.value === 'strict' || errorStatus.value === 'loose') &&
-        tinObjects.value[0] && typeof tinObjects.value[0] !== 'string' && illstSource && illstMap) {
-        // mercMap の5地点を illstMap 座標に逆変換して illstMap のビューを合わせる
+    if ((worldFileSurfaceAt(0) || errorStatus.value === 'strict' || errorStatus.value === 'loose') && illstSource && illstMap) {
+        // mercMap の5地点を主図の CRS を経て illstMap 座標に逆変換する
         const mercSize = size2Xys(merc, mercZoom.value ?? 14, 0);
         const wh = mercSize[5];
         const mercPoints = mercSize.slice(0, 5);
         const illstSize = mercPoints.map((coord) => {
-            const xy = tinObjects.value[0].transform(coord, true);
+            const xy = transformMercatorToXy(coord, 0);
+            if (xy === false) throw new Error('ホーム位置を地図面へ変換できません');
             return illstSource.xy2SysCoord(xy);
         });
         const centerZoom = xys2Size(illstSize, wh);
@@ -1925,6 +2194,7 @@ const showHomePosition = () => {
 
 // 旧実装 mapedit.js L.349-353: ホームポジションを削除する
 const removeHomePosition = () => {
+    if (adoptionInProgress.value) return;
     homePosition.value = undefined;
     mercZoom.value = undefined;
     mapData.value.homePosition = undefined;
@@ -1934,7 +2204,8 @@ const removeHomePosition = () => {
 
 // 旧実装 mapedit.js L.1423-1441: イラストマップの現在表示領域をホームポジションとして設定
 const setHomeIllst = () => {
-    if (!illstMap || !illstSource || !tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
+    if (adoptionInProgress.value) return;
+    if (!illstMap || !illstSource || (!worldFileSurfaceAt(0) && (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string'))) return;
     const view = illstMap.getView();
     const illstCenter = view.getCenter();
     const illstZoom = view.getZoom();
@@ -1944,7 +2215,9 @@ const setHomeIllst = () => {
 
     const mercSize = illstSize.map((coords: number[]) => {
         const xy = illstSource.sysCoord2Xy(coords);
-        return tinObjects.value[0].transform(xy, false);
+        const transformed = transformXyToMercator(xy, 0);
+        if (transformed === false) throw new Error('地図面をホーム位置へ変換できません');
+        return transformed;
     });
 
     const sizeArray = xys2Size(mercSize, wh);
@@ -1957,6 +2230,7 @@ const setHomeIllst = () => {
 };
 
 const setHomeMerc = () => {
+    if (adoptionInProgress.value) return;
     const view = mercMap.getView();
     const longlat = transform(view.getCenter(), 'EPSG:3857', 'EPSG:4326');
     const zoom = view.getZoom();
@@ -1973,13 +2247,14 @@ const setHomeMerc = () => {
 
 // GCP 重心と bbox fit zoom を homePosition / mercZoom に一発設定する推定アクション
 function estimateHomeFromGcps() {
+    if (adoptionInProgress.value) return;
     if (!gcps.value || gcps.value.length === 0) return;
     const points: [number, number][] = [];
     for (const gcp of gcps.value) {
-        const merc = gcp?.[1];
-        if (Array.isArray(merc) && typeof merc[0] === 'number' && typeof merc[1] === 'number') {
-            const [lng, lat] = transform([merc[0], merc[1]], 'EPSG:3857', 'EPSG:4326');
-            points.push([lng, lat]);
+        const native = gcp?.[1];
+        if (Array.isArray(native) && typeof native[0] === 'number' && typeof native[1] === 'number') {
+            const lonLat = crsToLonLat(native, activeLayerCrs.value);
+            if (lonLat !== false) points.push(lonLat);
         }
     }
     const result = computeBboxAndCentroid(points);
@@ -2009,6 +2284,7 @@ const syncLayerData = () => {
 
 
 const addNewMarker = (arg: any, map: any) => {
+  if (adoptionInProgress.value) return;
   const number = gcps.value.length + 1;
   const coord = arg.coordinate;
   const isIllst = map === illstMap;
@@ -2023,7 +2299,12 @@ const addNewMarker = (arg: any, map: any) => {
     }
   }
 
-  const xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
+  let xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
+  if (!isIllst) {
+    const native = mercatorToCrs(xy, activeLayerCrs.value);
+    if (native === false) return;
+    xy = native;
+  }
 
   if (!newGcp.value) {
     const labelWidth = getTextWidth( number, labelFontStyle ) + 10;
@@ -2086,13 +2367,16 @@ const pairingMarker = (arg: any) => {
     if (!gcp || !illstMap || !mercMap || !illstSource) return;
     const illstView = illstMap.getView();
     const mercView = mercMap.getView();
+    const mercator = crsToMercator(gcp[1], activeLayerCrs.value);
+    if (mercator === false) return;
     illstView.setCenter(illstSource.xy2SysCoord(gcp[0]));
-    mercView.setCenter(gcp[1]);
+    mercView.setCenter(mercator);
     illstView.setZoom(illstSource.maxZoom - 1);
     mercView.setZoom(17);
 };
 
 const removeMarker = (arg: any) => {
+  if (adoptionInProgress.value) return;
   const marker = arg.data.marker;
   const gcpIndex = marker.get('gcpIndex');
   if (gcpIndex === 'new') {
@@ -2120,6 +2404,7 @@ const removeMarker = (arg: any) => {
 };
 
 const edgeStartMarker = (arg: any) => {
+    if (adoptionInProgress.value) return;
     const marker = arg.data.marker;
     const gcpIndex = marker.get('gcpIndex');
     if (gcpIndex !== 'new') {
@@ -2129,6 +2414,7 @@ const edgeStartMarker = (arg: any) => {
 };
 
 const edgeEndMarker = (arg: any) => {
+    if (adoptionInProgress.value) return;
     const marker = arg.data.marker;
     const gcpIndex = Number(marker.get('gcpIndex'));
     if (newlyAddEdge.value !== undefined) {
@@ -2147,6 +2433,7 @@ const edgeEndMarker = (arg: any) => {
 };
 
 const removeEdge = (arg: any) => {
+    if (adoptionInProgress.value) return;
     const startEnd = arg.data.startEnd;
     if (!startEnd) return;
     const idx = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
@@ -2165,12 +2452,18 @@ const removeEdge = (arg: any) => {
 const edgeOperationError = ref<string | null>(null);
 
 const addMarkerOnEdge = (arg: any, map: any) => {
+    if (adoptionInProgress.value) return;
     edgeOperationError.value = null;
     const edgeGeom = arg.data.edge;
     const isIllst = map === illstMap;
     const coord = edgeGeom.getGeometry().getClosestPoint(arg.coordinate);
     // 座標丸めは旧版と同じ式（illst: 小数2桁 / mercator: 小数6桁）
-    const xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
+    let xy = isIllst ? arrayRoundTo(illstSource.sysCoord2Xy(coord), 2) : arrayRoundTo(coord, 6);
+    if (!isIllst) {
+        const native = mercatorToCrs(xy, activeLayerCrs.value);
+        if (native === false) return;
+        xy = native;
+    }
     const startEnd = edgeGeom.get('startEnd');
     const edgeIndex = edges.value.findIndex(e => e[2][0] === startEnd[0] && e[2][1] === startEnd[1]);
     if (edgeIndex < 0) {
@@ -2346,31 +2639,18 @@ const extractCompiledTins = (data: any): any[] | null => {
     if (data && 'compiledTins' in data) delete data.compiledTins;
     return tins;
 };
-// B/C の保存済み compiled は Transform で読み、外周の鍵を含む元のデータを保存に使う。
-class StoredOuterTin extends Transform {
-    constructor(private readonly compiled: CompiledTransformData) {
-        super();
-        this.setCompiled(compiled);
-    }
-
-    getCompiled(): CompiledTransformData {
-        return this.compiled;
-    }
-}
-
 const layerDocumentAt = (index: number) =>
     index === 0 ? mapData.value : sub_maps.value[index - 1];
 
 function seedTinObjects(tins: any[] | null, keepErrors = false): void {
     tinObjects.value = Array.from({ length: 1 + sub_maps.value.length }, (_, index) => {
         const layer = layerDocumentAt(index);
-        const storedOuter = layer?.compiled?.outerTransform !== undefined ? layer.compiled : undefined;
-        const entry = tins?.[index] ?? storedOuter;
+        const entry = tins?.[index] ?? layer?.compiled;
         if (layer?.tinEnabled === false || entry === 'worldFile') return 'worldFile';
+        // 採用済み B/C は意図から再構築し、保存済み compiled を履歴や描画の正本にしない。
+        if (layer?.crs !== undefined) return undefined;
         if (entry && typeof entry === 'object') {
-            if (entry.outerTransform !== undefined) return new StoredOuterTin(entry);
-            // 保存済み compiled を復元して参照するだけで、ここでは GCP から再構築しない。
-            const tin = new Tin(TIN_V2_OPTIONS);
+            const tin = new Tin({ useV2Algorithm: true });
             tin.setCompiled(entry);
             return tin;
         }
@@ -2378,10 +2658,6 @@ function seedTinObjects(tins: any[] | null, keepErrors = false): void {
         return keepErrors && typeof entry === 'string' ? entry : undefined;
     });
 }
-
-const isStoredTransform = () =>
-    layerDocumentAt(currentEditingLayer.value)?.tinEnabled === false ||
-    tinObject.value === 'worldFile' || tinObject.value instanceof StoredOuterTin;
 
 // 開き直しで地図の源に渡す delivery を決める。URL の文字列の検査を通らないものは
 // 「配れない」として渡さない（renderer は取得しない）。
@@ -2604,6 +2880,7 @@ onMounted(async () => {
     });
     // compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
     seedTinObjects(requestCompiledTins);
+    await layerTransformState.restoreDraft(buildLayerSnapshotFromDocuments(requestCompiledTins));
     initializeHistoryStack();
     // 複製内容はどこにも永続化されていないため dirty 扱いにする
     // (即保存可能・放棄時は hot-exit で下書き化され、slug 予約が draft に紐付いて可視化される)
@@ -2676,6 +2953,7 @@ onBeforeUnmount(() => {
     mercMap = null;
     illstCheckSource = null;
     mercCheckSource = null;
+    layerTransformState.dispose();
     editorComputeBackend.dispose();
 });
 
@@ -2689,6 +2967,7 @@ const edgeModifyStart = (evt: any) => {
 };
 
 const edgeModifyEnd = (evt: any) => {
+    if (adoptionInProgress.value) return;
     const isIllust = evt.target.getMap() === illstMap;
     let feature: any = null;
     evt.features.forEach((f: any, i: number) => {
@@ -2709,7 +2988,9 @@ const edgeModifyEnd = (evt: any) => {
     if (isIllust) {
         edge[0] = rawPoints.map((pt: number[]) => arrayRoundTo(illstSource.sysCoord2Xy(pt), 2));
     } else {
-        edge[1] = rawPoints.map((pt: number[]) => arrayRoundTo(pt, 6));
+        const converted = rawPoints.map((pt: number[]) => mercatorToCrs(arrayRoundTo(pt, 6), activeLayerCrs.value));
+        if (converted.some((point: number[] | false) => point === false)) return;
+        edge[1] = converted;
     }
     
     edges.value.splice(edgeIndex, 1, edge);
@@ -2811,14 +3092,31 @@ const tinResultUpdate = () => {
     }
 
     const tin = tinObject.value;
-    if (!tin || typeof tin === 'string') return;
+    if (!tin) return;
+    if (tin === 'worldFile') {
+        const surface = worldFileSurfaceAt(currentEditingLayer.value);
+        if (!surface) return;
+        const corners = [[0, 0], [surface.wh[0], 0], [surface.wh[0], surface.wh[1]], [0, surface.wh[1]], [0, 0]]
+            .map((xy) => surface.transform(xy, false));
+        if (corners.some((coord) => coord === false)) return;
+        const outline = jsonReader.readFeatures({
+            type: 'Feature', geometry: { type: 'Polygon', coordinates: [corners] }, properties: {},
+        }, { dataProjection: 'EPSG:3857' });
+        outline.forEach((feature) => feature.setStyle(tinStyle(feature)));
+        mercJsonSource?.addFeatures(outline);
+        return;
+    }
+    if (typeof tin === 'string') return;
 
     // 両地図にTINメッシュを描画
     // tins は Tin インスタンスの直接プロパティ（getCompiled() の中ではない）
     // 旧実装: tinObject.tins.forw / tinObject.tins.bakw
     try {
         const forTin = tin.tins?.forw;
-        const bakTin = tin.tins?.bakw;
+        const compiled = tin.getCompiled?.();
+        const yaxisMode = compiled?.yaxisMode;
+        const crs = activeLayerCrs.value;
+        const bakTin = compiledGeoJsonToMercator(tin.tins?.bakw, yaxisMode, crs);
         if (forTin) {
             const forFeatures = jsonReader.readFeatures(forTin, { dataProjection: forProj, featureProjection: 'EPSG:3857' });
             forFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
@@ -2832,107 +3130,30 @@ const tinResultUpdate = () => {
         // A-2: kinks（交差エラー点）の表示 - strict_errorの場合のみ
         // 旧実装 mapedit.js L.706-709 に準拠
         if (tin.strict_status === 'strict_error' && tin.kinks?.bakw) {
-            const kinkFeatures = jsonReader.readFeatures(tin.kinks.bakw, { dataProjection: 'EPSG:3857' });
-            kinkFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
-            if (mercJsonSource) mercJsonSource.addFeatures(kinkFeatures);
+            const mercatorKinks = compiledGeoJsonToMercator(tin.kinks.bakw, yaxisMode, crs);
+            if (mercatorKinks !== false) {
+                const kinkFeatures = jsonReader.readFeatures(mercatorKinks, { dataProjection: 'EPSG:3857' });
+                kinkFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+                if (mercJsonSource) mercJsonSource.addFeatures(kinkFeatures);
+            }
         }
     } catch (e) {
         console.error('[tinResultUpdate] Failed to render TIN:', e);
     }
 };
 
-// 進行中の TIN 計算を保存が待てるように件数を追跡する。
-// 複製直後は dirty で即保存できるため、worker 計算完了前に tins を収集すると
-// compiled が失われ store が gcps 素体へ劣化する(store2HistMap の compiledRequired 警告)。
-let tinComputeActive = 0;
-const tinComputeWaiters: Array<() => void> = [];
-const waitForTinComputeIdle = (): Promise<void> =>
-    tinComputeActive === 0 ? Promise.resolve() : new Promise((resolve) => { tinComputeWaiters.push(resolve); });
-
-// opts.force: 保存前ゲート用。タイル読込(illstSource)前でも TIN 計算自体は gcps/bounds だけで可能
-const updateTin = async (opts?: { force?: boolean }) => {
-    if (!illstSource && !opts?.force) return;
-    // 保存済みの A/B/C は、従来の三角網計算で上書きせず描画だけ更新する。
-    if (isStoredTransform()) {
-        tinResultUpdate();
-        return;
-    }
-    const gcpList = gcps.value;
-    if (!gcpList || gcpList.length < 3) {
-        tinObject.value = 'tooLessGcps';
-        tinResultUpdate();
-        return;
-    }
-    // bounds / wh を IPC に渡すための変換（オリジナルの backend/mapedit.js と同じ引数）
-    const index = currentEditingLayer.value;
-    const width = Number(mapData.value.width) || 0;
-    const height = Number(mapData.value.height) || 0;
-    const wh = index === 0 ? [width, height] : null;
-    
-    let subMapBounds = index !== 0 ? sub_maps.value[index - 1]?.bounds : null;
-    // サブマップにboundsがない場合はメインマップのboundsまたはデフォルト矩形を使用
-    if (index !== 0 && !subMapBounds) {
-        subMapBounds = mapData.value.bounds || [[0, 0], [width, 0], [width, height], [0, height]];
-    }
-
-    const bounds = index !== 0 ? subMapBounds : wh; // index=0 は [width, height] を bounds 代わりに使用
-
-    console.log(`[updateTin] index: ${index}, wh: ${JSON.stringify(wh)}, bounds: ${JSON.stringify(bounds)}`);
-
-    if (!bounds && !wh) {
-        console.error('[updateTin] Both wh and bounds are missing for index:', index);
-        return;
-    }
-    tinComputeActive++;
-    try {
-        // Vue の Proxy は IPC の Structured Clone に対応しないため、JSON でプレーンオブジェクトに変換する
-        const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
-        const plainEdges = JSON.parse(JSON.stringify(edges.value));
-        const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
-        const buildLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
-        const intent = buildLayer?.compiled?.outerTransform === 'worldFile' ? 'B' :
-            buildLayer?.compiled?.outerTransform === 'extrapolate' && Object.prototype.hasOwnProperty.call(buildLayer, 'crs') ? 'C' : undefined;
-        const tinOptions = resolveTinBuildOptions(buildLayer ?? {}, {
-            strictMode: strictMode.value,
-            vertexMode: vertexMode.value,
-            yaxisMode: buildLayer?.compiled?.yaxisMode,
-        }, intent);
-        const [, compiled] = await editorComputeBackend.updateTin({
-            gcps: plainGcps,
-            edges: plainEdges,
-            index,
-            bounds: plainBounds,
-            strict: strictMode.value,
-            vertex: vertexMode.value,
-            tinOptions,
-        });
-        if (isStoredTransform()) return;
-        if (typeof compiled === 'string') {
-            // エラー文字列が返ってきた場合
-            tinObject.value = compiled;
-        } else {
-            // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
-            const tin = new Tin(tinOptions);
-            tin.setCompiled(compiled);
-            tinObject.value = tin;
-        }
-    } catch (err: any) {
-        // unmount による worker dispose は画面遷移中の正常な取消。状態を汚さず終了する(人間検証R5)
-        if (isStoredTransform() || String(err?.message ?? err).includes('worker was disposed')) return;
-        console.error('[updateTin] IPC error:', err);
-        tinObject.value = 'unknownError';
-    } finally {
-        tinComputeActive--;
-        if (tinComputeActive === 0) tinComputeWaiters.splice(0).forEach((resolve) => resolve());
-    }
-    tinResultUpdate();
-    // 人間検証で見つかった件: Undo/Redo 等で TIN 再計算後に illst 側 home マーカーが再描画されるよう、
-    // homePosition がある場合は gcpsToMarkers() をもう一度呼び出す。
-    // illstSource 未ロード時(保存時force計算等)は edges 描画で落ちるためガードする。
-    if (homePosition.value && illstSource) gcpsToMarkers();
+// 対象の層 ID はモデルが固定し、成功・失敗の両方で世代と現存性を照合する。
+const updateTin = async (opts?: { force?: boolean }): Promise<boolean> => {
+    if (adoptionInProgress.value || (!illstSource && !opts?.force)) return false;
+    const targetLayerId = layerIds.value[currentEditingLayer.value];
+    if (!targetLayerId) return false;
+    if (!layerTransformState.layers.value.some((layer) => layer.layerId === targetLayerId)) return false;
+    syncActiveLayerToModel();
+    return await layerTransformState.requestTin(targetLayerId);
 };
 
 const boundsModifyEnd = (evt: any) => {
+    if (adoptionInProgress.value) return;
     const feature = evt.features.getArray()[0];
     if (!feature || !illstSource) return;
     const geom = feature.getGeometry();
@@ -2952,6 +3173,8 @@ const boundsModifyEnd = (evt: any) => {
     } else {
         sub_maps.value[index - 1].bounds = imageCoords;
     }
+    const layerId = layerIds.value[index];
+    if (index !== 0 && layerId) layerTransformState.editLayer(layerId, { bounds: imageCoords });
     
     // 有効領域が変更されたのでTINを再計算
     updateTin();
@@ -2960,7 +3183,7 @@ const boundsModifyEnd = (evt: any) => {
 // A-1: 座標変換テスト（クリックした地点を相手地図に対応点で表示）
 // 旧実装 mapedit.js onClick (L.581-649) に準拠
 const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
-    if (evt.originalEvent.altKey) return;
+    if (adoptionInProgress.value || evt.originalEvent.altKey) return;
     if (!illstMap || !mercMap || !illstSource) return;
     // 試しのクリックごとに、前の試しのクリックの通知だけを消す（失敗の赤が次の成功の後まで残らないように。
     // 下書きの復元や保存の通知は消さない）
@@ -2975,7 +3198,7 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
     mercCheckSource?.clear();
 
     const tin = tinObject.value;
-    if (typeof tin === 'string' || !tin) {
+    if (tin !== 'worldFile' && (typeof tin === 'string' || !tin)) {
         // TIN エラー状態（文字列が返された場合）
         const msg =
             tin === 'tooLessGcps' ? t('mapedit.testerror_too_short') :
@@ -2986,7 +3209,7 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
         notifyOperation({ origin: 'map-test', type: 'error', message: msg });
         return;
     }
-    if (tin.strict_status === 'strict_error' && !isIllst) {
+    if (tin !== 'worldFile' && tin.strict_status === 'strict_error' && !isIllst) {
         notifyOperation({ origin: 'map-test',
             type: 'error', message: t('mapedit.testerror_valid_error')
         });
@@ -2998,8 +3221,10 @@ const onMapClick = async (evt: MapBrowserEvent<PointerEvent>) => {
         ? illstSource.sysCoord2Xy(srcMarkerLoc)
         : srcMarkerLoc;
 
-    // isIllst=true → 順変換（illst→merc）、false → 逆変換（merc→illst）
-    const distXy = tin.transform(srcXy, !isIllst);
+    // Plan A は WorldFileSurface、B/C は Tin と層の CRS を通す。
+    const distXy = isIllst
+        ? transformXyToMercator(srcXy, currentEditingLayer.value)
+        : transformMercatorToXy(srcXy, currentEditingLayer.value);
 
     if (!distXy) {
         notifyOperation({ origin: 'map-test',
@@ -3421,7 +3646,8 @@ const loadMapTiles = async () => {
 
         // mercMapのビューをGCPのバウンディングボックスに合わせて設定（旧実装 reflectIllstMap に準拠）
         // gcp[1] は既に EPSG:3857 座標（mercMap のクリックで記録）
-        const gcpList = gcps.value;
+        const gcpList = gcps.value.map((gcp) => [gcp[0], crsToMercator(gcp[1], activeLayerCrs.value)])
+            .filter((gcp) => gcp[1] !== false);
         if (gcpList && gcpList.length > 0) {
             let center: number[], zoom: number;
             if (gcpList.length === 1) {
@@ -3451,7 +3677,7 @@ const loadMapTiles = async () => {
             mercMap.getView().setZoom(zoom);
         } else if (homePosition.value) {
             // GCPがない場合はhomePosition（EPSG:3857）を使用
-            mercMap.getView().setCenter(homePosition.value);
+            mercMap.getView().setCenter(transform(homePosition.value, 'EPSG:4326', 'EPSG:3857'));
             if (mercZoom.value) mercMap.getView().setZoom(mercZoom.value);
         }
 
@@ -4151,6 +4377,7 @@ const modalHide = () => {
  * 4. 結果受信後: mapData更新 → loadMapTiles() → gcpsToMarkers() → updateTin()
  */
 const mapUpload = async () => {
+    if (adoptionInProgress.value) return;
     // IIIF のまま配る地図は画像を IIIF の配信先から取る。別の画像を登録すると、配信先と大きさが
     // 食い違って地図が壊れるので、登録させない（ボタンは押せない形で出る）
     if (iiifDeliveryMap.value) return;
@@ -4280,7 +4507,7 @@ let mapSaveSucceeded = false;
 // Busy カバー対象にする。saving(useRevisionedAssetSave) は performSave 中しか立たないため
 const preparingSave = ref(false);
 const saveMap = async (): Promise<boolean> => {
-    if (preparingSave.value || saving.value || saveError.value) return false; // 判定は通常保存と保存してエクスポートで共有
+    if (adoptionInProgress.value || preparingSave.value || saving.value || saveError.value) return false; // 判定は通常保存と保存してエクスポートで共有
     mapSaveSucceeded = false;
     saveOperationError.value = null;
     // 1. 保存確認ダイアログ（旧実装: t('mapedit.confirm_save')）
@@ -4301,51 +4528,30 @@ const saveMap = async (): Promise<boolean> => {
 };
 
 const saveMapAfterConfirm = async (): Promise<boolean> => {
-    // 2. 保存直前の予約再確認(confirmForSave)。他者予約なら保存中断
-    const slugOk = await slugField.value?.confirmForSave() ?? true;
-    if (!slugOk) {
-        // 予約 conflict は operation 診断で保存中断
-        saveOperationError.value = t('mapedit.error_duplicate_id');
-        return false;
-    }
-
-    // 複製直後は dirty 即保存が可能なため、TIN 計算完了前に保存すると
-    // compiled が失われ store が gcps 素体へ劣化する。未計算なら現在レイヤーの計算を起動し、
-    // 進行中の計算の完了を待ってから tins を収集する。
-    if (tinObject.value == null && (gcps.value?.length ?? 0) >= 3) {
-        await updateTin({ force: true });
-    }
-    await waitForTinComputeIdle();
-
-    // 保存する値を作成（mapDataのコピー）
-    const saveValue = cloneDeep(mapData.value);
-
-    // uid正準の宛先: 既存地図は uid 宛の upsert(改名も同一 uid の slug 付け替え)、
-    // 新規は create。copyFromUid 保存経路は温存(導線は T10 複製で再利用)
-    const sendUid: string | undefined = mapUid.value ?? undefined;
-    // duplicateFrom で複製した場合、copyFromUid に元地図 UID を設定
-    const copyFromUid: string | undefined = copyFromUidSource.value || undefined;
-
-    // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
-    const tins = tinObjects.value.map((tin: any, index: number) => {
-        if (layerDocumentAt(index)?.tinEnabled === false) return 'worldFile';
-        if (!tin || typeof tin === 'string') return tin || 'tooLessGcps';
-        return tin.getCompiled();
+    if (adoptionInProgress.value) return false;
+    syncActiveLayerToModel();
+    return await layerTransformState.save(async ({ layers, tins: latestTins }) => {
+        applyLayerSnapshotToDocuments(layers);
+        // 保存直前の予約再確認も採用と保存を排他するモデルの内側で行う。
+        const slugOk = await slugField.value?.confirmForSave() ?? true;
+        if (!slugOk) {
+            saveOperationError.value = t('mapedit.error_duplicate_id');
+            return false;
+        }
+        const saveValue = cloneDeep(mapData.value);
+        const sendUid: string | undefined = mapUid.value ?? undefined;
+        const copyFromUid: string | undefined = copyFromUidSource.value || undefined;
+        // 永続化するのは意図ではなく実結果。B から C へ降格していれば C の compiled を書く。
+        const tins = latestTins.map((tin: any, index: number) => {
+            if (layers[index].intent.setup === 'A') return 'worldFile';
+            if (!tin || typeof tin === 'string') return tin || 'tooLessGcps';
+            return tin.getCompiled();
+        });
+        pendingSave = { saveValue, tins, sendUid, copyFromUid };
+        if (sendUid) await performSave();
+        else await performSave({ expectedRevision: undefined });
+        return mapSaveSucceeded;
     });
-
-    // 4. 送信内容を send クロージャへ渡し、共通保存フロー (useRevisionedAssetSave) を実行。
-    // pendingSave は意図的に clear しない: send/applySuccess は「最後に saveMap が確定した
-    // 送信内容」を参照し続ける必要がある (途中で null に戻すと保存フロー中の参照が壊れる。
-    // AppEdit も clear していないのと対称)
-    pendingSave = { saveValue, tins, sendUid, copyFromUid };
-    if (sendUid) {
-        await performSave(); // expectedRevision は handle.revision
-    } else {
-        // 新規作成・copy 保存は revision チェック対象外
-        // (旧実装: sendUid ? revision.value : undefined)
-        await performSave({ expectedRevision: undefined });
-    }
-    return mapSaveSucceeded;
 };
 
 /**
@@ -4373,6 +4579,7 @@ const reloadFromStore = async () => {
         strictMode.value = data.strictMode || 'strict';
         vertexMode.value = data.vertexMode || 'plain';
         seedTinObjects(reloadCompiledTins);
+        await layerTransformState.restoreDraft(buildLayerSnapshotFromDocuments(reloadCompiledTins));
         editingID.value = '';
         newGcp.value = undefined;
         newlyAddEdge.value = undefined;
@@ -4436,32 +4643,41 @@ const viewError = () => {
         errorNumber.value = (errorNumber.value + 1) % kinks.length;
     }
     const errorPoint = kinks[errorNumber.value].geometry.coordinates;
+    const converted = compiledGeoJsonToMercator({
+        type: 'Feature', geometry: { type: 'Point', coordinates: errorPoint }, properties: {},
+    }, tin.getCompiled?.().yaxisMode, activeLayerCrs.value);
+    if (converted === false) return;
     const view = mercMap.getView();
-    view.setCenter(errorPoint);
+    view.setCenter(converted.geometry.coordinates);
     view.setZoom(17);
 };
 
 // --- サブマップ操作メソッド ---
 const addSubMap = () => {
+    if (adoptionInProgress.value) return;
     const width = Number(mapData.value.width) || 0;
     const height = Number(mapData.value.height) || 0;
-    sub_maps.value.push({
-        gcps: [],
-        edges: [],
-        priority: sub_maps.value.length + 1,
-        importance: sub_maps.value.length + 1,
-        bounds: [[0, 0], [width, 0], [width, height], [0, height]]
-    });
-    // 旧実装: this.tinObjects.push('') 相当
-    tinObjects.value.push(undefined);
-    // watcher 経由で mapData.value.sub_maps をリアクティブに更新させる
-    currentEditingLayer.value = sub_maps.value.length;
-    normalizeImportance(importanceSortedSubMaps.value);
-    normalizePriority(prioritySortedSubMaps.value);
+    const document = {
+        gcps: [], edges: [], priority: sub_maps.value.length + 1, importance: sub_maps.value.length + 1,
+        bounds: [[0, 0], [width, 0], [width, height], [0, height]],
+    };
+    const candidates = [...sub_maps.value.map(cloneDeep), document];
+    normalizeImportance([...candidates, 0 as any].sort((a, b) => ((a === 0 ? 0 : a.importance) < (b === 0 ? 0 : b.importance) ? 1 : -1)));
+    normalizePriority([...candidates].sort((a, b) => a.priority < b.priority ? 1 : -1));
+    const ranks = candidates.slice(0, -1).map((entry, index) => ({
+        layerId: layerIds.value[index + 1], importance: entry.importance, priority: entry.priority,
+    }));
+    const layerId = layerTransformState.addLayer({
+        gcps: [], edges: [], bounds: document.bounds, importance: document.importance, priority: document.priority,
+        buildOptions: { strictMode: strictMode.value as any, vertexMode: vertexMode.value, yaxisMode: 'invert' },
+    }, ranks);
+    if (layerId) currentEditingLayer.value = layerIds.value.indexOf(layerId);
 };
 
 const removeSubMap = async () => {
-    if (currentEditingLayer.value === 0) return;
+    if (adoptionInProgress.value || currentEditingLayer.value === 0) return;
+    const index = currentEditingLayer.value - 1;
+    const removedId = layerIds.value[index + 1];
     
     // 旧実装 mapedit.js L.1701-1710 に準拠: t('mapedit.confirm_layer_delete') を使用
     const confirmResult = await (window as any).dialog.showMessageBox({
@@ -4470,50 +4686,61 @@ const removeSubMap = async () => {
         cancelId: 1,
         message: t('mapedit.confirm_layer_delete')
     });
-    if (confirmResult.response === 1) return;
+    if (adoptionInProgress.value || confirmResult.response === 1) return;
 
-    const index = currentEditingLayer.value - 1;
+    const remaining = sub_maps.value.filter((_, subIndex) => subIndex !== index).map(cloneDeep);
+    normalizeImportance([...remaining, 0 as any].sort((a, b) => ((a === 0 ? 0 : a.importance) < (b === 0 ? 0 : b.importance) ? 1 : -1)));
+    normalizePriority([...remaining].sort((a, b) => a.priority < b.priority ? 1 : -1));
+    const remainingIds = layerIds.value.slice(1).filter((id) => id !== removedId);
+    const ranks = remaining.map((entry, subIndex) => ({
+        layerId: remainingIds[subIndex], importance: entry.importance, priority: entry.priority,
+    }));
     currentEditingLayer.value = 0;
-    sub_maps.value.splice(index, 1);
-    // 旧実装: this.tinObjects.splice(index+1, 1) 相当（サブマップはインデックス1以降）
-    tinObjects.value.splice(index + 1, 1);
+    layerTransformState.removeLayer(removedId, ranks);
+};
 
-    normalizeImportance(importanceSortedSubMaps.value);
-    normalizePriority(prioritySortedSubMaps.value);
+const syncLayerRanks = () => {
+    layerTransformState.changeLayerRanks(sub_maps.value.map((layer, index) => ({
+        layerId: layerIds.value[index + 1], importance: layer.importance, priority: layer.priority,
+    })));
 };
 
 const upImportance = () => {
-    if (!canUpImportance.value) return;
+    if (adoptionInProgress.value || !canUpImportance.value) return;
     const arr = [...importanceSortedSubMaps.value];
     const target = currentEditingLayer.value === 0 ? 0 : sub_maps.value[currentEditingLayer.value - 1];
     const index = arr.indexOf(target);
     arr.splice(index - 1, 2, arr[index], arr[index - 1]);
     normalizeImportance(arr);
+    syncLayerRanks();
 };
 
 const downImportance = () => {
-    if (!canDownImportance.value) return;
+    if (adoptionInProgress.value || !canDownImportance.value) return;
     const arr = [...importanceSortedSubMaps.value];
     const target = currentEditingLayer.value === 0 ? 0 : sub_maps.value[currentEditingLayer.value - 1];
     const index = arr.indexOf(target);
     arr.splice(index, 2, arr[index + 1], arr[index]);
     normalizeImportance(arr);
+    syncLayerRanks();
 };
 
 const upPriority = () => {
-    if (!canUpPriority.value) return;
+    if (adoptionInProgress.value || !canUpPriority.value) return;
     const arr = [...prioritySortedSubMaps.value];
     const index = arr.indexOf(sub_maps.value[currentEditingLayer.value - 1]);
     arr.splice(index - 1, 2, arr[index], arr[index - 1]);
     normalizePriority(arr);
+    syncLayerRanks();
 };
 
 const downPriority = () => {
-    if (!canDownPriority.value) return;
+    if (adoptionInProgress.value || !canDownPriority.value) return;
     const arr = [...prioritySortedSubMaps.value];
     const index = arr.indexOf(sub_maps.value[currentEditingLayer.value - 1]);
     arr.splice(index, 2, arr[index + 1], arr[index]);
     normalizePriority(arr);
+    syncLayerRanks();
 };
 // 旧実装 map.js L.460-468: QGIS GeoReferencer のデフォルト設定を適用
 // 休眠パネル専用（削除禁止・あとで再編予定）
@@ -4532,12 +4759,15 @@ const csvQgisSetting = () => {
 // 休眠パネル専用（削除禁止・あとで再編予定）
 // CSV/インポートで GCP を一括設定する
 const updateWholeGcps = (newGcps: any[]) => {
+    if (adoptionInProgress.value) return;
     if (currentEditingLayer.value === 0) {
         gcps.value = cloneDeep(newGcps);
         mapData.value.gcps = newGcps;
         edges.value = [];
         mapData.value.edges = [];
     } else if (sub_maps.value.length > 0) {
+        gcps.value = cloneDeep(newGcps);
+        edges.value = [];
         sub_maps.value[currentEditingLayer.value - 1].gcps = cloneDeep(newGcps);
         sub_maps.value[currentEditingLayer.value - 1].edges = [];
     }
@@ -4546,6 +4776,7 @@ const updateWholeGcps = (newGcps: any[]) => {
 // 旧実装: vueMap.$on('importMap') 相当
 // 有効条件: !dirty && status === 'New'
 const importMap = async () => {
+    if (adoptionInProgress.value) return;
     // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     modalShow('mapedit.image_uploading');
@@ -4605,6 +4836,7 @@ const importMap = async () => {
             strictMode.value = histMap.strictMode || 'strict';
             vertexMode.value = histMap.vertexMode || 'plain';
             seedTinObjects(compiledTins, true);
+            await layerTransformState.restoreDraft(buildLayerSnapshotFromDocuments(compiledTins));
             // タイル・マーカー反映
             if (histMap.url_) await loadMapTiles();
             gcpsToMarkers();
@@ -4932,6 +5164,7 @@ async function onMercCreateNew(payload: { uid: string; slug: string; title: stri
 // 旧実装: vueMap.$on('uploadCsv') 相当
 // 休眠パネル専用（削除禁止・あとで再編予定）
 const uploadCsv = async () => {
+    if (adoptionInProgress.value) return;
     // 操作を始めるときに前の通知を消す（成功と後の失敗が並ばないように。ui-grammar §5.3）
     clearOperationNotice();
     if (gcps.value.length > 0) {
@@ -4946,8 +5179,9 @@ const uploadCsv = async () => {
     // 旧実装: window.mapedit.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [layer, bounds, strict, vertex])
     const arg = await (window as any).mapedit.uploadCsv(
         t('dataio.csv_file'),
-        JSON.parse(JSON.stringify(csvUploadUiValue.value))
+        { ...JSON.parse(JSON.stringify(csvUploadUiValue.value)), targetCrs: cloneDeep(activeLayerCrs.value) }
     );
+    if (adoptionInProgress.value) return;
     if (arg.err) {
         const message = arg.err === 'Canceled'
             ? t('mapedit.imexport_canceled')
@@ -5042,8 +5276,8 @@ const goBack = async () => {
         <div v-if="mapExportOptionsVisible" class="modal-backdrop show"></div>
         <!-- 保存準備区間(予約再確認・TIN計算待ち)もカバーする -->
         <EditorBusyOverlay
-            :visible="saving || preparingSave || exporting"
-            :label="saving || preparingSave ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
+            :visible="saving || preparingSave || exporting || adoptionInProgress"
+            :label="saving || preparingSave || adoptionInProgress ? t('editor_ui.save_state.saving') : t('editor_ui.busy_exporting')"
         />
 
         <EditorActionHeader

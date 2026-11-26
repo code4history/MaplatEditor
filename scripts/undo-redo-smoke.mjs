@@ -105,10 +105,11 @@ try {
     const body = mapEdit.match(new RegExp(`const ${fn} = async \\(\\) => \\{[\\s\\S]*?\\n\\};`))?.[0] ?? '';
     assert.ok(body, `${fn} could not be located`);
     const flushAt = body.indexOf('commitPendingBeforeNavigate()');
-    const moveAt = body.search(/historyStack\.value\.(undo|redo)\(\)/);
+    const direction = fn === 'performUndo' ? 'undo' : 'redo';
     assert.ok(flushAt >= 0, `${fn} must flush the pending snapshot via commitPendingBeforeNavigate() (INV-8)`);
-    assert.ok(moveAt >= 0, `${fn} must move the history pointer`);
-    assert.ok(flushAt < moveAt, `${fn} must flush BEFORE moving the history pointer (INV-8)`);
+    assert.match(body, new RegExp(`layerTransformState\\.${direction}\\(\\)`), `${fn} must navigate through the layer model`);
+    const adapter = mapEdit.match(new RegExp(`${direction}: \\(\\) => \\{[\\s\\S]*?\\n        \\},`))?.[0] ?? '';
+    assert.match(adapter, new RegExp(`historyStack\\.value\\.${direction}\\(\\)`), `${direction} adapter must move the history pointer`);
   }
 
   // INV-3: origin は引数で渡る（取得と消費の責務分離）

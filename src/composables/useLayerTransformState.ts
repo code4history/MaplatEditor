@@ -1,16 +1,5 @@
 import { computed, readonly, shallowReadonly, shallowRef } from 'vue';
-import type { EdgeSet, PointSet, StrictMode, VertexMode, YaxisMode } from '@maplat/transform';
-
-// この基点の @maplat/transform にはまだないため、採用時に扱う CRS とワールドファイルの形を宣言する。
-type CrsObject = { epsg?: number; authority?: string; code?: string; proj4?: string };
-type WorldFile = {
-    xScale: number;
-    xSkew: number;
-    xOrigin: number;
-    ySkew: number;
-    yScale: number;
-    yOrigin: number;
-};
+import type { CrsObject, EdgeSet, PointSet, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
 
 export type LayerTransformIntent =
     | { setup: 'legacyV2' }

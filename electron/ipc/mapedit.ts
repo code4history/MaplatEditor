@@ -26,6 +26,7 @@ import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
 import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
+import { csvGeoCoordToTarget } from '../../src/utils/crsProjection';
 
 // composeDownloadMapJson は mapDownloadZip.ts へ移設した。
 // scripts/mapedit-pois-save-smoke.mjs が electron/ipc/mapedit.ts からの named import で
@@ -236,7 +237,7 @@ export const registerMapEditHandlers = () => {
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
     // 休眠パネル専用（削除禁止・あとで再編予定）
-    ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
+    ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any, targetCrs?: any) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
         const ret = await dialog.showOpenDialog(win, {
@@ -278,7 +279,9 @@ export const registerMapEditHandlers = () => {
                             if (csvUpSettings.reverseMapY) illstCoord[1] = -1 * illstCoord[1];
                             rawGeoCoord[0] = parseFloat(line[csvUpSettings.lngColumn - 1]);
                             rawGeoCoord[1] = parseFloat(line[csvUpSettings.latColumn - 1]);
-                            const geoCoord = proj(csvUpSettings.projText, 'EPSG:3857', rawGeoCoord);
+                            if (![...illstCoord, ...rawGeoCoord].every(Number.isFinite)) throw new Error('invalid coordinate');
+                            const geoCoord = csvGeoCoordToTarget(rawGeoCoord, targetCrs,
+                                (raw) => proj(csvUpSettings.projText, 'EPSG:4326', [raw[0], raw[1]]) as number[]);
                             gcps.push([illstCoord, geoCoord]);
                         } catch (_e) {
                             error = 'csv_format_error';

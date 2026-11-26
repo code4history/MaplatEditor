@@ -36,3 +36,26 @@ export function compiledPointToMercator(
   const lonLat = projectionEngineForCrs(crs).toLonLat(native, crs);
   return lonLat === false ? false : builtinProjectionEngine.fromLonLat(lonLat, { epsg: 3857 });
 }
+
+/** GeoJSON の全座標を同じ規則で戻し、一つでも投影できなければ描画を拒否する。 */
+export function compiledGeoJsonToMercator<T>(geoJson: T, yaxisMode?: YaxisMode, crs?: CrsObject): T | false {
+  let valid = true;
+  const convert = (value: any): any => {
+    if (!Array.isArray(value)) return value;
+    if (value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+      const converted = compiledPointToMercator(value, yaxisMode, crs);
+      if (converted === false) valid = false;
+      return converted || value;
+    }
+    return value.map(convert);
+  };
+  const clone = structuredClone(geoJson) as any;
+  if (clone?.geometry?.coordinates) clone.geometry.coordinates = convert(clone.geometry.coordinates);
+  if (Array.isArray(clone?.features)) {
+    for (const feature of clone.features) {
+      if (feature?.geometry?.coordinates) feature.geometry.coordinates = convert(feature.geometry.coordinates);
+    }
+  }
+  if (clone?.coordinates) clone.coordinates = convert(clone.coordinates);
+  return valid ? clone : false;
+}

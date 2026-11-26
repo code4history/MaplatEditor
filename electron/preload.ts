@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('mapedit', {
     ipcRenderer.invoke('mapedit:download-saved', mapRef, options),
   // 休眠パネル専用（削除禁止・あとで再編予定）
   uploadCsv: (csvRepl: string, csvUpSettings: any) =>
-    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
+    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings, csvUpSettings.targetCrs),
   // 復元時ガード用の staging 実在照会
   stagingStatus: (url_: string, uid?: string) =>
     ipcRenderer.invoke('mapedit:stagingStatus', url_, uid),
