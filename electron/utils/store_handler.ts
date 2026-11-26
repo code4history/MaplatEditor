@@ -235,7 +235,8 @@ function readStoredTin(layer: StoredLayer, isSubMap = false): Transform | undefi
   let transform: Transform;
   if (crs !== undefined) {
     const data: LayeredMapData = {
-      main: { kind: "tin", crs, compiled, bounds, projectionEngine: projectionEngineForCrs(crs) },
+      // 主図には bounds を渡さない（Core の store2HistMap4Core と同じ。主図の範囲は wh で決まる）
+      main: { kind: "tin", crs, compiled, ...(isSubMap ? { bounds } : {}), projectionEngine: projectionEngineForCrs(crs) },
     };
     const map = new MapTransform();
     map.setLayeredMapData(data);
