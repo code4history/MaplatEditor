@@ -10,6 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { MCP_FEATURE_ENABLED } from './helpers/mcpFeature';
+import { evalMain } from './helpers/evalMain';
 
 test.skip(!MCP_FEATURE_ENABLED, 'the MCP server is hidden in this build');
 
@@ -81,7 +82,7 @@ test('an MCP client lists, reads and converts points of a saved map', async () =
     }, { gcps });
 
     // Turn the server on (the confirmation dialog is answered with the confirming button)
-    await app.evaluate(({ dialog }) => {
+    await evalMain(app, ({ dialog }) => {
       (dialog as any).showMessageBox = async () => ({ response: 0, checkboxChecked: false });
     });
     await page.evaluate((p) => window.mcp.setPort(p), port);

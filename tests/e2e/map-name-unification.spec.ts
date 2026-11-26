@@ -36,6 +36,7 @@ import { DatabaseSync } from 'node:sqlite';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixturesRoot = path.join(projectRoot, 'tests/fixtures/migration-pipeline');
@@ -373,7 +374,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-map-name-unification-ui-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const saveFolder: string = await page.evaluate(() => (window as any).settings.get('saveFolder'));
@@ -441,7 +442,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
 
       // --- case 10: 書き出した map.json に廃止属性が出ず、label が出る ---
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, zip) => {
+      await evalMain(app, async ({ dialog }, zip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: zip })) as typeof dialog.showSaveDialog;
       }, zipPath);
       await openHash(page, `#/mapedit?uid=${mapUid}`);
@@ -502,7 +503,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
 
         // アプリ一式搬出は ZIP を書く（AppExportService は showSaveDialog で保存先を取る）
         const appZip = path.join(e2eRoot, 'app-export.zip');
-        await app.evaluate(async ({ dialog }, zip) => {
+        await evalMain(app, async ({ dialog }, zip) => {
           dialog.showSaveDialog = (async () => ({ canceled: false, filePath: zip })) as typeof dialog.showSaveDialog;
         }, appZip);
 
@@ -583,7 +584,7 @@ test.describe('地図の名称属性統一と既存データ移行', () => {
       }
 
       const importOnce = async () => {
-        await app.evaluate(async ({ dialog }, zip) => {
+        await evalMain(app, async ({ dialog }, zip) => {
           dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [zip] })) as typeof dialog.showOpenDialog;
         }, legacyZip);
         await openHash(page, '#/maplist');

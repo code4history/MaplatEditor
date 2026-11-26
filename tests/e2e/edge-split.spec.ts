@@ -7,6 +7,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -122,7 +123,7 @@ test.describe('edge split (addMarkerOnEdge)', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-edge-split-illst-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const seeded = await seedMapWithEdge(page);
@@ -206,7 +207,7 @@ test.describe('edge split (addMarkerOnEdge)', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-edge-split-merc-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const seeded = await seedMapWithEdge(page);
@@ -251,7 +252,7 @@ test.describe('edge split (addMarkerOnEdge)', () => {
     const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-edge-split-collision-'));
     const { app, page } = await launch(e2eRoot);
     try {
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       const seeded = await seedMapWithEdge(page);

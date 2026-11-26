@@ -13,6 +13,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OWNER = 'code4history';
@@ -97,8 +98,8 @@ async function launch(root: string, feedJson: string) {
 }
 
 const hook = {
-  inspect: (app: ElectronApplication) => app.evaluate(() => (globalThis as any).__maplatUpdateTest?.inspect() ?? null),
-  check: (app: ElectronApplication) => app.evaluate(async () => {
+  inspect: (app: ElectronApplication) => evalMain(app, () => (globalThis as any).__maplatUpdateTest?.inspect() ?? null),
+  check: (app: ElectronApplication) => evalMain(app, async () => {
     try {
       const r = await (globalThis as any).__maplatUpdateTest.checkForUpdates();
       return r == null ? { result: null } : { version: r.updateInfo?.version ?? null, isUpdateAvailable: r.isUpdateAvailable };
@@ -106,7 +107,7 @@ const hook = {
       return { error: String((e as Error)?.message ?? e) };
     }
   }),
-  download: (app: ElectronApplication) => app.evaluate(async () => {
+  download: (app: ElectronApplication) => evalMain(app, async () => {
     try {
       return { files: await (globalThis as any).__maplatUpdateTest.downloadUpdate() };
     } catch (e) {

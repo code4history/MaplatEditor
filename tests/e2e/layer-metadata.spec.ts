@@ -12,6 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { resolveIconPairForTest } from '../../src/utils/poiMarkerStyle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -49,7 +50,7 @@ async function openPoiEdit(page: Page, uid: string): Promise<void> {
 }
 
 async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     (globalThis as any).__e2eMessageBoxLog = [];
     dialog.showMessageBox = (async (...args: unknown[]) => {
       const options = (args.length >= 2 ? args[1] : args[0]) as { message?: string };

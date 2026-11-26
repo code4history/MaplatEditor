@@ -15,6 +15,7 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -151,9 +152,9 @@ test.describe('properties 正本化 — viewer 到達', () => {
         return !!src && src.getFeatures().length >= 1;
       }, undefined, { timeout: 60000 });
 
-      // ロードモーダル（アプリロード中です...）の消失を待機（modalBase が bootstrap で hide になる）。
-      // createObject 解決直後はモーダルが残っていることがあるため、画面系 assert/目視の前に必ず挟む
-      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      // 起動中の表示（アプリロード中です...）の消失を待機（UI 1.3 では <maplat-ui> の part="splash"）。
+      // createObject 解決直後は表示が残っていることがあるため、画面系 assert/目視の前に必ず挟む
+      await waitViewerSplashHidden(frame);
       // タイル描画の反映を rAF 2 回分で確定（ローカル fixture 配信のため実待ちはごく短い）
       await frame.evaluate(() => new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));

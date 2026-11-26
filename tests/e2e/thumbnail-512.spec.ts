@@ -8,6 +8,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 // 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
 import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
@@ -30,7 +31,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 
 // ダイアログを差し替えて任意の画像を選択させる（置換フロー検証用）
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
   }, imagePath);
 }
@@ -151,7 +152,7 @@ test.describe('512pxアイコン活用', () => {
 
       const zipPath = path.join(e2eRoot, 'export.zip');
       // export の save dialog を差し替えて zipPath へ出力させる
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
 

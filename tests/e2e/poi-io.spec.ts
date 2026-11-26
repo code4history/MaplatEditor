@@ -7,6 +7,7 @@ import { createServer, type Server } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
@@ -33,7 +34,7 @@ async function useJapaneseUi(page: Page): Promise<void> {
 }
 
 async function stubDialogs(app: ElectronApplication, savePath: string): Promise<void> {
-  await app.evaluate(({ dialog }, out) => {
+  await evalMain(app, ({ dialog }, out) => {
     (globalThis as any).__poiIoMessages = [];
     (globalThis as any).__poiIoSaveCalls = [];
     dialog.showSaveDialog = (async (...args: any[]) => {
@@ -92,7 +93,7 @@ async function runExport(
 }
 
 async function saveCalls(app: ElectronApplication): Promise<{ filters: { name: string; extensions: string[] }[] }[]> {
-  return app.evaluate(() => (globalThis as any).__poiIoSaveCalls);
+  return evalMain(app, () => (globalThis as any).__poiIoSaveCalls);
 }
 
 // アイコンセットの参照 (どの環境でも実体がある) を持つ POI 1 件
@@ -222,21 +223,21 @@ test.describe('POI のエクスポート', () => {
       await expect(dialog).toBeHidden();
       await expect(page.locator('[data-editor-action="export"]')).toBeEnabled();
       expect(await saveCalls(app)).toHaveLength(0);
-      expect(await app.evaluate(() => (globalThis as any).__poiIoMessages.length)).toBe(0);
+      expect(await evalMain(app, () => (globalThis as any).__poiIoMessages.length)).toBe(0);
 
       // (d) 未保存の変更があると、選択ダイアログより先に「保存してエクスポート」の確認が出る
       await page.getByTestId('poi-title').locator('input').fill('未保存の題');
       await page.locator('[data-editor-action="export"]').click();
       await expect(dialog).toBeVisible({ timeout: 15000 });
       // 選択ダイアログが見えた時点で、確認 (と、それを受けた保存の通知) は出終わり、保存ダイアログはまだ
-      const before = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
+      const before = await evalMain(app, () => (globalThis as any).__poiIoMessages as { message: string }[]);
       expect(before[0]?.message).toBe('未保存の変更があります。エクスポートの方法を選んでください。');
       expect(await saveCalls(app)).toHaveLength(0);
       await page.getByTestId('poi-export-options-confirm').click();
       await expect(dialog).toBeHidden();
       await expect(page.getByTestId('operation-notice')).toContainText('エクスポートしました。');
       expect(await saveCalls(app)).toHaveLength(1);
-      const after = await app.evaluate(() => (globalThis as any).__poiIoMessages as { message: string }[]);
+      const after = await evalMain(app, () => (globalThis as any).__poiIoMessages as { message: string }[]);
       expect(after).toEqual(before); // 通知はネイティブ確認を増やさない
     } finally {
       await quitElectronApplication(app);
@@ -249,7 +250,7 @@ test.describe('POI のエクスポート', () => {
 // ---------------------------------------------------------------------------
 
 async function stubOpenDialog(app: ElectronApplication, filePath: string): Promise<void> {
-  await app.evaluate(({ dialog }, target) => {
+  await evalMain(app, ({ dialog }, target) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [target] })) as typeof dialog.showOpenDialog;
   }, filePath);
 }

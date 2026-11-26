@@ -18,6 +18,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OWNER = 'code4history';
@@ -111,7 +112,7 @@ type DialogCall = { type?: string; message: string; detail?: string; buttons: st
  * launch の直後（窓ができて起動の確認の遅延が始まるより前）に置く
  */
 async function stubDialog(app: ElectronApplication, responses: number[]) {
-  await app.evaluate(({ dialog }, queue: number[]) => {
+  await evalMain(app, ({ dialog }, queue: number[]) => {
     const g = globalThis as any;
     g.__e2eDialogs = [] as unknown[];
     g.__e2eQueue = [...queue];
@@ -124,7 +125,7 @@ async function stubDialog(app: ElectronApplication, responses: number[]) {
   }, responses);
 }
 
-const dialogs = (app: ElectronApplication) => app.evaluate(() => ((globalThis as any).__e2eDialogs ?? []) as DialogCall[]);
+const dialogs = (app: ElectronApplication) => evalMain(app, () => ((globalThis as any).__e2eDialogs ?? []) as DialogCall[]);
 
 async function launch(root: string, feedJson: string) {
   return electron.launch({
@@ -243,7 +244,7 @@ test.describe('更新のお知らせ', () => {
       expect(await dialogs(app)).toEqual([]);
 
       // メニュー（最初の submenu の id: 'check-updates'）
-      await app.evaluate(({ Menu }) => {
+      await evalMain(app, ({ Menu }) => {
         const item = Menu.getApplicationMenu()?.getMenuItemById('check-updates');
         if (!item) throw new Error('check-updates の項目が無い');
         item.click();
@@ -253,7 +254,7 @@ test.describe('更新のお知らせ', () => {
       expect(upToDate.message).toContain(CURRENT);
       expect(upToDate.buttons.length).toBeLessThanOrEqual(1);
       // About の隣（最初の submenu）にある
-      const labels = await app.evaluate(({ Menu }) => (Menu.getApplicationMenu()?.items[0].submenu?.items ?? []).map((i) => i.id ?? i.label));
+      const labels = await evalMain(app, ({ Menu }) => (Menu.getApplicationMenu()?.items[0].submenu?.items ?? []).map((i) => i.id ?? i.label));
       expect(labels.indexOf('check-updates')).toBeGreaterThan(-1);
       expect(zipRequests(feed.state.paths)).toEqual([]);
       expect(prereleaseRequests(feed.state.paths)).toEqual([]);
@@ -288,7 +289,7 @@ test.describe('更新のお知らせ', () => {
     const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
     try {
       await firstPage(app);
-      await app.evaluate(({ autoUpdater, BrowserWindow }) => {
+      await evalMain(app, ({ autoUpdater, BrowserWindow }) => {
         // electron-updater の quitAndInstall は、窓を閉じる前にこのイベントを出す（MacUpdater は Squirrel が・BaseUpdater は自前で）
         autoUpdater.emit('before-quit-for-update');
         BrowserWindow.getAllWindows()[0]?.close();

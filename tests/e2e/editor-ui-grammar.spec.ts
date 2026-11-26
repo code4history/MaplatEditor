@@ -5,6 +5,7 @@ import path from 'node:path';
 import { launch, openHash, saveFolderOf, seedFullMap, projectRoot } from './helpers/mapPackage';
 import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 // UI 文法（docs/ui-grammar.md）の代表画面を、同じ隔離データ・画面サイズで撮って確かめる。
 // 既定の実行は変更後（after）の回帰検査。before は変更前のコードで撮るときだけ
@@ -20,7 +21,7 @@ for (const phase of ['before', 'after']) {
     const { app, page } = await launch(root);
     try {
       await page.reload();
-      await app.evaluate(({ BrowserWindow, dialog }) => {
+      await evalMain(app, ({ BrowserWindow, dialog }) => {
         BrowserWindow.getAllWindows()[0].setSize(1280, 900);
         (globalThis as any).__grammarMessages = [];
         dialog.showMessageBox = (async (...args: any[]) => {
@@ -57,13 +58,13 @@ for (const phase of ['before', 'after']) {
       await page.getByTestId('poi-title').locator('input').blur();
       await page.getByTestId('editor-save').click();
       if (phase === 'before') {
-        await expect.poll(() => app.evaluate(async () => (globalThis as any).__grammarMessages.length)).toBeGreaterThan(0);
+        await expect.poll(() => evalMain(app, async () => (globalThis as any).__grammarMessages.length)).toBeGreaterThan(0);
       } else {
         await expect(page.getByTestId('operation-notice')).toContainText('保存');
-        expect(await app.evaluate(() => (globalThis as any).__grammarMessages.length)).toBe(0);
+        expect(await evalMain(app, () => (globalThis as any).__grammarMessages.length)).toBe(0);
       }
       await shot('poi-save-notice');
-      await writeFile(path.join(artifacts, 'native-notifications.json'), JSON.stringify(await app.evaluate(() => (globalThis as any).__grammarMessages), null, 2));
+      await writeFile(path.join(artifacts, 'native-notifications.json'), JSON.stringify(await evalMain(app, () => (globalThis as any).__grammarMessages), null, 2));
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), root, { prefix: 'grammar', title: '街歩きの地図' });
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
       await expect(page.getByTestId('map-title')).toBeVisible();
@@ -111,7 +112,7 @@ for (const phase of ['before', 'after']) {
       {
         // 移行レポートのバナー: 行が多くても画面を押し下げず、一覧だけをスクロールする（PR #246）
         await openHash(page, '#/maplist');
-        await app.evaluate(({ BrowserWindow }) => {
+        await evalMain(app, ({ BrowserWindow }) => {
           const renamedSlugs = Array.from({ length: 24 }, (_, index) => ({ kind: 'map', from: `old-map-${index + 1}`, to: `old-map-${index + 1}-2` }));
           BrowserWindow.getAllWindows()[0].webContents.send('app:migrationReport', { renamedSlugs, warnings: ['w1', 'w2', 'w3'] });
         });

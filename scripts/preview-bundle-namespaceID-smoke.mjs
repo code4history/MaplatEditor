@@ -1,7 +1,7 @@
 /**
  * smoke test: preview viewer bundle の namespaceID 修正検証
  *
- * case 1: public/preview/maplat_ui.umd.js に showPoiLayer(\w+\.namespaceID) が含まれる
+ * case 1: public/preview/maplat_ui.umd.js で showPoiLayer に namespaceID を渡している（minify の 2 つの形。findNamespaceFix）
  * case 2: dist/preview/maplat_ui.umd.js に同修正が含まれる
  * case 3: （既存の e2e の preview-back-navigation で検証 — この smoke では対象外）
  * case 4: pnpm build が成功する（build 前提でファイル存在確認）
@@ -26,6 +26,15 @@ async function grepFile(filePath, pattern) {
   return content.match(pattern) ?? null;
 }
 
+// showPoiLayer に POI レイヤーの namespaceID を渡していることを、minify の 2 つの形で探す。
+// UI 1.2 まで: showPoiLayer(x.namespaceID)
+// UI 1.3 から（Web Components）: const p=x.namespaceID; … showPoiLayer(p)（同じ関数の中で 300 字以内）
+const NAMESPACE_DIRECT = /showPoiLayer\([a-zA-Z0-9_$]+\.namespaceID\)/;
+const NAMESPACE_VIA_LOCAL = /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*[a-zA-Z0-9_$]+\.namespaceID\s*[;,][\s\S]{0,300}?\.showPoiLayer\(\1\)/;
+async function findNamespaceFix(filePath) {
+  return (await grepFile(filePath, NAMESPACE_DIRECT)) ?? (await grepFile(filePath, NAMESPACE_VIA_LOCAL));
+}
+
 let passed = 0;
 const total = 4;
 
@@ -35,10 +44,7 @@ const total = 4;
     projectRoot,
     "public/preview/maplat_ui.umd.js"
   );
-  const match = await grepFile(
-    filePath,
-    /showPoiLayer\([a-zA-Z0-9_]+\.namespaceID\)/
-  );
+  const match = await findNamespaceFix(filePath);
   assert.ok(match, "case 1: public/preview に showPoiLayer(namespaceID) が含まれること");
   console.log("✅ case 1: public/preview/maplat_ui.umd.js に namespaceID 修正確認");
   passed++;
@@ -50,10 +56,7 @@ const total = 4;
     projectRoot,
     "dist/preview/maplat_ui.umd.js"
   );
-  const match = await grepFile(
-    filePath,
-    /showPoiLayer\([a-zA-Z0-9_]+\.namespaceID\)/
-  );
+  const match = await findNamespaceFix(filePath);
   assert.ok(match, "case 2: dist/preview に showPoiLayer(namespaceID) が含まれること");
   console.log("✅ case 2: dist/preview/maplat_ui.umd.js に namespaceID 修正確認");
   passed++;

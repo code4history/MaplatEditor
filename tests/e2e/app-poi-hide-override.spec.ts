@@ -18,6 +18,8 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
+import { waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -54,7 +56,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 // main 側 dialog.showMessageBox を OK 自動応答へ差し替える（AppEdit の保存も確認ダイアログを挟む）
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }
@@ -271,7 +273,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       }, undefined, { timeout: 90000 });
 
       // モーダル消失待機（properties-viewer-reach と同一）
-      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      await waitViewerSplashHidden(frame);
       await frame.evaluate(() => new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
       }));

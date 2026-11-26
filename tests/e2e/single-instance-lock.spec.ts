@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 // 単一インスタンスのロック: app.requestSingleInstanceLock() は Electron ネイティブ API の挙動であり
 // 実 Electron プロセスでしか検証できない。この検証には両インスタンスが「同一 userData path」を
@@ -85,7 +86,7 @@ test('second Electron process sharing the same userData path is excluded by sing
     await expect(pageA.locator('body')).toBeVisible();
 
     // instance A に届く second-instance を数える(届いたこと = B がロックを取れず A に引き渡したこと)
-    await appA.evaluate(({ app }) => {
+    await evalMain(appA, ({ app }) => {
       const g = globalThis as { __maplatSecondInstanceCount?: number };
       g.__maplatSecondInstanceCount = 0;
       app.on('second-instance', () => {
@@ -106,7 +107,8 @@ test('second Electron process sharing the same userData path is excluded by sing
     await expect
       .poll(
         () =>
-          appA!.evaluate(
+          evalMain(
+            appA!,
             () => (globalThis as { __maplatSecondInstanceCount?: number }).__maplatSecondInstanceCount ?? 0,
           ),
         { timeout: 10_000 },
@@ -119,7 +121,8 @@ test('second Electron process sharing the same userData path is excluded by sing
     expect(typeof saveFolderStillWorks).toBe('string');
     // 上の確認の間に 2 回目が届いていないこと（ちょうど 1 回）
     expect(
-      await appA!.evaluate(
+      await evalMain(
+        appA!,
         () => (globalThis as { __maplatSecondInstanceCount?: number }).__maplatSecondInstanceCount ?? 0,
       ),
     ).toBe(1);

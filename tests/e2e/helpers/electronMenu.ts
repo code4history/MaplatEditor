@@ -1,38 +1,12 @@
-// main process（Electron モジュール名前空間）を E2E から評価・操作するための共有ヘルパー。
+// アプリケーションメニューを E2E から読む・操作するための共有ヘルパー。
 //
-// 出自: tests/e2e/settings-and-about.spec.ts:26-39 の evalMain()。
+// 出自: tests/e2e/settings-and-about.spec.ts の About ウィンドウの操作。
 // wiki-screenshots-extra の Wiki 用スクリーンショット spec が About ウィンドウの自動撮影で同じロジックを
 // 必要としたため、複製せずここへ抽出した（恒久指示「同一扱い処理は
-// 共通実装へ徹底」。Playwright はスペック間 import を禁止する ∴ 置き場は helpers/ 配下。
-// launchIsolated.ts / electronLifecycle.ts に続く 3 本目の共有ヘルパー）。
+// 共通実装へ徹底」。Playwright はスペック間 import を禁止する ∴ 置き場は helpers/ 配下）。
+// main で関数を評価する口（evalMain）は helpers/evalMain.ts にある。
 import type { ElectronApplication, Page } from '@playwright/test';
-
-/**
- * main process 上で fn を評価する。
- *
- * ElectronApplication.evaluate() は稀に「Resulting promise was garbage collected」で失敗する
- * （Playwright 側の既知の不安定挙動。ラウンドトリップの参照が早期に解放される競合で、
- * 起動直後の呼び出しで観測されやすい。実測: 3回に1回程度）。テスト対象のロジックとは無関係の
- * ハーネス側の揺らぎなので、その1エラーメッセージに限定して1回だけ再試行する。
- */
-export async function evalMain<T>(
-  app: ElectronApplication,
-  fn: (electron: typeof import('electron'), arg: any) => T | Promise<T>,
-  arg?: unknown,
-): Promise<T> {
-  const run = (): Promise<T> =>
-    (arg === undefined
-      ? (app.evaluate(fn as any) as Promise<T>)
-      : (app.evaluate(fn as any, arg as any) as Promise<T>));
-  try {
-    return await run();
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('garbage collected')) {
-      return await run();
-    }
-    throw error;
-  }
-}
+import { evalMain } from './evalMain';
 
 /** アプリケーションメニューのトップレベル label 一覧を返す。 */
 export async function applicationMenuLabels(app: ElectronApplication): Promise<string[]> {

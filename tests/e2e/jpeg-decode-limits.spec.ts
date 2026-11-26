@@ -14,6 +14,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -37,7 +38,7 @@ async function openHash(page: Page, hash: string, waitFor?: string): Promise<voi
 
 /** upload-tile-refresh・tile-restore-on-undo と同型のダイアログ差し替えハーネス */
 async function installDialogHarness(app: ElectronApplication, imagePath: string | null): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => (
       selectedImage === null
         ? { canceled: true, filePaths: [] }
@@ -98,7 +99,7 @@ test.describe('JPEG デコード上限の設定値化と不足の事前通知', 
       // 期待値をこの機体で実測した安全枠から導出する（定数を書くと機体依存になる）
       // Electron の process.getHeapStatistics()（単位 KB）を使う。
       // app.evaluate の中では動的 import が main のバンドルへ解決されて使えない（実測）
-      const safety = await app.evaluate(() => {
+      const safety = await evalMain(app, () => {
         const heapMB = (process as any).getHeapStatistics().heapSizeLimit / 1024;
         const maxDecoderHeapMB = Math.floor(heapMB * 0.75 - 128);
         const maxResolutionMP = Math.floor((maxDecoderHeapMB * 1024 * 1024 / 120) * 64 / 3 / 1e6);

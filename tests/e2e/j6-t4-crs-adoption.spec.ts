@@ -4,6 +4,7 @@ import path from 'node:path';
 import Tin from '@maplat/tin';
 import { toLonLat } from 'ol/proj.js';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 test('MapEdit から採用中の操作拒否・降格・Undo・Redo・保存と Plan A のホーム設定を確認する', async () => {
   const root = path.resolve(import.meta.dirname, '../..');
@@ -34,7 +35,7 @@ test('MapEdit から採用中の操作拒否・降格・Undo・Redo・保存と 
     const uid = (result as any).uid;
     await page.evaluate((id) => { location.hash = `#/mapedit?uid=${id}`; }, uid);
     await expect.poll(() => page.evaluate(() => (window as any).testDebug?.historyDebug()?.length)).toBe(1);
-    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some((window) => window.isVisible()))).toBe(false);
+    expect(await evalMain(app, ({ BrowserWindow }) => BrowserWindow.getAllWindows().some((window) => window.isVisible()))).toBe(false);
 
     const worldFile = { xScale: 1, xSkew: 0, xOrigin: 1000.5, yScale: -1, ySkew: 0, yOrigin: 999.5 };
     const selection = {
@@ -57,7 +58,7 @@ test('MapEdit から採用中の操作拒否・降格・Undo・Redo・保存と 
     await expect.poll(() => page.evaluate(() => typeof (window as any).releaseTin)).toBe('function');
     expect(await page.evaluate(() => (window as any).testDebug.adoptionInProgress.value)).toBe(true);
     expect(await page.evaluate(() => (window as any).testDebug.saveMapAfterConfirm())).toBe(false);
-    await app.evaluate(({ BrowserWindow }) => {
+    await evalMain(app, ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0];
       win.webContents.send('main-process-message', 'menu:undo');
       win.webContents.send('main-process-message', 'menu:redo');
@@ -78,7 +79,7 @@ test('MapEdit から採用中の操作拒否・降格・Undo・Redo・保存と 
     expect(after.mapData.crs).toEqual({ epsg: 3857 });
     expect(after.mapData.worldFile).toBeUndefined();
     for (const [message, setup] of [['menu:undo', 'legacyV2'], ['menu:redo', 'B']]) {
-      await app.evaluate(({ BrowserWindow }, data) => BrowserWindow.getAllWindows()[0].webContents.send('main-process-message', data), message);
+      await evalMain(app, ({ BrowserWindow }, data: string) => BrowserWindow.getAllWindows()[0].webContents.send('main-process-message', data), message);
       await expect.poll(() => page.evaluate(() => (window as any).testDebug.layerTransformIntents.value.main.setup)).toBe(setup);
     }
     await expect.poll(() => page.evaluate(() => (window as any).testDebug.adoptionInProgress.value)).toBe(false);

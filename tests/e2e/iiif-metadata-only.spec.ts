@@ -16,6 +16,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixtureDir = path.join(projectRoot, 'tests', 'fixtures', 'iiif');
@@ -58,7 +59,7 @@ async function writeMainResponses(root: string): Promise<void> {
 // 画像の選択の差し替え。開いたダイアログの拡張子を記録し、
 // 画像のときだけ手元の画像を返す（ZIP で聞かれたら取り消す）。
 async function installOpenDialog(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selected) => {
+  await evalMain(app, async ({ dialog }, selected) => {
     const g = globalThis as any;
     g.__e2eOpenDialogCalls = [];
     dialog.showOpenDialog = (async (...args: any[]) => {
@@ -77,12 +78,12 @@ async function installOpenDialog(app: ElectronApplication, imagePath: string): P
 async function openDialogCalls(
   app: ElectronApplication,
 ): Promise<Array<{ extensions: string[]; canceled: boolean }>> {
-  return app.evaluate(() => (globalThis as any).__e2eOpenDialogCalls ?? []);
+  return evalMain(app, () => (globalThis as any).__e2eOpenDialogCalls ?? []);
 }
 
 // 保存のときの確認（対応点が足りない等）は「はい」で進める
 async function stubMessageBox(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ dialog }) => {
+  await evalMain(app, ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

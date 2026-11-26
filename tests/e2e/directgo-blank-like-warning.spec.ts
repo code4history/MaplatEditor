@@ -12,6 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -25,7 +26,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
   // 保存の途中で出る native の確認の窓は既定のボタンで閉じる
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page };

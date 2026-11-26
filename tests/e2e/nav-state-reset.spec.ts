@@ -11,6 +11,7 @@ import path from 'node:path';
 import { launch } from './helpers/launchIsolated';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { takeScreenshot } from './helpers/screenshot';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const evidenceDir = path.join(projectRoot, '.tmp-evidence', 'after-fix');
@@ -180,7 +181,7 @@ test('画面を移ると、新しい画面は先頭から表示される', async
     // 画面の外（共有）の .main-content をスクロールしてから移っても、新しい画面は先頭から表示される。
     // 画面の上に残るバナー（移行レポート）があると、.main-content は画面の高さを超えてはみ出す。
     // このはみ出しは画面を移っても残るので、.main-content の位置を揃えないと前の位置を持ち越す。
-    await app.evaluate(({ BrowserWindow }) => {
+    await evalMain(app, ({ BrowserWindow }) => {
       const warnings = Array.from({ length: 12 }, (_, index) => `画面遷移試験の警告 ${index + 1}`);
       BrowserWindow.getAllWindows()[0].webContents.send('app:migrationReport', { renamedSlugs: [], warnings });
     });

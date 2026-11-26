@@ -25,7 +25,8 @@ import path from 'node:path';
 import { takeScreenshot } from './helpers/screenshot';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
-import { evalMain, openAboutWindow } from './helpers/electronMenu';
+import { openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 // 512px サムネイルは webp。符号化は唯一の実装（宛先拡張子で選ぶ）へ委譲する
 // （tests/e2e/basemap-thumbnail-512.spec.ts と同じ参照の仕方）
 import { writeImageByExt } from '../../electron/utils/thumbnail512Codec';

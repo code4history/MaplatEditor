@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+import { evalMain } from './helpers/evalMain';
 
 const PROBE_HOST = 'overlay-escape-probe.invalid';
 const EVIL_TITLE = `<img src="https://${PROBE_HOST}/title.png" data-evil="title">EVIL_TITLE T1 &amp; T2 & T3`;
@@ -85,12 +86,12 @@ test.describe('地図の上の部品', () => {
       await expect(attribution.locator('a')).toHaveAttribute('href', 'https://example.org/tiles');
       await expect(attribution.locator('a')).toHaveAttribute('target', '_blank');
       await expect(attribution.locator('a')).toHaveAttribute('rel', 'noopener noreferrer');
-      await app.evaluate(({ shell }) => {
+      await evalMain(app, ({ shell }) => {
         (globalThis as any).__externalLinkCalls = [];
         shell.openExternal = async (url: string) => { (globalThis as any).__externalLinkCalls.push(url); };
       });
       await attribution.locator('a').click();
-      await expect.poll(() => app.evaluate(async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      await expect.poll(() => evalMain(app, async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
       await attribution.evaluate((el) => {
         for (const [scheme, href] of [
           ['http', 'http://example.org/unsafe'],
@@ -106,7 +107,7 @@ test.describe('地図の上の部品', () => {
         }
       });
       for (const scheme of ['http', 'javascript', 'file', 'data']) await attribution.locator(`#unsafe-${scheme}`).click();
-      await expect.poll(() => app.evaluate(async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      await expect.poll(() => evalMain(app, async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
       // 出典の欄を介さず IPC に直接渡しても、https: 以外と壊れた値は開かない
       for (const value of [
         'http://example.org/unsafe',
@@ -117,10 +118,10 @@ test.describe('地図の上の部品', () => {
       ]) {
         expect(await page.evaluate((v) => window.externalLinks?.openHttps(v), value)).toBe(false);
       }
-      await expect.poll(() => app.evaluate(async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
+      await expect.poll(() => evalMain(app, async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles']);
       // 開くのは検証した後の正規化済みの URL
       expect(await page.evaluate(() => window.externalLinks?.openHttps('HTTPS://Example.org/tiles'))).toBe(true);
-      await expect.poll(() => app.evaluate(async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles', 'https://example.org/tiles']);
+      await expect.poll(() => evalMain(app, async () => (globalThis as any).__externalLinkCalls)).toEqual(['https://example.org/tiles', 'https://example.org/tiles']);
       await expect(attribution).not.toContainText('<img');
       await expect(attribution).toContainText(AMP_ATTR);
       expect(await page.locator('[data-evil]').count()).toBe(0);

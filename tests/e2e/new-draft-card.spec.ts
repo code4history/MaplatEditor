@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -73,7 +74,7 @@ test('slug-less save shows visible error, recovers on edit, and new draft is dis
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-draftcard2-'));
   const { app, page } = await launch(e2eRoot);
   // main process の showMessageBox を先頭ボタン(=実行)応答で stub (既存 等と同型)
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   await page.evaluate(() => window.settings.set('lang', 'ja'));

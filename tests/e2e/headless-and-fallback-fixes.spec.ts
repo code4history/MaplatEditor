@@ -17,8 +17,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
-// evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
-import { evalMain, openAboutWindow } from './helpers/electronMenu';
+// About ウィンドウ起動は helpers/electronMenu.ts、evalMain() は helpers/evalMain.ts へ抽出済み
+import { openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 // zip インポート工程は map-package-roundtrip が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
 import {
   openHash,
@@ -156,7 +157,7 @@ test.describe('インポート直後サムネイルの相対 fetch 死除去', (
 
       // 地図 ZIP を実 UI の搬出ボタンから作る（書き出しの統一の往復の e2e と同じ導線）
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
@@ -170,7 +171,7 @@ test.describe('インポート直後サムネイルの相対 fetch 死除去', (
       const copySlug = `${seeded.mapSlug}-copy`;
       const copyZip = path.join(e2eRoot, 'map-copy.zip');
       await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
-      await app.evaluate(async ({ dialog }, inZip) => {
+      await evalMain(app, async ({ dialog }, inZip) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
       }, copyZip);
 

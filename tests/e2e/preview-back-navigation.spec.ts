@@ -10,11 +10,18 @@
 //
 // 修正後は goBack が navigateBackToList（router.push(state.back のフルパス)）に統一され、
 // joint history の汚染状態に関係なく top が必ず遷移する。
+//
+// @maplat/ui 1.3 から、同梱の viewer は自分では履歴を積まない（page.js を外し、状態 URL の書き込みは
+// history.replaceState になった。@maplat/ui の CHANGELOG [1.3.0-rc.1]）。∴ 汚染は viewer 任せにせず、
+// このテストが preview iframe の中で pushState を打って作る（pollutePreviewHistory）。確かめる中身
+// （iframe が joint session history にエントリを積んだ状態でも「一覧へ」1クリックで戻る）は変えていない。
+// POI の html のリンクなど、iframe の中の遷移で履歴が積まれる経路は今もあるので、製品の側の備えは要る。
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -36,7 +43,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 
 // 保存成功ダイアログ (appedit.success_save) を自動 OK する stub（pois-roundtrip.spec.ts:35 と同文法）
 async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }
@@ -81,6 +88,21 @@ async function seedAppAndOpenList(page: Page): Promise<{ appUid: string; appSlug
   await openHash(page, '#/applist');
   await expect(page.locator(`[data-resource-uid="${seeded.appUid}"]`)).toBeVisible({ timeout: 15000 });
   return seeded;
+}
+
+// preview iframe の中から joint session history にエントリを積む（UI 1.2 までの viewer の page.js が
+// していたのと同じ、同一文書の中の pushState。実測で +3 だったので 3 回）。積んだ後の top の history.length を返す
+const POLLUTION_PUSHES = 3;
+async function pollutePreviewHistory(page: Page): Promise<number> {
+  const handle = await page.locator('iframe.preview-map').elementHandle();
+  const frame = await handle!.contentFrame();
+  if (!frame) throw new Error('preview iframe の contentFrame を取得できません');
+  // viewer が起動してから積む（起動の途中の読み込みと混ぜない）
+  await frame.waitForFunction(() => !!(window as any).__maplatPreview, undefined, { timeout: 90000 });
+  await frame.evaluate((count: number) => {
+    for (let i = 0; i < count; i += 1) history.pushState({ e2ePollution: i }, '', `#!e2e-pollution-${i}`);
+  }, POLLUTION_PUSHES);
+  return page.evaluate(() => history.length);
 }
 
 test.describe('preview 表示後の「一覧へ」復帰', () => {
@@ -130,10 +152,15 @@ test.describe('preview 表示後の「一覧へ」復帰', () => {
       await page.locator('[role="tab"]', { hasText: 'プレビュー' }).click();
       await expect(page.locator('iframe.preview-map')).toBeVisible({ timeout: 25000 });
 
-      // 手順5: 汚染発生の前提 assert（将来 viewer が履歴を積まなくなった場合にこのテストが
-      // 空洞化せず、意識的に見直せるようにするガード。実測では1秒以内に +3）
-      await expect.poll(() => page.evaluate(() => history.length), { timeout: 10000 })
-        .toBeGreaterThan(historyLenBeforePreview);
+      // 手順5: 汚染を作り、汚染発生の前提を assert する（このテストが空洞化しないためのガード）。
+      // UI 1.2 までは viewer が自分で積んだ（実測では1秒以内に +3）。UI 1.3 の viewer は積まないので
+      // iframe の中で pushState を打って同じ状態を作る。iframe の中の pushState が top の history.length に
+      // 数えられること（= joint session history が汚れたこと）を、積んだ数ちょうどの増分で確かめる
+      const historyLenByViewer = await page.evaluate(() => history.length);
+      console.log(`  viewer だけでの history.length の増分: ${historyLenByViewer - historyLenBeforePreview}`);
+      const historyLenPolluted = await pollutePreviewHistory(page);
+      expect(historyLenPolluted).toBeGreaterThan(historyLenBeforePreview);
+      expect(historyLenPolluted - historyLenByViewer, 'iframe の中の pushState が joint session history に積まれること').toBe(POLLUTION_PUSHES);
 
       // 手順6: case 31-1/2 本体 — 「一覧へ」1クリックで復帰、クエリ保持、絞り込み状態復元
       await page.getByTestId('editor-back').click();
@@ -149,6 +176,9 @@ test.describe('preview 表示後の「一覧へ」復帰', () => {
       await expect(page.getByTestId('app-id')).toBeVisible({ timeout: 15000 });
       await page.locator('[role="tab"]', { hasText: 'プレビュー' }).click();
       await expect(page.locator('iframe.preview-map')).toBeVisible({ timeout: 25000 });
+      // 破棄の前に iframe の側のエントリを積んでおく（破棄後に残存エントリが残る状態を作る）
+      const historyLenBeforeDestroy = await page.evaluate(() => history.length);
+      expect(await pollutePreviewHistory(page) - historyLenBeforeDestroy).toBe(POLLUTION_PUSHES);
 
       // メタデータタブへ移動（iframe を v-if で破棄。AppEdit.vue:587-593 watch(activeTab)）
       await page.locator('[role="tab"]', { hasText: 'メタデータ編集' }).click();
