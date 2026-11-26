@@ -206,7 +206,7 @@ test('the MCP tab turns the server on and off, copies safely and survives a rest
     // macOS: closing the window only hides the app, and the server keeps listening
     if (process.platform === 'darwin') {
       await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
-      await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
+      await expect.poll(() => app.evaluate(async ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
       expect((await listTools(port, token)).status).toBe(200);
       await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
     }

@@ -114,7 +114,7 @@ async function installDeferredReserveHarness(app: ElectronApplication): Promise<
 // pending 未登録(false)・一過性の context destroyed(throw)の両方を expect.poll で retry する。
 // 既に resolve 済み(pending なし かつ calls に slug あり)も冪等に true 扱いとする。
 async function resolveDeferredReserve(app: ElectronApplication, slug: string): Promise<void> {
-  await expect.poll(async () => app.evaluate((_, targetSlug) => {
+  await expect.poll(async () => app.evaluate(async (_, targetSlug) => {
     const harness = (globalThis as any).__fxReserveHarness;
     const pendingList = harness?.pending?.get(targetSlug);
     if (pendingList && pendingList.length > 0) {
@@ -753,14 +753,14 @@ test('stale reserve completion cannot publish available or create a draft while 
 
     await page.getByTestId('basemap-slug').fill('latest-slug-a');
     await page.getByTestId('basemap-slug').press('Tab');
-    await expect.poll(() => app.evaluate(() =>
+    await expect.poll(() => app.evaluate(async () =>
       (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-a') ?? false
     ), { timeout: 15_000 }).toBe(true);
 
     // Aを未解決のままBへ変更し、両requestを同時pendingにする。
     await page.getByTestId('basemap-slug').fill('latest-slug-b');
     await page.getByTestId('basemap-slug').press('Tab');
-    await expect.poll(() => app.evaluate(() =>
+    await expect.poll(() => app.evaluate(async () =>
       ((globalThis as any).__fxReserveHarness?.checks ?? [])
         .some((payload: any) => payload.slug === 'latest-slug-b')
     ), { timeout: 15_000 }).toBe(true);
@@ -774,7 +774,7 @@ test('stale reserve completion cannot publish available or create a draft while 
 
     // stale Aだけを完了させる。Bは未解決なのでavailable/draftは禁止。
     await resolveDeferredReserve(app, 'latest-slug-a');
-    await expect.poll(() => app.evaluate(() => ({
+    await expect.poll(() => app.evaluate(async () => ({
       a: (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-a') ?? false,
       b: (globalThis as any).__fxReserveHarness?.pending?.has('latest-slug-b') ?? false,
     })), { timeout: 15_000 }).toEqual({ a: false, b: true });
@@ -832,7 +832,7 @@ test('release failure keeps the editor uid and draft until discard retry succeed
 
     // 1回目はrelease reject。callerはclose/reset/draft削除へ進んではならない。
     await page.getByTestId('editor-discard-draft').click();
-    await expect.poll(() => app.evaluate(() =>
+    await expect.poll(() => app.evaluate(async () =>
       ((globalThis as any).__fxReleaseHarness?.calls ?? []).length
     )).toBe(1);
     const firstCall = await app.evaluate(() => (globalThis as any).__fxReleaseHarness.calls[0]);
@@ -847,7 +847,7 @@ test('release failure keeps the editor uid and draft until discard retry succeed
     // 2回目は実original handlerへ通し、release成功後にだけclose/draft削除が完了する。
     await setReleaseFailure(app, false);
     await page.getByTestId('editor-discard-draft').click();
-    await expect.poll(() => app.evaluate(() =>
+    await expect.poll(() => app.evaluate(async () =>
       ((globalThis as any).__fxReleaseHarness?.calls ?? []).length
     )).toBe(2);
     await expect(page.getByTestId('basemap-editor')).toHaveCount(0);

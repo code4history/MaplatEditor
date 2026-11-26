@@ -57,7 +57,7 @@ for (const phase of ['before', 'after']) {
       await page.getByTestId('poi-title').locator('input').blur();
       await page.getByTestId('editor-save').click();
       if (phase === 'before') {
-        await expect.poll(() => app.evaluate(() => (globalThis as any).__grammarMessages.length)).toBeGreaterThan(0);
+        await expect.poll(() => app.evaluate(async () => (globalThis as any).__grammarMessages.length)).toBeGreaterThan(0);
       } else {
         await expect(page.getByTestId('operation-notice')).toContainText('保存');
         expect(await app.evaluate(() => (globalThis as any).__grammarMessages.length)).toBe(0);
