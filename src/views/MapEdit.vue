@@ -66,6 +66,7 @@ import {
 import { UndoStack } from '../services/editorUndoStack';
 import { useHistorySuppression } from '../composables/useHistorySuppression';
 import { editorComputeBackend } from '../services/editorComputeBackend';
+import { resolveTinBuildOptions } from '../utils/tinOptions';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
@@ -90,7 +91,7 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 // @ts-ignore
 import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
-import { Transform, type CompiledTransformData } from '@maplat/transform';
+import { Transform, type CompiledTransformData, type StrictMode } from '@maplat/transform';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
@@ -652,7 +653,7 @@ watch(currentEditingLayer, (newLayer) => {
 });
 
 // const editingID_ = ref('');
-const strictMode = ref('auto');
+const strictMode = ref<StrictMode>('auto');
 const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
 // const editableGCPID = computed({
@@ -684,7 +685,7 @@ type MapEditHistoryState = {
     edges: any[];
     homePosition: any;
     mercZoom: number | undefined;
-    strictMode: string;
+    strictMode: StrictMode;
     vertexMode: 'plain' | 'birdeye';
     currentEditingLayer: number;
 };
@@ -1563,6 +1564,7 @@ const wmtsDirty = computed(() => mapData.value.wmtsHash !== mainLayerHash.value)
 // 休眠パネル専用（削除禁止・地図からのタイル生成へ転用予定）
 const wmtsEditReady = computed(() => {
     const tin = tinObjects.value[0];
+    if (mapData.value.tinEnabled === false || mapData.value.worldFile) return false;
     return !!(mainLayerHash.value && wmtsDirty.value &&
               tin && typeof tin === 'object' && tin.strict_status === 'strict');
 });
@@ -2367,6 +2369,7 @@ function seedTinObjects(tins: any[] | null, keepErrors = false): void {
         if (layer?.tinEnabled === false || entry === 'worldFile') return 'worldFile';
         if (entry && typeof entry === 'object') {
             if (entry.outerTransform !== undefined) return new StoredOuterTin(entry);
+            // 保存済み compiled を復元して参照するだけで、ここでは GCP から再構築しない。
             const tin = new Tin(TIN_V2_OPTIONS);
             tin.setCompiled(entry);
             return tin;
@@ -2886,13 +2889,34 @@ const updateTin = async (opts?: { force?: boolean }) => {
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
         const plainEdges = JSON.parse(JSON.stringify(edges.value));
         const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
+        const storedLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
+        // 副層に yaxisMode の保存欄はないため、CRS 層では地図最上位の値を継承する。
+        const buildLayer = {
+            ...storedLayer,
+            yaxisMode: storedLayer?.yaxisMode ?? mapData.value.yaxisMode,
+        };
+        const intent = buildLayer?.compiled?.outerTransform === 'worldFile' ? 'B' :
+            buildLayer?.compiled?.outerTransform === 'extrapolate' && buildLayer?.crs != null ? 'C' : undefined;
+        // CRS 層では yaxisMode を解決する。V2 層では内部座標が反転済みなので Tin に渡さない。
+        const tinOptions = resolveTinBuildOptions(buildLayer ?? {}, {
+            strictMode: strictMode.value,
+            vertexMode: vertexMode.value,
+        }, intent);
+        if (!tinOptions) {
+            // A（三角網なし）は計算しない。印だけ付けて描画を更新する。
+            tinObject.value = 'worldFile';
+            tinResultUpdate();
+            return;
+        }
+        const plainTinOptions = JSON.parse(JSON.stringify(tinOptions));
         const [, compiled] = await editorComputeBackend.updateTin({
             gcps: plainGcps,
             edges: plainEdges,
             index,
             bounds: plainBounds,
             strict: strictMode.value,
-            vertex: vertexMode.value
+            vertex: vertexMode.value,
+            tinOptions: plainTinOptions,
         });
         if (isStoredTransform()) return;
         if (typeof compiled === 'string') {
@@ -2900,7 +2924,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             tinObject.value = compiled;
         } else {
             // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
-            const tin = new Tin(TIN_V2_OPTIONS);
+            const tin = new Tin(plainTinOptions);
             tin.setCompiled(compiled);
             tinObject.value = tin;
         }
@@ -4768,6 +4792,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
             mapData.value.imageExtension || 'jpg',
             mainLayerHash.value,
             target.uid,
+            mapData.value.crs,
         );
         if (arg.err || !arg.tileJson) {
             console.error('[generateMercTileSet]', arg.err);

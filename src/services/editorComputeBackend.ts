@@ -1,3 +1,5 @@
+import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
+
 export interface TinUpdateRequest {
   gcps: any[];
   edges: any[];
@@ -5,9 +7,10 @@ export interface TinUpdateRequest {
   bounds: any;
   strict: any;
   vertex: any;
+  tinOptions?: TinOptions;
 }
 
-export type TinUpdateResult = [number, any];
+export type TinUpdateResult = [number, any, BoundaryDiagnostics | null];
 
 export interface EditorComputeBackend {
   updateTin(request: TinUpdateRequest): Promise<TinUpdateResult>;

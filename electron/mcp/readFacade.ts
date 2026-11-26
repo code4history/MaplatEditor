@@ -9,7 +9,8 @@ import fs from 'fs-extra';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import { UUID_PATTERN, type MapListOptions, type MapListRequest, type MapListResult } from '../adapters/StorageAdapter';
 import SettingsService from '../services/SettingsService';
-import { Transform } from '@maplat/transform';
+import { Transform, MapTransform, type SurfaceLike } from '@maplat/transform';
+import { projectionEngineForCrs } from '../../src/utils/compiledGeo';
 import { WEB_MERCATOR_MAX_LAT, mercatorToWgs84, wgs84ToMercator } from '../utils/webMercator';
 import { resolveLocalReal } from '../utils/appScheme';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
@@ -173,14 +174,35 @@ export async function transformPoints(
   signal?: AbortSignal,
 ): Promise<(Point | null)[] | null> {
   const map = await readMapForEdit(uidOrMapID);
+  if (map?.tinEnabled === false || map?.worldFile) throw new Error('world file maps are not supported by this tool yet');
   const compiled = compiledOf(map);
   if (!compiled) return null;
-  const transform = new Transform();
-  transform.setCompiled(compiled as never);
-  transform.addIndexedTin();
+  if (!map?.crs) {
+    const transform = new Transform();
+    transform.setCompiled(compiled as never);
+    transform.addIndexedTin();
+    // crs の無い地図は従来どおりの 3857 の経路。
+    return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
+  }
+  // 変換に使うのは主図だけ（getSurfaceTransform(0)）。副層は compiled が無いもの（A・未作成）もあり、
+  // 渡すと初期化で落ちるので渡さない。
+  const mapTransform = new MapTransform();
+  mapTransform.setLayeredMapData({
+    main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: projectionEngineForCrs(map.crs) },
+  });
+  const transform = mapTransform.getSurfaceTransform(0);
+  if (!transform) return null;
+  return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
+}
+
+async function transformPointsUsing(
+  transform: SurfaceLike & { strict_status?: string },
+  points: readonly Point[], direction: TransformDirection, signal: AbortSignal | undefined,
+  mapWidth: number, mapHeight: number,
+): Promise<(Point | null)[]> {
   const backward = direction === 'backward';
   if (backward && transform.strict_status === Transform.STATUS_ERROR) throw new Error('backward not available');
-  const [width, height] = transform.wh ?? [map.width, map.height];
+  const [width, height] = transform.wh ?? [mapWidth, mapHeight];
   const onImage = (x: number, y: number) => x >= 0 && y >= 0 && x <= width && y <= height;
   const out: (Point | null)[] = [];
   for (let i = 0; i < points.length; i++) {
