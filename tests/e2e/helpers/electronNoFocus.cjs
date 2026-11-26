@@ -79,7 +79,8 @@ function ensurePatch(api) {
     };
     OriginalBrowserWindow.prototype.__maplatNoFocus = true;
     class NoFocusBrowserWindow extends OriginalBrowserWindow {
-      constructor(options = {}) {
+      constructor(rawOptions) {
+        const options = rawOptions ?? {};
         const showAtCreation = options.show !== false;
         super(showAtCreation ? { ...options, show: false } : options);
         if (showAtCreation) this.showInactive();

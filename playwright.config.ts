@@ -8,7 +8,8 @@ if (process.env.MAPLAT_E2E_FOCUS !== '1') {
   const noFocus = path.resolve(import.meta.dirname, 'tests/e2e/helpers/electronNoFocus.cjs');
   const current = process.env.NODE_OPTIONS ?? '';
   if (!current.includes(noFocus)) {
-    process.env.NODE_OPTIONS = `${current} --require=${noFocus}`.trim();
+    // 空白を含むパスでも 1 つの引数になるよう、二重引用符で囲む（Node は NODE_OPTIONS の引用符を解釈する）
+    process.env.NODE_OPTIONS = `${current} --require=${JSON.stringify(noFocus)}`.trim();
   }
 }
 
