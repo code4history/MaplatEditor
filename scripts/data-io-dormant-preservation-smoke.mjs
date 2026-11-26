@@ -123,12 +123,8 @@ try {
     /\/\/ 本クラスへのUI導線は一度撤去されていたが、その後 MapEdit\.vueの[\s\S]{0,400}class WmtsGeneratorService \{/,
     '#13 WmtsGeneratorService クラスの保全注記が欠落している',
   );
-  // tin-v2-mode-smoke が依存する行に保全コメントが割り込んでいないことも同時に確認
-  assert.match(
-    wmtsService,
-    /new Tin\(TIN_V2_OPTIONS\)/,
-    '#13 保全コメント挿入により new Tin(TIN_V2_OPTIONS) 行が破壊されている（tin-v2-mode-smoke 依存）',
-  );
+  // 新規採用済み CRS は投影付き MapTransform、未採用の既存地図は明示 V2 Tin を使う。
+  assert.match(wmtsService, /new Tin\(\{ useV2Algorithm: true \}\)/, '#13 旧地図の V2 WMTS 変換が欠落している');
 
   // #14 registerWmtsHandlers() / wmtsGen:generate ハンドラ
   const wmtsIpc = await readProjectFile('electron/ipc/wmts.ts');

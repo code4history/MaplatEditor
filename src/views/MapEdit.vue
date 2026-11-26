@@ -66,6 +66,7 @@ import {
 import { UndoStack } from '../services/editorUndoStack';
 import { useHistorySuppression } from '../composables/useHistorySuppression';
 import { editorComputeBackend } from '../services/editorComputeBackend';
+import { resolveTinBuildOptions } from '../utils/tinOptions';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
@@ -1563,6 +1564,7 @@ const wmtsDirty = computed(() => mapData.value.wmtsHash !== mainLayerHash.value)
 // 休眠パネル専用（削除禁止・地図からのタイル生成へ転用予定）
 const wmtsEditReady = computed(() => {
     const tin = tinObjects.value[0];
+    if (mapData.value.tinEnabled === false || mapData.value.worldFile) return false;
     return !!(mainLayerHash.value && wmtsDirty.value &&
               tin && typeof tin === 'object' && tin.strict_status === 'strict');
 });
@@ -2886,13 +2888,22 @@ const updateTin = async (opts?: { force?: boolean }) => {
         const plainGcps = JSON.parse(JSON.stringify(gcpList.map((g: any[]) => [g[0], g[1]])));
         const plainEdges = JSON.parse(JSON.stringify(edges.value));
         const plainBounds = bounds ? JSON.parse(JSON.stringify(bounds)) : null;
+        const buildLayer = index === 0 ? mapData.value : (sub_maps.value[index - 1] ?? {});
+        const intent = buildLayer?.compiled?.outerTransform === 'worldFile' ? 'B' :
+            buildLayer?.compiled?.outerTransform === 'extrapolate' && Object.prototype.hasOwnProperty.call(buildLayer, 'crs') ? 'C' : undefined;
+        const tinOptions = resolveTinBuildOptions(buildLayer ?? {}, {
+            strictMode: strictMode.value,
+            vertexMode: vertexMode.value,
+            yaxisMode: buildLayer?.compiled?.yaxisMode,
+        }, intent);
         const [, compiled] = await editorComputeBackend.updateTin({
             gcps: plainGcps,
             edges: plainEdges,
             index,
             bounds: plainBounds,
             strict: strictMode.value,
-            vertex: vertexMode.value
+            vertex: vertexMode.value,
+            tinOptions,
         });
         if (isStoredTransform()) return;
         if (typeof compiled === 'string') {
@@ -2900,7 +2911,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             tinObject.value = compiled;
         } else {
             // コンパイル済みデータをフロントで Tin に復元して tins プロパティを使えるようにする
-            const tin = new Tin(TIN_V2_OPTIONS);
+            const tin = new Tin(tinOptions);
             tin.setCompiled(compiled);
             tinObject.value = tin;
         }
@@ -4768,6 +4779,7 @@ async function generateMercTileSet(target: MercGenerationTarget): Promise<void> 
             mapData.value.imageExtension || 'jpg',
             mainLayerHash.value,
             target.uid,
+            mapData.value.crs,
         );
         if (arg.err || !arg.tileJson) {
             console.error('[generateMercTileSet]', arg.err);

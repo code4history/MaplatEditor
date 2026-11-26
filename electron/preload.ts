@@ -85,8 +85,8 @@ contextBridge.exposeInMainWorld('dataupload', {
 contextBridge.exposeInMainWorld('wmtsGen', {
   // uid 追加。runtime read の canonical-first 解決に必要
   // targetBaseMapUid を末尾に追加（出力先ベースマップの UID。メルカトルタイルは元の地図ではなく出力先のベースマップ自身の uid が持つ決まり）
-  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string) =>
-    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid),
+  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string, crs?: any) =>
+    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid, crs),
 })
 
 // 旧実装: window.mapupload 相当

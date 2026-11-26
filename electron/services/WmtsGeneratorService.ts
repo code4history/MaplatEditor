@@ -10,9 +10,11 @@ import { resolveRuntimeOriginal } from './MapOriginalImageService';
 import { mercatorBboxToWgs84 } from '../utils/webMercator';
 import { estimateJpegDecodeBudget } from '../utils/jpegDecodeBudget';
 import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
+import { MapTransform, createProj4ProjectionEngine, type CrsObject } from '@maplat/transform';
+// @ts-ignore
+import proj4 from 'proj4';
 
 const MERC_MAX = 20037508.342789244;
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
@@ -148,11 +150,20 @@ class WmtsGeneratorService {
         tinSerial: any,
         extKey: string,
         hash: string,
-        targetBaseMapUid: string
+        targetBaseMapUid: string,
+        crs?: CrsObject
     ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any; errorCode?: MercDecodeError['errorCode']; configuredMB?: number; configuredMP?: number; prediction?: MercDecodeError['prediction']; machine?: MercDecodeError['machine'] }> {
         try {
-            const tin = new Tin(TIN_V2_OPTIONS);
-            tin.setCompiled(tinSerial);
+            let tin: any;
+            if (crs) {
+                const mapTransform = new MapTransform();
+                mapTransform.setLayeredMapData({ main: { kind: 'tin', compiled: tinSerial, crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) } });
+                tin = mapTransform.getSurfaceTransform(0);
+                if (!tin) throw new Error('failed to initialize projected TIN');
+            } else {
+                tin = new Tin({ useV2Algorithm: true });
+                tin.setCompiled(tinSerial);
+            }
 
             extKey = extKey || 'jpg';
             const { mercFolder } = this.folders;

@@ -9,7 +9,9 @@ import fs from 'fs-extra';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import { UUID_PATTERN, type MapListOptions, type MapListRequest, type MapListResult } from '../adapters/StorageAdapter';
 import SettingsService from '../services/SettingsService';
-import { Transform } from '@maplat/transform';
+import { Transform, MapTransform, createProj4ProjectionEngine } from '@maplat/transform';
+// @ts-ignore
+import proj4 from 'proj4';
 import { WEB_MERCATOR_MAX_LAT, mercatorToWgs84, wgs84ToMercator } from '../utils/webMercator';
 import { resolveLocalReal } from '../utils/appScheme';
 import { deriveRuntimeTileUrl } from '../utils/runtimeTileUrl';
@@ -173,14 +175,39 @@ export async function transformPoints(
   signal?: AbortSignal,
 ): Promise<(Point | null)[] | null> {
   const map = await readMapForEdit(uidOrMapID);
+  if (map?.tinEnabled === false || map?.worldFile) throw new Error('world file maps are not supported by this tool yet');
   const compiled = compiledOf(map);
   if (!compiled) return null;
-  const transform = new Transform();
-  transform.setCompiled(compiled as never);
-  transform.addIndexedTin();
+  const mapTransform = new MapTransform();
+  if (map?.crs) {
+    mapTransform.setLayeredMapData({
+      main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) },
+      ...(Array.isArray(map.sub_maps) ? { sub_maps: map.sub_maps.map((sub: any) => ({
+        kind: 'tin' as const, compiled: sub.compiled as never, crs: sub.crs,
+        projectionEngine: createProj4ProjectionEngine(proj4 as never), bounds: sub.bounds,
+        priority: sub.priority, importance: sub.importance,
+      })) } : {}),
+    });
+  } else {
+    const transform = new Transform();
+    transform.setCompiled(compiled as never);
+    transform.addIndexedTin();
+    // Legacy maps retain the original 3857 path.
+    return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
+  }
+  const transform = mapTransform.getSurfaceTransform(0);
+  if (!transform) return null;
+  return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
+}
+
+async function transformPointsUsing(
+  transform: { transform(coord: number[], backward?: boolean, ignoreBounds?: boolean): number[] | false },
+  points: readonly Point[], direction: TransformDirection, signal: AbortSignal | undefined,
+  mapWidth: number, mapHeight: number,
+): Promise<(Point | null)[]> {
   const backward = direction === 'backward';
-  if (backward && transform.strict_status === Transform.STATUS_ERROR) throw new Error('backward not available');
-  const [width, height] = transform.wh ?? [map.width, map.height];
+  if (backward && (transform as any).strict_status === Transform.STATUS_ERROR) throw new Error('backward not available');
+  const [width, height] = (transform as any).wh ?? [mapWidth, mapHeight];
   const onImage = (x: number, y: number) => x >= 0 && y >= 0 && x <= width && y <= height;
   const out: (Point | null)[] = [];
   for (let i = 0; i < points.length; i++) {

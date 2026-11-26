@@ -1,6 +1,5 @@
 import Tin from '@maplat/tin';
-
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
+import { resolveTinBuildOptions } from '../utils/tinOptions';
 
 interface TinUpdateRequest {
   gcps: any[];
@@ -9,6 +8,7 @@ interface TinUpdateRequest {
   bounds: any;
   strict: any;
   vertex: any;
+  tinOptions?: Record<string, unknown>;
 }
 
 interface WorkerRequest {
@@ -31,13 +31,13 @@ function normalizeTinError(err: unknown): string | null {
   return null;
 }
 
-async function updateTin(payload: TinUpdateRequest): Promise<[number, any]> {
-  const { gcps, edges, index, bounds, strict, vertex } = payload;
+async function updateTin(payload: TinUpdateRequest): Promise<[number, any, any?]> {
+  const { gcps, edges, index, bounds, strict, vertex, tinOptions } = payload;
   if (gcps.length < 3) return [index, 'tooLessGcps'];
 
   const wh = index === 0 ? bounds : null;
   const bd = index !== 0 ? bounds : null;
-  const tin = new Tin(TIN_V2_OPTIONS);
+  const tin = new Tin(tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }));
   if (wh) {
     tin.setWh(wh);
   } else if (bd) {
@@ -52,7 +52,7 @@ async function updateTin(payload: TinUpdateRequest): Promise<[number, any]> {
 
   try {
     await tin.updateTinAsync();
-    return [index, tin.getCompiled()];
+    return [index, tin.getCompiled(), tin.boundaryDiagnostics ?? null];
   } catch (err) {
     const normalized = normalizeTinError(err);
     if (normalized) return [index, normalized];

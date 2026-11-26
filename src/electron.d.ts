@@ -444,6 +444,7 @@ export interface WmtsGenAPI {
         extKey: string,
         hash: string,
         targetBaseMapUid: string,
+        crs?: { epsg?: number; proj4?: string; authority?: string; code?: string | number; wkt?: string },
     ): Promise<{
         hash: string;
         tileJson?: MercTileJsonDocument;

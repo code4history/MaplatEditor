@@ -25,6 +25,7 @@ import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement
 import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
+import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
 
 // composeDownloadMapJson は mapDownloadZip.ts へ移設した。
 // scripts/mapedit-pois-save-smoke.mjs が electron/ipc/mapedit.ts からの named import で
@@ -32,14 +33,12 @@ import Tin from '@maplat/tin';
 // re-export を残す (mapedit.ts → mapDownloadZip.ts の一方向依存のみで循環 import は発生しない)。
 export { composeDownloadMapJson } from '../utils/mapDownloadZip';
 
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
-
 async function createTinFromGcpsAsync(
-    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any
+    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any, tinOptions?: Record<string, unknown>
 ): Promise<any> {
     if (gcps.length < 3) return 'tooLessGcps';
     return new Promise((resolve, reject) => {
-        const tin = new Tin(TIN_V2_OPTIONS);
+        const tin = new Tin(tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }));
         if (wh) {
             tin.setWh(wh);
         } else if (bounds) {
@@ -54,7 +53,7 @@ async function createTinFromGcpsAsync(
         tin.setEdges(edges);
         tin.updateTinAsync()
             .then(() => {
-                resolve(tin.getCompiled());
+                resolve({ compiled: tin.getCompiled(), boundaryDiagnostics: tin.boundaryDiagnostics ?? null });
             })
             .catch((err: any) => {
                 const e = String(err);
@@ -110,14 +109,17 @@ export const registerMapEditHandlers = () => {
     // TIN計算をNode.jsプロセスで実行してコンパイル済みデータを返す
     ipc.handle('mapedit:updateTin', async (
         _event,
-        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any
+        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: Record<string, unknown>
     ) => {
         try {
             const wh = index === 0 ? bounds : null;
             const bd = index !== 0 ? bounds : null;
             const compiled = await runGuarded('mapedit:updateTin',
-                () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex));
-            return [index, compiled];
+                () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex, tinOptions));
+            if (compiled && typeof compiled === 'object' && 'compiled' in compiled) {
+                return [index, compiled.compiled, compiled.boundaryDiagnostics];
+            }
+            return [index, compiled, null];
         } catch (e) {
             console.error('Failed to handle mapedit:updateTin', e);
             throw e;

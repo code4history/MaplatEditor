@@ -18,10 +18,11 @@ export function registerWmtsHandlers() {
         tinSerial: any,
         extKey: string,
         hash: string,
-        targetBaseMapUid: string
+        targetBaseMapUid: string,
+        crs?: any
     ) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
         return await runGuarded('wmtsGen:generate', () =>
-            WmtsGeneratorService.generate(win, uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid));
+            WmtsGeneratorService.generate(win, uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid, crs));
     });
 }

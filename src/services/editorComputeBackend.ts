@@ -5,9 +5,10 @@ export interface TinUpdateRequest {
   bounds: any;
   strict: any;
   vertex: any;
+  tinOptions?: Record<string, unknown>;
 }
 
-export type TinUpdateResult = [number, any];
+export type TinUpdateResult = [number, any, any?];
 
 export interface EditorComputeBackend {
   updateTin(request: TinUpdateRequest): Promise<TinUpdateResult>;

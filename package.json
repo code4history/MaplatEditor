@@ -55,7 +55,7 @@
     "smoke:revisioned-save": "node scripts/revisioned-save-smoke.mjs",
     "smoke:poi-edit-session": "node scripts/poi-edit-session-smoke.mjs",
     "smoke:poi-edit": "node scripts/poi-edit-smoke.mjs",
-    "smoke:tin-v2-mode": "node scripts/tin-v2-mode-smoke.mjs",
+    "smoke:tin-v2-mode": "node --experimental-strip-types scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:sqlite-write-store": "node scripts/sqlite-write-store-smoke.mjs",
     "smoke:asset-identity": "node scripts/asset-identity-smoke.mjs",
     "smoke:identity-store": "node scripts/identity-store-smoke.mjs",
@@ -369,7 +369,9 @@
     "smoke:windows-update-signature": "node scripts/windows-update-signature-smoke.mjs",
     "smoke:imageassets-path-token": "node scripts/imageassets-path-token-smoke.mjs",
     "smoke:db-open-reason": "node scripts/db-open-reason-smoke.mjs",
-    "test:e2e:db-open-reason": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/db-open-reason.spec.ts"
+    "test:e2e:db-open-reason": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/db-open-reason.spec.ts",
+    "smoke:j6-t1b-v4-projection-paths": "node --experimental-strip-types scripts/j6-t1b-v4-projection-paths-smoke.mjs",
+    "smoke:m4-tin-v2-mode": "node --experimental-strip-types scripts/m4-tin-v2-mode-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",
