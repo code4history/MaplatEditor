@@ -26,26 +26,31 @@ assert.deepEqual(
 assert.equal(resolveTinBuildOptions({ tinEnabled: false, crs: { epsg: 6677 }, worldFile }), null, 'A は三角網を作らない（null）');
 assert.deepEqual(
   resolveTinBuildOptions({ crs: { epsg: 3857 }, compiled: {} }),
-  { useV2Algorithm: false, outerTransform: 'extrapolate' }, 'C + 3857 は extrapolate を明示する');
+  { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'extrapolate' }, 'C + 3857 は extrapolate を明示し、向きは crs から導く');
 assert.deepEqual(
   resolveTinBuildOptions({ crs: { epsg: 6677 } }, {}, 'C'),
-  { useV2Algorithm: false, outerTransform: 'extrapolate' }, 'C は常に extrapolate を明示する');
+  { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'extrapolate' }, 'C は常に extrapolate を明示する');
 assert.deepEqual(
   resolveTinBuildOptions({ crs: { epsg: 6677 }, compiled: { outerTransform: 'worldFile', worldFile } }),
-  { useV2Algorithm: false, outerTransform: 'worldFile', worldFile }, 'B は world file 外周');
+  { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'worldFile', worldFile }, 'B は world file 外周');
 assert.deepEqual(
   resolveTinBuildOptions({ crs: { epsg: 6677 }, compiled: { outerTransform: 'worldFile', worldFile } }, {}, 'C'),
-  { useV2Algorithm: false, outerTransform: 'extrapolate' }, 'C への降格は extrapolate');
+  { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'extrapolate' }, 'C への降格は extrapolate');
+// 設計書 §4.6: y 軸の向きは crs から導く。保存された値（層の直下・compiled）が follow でも crs を正とする。
 assert.deepEqual(
-  resolveTinBuildOptions({ crs: { epsg: 6677 }, yaxisMode: 'follow', compiled: { yaxisMode: 'invert' } }, { strictMode: 'loose', vertexMode: 'birdeye' }),
-  { useV2Algorithm: false, strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow', outerTransform: 'extrapolate' },
-  'yaxisMode は引数、層の直下、compiled の順');
+  resolveTinBuildOptions({ crs: { epsg: 6677 }, yaxisMode: 'follow', compiled: { yaxisMode: 'follow' } }, { strictMode: 'loose', vertexMode: 'birdeye' }),
+  { useV2Algorithm: false, strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'invert', outerTransform: 'extrapolate' },
+  'crs のある層は保存された follow に従わず、crs から invert を導く');
+// crs の無い V2 は、保存されている値（compiled、無ければ層の直下）をそのまま使う。
 assert.deepEqual(
   resolveTinBuildOptions({ compiled: { yaxisMode: 'follow' } }),
-  { useV2Algorithm: true }, 'V2 は compiled 内部座標を使うため yaxisMode を渡さない');
+  { useV2Algorithm: true, yaxisMode: 'follow' }, 'V2 は保存されている compiled.yaxisMode を使う');
 assert.deepEqual(
-  resolveTinBuildOptions({ yaxisMode: 'follow', compiled: { yaxisMode: 'follow' } }),
-  { useV2Algorithm: true }, '層直下に yaxisMode がある V2 も反転を追加しない');
+  resolveTinBuildOptions({ yaxisMode: 'follow', compiled: { yaxisMode: 'invert' } }),
+  { useV2Algorithm: true, yaxisMode: 'invert' }, 'V2 は compiled を層の直下より先に読む');
+assert.deepEqual(
+  resolveTinBuildOptions({ yaxisMode: 'follow' }),
+  { useV2Algorithm: true, yaxisMode: 'follow' }, 'compiled の無い V2 は層の直下の値を使う');
 assert.throws(
   () => resolveTinBuildOptions({ crs: { epsg: 6677 } }, {}, 'B'),
   /worldFile/,
@@ -268,7 +273,8 @@ try {
     // ---------------- MapEditService: 未作成の層も resolveTinBuildOptions ----------------
     const service: any = MapEditService;
     {
-      // 主図は従来(follow)、副層は C（crs 有り）・A・従来。副層は地図最上位から yaxisMode を継承する。
+      // 主図は従来(follow)、副層は C（crs 有り）・A・従来。crs の無い副層は地図最上位の yaxisMode を継承し、
+      // crs のある副層は crs から導く（設計書 §4.6）。
       const main = { gcps: legacyGcps, edges: [], width: W, height: H, strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' };
       const subs = [
         { gcps: crsGcps, edges: [], bounds: wholeBounds, crs: IX },
@@ -283,17 +289,18 @@ try {
       assert.equal(tinLog.length, 4, 'A の副層は Tin を作らない（主図 + 副層 3）');
       const options = { strictMode: 'loose', vertexMode: 'birdeye' } as const;
       expectBuiltLike(tinLog[0], resolveTinBuildOptions(main, options), 'MapEditService 主図');
-      expectBuiltLike(tinLog[1], resolveTinBuildOptions({ ...subs[0], yaxisMode: main.yaxisMode }, options), 'MapEditService 副層 C');
-      expectBuiltLike(tinLog[2], resolveTinBuildOptions(subs[2], options), 'MapEditService 副層 follow');
-      expectBuiltLike(tinLog[3], resolveTinBuildOptions(subs[3], options), 'MapEditService 副層 従来');
-      assert.equal(tinLog[0].options.yaxisMode, undefined, 'V2 主図へ保存済みの follow を二重に渡さない');
-      assert.equal(tinLog[0].snapshot.yaxisMode, 'invert', 'V2 主図は Tin の既定方向を使う');
+      const inherited = { yaxisMode: main.yaxisMode };
+      expectBuiltLike(tinLog[1], resolveTinBuildOptions({ ...subs[0], ...inherited }, options), 'MapEditService 副層 C');
+      expectBuiltLike(tinLog[2], resolveTinBuildOptions({ ...subs[2], ...inherited }, options), 'MapEditService 副層 follow');
+      expectBuiltLike(tinLog[3], resolveTinBuildOptions({ ...subs[3], ...inherited }, options), 'MapEditService 副層 従来');
+      assert.equal(tinLog[0].options.yaxisMode, 'follow', 'V2 主図は保存されている follow をそのまま使う');
+      assert.equal(tinLog[0].snapshot.yaxisMode, 'follow', 'V2 主図は保存されている向きで Tin を作る');
       assert.equal(tinLog[1].snapshot.useV2Algorithm, false, 'crs を持つ副層だけ V4');
-      assert.equal(tinLog[1].snapshot.yaxisMode, 'follow', 'CRS の副層は地図最上位の yaxisMode を継承する');
+      assert.equal(tinLog[1].snapshot.yaxisMode, 'invert', 'CRS の副層は地図最上位の follow を継承せず、crs から invert を導く');
       assert.equal(tinLog[1].snapshot.requestedWorldFile, undefined);
-      assert.equal(tinLog[2].options.yaxisMode, undefined, '未作成の V2 副層には master の follow を Tin に渡さない');
-      assert.equal(tinLog[2].snapshot.yaxisMode, 'invert', '未作成の V2 副層は Tin の既定方向を使う');
-      assert.equal(tinLog[3].snapshot.yaxisMode, 'invert', 'yaxisMode が無ければ既定');
+      assert.equal(tinLog[2].options.yaxisMode, 'follow', '未作成の V2 副層は地図最上位の保存値を継ぐ');
+      assert.equal(tinLog[2].snapshot.yaxisMode, 'follow');
+      assert.equal(tinLog[3].snapshot.yaxisMode, 'follow', 'V2 副層はどれも地図最上位の保存値を継ぐ');
       for (const entry of tinLog) assert.equal(entry.snapshot.vertexMode, 'birdeye', '副層の setBounds で vertexMode が plain に戻らない');
       assert.equal(result.sub_maps[1].compiled, undefined, 'A の副層に compiled は作らない');
       // 主図に crs が無く、副層の片側だけ crs を持つ混在でも、層ごとに決まる。
@@ -301,7 +308,7 @@ try {
       await service.ensurePreviewCompiled({ gcps: legacyGcps, edges: [], width: W, height: H, sub_maps: [{ gcps: crsGcps, edges: [], bounds: wholeBounds, crs: IX }] });
       assert.deepEqual([tinLog[0].snapshot.useV2Algorithm, tinLog[1].snapshot.useV2Algorithm], [true, false], '混在は層ごとに V2／V4');
     }
-    console.log('ok: MapEditService は副層へ地図最上位の yaxisMode を引き継ぎ、V2 の二重反転を避ける');
+    console.log('ok: MapEditService は V2 の層には保存されている yaxisMode を、crs のある層には crs から導いた値を渡す');
 
     // ---------------- WMTS: crs 無しは resolveTinBuildOptions の V2 で復元、crs 有りは Tin を作らない ----------------
     {

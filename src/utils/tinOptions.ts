@@ -1,11 +1,22 @@
 import type { Options as TinOptions } from '@maplat/tin';
 import type { CrsObject, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
 
-/** 三角網を作るときの層ごとの設定。省略した項目は Tin の既定に任せる。 */
+/**
+ * 三角網を作るときの層ごとの設定。省略した項目は Tin の既定に任せる。
+ * yaxisMode はここに無い。地理の面の座標系の性質であり、作り方の選択肢ではない（`yaxisModeFromCrs`）。
+ */
 export interface LayerTinBuildOptions {
   strictMode?: StrictMode;
   vertexMode?: VertexMode;
-  yaxisMode?: YaxisMode;
+}
+
+/**
+ * 層の CRS から y 軸の向きを導く（設計書 §4.6・横断設計 §2.x）。
+ * yaxisMode は、TMS（y が上向き）と XYZ（y が下向き）の両方を扱うために付けたフラグで、人間が選ぶものではない。
+ * Editor が扱う CRS は東・北（`+axis=enu`。採用で他の軸は拒否する）で、y が上向きなので invert になる。
+ */
+export function yaxisModeFromCrs(_crs: CrsObject): YaxisMode {
+  return 'invert';
 }
 
 /** 層（主図・副層）のうち、三角網の作り方の判定に使う項目だけ。 */
@@ -28,9 +39,8 @@ export type LayerTransformIntent = 'A' | 'B' | 'C' | 'legacyV2' | string | undef
  * - A（tinEnabled === false）: 三角網を作らないので null。
  * - crs 鍵なし: 従来の V2。
  * - crs 鍵あり: B は world file 外周、C は常に extrapolate を明示する。
- * yaxisMode は CRS 採用層だけで引数、層の直下、compiled の順に探す。
- * CRS の無い V2 は compiled 内部座標が反転済みのため、ここから yaxisMode を渡さない。
- * CRS 採用層の follow は GCP 座標戻しを扱う T4 の対象なので、ここでは従来どおり渡す。
+ * yaxisMode は、crs のある層では crs から導く（保存された値とは食い違っていても crs を正とする）。
+ * crs の無い V2 の層は、保存されている値（compiled、無ければ層の直下）をそのまま使う。
  */
 export function resolveTinBuildOptions(
   layer: TinBuildLayer,
@@ -40,8 +50,8 @@ export function resolveTinBuildOptions(
   if (layer.tinEnabled === false) return null;
   const hasCrs = layer.crs !== undefined && layer.crs !== null;
   const yaxisMode = hasCrs
-    ? buildOptions.yaxisMode ?? layer.yaxisMode ?? layer.compiled?.yaxisMode
-    : undefined;
+    ? yaxisModeFromCrs(layer.crs as CrsObject)
+    : layer.compiled?.yaxisMode ?? layer.yaxisMode;
   const common: TinOptions = {
     ...(buildOptions.strictMode !== undefined ? { strictMode: buildOptions.strictMode } : {}),
     ...(buildOptions.vertexMode !== undefined ? { vertexMode: buildOptions.vertexMode } : {}),

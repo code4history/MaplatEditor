@@ -98,7 +98,9 @@ import {
 } from '../utils/layerCoordTransform';
 import { compiledGeoJsonToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
-import { displayYaxisMode, seedCompiledTin, transformLayerFromDocument } from '../utils/layerTransformIntent';
+import {
+    compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
+} from '../utils/layerTransformIntent';
 import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -815,7 +817,9 @@ function snapshotForHistoryState(state: MapEditHistoryState): LayerTransformSnap
             width: state.mapData.width, height: state.mapData.height, bounds: state.mapData.bounds,
         });
         layer.intent = state.layerTransformIntents?.[layerId] ?? layer.intent;
-        layer.buildOptions = state.layerBuildOptions?.[layerId] ?? layer.buildOptions;
+        // 古い下書きの buildOptions に残る yaxisMode は読まない（y 軸の向きは crs から導く）。
+        const savedOptions = state.layerBuildOptions?.[layerId];
+        if (savedOptions) layer.buildOptions = { strictMode: savedOptions.strictMode, vertexMode: savedOptions.vertexMode };
         return layer;
     });
 }
@@ -954,6 +958,8 @@ const tinObjects = computed(() => tinStates.value.map((state) =>
 const tinDiagnostics = computed(() => Object.fromEntries(tinStates.value.flatMap((state, index) =>
     state && 'diagnostics' in state && state.diagnostics ? [[layerIds.value[index], state.diagnostics]] : [])));
 const crsAdoptionDiagnostic = ref<Record<string, unknown> | null>(null);
+// 読み込みで見つけた層ごとの診断（揮発）。食い違った y 軸の向きなど。
+const layerLoadDiagnostics = ref<Record<string, unknown>[]>([]);
 
 watch([
     tinObject,
@@ -1023,7 +1029,8 @@ function applyLayerSnapshotToDocuments(snapshot: LayerTransformSnapshot): void {
     mapData.value.edges = cloneDeep(main.edges);
     mapData.value.strictMode = main.buildOptions.strictMode;
     mapData.value.vertexMode = main.buildOptions.vertexMode;
-    if (mapData.value.yaxisMode !== undefined) mapData.value.yaxisMode = main.buildOptions.yaxisMode;
+    // 地図最上位の向きは、主図の crs から導いた値（crs の無い旧 V2 は保存されていた値）で書く。
+    if (mapData.value.yaxisMode !== undefined) mapData.value.yaxisMode = layerYaxisMode(main);
     sub_maps.value = sublayers.map((layer) => {
         const document = previous.get(layer.layerId) ?? {};
         applyIntentToDocument(document, layer.intent);
@@ -1489,6 +1496,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         adoptionInProgress,
         tinDiagnostics,
         crsAdoptionDiagnostic,
+        layerLoadDiagnostics,
         adoptCrsEstimation,
         saveMapAfterConfirm: () => saveMapAfterConfirm(),
         baseMapFilterRegion,
@@ -2602,12 +2610,21 @@ function seedTinObjects(snapshot: LayerTransformSnapshot, tins: any[] | null = n
         }
         const compiled = tins?.[index] ?? layerDocumentAt(index)?.compiled;
         if (!compiled || typeof compiled !== 'object') return;
+        // crs から導いた向きと食い違う compiled は鏡像になるので種にせず、診断を残して作り直す（設計書 §4.6）。
+        const mismatch = compiledYaxisMismatch(layer, compiled);
+        if (mismatch) {
+            layerLoadDiagnostics.value = [...layerLoadDiagnostics.value,
+                { code: 'yaxis_mismatch', layerId: layer.layerId, ...mismatch }];
+            console.warn(`[MapEdit] compiled の yaxisMode(${mismatch.stored}) が crs から導いた値(${mismatch.derived})と食い違うため作り直します:`, layer.layerId);
+            return;
+        }
         seeds.set(layer.layerId, { tin: seedCompiledTin(layer, compiled) });
     });
     return seeds;
 }
 
 function initializeLayerTransformState(tins: any[] | null) {
+    layerLoadDiagnostics.value = [];
     sub_maps.value = cloneDeep(mapData.value.sub_maps ?? []);
     currentEditingLayer.value = 0;
     homePosition.value = mapData.value.homePosition;
@@ -3063,7 +3080,7 @@ const tinResultUpdate = () => {
     // 旧実装: tinObject.tins.forw / tinObject.tins.bakw
     try {
         const forTin = tin.tins?.forw;
-        const yaxisMode = displayYaxisMode(layerTransformState.value.layers.value[currentEditingLayer.value], tin);
+        const yaxisMode = tin.yaxisMode;
         const crs = activeLayerCrs.value;
         const bakTin = compiledGeoJsonToMercator(tin.tins?.bakw, yaxisMode, crs);
         if (forTin) {
@@ -3099,7 +3116,8 @@ const updateTin = async (): Promise<boolean> => {
     const targetLayerId = layerIds.value[currentEditingLayer.value];
     if (!targetLayerId) return false;
     const model = layerTransformState.value;
-    if (model.getTinState(targetLayerId)?.status === 'ready') {
+    // 想定外の生成エラー（unknownError）は、次の機会に依頼し直す。
+    if (!shouldRebuildTin(model.getTinState(targetLayerId))) {
         tinResultUpdate();
         return true;
     }
@@ -4582,7 +4600,7 @@ const viewError = () => {
     const errorPoint = kinks[errorNumber.value].geometry.coordinates;
     const converted = compiledGeoJsonToMercator({
         type: 'Feature', geometry: { type: 'Point', coordinates: errorPoint }, properties: {},
-    }, displayYaxisMode(layerTransformState.value.layers.value[currentEditingLayer.value], tin), activeLayerCrs.value);
+    }, tin.yaxisMode, activeLayerCrs.value);
     if (converted === false) return;
     const view = mercMap.getView();
     view.setCenter(converted.geometry.coordinates);
@@ -4608,7 +4626,7 @@ const addSubMap = () => {
     currentEditingLayer.value = sub_maps.value.length + 1;
     const layerId = layerTransformState.value.addLayer({
         gcps: [], edges: [], bounds: document.bounds, importance: document.importance, priority: document.priority,
-        buildOptions: { strictMode: strictMode.value, vertexMode: vertexMode.value, yaxisMode: 'invert' },
+        buildOptions: { strictMode: strictMode.value, vertexMode: vertexMode.value },
     }, ranks);
     if (!layerId) currentEditingLayer.value = selected;
 };

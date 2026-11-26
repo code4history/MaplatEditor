@@ -10,7 +10,10 @@ import { prepareCrsAdoption } from '../src/utils/crsAdoption.ts';
 import { buildEditorLayerTin } from '../src/services/editorComputeBackend.ts';
 import { updateTin } from '../src/workers/tinComputeWorker.ts';
 import { useLayerTransformState } from '../src/composables/useLayerTransformState.ts';
-import { deriveIntentFromStoredLayer, deriveLayerBuildOptions, transformLayerFromDocument, seedCompiledTin } from '../src/utils/layerTransformIntent.ts';
+import {
+  compiledYaxisMismatch, deriveIntentFromStoredLayer, deriveLayerBuildOptions, layerYaxisMode, seedCompiledTin,
+  shouldRebuildTin, transformLayerFromDocument,
+} from '../src/utils/layerTransformIntent.ts';
 import { compiledGeoJsonToMercator } from '../src/utils/compiledGeo.ts';
 import { WorldFileSurface } from '@maplat/transform';
 import { projectionEngineForCrs } from '../src/utils/compiledGeo.ts';
@@ -81,7 +84,7 @@ test('採用準備は換算済み WF を再換算せず、候補と同じ点列�
   };
   const layer = {
     layerId: 'main', intent: { setup: 'legacyV2' },
-    buildOptions: { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' }, gcps, edges,
+    buildOptions: { strictMode: 'strict', vertexMode: 'plain' }, gcps, edges,
   };
   for (const setup of ['A', 'B', 'C']) {
     const prepared = await prepareCrsAdoption(layer, { selected, setup }, new AbortController().signal);
@@ -106,8 +109,16 @@ test('保存形から A/B/C・三つの生成設定を復元し降格保存は C
   assert.deepEqual(deriveIntentFromStoredLayer({ crs }, { outerTransform: 'extrapolate' }),
     { setup: 'C', crs });
   assert.deepEqual(deriveIntentFromStoredLayer({}, { outerTransform: 'worldFile', worldFile }), { setup: 'legacyV2' });
+  // yaxisMode は生成設定ではない。保存されていても buildOptions には入らない（設計書 §4.6）
   assert.deepEqual(deriveLayerBuildOptions({}, { strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' }),
-    { strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' });
+    { strictMode: 'loose', vertexMode: 'birdeye' });
+  assert.deepEqual(deriveIntentFromStoredLayer({}, { yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' });
+  assert.deepEqual(deriveIntentFromStoredLayer({ yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' });
+  assert.deepEqual(deriveIntentFromStoredLayer({}, undefined, { yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' },
+    '副層は地図最上位の値を継ぐ');
+  assert.deepEqual(deriveIntentFromStoredLayer({}, { yaxisMode: 'invert' }), { setup: 'legacyV2' }, '既定の invert は省く');
+  assert.deepEqual(deriveIntentFromStoredLayer({ crs }, { outerTransform: 'extrapolate', yaxisMode: 'follow' }),
+    { setup: 'C', crs }, 'crs のある層の意図に、保存されていた向きは持ち込まない');
 });
 
 test('CSV は入力 CRS から WGS84 を経て主図・副層の target CRS へ変換する', () => {
@@ -179,7 +190,7 @@ test('採用時に ENU の軸指定を掃除し、別の軸と古い候補を拒
     gcpsNew: converted.gcps.map(([pixel, geo]) => ({ pixel, geo })),
   };
   const layer = { layerId: 'main', intent: { setup: 'legacyV2' },
-    buildOptions: { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' }, gcps, edges };
+    buildOptions: { strictMode: 'strict', vertexMode: 'plain' }, gcps, edges };
   const signal = new AbortController().signal;
   const prepared = await prepareCrsAdoption(layer, { selected, setup: 'B' }, signal);
   assert.deepEqual(prepared.intent.crs, planeVi);
@@ -194,7 +205,7 @@ test('採用時に ENU の軸指定を掃除し、別の軸と古い候補を拒
   }, signal));
 });
 
-test('follow の投影済み主図・副層を外部座標へ戻し、元の compiled と一致する', async () => {
+test('旧 V2 の follow の主図・副層は、作り直しても compiled.yaxisMode と点の向きが保たれる', async () => {
   const pixels = [[0, 0], [100, 0], [100, 100], [0, 100], [54, 47]];
   const outsideGcps = pixels.map(([x, y]) => [[x, y], [1000 + x, 2000 + y]]);
   const insideEdges = [[[[48, 1]], [[1048, -2001]], [0, 1]]];
@@ -202,33 +213,157 @@ test('follow の投影済み主図・副層を外部座標へ戻し、元の com
     ['main', { wh: [100, 100] }, 'strict', 'plain'],
     ['sub:1', { bounds: pixels.slice(0, 4) }, 'loose', 'birdeye'],
   ]) {
-    const options = { useV2Algorithm: false, outerTransform: 'extrapolate', strictMode, vertexMode, yaxisMode: 'follow' };
+    const options = { useV2Algorithm: true, strictMode, vertexMode, yaxisMode: 'follow' };
     const original = new Tin({ ...options, ...geometry });
     original.setVertexMode(vertexMode);
     original.setPoints(outsideGcps);
     original.setEdges(insideEdges);
     await original.updateTinAsync();
     const compiled = original.getCompiled();
-    const document = {
-      crs: planeVi, width: 100, height: 100, bounds: geometry.bounds, gcps: compiled.points, edges: compiled.edges,
-    };
+    assert.equal(compiled.yaxisMode, 'follow');
+    // 保存された compiled の点列は内部軸（y が反転）。文書の gcps も compiled の点列と同じ。
+    const document = { width: 100, height: 100, bounds: geometry.bounds, gcps: compiled.points, edges: compiled.edges };
+    // 副層は、地図最上位の向きを継ぐ（compiled が無くても）
+    const inherited = transformLayerFromDocument(layerId, { ...document }, undefined, { yaxisMode: 'follow' });
+    assert.deepEqual(inherited.intent, { setup: 'legacyV2', yaxisMode: 'follow' });
     const layer = transformLayerFromDocument(layerId, document, compiled);
-    assert.deepEqual(layer.gcps, outsideGcps);
+    assert.deepEqual(layer.intent, { setup: 'legacyV2', yaxisMode: 'follow' });
+    assert.deepEqual(layer.gcps, outsideGcps, '編集・履歴には外部の向きで入れる');
     assert.deepEqual(layer.edges[0][1], [[1048, 2001]]);
-    assert.equal(layer.buildOptions.yaxisMode, 'follow');
+    assert.equal('yaxisMode' in layer.buildOptions, false, 'yaxisMode は生成設定の選択肢ではない');
+    assert.equal(layerYaxisMode(layer), 'follow');
+    assert.equal(compiledYaxisMismatch(layer, compiled), undefined, 'V2 は保存値が正なので食い違わない');
     assert.deepEqual(seedCompiledTin(layer, compiled).getCompiled(), compiled);
     const rebuilt = await buildEditorLayerTin({ layer, layerId, kind: 'edit', reqGen: 1, isCurrent: () => true },
       layerId === 'main' ? 0 : 1, updateTin);
-    assert.deepEqual(rebuilt.tin.getCompiled(), compiled);
-    assert.equal(rebuilt.tin.getCompiled().version, compiled.version);
+    assert.deepEqual(rebuilt.tin.getCompiled(), compiled, '作り直しても向きも点も保たれる（invert に戻らない）');
+    assert.equal(rebuilt.tin.getCompiled().yaxisMode, 'follow');
+    assert.deepEqual(rebuilt.tin.getCompiled().points, compiled.points);
     const pixel = [54, 47];
     assert.deepEqual(rebuilt.tin.transform(pixel, false), outsideGcps.at(-1)[1]);
     assert.deepEqual(rebuilt.tin.transform(outsideGcps.at(-1)[1], true), pixel);
-    const projected = compiledGeoJsonToMercator(rebuilt.tin.tins.bakw, 'follow', planeVi);
-    assert.ok(projected.features.length);
-    assert.ok(projected.features.flatMap(({ geometry }) => geometry.coordinates.flat()).every(([x, y]) =>
-      Number.isFinite(x) && Number.isFinite(y)));
+    // 描画は Tin の向きで外部へ戻すので、メッシュは鏡像にならない
+    const projected = compiledGeoJsonToMercator(rebuilt.tin.tins.bakw, rebuilt.tin.yaxisMode);
+    assert.ok(projected.features.flatMap(({ geometry }) => geometry.coordinates.flat()).every(([, y]) => y > 0));
   }
+});
+
+test('crs と compiled.yaxisMode が食い違う層は、crs から導いた invert を正として作り直す', async () => {
+  const pixels = [[0, 0], [100, 0], [100, 100], [0, 100], [54, 47]];
+  const outsideGcps = pixels.map(([x, y]) => [[x, y], [1000 + x, 2000 + y]]);
+  const insideEdges = [[[[48, 1]], [[1048, -2001]], [0, 1]]];
+  const stored = new Tin({ useV2Algorithm: false, outerTransform: 'extrapolate', strictMode: 'strict', vertexMode: 'plain',
+    yaxisMode: 'follow', wh: [100, 100] });
+  stored.setPoints(outsideGcps);
+  stored.setEdges(insideEdges);
+  await stored.updateTinAsync();
+  const compiled = stored.getCompiled();
+  assert.equal(compiled.yaxisMode, 'follow');
+  const document = { crs: planeVi, width: 100, height: 100, gcps: compiled.points, edges: compiled.edges };
+  const layer = transformLayerFromDocument('main', document, compiled);
+  assert.deepEqual(layer.intent, { setup: 'C', crs: planeVi });
+  assert.deepEqual(layer.gcps, outsideGcps, '座標は作った時の向き（compiled）で外部へ戻す');
+  assert.equal(layerYaxisMode(layer), 'invert');
+  assert.deepEqual(compiledYaxisMismatch(layer, compiled), { stored: 'follow', derived: 'invert' });
+  assert.equal(compiledYaxisMismatch(layer, { ...compiled, yaxisMode: 'invert' }), undefined);
+  assert.equal(compiledYaxisMismatch(layer, { ...compiled, yaxisMode: undefined }), undefined, '向きの無い compiled は invert');
+  // 作り直しは invert。保存されていた follow は渡さない
+  const rebuilt = await buildEditorLayerTin({ layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => true }, 0, updateTin);
+  assert.equal(rebuilt.tin.yaxisMode, 'invert');
+  assert.equal(rebuilt.tin.getCompiled().yaxisMode, 'invert');
+  assert.notDeepEqual(rebuilt.tin.getCompiled().points, compiled.points);
+  // 読み込みは食い違う compiled を種にしない（診断を出して作り直す）
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  const seed = source.match(/function seedTinObjects[\s\S]*?\n\}\n/)?.[0] ?? '';
+  assert.ok(seed);
+  assert.match(seed, /const mismatch = compiledYaxisMismatch\(layer, compiled\);\s*if \(mismatch\) \{[\s\S]*?code: 'yaxis_mismatch'[\s\S]*?return;\s*\}\s*seeds\.set/);
+  assert.match(source, /layerLoadDiagnostics,\n/, '診断は expose する');
+});
+
+test('CRS の採用は crs と一緒に向きも切り替え、Undo・Redo で両方が戻る', async () => {
+  const pixels = [[0, 0], [100, 0], [100, 100], [0, 100], [54, 47]];
+  const v2Gcps = pixels.map(([x, y]) => [[x, y], [15000000 + x, 4000000 - y]]);
+  const main = transformLayerFromDocument('main', { width: 100, height: 100, gcps: v2Gcps, yaxisMode: 'follow' }, undefined);
+  assert.deepEqual(main.intent, { setup: 'legacyV2', yaxisMode: 'follow' });
+  let active = 0;
+  const history = [[main]];
+  const model = useLayerTransformState([main], {
+    buildTin: (request) => buildEditorLayerTin(request, 0, updateTin),
+    prepareAdoption: prepareCrsAdoption,
+    history: {
+      commit: (snapshot) => { history.splice(++active, Infinity, snapshot); },
+      undo: () => active > 0 ? history[--active] : undefined,
+      redo: () => active < history.length - 1 ? history[++active] : undefined,
+      withoutHistoryAsync: async (apply) => apply(),
+    },
+  });
+  const converted = reprojectLayerCoords(main.gcps, main.edges, undefined, planeVi);
+  const result = await model.startAdoption('main', { setup: 'C', selected: {
+    crs: planeVi, worldFile, coreCompatible: true,
+    gcpsNew: converted.gcps.map(([pixel, geo]) => ({ pixel, geo })),
+  } });
+  assert.equal(result.status, 'adopted');
+  assert.deepEqual(model.capture()[0].intent, { setup: 'C', crs: planeVi }, '旧 V2 の follow は意図から消える');
+  assert.equal(layerYaxisMode(model.capture()[0]), 'invert');
+  assert.equal(model.getTinState('main').tin.yaxisMode, 'invert');
+  assert.equal(model.undo().restored, true);
+  assert.deepEqual(model.capture()[0].intent, { setup: 'legacyV2', yaxisMode: 'follow' }, 'Undo で crs も向きも戻る');
+  assert.equal(layerYaxisMode(model.capture()[0]), 'follow');
+  assert.deepEqual(model.capture()[0].gcps, v2Gcps);
+  await model.requestTin('main');
+  assert.equal(model.getTinState('main').tin.yaxisMode, 'follow');
+  assert.equal(model.redo().restored, true);
+  assert.deepEqual(model.capture()[0].intent, { setup: 'C', crs: planeVi });
+  // 旧 V2 の副層は、主図が follow なら向きを継ぐ
+  const sub = model.addLayer({ gcps: [], edges: [], bounds: [[0, 0], [10, 0], [10, 10]], buildOptions: main.buildOptions });
+  assert.deepEqual(model.capture().find(({ layerId }) => layerId === sub).intent, { setup: 'legacyV2' }, '主図が C なら継がない');
+  model.undo(); model.undo();
+  const sub2 = model.addLayer({ gcps: [], edges: [], bounds: [[0, 0], [10, 0], [10, 10]], buildOptions: main.buildOptions });
+  assert.deepEqual(model.capture().find(({ layerId }) => layerId === sub2).intent, { setup: 'legacyV2', yaxisMode: 'follow' });
+});
+
+test('想定外の生成エラーは、次の依頼でやり直す（ready の unknownError を残さない）', async () => {
+  const layer = transformLayerFromDocument('main', { width: 100, height: 100,
+    gcps: [[[0, 0], [1000, 1000]], [[100, 0], [1100, 1000]], [[0, 100], [1000, 900]], [[100, 100], [1100, 900]]] });
+  let calls = 0;
+  const flaky = (input, isCurrent) => {
+    if (++calls === 1) throw new Error('worker: unexpected');
+    return updateTin(input, isCurrent);
+  };
+  const model = useLayerTransformState([layer], {
+    buildTin: (request) => buildEditorLayerTin(request, 0, flaky),
+    prepareAdoption: prepareCrsAdoption,
+    history: { commit() {}, undo() {}, redo() {}, withoutHistoryAsync: async (apply) => apply() },
+  });
+  assert.equal(await model.requestTin('main'), true);
+  assert.equal(model.getTinState('main').status, 'ready');
+  assert.equal(model.getTinState('main').tin, 'unknownError');
+  assert.equal(shouldRebuildTin(model.getTinState('main')), true, 'ready でも unknownError は作り直す');
+  assert.equal(await model.requestTin('main'), true);
+  assert.equal(typeof model.getTinState('main').tin, 'object');
+  assert.equal(shouldRebuildTin(model.getTinState('main')), false);
+  assert.equal(shouldRebuildTin({ status: 'ready', tin: 'tooLessGcps' }), false, '決まった失敗（点が足りない等）は繰り返さない');
+  assert.equal(shouldRebuildTin(undefined), true);
+  assert.equal(shouldRebuildTin({ status: 'stale' }), true);
+  // updateTin の入口は shouldRebuildTin で判断する
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  const body = source.match(/const updateTin = async \(\): Promise<boolean> => \{[\s\S]*?\n\};/)?.[0] ?? '';
+  assert.match(body, /if \(!shouldRebuildTin\(model\.getTinState\(targetLayerId\)\)\) \{\s*tinResultUpdate\(\);\s*return true;/);
+});
+
+test('Info 3: 生成設定の解決と種付けで投げた例外も、編集のときは unknownError にする', async () => {
+  const layer = transformLayerFromDocument('main', { width: 100, height: 100, gcps: [[[0, 0], [1000, 1000]]] });
+  const request = (kind, extra = {}) => ({ layer, layerId: 'main', kind, reqGen: 1, isCurrent: () => true, ...extra });
+  // 生成設定を解決できない（ワールドファイルだけの層）
+  const broken = { ...layer, intent: { setup: 'A', crs: planeVi, worldFile } };
+  assert.deepEqual(await buildEditorLayerTin({ ...request('edit'), layer: broken }, 0, async () => assert.fail('呼ばれない')),
+    { tin: 'unknownError' });
+  await assert.rejects(buildEditorLayerTin({ ...request('adoption'), layer: broken }, 0, async () => assert.fail('呼ばれない')),
+    /生成設定/);
+  // 結果の種付けで投げる（壊れた compiled が返る）
+  const badCompiled = async () => [0, { not: 'a compiled' }, null];
+  assert.deepEqual(await buildEditorLayerTin(request('edit'), 0, badCompiled), { tin: 'unknownError' });
+  await assert.rejects(buildEditorLayerTin(request('adoption'), 0, badCompiled));
 });
 
 test('実 Tin の B 採用、GCP 編集による降格、Undo・Redo・下書き・保存を通す', async () => {
@@ -423,25 +558,18 @@ test('Minor 7: 非 3857 の主図でも util が CRS を挟み、画像⇄メル
   assert.notDeepEqual(transformMercatorToXy(merc, { ...target, crs: undefined }), back);
 });
 
-test('Minor 2: V2 の層は compiled が follow でも y を反転せず、V2 以外は Tin の属性から軸を読む', async () => {
-  const { displayYaxisMode } = await import('../src/utils/layerTransformIntent.ts');
-  const v2 = { intent: { setup: 'legacyV2' } };
-  const projected = { intent: { setup: 'B', crs: planeVi, worldFile } };
-  const follow = { yaxisMode: 'follow' };
-  assert.equal(displayYaxisMode(v2, follow), undefined);
-  assert.equal(displayYaxisMode(projected, follow), 'follow');
-  assert.equal(displayYaxisMode(projected, { yaxisMode: 'invert' }), 'invert');
-  assert.equal(displayYaxisMode(undefined, follow), undefined);
-  // 描画の入口は Tin の属性を読み、描き直しのたびに compiled を作らない
+test('Minor 2: 描画の軸は Tin の属性から読み、描き直しのたびに compiled を作らない', async () => {
   const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
   const redraw = source.match(/const tinResultUpdate = [\s\S]*?\n\};/)?.[0] ?? '';
   assert.ok(redraw);
   assert.doesNotMatch(redraw, /tin\.getCompiled/);
+  assert.match(redraw, /const yaxisMode = tin\.yaxisMode;/);
   assert.doesNotMatch(source.match(/const viewError = [\s\S]*?\n\};/)?.[0] ?? '', /tin\.getCompiled/);
-  // 実際に反転しない: V2 が follow を拾うと y が負になり、拾わなければ元のまま
+  assert.match(source.match(/const viewError = [\s\S]*?\n\};/)?.[0] ?? '', /tin\.yaxisMode/);
+  // 旧 V2 の follow も、保存された向きで外部へ戻して描く（鏡像にしない）
   const { compiledPointToMercator } = await import('../src/utils/compiledGeo.ts');
-  assert.deepEqual(compiledPointToMercator([10, 20], displayYaxisMode(v2, follow)), [10, 20]);
   assert.deepEqual(compiledPointToMercator([10, 20], 'follow'), [10, -20]);
+  assert.deepEqual(compiledPointToMercator([10, 20], 'invert'), [10, 20]);
 });
 
 test('Minor 1・3・4: 枠の描き直し・ラジオの見た目の復元・書き出し中の採用拒否が接続されている', async () => {

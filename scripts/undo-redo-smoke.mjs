@@ -285,7 +285,7 @@ assert.match(
   const { useHistorySuppression } = await import(new URL('../src/composables/useHistorySuppression.ts', import.meta.url).href);
   const { useLayerTransformState } = await import(new URL('../src/composables/useLayerTransformState.ts', import.meta.url).href);
   const { UndoStack } = await import(new URL('../src/services/editorUndoStack.ts', import.meta.url).href);
-  const options = { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' };
+  const options = { strictMode: 'strict', vertexMode: 'plain' };
   const crs = { epsg: 6674, authority: 'EPSG', code: '6674' };
   const worldFile = { xScale: 2, xSkew: 0, xOrigin: 0, ySkew: 0, yScale: -2, yOrigin: 0 };
   const initial = [{

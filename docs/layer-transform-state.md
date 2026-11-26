@@ -25,8 +25,8 @@
 
 - `extractCompiledTins` が保存済みの `compiledTins` を文書から取り出す。読み込み時は保存上の層順を ID に対応づけ、保存された変換形から意図を復元し、各層の compiled の生成設定を優先する。compiled 側に無い設定は地図全体の値や既定値で補う。旧形式の下書きも同じ形に補完する。
 - `seedTinObjects` に相当する処理で、利用できる compiled を `setCompiled` 相当で読み込み、診断があれば合わせてモデルの `initialTins` に渡す。`tooLessGcps` や `compiledRequired` などの文字列は従来どおり未計算として扱う。初回表示は `ready` の層を描画し、種がなく生成が必要な層だけを依頼する。初回読み込み・`reloadFromStore`・`importMap` は同じ初期化を使い、旧モデルを `dispose()` して新しい文書と種を入れたモデルへ差し替える。
-- CRS のある `follow` の層は、読み込み時に compiled の GCP と対応線の中継点を外部 CRS の東・北へ戻す。履歴・下書きにもその座標を記録する。再生成時、GCP は Tin の `setPoints` が内部軸に直す。対応線の中継点は Editor が `compiledGeo.ts` と同じ符号反転を通し、内部軸の点列として `setEdges` に渡す。
-- 「外周」の `vertexMode` と「エラー」の `strictMode` は地図全体に効く。ラジオの表示値を主図の `buildOptions` から読み、ユーザーが値を選んだときは値が同じでも setter から変更対象の設定を全層の `buildOptions` に入れる `editLayers` を一度呼ぶ。他方の設定と `yaxisMode` は各層の値を引き継ぐ。新規副層には主図の `strictMode`・`vertexMode` を初期値として渡す。既存地図で compiled の層別設定と地図全体のラジオ値が食い違う場合も読み込みは compiled を優先する。ラジオを選び直すと全層を選択値へそろえるため、従来は編集した層だけがラジオ値で作り直されていた挙動が変わる。
+- 保存された compiled が `follow` の層（旧 V2 を含む）は、読み込み時に compiled の GCP と対応線の中継点を外部の向き（CRS のある層は東・北）へ戻す。履歴・下書きにもその座標を記録する。再生成時、GCP は Tin の `setPoints` が内部軸に直す。対応線の中継点は Editor が `compiledGeo.ts` と同じ符号反転を通し、内部軸の点列として `setEdges` に渡す。
+- 「外周」の `vertexMode` と「エラー」の `strictMode` は地図全体に効く。ラジオの表示値を主図の `buildOptions` から読み、ユーザーが値を選んだときは値が同じでも setter から変更対象の設定を全層の `buildOptions` に入れる `editLayers` を一度呼ぶ。他方の設定（`strictMode` と `vertexMode`）も各層の値を引き継ぐ。新規副層には主図の `strictMode`・`vertexMode` を初期値として渡す。既存地図で compiled の層別設定と地図全体のラジオ値が食い違う場合も読み込みは compiled を優先する。ラジオを選び直すと全層を選択値へそろえるため、従来は編集した層だけがラジオ値で作り直されていた挙動が変わる。
 - 未編集で種付け済みの層は元の compiled を保持するが、Undo・Redo・下書き復元では全層を再生成する。復元直後は描画の継続用に以前の `tin` と診断を stale 状態へ持ち越し、現在世代の生成結果が届いた時点で置き換える。この保持・置換を状態試験で固定する。
 - 保存ペイロードの `tins` は `layers` と同じ配列順で、`tins[i]` は `layers[i]` の結果に対応する。
 - 設定の正本はモデル内の層ごとの `buildOptions`。Undo・Redo・下書き復元による表示値の変化は読み取り側に伝わる。既存の `watch(strictMode)`・`watch(vertexMode)` による `mapData` への書き戻しや再編集は setter に置き換える。保存コールバックでは同じ世代の `layers` の主図から地図全体の `strictMode`・`vertexMode` を書き出し、各層の結果は `tins` から書き出す。Undo・Redo・下書き復元を経ていない未編集で種付け済みの層は元の compiled を保持し、B が C へ降格した層は C の結果を保存する。復元時は全層を再生成し、以前の `tin` と診断を stale 状態へ持ち越して新しい生成結果で置き換える。この保持・置換を状態試験で固定する。
@@ -52,4 +52,14 @@
 | CRS 採用、キーボード・メニュー操作 | `prepareAdoption(copy, selection, signal)` で一時コピー上の座標変換・往復検査を済ませる。`history.withoutHistoryAsync(apply)` を既存の `withoutHistoryAsync('adopt-crs', apply)` につなぎ、解除後に履歴を一件記録する。採用の開始前に入力欄のフォーカスを外し、`App.vue` のネイティブテキスト Undo への経路を閉じる。画面側の編集・保存確認・再推定・メニューの入口でもロックを確認する。 |
 | `saveMap`、`saveMapAfterConfirm`、`onBeforeUnmount` | 保留中の履歴確定や保存確認のダイアログより先にロックを確認する。`startAdoption` は保存の生成待ち中も `rejected` を返すが、この間はモデルの `adoptionInProgress` と `saveWriting` のどちらにも現れないため、画面側は保存準備・保存中の印（`preparingSave` と `saving`）を使って採用の入口を閉じる。保存確認後に `save` を呼び、そのコールバック内で既存の永続化へ渡す。`writeFailed` の例外内容を画面表示に使う場合は、`persist` の catch 内で例外を控える。離脱時は `dispose()` を呼ぶ。 |
 
-`resolveTinBuildOptions` の所在は J6-T1b の `jan27/j6-t1b-projection-paths:src/utils/tinOptions.ts`。呼び出しは `resolveTinBuildOptions(layer, layerBuildOptions, intent)`。第 1 引数は `crs`・`worldFile` などの層直下の鍵と、利用する場合は `compiled` を持つ層のオブジェクト。旧 V2 層には `crs` 鍵を付けず、採用済みの層は現在の意図に合う値を渡す。第 2 引数には対象層の `buildOptions`（`strictMode`・`vertexMode`・`yaxisMode`）、第 3 引数には `intent.setup` を渡す。worker・Electron IPC・比較のプレビューは解決済みの設定で生成する。
+`resolveTinBuildOptions` の所在は J6-T1b の `jan27/j6-t1b-projection-paths:src/utils/tinOptions.ts`。呼び出しは `resolveTinBuildOptions(layer, layerBuildOptions, intent)`。第 1 引数は `crs`・`worldFile` などの層直下の鍵と、利用する場合は `compiled` を持つ層のオブジェクト。旧 V2 層には `crs` 鍵を付けず、採用済みの層は現在の意図に合う値を渡す。第 2 引数には対象層の `buildOptions`（`strictMode`・`vertexMode`）、第 3 引数には `intent.setup` を渡す。worker・Electron IPC・比較のプレビューは解決済みの設定で生成する。
+
+## y 軸の向き（`yaxisMode`）は CRS から導く（設計書 §4.6）
+
+`yaxisMode` は地理の面の座標系の性質で、三角網の作り方の選択肢ではない。`buildOptions` には入れない。
+
+- **crs のある層**: `resolveTinBuildOptions` が crs から導く（Editor が扱う CRS は東・北なので `invert`）。層直下や compiled に保存された値が食い違っていても、crs を正とする。
+- **crs の無い旧 V2 の層**: 保存されていた値（compiled、無ければ層の直下、副層は地図最上位）をそのまま使う。`follow` の旧 V2 だけ、意図に `{ setup: 'legacyV2', yaxisMode: 'follow' }` として持ち、作り直しても `compiled.yaxisMode` と点の向きが保たれる。既定の `invert` は省く。
+- **CRS の採用**: crs を持つ意図へ替わると、旧 V2 の `yaxisMode` も意図ごと消える。Undo は意図ごと戻すので、crs も向きも一緒に戻る。新規の旧 V2 副層は、主図が旧 V2 の `follow` ならそれを継ぐ。
+- **読み込みの食い違い**: crs から導いた向きと `compiled.yaxisMode` が食い違う層は、compiled を種にせず作り直す（鏡に映した対応で、凸包の外が大きくずれるため）。診断 `{ code: 'yaxis_mismatch', layerId, stored, derived }` を `layerLoadDiagnostics` に残す（揮発。表示は T5a）。GCP と対応線は、作った時の向き（保存された compiled）で外部へ戻してから、導いた向きで作り直す。
+- 描画の戻し（`compiledGeo.ts`）は Tin の `yaxisMode` 属性を読む。書かれる値は導いた値。

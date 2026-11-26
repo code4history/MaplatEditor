@@ -20,8 +20,8 @@ function test(name, run) {
     });
 }
 
-const options = { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' };
-const subOptions = { strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' };
+const options = { strictMode: 'strict', vertexMode: 'plain' };
+const subOptions = { strictMode: 'loose', vertexMode: 'birdeye' };
 const crs = { epsg: 6674, authority: 'EPSG', code: '6674' };
 const worldFile = { xScale: 2, xSkew: 0.5, xOrigin: 0, ySkew: 0, yScale: -2, yOrigin: 0 };
 const intentB = { setup: 'B', crs, worldFile };
@@ -1056,7 +1056,7 @@ test('値が同じ編集では履歴・世代・揮発状態が変わらない',
     const { model, history, requests } = fixture();
     await model.requestTin('main');
     const previous = tinState(model);
-    const edit = { ...layer('main'), buildOptions: { yaxisMode: 'invert', vertexMode: 'plain', strictMode: 'strict' } };
+    const edit = { ...layer('main'), buildOptions: { vertexMode: 'plain', strictMode: 'strict' } };
     assert.equal(model.editLayer('main', edit), false);
     assert.equal(model.editLayer('main', {}), false);
     assert.equal(model.editLayers([]), false);

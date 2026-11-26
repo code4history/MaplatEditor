@@ -23,5 +23,5 @@ const cOptions = resolveTinBuildOptions({ crs: { epsg: 6674 }, compiled: {} }, {
 assert.equal(cOptions.outerTransform, 'extrapolate');
 assert.equal(cOptions.useV2Algorithm, false);
 assert.equal(resolveTinBuildOptions({ tinEnabled: false, crs: { epsg: 6677 }, worldFile }), null, 'A は三角網を作らない');
-assert.deepEqual(resolveTinBuildOptions({ crs: { epsg: 3857 }, compiled: {} }), { useV2Algorithm: false, outerTransform: 'extrapolate' }, 'C は常に extrapolate を明示する');
+assert.deepEqual(resolveTinBuildOptions({ crs: { epsg: 3857 }, compiled: {} }), { useV2Algorithm: false, outerTransform: 'extrapolate', yaxisMode: 'invert' }, 'C は常に extrapolate を明示し、y 軸の向きは crs から導く');
 console.log('J6-T1b V4 projection paths smoke passed');

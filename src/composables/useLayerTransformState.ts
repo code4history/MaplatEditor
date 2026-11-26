@@ -3,7 +3,9 @@ import { isEqual } from 'lodash-es';
 import type { CrsObject, EdgeSet, PointSet, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
 
 export type LayerTransformIntent =
-    | { setup: 'legacyV2' }
+    // yaxisMode は crs の無い旧 V2 の層だけが持つ「保存されていた値」。crs のある層は crs から導く（設計書 §4.6）。
+    // 省略は invert。採用で crs を持つ意図へ替わると、この値も一緒に消え、Undo で一緒に戻る。
+    | { setup: 'legacyV2'; yaxisMode?: YaxisMode }
     | { setup: 'A'; crs: CrsObject; worldFile: WorldFile }
     | { setup: 'B'; crs: CrsObject; worldFile: WorldFile }
     | { setup: 'C'; crs: CrsObject };
@@ -11,7 +13,6 @@ export type LayerTransformIntent =
 export interface LayerBuildOptions {
     strictMode: StrictMode;
     vertexMode: VertexMode;
-    yaxisMode: YaxisMode;
 }
 
 export interface TransformLayer {
@@ -311,7 +312,11 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         } while (issuedIds.has(layerId));
         issuedIds.add(layerId);
         const { gcps = [], edges = [] } = input;
-        const layer = copyLayer({ ...input, gcps, edges, layerId, intent: { setup: 'legacyV2' } });
+        // 旧 V2 の副層は、主図が旧 V2 で follow ならそれを継ぐ（副層の保存形式に yaxisMode は無く、地図最上位の値を使う）。
+        const mainIntent = state.value.layers[0]?.intent;
+        const intent: LayerTransformIntent = mainIntent?.setup === 'legacyV2' && mainIntent.yaxisMode
+            ? { setup: 'legacyV2', yaxisMode: mainIntent.yaxisMode } : { setup: 'legacyV2' };
+        const layer = copyLayer({ ...input, gcps, edges, layerId, intent });
         const next = [...applyRanks(state.value.layers, ranks), layer];
         const volatile = new Map(state.value.volatile);
         volatile.set(layerId, { status: 'empty' });

@@ -95,6 +95,24 @@ export async function buildEditorLayerTin(
   compute: EditorComputeBackend['updateTin'],
 ) {
   if (!request.isCurrent()) throw new Error('三角網の生成依頼が失効しました');
+  try {
+    return await buildLayerTin(request, index, compute);
+  } catch (error) {
+    // 失効した依頼の失敗は結果ごと捨てられる（呼び出し側が世代で判定する）ので、そのまま投げる。
+    if (!request.isCurrent()) throw error;
+    // 採用は結果を文書へ書き換える操作なので、失敗は失敗のまま返す。
+    if (request.kind === 'adoption') throw error;
+    // 通常の編集では、生成設定の解決・worker・結果の種付けのどこで想定外の例外が出ても、他の層の保存を止めない。
+    // 契約は「通常編集で保存可能な応答は tin に入れる」。master と同じ 'unknownError' の印で保存できるようにする。
+    return { tin: 'unknownError' };
+  }
+}
+
+async function buildLayerTin(
+  request: LayerTinRequest,
+  index: number,
+  compute: EditorComputeBackend['updateTin'],
+) {
   if (index < 0) throw new Error('対象の層が見つかりません');
   const { layer } = request;
   const { buildOptions, gcps, edges, bounds } = layer;
@@ -102,23 +120,11 @@ export async function buildEditorLayerTin(
   if (!tinOptions) throw new Error('三角網の生成設定がありません');
   // Tin は GCP を内部軸に直すが、対応線は内部軸の入力を受け取る。
   const tinEdges = tinOptions.yaxisMode === 'follow' ? reverseFollowEdgeAxis(edges) : edges;
-  let result: TinUpdateResult;
-  try {
-    result = await compute({
-      gcps: gcps.map(([pixel, geo]) => [pixel, geo]),
-      edges: tinEdges, index, bounds,
-      strict: buildOptions.strictMode, vertex: buildOptions.vertexMode, tinOptions,
-    }, request.isCurrent);
-  } catch (error) {
-    // 失効した依頼の失敗は結果ごと捨てられる（呼び出し側が世代で判定する）ので、そのまま投げる。
-    if (!request.isCurrent()) throw error;
-    // 通常の編集で、worker が正規化できない例外を投げても、他の層の保存を止めない。
-    // 契約は「通常編集で保存可能な応答は tin に入れる」。master と同じ 'unknownError' の印で保存できるようにする。
-    // 採用は結果を文書へ書き換える操作なので、失敗は失敗のまま返す。
-    if (request.kind === 'adoption') throw error;
-    return { tin: 'unknownError' };
-  }
-  const [, compiled, diagnostics] = result;
+  const [, compiled, diagnostics] = await compute({
+    gcps: gcps.map(([pixel, geo]) => [pixel, geo]),
+    edges: tinEdges, index, bounds,
+    strict: buildOptions.strictMode, vertex: buildOptions.vertexMode, tinOptions,
+  }, request.isCurrent);
   if (!request.isCurrent()) throw new Error('三角網の生成依頼が失効しました');
   if (typeof compiled === 'string') {
     if (request.kind === 'adoption') throw new Error(compiled);

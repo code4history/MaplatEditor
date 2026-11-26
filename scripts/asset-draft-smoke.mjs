@@ -266,10 +266,12 @@ try {
     /onBeforeUnmount\([\s\S]*illstMap\?\.setTarget\(undefined\)[\s\S]*mercMap\?\.setTarget\(undefined\)[\s\S]*illstSource\s*=\s*null[\s\S]*illstMap\s*=\s*null[\s\S]*mercMap\s*=\s*null/,
     'MapEdit must detach and clear module-scoped map runtime before draft restore on reopen',
   );
-  const restoreHistoryState = mapView.match(/const restoreHistoryState = async[\s\S]*?^};/m)?.[0] ?? '';
+  // 復元後のタイル・マーカーの描画は syncRestoredTiles が担う（restoreHistoryState から移った）。
+  const syncRestoredTiles = mapView.match(/async function syncRestoredTiles\(\)[\s\S]*?^\}/m)?.[0] ?? '';
+  assert.ok(syncRestoredTiles, 'MapEdit.vue の syncRestoredTiles が見つからない');
   assert.match(
-    restoreHistoryState,
-    /if\s*\(illstMap\s*&&\s*mercMap\s*&&\s*illstSource\)/,
+    syncRestoredTiles,
+    /if\s*\(!illstMap\s*\|\|\s*!mercMap\s*\|\|\s*!illstSource\)\s*return;/,
     'MapEdit draft restore must not draw GCP edges before the map source is initialized',
   );
   const poiSession = await readFile(
