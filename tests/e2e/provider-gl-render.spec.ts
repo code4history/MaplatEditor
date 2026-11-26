@@ -22,7 +22,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import {
-  COLOR_HITS_MIN, DISTINCT_MIN, FIXTURE_STYLE, STYLE_ERROR, httpStatus as status, launchWithWebGlStage,
+  COLOR_HITS_MIN, DISTINCT_MIN, FIXTURE_STYLE, LINE_HITS_MIN, STYLE_ERROR, httpStatus as status, launchWithWebGlStage,
   sampleWindow as sampleAppWindow, saveShot, serveStatic, stageNote as noteOf, type Sample, type Stage,
 } from './helpers/glRender';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
@@ -125,6 +125,17 @@ async function iframeRect(): Promise<{ x: number; y: number; width: number; heig
   const box = await page.locator('iframe.preview-map').boundingBox();
   if (!box) throw new Error('プレビューの iframe の矩形が取れない');
   return box;
+}
+
+/**
+ * fixture の 3 層目（line-layer-opacity 0.85 の線）が、塗りの上と背景の上の両方で、不透明度を掛けた色で描かれている。
+ * 以前はここで 6×6 の標本の色の種類（4 以上）を見ていたが、fixture の地図が標本点に出すのは背景と塗りの 2 色だけで、
+ * 残りの 2 色は viewer の操作部品が標本点に乗ったものだった（helpers/glRender.ts の DISTINCT_MIN の注記）。
+ * 地図の描画そのもの（3 層目の線と、その不透明度）を見る形に替えた
+ */
+function expectFixtureLine(sample: Sample): void {
+  expect(sample.lineOnFillHits, 'fixture の線（塗りの上・line-layer-opacity 0.85）が描かれていない').toBeGreaterThanOrEqual(LINE_HITS_MIN);
+  expect(sample.lineOnBgHits, 'fixture の線（背景の上・line-layer-opacity 0.85）が描かれていない').toBeGreaterThanOrEqual(LINE_HITS_MIN);
 }
 
 /** アプリを書き出し、zip を展開して配り、BrowserWindow で開く */
@@ -254,7 +265,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     const sample = await sampleWindow(page, await iframeRect());
     await saveShot('case 1-preview', sample.png);
     const styleErrors = consoleLines.slice(from).filter((l) => STYLE_ERROR.test(l.text));
-    console.log(`case 1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+    console.log(`case 1: state=${JSON.stringify(state)} distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} lineOnFillHits=${sample.lineOnFillHits} lineOnBgHits=${sample.lineOnBgHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
     const fixtureLayers = JSON.parse(await readFile(FIXTURE_STYLE, 'utf8')).layers.length;
     expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
     expect(state.ready, `__maplatPreview が無い: ${JSON.stringify(state)}`).toBe(true);
@@ -262,7 +273,7 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
     expect(state.layers).toBe(fixtureLayers);
     expect(sample.bgHits, 'fixture の背景色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
     expect(sample.fillHits, 'fixture の塗りの色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
-    expect(sample.distinct6).toBeGreaterThanOrEqual(DISTINCT_MIN);
+    expectFixtureLine(sample);
   });
 
   test('case 2 決定的な style（Export）: 書き出したアプリで同じ style が検証エラーなしで描かれる', async () => {
@@ -272,17 +283,18 @@ test.describe('MapLibre / Mapbox GL の注入と描画', () => {
       await expect(ex.win.locator('canvas.maplibregl-canvas')).toHaveCount(1, { timeout: 60_000 });
       let sample = await sampleWindow(ex.win, { x: 0, y: 0, width: 1000, height: 700 });
       const deadline = Date.now() + 30_000;
-      while (Date.now() < deadline && (sample.bgHits < COLOR_HITS_MIN || sample.fillHits < COLOR_HITS_MIN)) {
+      while (Date.now() < deadline && (sample.bgHits < COLOR_HITS_MIN || sample.fillHits < COLOR_HITS_MIN
+        || sample.lineOnFillHits < LINE_HITS_MIN || sample.lineOnBgHits < LINE_HITS_MIN)) {
         await ex.win.waitForTimeout(1_000);
         sample = await sampleWindow(ex.win, { x: 0, y: 0, width: 1000, height: 700 });
       }
       await saveShot('case 2-export', sample.png);
       const styleErrors = ex.lines.filter((l) => STYLE_ERROR.test(l.text));
-      console.log(`case 2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
+      console.log(`case 2: distinct6=${sample.distinct6} bgHits=${sample.bgHits} fillHits=${sample.fillHits} lineOnFillHits=${sample.lineOnFillHits} lineOnBgHits=${sample.lineOnBgHits} styleErrors=${JSON.stringify(styleErrors.map((l) => l.text.slice(0, 200)))}`);
       expect(styleErrors, 'style の検証エラーがコンソールに出ている').toEqual([]);
       expect(sample.bgHits, 'fixture の背景色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
       expect(sample.fillHits, 'fixture の塗りの色が描かれていない').toBeGreaterThanOrEqual(COLOR_HITS_MIN);
-      expect(sample.distinct6).toBeGreaterThanOrEqual(DISTINCT_MIN);
+      expectFixtureLine(sample);
     } finally {
       await ex.close();
     }

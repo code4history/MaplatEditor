@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { evalMain } from './helpers/evalMain';
+import { openViewerMapInfo, waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const keys = ['createdAt', 'era', 'contributor', 'mapper', 'reference', 'description'];
@@ -136,8 +137,10 @@ test('最初に表示するベースマップの6項目がプレビュー情報�
   const frame = await handle!.contentFrame();
   if (!frame) throw new Error('プレビューiframeなし');
   await frame.waitForFunction(() => !!(window as any).__maplatPreview, undefined, { timeout: 90000 });
-  await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
-  await frame.locator('.ol-copyright button').click();
-  for (const key of keys) await expect(frame.locator(`.modal_map .${key}_div`)).toContainText(values[key].ja);
+  await waitViewerSplashHidden(frame);
+  // @maplat/ui 1.3: 地図情報の窓は <maplat-ui> の part="map-info-modal"、項目の値は dd[part="map-meta-<キー>"]
+  // （1.2 までは .ol-copyright button で開く .modal_map の .<キー>_div）
+  const info = await openViewerMapInfo(frame);
+  for (const key of keys) await expect(info.locator(`dd[part~="map-meta-${key}"]`)).toContainText(values[key].ja);
  } finally { await quitElectronApplication(app); }
 });

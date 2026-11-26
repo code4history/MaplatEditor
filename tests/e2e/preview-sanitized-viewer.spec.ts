@@ -10,6 +10,9 @@
 //   (b) onerror などのスクリプトが実行されないこと
 //   (c) POI html が iframe ではなく Shadow DOM で描画されること
 //      （新しい viewer の動作面の到達確認。旧実装は srcdoc 経由の iframe）
+//      @maplat/ui 1.3 では、POI の窓（<maplat-ui> の Shadow DOM の中の part="poi-body"）の中に
+//      part="poi-html" の入れ物があり、その入れ子の Shadow DOM（open）に無害化した html が入る
+//      （1.2 までは文書の直下の .poi_html_host だった）
 //   (d) viewer 本体が到達・描画されること
 //
 // 起動は必ず task script 経由で行うこと:
@@ -22,6 +25,7 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { VIEWER_HOST, viewerPart, waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -127,7 +131,7 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
         const src = (window as any).__maplatPreview?.core?.mapObject?.getSource?.('marker');
         return !!src && src.getFeatures().length >= 1;
       }, undefined, { timeout: 60000 });
-      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      await waitViewerSplashHidden(frame);
 
       // 5. POI を開く（swiper-viewer-reach と同じ手法で datum を取得して clickMarkers を発火）
       const dispatched = await frame.evaluate((featureId: string) => {
@@ -144,6 +148,16 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
       }, POI_FEATURE_ID);
       expect(dispatched.ok, `clickMarkers を発火できること（${dispatched.reason ?? ''}）`).toBe(true);
 
+      // 5b. POI の窓が開き、html の入れ物が描かれるまで待つ（描かれる前に 6 を見ると、何も確かめずに通る）
+      const poiHtmlHost = viewerPart(frame, 'poi-body').locator('[part~="poi-html"]');
+      await expect(viewerPart(frame, 'poi-modal'), 'POI の窓が開くこと').toBeVisible({ timeout: 30000 });
+      await expect(poiHtmlHost, 'POI の html の入れ物が描かれること').toHaveCount(1, { timeout: 30000 });
+      // 壊れた画像の error は描いた後の拍で来るので、描画の反映を rAF 2 回分待ってから発火の有無を見る
+      await frame.evaluate(() => new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
+      }));
+      await page.waitForTimeout(500);
+
       // 6. (a) onerror が発火していないこと（img タグが生成されていない / サニタイズされている）
       const onerrorFired = await frame.evaluate(() => !!(window as any).__fx_onerror_fired);
       expect(onerrorFired, 'onerror が発火していないこと（img タグがサニタイズで除去されている）').toBe(false);
@@ -154,16 +168,31 @@ test.describe('preview bundle 同期後のサニタイズされた POI 描画', 
 
       // 7. (c) POI html が Shadow DOM で描画されていること（iframe srcdoc ではない）
       //    新しい viewer では POI html は Shadow DOM に描画される（旧実装は iframe srcdoc）
-      const hasShadowDomPoi = await frame.evaluate(() => {
-        const hosts = document.querySelectorAll('.poi_html_host');
-        if (hosts.length === 0) return false;
-        // Shadow DOM が open mode で存在することを確認
-        return Array.from(hosts).some((h) => {
-          const shadow = (h as HTMLElement).shadowRoot;
-          return shadow !== null && shadow.mode === 'open';
-        });
-      });
-      expect(hasShadowDomPoi, 'POI html が Shadow DOM（open mode）で描画されていること').toBe(true);
+      const poiHtml = await frame.evaluate((host: string) => {
+        const body = document.querySelector(host)?.shadowRoot?.querySelector('[part~="poi-body"]');
+        if (!body) return { found: false as const };
+        const hosts = Array.from(body.querySelectorAll('[part~="poi-html"]'));
+        const shadows = hosts.map((h) => (h as HTMLElement).shadowRoot);
+        const inner = shadows.flatMap((s) => (s ? Array.from(s.querySelectorAll('*')) : []));
+        return {
+          found: true as const,
+          hosts: hosts.length,
+          // Shadow DOM が open mode で存在することを確認
+          openShadows: shadows.filter((s) => s !== null && s.mode === 'open').length,
+          // 入れ子の Shadow DOM の中に、イベント属性の付いた要素が残っていないこと
+          handlerAttrs: inner.flatMap((el) => el.getAttributeNames().filter((n) => n.toLowerCase().startsWith('on'))),
+          scripts: inner.filter((el) => el.tagName === 'SCRIPT').length,
+          // 旧実装の iframe（srcdoc）で描いていないこと
+          iframes: body.querySelectorAll('iframe').length,
+        };
+      }, VIEWER_HOST);
+      expect(poiHtml.found, 'POI の窓の本文（part="poi-body"）があること').toBe(true);
+      if (!poiHtml.found) throw new Error('unreachable');
+      expect(poiHtml.hosts, 'POI html の入れ物（part="poi-html"）が 1 つあること').toBe(1);
+      expect(poiHtml.openShadows, 'POI html が Shadow DOM（open mode）で描画されていること').toBe(1);
+      expect(poiHtml.handlerAttrs, 'POI html の中にイベント属性が残っていないこと').toEqual([]);
+      expect(poiHtml.scripts, 'POI html の中に script が残っていないこと').toBe(0);
+      expect(poiHtml.iframes, 'POI html を iframe で描いていないこと').toBe(0);
 
       // 8. (d) viewer 本体が到達・描画されていること
       await frame.waitForFunction(() => {

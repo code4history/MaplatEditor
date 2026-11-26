@@ -28,10 +28,24 @@ export const STYLE_ERROR = /layers\[\d+\]\.(paint|layout)\.|unknown property/;
 // fixture の色（line-layer-opacity-style.json）
 export const BG_RGB: [number, number, number] = [0x2a, 0x9d, 0x8f];
 export const FILL_RGB: [number, number, number] = [0xe7, 0x6f, 0x51];
-// 6×6 の標本で数えた色の種類の閾値。5.6.2（描画されない）と 6 系（描画される）の実測の間に置く
+// fixture の線（west-line。塗りの東の縁＝画面の中央の縦線）。line-layer-opacity 0.85 で下の色と混ざるので、
+// 塗りの上と背景の上とで色が違う。不透明度が効いていなければ線の色そのもの（LINE_RGB）になり、どちらにも当たらない
+export const LINE_RGB: [number, number, number] = [0x26, 0x46, 0x53];
+export const LINE_LAYER_OPACITY = 0.85;
+const blend = (over: number[], under: number[], a: number) => over.map((v, k) => Math.round(v * a + under[k] * (1 - a)));
+export const LINE_ON_FILL_RGB = blend(LINE_RGB, FILL_RGB, LINE_LAYER_OPACITY);
+export const LINE_ON_BG_RGB = blend(LINE_RGB, BG_RGB, LINE_LAYER_OPACITY);
+// 6×6 の標本で数えた色の種類の閾値。5.6.2（描画されない）と 6 系（描画される）の実測の間に置く。
+// 色の多い style（外部の切絵図など）に使う。fixture の style（3 色）には使わない: fixture の地図が 6×6 の
+// 標本点に出す色は背景と塗りの 2 色だけ（線は標本点の列の間を通る）で、残りは viewer の操作部品が標本点に
+// 乗るかどうかで決まる（@maplat/ui 1.2 では 4、1.3 では部品の配置が変わって 2〜3。地図の描画は同じ）。
+// fixture は 3 層それぞれの色（bgHits・fillHits・lineOn*Hits）で確かめる
 export const DISTINCT_MIN = 4;
 // 20×20 の標本で、fixture の背景色・塗りの色に近い点の数の下限
 export const COLOR_HITS_MIN = 10;
+// 4 本の横の走査で、fixture の線の色（塗りの上・背景の上）に近い画素の数の下限（それぞれ）。
+// 線の幅は 6px で、等倍の画面では 1 本の走査につき塗りの上に 3 画素・背景の上に 3 画素（実測 12・12）
+export const LINE_HITS_MIN = 4;
 
 export type Stage = { n: 1 | 2 | 3; args: string[] };
 
@@ -139,9 +153,12 @@ export async function httpStatus(url: string, timeoutMs: number): Promise<string
   }
 }
 
-export type Sample = { distinct6: number; bgHits: number; fillHits: number; png: Buffer };
+export type Sample = { distinct6: number; bgHits: number; fillHits: number; lineOnFillHits: number; lineOnBgHits: number; png: Buffer };
 
-/** 窓の矩形を capturePage で撮り、6×6 の標本の色の種類と、20×20 の標本の fixture の色に近い点の数を数える */
+/**
+ * 窓の矩形を capturePage で撮り、6×6 の標本の色の種類と、20×20 の標本の fixture の色に近い点の数と、
+ * 中央の縦線を横切る 4 本の走査の fixture の線の色に近い画素の数を数える
+ */
 export async function sampleWindow(
   app: ElectronApplication,
   target: Page,
@@ -173,7 +190,20 @@ export async function sampleWindow(
     if (near(c, BG_RGB)) bgHits++;
     if (near(c, FILL_RGB)) fillHits++;
   }
-  return { distinct6: seen.size, bgHits, fillHits, png };
+  // fixture の線は画面の中央を縦に通る。中央の 1/3 の幅を、上下 4 本の高さで全画素なめる
+  // （高さの中央は viewer の中心の印が線に重なるので外す。左右の端の操作ボタン・上下の端の題名とスライダーにも掛からない）
+  const nearLine = (c: number[], t: number[]) => c.every((v, k) => Math.abs(v - t[k]) <= 10);
+  let lineOnFillHits = 0;
+  let lineOnBgHits = 0;
+  for (const fy of [0.3, 0.4, 0.6, 0.7]) {
+    const y = Math.floor(height * fy);
+    for (let x = Math.floor(width / 3); x < Math.floor((width * 2) / 3); x++) {
+      const c = px(x, y);
+      if (nearLine(c, LINE_ON_FILL_RGB)) lineOnFillHits++;
+      if (nearLine(c, LINE_ON_BG_RGB)) lineOnBgHits++;
+    }
+  }
+  return { distinct6: seen.size, bgHits, fillHits, lineOnFillHits, lineOnBgHits, png };
 }
 
 /** 画面の写しを置く（PROVIDER_GL_SHOT_DIR を指定したときだけ。人が見る対比の記録用） */

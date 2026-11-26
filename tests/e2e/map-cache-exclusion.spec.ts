@@ -5,7 +5,7 @@
 //          Undo で外れ、開き直しても残る。保存済みの「PWA オフ・キャッシュオン」の文書でも不活性（値は消さない）
 // S2 書き出し: 印を付けた地図（組み込みの OpenStreetMap）の apps/<appID>.json の要素に noCache: true、
 //          対照のベースマップ（利用者定義の tms）には無い
-// S3 ビューア: 書き出したアプリを開き、地図の情報の窓のキャッシュの欄（.modal_map .modal_cache_content）が、
+// S3 ビューア: 書き出したアプリを開き、地図の情報の窓のキャッシュの欄（<maplat-ui> の part="map-info-modal" の中の part="map-cache"。@maplat/ui 1.2 までは .modal_map .modal_cache_content）が、
 //          外した地図では見えず、対照の地図では見える。外した地図のタイルは Weiwudi を通らない
 //
 // タイルは tests/e2e/fixtures/osm-tiles の実在の OpenStreetMap のタイル（札幌の周り z14）。テストの中の
@@ -24,6 +24,7 @@ import { launch, openHash, stubMessageBoxAutoOk } from './helpers/mapPackage';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
 import { openInWindow, routeOsmTilesToFixture, serveExportedZip } from './helpers/exportedApp';
 import { evalMain } from './helpers/evalMain';
+import { openViewerMapInfo } from './helpers/viewerDom';
 
 const UI_APP_ID = 'map-cache-exclusion-ui';
 const EXPORT_APP_ID = 'map-cache-exclusion-export';
@@ -282,10 +283,12 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
 
     // 地図の情報の窓を開き、キャッシュの欄が見えるかを返す（窓の中身は開いたときの地図で決まる）
     const openInfoModal = async () => {
-      await win.locator('.ol-copyright button').first().click();
-      await expect(win.locator('.modal_map')).toBeVisible({ timeout: 20_000 });
+      const info = await openViewerMapInfo(win);
       await win.waitForTimeout(1_000);
-      return win.locator('.modal_map .modal_cache_content');
+      const cache = info.locator('[part~="map-cache"]');
+      // 欄の要素そのものは窓にいつもあり、対象外の地図では hidden で隠す。要素が無くて「隠れている」で通らないようにする
+      await expect(cache, '情報の窓にキャッシュの欄の要素がある').toHaveCount(1);
+      return cache;
     };
     // 地図を変えるときは別の読み込みにする。同じページで hash だけを変えて読み直すと、ビューアが
     // 今の地図で URL を書き戻してから読み直しになり、切り替わらないことがあった
@@ -318,7 +321,7 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
         osmViaWeiwudi: entriesA.filter((n) => n.includes('weiwudi.example.com/api/cache/osm/')).length,
       };
       const cacheA = await openInfoModal();
-      observed.cacheContentA = await cacheA.evaluate((el) => (el as HTMLElement).style.display).catch(() => 'missing');
+      observed.cacheContentA = await cacheA.evaluate((el) => ((el as HTMLElement).hidden ? 'hidden' : 'shown')).catch(() => 'missing');
       await expect(cacheA, 'A を開いているとき、情報の窓にキャッシュの欄が無い').toBeHidden();
       expect(entriesA.filter((n) => n.includes('weiwudi.example.com/api/cache/osm/')), 'A のタイルは Weiwudi を通らない').toEqual([]);
       expect(entriesA.filter((n) => n.includes('tile.openstreetmap.org/14/')).length, 'A のタイルは配信元へ直接取りに行く').toBeGreaterThan(0);
@@ -335,7 +338,7 @@ test.describe('#85 地図ごとにオフライン表示の対象から外す', (
         bViaWeiwudi: entriesB.filter((n) => n.includes(`weiwudi.example.com/api/cache/${B_SLUG}/`)).length,
       };
       const cacheB = await openInfoModal();
-      observed.cacheContentB = await cacheB.evaluate((el) => (el as HTMLElement).style.display).catch(() => 'missing');
+      observed.cacheContentB = await cacheB.evaluate((el) => ((el as HTMLElement).hidden ? 'hidden' : 'shown')).catch(() => 'missing');
       await expect(cacheB, 'B を開いているとき、情報の窓にキャッシュの欄が見える（対照）').toBeVisible();
 
       // 記録（合否に入れない）: Weiwudi 1.1.1 の格納先
