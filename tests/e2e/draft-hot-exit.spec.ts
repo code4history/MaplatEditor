@@ -2,9 +2,13 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { quitElectronApplication } from './helpers/electronLifecycle';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
+
+// 最後に起動したアプリ。試験が途中で落ちても afterEach で終わらせる（終わっていれば何もしない）
+let launchedApp: ElectronApplication | undefined;
 
 async function launch(userDataDir: string): Promise<{ app: ElectronApplication; page: Page }> {
   const app = await electron.launch({
@@ -12,18 +16,17 @@ async function launch(userDataDir: string): Promise<{ app: ElectronApplication; 
     cwd: projectRoot,
     env: { ...process.env, VITE_DEV_SERVER_URL: '', MAPLAT_E2E_ROOT: userDataDir },
   });
+  launchedApp = app;
   const page = await app.firstWindow();
   await page.waitForLoadState('domcontentloaded');
   return { app, page };
 }
 
-async function quitApplication(app: ElectronApplication): Promise<void> {
-  const exited = new Promise<void>((resolve) => app.process().once('exit', () => resolve()));
-  await app.evaluate(({ app: electronApp }) => {
-    setTimeout(() => electronApp.quit(), 0);
-  });
-  await exited;
-}
+test.afterEach(async () => {
+  const app = launchedApp;
+  launchedApp = undefined;
+  if (app) await quitElectronApplication(app);
+});
 
 async function createApp(page: Page): Promise<{ uid: string; revision: number }> {
   return page.evaluate(async () => {
@@ -121,7 +124,7 @@ test('hot exit restores drafts, shows badge, resolves revision conflicts, and fl
   await conflict.restore();
   await runtime.page.getByTestId('app-id').fill('flush-on-electron-quit');
   await runtime.page.getByTestId('app-id').blur();
-  await quitApplication(runtime.app);
+  await quitElectronApplication(runtime.app);
 
   runtime = await launch(userDataDir);
   // 下書きの基の版は古いままなので、起動し直して開くと競合の確認が必ず出る。出ることを期待値にし、下書きを適用する
@@ -132,5 +135,5 @@ test('hot exit restores drafts, shows badge, resolves revision conflicts, and fl
   await relaunched.answer(1);
   await relaunched.restore();
   await expect(runtime.page.getByTestId('app-id')).toHaveValue('flush-on-electron-quit');
-  await quitApplication(runtime.app);
+  await quitElectronApplication(runtime.app);
 });
