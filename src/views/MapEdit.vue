@@ -92,9 +92,13 @@ import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import type { Tin, BoundaryDiagnostics } from '@maplat/tin';
 import { WorldFileSurface, type CrsObject, type StrictMode, type VertexMode } from '@maplat/transform';
 import { crsToLonLat, crsToMercator, mercatorToCrs, lonLatToCrs, CrsReprojectionError } from '../utils/crsProjection';
+import {
+    transformMercatorToXy as transformMercatorToXyIn, transformXyToMercator as transformXyToMercatorIn,
+    type LayerCoordTarget,
+} from '../utils/layerCoordTransform';
 import { compiledGeoJsonToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
-import { seedCompiledTin, transformLayerFromDocument } from '../utils/layerTransformIntent';
+import { displayYaxisMode, seedCompiledTin, transformLayerFromDocument } from '../utils/layerTransformIntent';
 import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -967,11 +971,21 @@ function reflectActiveLayer(): void {
     edges.value = cloneDeep([...(layer?.edges ?? [])]);
 }
 
-function selectTinBuildOption<K extends 'strictMode' | 'vertexMode'>(key: K, value: TransformLayer['buildOptions'][K]) {
-    if (documentEditsBlocked.value) return;
-    layerTransformState.value.editLayers(layerTransformState.value.layers.value.map(({ layerId, buildOptions }) => ({
-        layerId, edit: { buildOptions: { ...buildOptions, [key]: value } },
-    })));
+function selectTinBuildOption<K extends 'strictMode' | 'vertexMode'>(
+    key: K, value: TransformLayer['buildOptions'][K], event?: Event,
+) {
+    const applied = !documentEditsBlocked.value
+        && layerTransformState.value.editLayers(layerTransformState.value.layers.value.map(({ layerId, buildOptions }) => ({
+            layerId, edit: { buildOptions: { ...buildOptions, [key]: value } },
+        })));
+    // `:checked` は文書の値が変わらないと描き直されない。拒否されたときは、ブラウザが切り替えた見た目を文書の値へ戻す。
+    const input = event?.target;
+    if (!applied && input instanceof HTMLInputElement && input.name) {
+        const current = layerTransformState.value.layers.value[0]?.buildOptions[key];
+        for (const radio of document.querySelectorAll<HTMLInputElement>('input[type="radio"]')) {
+            if (radio.name === input.name) radio.checked = radio.value === current;
+        }
+    }
 }
 
 const selectEditingLayer = computed({
@@ -1032,7 +1046,7 @@ function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typeof bu
 }
 
 async function adoptCrsEstimation(selection: CrsAdoptionSelection) {
-    if (documentEditsBlocked.value || saving.value || preparingSave.value || modalVisible.value) return { status: 'rejected' as const };
+    if (documentEditsBlocked.value || saving.value || preparingSave.value || exporting.value || modalVisible.value) return { status: 'rejected' as const };
     (document.activeElement as HTMLElement | null)?.blur?.();
     clearOperationNotice('crs-adoption');
     crsAdoptionDiagnostic.value = null;
@@ -1935,22 +1949,16 @@ function worldFileSurfaceAt(index: number): WorldFileSurface | null {
     }
 }
 
+function layerCoordTargetAt(index: number): LayerCoordTarget {
+    return { surface: worldFileSurfaceAt(index), tin: tinObjects.value[index], crs: layerDocumentAt(index)?.crs };
+}
+
 function transformMercatorToXy(mercator: number[], index: number): number[] | false {
-    const surface = worldFileSurfaceAt(index);
-    if (surface) return surface.transform(mercator, true);
-    const tin = tinObjects.value[index];
-    if (!tin || typeof tin !== 'object') return false;
-    const native = mercatorToCrs(mercator, layerDocumentAt(index)?.crs);
-    return native === false ? false : tin.transform(native, true);
+    return transformMercatorToXyIn(mercator, layerCoordTargetAt(index));
 }
 
 function transformXyToMercator(xy: number[], index: number): number[] | false {
-    const surface = worldFileSurfaceAt(index);
-    if (surface) return surface.transform(xy, false);
-    const tin = tinObjects.value[index];
-    if (!tin || typeof tin !== 'object') return false;
-    const native = tin.transform(xy, false);
-    return native === false ? false : crsToMercator(native, layerDocumentAt(index)?.crs);
+    return transformXyToMercatorIn(xy, layerCoordTargetAt(index));
 }
 
 const gcpsToMarkers = () => {
@@ -3055,8 +3063,7 @@ const tinResultUpdate = () => {
     // 旧実装: tinObject.tins.forw / tinObject.tins.bakw
     try {
         const forTin = tin.tins?.forw;
-        const compiled = tin.getCompiled?.();
-        const yaxisMode = compiled?.yaxisMode;
+        const yaxisMode = displayYaxisMode(layerTransformState.value.layers.value[currentEditingLayer.value], tin);
         const crs = activeLayerCrs.value;
         const bakTin = compiledGeoJsonToMercator(tin.tins?.bakw, yaxisMode, crs);
         if (forTin) {
@@ -3085,8 +3092,10 @@ const tinResultUpdate = () => {
 };
 
 // 対象の層 ID はモデルが固定し、成功・失敗の両方で世代と現存性を照合する。
+// updateTin は文書の編集ではない。読み込み直後（W2 の履歴の抑止中）にも計算を依頼する必要があるので、
+// 履歴の復元の抑止は見ない。採用中・保存中は requestTin も自分で断る。
 const updateTin = async (): Promise<boolean> => {
-    if (documentEditsBlocked.value || !illstSource) return false;
+    if (adoptionInProgress.value || saveWriting.value || !illstSource) return false;
     const targetLayerId = layerIds.value[currentEditingLayer.value];
     if (!targetLayerId) return false;
     const model = layerTransformState.value;
@@ -3098,7 +3107,8 @@ const updateTin = async (): Promise<boolean> => {
 };
 
 const boundsModifyEnd = (evt: any) => {
-    if (documentEditsBlocked.value) return;
+    // 枠は掴んだ形のまま画面に残るので、反映しない（主図・拒否・変化なし）ときは文書の形で描き直す。
+    if (documentEditsBlocked.value) { tinResultUpdate(); return; }
     const feature = evt.features.getArray()[0];
     if (!feature || !illstSource) return;
     const geom = feature.getGeometry();
@@ -3113,8 +3123,9 @@ const boundsModifyEnd = (evt: any) => {
     });
 
     const layerId = layerIds.value[currentEditingLayer.value];
-    if (layerId && layerId !== 'main') {
-        layerTransformState.value.editLayer(layerId, { bounds: imageCoords });
+    // 再計算が走る編集では、結果の到着で枠も描き直される。反映されないときは自分で戻す。
+    if (!layerId || layerId === 'main' || !layerTransformState.value.editLayer(layerId, { bounds: imageCoords })) {
+        tinResultUpdate();
     }
 };
 
@@ -4571,7 +4582,7 @@ const viewError = () => {
     const errorPoint = kinks[errorNumber.value].geometry.coordinates;
     const converted = compiledGeoJsonToMercator({
         type: 'Feature', geometry: { type: 'Point', coordinates: errorPoint }, properties: {},
-    }, tin.getCompiled?.().yaxisMode, activeLayerCrs.value);
+    }, displayYaxisMode(layerTransformState.value.layers.value[currentEditingLayer.value], tin), activeLayerCrs.value);
     if (converted === false) return;
     const view = mercMap.getView();
     view.setCenter(converted.geometry.coordinates);
@@ -5104,7 +5115,9 @@ const uploadCsv = async () => {
     // 旧実装: window.mapedit.uploadCsv(t('dataio.csv_file'), vueMap.csvUploadUiValue, [layer, bounds, strict, vertex])
     const arg = await (window as any).mapedit.uploadCsv(
         t('dataio.csv_file'),
-        { ...JSON.parse(JSON.stringify(csvUploadUiValue.value)), targetCrs: cloneDeep(activeLayerCrs.value) }
+        JSON.parse(JSON.stringify(csvUploadUiValue.value)),
+        // 設定とは別の引数で渡す（層の CRS は取り込む値の変換先であって、CSV の設定ではない）
+        cloneDeep(activeLayerCrs.value),
     );
     if (!stillCurrent()) return;
     if (arg.err) {
@@ -5683,11 +5696,11 @@ const goBack = async () => {
                                     <span class="fw-bold mb-1">{{ t("mapedit.map_outline") }}</span>
                                     <div>
                                         <div class="form-check form-check-inline m-0 me-2">
-                                            <input class="form-check-input" type="radio" name="outlineMode" id="outlinePlain" value="plain" :checked="vertexMode === 'plain'" @click="selectTinBuildOption('vertexMode', 'plain')">
+                                            <input class="form-check-input" type="radio" name="outlineMode" id="outlinePlain" value="plain" :checked="vertexMode === 'plain'" @click="selectTinBuildOption('vertexMode', 'plain', $event)">
                                             <label class="form-check-label" for="outlinePlain">{{ t("mapedit.map_outline_plain") }}</label>
                                         </div>
                                         <div class="form-check form-check-inline m-0">
-                                            <input class="form-check-input" type="radio" name="outlineMode" id="outlineBirdeye" value="birdeye" :checked="vertexMode === 'birdeye'" @click="selectTinBuildOption('vertexMode', 'birdeye')">
+                                            <input class="form-check-input" type="radio" name="outlineMode" id="outlineBirdeye" value="birdeye" :checked="vertexMode === 'birdeye'" @click="selectTinBuildOption('vertexMode', 'birdeye', $event)">
                                             <label class="form-check-label" for="outlineBirdeye">{{ t("mapedit.map_outline_birdeye") }}</label>
                                         </div>
                                     </div>
@@ -5700,11 +5713,11 @@ const goBack = async () => {
                                     <span class="fw-bold mb-1">{{ t("mapedit.map_error") }}</span>
                                     <div>
                                         <div class="form-check form-check-inline m-0 me-2">
-                                            <input class="form-check-input" type="radio" name="strictMode" id="errStrict" value="strict" :checked="strictMode === 'strict'" @click="selectTinBuildOption('strictMode', 'strict')">
+                                            <input class="form-check-input" type="radio" name="strictMode" id="errStrict" value="strict" :checked="strictMode === 'strict'" @click="selectTinBuildOption('strictMode', 'strict', $event)">
                                             <label class="form-check-label" for="errStrict">{{ t("mapedit.map_error_valid") }}</label>
                                         </div>
                                         <div class="form-check form-check-inline m-0">
-                                            <input class="form-check-input" type="radio" name="strictMode" id="errAuto" value="auto" :checked="strictMode === 'auto'" @click="selectTinBuildOption('strictMode', 'auto')">
+                                            <input class="form-check-input" type="radio" name="strictMode" id="errAuto" value="auto" :checked="strictMode === 'auto'" @click="selectTinBuildOption('strictMode', 'auto', $event)">
                                             <label class="form-check-label" for="errAuto">{{ t("mapedit.map_error_auto") }}</label>
                                         </div>
                                     </div>

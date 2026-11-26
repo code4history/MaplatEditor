@@ -146,7 +146,7 @@ try {
   const preload = await readProjectFile('electron/preload.ts');
   assert.match(
     preload,
-    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any\) =>/,
+    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any, targetCrs\?: unknown\) =>/,
     '#16 preload.ts uploadCsv bridge の保全注記が欠落している',
   );
   assert.match(
@@ -159,7 +159,7 @@ try {
   const electronDts = await readProjectFile('src/electron.d.ts');
   assert.match(
     electronDts,
-    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv\(csvRepl: string, csvUpSettings: any\): Promise<any>;/,
+    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv\(csvRepl: string, csvUpSettings: any, targetCrs\?: unknown\): Promise<any>;/,
     '#18 electron.d.ts uploadCsv 宣言の保全注記が欠落している',
   );
 

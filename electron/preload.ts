@@ -60,8 +60,8 @@ contextBridge.exposeInMainWorld('mapedit', {
   downloadSaved: (mapRef: string, options?: { tiles?: boolean; json?: boolean; originals?: boolean }) =>
     ipcRenderer.invoke('mapedit:download-saved', mapRef, options),
   // 休眠パネル専用（削除禁止・あとで再編予定）
-  uploadCsv: (csvRepl: string, csvUpSettings: any) =>
-    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings, csvUpSettings.targetCrs),
+  uploadCsv: (csvRepl: string, csvUpSettings: any, targetCrs?: unknown) =>
+    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings, targetCrs),
   // 復元時ガード用の staging 実在照会
   stagingStatus: (url_: string, uid?: string) =>
     ipcRenderer.invoke('mapedit:stagingStatus', url_, uid),

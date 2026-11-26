@@ -420,7 +420,7 @@ export interface MapEditAPI {
     // #113: options は書き出す中身（省略時は既定＝現行と同じ中身）
     downloadSaved(mapRef: string, options?: Partial<import('./utils/exportOptions').MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'>;
     // 休眠パネル専用（削除禁止・あとで再編予定）
-    uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
+    uploadCsv(csvRepl: string, csvUpSettings: any, targetCrs?: unknown): Promise<any>;
     // 復元時ガード用の staging 実在照会
     stagingStatus(url_: string, uid?: string): Promise<{ alive: boolean; savedTilesExist: boolean }>;
     getWmtsFolder(): Promise<any>;

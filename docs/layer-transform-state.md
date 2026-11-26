@@ -42,7 +42,7 @@
 
 | 既存の入口 | 組み込み時の対応 |
 | --- | --- |
-| `updateTin`、`tinObject`、`tinResultUpdate` | 呼び出し時に層 ID を確定する。生成が必要な層は `requestTin` を呼び、`ready` の層は受理済み結果を描画する。`buildTin(request)` から worker・IPC へ、`request.layer` の `gcps`・`edges`・`bounds`・`intent`・`buildOptions` を使って接続する。A はモデルが `'worldFile'` を返す。worker の compiled と診断は別の値として受け取り、通信失敗や採用を拒否すべき生成エラーは reject に変換する。通常編集で保存可能な `tooLessGcps` 等の応答は `tin` に入れる。 |
+| `updateTin`、`tinObject`、`tinResultUpdate` | 呼び出し時に層 ID を確定する。生成が必要な層は `requestTin` を呼び、`ready` の層は受理済み結果を描画する。`buildTin(request)` から worker・IPC へ、`request.layer` の `gcps`・`edges`・`bounds`・`intent`・`buildOptions` を使って接続する。A はモデルが `'worldFile'` を返す。worker の compiled と診断は別の値として受け取り、通信失敗や採用を拒否すべき生成エラーは reject に変換する。通常編集で保存可能な `tooLessGcps` 等の応答は `tin` に入れる。通常編集（`kind: 'edit'`）で worker が正規化できない例外を投げたときも `{ tin: 'unknownError' }` にし、他の層の保存を止めない（採用は reject のまま。失効した依頼の失敗は結果ごと捨てる）。`updateTin` は文書の編集ではないので、履歴の復元の抑止中（読み込み直後の W2 を含む）も依頼する。断るのは採用中と保存中だけで、`requestTin` も自分で断る。 |
 | GCP・対応線の編集、`watch(gcps)`、`watch(edges)` | ドラッグ、数値入力、CSV、対応線編集などの書き込み元から、必要な点列と対応線を一度の `editLayer` に渡す。従来の深い watcher での再生成はモデルが開始する。画面に残す監視は描画・表示の同期を担当する。入力を非同期で取得する場合は、確定時にも層 ID とロックを確認する。 |
 | `boundsModifyEnd` | 画像座標に直した外周を、確定した層 ID の `editLayer(layerId, { bounds })` に渡す。 |
 | 画像の取り込み | `mapData.width`・`mapData.height` を書き換える経路（`MapEdit.vue:4205-4206` 付近）は、主図の三角網で `[width, height]` を bounds として使う（`MapEdit.vue:2837-2847` 付近）ため、モデル導入後は `editLayer('main', { bounds: [width, height] })` に接続する。 |

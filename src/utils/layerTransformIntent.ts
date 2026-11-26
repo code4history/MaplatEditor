@@ -37,6 +37,18 @@ export function resolveTransformLayerTinOptions(layer: TransformLayer) {
   return resolveTinBuildOptions(document, buildOptions, intent.setup);
 }
 
+/**
+ * 描画で compiled の点を外部座標へ戻すときの軸。Tin の属性を読むだけで、描き直しのたびに compiled を作らない。
+ * 旧 V2 の層（`crs` 無し）は軸を持たない。保存された compiled が follow でも y を反転させない。
+ */
+export function displayYaxisMode(
+  layer: Pick<TransformLayer, 'intent'> | undefined,
+  tin: { yaxisMode?: YaxisMode } | null | undefined,
+): YaxisMode | undefined {
+  if (!layer || layer.intent.setup === 'legacyV2') return undefined;
+  return tin?.yaxisMode;
+}
+
 export function seedCompiledTin(layer: TransformLayer, compiled: CompiledTransformData): Tin {
   const options = resolveTransformLayerTinOptions(layer);
   if (!options) throw new Error('ワールドファイルだけの層に三角網は設定できません');

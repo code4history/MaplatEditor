@@ -50,7 +50,7 @@
     "test:e2e:preview-restart": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/preview-restart.spec.ts",
     "test:e2e:app-poi-hide-override": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/app-poi-hide-override.spec.ts",
     "test:e2e:basemap-bootstrap": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/basemap-bootstrap.spec.ts",
-    "smoke:undo-redo": "node scripts/undo-redo-smoke.mjs",
+    "smoke:undo-redo": "node --experimental-strip-types scripts/undo-redo-smoke.mjs",
     "smoke:j6-t4a-layer-transform-state": "node --experimental-strip-types scripts/layer-transform-state-smoke.mjs",
     "smoke:j6-t4-crs-reproject": "node --experimental-strip-types scripts/j6-t4-crs-reproject-smoke.mjs",
     "smoke:pois-format-guard": "node scripts/pois-format-guard-smoke.mjs",

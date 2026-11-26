@@ -150,7 +150,11 @@ test('MapEdit の採用中拒否・世代照合・保存と CSV/ホーム経路�
   }
   assert.match(source, /const documentEditsBlocked = computed\(\(\) => adoptionInProgress\.value \|\| saveWriting\.value \|\| historyRestoring\.value\)/);
   assert.match(source, /withoutHistoryAsync:\s*\(apply\)\s*=>\s*withoutHistoryAsync\('adopt-crs', \(\) => \{\s*apply\(\)/);
-  assert.match(source, /targetCrs:\s*cloneDeep\(activeLayerCrs\.value\)/);
+  // CSV の変換先 CRS は設定オブジェクトへ混ぜず、別の引数で main まで運ぶ
+  assert.match(source, /uploadCsv\(\s*t\('dataio\.csv_file'\),\s*JSON\.parse\(JSON\.stringify\(csvUploadUiValue\.value\)\),\s*(?:\/\/[^\n]*\n\s*)?cloneDeep\(activeLayerCrs\.value\),?\s*\)/);
+  const preload = await readFile(new URL('../electron/preload.ts', import.meta.url), 'utf8');
+  assert.match(preload, /uploadCsv: \(csvRepl: string, csvUpSettings: any, targetCrs\?: unknown\) =>\s*ipcRenderer\.invoke\('mapedit:uploadCsv', csvRepl, csvUpSettings, targetCrs\)/);
+  assert.doesNotMatch(preload, /csvUpSettings\.targetCrs/);
   assert.match(source, /const enableSetHomeIllst[\s\S]*?worldFileSurfaceAt\(0\)/);
   assert.match(source, /const tinResultUpdate[\s\S]*?compiledGeoJsonToMercator/);
   assert.match(source, /const viewError[\s\S]*?compiledGeoJsonToMercator/);
@@ -297,4 +301,158 @@ test('外周を持たない旧 V2 副層は主図の外周または画像矩形�
   assert.deepEqual(transformLayerFromDocument('sub:1', {}, undefined, {
     width: 30, height: 20,
   }).bounds, [[0, 0], [30, 0], [30, 20], [0, 20]]);
+});
+
+// ---- レビュー指摘 M1〜M3（T4b レビュー・2026-11-26）の回帰試験 ----
+
+async function strictErrorTin() {
+  // 4 隅＋入れ替えた内点 2 つ。strict で厳密判定に失敗し、逆変換は例外になる。
+  const corners = [[0, 0], [100, 0], [100, 100], [0, 100]].map(([x, y]) => [[x, y], [x + 1000, 1000 - y]]);
+  const swapped = [[[40, 50], [1060, 950]], [[60, 50], [1040, 950]]];
+  const tin = new Tin({ useV2Algorithm: false, strictMode: 'strict', vertexMode: 'plain', wh: [100, 100] });
+  tin.setPoints([...corners, ...swapped]);
+  await tin.updateTinAsync();
+  return tin;
+}
+
+test('M1: strict_error の主図は、逆変換が false・順変換は値になる（ホーム位置で例外にならない）', async () => {
+  const tin = await strictErrorTin();
+  assert.equal(tin.strict_status, 'strict_error');
+  assert.throws(() => tin.transform([1050, 950], true), 'Tin 自体は strict_error の逆変換で例外を投げる');
+  const { transformMercatorToXy, transformXyToMercator } = await import('../src/utils/layerCoordTransform.ts');
+  const target = { surface: null, tin, crs: undefined };
+  assert.equal(transformMercatorToXy([1050, 950], target), false);
+  const forward = transformXyToMercator([50, 50], target);
+  assert.ok(Array.isArray(forward) && forward.every(Number.isFinite));
+  // 文字列（生成エラー）・未生成の層は例外にならず false
+  assert.equal(transformMercatorToXy([1050, 950], { surface: null, tin: 'tooLessGcps' }), false);
+  assert.equal(transformMercatorToXy([1050, 950], { surface: null, tin: undefined }), false);
+  assert.equal(transformXyToMercator([50, 50], { surface: null, tin: 'unknownError' }), false);
+});
+
+test('M1: strict でない主図と WorldFileSurface は従来どおり逆変換でき、非 3857 の層は CRS を通す', async () => {
+  const { transformMercatorToXy, transformXyToMercator } = await import('../src/utils/layerCoordTransform.ts');
+  const tin = new Tin({ useV2Algorithm: false, strictMode: 'strict', vertexMode: 'plain', wh: [100, 100] });
+  tin.setPoints([[0, 0], [100, 0], [100, 100], [0, 100], [50, 50]].map(([x, y]) => [[x, y], [x + 1000, 1000 - y]]));
+  await tin.updateTinAsync();
+  assert.equal(tin.strict_status, 'strict');
+  const back = transformMercatorToXy([1050, 950], { surface: null, tin });
+  assert.ok(Math.abs(back[0] - 50) < 1e-6 && Math.abs(back[1] - 50) < 1e-6);
+  const surface = new WorldFileSurface({
+    crs: planeVi, worldFile, projectionEngine: projectionEngineForCrs(planeVi), wh: [100, 100],
+  });
+  const merc = transformXyToMercator([10, 20], { surface, tin: 'worldFile', crs: planeVi });
+  assert.deepEqual(merc, surface.transform([10, 20], false));
+  assert.deepEqual(transformMercatorToXy(merc, { surface, tin: 'worldFile', crs: planeVi }), surface.transform(merc, true));
+});
+
+test('M1: MapEdit の変換は util を通し、ホームマーカーは逆変換の失敗でも続行する', async () => {
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  assert.match(source, /from '\.\.\/utils\/layerCoordTransform/);
+  // 画面側の関数は util への委譲だけで、Tin を直接呼ばない
+  for (const fn of ['transformMercatorToXy', 'transformXyToMercator']) {
+    const body = source.match(new RegExp(`function ${fn}\\([\\s\\S]*?\\n\\}`))?.[0] ?? '';
+    assert.ok(body, `${fn} が見つからない`);
+    assert.doesNotMatch(body, /\.transform\(/, `${fn} は util へ委譲する`);
+  }
+});
+
+test('M2: updateTin は文書の編集ではないので、履歴の復元の抑止中でも依頼する', async () => {
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  const body = source.match(/const updateTin = async \(\): Promise<boolean> => \{[\s\S]*?\n\};/)?.[0] ?? '';
+  assert.ok(body, 'updateTin が見つからない');
+  assert.doesNotMatch(body, /documentEditsBlocked|historyRestoring/, '入口で抑止を見ると、読み込み直後の生成が依頼されない');
+  assert.match(body, /adoptionInProgress\.value \|\| saveWriting\.value/, '採用中・保存中は引き続き断る');
+  // 採用中・保存中は requestTin が自分で断る
+  const model = useLayerTransformState([transformLayerFromDocument('main', { width: 10, height: 10, gcps: [] })], {
+    buildTin: async () => ({ tin: 'tooLessGcps' }),
+    prepareAdoption: prepareCrsAdoption,
+    history: { commit() {}, undo() {}, redo() {}, withoutHistoryAsync: async (apply) => apply() },
+  });
+  assert.equal(await model.requestTin('main'), true);
+  assert.equal(model.getTinState('main').tin, 'tooLessGcps');
+});
+
+test('M3: 想定外の生成エラーでも、編集の依頼は unknownError で保存でき、採用は reject のまま', async () => {
+  const layer = transformLayerFromDocument('main', { width: 100, height: 100, gcps: [[[0, 0], [1000, 1000]]] });
+  const throwing = async () => { throw new Error('worker: unexpected'); };
+  const edit = await buildEditorLayerTin({ layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => true }, 0, throwing);
+  assert.deepEqual(edit, { tin: 'unknownError' });
+  await assert.rejects(
+    buildEditorLayerTin({ layer, layerId: 'main', kind: 'adoption', reqGen: 1, isCurrent: () => true }, 0, throwing),
+    /worker: unexpected/,
+  );
+  // 失効は従来どおり例外（結果を捨てるため）
+  await assert.rejects(
+    buildEditorLayerTin({ layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => false }, 0, throwing),
+    /失効/,
+  );
+  let current = true;
+  await assert.rejects(
+    buildEditorLayerTin({ layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => current }, 0,
+      async () => { current = false; throw new Error('worker: unexpected'); }),
+    /worker: unexpected/,
+    '失効した依頼の失敗は unknownError にせず、捨てる側へ投げる',
+  );
+  // 経路を通すと、モデルは failed ではなく ready(unknownError) になり、保存が通る
+  const model = useLayerTransformState([layer], {
+    buildTin: (request) => buildEditorLayerTin(request, 0, throwing),
+    prepareAdoption: prepareCrsAdoption,
+    history: { commit() {}, undo() {}, redo() {}, withoutHistoryAsync: async (apply) => apply() },
+  });
+  assert.equal(await model.requestTin('main'), true);
+  const state = model.getTinState('main');
+  assert.equal(state.status, 'ready');
+  assert.equal(state.tin, 'unknownError');
+});
+
+test('Minor 7: 非 3857 の主図でも util が CRS を挟み、画像⇄メルカトルが往復する（ホーム・テストクリックの経路）', async () => {
+  const { transformMercatorToXy, transformXyToMercator } = await import('../src/utils/layerCoordTransform.ts');
+  const pixels = [[0, 0], [100, 0], [100, 100], [0, 100], [54, 47]];
+  const nativeGcps = pixels.map(([x, y]) => [[x, y], [1000 + x * 10, 2000 - y * 10]]);
+  const layer = transformLayerFromDocument('main', { crs: planeVi, width: 100, height: 100, gcps: nativeGcps, edges: [] });
+  const built = await buildEditorLayerTin({ layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => true }, 0, updateTin);
+  assert.equal(built.tin.strict_status, 'strict', '生成に成功している');
+  const target = { surface: null, tin: built.tin, crs: planeVi };
+  const merc = transformXyToMercator([54, 47], target);
+  const expected = crsToMercator([1540, 1530], planeVi);
+  assert.ok(Math.abs(merc[0] - expected[0]) < 1e-3 && Math.abs(merc[1] - expected[1]) < 1e-3);
+  const back = transformMercatorToXy(merc, target);
+  assert.ok(Math.abs(back[0] - 54) < 1e-3 && Math.abs(back[1] - 47) < 1e-3);
+  // CRS を挟まない（3857 として扱う）と、同じメルカトルでも画像座標へ戻らない
+  assert.notDeepEqual(transformMercatorToXy(merc, { ...target, crs: undefined }), back);
+});
+
+test('Minor 2: V2 の層は compiled が follow でも y を反転せず、V2 以外は Tin の属性から軸を読む', async () => {
+  const { displayYaxisMode } = await import('../src/utils/layerTransformIntent.ts');
+  const v2 = { intent: { setup: 'legacyV2' } };
+  const projected = { intent: { setup: 'B', crs: planeVi, worldFile } };
+  const follow = { yaxisMode: 'follow' };
+  assert.equal(displayYaxisMode(v2, follow), undefined);
+  assert.equal(displayYaxisMode(projected, follow), 'follow');
+  assert.equal(displayYaxisMode(projected, { yaxisMode: 'invert' }), 'invert');
+  assert.equal(displayYaxisMode(undefined, follow), undefined);
+  // 描画の入口は Tin の属性を読み、描き直しのたびに compiled を作らない
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  const redraw = source.match(/const tinResultUpdate = [\s\S]*?\n\};/)?.[0] ?? '';
+  assert.ok(redraw);
+  assert.doesNotMatch(redraw, /tin\.getCompiled/);
+  assert.doesNotMatch(source.match(/const viewError = [\s\S]*?\n\};/)?.[0] ?? '', /tin\.getCompiled/);
+  // 実際に反転しない: V2 が follow を拾うと y が負になり、拾わなければ元のまま
+  const { compiledPointToMercator } = await import('../src/utils/compiledGeo.ts');
+  assert.deepEqual(compiledPointToMercator([10, 20], displayYaxisMode(v2, follow)), [10, 20]);
+  assert.deepEqual(compiledPointToMercator([10, 20], 'follow'), [10, -20]);
+});
+
+test('Minor 1・3・4: 枠の描き直し・ラジオの見た目の復元・書き出し中の採用拒否が接続されている', async () => {
+  const source = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  const bounds = source.match(/const boundsModifyEnd = [\s\S]*?\n\};/)?.[0] ?? '';
+  assert.ok(bounds);
+  assert.match(bounds, /documentEditsBlocked\.value\) \{ tinResultUpdate\(\); return; \}/, '拒否時は枠を描き直す');
+  assert.match(bounds, /layerId === 'main'[\s\S]*?tinResultUpdate\(\)/, '主図は枠を文書の形へ戻す');
+  const select = source.match(/function selectTinBuildOption[\s\S]*?\n\}\n/)?.[0] ?? '';
+  assert.match(select, /radio\.checked = radio\.value === current/, '拒否されたラジオの見た目を戻す');
+  assert.equal(Array.from(source.matchAll(/@click="selectTinBuildOption\('\w+', '\w+', \$event\)"/g)).length, 4);
+  const adopt = source.match(/async function adoptCrsEstimation[\s\S]*?\n\}\n/)?.[0] ?? '';
+  assert.match(adopt, /preparingSave\.value \|\| exporting\.value/, '書き出し中の採用を拒否する');
 });
