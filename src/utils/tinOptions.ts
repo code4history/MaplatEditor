@@ -28,7 +28,9 @@ export type LayerTransformIntent = 'A' | 'B' | 'C' | 'legacyV2' | string | undef
  * - A（tinEnabled === false）: 三角網を作らないので null。
  * - crs 鍵なし: 従来の V2。
  * - crs 鍵あり: B は world file 外周、C は常に extrapolate を明示する。
- * yaxisMode は引数、層の直下、compiled の順に探し、無ければ Tin の既定に任せる。
+ * yaxisMode は CRS 採用層だけで引数、層の直下、compiled の順に探す。
+ * CRS の無い V2 は compiled 内部座標が反転済みのため、ここから yaxisMode を渡さない。
+ * CRS 採用層の follow は GCP 座標戻しを扱う T4 の対象なので、ここでは従来どおり渡す。
  */
 export function resolveTinBuildOptions(
   layer: TinBuildLayer,
@@ -36,18 +38,20 @@ export function resolveTinBuildOptions(
   intent?: LayerTransformIntent,
 ): TinOptions | null {
   if (layer.tinEnabled === false) return null;
-  const isLegacy = layer.crs === undefined || layer.crs === null;
-  const yaxisMode = buildOptions.yaxisMode ?? layer.yaxisMode ?? layer.compiled?.yaxisMode;
+  const hasCrs = layer.crs !== undefined && layer.crs !== null;
+  const yaxisMode = hasCrs
+    ? buildOptions.yaxisMode ?? layer.yaxisMode ?? layer.compiled?.yaxisMode
+    : undefined;
   const common: TinOptions = {
     ...(buildOptions.strictMode !== undefined ? { strictMode: buildOptions.strictMode } : {}),
     ...(buildOptions.vertexMode !== undefined ? { vertexMode: buildOptions.vertexMode } : {}),
-    ...(!isLegacy && yaxisMode !== undefined ? { yaxisMode } : {}),
+    ...(yaxisMode !== undefined ? { yaxisMode } : {}),
   };
-  if (isLegacy) return { useV2Algorithm: true, ...common };
   const compiled = layer.compiled ?? {};
   const wantsWorldFile = intent === 'B' || (intent !== 'C' && compiled.outerTransform === 'worldFile');
   const worldFile = compiled.worldFile ?? layer.worldFile;
-  if (intent === 'B' && !worldFile) throw new Error('B の三角網にはワールドファイルが必要です');
+  if (intent === 'B' && !worldFile) throw new Error('B requires a worldFile');
+  if (!hasCrs) return { useV2Algorithm: true, ...common };
   if (wantsWorldFile && worldFile) {
     return { useV2Algorithm: false, ...common, outerTransform: 'worldFile', worldFile };
   }

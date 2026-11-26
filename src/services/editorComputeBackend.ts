@@ -36,7 +36,9 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
   updateTin(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinUpdateResult> {
     const next = this.queue.then(() => {
       if (isCurrent && !isCurrent()) throw new Error('三角網の生成依頼が失効しました');
-      return this.send({ ...request, tinOptions: request.tinOptions && JSON.parse(JSON.stringify(request.tinOptions)) });
+      const { tinOptions } = request;
+      const plainTinOptions = tinOptions ? JSON.parse(JSON.stringify(tinOptions)) : undefined;
+      return this.send({ ...request, tinOptions: plainTinOptions });
     });
     // 失敗した依頼が後続の生成を止めないようにする。
     this.queue = next.catch(() => undefined);

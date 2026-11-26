@@ -10,10 +10,9 @@ import { resolveRuntimeOriginal } from './MapOriginalImageService';
 import { mercatorBboxToWgs84 } from '../utils/webMercator';
 import { estimateJpegDecodeBudget } from '../utils/jpegDecodeBudget';
 import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
-import { MapTransform, createProj4ProjectionEngine, type CrsObject, type SurfaceLike } from '@maplat/transform';
+import { MapTransform, type CrsObject, type SurfaceLike } from '@maplat/transform';
+import { projectionEngineForCrs } from '../../src/utils/compiledGeo';
 import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
-// @ts-ignore
-import proj4 from 'proj4';
 
 const MERC_MAX = 20037508.342789244;
 
@@ -158,7 +157,7 @@ class WmtsGeneratorService {
             let tin: SurfaceLike;
             if (crs) {
                 const mapTransform = new MapTransform();
-                mapTransform.setLayeredMapData({ main: { kind: 'tin', compiled: tinSerial, crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) } });
+                mapTransform.setLayeredMapData({ main: { kind: 'tin', compiled: tinSerial, crs, projectionEngine: projectionEngineForCrs(crs) } });
                 const surface = mapTransform.getSurfaceTransform(0);
                 if (!surface) throw new Error('failed to initialize projected TIN');
                 tin = surface;

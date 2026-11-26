@@ -128,6 +128,7 @@ class MapEditService {
                         subMap.bounds,
                         json.strictMode,
                         json.vertexMode,
+                        // 副層の保存形式に yaxisMode はないため、地図最上位から引き継ぐ。
                         { ...subMap, yaxisMode: subMap.yaxisMode ?? json.yaxisMode },
                     ),
                 };
@@ -139,12 +140,12 @@ class MapEditService {
 
     private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any, layer: any = {}) {
         if (gcps.length < 3) throw new Error('appedit.preview.too_less_gcps');
-        // 投影済みの副層は、層で軸が指定されていなければ地図全体の軸を引き継ぐ。
+        // 未作成の層は、層の直下の yaxisMode（無ければ Tin の既定）で作る。
         const tinOptions = resolveTinBuildOptions(layer, {
             strictMode: strict || 'strict',
             vertexMode: vertex || 'plain',
         });
-        if (!tinOptions) throw new Error('appedit.preview.tin_disabled');
+        if (!tinOptions) throw new Error('cannot build a TIN for a disabled layer');
         const tin = new Tin(tinOptions);
         const wholeImage = wh?.[0] && wh?.[1] ? wh : null;
         if (!applyTinGeometry(tin, tinOptions, { wh: wholeImage, bounds })) {
