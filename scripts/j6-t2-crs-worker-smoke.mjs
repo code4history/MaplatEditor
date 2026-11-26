@@ -41,9 +41,32 @@ const input = { gcps };
 class TestChild extends EventEmitter {
   sent = [];
   killed = 0;
+  alive = true;
+  constructor({ killResult = true, exitAfterMs = 0 } = {}) {
+    super();
+    this.killResult = killResult;
+    this.exitAfterMs = exitAfterMs;
+  }
   postMessage(message) { this.sent.push(message); }
-  kill() { this.killed += 1; return true; }
+  kill() {
+    this.killed += 1;
+    if (this.exitAfterMs !== null) setTimeout(() => this.exit(), this.exitAfterMs);
+    return this.killResult;
+  }
+  exit() {
+    if (!this.alive) return;
+    this.alive = false;
+    this.emit('exit', 0);
+  }
   reply(result) { this.emit('message', result); }
+}
+
+async function waitForChildCount(children, count) {
+  const deadline = Date.now() + 500;
+  while (children.length < count && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
+  assert.equal(children.length, count, `${count} 個目の子プロセスが起動する`);
 }
 
 const children = [];
@@ -70,23 +93,27 @@ try {
   assert.equal(first.killed, 1);
 
   const timedOut = service.estimate(input);
+  await waitForChildCount(children, 2);
   const second = children[1];
   assert.equal((await timedOut).failureReason, 'timeout');
   assert.equal(second.sent[1].type, 'cancel');
   assert.equal(second.killed, 1);
 
   const crashed = service.estimate(input);
+  await waitForChildCount(children, 3);
   const third = children[2];
   third.emit('exit', 9);
   assert.equal((await crashed).failureReason, 'worker_crashed');
 
   const canceled = service.estimate(input);
+  await waitForChildCount(children, 4);
   const fourth = children[3];
   assert.equal(service.cancel(), true);
   fourth.reply({ type: 'result', status: 'canceled', requestId: fourth.sent[0].requestId });
   assert.equal((await canceled).status, 'canceled');
 
   const retried = service.estimate(input);
+  await waitForChildCount(children, 5);
   const fifth = children[4];
   third.emit('exit', 9);
   fifth.reply({ type: 'result', status: 'insufficient', requestId: fifth.sent[0].requestId });
@@ -95,6 +122,44 @@ try {
   assert.equal(fifth.killed, 1, 'アイドル期限で子プロセスを破棄する');
 } finally {
   service.dispose();
+}
+
+for (const scenario of [
+  { label: 'kill が false', killResult: false, exitAfterMs: null, shouldRestart: false },
+  { label: 'kill が true でも exit なし', killResult: true, exitAfterMs: null, shouldRestart: false },
+  { label: '遅れて exit', killResult: true, exitAfterMs: 10, shouldRestart: true },
+]) {
+  const stoppedChildren = [];
+  const guardedService = new CrsEstimationService(() => {
+    const child = new TestChild(scenario);
+    stoppedChildren.push(child);
+    assert.ok(stoppedChildren.filter(item => item.alive).length <= 1, `${scenario.label}: 生存子プロセスが重複しない`);
+    return child;
+  }, { overallTimeoutMs: 100, cancelGraceMs: 2, stopWaitMs: 30, idleTtlMs: 100 });
+  try {
+    const caller = guardedService.estimate(input);
+    assert.equal(guardedService.cancel(), true);
+    assert.equal((await caller).status, 'canceled', `${scenario.label}: 呼び出し元 Promise が確定する`);
+    const next = guardedService.estimate(input);
+    if (scenario.shouldRestart) {
+      assert.equal(stoppedChildren.length, 1, `${scenario.label}: 終了確認前は次の子を作らない`);
+      assert.equal(stoppedChildren[0].alive, true);
+      await new Promise(resolve => setTimeout(resolve, 15));
+      const resultPromise = next;
+      assert.equal(stoppedChildren.length, 2, `${scenario.label}: exit 後に次の子を起動する`);
+      assert.equal(stoppedChildren[0].alive, false);
+      stoppedChildren[1].reply({ type: 'result', status: 'insufficient', requestId: stoppedChildren[1].sent[0].requestId });
+      assert.equal((await resultPromise).status, 'insufficient', `${scenario.label}: 次の推定が通る`);
+    } else {
+      const result = await next;
+      assert.equal(result.failureReason, 'worker_crashed', `${scenario.label}: 上限後に明示的な失敗を返す`);
+      assert.equal(stoppedChildren.length, 1, `${scenario.label}: 終了未確認のまま次の子を作らない`);
+      assert.equal(stoppedChildren[0].alive, true);
+    }
+    assert.ok(stoppedChildren.filter(item => item.alive).length <= 1, `${scenario.label}: 生存子プロセスが重複しない`);
+  } finally {
+    guardedService.dispose();
+  }
 }
 
 const profile = await mkdtemp(join(root, 'node_modules/.j6-profile-'));

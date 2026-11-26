@@ -6,6 +6,7 @@ import { OVERALL_TIMEOUT_MS, type CrsEstimationRequest, type CrsEstimationWorker
 const MAX_ESTIMATION_GCPS = 500;
 const IDLE_TTL_MS = 5 * 60_000;
 const CANCEL_GRACE_MS = 1_500;
+const STOP_WAIT_MS = 5_000;
 
 type Child = Pick<UtilityProcess, 'on' | 'postMessage' | 'kill'>;
 type Timer = ReturnType<typeof setTimeout>;
@@ -17,6 +18,14 @@ interface ActiveRequest {
   watchdog: Timer;
   grace?: Timer;
   stopReason?: StopReason;
+}
+
+interface StoppingChild {
+  child: Child;
+  promise: Promise<boolean>;
+  resolve: (exited: boolean) => void;
+  timer?: Timer;
+  killAccepted?: boolean;
 }
 
 function isFinitePair(value: unknown): boolean {
@@ -32,22 +41,26 @@ function isValidInput(input: CrsEstimationInput, candidateId?: string): boolean 
 
 export class CrsEstimationService {
   private child: Child | undefined;
+  private stoppingChild: StoppingChild | undefined;
   private active: ActiveRequest | undefined;
+  private starting = false;
   private idleTimer: Timer | undefined;
   private disposed = false;
   private readonly fork: () => Child;
   private readonly overallTimeoutMs: number;
   private readonly cancelGraceMs: number;
   private readonly idleTtlMs: number;
+  private readonly stopWaitMs: number;
 
   constructor(
     fork: () => Child,
-    timings: { overallTimeoutMs?: number; cancelGraceMs?: number; idleTtlMs?: number } = {},
+    timings: { overallTimeoutMs?: number; cancelGraceMs?: number; idleTtlMs?: number; stopWaitMs?: number } = {},
   ) {
     this.fork = fork;
     this.overallTimeoutMs = timings.overallTimeoutMs ?? OVERALL_TIMEOUT_MS;
     this.cancelGraceMs = timings.cancelGraceMs ?? CANCEL_GRACE_MS;
     this.idleTtlMs = timings.idleTtlMs ?? IDLE_TTL_MS;
+    this.stopWaitMs = timings.stopWaitMs ?? STOP_WAIT_MS;
   }
 
   estimate(input: CrsEstimationInput): Promise<CrsEstimationResponse> {
@@ -66,12 +79,18 @@ export class CrsEstimationService {
     if (!isValidInput(input, candidateId)) {
       return { requestId, status: 'failed', failureReason: 'invalid_input' };
     }
-    if (this.disposed || this.active) {
+    if (this.disposed || this.active || this.starting) {
       return { requestId, status: 'failed', failureReason: 'busy' };
     }
 
     clearTimeout(this.idleTimer);
+    this.starting = true;
     try {
+      const stopping = this.stoppingChild;
+      if (stopping && !(await stopping.promise)) {
+        return { requestId, status: 'failed', failureReason: 'worker_crashed', errorMessage: 'CRS 推定プロセスの終了を確認できませんでした' };
+      }
+      if (this.disposed) return { requestId, status: 'failed', failureReason: 'busy' };
       const child = this.child ?? this.spawn();
       return await new Promise(resolve => {
         const watchdog = setTimeout(() => this.stop('timeout'), this.overallTimeoutMs);
@@ -86,6 +105,8 @@ export class CrsEstimationService {
     } catch (error) {
       this.dropChild();
       return { requestId, status: 'failed', failureReason: 'worker_crashed', errorMessage: String(error) };
+    } finally {
+      this.starting = false;
     }
   }
 
@@ -105,6 +126,7 @@ export class CrsEstimationService {
     child.on('exit', code => {
       if (child !== this.child) return;
       this.child = undefined;
+      this.markChildExited(child);
       this.failWorker(`CRS 推定プロセスが終了しました（終了コード: ${code}）`);
     });
     child.on('error', (_type, location, report) => {
@@ -163,8 +185,31 @@ export class CrsEstimationService {
   private dropChild(): void {
     clearTimeout(this.idleTimer);
     const child = this.child;
-    this.child = undefined;
-    child?.kill();
+    if (!child || this.stoppingChild?.child === child) return;
+
+    let resolve!: (exited: boolean) => void;
+    const promise = new Promise<boolean>(done => { resolve = done; });
+    const stopping: StoppingChild = { child, promise, resolve };
+    this.stoppingChild = stopping;
+    // kill() が false を返す場合も終了イベントが届くかを期限まで確認し、参照はその間保持する。
+    try {
+      stopping.killAccepted = child.kill();
+    } catch {
+      // kill の失敗も終了待ちにし、期限切れなら次の子を起動させない。
+    }
+    stopping.timer = setTimeout(() => resolve(false), this.stopWaitMs);
+    void promise.then(exited => {
+      clearTimeout(stopping.timer);
+      if (exited && this.stoppingChild === stopping) this.stoppingChild = undefined;
+    });
+  }
+
+  private markChildExited(child: Child): void {
+    const stopping = this.stoppingChild;
+    if (stopping?.child !== child) return;
+    clearTimeout(stopping.timer);
+    this.stoppingChild = undefined;
+    stopping.resolve(true);
   }
 
   dispose(): void {
