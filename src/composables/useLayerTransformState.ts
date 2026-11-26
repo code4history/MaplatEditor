@@ -1,5 +1,17 @@
 import { computed, readonly, shallowReadonly, shallowRef } from 'vue';
-import type { CrsObject, EdgeSet, PointSet, StrictMode, VertexMode, WorldFile, YaxisMode } from '@maplat/transform';
+import { isEqual } from 'lodash-es';
+import type { EdgeSet, PointSet, StrictMode, VertexMode, YaxisMode } from '@maplat/transform';
+
+// この基点の @maplat/transform にはまだないため、採用時に扱う CRS とワールドファイルの形を宣言する。
+type CrsObject = { epsg?: number; authority?: string; code?: string; proj4?: string };
+type WorldFile = {
+    xScale: number;
+    xSkew: number;
+    xOrigin: number;
+    ySkew: number;
+    yScale: number;
+    yOrigin: number;
+};
 
 export type LayerTransformIntent =
     | { setup: 'legacyV2' }
@@ -26,6 +38,11 @@ export interface TransformLayer {
 
 export type LayerTransformSnapshot = TransformLayer[];
 export type LayerTinEdit = Partial<Pick<TransformLayer, 'gcps' | 'edges' | 'bounds' | 'buildOptions'>>;
+export interface LayerTinEditEntry {
+    layerId: string;
+    edit: LayerTinEdit;
+}
+
 export type LayerRankUpdate = Pick<TransformLayer, 'layerId' | 'importance' | 'priority'>;
 export type NewTransformLayer = Partial<Omit<TransformLayer, 'layerId' | 'intent' | 'buildOptions'>> &
     Pick<TransformLayer, 'buildOptions'>;
@@ -36,7 +53,7 @@ interface PendingTinRequest {
     readonly reqGen: number;
 }
 
-export type LayerTinRequest = { layer: TransformLayer } & (
+export type LayerTinRequest = { layer: TransformLayer; isCurrent(): boolean } & (
     | (PendingTinRequest & { kind: 'edit' })
     | { kind: 'adoption'; layerId: string; adoptionId: number; signal: AbortSignal }
 );
@@ -79,6 +96,15 @@ export interface LayerTransformSave<Tin> {
     tins: (Tin | 'worldFile')[];
 }
 
+export interface LayerTransformRestore {
+    restored: boolean;
+    settled: Promise<boolean>;
+}
+
+export type LayerTransformSaveResult =
+    | { ok: true }
+    | { ok: false; reason: 'adopting' | 'saving' | 'disposed' | 'generationChanged' | 'buildFailed' | 'writeFailed' };
+
 type TinResponse<Tin, Diagnostics> = { result: TinBuildResult<Tin | 'worldFile', Diagnostics> } | { error: unknown };
 
 // 履歴と IPC に渡す値は、Vue のプロキシや参照を共有しないプレーンな文書データにする。
@@ -109,13 +135,14 @@ function applyRanks(layers: TransformLayer[], updates: readonly LayerRankUpdate[
         const importance = update.importance ?? layer.importance;
         const priority = update.priority ?? layer.priority;
         if (importance === layer.importance && priority === layer.priority) return layer;
-        return { ...layer, importance, priority };
+        return copyLayer({ ...layer, importance, priority });
     });
 }
 
 export function useLayerTransformState<Tin, Diagnostics, Selection>(
     initialLayers: readonly TransformLayer[],
     dependencies: LayerTransformDependencies<Tin, Diagnostics, Selection>,
+    initialTins: ReadonlyMap<string, TinBuildResult<Tin | 'worldFile', Diagnostics>> = new Map(),
 ) {
     type Volatile = LayerTinState<Tin, Diagnostics>;
     interface State {
@@ -137,7 +164,10 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
     const state = shallowRef<State>({
         layers: initial,
         editGeneration: 0,
-        volatile: new Map(initial.map(({ layerId }) => [layerId, { status: 'empty' }])),
+        volatile: new Map(initial.map(({ layerId }) => {
+            const seed = initialTins.get(layerId);
+            return [layerId, seed ? { status: 'ready', ...seed } : { status: 'empty' }];
+        })),
     });
     const layers = computed(() => readonly(state.value.layers));
     const editGeneration = computed(() => state.value.editGeneration);
@@ -157,23 +187,15 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
     let nextAdoptionId = 0;
     let nextLayerNumber = 0;
     let saving = false;
+    const writing = shallowRef(false);
+    const saveWriting = computed(() => writing.value);
     let disposed = false;
     const jobs = new Map<string, { reqGen: number; done: Promise<boolean> }>();
-    const editsBlocked = () => disposed || adoptionInProgress.value;
+    const deferredRetries = new Map<string, PendingTinRequest>();
+    const editsBlocked = () => disposed || adoptionInProgress.value || writing.value;
 
     function replaceDocument(next: LayerTransformSnapshot, volatile = state.value.volatile) {
         state.value = { layers: next, editGeneration: state.value.editGeneration + 1, volatile };
-    }
-
-    // editGeneration は全層で共通なので、世代を進める操作は対象外の層の未完の要求も古くする。
-    // 世代を進める前に要求が飛んでいる層を控え、操作の後も残っている層を新しい reqGen で要求し直す。
-    // §4.2 の「順位の変更は要求なし」は「最新（ready）の層には新しく要求しないが、生成中の要求は
-    // 新しい世代へ付け替える」と読む。対象の層と重なる要求は requestTin 内の
-    // 「同じ層・同じ世代の要求の共有」で一本に抑えられる。
-    function carryOverInFlight(inFlight: readonly string[]) {
-        for (const layerId of inFlight) {
-            if (state.value.volatile.has(layerId)) void requestTin(layerId);
-        }
     }
 
     function setTin(layerId: string, tin: Volatile) {
@@ -191,13 +213,23 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         return !disposed && request.reqGen === state.value.editGeneration && state.value.volatile.has(request.layerId);
     }
 
-    // 成功と失敗を同じ入口で照合し、次の編集や削除より古い応答を破棄する。
-    function applyTinResponse(request: PendingTinRequest, response: TinResponse<Tin, Diagnostics>) {
-        if (!isCurrent(request)) return false;
-        setTin(request.layerId, 'result' in response
-            ? { status: 'ready', ...response.result }
-            : { status: 'failed', error: response.error });
-        return true;
+    function discardTinRequest(request: PendingTinRequest): false {
+        const { layerId } = request;
+        const tin = state.value.volatile.get(layerId);
+        // 待ち印の照合で、削除・別の要求・採用で置き換わった層を除く。
+        if (!disposed && tin?.status === 'stale' && tin.pendingReq === request) {
+            if (adoptionInProgress.value) deferredRetries.set(layerId, request);
+            else void requestTin(layerId);
+        }
+        return false;
+    }
+
+    function endAdoption(adoption: Adoption) {
+        if (activeAdoption.value !== adoption) return;
+        activeAdoption.value = undefined;
+        const retries = [...deferredRetries.values()];
+        deferredRetries.clear();
+        for (const request of retries) discardTinRequest(request);
     }
 
     function requestTin(layerId: string): Promise<boolean> {
@@ -209,17 +241,23 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         if (pending?.reqGen === reqGen) return pending.done;
         const request: PendingTinRequest = Object.freeze({ layerId, reqGen });
         const layer = copyDocument(target);
+        const current = () => isCurrent(request);
         const job = {
             reqGen,
             done: Promise.resolve().then(async () => {
-                if (!isCurrent(request)) return false;
+                if (!current()) return discardTinRequest(request);
                 let response: TinResponse<Tin, Diagnostics>;
                 try {
-                    response = { result: await build({ ...request, kind: 'edit', layer }) };
+                    response = { result: await build({ ...request, kind: 'edit', layer, isCurrent: current }) };
                 } catch (error) {
                     response = { error };
                 }
-                return applyTinResponse(request, response);
+                // 成功・失敗のどちらでも旧世代の結果を捨て、必要な層だけを要求し直す。
+                if (!current()) return discardTinRequest(request);
+                setTin(layerId, 'result' in response
+                    ? { status: 'ready', ...response.result }
+                    : { status: 'failed', error: response.error });
+                return true;
             }).finally(() => {
                 if (jobs.get(layerId) === job) jobs.delete(layerId);
             }),
@@ -232,26 +270,37 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
     }
 
     function editLayer(layerId: string, edit: LayerTinEdit) {
-        if (editsBlocked() || Object.keys(edit).length === 0) return false;
-        const target = state.value.layers.find((layer) => layer.layerId === layerId);
-        if (!target) return false;
-        const {
-            gcps = target.gcps, edges = target.edges, buildOptions = target.buildOptions,
-        } = edit;
-        const bounds = 'bounds' in edit ? edit.bounds : target.bounds;
-        const updated = copyLayer({ ...target, gcps, edges, buildOptions, bounds });
-        const next = state.value.layers.map((layer) => layer === target ? updated : layer);
+        return editLayers([{ layerId, edit }]);
+    }
+
+    function editLayers(edits: readonly LayerTinEditEntry[]) {
+        if (editsBlocked()) return false;
         const volatile = new Map(state.value.volatile);
-        const previous = getTinState(layerId);
-        volatile.set(layerId, {
-            status: 'stale', tin: previous?.tin,
-            diagnostics: previous && 'diagnostics' in previous ? previous.diagnostics : undefined,
+        const byId = new Map(edits.map(({ layerId, edit }) => [layerId, edit]));
+        if (byId.size !== edits.length || edits.some(({ layerId }) => !volatile.has(layerId))) return false;
+
+        const changed: string[] = [];
+        const next = state.value.layers.map((target) => {
+            const { layerId } = target;
+            const edit = byId.get(layerId);
+            if (!edit) return target;
+            const { gcps = target.gcps, edges = target.edges, buildOptions = target.buildOptions } = edit;
+            const bounds = 'bounds' in edit ? edit.bounds : target.bounds;
+            const updated = copyLayer({ ...target, gcps, edges, buildOptions, bounds });
+            if (isEqual(updated, target)) return target;
+
+            const previous = volatile.get(layerId);
+            volatile.set(layerId, {
+                status: 'stale', tin: previous?.tin,
+                diagnostics: previous && 'diagnostics' in previous ? previous.diagnostics : undefined,
+            });
+            changed.push(layerId);
+            return updated;
         });
-        const inFlight = [...jobs.keys()];
+        if (changed.length === 0) return false;
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
-        void requestTin(layerId);
-        carryOverInFlight(inFlight);
+        for (const layerId of changed) void requestTin(layerId);
         return true;
     }
 
@@ -260,10 +309,8 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const current = state.value.layers;
         const next = applyRanks(current, updates);
         if (next.every((layer, index) => layer === current[index])) return false;
-        const inFlight = [...jobs.keys()];
         replaceDocument(next);
         dependencies.history.commit(capture());
-        carryOverInFlight(inFlight);
         return true;
     }
 
@@ -279,11 +326,9 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const next = [...applyRanks(state.value.layers, ranks), layer];
         const volatile = new Map(state.value.volatile);
         volatile.set(layerId, { status: 'empty' });
-        const inFlight = [...jobs.keys()];
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
         void requestTin(layerId);
-        carryOverInFlight(inFlight);
         return layerId;
     }
 
@@ -293,10 +338,8 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const volatile = new Map(state.value.volatile);
         volatile.delete(layerId);
         jobs.delete(layerId);
-        const inFlight = [...jobs.keys()];
         replaceDocument(next, volatile);
         dependencies.history.commit(capture());
-        carryOverInFlight(inFlight);
         return true;
     }
 
@@ -321,6 +364,7 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
             const layer = copyDocument({ ...target, intent, buildOptions, gcps, edges });
             const result = await build({
                 kind: 'adoption', layerId, adoptionId: adoption.id, signal, layer: copyDocument(layer),
+                isCurrent: stillActive,
             });
             return { layer, result };
         };
@@ -336,7 +380,7 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
             const { layer, result } = staged;
             // 反映を監視する側の抑止が nextTick 後に解けてから、履歴を明示的に一度記録する。
             await dependencies.history.withoutHistoryAsync(() => {
-                if (!stillActive()) return;
+                if (!stillActive() || adoption.applied) return;
                 adoption.applied = true;
                 const next = before.layers.map((entry) => entry.layerId === layerId ? layer : entry);
                 const volatile = new Map(state.value.volatile);
@@ -344,56 +388,81 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
                 replaceDocument(next, volatile);
             });
             if (!stillActive()) return { status: 'cancelled' };
+            if (!adoption.applied) return { status: 'failed', error: new Error('採用結果が反映されませんでした') };
             dependencies.history.commit(capture());
             return { status: 'adopted' };
         } finally {
-            if (activeAdoption.value === adoption) activeAdoption.value = undefined;
+            endAdoption(adoption);
         }
     }
 
     function cancelAdoption() {
         const adoption = activeAdoption.value;
         if (!adoption || adoption.applied) return false;
-        activeAdoption.value = undefined;
+        endAdoption(adoption);
         adoption.controller.abort();
         return true;
     }
 
-    async function restore(snapshot: LayerTransformSnapshot) {
+    function restore(snapshot: LayerTransformSnapshot): LayerTransformRestore {
         const restored = snapshot.map(copyLayer);
         registerIds(restored);
-        replaceDocument(restored, new Map(restored.map(({ layerId }) => [layerId, { status: 'stale' }])));
-        await Promise.all(restored.map(({ layerId }) => requestTin(layerId)));
-        return true;
+        const generation = state.value.editGeneration + 1;
+        const volatile = new Map<string, Volatile>(restored.map(({ layerId }): [string, Volatile] => {
+            const previous = state.value.volatile.get(layerId);
+            return [layerId, {
+                status: 'stale' as const,
+                tin: previous?.tin,
+                diagnostics: previous && 'diagnostics' in previous ? previous.diagnostics : undefined,
+            }];
+        }));
+        replaceDocument(restored, volatile);
+        const settled = Promise.all(restored.map(({ layerId }) => requestTin(layerId))).then((accepted) =>
+            !disposed && state.value.editGeneration === generation && accepted.every(Boolean) &&
+            restored.every(({ layerId }) => getTinState(layerId)?.status === 'ready'));
+        return { restored: true, settled };
     }
 
-    async function navigate(direction: 'undo' | 'redo') {
-        if (editsBlocked()) return false;
+    const notRestored = (): LayerTransformRestore => ({ restored: false, settled: Promise.resolve(false) });
+
+    function navigate(direction: 'undo' | 'redo'): LayerTransformRestore {
+        if (editsBlocked()) return notRestored();
         const snapshot = dependencies.history[direction]();
-        return snapshot ? restore(snapshot) : false;
+        return snapshot ? restore(snapshot) : notRestored();
     }
 
-    async function restoreDraft(snapshot: LayerTransformSnapshot) {
-        return editsBlocked() ? false : restore(snapshot);
+    function restoreDraft(snapshot: LayerTransformSnapshot): LayerTransformRestore {
+        return editsBlocked() ? notRestored() : restore(snapshot);
     }
 
-    async function save(persist: (payload: LayerTransformSave<Tin>) => void | boolean | Promise<void | boolean>) {
-        if (editsBlocked() || saving) return false;
+    async function save(persist: (payload: LayerTransformSave<Tin>) => void | boolean | Promise<void | boolean>):
+        Promise<LayerTransformSaveResult> {
+        if (disposed) return { ok: false, reason: 'disposed' };
+        if (adoptionInProgress.value) return { ok: false, reason: 'adopting' };
+        if (saving) return { ok: false, reason: 'saving' };
         saving = true;
         try {
             const { layers: current, editGeneration: reqGen } = state.value;
             const stale = current.filter(({ layerId }) => getTinState(layerId)?.status !== 'ready');
             await Promise.all(stale.map(({ layerId }) => requestTin(layerId)));
-            if (disposed || state.value.editGeneration !== reqGen) return false;
+            if (disposed) return { ok: false, reason: 'disposed' };
+            if (state.value.editGeneration !== reqGen) return { ok: false, reason: 'generationChanged' };
             const tins: (Tin | 'worldFile')[] = [];
             for (const { layerId } of current) {
                 const tin = getTinState(layerId);
-                if (tin?.status !== 'ready') return false;
+                if (tin?.status !== 'ready') return { ok: false, reason: 'buildFailed' };
                 tins.push(tin.tin);
             }
-            return (await persist({ layers: capture(), tins })) !== false;
+            try {
+                writing.value = true;
+                if (await persist({ layers: capture(), tins }) !== false) return { ok: true };
+            } catch {
+                return { ok: false, reason: 'writeFailed' };
+            }
+            return { ok: false, reason: 'writeFailed' };
         } finally {
             saving = false;
+            writing.value = false;
         }
     }
 
@@ -401,11 +470,12 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         disposed = true;
         cancelAdoption();
         jobs.clear();
+        deferredRetries.clear();
     }
 
     return {
-        layers, editGeneration, adoptionInProgress, getTinState, capture,
-        editLayer, changeLayerRanks, addLayer, removeLayer, requestTin,
+        layers, editGeneration, adoptionInProgress, saveWriting, getTinState, capture,
+        editLayer, editLayers, changeLayerRanks, addLayer, removeLayer, requestTin,
         startAdoption, cancelAdoption, undo: () => navigate('undo'), redo: () => navigate('redo'),
         restoreDraft, save, dispose,
     };

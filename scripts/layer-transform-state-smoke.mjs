@@ -1,9 +1,24 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test as nodeTest } from 'node:test';
 import { watch } from 'vue';
 import { useHistorySuppression } from '../src/composables/useHistorySuppression.ts';
 import { useLayerTransformState } from '../src/composables/useLayerTransformState.ts';
 import { UndoStack } from '../src/services/editorUndoStack.ts';
+
+function test(name, run) {
+    return nodeTest(name, async () => {
+        // 応答が返らない壊れ方でも、制御用の Promise を待ち続けずに試験を失敗させる。
+        let timer;
+        const deadline = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error('試験が時間内に完了しませんでした')), 1000);
+        });
+        try {
+            await Promise.race([run(), deadline]);
+        } finally {
+            clearTimeout(timer);
+        }
+    });
+}
 
 const options = { strictMode: 'strict', vertexMode: 'plain', yaxisMode: 'invert' };
 const subOptions = { strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' };
@@ -48,6 +63,7 @@ function fixture({
     build = fakeTin,
     prepare = (copy, selected) => ({ ...copy, ...selected }),
     makeHistory,
+    initialTins,
 } = {}) {
     const history = [structuredClone(initial)];
     const requests = [];
@@ -74,8 +90,8 @@ function fixture({
             return build(request);
         },
         prepareAdoption: prepare,
-    });
-    return { model, history, requests, events };
+    }, initialTins);
+    return { model, history, requests, events, readPointer: () => pointer };
 }
 
 function controlledTin() {
@@ -95,6 +111,8 @@ const tick = async () => {
 };
 const tinState = (model, id = 'main') => model.getTinState(id);
 const draft = (model) => JSON.parse(JSON.stringify(model.capture()));
+const saved = { ok: true };
+const saveFailure = (reason) => ({ ok: false, reason });
 const saveThrough = (model, writes) => model.save((payload) => { writes.push(payload); });
 
 test('表 1　点列と対応線の編集を一件記録し対象層だけ再生成する', async () => {
@@ -194,6 +212,7 @@ for (const [operation, apply] of [
         assert.ok(apply(model));
         assert.equal(model.editGeneration.value, 1);
         await tick();
+        assert.equal(jobs.waiting.filter(({ request }) => request.layerId === 'main').length, 1);
         old.resolve({ tin: '古い主図' });
         assert.equal(await original, false);
         const retries = jobs.waiting.slice(1);
@@ -293,16 +312,20 @@ test('表 8　Undo・Redo・下書きの復元は全層を古くして同じ入�
         [2, model.undo, history[0]], [3, model.redo, changed],
         [4, () => model.restoreDraft(history[0]), history[0]],
     ]) {
+        const previousTins = new Map(model.layers.value.map(({ layerId }) => [layerId, tinState(model, layerId)?.tin]));
         const restoring = operation();
         assert.equal(model.editGeneration.value, index);
         assert.deepEqual(draft(model), expected);
         assert.equal(tinState(model).status, 'stale');
         assert.equal(tinState(model, 'sub:a').status, 'stale');
+        assert.equal(tinState(model).tin, previousTins.get('main'));
+        assert.equal(tinState(model, 'sub:a').tin, previousTins.get('sub:a'));
         await tick();
         assert.deepEqual(requests.slice(reqIndex).map(({ layer, reqGen }) => [layer, reqGen]), expected.map((l) => [l, index]));
         for (const job of jobs.waiting.slice(reqIndex)) job.resolve(fakeTin(job.request));
         reqIndex += 2;
-        assert.equal(await restoring, true);
+        assert.equal(restoring.restored, true);
+        assert.equal(await restoring.settled, true);
         assert.equal(tinState(model).status, 'ready');
         assert.equal(tinState(model, 'sub:a').status, 'ready');
     }
@@ -350,11 +373,11 @@ test('表 10　保存は最新の全層を待ち同じ世代の要求を共有�
     assert.equal(writes.length, 0);
     jobs.waiting[0].resolve({ tin: '副層' });
     await inFlight;
-    assert.equal(await saving, true);
+    assert.deepEqual(await saving, saved);
     assert.deepEqual(writes[0].tins, ['主図', '副層']);
     assert.deepEqual(writes[0].layers, model.capture());
     const mainTin = tinState(model);
-    assert.equal(await saveThrough(model, writes), true);
+    assert.deepEqual(await saveThrough(model, writes), saved);
     assert.equal(tinState(model), mainTin);
     assert.equal(jobs.waiting.length, 2);
     assert.equal(history.length, 1);
@@ -367,38 +390,60 @@ test('表 10　保存は最新の全層を待ち同じ世代の要求を共有�
     await tick();
     jobs.waiting[2].resolve({ tin: '保存中に古くなった結果' });
     jobs.waiting[3].resolve({ tin: '次の編集の結果' });
-    assert.equal(await supersededSave, false);
+    assert.deepEqual(await supersededSave, saveFailure('generationChanged'));
     assert.equal(writes.length, 2);
-    assert.equal(await saveThrough(model, writes), true);
+    assert.deepEqual(await saveThrough(model, writes), saved);
     assert.equal(writes[2].tins[0], '次の編集の結果');
 });
 
 test('表 11　採用中は編集・順位・追加・削除・復元・保存の入口で拒否する', async () => {
     const jobs = controlledTin();
     const writes = [];
-    const { model, history, requests } = fixture({
+    const { model, history, requests, readPointer } = fixture({
         initial: [layer('main'), layer('sub:a')], build: jobs.build,
     });
-    const adopting = model.startAdoption('main', selection);
-    const before = draft(model);
-    assert.equal(model.editLayer('main', { edges }), false);
-    assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 2 }]), false);
-    assert.equal(model.addLayer({ buildOptions: options }), undefined);
-    assert.equal(model.removeLayer('sub:a'), false);
-    assert.equal(await model.undo(), false);
-    assert.equal(await model.redo(), false);
-    assert.equal(await model.restoreDraft([layer('main')]), false);
-    assert.equal(await saveThrough(model, writes), false);
-    assert.equal(await model.requestTin('sub:a'), false);
-    assert.equal((await model.startAdoption('main', selection)).status, 'rejected');
-    assert.deepEqual(draft(model), before);
-    assert.equal(history.length, 1);
-    assert.equal(model.editGeneration.value, 0);
-    assert.equal(requests.length, 1);
-    assert.equal(writes.length, 0);
-    model.cancelAdoption();
-    await adopting;
-    jobs.waiting[0].resolve({ tin: '取消済み' });
+    assert.equal(model.editLayer('main', { gcps: gcps(4) }), true);
+    await tick();
+    jobs.waiting[0].resolve(fakeTin(jobs.waiting[0].request));
+    await tick();
+    const checked = async (expectedPointer) => {
+        const adopting = model.startAdoption('main', selection);
+        const before = draft(model);
+        const generation = model.editGeneration.value;
+        const requestCount = requests.length;
+        assert.equal(model.editLayer('main', { edges }), false);
+        assert.equal(model.editLayers([{ layerId: 'main', edit: { edges } }]), false);
+        assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 2 }]), false);
+        assert.equal(model.addLayer({ buildOptions: options }), undefined);
+        assert.equal(model.removeLayer('sub:a'), false);
+        const undo = model.undo();
+        const redo = model.redo();
+        const restored = model.restoreDraft([layer('main')]);
+        for (const result of [undo, redo, restored]) {
+            assert.equal(result.restored, false);
+            assert.equal(await result.settled, false);
+        }
+        assert.deepEqual(await saveThrough(model, writes), saveFailure('adopting'));
+        assert.equal(await model.requestTin('sub:a'), false);
+        assert.equal((await model.startAdoption('main', selection)).status, 'rejected');
+        assert.deepEqual(draft(model), before);
+        assert.equal(history.length, 2);
+        assert.equal(readPointer(), expectedPointer);
+        assert.equal(model.editGeneration.value, generation);
+        assert.equal(requests.length, requestCount + 1);
+        assert.equal(writes.length, 0);
+        assert.equal(model.cancelAdoption(), true);
+        assert.equal((await adopting).status, 'cancelled');
+        jobs.waiting.at(-1).resolve({ tin: '取消済み' });
+    };
+
+    await checked(1);
+    const undo = model.undo();
+    assert.equal(undo.restored, true);
+    await tick();
+    for (const job of jobs.waiting.slice(-2)) job.resolve(fakeTin(job.request));
+    assert.equal(await undo.settled, true);
+    await checked(0);
 });
 
 test('追加 1　生成中に Undo し新しい結果の後に届く古い成功を捨てる', async () => {
@@ -409,7 +454,8 @@ test('追加 1　生成中に Undo し新しい結果の後に届く古い成功
     const undo = model.undo();
     await tick();
     jobs.waiting[1].resolve({ tin: 'Undo 後' });
-    assert.equal(await undo, true);
+    assert.equal(undo.restored, true);
+    assert.equal(await undo.settled, true);
     jobs.waiting[0].resolve({ tin: '古い編集' });
     await tick();
     assert.equal(tinState(model).tin, 'Undo 後');
@@ -444,10 +490,10 @@ test('追加 3　B から C に降格した後も B の意図を保ち Undo で 
     assert.equal(dropped.tin.outerTransform, 'extrapolate');
     assert.deepEqual(history[1][0].intent, intentB);
     assert.ok(!('tin' in history[1][0]));
-    await model.undo();
+    await model.undo().settled;
     assert.equal(tinState(model).tin.outerTransform, 'worldFile');
     assert.deepEqual(model.capture()[0].intent, intentB);
-    await model.redo();
+    await model.redo().settled;
     assert.deepEqual(tinState(model), dropped);
     assert.deepEqual(model.capture()[0].intent, intentB);
 });
@@ -466,14 +512,14 @@ test('追加 4　A・B・C・降格を含む下書きの再生成で三つの設
     assert.deepEqual(original.map(({ layer }) => layer.buildOptions), [options, subOptions, subOptions]);
 
     const { model: after, requests: rebuilt } = fixture();
-    await after.restoreDraft(draft(before));
+    assert.equal(await after.restoreDraft(draft(before)).settled, true);
     assert.deepEqual(rebuilt.map(({ layer }) => layer), original.map(({ layer }) => layer));
     for (const { layerId } of initial) assert.deepEqual(tinState(after, layerId), tinState(before, layerId));
 });
 
 test('下書き復元で登録した副層 ID を直後の層追加で再使用しない', async () => {
     const { model } = fixture();
-    assert.equal(await model.restoreDraft([layer('main'), layer('sub:1')]), true);
+    assert.equal(await model.restoreDraft([layer('main'), layer('sub:1')]).settled, true);
     const added = model.addLayer({ buildOptions: subOptions });
     assert.ok(added && added !== 'sub:1');
     assert.deepEqual(model.layers.value.map(({ layerId }) => layerId), ['main', 'sub:1', added]);
@@ -492,7 +538,7 @@ for (const [invalid, ids] of [
         const generation = model.editGeneration.value;
         const requestCount = requests.length;
 
-        await assert.rejects(model.restoreDraft(ids.map((id) => layer(id, { gcps: gcps(9) }))),
+        assert.throws(() => model.restoreDraft(ids.map((id) => layer(id, { gcps: gcps(9) }))),
             /先頭の主図と重複のない層 ID が必要/);
         assert.deepEqual(model.capture(), before);
         assert.equal(model.editGeneration.value, generation);
@@ -508,8 +554,8 @@ test('追加 5　検証待ちの採用中は編集・Undo・保存を拒否す�
     const { model, requests } = fixture({ prepare: () => validation.promise });
     const adopting = model.startAdoption('main', selection);
     assert.equal(model.editLayer('main', { gcps: gcps(3) }), false);
-    assert.equal(await model.undo(), false);
-    assert.equal(await saveThrough(model, writes), false);
+    assert.equal(await model.undo().settled, false);
+    assert.deepEqual(await saveThrough(model, writes), saveFailure('adopting'));
     assert.equal(requests.length, 0);
     assert.equal(writes.length, 0);
     validation.resolve({ ...layer('main'), ...selection });
@@ -533,20 +579,20 @@ test('追加 6　採用と保存を双方の開始順で排他し失敗・成功
     assert.equal(writes.length, 1);
     assert.equal((await model.startAdoption('main', selection)).status, 'rejected');
     write.resolve();
-    assert.equal(await save, true);
+    assert.deepEqual(await save, saved);
 
     const failed = model.startAdoption('main', selection);
-    assert.equal(await saveThrough(model, writes), false);
+    assert.deepEqual(await saveThrough(model, writes), saveFailure('adopting'));
     validation.reject(new Error('座標の検証失敗'));
     assert.equal((await failed).status, 'failed');
-    assert.equal(await saveThrough(model, writes), true);
+    assert.deepEqual(await saveThrough(model, writes), saved);
     assert.deepEqual(writes[1], writes[0]);
 
     preparing = true;
     const adopted = model.startAdoption('main', selection);
-    assert.equal(await saveThrough(model, writes), false);
+    assert.deepEqual(await saveThrough(model, writes), saveFailure('adopting'));
     assert.equal((await adopted).status, 'adopted');
-    assert.equal(await saveThrough(model, writes), true);
+    assert.deepEqual(await saveThrough(model, writes), saved);
     assert.deepEqual(writes[2].layers[0].intent, intentB);
     assert.equal(writes[2].tins[0].outerTransform, 'extrapolate');
     assert.equal(writes.length, 3);
@@ -595,12 +641,442 @@ test('追加 8　nextTick の抑止解除後に履歴が一件だけ増え Undo 
         assert.equal((await model.startAdoption('main', selection)).status, 'adopted');
         assert.equal(stack.snapshot().history.length, 2);
         assert.deepEqual(stack.current(), model.capture());
-        assert.equal(await model.undo(), true);
+        assert.equal(await model.undo().settled, true);
         assert.deepEqual(draft(model), initial);
-        assert.equal(await model.redo(), true);
+        assert.equal(await model.redo().settled, true);
         assert.deepEqual(draft(model), [layer('main', selection)]);
         assert.equal(stack.snapshot().history.length, 2);
     } finally {
         stop();
     }
+});
+
+for (const fromUndo of [false, true]) {
+    const scenario = fromUndo ? 'Undo 直後の採用' : '生成中の採用';
+    test(`再レビュー 1　${scenario}を確定しても副層は最新世代で生成される`, async () => {
+        const jobs = controlledTin();
+        const applied = Promise.withResolvers();
+        const release = Promise.withResolvers();
+        const initial = [layer('main'), layer('sub:a')];
+        const stack = new UndoStack(initial);
+        const { model, requests } = fixture({
+            initial,
+            build: (request) => request.kind === 'adoption' ? fakeTin(request) : jobs.build(request),
+            makeHistory: () => ({
+                commit: (snapshot) => stack.push(snapshot),
+                undo() { stack.undo(); return stack.current(); },
+                redo() { stack.redo(); return stack.current(); },
+                async withoutHistoryAsync(apply) {
+                    apply();
+                    applied.resolve();
+                    await release.promise;
+                },
+            }),
+        });
+        let pending;
+        if (fromUndo) {
+            model.editLayer('main', { gcps: gcps(8) });
+            await tick();
+            jobs.waiting[0].resolve(fakeTin(jobs.waiting[0].request));
+            await tick();
+            model.undo();
+        } else {
+            pending = model.requestTin('sub:a');
+        }
+        await tick();
+        const old = jobs.waiting.find(({ request }) => request.layerId === 'sub:a');
+        const adopting = model.startAdoption('main', selection);
+        await applied.promise;
+        assert.equal(model.adoptionInProgress.value, true);
+
+        if (fromUndo) {
+            // 抑止が残っている間に古い応答が届く場合を作る。
+            for (const job of jobs.waiting.slice(1)) job.resolve({ tin: 'Undo 世代の結果' });
+            await tick();
+            assert.equal(jobs.waiting.filter(({ request }) => request.layerId === 'sub:a').length, 1);
+        }
+        release.resolve();
+        assert.equal((await adopting).status, 'adopted');
+        if (!fromUndo) {
+            old.resolve({ tin: '採用前の副層' });
+            assert.equal(await pending, false);
+        }
+        await tick();
+
+        const subRequests = jobs.waiting.filter(({ request }) => request.layerId === 'sub:a');
+        assert.equal(subRequests.length, 2);
+        const latest = subRequests[1];
+        assert.equal(latest.request.reqGen, model.editGeneration.value);
+        latest.resolve({ tin: '採用後の副層' });
+        await tick();
+        assert.equal(tinState(model, 'sub:a').status, 'ready');
+        assert.equal(tinState(model, 'sub:a').tin, '採用後の副層');
+        assert.equal(tinState(model).tin.outerTransform, 'extrapolate');
+        assert.equal(requests.filter(({ layerId, reqGen }) =>
+            layerId === 'main' && reqGen === model.editGeneration.value).length, 0);
+    });
+}
+
+test('再レビュー 1　5 層で Undo 直後に 4 回編集しても待ち行列で走る生成は最新世代だけ', async () => {
+    const queue = controlledTin();
+    const initial = [layer('main'), ...Array.from({ length: 4 }, (_, i) => layer(`sub:${i}`))];
+    const { model } = fixture({ initial, build: queue.build });
+    model.editLayer('main', { gcps: gcps(9) });
+    await tick();
+    queue.waiting.shift().resolve({ tin: 'Undo 前の主図' });
+    await tick();
+    model.undo();
+    await tick();
+    assert.equal(queue.waiting.length, 5);
+    for (let i = 1; i <= 4; i++) {
+        assert.equal(model.editLayer('main', { gcps: gcps(i) }), true);
+        await tick();
+    }
+
+    const built = [];
+    for (let i = 0; queue.waiting.length > 0 && i < 20; i++) {
+        const job = queue.waiting.shift();
+        assert.equal(typeof job.request.isCurrent, 'function');
+        if (job.request.isCurrent()) {
+            built.push([job.request.layerId, job.request.reqGen]);
+            job.resolve(fakeTin(job.request));
+        } else {
+            job.reject(new Error('待ち行列の旧世代を破棄'));
+        }
+        await tick();
+    }
+    assert.equal(queue.waiting.length, 0);
+    assert.equal(built.length, initial.length);
+    assert.deepEqual(built.map(([id]) => id).sort(), initial.map(({ layerId }) => layerId).sort());
+    assert.ok(built.every(([, generation]) => generation === model.editGeneration.value));
+    initial.forEach(({ layerId }) => assert.equal(tinState(model, layerId).status, 'ready'));
+});
+
+test('再レビュー 2　3 層の外周設定を一件の履歴と一世代で変え、Undo 一回で戻す', async () => {
+    const initial = [
+        layer('main'), layer('sub:a', { buildOptions: { ...subOptions, vertexMode: 'plain' } }),
+        layer('sub:b', { buildOptions: options }),
+    ];
+    const { model, history, requests } = fixture({ initial });
+    assert.equal(typeof model.editLayers, 'function');
+    assert.equal(model.editLayers(initial.map(({ layerId, buildOptions }) => ({
+        layerId, edit: { buildOptions: { ...buildOptions, vertexMode: 'birdeye' } },
+    }))), true);
+    assert.equal(history.length, 2);
+    assert.equal(model.editGeneration.value, 1);
+    assert.deepEqual(history[1].map(({ buildOptions }) => buildOptions.vertexMode), Array(3).fill('birdeye'));
+    await tick();
+    assert.deepEqual(requests.map(({ layerId, reqGen }) => [layerId, reqGen]), initial.map(({ layerId }) => [layerId, 1]));
+    const undo = model.undo();
+    assert.equal(undo.restored, true);
+    assert.deepEqual(model.capture(), initial);
+    assert.equal(await undo.settled, true);
+    assert.equal(model.editGeneration.value, 2);
+    assert.equal(history.length, 2);
+});
+
+test('再レビュー 3　W1 の履歴抑止が生成の完了を待たず次の編集を記録する', async () => {
+    const suppression = useHistorySuppression();
+    const jobs = controlledTin();
+    const initial = [layer('main'), layer('sub:a')];
+    const stack = new UndoStack(initial);
+    const { model } = fixture({
+        initial,
+        build: jobs.build,
+        makeHistory: () => ({
+            commit(snapshot) {
+                if (!suppression.suppressed.value) stack.push(snapshot);
+            },
+            undo() { stack.undo(); return stack.current(); },
+            redo() { stack.redo(); return stack.current(); },
+            withoutHistoryAsync: (apply) => suppression.withoutHistoryAsync('adopt-crs', apply),
+        }),
+    });
+    model.editLayer('main', { gcps: gcps(3) });
+    await tick();
+    jobs.waiting[0].resolve(fakeTin(jobs.waiting[0].request));
+    await tick();
+    const restoring = suppression.withoutHistoryAsync('W1', () => model.undo());
+    assert.equal(suppression.suppressed.value, true);
+    assert.deepEqual(model.capture(), initial);
+    await tick();
+    assert.equal(jobs.waiting.length, 3);
+    assert.equal(suppression.suppressed.value, false);
+    const undo = await restoring;
+    assert.equal(undo.restored, true);
+    assert.ok(undo.settled instanceof Promise);
+    assert.equal(tinState(model).status, 'stale');
+
+    assert.equal(model.editLayer('main', { gcps: gcps(6) }), true);
+    assert.equal(stack.snapshot().pointer, 1);
+    assert.deepEqual(stack.current()[0].gcps, gcps(6));
+    jobs.waiting[1].resolve(fakeTin(jobs.waiting[1].request));
+    jobs.waiting[2].resolve(fakeTin(jobs.waiting[2].request));
+    assert.equal(await undo.settled, false);
+    for (const job of jobs.waiting.slice(3)) job.resolve(fakeTin(job.request));
+    await tick();
+    assert.deepEqual(model.capture(), stack.current());
+});
+
+test('採用の反映開始後は抑止解除の待ち時間も取消を受け付けない', async () => {
+    const entered = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    const { model, events } = fixture({
+        makeHistory: () => ({
+            commit: () => events.push('履歴記録'),
+            async withoutHistoryAsync(apply) {
+                apply();
+                entered.resolve();
+                await release.promise;
+            },
+        }),
+    });
+    const adopting = model.startAdoption('main', selection);
+    await entered.promise;
+    assert.equal(model.adoptionInProgress.value, true);
+    assert.deepEqual(model.capture(), [layer('main', selection)]);
+    assert.equal(model.cancelAdoption(), false);
+    assert.deepEqual(events, []);
+    release.resolve();
+    assert.equal((await adopting).status, 'adopted');
+    assert.deepEqual(events, ['履歴記録']);
+});
+
+test('旧世代の finally が新世代の要求を消さず保存と再要求で同じ完了を待つ', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ build: jobs.build });
+    const old = model.requestTin('main');
+    await tick();
+    model.editLayer('main', { gcps: gcps(4) });
+    const current = model.requestTin('main');
+    await tick();
+    assert.equal(jobs.waiting.length, 2);
+    jobs.waiting[0].resolve({ tin: '古い結果' });
+    assert.equal(await old, false);
+    assert.equal(model.requestTin('main'), current);
+    const writes = [];
+    const saving = saveThrough(model, writes);
+    await tick();
+    assert.equal(jobs.waiting.length, 2);
+    jobs.waiting[1].resolve({ tin: '現在の結果' });
+    assert.equal(await current, true);
+    assert.deepEqual(await saving, saved);
+    assert.deepEqual(writes[0].tins, ['現在の結果']);
+});
+
+test('離脱後は新しい編集・復元・生成・保存を受け付けない', async () => {
+    const { model, history, requests } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    const before = model.capture();
+    model.dispose();
+    assert.equal(model.editLayer('main', { edges }), false);
+    assert.equal(model.editLayers([{ layerId: 'main', edit: { edges } }]), false);
+    assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 3 }]), false);
+    assert.equal(model.removeLayer('sub:a'), false);
+    assert.equal(model.addLayer({ buildOptions: options }), undefined);
+    assert.equal(model.restoreDraft([layer('main')]).restored, false);
+    assert.equal(await model.requestTin('main'), false);
+    assert.deepEqual(await model.save(assert.fail), saveFailure('disposed'));
+    assert.deepEqual(model.capture(), before);
+    assert.deepEqual(history, [before]);
+    assert.equal(model.editGeneration.value, 0);
+    assert.equal(requests.length, 0);
+});
+
+test('生成に失敗した層があれば保存を中断し生成失敗を返す', async () => {
+    const { model } = fixture({
+        initial: [layer('main'), layer('sub:a')],
+        build(request) {
+            if (request.layerId === 'sub:a') throw new Error('副層の生成失敗');
+            return fakeTin(request);
+        },
+    });
+    assert.deepEqual(await model.save(assert.fail), saveFailure('buildFailed'));
+    assert.equal(tinState(model).status, 'ready');
+    assert.equal(tinState(model, 'sub:a').status, 'failed');
+});
+
+test('順位変更で undefined の鍵を残さず、空編集を変更扱いにしない', async () => {
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 2 }]), true);
+    assert.equal(Object.hasOwn(model.capture()[1], 'importance'), false);
+    assert.equal(model.editLayer('sub:a', {}), false);
+});
+
+test('requestTin の直後に別層を編集した場合は古い世代の build を始めず再要求する', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')], build: jobs.build });
+    const first = model.requestTin('main');
+    assert.equal(model.editLayer('sub:a', { edges }), true);
+    await tick();
+    const mainRequests = jobs.waiting.filter(({ request }) => request.layerId === 'main');
+    assert.equal(mainRequests.length, 1);
+    assert.equal(mainRequests[0].request.reqGen, 1);
+    assert.equal(await first, false);
+    const retry = mainRequests[0];
+    retry.resolve({ tin: '現在世代の主図' });
+    for (const job of jobs.waiting.filter(({ request }) => request.layerId === 'sub:a')) {
+        job.resolve({ tin: '現在世代の副層' });
+    }
+    await tick();
+    assert.equal(tinState(model).tin, '現在世代の主図');
+});
+
+test('採用中に届いた古い応答は取消後に持ち越し再要求される', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')], build: jobs.build });
+    const old = model.requestTin('sub:a');
+    await tick();
+    model.editLayer('main', { gcps: gcps(9) });
+    const adopting = model.startAdoption('main', selection);
+    await tick();
+    jobs.waiting[0].resolve({ tin: '古い副層' });
+    assert.equal(await old, false);
+    assert.equal(model.cancelAdoption(), true);
+    assert.equal((await adopting).status, 'cancelled');
+    await tick();
+    const retry = jobs.waiting.find(({ request }) => request.layerId === 'sub:a' && request.reqGen === model.editGeneration.value);
+    assert.ok(retry);
+    retry.resolve({ tin: '再要求した副層' });
+    await tick();
+    assert.equal(tinState(model, 'sub:a').status, 'ready');
+    assert.equal(tinState(model, 'sub:a').tin, '再要求した副層');
+});
+
+test('主図の削除を拒否し、未知の層の削除で履歴を作らない', async () => {
+    const { model, history } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.removeLayer('main'), false);
+    assert.equal(model.removeLayer('sub:unknown'), false);
+    assert.equal(history.length, 1);
+});
+
+test('addLayer と removeLayer の順位更新を同じ履歴へ含める', async () => {
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a', { priority: 1 })] });
+    const added = model.addLayer({ buildOptions: subOptions }, [{ layerId: 'sub:a', priority: 4 }]);
+    assert.ok(added);
+    assert.equal(model.capture()[1].priority, 4);
+    assert.equal(model.capture().length, 3);
+    assert.equal(model.removeLayer(added, [{ layerId: 'sub:a', priority: 2 }]), true);
+    assert.equal(model.capture().length, 2);
+    assert.equal(model.capture()[1].priority, 2);
+});
+
+test('dispose は未確定の採用を取り消す', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ build: jobs.build });
+    const adopting = model.startAdoption('main', selection);
+    await tick();
+    model.dispose();
+    assert.equal((await adopting).status, 'cancelled');
+    assert.equal(model.adoptionInProgress.value, false);
+    jobs.waiting[0].resolve({ tin: '遅れて届いた採用結果' });
+});
+
+test('復元時に生成に失敗した層があれば settled は false', async () => {
+    const { model } = fixture({
+        initial: [layer('main'), layer('sub:a')],
+        build(request) {
+            if (request.layerId === 'sub:a') throw new Error('副層の生成失敗');
+            return fakeTin(request);
+        },
+    });
+    const restored = model.restoreDraft([layer('main'), layer('sub:a')]);
+    assert.equal(restored.restored, true);
+    assert.equal(await restored.settled, false);
+});
+
+test('editLayers は未知または重複した層 ID を拒否する', async () => {
+    const { model, history } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.editLayers([{ layerId: 'missing', edit: { edges } }]), false);
+    assert.equal(model.editLayers([
+        { layerId: 'sub:a', edit: { edges } },
+        { layerId: 'sub:a', edit: { gcps: gcps(4) } },
+    ]), false);
+    assert.equal(history.length, 1);
+    assert.equal(model.editGeneration.value, 0);
+});
+
+test('compiled の種付け後は編集した層だけを生成し、未編集層の保存済み結果を使い続ける', async () => {
+    const mainSeed = { tin: { compiled: '以前の主図' }, diagnostics: ['主図の診断'] };
+    const subSeed = { tin: { compiled: '以前の副層' } };
+    const writes = [];
+    const { model, requests } = fixture({
+        initial: [layer('main'), layer('sub:a')],
+        initialTins: new Map([['main', mainSeed], ['sub:a', subSeed]]),
+    });
+    assert.deepEqual(tinState(model), { status: 'ready', ...mainSeed });
+    assert.deepEqual(await saveThrough(model, writes), saved);
+    assert.equal(requests.length, 0);
+    assert.equal(writes[0].tins[0], mainSeed.tin);
+    assert.equal(writes[0].tins[1], subSeed.tin);
+
+    assert.equal(model.editLayer('main', { gcps: gcps(4) }), true);
+    assert.deepEqual(await saveThrough(model, writes), saved);
+    assert.deepEqual(requests.map(({ layerId }) => layerId), ['main']);
+    assert.notEqual(writes[1].tins[0], mainSeed.tin);
+    assert.equal(writes[1].tins[1], subSeed.tin);
+    assert.ok(!('tin' in model.capture()[1]));
+});
+
+test('保存の書き込み中は文書の変更を拒否し、書き込み失敗の後は編集できる', async () => {
+    const started = Promise.withResolvers();
+    const write = Promise.withResolvers();
+    const { model, history, readPointer } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    model.editLayer('main', { edges });
+    const before = model.capture();
+    const saving = model.save((payload) => {
+        started.resolve(payload);
+        return write.promise;
+    });
+    const payload = await started.promise;
+    assert.equal(model.saveWriting.value, true);
+    assert.deepEqual(payload.layers, before);
+    assert.deepEqual(await model.save(assert.fail), saveFailure('saving'));
+    assert.equal(model.editLayer('main', { gcps: gcps(5) }), false);
+    assert.equal(model.editLayers([{ layerId: 'sub:a', edit: { edges } }]), false);
+    assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 1 }]), false);
+    assert.equal(model.addLayer({ buildOptions: options }), undefined);
+    assert.equal(model.removeLayer('sub:a'), false);
+    assert.equal(model.undo().restored, false);
+    assert.equal(model.redo().restored, false);
+    assert.equal(model.restoreDraft([layer('main')]).restored, false);
+    assert.equal(readPointer(), 1);
+    assert.equal(history.length, 2);
+    assert.equal(model.editGeneration.value, 1);
+    assert.deepEqual(model.capture(), before);
+
+    write.reject(new Error('書き込み失敗'));
+    assert.deepEqual(await saving, saveFailure('writeFailed'));
+    assert.equal(model.saveWriting.value, false);
+    assert.deepEqual(await model.save(() => false), saveFailure('writeFailed'));
+    assert.equal(model.editLayer('main', { gcps: gcps(6) }), true);
+    assert.deepEqual(await model.save(() => {}), saved);
+});
+
+test('値が同じ編集では履歴・世代・揮発状態が変わらない', async () => {
+    const { model, history, requests } = fixture();
+    await model.requestTin('main');
+    const previous = tinState(model);
+    const edit = { ...layer('main'), buildOptions: { yaxisMode: 'invert', vertexMode: 'plain', strictMode: 'strict' } };
+    assert.equal(model.editLayer('main', edit), false);
+    assert.equal(model.editLayer('main', {}), false);
+    assert.equal(model.editLayers([]), false);
+    assert.equal(history.length, 1);
+    assert.equal(model.editGeneration.value, 0);
+    assert.equal(tinState(model), previous);
+    assert.equal(requests.length, 1);
+});
+
+test('履歴アダプターが反映を呼ばなければ採用成功や履歴を返さない', async () => {
+    const { model, events } = fixture({
+        makeHistory: () => ({
+            commit: () => events.push('履歴記録'),
+            withoutHistoryAsync: async () => {},
+        }),
+    });
+    const before = model.capture();
+    assert.equal((await model.startAdoption('main', selection)).status, 'failed');
+    assert.equal(model.adoptionInProgress.value, false);
+    assert.equal(model.editGeneration.value, 0);
+    assert.deepEqual(model.capture(), before);
+    assert.deepEqual(events, []);
 });
