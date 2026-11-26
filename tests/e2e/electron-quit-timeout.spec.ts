@@ -116,6 +116,28 @@ test.describe('quitElectronApplication', () => {
     }
   });
 
+  test('an application object that Playwright has already disposed returns without throwing', async () => {
+    // Playwright disposes the ElectronApplication object once the child process has exited and its
+    // stdio has closed. From then on app.process() throws this TypeError (Playwright 1.64).
+    const disposedApp = {
+      process: () => {
+        throw new TypeError("Cannot read properties of undefined (reading '_object')");
+      },
+      evaluate: async () => {
+        throw new Error('evaluate() must not be called on a disposed application');
+      },
+    } as unknown as ElectronApplication;
+    const warnings = captureWarnings();
+    try {
+      const startedAt = Date.now();
+      await expect(quitElectronApplication(disposedApp, { timeoutMs: 10_000 })).resolves.toBeUndefined();
+      expect(Date.now() - startedAt).toBeLessThan(1_000);
+      expect(warnings.messages).toHaveLength(0);
+    } finally {
+      warnings.restore();
+    }
+  });
+
   test('a failing evaluate() still ends the child with SIGTERM', async () => {
     const child = await spawnChild(LONG_RUNNING_CHILD);
     const warnings = captureWarnings();
