@@ -25,7 +25,8 @@ import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement
 import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
-import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
+import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
+import { applyTinGeometry, resolveTinBuildOptions } from '../../src/utils/tinOptions';
 import { csvGeoCoordToTarget } from '../../src/utils/crsProjection';
 
 // composeDownloadMapJson は mapDownloadZip.ts へ移設した。
@@ -35,21 +36,17 @@ import { csvGeoCoordToTarget } from '../../src/utils/crsProjection';
 export { composeDownloadMapJson } from '../utils/mapDownloadZip';
 
 async function createTinFromGcpsAsync(
-    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any, tinOptions?: Record<string, unknown>
-): Promise<any> {
+    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions
+): Promise<{ compiled: any; boundaryDiagnostics: BoundaryDiagnostics | null } | string> {
     if (gcps.length < 3) return 'tooLessGcps';
     return new Promise((resolve, reject) => {
-        const tin = new Tin(tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }));
-        if (wh) {
-            tin.setWh(wh);
-        } else if (bounds) {
-            tin.setBounds(bounds);
-        } else {
+        // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
+        const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
+        const tin = new Tin(options);
+        if (!applyTinGeometry(tin, options, { wh, bounds })) {
             reject('Both wh and bounds are missing');
             return;
         }
-        tin.setStrictMode(strict);
-        tin.setVertexMode(vertex);
         tin.setPoints(gcps);
         tin.setEdges(edges);
         tin.updateTinAsync()
@@ -110,17 +107,15 @@ export const registerMapEditHandlers = () => {
     // TIN計算をNode.jsプロセスで実行してコンパイル済みデータを返す
     ipc.handle('mapedit:updateTin', async (
         _event,
-        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: Record<string, unknown>
+        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions
     ) => {
         try {
             const wh = index === 0 ? bounds : null;
             const bd = index !== 0 ? bounds : null;
             const compiled = await runGuarded('mapedit:updateTin',
                 () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex, tinOptions));
-            if (compiled && typeof compiled === 'object' && 'compiled' in compiled) {
-                return [index, compiled.compiled, compiled.boundaryDiagnostics];
-            }
-            return [index, compiled, null];
+            if (typeof compiled === 'string') return [index, compiled, null];
+            return [index, compiled.compiled, compiled.boundaryDiagnostics];
         } catch (e) {
             console.error('Failed to handle mapedit:updateTin', e);
             throw e;

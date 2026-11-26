@@ -91,7 +91,7 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 // @ts-ignore
 import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
-import { WorldFileSurface, type CrsObject } from '@maplat/transform';
+import { Transform, WorldFileSurface, type CrsObject, type CompiledTransformData, type StrictMode } from '@maplat/transform';
 import { crsToLonLat, crsToMercator, mercatorToCrs, lonLatToCrs, CrsReprojectionError } from '../utils/crsProjection';
 import { compiledGeoJsonToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
@@ -662,7 +662,7 @@ watch(currentEditingLayer, (newLayer) => {
 });
 
 // const editingID_ = ref('');
-const strictMode = ref('auto');
+const strictMode = ref<StrictMode>('auto');
 const vertexMode = ref<'plain' | 'birdeye'>('plain');
 
 // const editableGCPID = computed({
@@ -694,7 +694,7 @@ type MapEditHistoryState = {
     edges: any[];
     homePosition: any;
     mercZoom: number | undefined;
-    strictMode: string;
+    strictMode: StrictMode;
     vertexMode: 'plain' | 'birdeye';
     currentEditingLayer: number;
     layerIds?: string[];

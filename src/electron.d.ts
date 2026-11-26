@@ -1,3 +1,5 @@
+import type { Options as TinOptions } from '@maplat/tin';
+import type { CrsObject } from '@maplat/transform';
 import type { PoiImportParseResult } from './utils/poiImportRows';
 import type { CrsEstimationAPI } from './types/crsEstimation';
 import type { LoadFailureReason } from './components/resource-list/loadFailure';
@@ -410,7 +412,7 @@ export interface MapEditAPI {
     // 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準）
     getBaseMapShiftsOfMapID(mapRef: string): Promise<Array<{ baseMapUid: string; mapID: string; x: number; y: number }>>;
     setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void>;
-    updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
+    updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions): Promise<any>;
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
@@ -445,7 +447,7 @@ export interface WmtsGenAPI {
         extKey: string,
         hash: string,
         targetBaseMapUid: string,
-        crs?: { epsg?: number; proj4?: string; authority?: string; code?: string | number; wkt?: string },
+        crs?: CrsObject,
     ): Promise<{
         hash: string;
         tileJson?: MercTileJsonDocument;

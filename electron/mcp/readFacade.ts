@@ -9,7 +9,7 @@ import fs from 'fs-extra';
 import StorageAdapter from '../adapters/ElectronStorageAdapter';
 import { UUID_PATTERN, type MapListOptions, type MapListRequest, type MapListResult } from '../adapters/StorageAdapter';
 import SettingsService from '../services/SettingsService';
-import { Transform, MapTransform, createProj4ProjectionEngine } from '@maplat/transform';
+import { Transform, MapTransform, createProj4ProjectionEngine, type SurfaceLike } from '@maplat/transform';
 // @ts-ignore
 import proj4 from 'proj4';
 import { WEB_MERCATOR_MAX_LAT, mercatorToWgs84, wgs84ToMercator } from '../utils/webMercator';
@@ -178,36 +178,32 @@ export async function transformPoints(
   if (map?.tinEnabled === false || map?.worldFile) throw new Error('world file maps are not supported by this tool yet');
   const compiled = compiledOf(map);
   if (!compiled) return null;
-  const mapTransform = new MapTransform();
-  if (map?.crs) {
-    mapTransform.setLayeredMapData({
-      main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) },
-      ...(Array.isArray(map.sub_maps) ? { sub_maps: map.sub_maps.map((sub: any) => ({
-        kind: 'tin' as const, compiled: sub.compiled as never, crs: sub.crs,
-        projectionEngine: createProj4ProjectionEngine(proj4 as never), bounds: sub.bounds,
-        priority: sub.priority, importance: sub.importance,
-      })) } : {}),
-    });
-  } else {
+  if (!map?.crs) {
     const transform = new Transform();
     transform.setCompiled(compiled as never);
     transform.addIndexedTin();
-    // Legacy maps retain the original 3857 path.
+    // crs の無い地図は従来どおりの 3857 の経路。
     return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
   }
+  // 変換に使うのは主図だけ（getSurfaceTransform(0)）。副層は compiled が無いもの（A・未作成）もあり、
+  // 渡すと初期化で落ちるので渡さない。
+  const mapTransform = new MapTransform();
+  mapTransform.setLayeredMapData({
+    main: { kind: 'tin', compiled: compiled as never, crs: map.crs, projectionEngine: createProj4ProjectionEngine(proj4 as never) },
+  });
   const transform = mapTransform.getSurfaceTransform(0);
   if (!transform) return null;
   return transformPointsUsing(transform, points, direction, signal, map.width, map.height);
 }
 
 async function transformPointsUsing(
-  transform: { transform(coord: number[], backward?: boolean, ignoreBounds?: boolean): number[] | false },
+  transform: SurfaceLike & { strict_status?: string },
   points: readonly Point[], direction: TransformDirection, signal: AbortSignal | undefined,
   mapWidth: number, mapHeight: number,
 ): Promise<(Point | null)[]> {
   const backward = direction === 'backward';
-  if (backward && (transform as any).strict_status === Transform.STATUS_ERROR) throw new Error('backward not available');
-  const [width, height] = (transform as any).wh ?? [mapWidth, mapHeight];
+  if (backward && transform.strict_status === Transform.STATUS_ERROR) throw new Error('backward not available');
+  const [width, height] = transform.wh ?? [mapWidth, mapHeight];
   const onImage = (x: number, y: number) => x >= 0 && y >= 0 && x <= width && y <= height;
   const out: (Point | null)[] = [];
   for (let i = 0; i < points.length; i++) {

@@ -1,5 +1,6 @@
 import Tin from '@maplat/tin';
-import { resolveTinBuildOptions } from '../utils/tinOptions';
+import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
+import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions';
 
 interface TinUpdateRequest {
   gcps: any[];
@@ -8,7 +9,7 @@ interface TinUpdateRequest {
   bounds: any;
   strict: any;
   vertex: any;
-  tinOptions?: Record<string, unknown>;
+  tinOptions?: TinOptions;
 }
 
 interface WorkerRequest {
@@ -31,22 +32,18 @@ function normalizeTinError(err: unknown): string | null {
   return null;
 }
 
-async function updateTin(payload: TinUpdateRequest): Promise<[number, any, any?]> {
+async function updateTin(payload: TinUpdateRequest): Promise<[number, any, BoundaryDiagnostics | null]> {
   const { gcps, edges, index, bounds, strict, vertex, tinOptions } = payload;
-  if (gcps.length < 3) return [index, 'tooLessGcps'];
+  if (gcps.length < 3) return [index, 'tooLessGcps', null];
 
+  // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
+  const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
+  const tin = new Tin(options);
   const wh = index === 0 ? bounds : null;
   const bd = index !== 0 ? bounds : null;
-  const tin = new Tin(tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }));
-  if (wh) {
-    tin.setWh(wh);
-  } else if (bd) {
-    tin.setBounds(bd);
-  } else {
+  if (!applyTinGeometry(tin, options, { wh, bounds: bd })) {
     throw new Error('Both wh and bounds are missing');
   }
-  tin.setStrictMode(strict);
-  tin.setVertexMode(vertex);
   tin.setPoints(gcps);
   tin.setEdges(edges);
 
@@ -55,7 +52,7 @@ async function updateTin(payload: TinUpdateRequest): Promise<[number, any, any?]
     return [index, tin.getCompiled(), tin.boundaryDiagnostics ?? null];
   } catch (err) {
     const normalized = normalizeTinError(err);
-    if (normalized) return [index, normalized];
+    if (normalized) return [index, normalized, null];
     throw err;
   }
 }

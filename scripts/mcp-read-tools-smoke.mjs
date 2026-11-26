@@ -507,6 +507,23 @@ try {
           result.points.forEach((point: number[], i: number) => near(point, expected[i], 1e-7, \`IX \${name} projected conversion \${i} matches independent proj4 result\`));
         }
         await failed('maps.transform', { map: mapA.uid, direction: 'forward', points: [[25, 30]] }, /^world file maps are not supported by this tool yet$/, 'IX A world-file transform has its dedicated unsupported error');
+        // 変換に使うのは主図だけ。非 3857 の C の主図に A 相当の副層と未作成の副層があっても変換できる。
+        {
+          const mapWithSubs = { uid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', slug: 'mcp-ix-c-subs' };
+          const subBounds = [[0, 0], [100, 0], [100, 80], [0, 80]];
+          await SqliteDataService.createMap(mapWithSubs.slug, {
+            ...projectedBase, compiled: compiledC,
+            sub_maps: [
+              { tinEnabled: false, crs: IX, worldFile, width: 100, height: 80, bounds: subBounds, gcps: [], edges: [], priority: 1, importance: 1 },
+              { crs: IX, gcps: projectedGcps, edges: [], bounds: subBounds, priority: 2, importance: 1 },
+            ],
+          }, mapWithSubs.uid);
+          rebaseline();
+          const withSubs = await ok('maps.transform', { map: mapWithSubs.uid, direction: 'forward', points: coordinates });
+          withSubs.points.forEach((point: number[], i: number) => near(point, expected[i], 1e-7, \`IX C with A and uncreated sub layers: conversion \${i} matches the main layer only\`));
+          const back = await ok('maps.transform', { map: mapWithSubs.uid, direction: 'backward', points: expected });
+          back.points.forEach((point: number[], i: number) => near(point, coordinates[i], 1e-3, \`IX C with sub layers: backward conversion \${i} returns the image point\`));
+        }
         assert.deepEqual(snapshot(), filesBefore, 'projected MCP transforms do not write files');
         assert.equal(changes(), changesBefore, 'projected MCP transforms do not change database rows');
         console.log('ok: maps.transform converts IX B/C with independent proj4 expectations and gives A its dedicated error');

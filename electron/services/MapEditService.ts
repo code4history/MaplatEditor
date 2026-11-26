@@ -17,7 +17,7 @@ import { draftTileRoot, isDraftTileUrl, resolveDraftTileDir, resolveStagingDirFr
 // 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
 // （インライン派生を製品コードに残さない）。
 import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
-import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
+import { applyTinGeometry, resolveTinBuildOptions } from '../../src/utils/tinOptions';
 // @ts-ignore
 import Tin from '@maplat/tin';
 
@@ -139,17 +139,15 @@ class MapEditService {
 
     private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any, layer: any = {}) {
         if (gcps.length < 3) throw new Error('appedit.preview.too_less_gcps');
+        // 未作成の層は、層の直下の yaxisMode（無ければ Tin の既定）で作る。
         const tinOptions = resolveTinBuildOptions(layer, {
             strictMode: strict || 'strict',
             vertexMode: vertex || 'plain',
-            yaxisMode: layer?.compiled?.yaxisMode,
         });
+        if (!tinOptions) throw new Error('appedit.preview.tin_disabled');
         const tin = new Tin(tinOptions);
-        if (wh?.[0] && wh?.[1]) {
-            tin.setWh(wh);
-        } else if (bounds) {
-            tin.setBounds(bounds);
-        } else {
+        const wholeImage = wh?.[0] && wh?.[1] ? wh : null;
+        if (!applyTinGeometry(tin, tinOptions, { wh: wholeImage, bounds })) {
             throw new Error('appedit.preview.missing_bounds');
         }
         tin.setPoints(gcps);

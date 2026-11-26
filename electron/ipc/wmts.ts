@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron';
+import type { CrsObject } from '@maplat/transform';
 import { ipc } from './registry';
 import WmtsGeneratorService from '../services/WmtsGeneratorService';
 // #100: 長時間 IPC ハンドラを uncaughtException 時の settle 保証で wrap する
@@ -19,7 +20,7 @@ export function registerWmtsHandlers() {
         extKey: string,
         hash: string,
         targetBaseMapUid: string,
-        crs?: any
+        crs?: CrsObject
     ) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
         return await runGuarded('wmtsGen:generate', () =>
