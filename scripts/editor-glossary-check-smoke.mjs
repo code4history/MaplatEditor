@@ -617,6 +617,30 @@ try {
     const rb = run(bad);
     check('旧文言: pendingTexts に 11 言語の全文が無ければ構造エラー', rb.status === 1 && findings(rb, (v) => v.kind === 'structure' && /pendingTexts common\.future_asset に旧文言が無い言語/.test(v.message ?? '')).length === 1, summarize(rb));
 
+    // locale にまだ無いキーの文言は記録できない（未来の文言が検査されなくなるため）
+    const futureKey = makeRepo('pending-text-future-key');
+    addFutureConcept(futureKey, { oldTexts: wrongAll });
+    const rfk = run(futureKey);
+    check('旧文言: locale のどの言語にも無いキーを pendingTexts に記録すると構造エラー', rfk.status === 1 && findings(rfk, (v) => v.kind === 'structure' && /pendingTexts common\.future_asset が locale のどの言語にも無い/.test(v.message ?? '')).length === 1, summarize(rfk));
+    // pendingKeys に無いキーの記録は構造エラー
+    const notPending = makeRepo('pending-text-not-pending');
+    addFutureConcept(notPending);
+    editGlossary(notPending, (g) => { g.concepts.find((c) => c.id === 'future-asset').pendingTexts = { 'common.save': wrongAll }; });
+    const rnp = run(notPending);
+    check('旧文言: pendingKeys に無いキーを pendingTexts に記録すると構造エラー', rnp.status === 1 && findings(rnp, (v) => v.kind === 'structure' && /pendingTexts common\.save は pendingKeys に無い/.test(v.message ?? '')).length === 1, summarize(rnp));
+    // 文言が誤っていて赤のときは、消し待ち（unused-pending-key）の案内を出さない
+    check('旧文言: 誤った文言で赤のときは unused-pending-key を出さない（記録なし）', !(rn.report?.warnings ?? []).some((w) => w.kind === 'unused-pending-key' && w.concept === 'future-asset'), summarize(rn));
+    check('旧文言: 誤った文言で赤のときは unused-pending-key を出さない（記録あり）', !(rw.report?.warnings ?? []).some((w) => w.kind === 'unused-pending-key' && w.concept === 'future-asset'), summarize(rw));
+    // 新しい概念の先行登録・旧文言の記録も、関門の要約（緩める変更）に出る
+    const gateNew = makeRepo('pending-text-gate-summary');
+    const baseNew = git(gateNew, 'rev-parse', 'HEAD');
+    addFutureConcept(gateNew, { key: 'common.save', oldTexts });
+    run(gateNew, ['--write']);
+    commitAll(gateNew, 'glossary new concept');
+    const rgs = run(gateNew, ['--base', baseNew]);
+    const sum = rgs.report?.glossaryChangeSummary ?? '';
+    check('旧文言: 新しい概念の pendingKeys・pendingTexts が関門の要約に出る', /pendingKeys に先行登録した: future-asset: common\.save/.test(sum) && /旧文言のまま先行登録できるようにした（pendingTexts）: future-asset: common\.save ja: 旧文言/.test(sum), summarize(rgs) + sum.slice(0, 400));
+
     const undeclared = makeRepo('pending-root-key-undeclared');
     addFutureConcept(undeclared, { declare: false });
     const r3 = run(undeclared);

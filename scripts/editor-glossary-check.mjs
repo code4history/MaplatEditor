@@ -311,6 +311,8 @@ export function validateSemantics(glossary, exceptions, keys, pending = [], loca
     }
     for (const [k, texts] of Object.entries(c.pendingTexts ?? {})) {
       if (!declared.has(k)) errors.push(`${c.id}: pendingTexts ${k} は pendingKeys に無い（旧文言を記録できるのは先行登録したキーだけ）`);
+      const exists = glossary.locales.some((l) => (localeValues ? localeValues[l]?.has(k) : l === 'ja' && keys.has(k)));
+      if (!exists) errors.push(`${c.id}: pendingTexts ${k} が locale のどの言語にも無い（記録できるのは、locale に既にある旧い文言だけ。まだ無いキーの文言は記録せず、locale の PR で足す）`);
       const lacking = glossary.locales.filter((l) => typeof texts[l] !== 'string');
       if (lacking.length) errors.push(`${c.id}: pendingTexts ${k} に旧文言が無い言語がある（11 言語すべての全文を記録する。不足: ${lacking.join(', ')}）`);
     }
@@ -677,9 +679,15 @@ export function diffCanonical(oldG, oldEx, newG, newEx) {
     for (const x of setDiff(B, A)) addTo.push(`${addLabel}: ${x}`);
     for (const x of setDiff(A, B)) delTo.push(`${delLabel}: ${x}`);
   };
+  const ptOf = (id, c) => Object.entries(c.pendingTexts ?? {}).flatMap(([k, m]) => Object.entries(m).map(([l, t]) => `${id}: ${k} ${l}: ${t}`));
   for (const [id, b] of newC) {
     const a = oldC.get(id);
-    if (!a) continue;
+    if (!a) {
+      // 新しい概念でも、先行登録と旧文言の記録は要約に出す（locale の検査を緩める入口のため）
+      listDiff([], (b.pendingKeys ?? []).map((k) => `${id}: ${k}`), loosen, 'pendingKeys に先行登録した', tighten, 'pendingKeys の先行登録を外した');
+      listDiff([], ptOf(id, b), loosen, '旧文言のまま先行登録できるようにした（pendingTexts）', tighten, 'pendingTexts の旧文言の記録を外した');
+      continue;
+    }
     pairDiff(a, b, 'acceptedForms', loosen, '許容形を足した', tighten, '許容形を外した', id);
     pairDiff(a, b, 'formerForms', tighten, '統一前の形を足した', loosen, '統一前の形を外した', id);
     pairDiff(a, b, 'forbidden', tighten, '禁止形を足した', loosen, '禁止形を外した', id);
@@ -689,8 +697,7 @@ export function diffCanonical(oldG, oldEx, newG, newEx) {
     listDiff(na(a), na(b), loosen, '錨から外した', tighten, '錨に戻した');
     listDiff((a.additionalBindings ?? []).map((k) => `${id}: ${k}`), (b.additionalBindings ?? []).map((k) => `${id}: ${k}`), loosen, 'additionalBindings を足した', tighten, 'additionalBindings を外した');
     listDiff((a.pendingKeys ?? []).map((k) => `${id}: ${k}`), (b.pendingKeys ?? []).map((k) => `${id}: ${k}`), loosen, 'pendingKeys に先行登録した', tighten, 'pendingKeys の先行登録を外した');
-    const pt = (c) => Object.entries(c.pendingTexts ?? {}).flatMap(([k, m]) => Object.entries(m).map(([l, t]) => `${id}: ${k} ${l}: ${t}`));
-    listDiff(pt(a), pt(b), loosen, '旧文言のまま先行登録できるようにした（pendingTexts）', tighten, 'pendingTexts の旧文言の記録を外した');
+    listDiff(ptOf(id, a), ptOf(id, b), loosen, '旧文言のまま先行登録できるようにした（pendingTexts）', tighten, 'pendingTexts の旧文言の記録を外した');
     listDiff(a.requiredLocales.map((l) => `${id}: ${l}`), b.requiredLocales.map((l) => `${id}: ${l}`), tighten, 'requiredLocales に足した', loosen, 'requiredLocales から外した');
     if (JSON.stringify(a.roles ?? null) !== JSON.stringify(b.roles ?? null)) other.push(`役割のパラメータを変えた: ${id}`);
     if (a.rootKey !== b.rootKey) other.push(`根拠キーを変えた: ${id}: ${a.rootKey} → ${b.rootKey}`);
@@ -830,10 +837,11 @@ export function runCheck({ root, write = false, base = null }) {
     staleBy.get(id).langs.push(x.lang);
   }
   for (const x of staleBy.values()) warnings.push({ kind: 'pending-key', type: 'rootKeyText', concept: x.concept, lang: '-', key: x.key, message: `先行登録した根拠キーが locale に既にあり、11 言語すべてが正本に記録した旧文言のまま（pendingTexts。locale の PR で直す。1 言語でも変えたら 11 言語で代表語を検査する）` });
-  // 先行登録したキーが 11 言語すべてにそろい、文言も代表語を満たしたら、pendingKeys から消し待ちであることを知らせる
+  // 先行登録したキーが 11 言語すべてにそろい、代表語も満たしたら（満たさない間は赤の違反だけを出す）、pendingKeys から消し待ちであることを知らせる
   for (const c of g.concepts) {
     for (const k of c.pendingKeys ?? []) {
       if (staleBy.has(`${c.id}\u0000${k}`)) continue;
+      if (reps.violations.some((v) => v.concept === c.id && v.key === k)) continue;
       if (langs.every((l) => loc.values[l]?.has(k))) warnings.push({ kind: 'unused-pending-key', type: 'pendingKeys', concept: c.id, lang: '-', key: k, message: '先行登録したキーが 11 言語すべてにそろった（pendingKeys から消す。消すのは正本だけの PR で）' });
     }
   }
