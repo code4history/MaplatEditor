@@ -59,7 +59,7 @@ test.describe('MapEdit: mount の途中で画面を離れたとき', () => {
 
       // 新規地図の編集画面を開き、onMounted が関門で止まるのを待つ
       await page.evaluate(() => { location.hash = '#/mapedit?new=1'; });
-      await expect.poll(() => app.evaluate(() =>
+      await expect.poll(() => app.evaluate(async () =>
         (globalThis as unknown as { __unmountGate: { calls: number } }).__unmountGate.calls), { timeout: 20000 }).toBe(1);
 
       // mount の途中で一覧へ移り、一覧が出て編集画面が消えるのを待つ
