@@ -135,7 +135,7 @@ function applyRanks(layers: TransformLayer[], updates: readonly LayerRankUpdate[
         const importance = update.importance ?? layer.importance;
         const priority = update.priority ?? layer.priority;
         if (importance === layer.importance && priority === layer.priority) return layer;
-        return { ...layer, importance, priority };
+        return copyLayer({ ...layer, importance, priority });
     });
 }
 
@@ -408,7 +408,15 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         const restored = snapshot.map(copyLayer);
         registerIds(restored);
         const generation = state.value.editGeneration + 1;
-        replaceDocument(restored, new Map(restored.map(({ layerId }) => [layerId, { status: 'stale' }])));
+        const volatile = new Map<string, Volatile>(restored.map(({ layerId }): [string, Volatile] => {
+            const previous = state.value.volatile.get(layerId);
+            return [layerId, {
+                status: 'stale' as const,
+                tin: previous?.tin,
+                diagnostics: previous && 'diagnostics' in previous ? previous.diagnostics : undefined,
+            }];
+        }));
+        replaceDocument(restored, volatile);
         const settled = Promise.all(restored.map(({ layerId }) => requestTin(layerId))).then((accepted) =>
             !disposed && state.value.editGeneration === generation && accepted.every(Boolean) &&
             restored.every(({ layerId }) => getTinState(layerId)?.status === 'ready'));

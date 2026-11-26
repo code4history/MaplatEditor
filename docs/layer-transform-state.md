@@ -24,15 +24,17 @@
 ## 読み込み・ラジオ・保存
 
 - `extractCompiledTins` が保存済みの `compiledTins` を文書から取り出す。読み込み時は保存上の層順を ID に対応づけ、保存された変換形から意図を復元し、各層の compiled の生成設定を優先する。compiled 側に無い設定は地図全体の値や既定値で補う。旧形式の下書きも同じ形に補完する。
-- `seedTinObjects` に相当する処理で、利用できる compiled を `setCompiled` 相当で読み込み、診断があれば合わせてモデルの `initialTins` に渡す。`tooLessGcps` や `compiledRequired` などの文字列は従来どおり未計算として扱う。初回表示は `ready` の層を描画し、種がなく生成が必要な層だけを依頼する。`reloadFromStore` でも同じ初期化を使い、旧モデルを `dispose()` して新しい文書と種を入れたモデルへ差し替える。
-- 「外周」の `vertexMode` と「エラー」の `strictMode` は地図全体に効く。ラジオの表示値を主図の `buildOptions` から読み、ユーザー操作を受ける setter からだけ、変更する設定を全層の `buildOptions` に入れる `editLayers` を一度呼ぶ。他方の設定と `yaxisMode` は各層の値を引き継ぐ。新規副層には主図の `strictMode`・`vertexMode` を初期値として渡す。
-- 設定の正本はモデル内の層ごとの `buildOptions`。Undo・Redo・下書き復元による表示値の変化は読み取り側に伝わる。既存の `watch(strictMode)`・`watch(vertexMode)` による `mapData` への書き戻しや再編集は setter に置き換える。保存コールバックでは同じ世代の `layers` の主図から地図全体の `strictMode`・`vertexMode` を書き出し、各層の結果は `tins` から書き出す。未編集で種付け済みの層は元の compiled を保持し、B が C へ降格した層は C の結果を保存する。
+- `seedTinObjects` に相当する処理で、利用できる compiled を `setCompiled` 相当で読み込み、診断があれば合わせてモデルの `initialTins` に渡す。`tooLessGcps` や `compiledRequired` などの文字列は従来どおり未計算として扱う。初回表示は `ready` の層を描画し、種がなく生成が必要な層だけを依頼する。初回読み込み・`reloadFromStore`・`importMap` は同じ初期化を使い、旧モデルを `dispose()` して新しい文書と種を入れたモデルへ差し替える。
+- 「外周」の `vertexMode` と「エラー」の `strictMode` は地図全体に効く。ラジオの表示値を主図の `buildOptions` から読み、ユーザーが値を選んだときは値が同じでも setter から変更対象の設定を全層の `buildOptions` に入れる `editLayers` を一度呼ぶ。他方の設定と `yaxisMode` は各層の値を引き継ぐ。新規副層には主図の `strictMode`・`vertexMode` を初期値として渡す。既存地図で compiled の層別設定と地図全体のラジオ値が食い違う場合も読み込みは compiled を優先する。ラジオを選び直すと全層を選択値へそろえるため、従来は編集した層だけがラジオ値で作り直されていた挙動が変わる。
+- 未編集で種付け済みの層は元の compiled を保持するが、Undo・Redo・下書き復元では全層を再生成する。復元直後は描画の継続用に以前の `tin` と診断を stale 状態へ持ち越し、現在世代の生成結果が届いた時点で置き換える。この保持・置換を状態試験で固定する。
+- 保存ペイロードの `tins` は `layers` と同じ配列順で、`tins[i]` は `layers[i]` の結果に対応する。
+- 設定の正本はモデル内の層ごとの `buildOptions`。Undo・Redo・下書き復元による表示値の変化は読み取り側に伝わる。既存の `watch(strictMode)`・`watch(vertexMode)` による `mapData` への書き戻しや再編集は setter に置き換える。保存コールバックでは同じ世代の `layers` の主図から地図全体の `strictMode`・`vertexMode` を書き出し、各層の結果は `tins` から書き出す。Undo・Redo・下書き復元を経ていない未編集で種付け済みの層は元の compiled を保持し、B が C へ降格した層は C の結果を保存する。復元時は全層を再生成し、以前の `tin` と診断を stale 状態へ持ち越して新しい生成結果で置き換える。この保持・置換を状態試験で固定する。
 
 ## 復元の呼び出し順
 
-1. メニュー・キー操作・画面の入口で `adoptionInProgress` と `saveWriting` を確認する。通過したら、保留中の履歴を確定してから W1 に入る。履歴アダプターは `canUndo()`・`canRedo()` を確認し、ポインタを一度だけ動かして復元先の層スナップショットを返す。対応する地図メタデータも同じ履歴項目から取得する。
+1. メニュー・キー操作・画面の入口で `adoptionInProgress`・`saveWriting`・`historySuppression.suppressed` を確認する。抑止中のモデル編集は `recordHistorySnapshot` が記録を落とすため、抑止中は操作を通さない。通過したら、保留中の履歴を確定してから W1 に入る。履歴アダプターは `canUndo()`・`canRedo()` を確認し、ポインタを一度だけ動かして復元先の層スナップショットを返す。対応する地図メタデータも同じ履歴項目から取得する。
 2. W1 の同期の区間で `undo()`・`redo()`・`restoreDraft(snapshot)` を呼ぶ。文書の差し替えは呼び出し中に終わる。`restored` が真なら、続けて同じ W1 の区間で地図メタデータ、選択中の層、編集用の一時状態を反映する。モデルから画面への反映と復元時の watcher は、履歴登録やモデルへの書き戻しを起こさずに処理する。
-3. W1 は Vue の watcher が処理される次の tick で解除する。`settled` は W1 の中で待たない。既存のタイル URL の再導出・タイルソースの同期はメタデータを復元した後に行い、派生値の書き戻しに抑止が必要なら、その反映の区間に掛ける。描画は表示対象の層と世代を確認してから更新する。`settled` が必要な処理は W1 の外で待つ。
+3. W1 は Vue の watcher が処理される次の tick で解除する。`settled` は W1 の中で待たない。既存のタイル URL の再導出・タイルソースの同期はメタデータを復元した後に行い、タイルソース交換に伴う書き戻しは `withoutHistoryAsync('W1', ...)` の W1 抑止内で行う。描画は表示対象の層と世代を確認してから更新する。`settled` が必要な処理は W1 の外で待つ。
 4. 下書き復元時は `draftLifecycle.apply` から同じ順で層とメタデータを反映する。新しく読み込む文書の `resetHistoryBase` は、モデルと地図メタデータをそろえた後に保留中の履歴タイマーを破棄し、`capture()` を含むスナップショットで基点を初期化する。いずれも基点の作成に三角網の完了を待つ必要はない。
 
 ## その他の既存の入口
@@ -42,10 +44,11 @@
 | `updateTin`、`tinObject`、`tinResultUpdate` | 呼び出し時に層 ID を確定する。生成が必要な層は `requestTin` を呼び、`ready` の層は受理済み結果を描画する。`buildTin(request)` から worker・IPC へ、`request.layer` の `gcps`・`edges`・`bounds`・`intent`・`buildOptions` を使って接続する。A はモデルが `'worldFile'` を返す。worker の compiled と診断は別の値として受け取り、通信失敗や採用を拒否すべき生成エラーは reject に変換する。通常編集で保存可能な `tooLessGcps` 等の応答は `tin` に入れる。 |
 | GCP・対応線の編集、`watch(gcps)`、`watch(edges)` | ドラッグ、数値入力、CSV、対応線編集などの書き込み元から、必要な点列と対応線を一度の `editLayer` に渡す。従来の深い watcher での再生成はモデルが開始する。画面に残す監視は描画・表示の同期を担当する。入力を非同期で取得する場合は、確定時にも層 ID とロックを確認する。 |
 | `boundsModifyEnd` | 画像座標に直した外周を、確定した層 ID の `editLayer(layerId, { bounds })` に渡す。 |
+| 画像の取り込み | `mapData.width`・`mapData.height` を書き換える経路（`MapEdit.vue:4205-4206` 付近）は、主図の三角網で `[width, height]` を bounds として使う（`MapEdit.vue:2837-2847` 付近）ため、モデル導入後は `editLayer('main', { bounds: [width, height] })` に接続する。 |
 | `watch(currentEditingLayer)` | 表示中の層 ID を求め、モデルから GCP・対応線・外周を表示し、編集用の一時状態を初期化する。生成済みならその結果で描画し、未計算なら `requestTin` に依頼する。選択変更に伴う表示の代入からモデルの編集を呼ばない。 |
 | `addSubMap`、`removeSubMap`、`upImportance`・`downImportance`・`upPriority`・`downPriority` | `addLayer`・`removeLayer`・`changeLayerRanks` に接続する。削除確認前に層 ID を控え、確認後に同じ ID を使う。順位の変更量は ID ごとにまとめる。 |
 | `WATCHED_FIELDS`、`captureHistoryState`、`commitHistorySnapshot` | `capture()` を地図メタデータと合わせて履歴・下書きに入れる。`history.commit(snapshot)` を `commitHistorySnapshot` へつなぎ、モデルが明示記録する項目の変更から別の履歴登録を起こさない。 |
 | CRS 採用、キーボード・メニュー操作 | `prepareAdoption(copy, selection, signal)` で一時コピー上の座標変換・往復検査を済ませる。`history.withoutHistoryAsync(apply)` を既存の `withoutHistoryAsync('adopt-crs', apply)` につなぎ、解除後に履歴を一件記録する。採用の開始前に入力欄のフォーカスを外し、`App.vue` のネイティブテキスト Undo への経路を閉じる。画面側の編集・保存確認・再推定・メニューの入口でもロックを確認する。 |
-| `saveMap`、`saveMapAfterConfirm`、`onBeforeUnmount` | 保留中の履歴確定や保存確認のダイアログより先にロックを確認する。保存確認後に `save` を呼び、そのコールバック内で既存の永続化へ渡す。離脱時は `dispose()` を呼ぶ。 |
+| `saveMap`、`saveMapAfterConfirm`、`onBeforeUnmount` | 保留中の履歴確定や保存確認のダイアログより先にロックを確認する。`startAdoption` は保存の生成待ち中も `rejected` を返すが、この間はモデルの `adoptionInProgress` と `saveWriting` のどちらにも現れないため、画面側は保存準備・保存中の印（`preparingSave` と `saving`）を使って採用の入口を閉じる。保存確認後に `save` を呼び、そのコールバック内で既存の永続化へ渡す。`writeFailed` の例外内容を画面表示に使う場合は、`persist` の catch 内で例外を控える。離脱時は `dispose()` を呼ぶ。 |
 
 `resolveTinBuildOptions` の所在は J6-T1b の `jan27/j6-t1b-projection-paths:src/utils/tinOptions.ts`。呼び出しは `resolveTinBuildOptions(layer, layerBuildOptions, intent)`。第 1 引数は `crs`・`worldFile` などの層直下の鍵と、利用する場合は `compiled` を持つ層のオブジェクト。旧 V2 層には `crs` 鍵を付けず、採用済みの層は現在の意図に合う値を渡す。第 2 引数には対象層の `buildOptions`（`strictMode`・`vertexMode`・`yaxisMode`）、第 3 引数には `intent.setup` を渡す。worker・Electron IPC・比較のプレビューは解決済みの設定で生成する。

@@ -312,11 +312,14 @@ test('表 8　Undo・Redo・下書きの復元は全層を古くして同じ入�
         [2, model.undo, history[0]], [3, model.redo, changed],
         [4, () => model.restoreDraft(history[0]), history[0]],
     ]) {
+        const previousTins = new Map(model.layers.value.map(({ layerId }) => [layerId, tinState(model, layerId)?.tin]));
         const restoring = operation();
         assert.equal(model.editGeneration.value, index);
         assert.deepEqual(draft(model), expected);
         assert.equal(tinState(model).status, 'stale');
         assert.equal(tinState(model, 'sub:a').status, 'stale');
+        assert.equal(tinState(model).tin, previousTins.get('main'));
+        assert.equal(tinState(model, 'sub:a').tin, previousTins.get('sub:a'));
         await tick();
         assert.deepEqual(requests.slice(reqIndex).map(({ layer, reqGen }) => [layer, reqGen]), expected.map((l) => [l, index]));
         for (const job of jobs.waiting.slice(reqIndex)) job.resolve(fakeTin(job.request));
@@ -890,6 +893,106 @@ test('生成に失敗した層があれば保存を中断し生成失敗を返�
     assert.deepEqual(await model.save(assert.fail), saveFailure('buildFailed'));
     assert.equal(tinState(model).status, 'ready');
     assert.equal(tinState(model, 'sub:a').status, 'failed');
+});
+
+test('順位変更で undefined の鍵を残さず、空編集を変更扱いにしない', async () => {
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.changeLayerRanks([{ layerId: 'sub:a', priority: 2 }]), true);
+    assert.equal(Object.hasOwn(model.capture()[1], 'importance'), false);
+    assert.equal(model.editLayer('sub:a', {}), false);
+});
+
+test('requestTin の直後に別層を編集した場合は古い世代の build を始めず再要求する', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')], build: jobs.build });
+    const first = model.requestTin('main');
+    assert.equal(model.editLayer('sub:a', { edges }), true);
+    await tick();
+    const mainRequests = jobs.waiting.filter(({ request }) => request.layerId === 'main');
+    assert.equal(mainRequests.length, 1);
+    assert.equal(mainRequests[0].request.reqGen, 1);
+    assert.equal(await first, false);
+    const retry = mainRequests[0];
+    retry.resolve({ tin: '現在世代の主図' });
+    for (const job of jobs.waiting.filter(({ request }) => request.layerId === 'sub:a')) {
+        job.resolve({ tin: '現在世代の副層' });
+    }
+    await tick();
+    assert.equal(tinState(model).tin, '現在世代の主図');
+});
+
+test('採用中に届いた古い応答は取消後に持ち越し再要求される', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a')], build: jobs.build });
+    const old = model.requestTin('sub:a');
+    await tick();
+    model.editLayer('main', { gcps: gcps(9) });
+    const adopting = model.startAdoption('main', selection);
+    await tick();
+    jobs.waiting[0].resolve({ tin: '古い副層' });
+    assert.equal(await old, false);
+    assert.equal(model.cancelAdoption(), true);
+    assert.equal((await adopting).status, 'cancelled');
+    await tick();
+    const retry = jobs.waiting.find(({ request }) => request.layerId === 'sub:a' && request.reqGen === model.editGeneration.value);
+    assert.ok(retry);
+    retry.resolve({ tin: '再要求した副層' });
+    await tick();
+    assert.equal(tinState(model, 'sub:a').status, 'ready');
+    assert.equal(tinState(model, 'sub:a').tin, '再要求した副層');
+});
+
+test('主図の削除を拒否し、未知の層の削除で履歴を作らない', async () => {
+    const { model, history } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.removeLayer('main'), false);
+    assert.equal(model.removeLayer('sub:unknown'), false);
+    assert.equal(history.length, 1);
+});
+
+test('addLayer と removeLayer の順位更新を同じ履歴へ含める', async () => {
+    const { model } = fixture({ initial: [layer('main'), layer('sub:a', { priority: 1 })] });
+    const added = model.addLayer({ buildOptions: subOptions }, [{ layerId: 'sub:a', priority: 4 }]);
+    assert.ok(added);
+    assert.equal(model.capture()[1].priority, 4);
+    assert.equal(model.capture().length, 3);
+    assert.equal(model.removeLayer(added, [{ layerId: 'sub:a', priority: 2 }]), true);
+    assert.equal(model.capture().length, 2);
+    assert.equal(model.capture()[1].priority, 2);
+});
+
+test('dispose は未確定の採用を取り消す', async () => {
+    const jobs = controlledTin();
+    const { model } = fixture({ build: jobs.build });
+    const adopting = model.startAdoption('main', selection);
+    await tick();
+    model.dispose();
+    assert.equal((await adopting).status, 'cancelled');
+    assert.equal(model.adoptionInProgress.value, false);
+    jobs.waiting[0].resolve({ tin: '遅れて届いた採用結果' });
+});
+
+test('復元時に生成に失敗した層があれば settled は false', async () => {
+    const { model } = fixture({
+        initial: [layer('main'), layer('sub:a')],
+        build(request) {
+            if (request.layerId === 'sub:a') throw new Error('副層の生成失敗');
+            return fakeTin(request);
+        },
+    });
+    const restored = model.restoreDraft([layer('main'), layer('sub:a')]);
+    assert.equal(restored.restored, true);
+    assert.equal(await restored.settled, false);
+});
+
+test('editLayers は未知または重複した層 ID を拒否する', async () => {
+    const { model, history } = fixture({ initial: [layer('main'), layer('sub:a')] });
+    assert.equal(model.editLayers([{ layerId: 'missing', edit: { edges } }]), false);
+    assert.equal(model.editLayers([
+        { layerId: 'sub:a', edit: { edges } },
+        { layerId: 'sub:a', edit: { gcps: gcps(4) } },
+    ]), false);
+    assert.equal(history.length, 1);
+    assert.equal(model.editGeneration.value, 0);
 });
 
 test('compiled の種付け後は編集した層だけを生成し、未編集層の保存済み結果を使い続ける', async () => {
