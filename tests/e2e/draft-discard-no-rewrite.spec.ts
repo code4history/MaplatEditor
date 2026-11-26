@@ -19,6 +19,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -48,7 +49,7 @@ type Gates = { slugCalls: number; removeCalls: number; putCalls: number; release
 // slug-reservations:check と asset-drafts:remove を関門付きに差し替え、put の回数を数える。
 // 元の handler の処理は関門の後でそのまま行う（main の実装を呼ぶ）。
 async function installGates(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ ipcMain }) => {
+  await evalMain(app, async ({ ipcMain }) => {
     const g = globalThis as unknown as { __fx: Gates; __fxOrig: Record<string, (...a: unknown[]) => unknown> };
     // ipcMain の handler は公開 API で取り出せないため、内部の表から元の関数を拾う
     const handlers = (ipcMain as unknown as { _invokeHandlers: Map<string, (...a: unknown[]) => unknown> })._invokeHandlers;
@@ -84,12 +85,12 @@ async function installGates(app: ElectronApplication): Promise<void> {
 }
 
 const gateCount = (app: ElectronApplication, key: 'slugCalls' | 'removeCalls' | 'putCalls') =>
-  app.evaluate((_e, k) => (globalThis as unknown as { __fx: Gates }).__fx[k], key);
+  evalMain(app, (_e, k) => (globalThis as unknown as { __fx: Gates }).__fx[k], key);
 
 async function launchWithRestoredDraft(): Promise<{ app: ElectronApplication; page: Page; draftUid: string }> {
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), 'maplat-fx-discard-'));
   const { app, page } = await launch(e2eRoot);
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 
@@ -120,8 +121,8 @@ async function launchWithRestoredDraft(): Promise<{ app: ElectronApplication; pa
 
 async function finishAndAssertNoRewrite(app: ElectronApplication, page: Page, draftUid: string): Promise<void> {
   // 4. remove を通す → 一覧へ戻る（unmount の flushSync もここで走る）
-  await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
-  await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseRemove());
+  await evalMain(app, () => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
+  await evalMain(app, () => (globalThis as unknown as { __fx: Gates }).__fx.releaseRemove());
   await expect(page.getByTestId('map-title')).toBeHidden({ timeout: 15_000 });
   await expect(page.locator('.resource-list__toolbar')).toBeVisible({ timeout: 15_000 });
 
@@ -135,7 +136,7 @@ test('新規地図の下書きを破棄した後、slug の確認が遅れて完
   const { app, page, draftUid } = await launchWithRestoredDraft();
   try {
     // 3. slug の確認を通し、編集画面が「使用できます」に落ちるまで進める（ここで flush が走る）
-    await app.evaluate(() => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
+    await evalMain(app, () => (globalThis as unknown as { __fx: Gates }).__fx.releaseSlug());
     await expect(page.getByText('使用できます')).toBeVisible({ timeout: 15_000 });
     await finishAndAssertNoRewrite(app, page, draftUid);
   } finally {

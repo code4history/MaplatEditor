@@ -41,6 +41,7 @@ import {
   seedFullMap,
   rewriteZipSlug,
 } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -54,7 +55,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
 
@@ -101,7 +102,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);
@@ -115,7 +116,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const copySlug = `${seeded.mapSlug}-copy`;
       const copyZip = path.join(e2eRoot, 'map-copy.zip');
       await rewriteZipSlug(zipPath, copyZip, seeded.mapSlug, copySlug);
-      await app.evaluate(async ({ dialog }, inZip) => {
+      await evalMain(app, async ({ dialog }, inZip) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [inZip] })) as typeof dialog.showOpenDialog;
       }, copyZip);
 
@@ -164,7 +165,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
       const seeded = await seedFullMap(app, page, await saveFolderOf(page), e2eRoot);
 
       const zipPath = path.join(e2eRoot, 'app-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
 
@@ -218,7 +219,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
     try {
       await snapshotDialogs(app);
       await stubMessageBoxAutoOk(app);
-      await app.evaluate(async ({ dialog }) => {
+      await evalMain(app, async ({ dialog }) => {
         dialog.showSaveDialog = (async () => ({ canceled: true })) as typeof dialog.showSaveDialog;
         dialog.showOpenDialog = (async () => ({ canceled: true, filePaths: [] })) as typeof dialog.showOpenDialog;
       });
@@ -257,7 +258,7 @@ test.describe('実 UI からの地図搬出・別 slug import・アプリ搬出'
 
       // 取込に使う ZIP を作るため、ここでは一度スクリプトから搬出する
       const zipPath = path.join(e2eRoot, 'map-export.zip');
-      await app.evaluate(async ({ dialog }, outZip) => {
+      await evalMain(app, async ({ dialog }, outZip) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: outZip })) as typeof dialog.showSaveDialog;
       }, zipPath);
       await openHash(page, `#/mapedit?uid=${seeded.mapUid}`);

@@ -20,6 +20,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { dismissOperationNotice, readOperationNotice } from './helpers/operationNotice';
 import { launch, openHash, saveFolderOf, stubMessageBoxAutoOk } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 const APP_ID = 'pwa-icon-source-app';
 const BASELINE = path.resolve(import.meta.dirname, '../../scripts/fixtures/pwa-baseline.json');
@@ -53,7 +54,7 @@ async function exportTo(
   page: Awaited<ReturnType<typeof launch>>['page'],
   zipPath: string,
 ) {
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zipPath);
   await dismissOperationNotice(page);
@@ -84,7 +85,7 @@ type ExportDialog = { message?: string; detail?: string };
  * 「ユーザーに警告が出たか」はこの detail を見るのが実経路（AppEdit.exportSavedApp）。
  */
 async function stubExportDialogRecorder(app: Awaited<ReturnType<typeof launch>>['app']) {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     const g = globalThis as unknown as { __exportDialogs?: ExportDialog[] };
     g.__exportDialogs = [];
     dialog.showMessageBox = (async (...args: unknown[]) => {
@@ -101,7 +102,7 @@ async function stubExportDialogRecorder(app: Awaited<ReturnType<typeof launch>>[
 async function takeExportDialogs(
   app: Awaited<ReturnType<typeof launch>>['app'],
 ): Promise<ExportDialog[]> {
-  return app.evaluate(async () => {
+  return evalMain(app, async () => {
     const g = globalThis as unknown as { __exportDialogs?: ExportDialog[] };
     const captured = g.__exportDialogs ?? [];
     g.__exportDialogs = [];
@@ -245,7 +246,7 @@ test.describe('pwa-icon-source: PWA の画像はアイコン元画像から作�
       await writeFile(svgPath, SVG_TEXT, 'utf8');
       const iconSourceInput = page.getByTestId('appedit-icon-source');
       await expect(iconSourceInput).toHaveValue(iconRel);
-      await app.evaluate(async ({ dialog }, selected) => {
+      await evalMain(app, async ({ dialog }, selected) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selected] })) as typeof dialog.showOpenDialog;
       }, svgPath);
       await page.getByTestId('appedit-icon-upload').click();

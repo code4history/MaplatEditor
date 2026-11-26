@@ -15,6 +15,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -36,7 +37,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 
 // 保存成功ダイアログ (appedit.success_save) を自動 OK する stub（pois-roundtrip.spec.ts:35 と同文法）
 async function stubMessageBoxAutoOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

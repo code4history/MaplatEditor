@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { dismissOperationNotice } from './helpers/operationNotice';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -19,7 +20,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 }
 
 async function installNativeDialogHarness(app: ElectronApplication, exportPath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, nextExportPath) => {
+  await evalMain(app, async ({ dialog }, nextExportPath) => {
     const harness = {
       messageBoxes: [] as Array<{ buttons?: string[]; message?: string }>,
       exportPath: nextExportPath,
@@ -151,7 +152,7 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     const appName = page.getByTestId('app-title');
     await expect(appName).toHaveValue('T3 App restored draft');
     await expect(page.locator('[data-editor-action="discard-draft"]')).toBeVisible();
-    await app.evaluate(() => { (globalThis as any).__fxDialogHarness.nextResponse = 0; });
+    await evalMain(app, () => { (globalThis as any).__fxDialogHarness.nextResponse = 0; });
     await page.locator('[data-editor-action="discard-draft"]').click();
     await expect(appName).toHaveValue('T3 App');
     await expect(page.locator('[data-editor-action="discard-draft"]')).toBeHidden();
@@ -213,7 +214,7 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
     await page.locator('[data-editor-action="export"]').click();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeVisible();
     await expect(page.locator('[data-editor-busy-overlay]')).toBeHidden();
-    const dirtyExportDialog = await app.evaluate(() => {
+    const dirtyExportDialog = await evalMain(app, () => {
       const calls = (globalThis as any).__fxDialogHarness.messageBoxes;
       return calls.findLast((call: { buttons?: string[] }) => (call.buttons?.length ?? 0) === 3);
     });
@@ -276,7 +277,7 @@ test('three editors share Header order; App shortcuts and dirty Export expose Bu
 
     await openHash(page, `#/mapedit?uid=${mapUid}`, '#mapDocumentLanguage');
     await expect(page.locator('[data-editor-action="discard-draft"]')).toBeVisible();
-    await app.evaluate(() => { (globalThis as any).__fxDialogHarness.nextResponse = 0; });
+    await evalMain(app, () => { (globalThis as any).__fxDialogHarness.nextResponse = 0; });
     await page.locator('[data-editor-action="discard-draft"]').click();
     await expect(page.getByTestId('map-title')).toHaveValue('T3 地図');
     await page.waitForTimeout(2200);

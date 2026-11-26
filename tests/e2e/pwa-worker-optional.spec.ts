@@ -18,6 +18,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch, openHash, stubMessageBoxAutoOk } from './helpers/mapPackage';
 import { openInWindow, routeOsmTilesToFixture, serveExportedZip } from './helpers/exportedApp';
+import { evalMain } from './helpers/evalMain';
 
 const APP_ID = 'pwa-worker-optional-app';
 const PREVIEW_PORT = 45797;
@@ -33,7 +34,7 @@ const isRegisterFailure = (text: string) => /Failed to register/i.test(text) && 
 
 async function exportFromUi(label: string): Promise<string> {
   const zip = path.join(e2eRoot, `${label}.zip`);
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zip);
   await page.locator('[data-editor-action="export"]').click();

@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixturePath = path.join(projectRoot, 'tests/e2e/fixtures/directgo/directgo-pois.geojson');
@@ -37,7 +38,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
   // 保存の途中で出る確認の窓（native）は「既定のボタン」で閉じ、文言を記録する
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     (globalThis as Record<string, unknown>).__directgoMessageBoxLog = [];
     dialog.showMessageBox = (async (...args: unknown[]) => {
       const options = (args.length >= 2 ? args[1] : args[0]) as { message?: string };
@@ -49,7 +50,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 }
 
 async function messageBoxLog(app: ElectronApplication): Promise<string[]> {
-  return app.evaluate(() => ((globalThis as Record<string, unknown>).__directgoMessageBoxLog as string[]) ?? []);
+  return evalMain(app, () => ((globalThis as Record<string, unknown>).__directgoMessageBoxLog as string[]) ?? []);
 }
 
 async function openPoiSource(page: Page, uid: string): Promise<void> {
@@ -198,7 +199,7 @@ test.describe('directgo roundtrip', () => {
 
       // 同じソースをアプリとして書き出す（保存ダイアログは出力先を固定する）
       const zipPath = path.join(e2eRoot, 'directgo-export.zip');
-      await app.evaluate(async ({ dialog }, out) => {
+      await evalMain(app, async ({ dialog }, out) => {
         dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
       }, zipPath);
       const exportResult = await page.evaluate(async (poiUid) => window.appedit.export({

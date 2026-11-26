@@ -14,6 +14,7 @@ import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -104,7 +105,7 @@ async function seedPoiSource(page: Page): Promise<{ uid: string; slug: string }>
 
 // main 側 dialog.showMessageBox を記録 stub に差し替える (OK 自動応答 + message 記録)
 async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     (globalThis as any).__e2eMessageBoxLog = [];
     dialog.showMessageBox = (async (...args: unknown[]) => {
       const options = (args.length >= 2 ? args[1] : args[0]) as { message?: string };
@@ -123,12 +124,12 @@ async function operationNoticeTexts(app: ElectronApplication): Promise<string[]>
 }
 
 async function recordedMessages(app: ElectronApplication): Promise<string[]> {
-  const native = await app.evaluate(async () => ((globalThis as any).__e2eMessageBoxLog ?? []) as string[]);
+  const native = await evalMain(app, async () => ((globalThis as any).__e2eMessageBoxLog ?? []) as string[]);
   return [...native, ...await operationNoticeTexts(app)];
 }
 
 async function clearRecordedMessages(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async () => { (globalThis as any).__e2eMessageBoxLog = []; });
+  await evalMain(app, async () => { (globalThis as any).__e2eMessageBoxLog = []; });
 }
 
 // POIデータタブを開いてペインスコープの locator を返す共通手順
@@ -444,7 +445,7 @@ test.describe('inline POI 保全・変換', () => {
       const plainZip = await buildMapZip(fixtureDir, `t6-zip-b-${Date.now()}`, undefined);
 
       // inline pois 入り zip → 成功後にアラートが出る
-      await app.evaluate(async ({ dialog }, filePath) => {
+      await evalMain(app, async ({ dialog }, filePath) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [filePath] })) as typeof dialog.showOpenDialog;
       }, inlineZip);
       await openHash(page, '#/mapedit?import=1');
@@ -453,7 +454,7 @@ test.describe('inline POI 保全・変換', () => {
 
       // pois 無し zip → アラート非呼出
       await clearRecordedMessages(app);
-      await app.evaluate(async ({ dialog }, filePath) => {
+      await evalMain(app, async ({ dialog }, filePath) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [filePath] })) as typeof dialog.showOpenDialog;
       }, plainZip);
       await openHash(page, '#/maplist');

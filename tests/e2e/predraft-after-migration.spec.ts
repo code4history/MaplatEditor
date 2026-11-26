@@ -22,6 +22,7 @@ import { Jimp } from 'jimp';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 import { writeImageByExt } from '../../electron/utils/thumbnail512Codec';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const MARKER_ID = '2026-10-11-asset-uuid-names-v1';
@@ -38,7 +39,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
   // 保存成功のダイアログ等は先頭ボタンで閉じる（既存 e2e と同型）
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page };

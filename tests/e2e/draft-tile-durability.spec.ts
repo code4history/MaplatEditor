@@ -18,10 +18,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
+import { evalMain } from './helpers/evalMain';
 
 /** main の一時領域。renderer からは読めないキーなので main から同じ規則で求める */
 async function readTmpFolder(app: ElectronApplication): Promise<string> {
-  const [temp, name] = await app.evaluate(({ app: electronApp }) => [electronApp.getPath('temp'), electronApp.getName()]);
+  const [temp, name] = await evalMain(app, ({ app: electronApp }) => [electronApp.getPath('temp'), electronApp.getName()]);
   return path.join(temp, name);
 }
 
@@ -62,7 +63,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 }
 
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
   }, imagePath);
 }
@@ -70,7 +71,7 @@ async function installDialogHarness(app: ElectronApplication, imagePath: string)
 // case 20-1: stubMessageBoxOk だと偽陽性の警告ダイアログが自動 OK で素通りするため、
 // 表示された message を main プロセス側に記録する記録型 stub を使う（応答は常に先頭ボタン = OK/削除）
 async function stubMessageBoxRecording(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     (globalThis as any).__e2eDialogs = [];
     dialog.showMessageBox = (async (...args: any[]) => {
       const options = args.length > 1 ? args[1] : args[0];
@@ -89,7 +90,7 @@ async function operationNoticeTexts(app: ElectronApplication): Promise<string[]>
 }
 
 async function recordedDialogs(app: ElectronApplication): Promise<string[]> {
-  const native = await app.evaluate(() => ((globalThis as any).__e2eDialogs ?? []) as string[]);
+  const native = await evalMain(app, () => ((globalThis as any).__e2eDialogs ?? []) as string[]);
   return [...native, ...await operationNoticeTexts(app)];
 }
 

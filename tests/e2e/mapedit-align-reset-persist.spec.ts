@@ -17,6 +17,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -199,7 +200,7 @@ async function mercCoordNearCenter(page: Page, dx: number, dy: number): Promise<
 async function bootstrap(prefix: string): Promise<{ app: ElectronApplication; page: Page; errors: string[]; uid: string }> {
   const e2eRoot = await mkdtemp(path.join(os.tmpdir(), prefix));
   const { app, page, errors } = await launch(e2eRoot);
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   const seeded = await seedMap(page);

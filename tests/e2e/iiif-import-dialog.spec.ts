@@ -14,6 +14,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixtureDir = path.join(projectRoot, 'tests', 'fixtures', 'iiif');
@@ -137,7 +138,7 @@ async function pageTextOccurrences(page: Page, needle: string): Promise<number> 
 
 // ネイティブのダイアログを差し替え、出した文を記録する（確認は「はい」で進める）。
 async function installMessageBoxRecorder(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ dialog }) => {
+  await evalMain(app, ({ dialog }) => {
     const g = globalThis as any;
     g.__e2eMessageBoxMessages = [];
     dialog.showMessageBox = (async (...args: any[]) => {
@@ -149,7 +150,7 @@ async function installMessageBoxRecorder(app: ElectronApplication): Promise<void
 }
 
 async function messageBoxMessages(app: ElectronApplication): Promise<string[]> {
-  return app.evaluate(() => (globalThis as any).__e2eMessageBoxMessages ?? []);
+  return evalMain(app, () => (globalThis as any).__e2eMessageBoxMessages ?? []);
 }
 
 // サムネイルを作れない info.json を配信で取り込んだ後、編集画面の側で警告が
@@ -327,7 +328,7 @@ test.describe('IIIF import dialog', () => {
       app = launched.app;
       const page = launched.page;
       // 保存のときの確認（対応点が足りない等）は「はい」で進める
-      await app.evaluate(({ dialog }) => {
+      await evalMain(app, ({ dialog }) => {
         dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
       });
       await forceJapanese(page);

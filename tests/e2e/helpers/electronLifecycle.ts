@@ -1,5 +1,6 @@
 import type { ElectronApplication } from '@playwright/test';
 import type { ChildProcess } from 'node:child_process';
+import { evalMain } from './evalMain';
 
 const QUIT_TIMEOUT_MS = 30_000;
 
@@ -12,13 +13,22 @@ const QUIT_TIMEOUT_MS = 30_000;
  * "TypeError: Cannot read properties of undefined (reading '_object')" (Playwright 1.64).
  * Whether 'close' arrives in the same turn as 'exit' depends on when the helper processes let go
  * of the inherited stdio, so a test that waited for 'exit' may or may not still hold a live object.
+ *
+ * Only that TypeError means "disposed". Any other failure of process() is a problem in the harness
+ * and is rethrown, so that a quit is never skipped silently. If a Playwright upgrade changes the
+ * error, electron-helpers-exited-and-busy.spec.ts (real Electron) turns red and this must follow.
  */
 function childProcessOf(app: ElectronApplication): ChildProcess | null {
   try {
     return app.process() ?? null;
-  } catch {
-    return null;
+  } catch (error) {
+    if (isDisposedApplicationError(error)) return null;
+    throw error;
   }
+}
+
+function isDisposedApplicationError(error: unknown): boolean {
+  return error instanceof TypeError && /\(reading '_object'\)/.test(error.message);
 }
 
 /**
@@ -44,8 +54,7 @@ export async function quitElectronApplication(
 
   const exited = new Promise<void>((resolve) => child.once('exit', () => resolve()));
   try {
-    // An async function: see the note on main-process evaluate() in helpers/nativeConfirmation.ts.
-    await app.evaluate(async ({ app: electronApp }) => {
+    await evalMain(app, ({ app: electronApp }) => {
       setTimeout(() => electronApp.quit(), 0);
     });
   } catch {

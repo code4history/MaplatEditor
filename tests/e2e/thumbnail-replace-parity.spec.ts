@@ -17,6 +17,7 @@ import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 // 512px は webp。符号化/復号の唯一の実装（宛先拡張子で選ぶ）へ委譲する
 import { writeImageByExt } from '../../electron/utils/thumbnail512Codec';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -44,7 +45,7 @@ async function openHash(page: Page, hash: string): Promise<void> {
 }
 
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
   }, imagePath);
 }

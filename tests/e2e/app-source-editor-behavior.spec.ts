@@ -20,6 +20,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { baseMapMasterDoc, seedBaseMap } from './helpers/baseMapSeed';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -46,7 +47,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
   await page.route('**/tile.openstreetmap.org/**', (route) => route.fulfill({ status: 404, body: '' }));
   await page.route('https://example.com/**', (route) => route.fulfill({ status: 404, body: '' }));
   // AppEdit の保存は main 側の確認ダイアログを挟む（app-source-diff-model・app-poi-hide-override と同一の stub）
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page };

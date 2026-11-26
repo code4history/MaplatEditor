@@ -138,6 +138,26 @@ test.describe('quitElectronApplication', () => {
     }
   });
 
+  test('an unexpected failure of process() is not mistaken for a disposed application', async () => {
+    // Only the TypeError that Playwright throws after disposal means "already exited".
+    // Anything else is a harness problem and must surface instead of silently skipping the quit.
+    const failures = [
+      new Error('process() is broken'),
+      new TypeError('app.process is not a function'),
+    ];
+    for (const failure of failures) {
+      const brokenApp = {
+        process: () => {
+          throw failure;
+        },
+        evaluate: async () => {
+          throw new Error('evaluate() must not be called when process() failed');
+        },
+      } as unknown as ElectronApplication;
+      await expect(quitElectronApplication(brokenApp, { timeoutMs: 10_000 })).rejects.toBe(failure);
+    }
+  });
+
   test('a failing evaluate() still ends the child with SIGTERM', async () => {
     const child = await spawnChild(LONG_RUNNING_CHILD);
     const warnings = captureWarnings();

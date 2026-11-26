@@ -9,6 +9,7 @@ import { mkdtemp, readdir, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -31,14 +32,14 @@ async function openHash(page: Page, hash: string): Promise<void> {
 
 // ダイアログを差し替えて任意の画像を選択させる（thumbnail-512 と同型のダイアログ差し替えハーネス）
 async function installDialogHarness(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selectedImage) => {
+  await evalMain(app, async ({ dialog }, selectedImage) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [selectedImage] })) as typeof dialog.showOpenDialog;
   }, imagePath);
 }
 
 // 保存確認・保存成功ダイアログを常に「OK（先頭ボタン）」で応答させる (等と同型)
 async function stubMessageBoxOk(app: ElectronApplication): Promise<void> {
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

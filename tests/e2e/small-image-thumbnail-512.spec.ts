@@ -20,6 +20,7 @@ import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
 import { readImageMeta } from '../../electron/utils/thumbnail512Codec';
 import { expectCornerColors, writeCornerImage } from './helpers/cornerImage';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const fixtureDir = path.join(projectRoot, 'tests', 'fixtures', 'iiif');
@@ -58,7 +59,7 @@ async function writeMainResponses(root: string): Promise<void> {
 
 // 画像の選択だけに手元の画像を返す（ZIP の選択は取り消す）
 async function installOpenDialog(app: ElectronApplication, imagePath: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, selected) => {
+  await evalMain(app, async ({ dialog }, selected) => {
     dialog.showOpenDialog = (async (...args: any[]) => {
       const options = (args[args.length - 1] ?? {}) as any;
       const extensions = ((options.filters ?? []) as Array<{ extensions?: string[] }>)
@@ -73,7 +74,7 @@ async function installOpenDialog(app: ElectronApplication, imagePath: string): P
 }
 
 async function stubMessageBox(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ dialog }) => {
+  await evalMain(app, ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
 }

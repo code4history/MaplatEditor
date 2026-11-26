@@ -26,6 +26,7 @@ import { mkdtemp, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -53,7 +54,7 @@ async function launch(e2eRoot: string): Promise<Launched> {
   page.on('requestfailed', (r) => log.push(`failed ${r.failure()?.errorText} ${r.url()}`));
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => window.settings.set('lang', 'ja'));
-  await app.evaluate(async ({ dialog }) => {
+  await evalMain(app, async ({ dialog }) => {
     dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
   });
   return { app, page, log };
@@ -110,7 +111,7 @@ for (const variant of ['current', 'legacyFile', 'legacyAppLocal'] as Variant[]) 
         await page.getByTestId('map-title').fill(`t2s2 ${variant}`);
         await page.getByTestId('map-slug').fill(`t2s2-${variant.toLowerCase()}-${Date.now()}`);
         await page.getByTestId('map-attr').fill('t2s2 copyright');
-        await app.evaluate(async ({ dialog }, img) => {
+        await evalMain(app, async ({ dialog }, img) => {
           dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [img] })) as typeof dialog.showOpenDialog;
         }, imagePath);
         await page.getByRole('button', { name: '地図画像登録' }).click();

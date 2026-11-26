@@ -13,6 +13,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { MCP_FEATURE_ENABLED } from './helpers/mcpFeature';
+import { evalMain } from './helpers/evalMain';
 
 test.skip(!MCP_FEATURE_ENABLED, 'the MCP server is hidden in this build');
 
@@ -42,7 +43,7 @@ async function launch(e2eRoot: string): Promise<{ app: ElectronApplication; page
 
 /** Replaces dialog.showMessageBox in the main process; every call is recorded and answered with __mcpAnswer. */
 async function recordDialogs(app: ElectronApplication): Promise<void> {
-  await app.evaluate(({ dialog }) => {
+  await evalMain(app, ({ dialog }) => {
     const g = globalThis as any;
     g.__mcpDialogs = [];
     g.__mcpAnswer = 1;
@@ -55,15 +56,15 @@ async function recordDialogs(app: ElectronApplication): Promise<void> {
 }
 
 const answerWith = (app: ElectronApplication, index: number) =>
-  app.evaluate((_e, i) => {
+  evalMain(app, (_e, i) => {
     (globalThis as any).__mcpAnswer = i;
   }, index);
 const lastDialog = (app: ElectronApplication) =>
-  app.evaluate(() => {
+  evalMain(app, () => {
     const calls = (globalThis as any).__mcpDialogs as any[];
     return { count: calls.length, last: calls[calls.length - 1] };
   });
-const mainClipboard = (app: ElectronApplication) => app.evaluate(({ clipboard }) => clipboard.readText());
+const mainClipboard = (app: ElectronApplication) => evalMain(app, ({ clipboard }) => clipboard.readText());
 
 async function readToken(e2eRoot: string): Promise<string> {
   const store = JSON.parse(await readFile(path.join(e2eRoot, 'electron-store', 'settings', 'mcp-server.json'), 'utf8'));
@@ -146,7 +147,7 @@ test('the MCP tab turns the server on and off, copies safely and survives a rest
     expect(await page.locator('body').innerText()).not.toContain(token);
 
     // Copy, cancelled: nothing reaches the clipboard
-    await app.evaluate(({ clipboard }) => clipboard.writeText('clipboard before the copy'));
+    await evalMain(app, ({ clipboard }) => clipboard.writeText('clipboard before the copy'));
     await answerWith(app, 1);
     expect(await page.evaluate(() => window.mcp.copyConnectionCommand('claude-code'))).toEqual({ copied: false });
     expect(await mainClipboard(app)).toBe('clipboard before the copy');
@@ -205,10 +206,10 @@ test('the MCP tab turns the server on and off, copies safely and survives a rest
 
     // macOS: closing the window only hides the app, and the server keeps listening
     if (process.platform === 'darwin') {
-      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
-      await expect.poll(() => app.evaluate(async ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
+      await evalMain(app, ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close());
+      await expect.poll(() => evalMain(app, async ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())).toBe(false);
       expect((await listTools(port, token)).status).toBe(200);
-      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
+      await evalMain(app, ({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
     }
 
     // After a restart it listens again (it was left on) with the same token

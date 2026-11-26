@@ -30,6 +30,7 @@ import {
   restoreDialogs,
   seedFullMap,
 } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -40,7 +41,7 @@ async function exportSeededMap(
   mapUid: string,
   outZip: string,
 ): Promise<void> {
-  await app.evaluate(async ({ dialog }, zip) => {
+  await evalMain(app, async ({ dialog }, zip) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: zip })) as typeof dialog.showSaveDialog;
   }, outZip);
   await openHash(page, `#/mapedit?uid=${mapUid}`);
@@ -57,7 +58,7 @@ async function importViaMapList(
   page: Awaited<ReturnType<typeof launch>>['page'],
   inZip: string,
 ): Promise<void> {
-  await app.evaluate(async ({ dialog }, zip) => {
+  await evalMain(app, async ({ dialog }, zip) => {
     dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [zip] })) as typeof dialog.showOpenDialog;
   }, inZip);
   await openHash(page, '#/maplist');

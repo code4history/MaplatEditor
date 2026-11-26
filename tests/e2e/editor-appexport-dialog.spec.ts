@@ -21,6 +21,7 @@ import {
   stubMessageBoxAutoOk,
   seedFullMap,
 } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 type Launched = Awaited<ReturnType<typeof launch>>;
 
@@ -28,7 +29,7 @@ const TILES_HELP_JA =
   '地図を表示するために、画像を小さな正方形に分けたものです。地図を開くときに使います。サムネイル（一覧に出る小さな画像）も含みます。';
 
 async function stubSaveDialog(app: Launched['app'], zip: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zip);
 }
@@ -136,7 +137,7 @@ test.describe('editor-appexport-dialog: アプリのエクスポートの確認�
       await page.waitForTimeout(500);
 
       // 未保存のときの選択（3 択）だけを記録する。保存成功の OK など他の messageBox は混ぜない
-      const installHarness = async (dirtyResponse: number) => app.evaluate(async ({ dialog }, response) => {
+      const installHarness = async (dirtyResponse: number) => evalMain(app, async ({ dialog }, response) => {
         const g = globalThis as unknown as { __appExportOrder: string[] };
         g.__appExportOrder = [];
         dialog.showMessageBox = (async (...args: unknown[]) => {
@@ -153,7 +154,7 @@ test.describe('editor-appexport-dialog: アプリのエクスポートの確認�
         }) as unknown as typeof dialog.showSaveDialog;
       }, dirtyResponse);
       const readOrder = async () =>
-        app.evaluate(async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
+        evalMain(app, async () => (globalThis as unknown as { __appExportOrder: string[] }).__appExportOrder);
 
       // (1) 未保存のときの選択で取り消す → 小窓は開かない
       await installHarness(2); // 「取消」

@@ -22,11 +22,12 @@ import {
   seedFullMap,
   PNG_B64,
 } from './helpers/mapPackage';
+import { evalMain } from './helpers/evalMain';
 
 type Launched = Awaited<ReturnType<typeof launch>>;
 
 async function stubSaveDialog(app: Launched['app'], zip: string): Promise<void> {
-  await app.evaluate(async ({ dialog }, out) => {
+  await evalMain(app, async ({ dialog }, out) => {
     dialog.showSaveDialog = (async () => ({ canceled: false, filePath: out })) as typeof dialog.showSaveDialog;
   }, zip);
 }
@@ -135,11 +136,11 @@ test.describe('書き出す中身の選択', () => {
       page.on('pageerror', (err) => pageErrors.push(String(err?.stack ?? err)));
       app.on('console', (msg) => { if (msg.type() === 'error') mainErrors.push(msg.text()); });
       // 見張りが空振りしていないことの確認（main の console.error が実際に拾えること）
-      await app.evaluate(() => { console.error('fx-probe'); });
+      await evalMain(app, () => { console.error('fx-probe'); });
       await expect.poll(() => mainErrors.includes('fx-probe'), { timeout: 10000 }).toBe(true);
       mainErrors.length = 0;
 
-      await app.evaluate(async ({ dialog }, zip) => {
+      await evalMain(app, async ({ dialog }, zip) => {
         dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [zip] })) as typeof dialog.showOpenDialog;
       }, zipC);
       await openHash(page, '#/maplist');

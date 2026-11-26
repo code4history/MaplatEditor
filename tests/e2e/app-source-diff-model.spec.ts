@@ -26,6 +26,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { seedBaseMap } from './helpers/baseMapSeed';
+import { evalMain } from './helpers/evalMain';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -402,7 +403,7 @@ test('builtin(osm) への上書きが配信 JSON と viewer の両方へ届く',
 
   try {
     // AppEdit の保存は main 側の確認ダイアログを挟む（app-poi-hide-override と同一の stub）
-    await app.evaluate(async ({ dialog }) => {
+    await evalMain(app, async ({ dialog }) => {
       dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox;
     });
 
