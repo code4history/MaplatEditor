@@ -20,7 +20,8 @@ import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
-import { evalMain, openAboutWindow } from './helpers/electronMenu';
+import { openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 import { launch } from './helpers/launchIsolated';
 
 const EXTERNAL_URL = 'https://example.invalid/';

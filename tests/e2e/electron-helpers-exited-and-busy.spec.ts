@@ -3,7 +3,7 @@ import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
-import { evalMain } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 import { launch } from './helpers/launchIsolated';
 import { captureNativeConfirmation } from './helpers/nativeConfirmation';
 

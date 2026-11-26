@@ -17,8 +17,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
-// evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出済み
-import { evalMain, openAboutWindow } from './helpers/electronMenu';
+// About ウィンドウ起動は helpers/electronMenu.ts、evalMain() は helpers/evalMain.ts へ抽出済み
+import { openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 // zip インポート工程は map-package-roundtrip が確立した共有ヘルパー（seed/搬出/別 slug 化）を再利用する
 import {
   openHash,

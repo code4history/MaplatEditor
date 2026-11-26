@@ -13,9 +13,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { launch } from './helpers/launchIsolated';
-// evalMain() / About ウィンドウ起動は helpers/electronMenu.ts へ抽出した
+// About ウィンドウ起動は helpers/electronMenu.ts、evalMain() は helpers/evalMain.ts へ抽出した
 // （wiki-screenshots-extra の撮影スペックが同じロジックを要したため。挙動は無変更）
-import { applicationMenuLabels, evalMain, openAboutWindow } from './helpers/electronMenu';
+import { applicationMenuLabels, openAboutWindow } from './helpers/electronMenu';
+import { evalMain } from './helpers/evalMain';
 
 async function openHash(page: Page, hash: string, ready: string): Promise<void> {
   await page.evaluate((nextHash) => { location.hash = nextHash; }, hash);
