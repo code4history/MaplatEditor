@@ -579,6 +579,15 @@ try {
     check('代表語: 先行登録キーを 11 言語へ足すと警告が消えて代表語を検査する', r2.status === 0 && !(r2.report?.warnings ?? []).some((w) => w.kind === 'pending-key' && w.key === 'common.future_asset'), summarize(r2));
     check('代表語: 11 言語にそろった先行登録キーは消し待ち（unused-pending-key）の警告を出す', (r2.report?.warnings ?? []).some((w) => w.kind === 'unused-pending-key' && w.concept === 'future-asset' && w.key === 'common.future_asset'), summarize(r2));
 
+    // 先行登録した根拠キーが既に locale にあって、文言がまだ旧い間は、違反にせず警告にとどめる（直すのは後の locale の PR）
+    setValue(dir, 'ja', 'common.future_asset', '旧文言');
+    setValue(dir, 'en', 'common.future_asset', 'Old wording');
+    run(dir, ['--write']);
+    const r2s = run(dir);
+    const staleWarn = (r2s.report?.warnings ?? []).filter((w) => w.kind === 'pending-key' && w.type === 'rootKeyText' && w.concept === 'future-asset' && w.key === 'common.future_asset');
+    check('代表語: 先行登録した既存キーの文言が旧い言語があっても警告（rootKeyText）で緑', r2s.status === 0 && staleWarn.length === 1 && /ja, en/.test(staleWarn[0].message), summarize(r2s));
+    check('代表語: 文言が旧い間は消し待ち（unused-pending-key）にしない', !(r2s.report?.warnings ?? []).some((w) => w.kind === 'unused-pending-key' && w.key === 'common.future_asset'), summarize(r2s));
+
     const undeclared = makeRepo('pending-root-key-undeclared');
     addFutureConcept(undeclared, { declare: false });
     const r3 = run(undeclared);

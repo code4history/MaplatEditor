@@ -5,9 +5,9 @@
 正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。
 検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
-新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。
+新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言がまだ旧いときも、直るまで警告（pending-key）にとどめる。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 41・結び付いたキー 524・例外 293（anchorExclusion 12・omission 100・untranslated 181）
+概念 48・結び付いたキー 534・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
@@ -41,17 +41,24 @@
 | [crs-estimation](#crs-estimation) | GCP から CRS を推定する明示的な操作。GCP 編集に追随する自動推定ではない | `mapedit.crs_estimate_button` | 0 |
 | [crs-candidate](#crs-candidate) | 推定結果として比較する候補の CRS。採用済みの CRS とは区別する | `mapedit.crs_candidates_heading` | 0 |
 | [crs-score](#crs-score) | 相似の当てはめの残差 RMS を GCP の bbox の対角で割った、小さいほど良い当てはまりの指標（score） | `mapedit.crs_setup_borderline_note` | 0 |
-| [transform-setup](#transform-setup) | CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない | `mapedit.crs_adopt_button` | 0 |
-| [transform-setup-a](#transform-setup-a) | 変換の形 A: CRS と world file だけを使い、三角網を持たない形 | `mapedit.crs_setup_a` | 0 |
-| [transform-setup-b](#transform-setup-b) | 変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形 | `mapedit.crs_setup_b` | 0 |
-| [transform-setup-c](#transform-setup-c) | 変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形 | `mapedit.crs_setup_c` | 0 |
-| [world-file](#world-file) | 画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない | `mapedit.crs_setup_a` | 0 |
-| [tin](#tin) | GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A では持たない | `appedit.preview.compiled_required` | 1 |
+| [transform-setup](#transform-setup) | CRS・world file・三角網・外側の変換を組み合わせた変換の形（CRS／三角網＋大域外挿／三角網＋扇形外挿。画面には A〜C の記号を出さない）。定義データを指して「設定」とは呼ばない | `mapedit.crs_adopt_button` | 0 |
+| [transform-setup-a](#transform-setup-a) | 変換の形「CRS」: CRS と world file だけを使い、三角網を持たない形。画面には A〜C の記号を出さない。定義データを指して「設定」とは呼ばない | `mapedit.crs_setup_a` | 0 |
+| [transform-setup-b](#transform-setup-b) | 変換の形「三角網＋大域外挿」: CRS と三角網を使い、四辺形の外を大域外挿（world file が表す大域モデル）で変換する形。画面には A〜C の記号を出さない | `mapedit.crs_setup_b` | 0 |
+| [transform-setup-c](#transform-setup-c) | 変換の形「三角網＋扇形外挿」: CRS と三角網を使い、四辺形の外を扇形に外挿する形。画面には A〜C の記号を出さない | `mapedit.crs_setup_c` | 0 |
+| [transform-setup-legacy](#transform-setup-legacy) | CRS を持たない V2 の地図の変換の形（従来型）。V2 の地図は今も使えるので、廃止予定のような響きにしない | `mapedit.crs_setup_legacy` | 0 |
+| [world-file](#world-file) | 画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない | `mapedit.crs_gcp_edited_after_adopt` | 0 |
+| [tin](#tin) | GCP と補助頂点で構成する三角網（TIN）。CRS だけの形では持たない | `appedit.preview.compiled_required` | 1 |
+| [corresponding-line](#corresponding-line) | 2 つの GCP を結ぶ線（技術文書では制約エッジ）。三角網は必ずこの線を辺に含む。人間が打つ | `mapedit.edge_error_not_found` | 10 |
+| [bend-point](#bend-point) | 対応線を折れ線にするための点。紙の面と地理の面で、別々に打てる。人間が打つ。GCP のマーカーとは別 | `mapedit.context_marker_on_line` | 0 |
+| [proportional-point](#proportional-point) | 折れ点の、相手の面での位置。相手の面の折れ線の上で、始点から同じ長さの比になる点。Tin が求める（システムが置く） | `mapedit.tin_proportional_point` | 0 |
+| [supplement-point](#supplement-point) | strict を保つために制約から外した凸包の辺や、向きが食い違う所に、システムが足す対応の組。補助頂点とは別（システムが置く） | `mapedit.tin_supplement_point` | 0 |
+| [extrapolation-quadrilateral](#extrapolation-quadrilateral) | GCP の外側を受け持つ範囲の枠。内側は三角網、外側は大域外挿か扇形外挿で変換する（システムが置く） | `mapedit.tin_extrapolation_quadrilateral` | 0 |
+| [auxiliary-vertex](#auxiliary-vertex) | 外挿四辺形の四隅と辺の上に置く頂点（隅の補助頂点・辺の補助頂点）。補完点とは別（システムが置く） | `mapedit.tin_auxiliary_vertex` | 0 |
 | [residual](#residual) | 変換後の位置と GCP の地理座標の GCP ごとのずれ（残差）。変換失敗や往復検査の誤差とは区別する | `mapedit.crs_residuals_heading` | 0 |
-| [global-model](#global-model) | 形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル） | `mapedit.crs_setup_b` | 0 |
+| [global-model](#global-model) | 三角網＋大域外挿で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル） | `mapedit.crs_setup_fallback_notice` | 0 |
 | [recommendation](#recommendation) | score と閾値から示す推奨。採用を強制するものではない | `mapedit.crs_setup_recommended_badge` | 0 |
 | [adoption](#adoption) | 推定で選んだ CRS と変換の形を地図へ書き込む明示的な採用操作。比較・保存・自動更新とは区別する | `mapedit.crs_adopt_button` | 0 |
-| [fan-fallback](#fan-fallback) | 形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する | `mapedit.crs_setup_fallback_notice` | 0 |
+| [fan-fallback](#fan-fallback) | 大域外挿を組めないときに四辺形の外を扇形外挿へ切り替えたことを知らせる通知。扇形外挿の形全般や内部の strict_error とは区別する | `mapedit.crs_setup_fallback_notice` | 0 |
 
 ## asset
 
@@ -350,8 +357,8 @@ POI ソース
 | ko | GCP | GCP、대응점 | — | — | — |
 | th | GCP | GCP、จุดควบคุมภาคพื้นดิน | จุดควบคุม | — | — |
 | vi | GCP | GCP、điểm tương ứng | điểm khống chế | — | — |
-| zh | GCP | GCP、控制点 | — | — | — |
-| zh-TW | GCP | GCP、控制點 | — | — | — |
+| zh | GCP | GCP、控制点、对应点 | — | — | — |
+| zh-TW | GCP | GCP、GCPs、控制點、對應點 | — | — | — |
 
 ## bibliography
 
@@ -646,7 +653,7 @@ GCP から CRS を推定する明示的な操作。GCP 編集に追随する自�
 
 ## transform-setup
 
-CRS・world file・三角網・外側の変換を組み合わせた変換の形（A/B/C）。定義データを指して「設定」とは呼ばない
+CRS・world file・三角網・外側の変換を組み合わせた変換の形（CRS／三角網＋大域外挿／三角網＋扇形外挿。画面には A〜C の記号を出さない）。定義データを指して「設定」とは呼ばない
 
 根拠キー `mapedit.crs_adopt_button`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_adopt_button`
 
@@ -654,81 +661,101 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 |---|---|---|---|---|---|
 | de | Aufbau | Aufbau、Transformationsaufbau | — | — | — |
 | en | setup | setup、setups、transform setup、transform setups | — | transform settings | — |
-| es | forma de transformación | forma de transformación、configuración、configuraciones | — | — | — |
-| fr | forme de transformation | forme de transformation、configuration、configurations | — | — | — |
-| id | bentuk transformasi | bentuk transformasi、konfigurasi | — | — | — |
+| es | forma de transformación | forma de transformación | — | — | — |
+| fr | forme de transformation | forme de transformation | — | — | — |
+| id | bentuk transformasi | bentuk transformasi | — | — | — |
 | ja | 変換の形 | 変換の形、構成、変換方式 | — | 変換の設定 | — |
 | ko | 구성 | 구성、변환 형태 | — | — | — |
 | th | รูปแบบการแปลง | รูปแบบการแปลง、โครงสร้าง | — | — | — |
-| vi | dạng biến đổi | dạng biến đổi、cấu hình | — | — | — |
+| vi | dạng biến đổi | dạng biến đổi | — | — | — |
 | zh | 转换形式 | 转换形式、构成、配置 | — | — | — |
 | zh-TW | 轉換形式 | 轉換形式、構成、組態 | — | — | — |
 
 ## transform-setup-a
 
-変換の形 A: CRS と world file だけを使い、三角網を持たない形
+変換の形「CRS」: CRS と world file だけを使い、三角網を持たない形。画面には A〜C の記号を出さない。定義データを指して「設定」とは呼ばない
 
 根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_a`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | A: nur World file | A: nur World file、nur World file、World file only | — | — | — |
-| en | A: World file only | A: World file only、World file only、A: CRS + World file | — | transform settings | — |
-| es | A: solo World file | A: solo World file、solo World file、World file only | — | — | — |
-| fr | A : World file uniquement | A : World file uniquement、World file uniquement、World file only | — | — | — |
-| id | A: hanya World file | A: hanya World file、hanya World file、World file only | — | — | — |
-| ja | A: ワールドファイルのみ | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | — | 変換の設定 | — |
-| ko | A: 월드 파일만 | A: 월드 파일만、월드 파일만、World file only | — | — | — |
-| th | A: World file เท่านั้น | A: World file เท่านั้น、World file เท่านั้น、World file only | — | — | — |
-| vi | A: chỉ World file | A: chỉ World file、chỉ World file、World file only | — | — | — |
-| zh | A: 仅世界文件 | A: 仅世界文件、仅世界文件、World file only | — | — | — |
-| zh-TW | A: 僅世界檔案 | A: 僅世界檔案、僅世界檔案、World file only | — | — | — |
+| de | nur CRS | nur CRS、CRS only、A: nur CRS | A: nur World file | Transformationseinstellungen | — |
+| en | CRS only | CRS only、A: CRS only | A: World file only、World file only、A: CRS + World file | transform settings | — |
+| es | solo CRS | solo CRS、CRS only、A: solo CRS | A: solo World file | — | — |
+| fr | CRS uniquement | CRS uniquement、CRS seul、A : CRS uniquement | A : World file uniquement | — | — |
+| id | hanya CRS | hanya CRS、CRS saja、A: hanya CRS | A: hanya World file、hanya World file | — | — |
+| ja | CRS | CRS、A: CRS | A: ワールドファイルのみ、ワールドファイルのみ、world file のみ | 変換の設定 | — |
+| ko | CRS만 | CRS만、CRS only、A: CRS만 | A: 월드 파일만、월드 파일만、World file only | — | — |
+| th | CRS เท่านั้น | CRS เท่านั้น、CRS only、A: CRS เท่านั้น | A: World file เท่านั้น、World file เท่านั้น、World file only | การตั้งค่าการแปลง | — |
+| vi | chỉ CRS | chỉ CRS、CRS only、A: chỉ CRS | A: chỉ World file、chỉ World file | — | — |
+| zh | 仅 CRS | 仅 CRS、CRS only、A: 仅 CRS、A: CRS | A: 仅世界文件、仅世界文件 | — | — |
+| zh-TW | 僅 CRS | 僅 CRS、CRS only、A: 僅 CRS | A: 僅世界檔案、僅世界檔案 | 轉換設定 | — |
 
 ## transform-setup-b
 
-変換の形 B: CRS と三角網を使い、四辺形の外を大域モデルで変換する形
+変換の形「三角網＋大域外挿」: CRS と三角網を使い、四辺形の外を大域外挿（world file が表す大域モデル）で変換する形。画面には A〜C の記号を出さない
 
 根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_b`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | B: TIN + globales Modell | B: TIN + globales Modell、B: CRS + TIN、TIN + globales Modell | — | — | — |
-| en | B: TIN + global model | B: TIN + global model、B: CRS + TIN、TIN + global model | — | fan mode、fan extrapolation | — |
-| es | B: TIN + modelo global | B: TIN + modelo global、B: CRS + TIN、TIN + modelo global | — | — | — |
-| fr | B : TIN + modèle global | B : TIN + modèle global、B : CRS + TIN、TIN + modèle global | — | — | — |
-| id | B: TIN + model global | B: TIN + model global、B: CRS + TIN、TIN + model global | — | — | — |
-| ja | B: 三角網＋大域モデル | B: 三角網＋大域モデル、B: CRS＋三角網、三角網＋大域モデル | — | 扇形 | — |
-| ko | B: TIN + 전역 모델 | B: TIN + 전역 모델、B: CRS + TIN、TIN + 전역 모델 | — | — | — |
-| th | B: TIN + แบบจำลองโกลบอล | B: TIN + แบบจำลองโกลบอล、B: CRS + TIN、TIN + แบบจำลองโกลบอล | — | — | — |
-| vi | B: TIN + mô hình toàn cục | B: TIN + mô hình toàn cục、B: CRS + TIN、TIN + mô hình toàn cục | — | — | — |
-| zh | B: TIN + 全局模型 | B: TIN + 全局模型、B: CRS + TIN、TIN + 全局模型 | — | — | — |
-| zh-TW | B: TIN + 全域模型 | B: TIN + 全域模型、B: CRS + TIN、TIN + 全域模型 | — | — | — |
+| de | TIN + globale Extrapolation | TIN + globale Extrapolation、B: TIN + globale Extrapolation | B: TIN + globales Modell、TIN + globales Modell | Transformationseinstellungen | — |
+| en | TIN + global extrapolation | TIN + global extrapolation、B: TIN + global extrapolation | B: TIN + global model、TIN + global model、B: CRS + TIN | — | — |
+| es | TIN + extrapolación global | TIN + extrapolación global、B: TIN + extrapolación global | B: TIN + modelo global、TIN + modelo global | — | — |
+| fr | TIN + extrapolation globale | TIN + extrapolation globale、B : TIN + extrapolation globale | B : TIN + modèle global、TIN + modèle global | — | — |
+| id | TIN + ekstrapolasi global | TIN + ekstrapolasi global、B: TIN + ekstrapolasi global | B: TIN + model global | — | — |
+| ja | 三角網＋大域外挿 | 三角網＋大域外挿、B: 三角網＋大域外挿 | B: 三角網＋大域モデル、三角網＋大域モデル、B: CRS＋三角網 | — | — |
+| ko | TIN + 전역 외삽 | TIN + 전역 외삽、B: TIN + 전역 외삽 | B: TIN + 전역 모델、TIN + 전역 모델、B: CRS + TIN | — | — |
+| th | TIN + การคาดคะเนแบบโกลบอล | TIN + การคาดคะเนแบบโกลบอล、B: TIN + การคาดคะเนแบบโกลบอล | B: TIN + แบบจำลองโกลบอล、TIN + แบบจำลองโกลบอล | การตั้งค่าการแปลง | — |
+| vi | TIN + ngoại suy toàn cục | TIN + ngoại suy toàn cục、B: TIN + ngoại suy toàn cục | TIN + mô hình toàn cục | — | — |
+| zh | TIN + 全局外推 | TIN + 全局外推、B: TIN + 全局外推、三角网 + 全局外推 | B: TIN + 全局模型、B: CRS + TIN、TIN + 全局模型 | — | — |
+| zh-TW | TIN + 全域外插 | TIN + 全域外插、B: TIN + 全域外插 | B: TIN + 全域模型、TIN + 全域模型 | 轉換設定 | — |
 
 ## transform-setup-c
 
-変換の形 C: CRS と三角網を使い、四辺形の外を扇形に外挿する形
+変換の形「三角網＋扇形外挿」: CRS と三角網を使い、四辺形の外を扇形に外挿する形。画面には A〜C の記号を出さない
 
 根拠キー `mapedit.crs_setup_c`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_c`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
-| de | C: TIN + Fächer | C: TIN + Fächer、C: CRS + TIN、TIN + Fächer-Extrapolation | — | — | — |
-| en | C: TIN + fan | C: TIN + fan、C: CRS + TIN、TIN + fan extrapolation | — | global model | — |
-| es | C: TIN + abanico | C: TIN + abanico、C: CRS + TIN、TIN + extrapolación en abanico | — | — | — |
-| fr | C : TIN + éventail | C : TIN + éventail、C : CRS + TIN、TIN + extrapolation en éventail | — | — | — |
-| id | C: TIN + kipas | C: TIN + kipas、C: CRS + TIN、TIN + ekstrapolasi kipas | — | — | — |
-| ja | C: 三角網＋扇形 | C: 三角網＋扇形、C: CRS＋三角網、三角網＋扇形 | — | 大域モデル | — |
-| ko | C: TIN + 부채꼴 | C: TIN + 부채꼴、C: CRS + TIN、TIN + 부채꼴 외삽 | — | — | — |
-| th | C: TIN + รูปพัด | C: TIN + รูปพัด、C: CRS + TIN、TIN + การคาดคะเนแบบรูปพัด | — | — | — |
-| vi | C: TIN + hình quạt | C: TIN + hình quạt、C: CRS + TIN、TIN + ngoại suy hình quạt | — | — | — |
-| zh | C: TIN + 扇形 | C: TIN + 扇形、C: CRS + TIN、TIN + 扇形外推 | — | — | — |
-| zh-TW | C: TIN + 扇形 | C: TIN + 扇形、C: CRS + TIN、TIN + 扇形外推 | — | — | — |
+| de | TIN + Fächer-Extrapolation | TIN + Fächer-Extrapolation、C: TIN + Fächer-Extrapolation、C: TIN + Fächer | — | Transformationseinstellungen | — |
+| en | TIN + fan extrapolation | TIN + fan extrapolation、C: TIN + fan extrapolation、C: TIN + fan | C: CRS + TIN | — | — |
+| es | TIN + extrapolación en abanico | TIN + extrapolación en abanico、C: TIN + extrapolación en abanico、C: TIN + abanico、TIN + abanico | — | — | — |
+| fr | TIN + extrapolation en éventail | TIN + extrapolation en éventail、C : TIN + extrapolation en éventail、C : TIN + éventail、TIN + éventail | — | — | — |
+| id | TIN + ekstrapolasi kipas | TIN + ekstrapolasi kipas、C: TIN + ekstrapolasi kipas、C: TIN + kipas | — | — | — |
+| ja | 三角網＋扇形外挿 | 三角網＋扇形外挿、C: 三角網＋扇形外挿、C: 三角網＋扇形、三角網＋扇形 | C: CRS＋三角網 | — | — |
+| ko | TIN + 부채꼴 외삽 | TIN + 부채꼴 외삽、C: TIN + 부채꼴 외삽、C: TIN + 부채꼴、TIN + 부채꼴 | C: CRS + TIN | — | — |
+| th | TIN + การคาดคะเนแบบรูปพัด | TIN + การคาดคะเนแบบรูปพัด、C: TIN + การคาดคะเนแบบรูปพัด、C: TIN + รูปพัด | — | การตั้งค่าการแปลง | — |
+| vi | TIN + ngoại suy hình quạt | TIN + ngoại suy hình quạt、C: TIN + ngoại suy hình quạt、TIN + hình quạt | — | — | — |
+| zh | TIN + 扇形外推 | TIN + 扇形外推、C: TIN + 扇形外推、三角网 + 扇形外推、C: TIN + 扇形 | C: CRS + TIN | — | — |
+| zh-TW | TIN + 扇形外插 | TIN + 扇形外插、C: TIN + 扇形外插、C: TIN + 扇形、TIN + 扇形、TIN + 扇形外推 | — | 轉換設定 | — |
+
+## transform-setup-legacy
+
+CRS を持たない V2 の地図の変換の形（従来型）。V2 の地図は今も使えるので、廃止予定のような響きにしない
+
+根拠キー `mapedit.crs_setup_legacy`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_legacy`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | herkömmlich | herkömmlich、herkömmliche、herkömmlicher、herkömmlichen、Legacy | — | veraltet | — |
+| en | legacy | legacy | — | — | — |
+| es | convencional | convencional、heredado、legacy | — | antiguo | — |
+| fr | classique | classique、classiques、de type classique、type classique、format classique | — | ancien type | — |
+| id | konvensional | konvensional、bentuk konvensional、legacy | — | peta lama | — |
+| ja | 従来型 | 従来型 | — | — | — |
+| ko | 기존형 | 기존형、기존 방식、레거시 | — | 구형 | — |
+| th | แบบเดิม | แบบเดิม、แผนที่แบบเดิม、แบบเดิม (V2) | — | แผนที่เก่า、แบบเก่า | — |
+| vi | kiểu cũ | kiểu cũ、bản đồ kiểu cũ、bản đồ V2 | — | — | — |
+| zh | 传统型 | 传统型、传统、传统方式 | — | 旧地图、旧型 | — |
+| zh-TW | 傳統型 | 傳統型、傳統、舊版 | — | 舊地圖 | — |
 
 ## world-file
 
 画像の画素座標と CRS の座標を対応付ける 6 係数の world file。定義データを指して「設定」とは呼ばない
 
-根拠キー `mapedit.crs_setup_a`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_a`
+根拠キー `mapedit.crs_gcp_edited_after_adopt`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_gcp_edited_after_adopt`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -746,7 +773,7 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 
 ## tin
 
-GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A では持たない
+GCP と補助頂点で構成する三角網（TIN）。CRS だけの形では持たない
 
 根拠キー `appedit.preview.compiled_required`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
 
@@ -763,6 +790,126 @@ GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A
 | vi | TIN | TIN、lưới tam giác、mạng tam giác | — | — | — |
 | zh | 三角网 | 三角网、TIN | — | — | — |
 | zh-TW | 三角網 | 三角網、TIN | — | — | — |
+
+## corresponding-line
+
+2 つの GCP を結ぶ線（技術文書では制約エッジ）。三角網は必ずこの線を辺に含む。人間が打つ
+
+根拠キー `mapedit.edge_error_not_found`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Verbindungslinie | Verbindungslinie、Verbindungslinien、Zwangskante、Zwangskanten | — | Hilfslinie | — |
+| en | corresponding line | corresponding line、corresponding lines、constraint edge、constraint edges | — | — | — |
+| es | línea de correspondencia | línea de correspondencia、líneas de correspondencia、arista de restricción、aristas de restricción | — | — | — |
+| fr | ligne de correspondance | ligne de correspondance、lignes de correspondance、ligne de contrainte、lignes de contrainte | — | ligne correspondante | — |
+| id | garis korespondensi | garis korespondensi、garis-garis korespondensi、sisi kendala | — | garis kontrol、garis penghubung | — |
+| ja | 対応線 | 対応線、制約エッジ | — | — | — |
+| ko | 대응선 | 대응선、제약 엣지 | — | 마커 선、대응 라인 | — |
+| th | เส้นที่สอดคล้อง | เส้นที่สอดคล้อง、เส้นสอดคล้อง、เส้นข้อบังคับ | — | เส้นควบคุม | — |
+| vi | đường tương ứng | đường tương ứng、các đường tương ứng、cạnh ràng buộc | — | đường đối ứng | — |
+| zh | 对应线 | 对应线、约束边 | — | 控制线、对应边 | — |
+| zh-TW | 對應線 | 對應線、約束邊 | — | 標記線 | — |
+
+## bend-point
+
+対応線を折れ線にするための点。紙の面と地理の面で、別々に打てる。人間が打つ。GCP のマーカーとは別
+
+根拠キー `mapedit.context_marker_on_line`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.context_marker_on_line`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Knickpunkt | Knickpunkt、Knickpunkte、Knickpunkten、Knickpunkts | — | Stützpunkt、Marker auf Verbindungslinie | — |
+| en | bend point | bend point、bend points | — | — | — |
+| es | punto de quiebre | punto de quiebre、puntos de quiebre | — | punto de inflexión | — |
+| fr | point de brisure | point de brisure、points de brisure | — | point d'inflexion、point d’inflexion、point de rupture | — |
+| id | titik tekuk | titik tekuk、titik-titik tekuk | — | penanda、titik belok、titik patah | — |
+| ja | 折れ点 | 折れ点 | — | — | — |
+| ko | 꺾임점 | 꺾임점、굴곡점 | — | 절점、변곡점 | — |
+| th | จุดหักมุม | จุดหักมุม、จุดหักเห | — | จุดโค้ง | — |
+| vi | điểm gấp khúc | điểm gấp khúc、các điểm gấp khúc | — | điểm uốn | — |
+| zh | 折点 | 折点 | — | 拐点、节点 | — |
+| zh-TW | 折點 | 折點、轉折點 | — | 節點 | — |
+
+## proportional-point
+
+折れ点の、相手の面での位置。相手の面の折れ線の上で、始点から同じ長さの比になる点。Tin が求める（システムが置く）
+
+根拠キー `mapedit.tin_proportional_point`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.tin_proportional_point`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Teilungspunkt | Teilungspunkt、Teilungspunkte、Teilungspunkten、Teilungspunkts | — | — | — |
+| en | proportional point | proportional point、proportional points | — | — | — |
+| es | punto proporcional | punto proporcional、puntos proporcionales、punto de división proporcional、puntos de división proporcional | — | punto intermedio、punto auxiliar | — |
+| fr | point proportionnel | point proportionnel、points proportionnels | — | point d'interpolation、point d’interpolation | — |
+| id | titik proporsional | titik proporsional、titik-titik proporsional、titik pembagi proporsional | — | titik tengah | — |
+| ja | 内分点 | 内分点 | — | — | — |
+| ko | 내분점 | 내분점 | — | 보간점、비례점 | — |
+| th | จุดแบ่งตามสัดส่วน | จุดแบ่งตามสัดส่วน、จุดแบ่งตามอัตราส่วน | — | จุดเสริม | — |
+| vi | điểm chia theo tỉ lệ | điểm chia theo tỉ lệ、điểm chia tỉ lệ、các điểm chia theo tỉ lệ | — | — | — |
+| zh | 内分点 | 内分点、比例分点、比例点 | — | 辅助点 | — |
+| zh-TW | 內分點 | 內分點、比例點 | — | 中點、補點 | — |
+
+## supplement-point
+
+strict を保つために制約から外した凸包の辺や、向きが食い違う所に、システムが足す対応の組。補助頂点とは別（システムが置く）
+
+根拠キー `mapedit.tin_supplement_point`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.tin_supplement_point`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Ergänzungspunkt | Ergänzungspunkt、Ergänzungspunkte、Ergänzungspunkten、Ergänzungspunkts | — | Hilfspunkt | — |
+| en | supplement point | supplement point、supplement points | — | — | — |
+| es | punto complementario | punto complementario、puntos complementarios、par complementario、pares complementarios | — | punto auxiliar、vértice complementario、punto suplementario | — |
+| fr | point complémentaire | point complémentaire、points complémentaires、paire complémentaire、paires complémentaires | — | point auxiliaire、point supplémentaire | — |
+| id | titik pelengkap | titik pelengkap、titik-titik pelengkap、pasangan pelengkap | — | titik tambahan、titik bantu、simpul pelengkap | — |
+| ja | 補完点 | 補完点 | — | — | — |
+| ko | 보완점 | 보완점、보완 점 | — | 보조점、보충점 | — |
+| th | จุดเติมเต็ม | จุดเติมเต็ม、คู่จุดเติมเต็ม | — | จุดเสริม、จุดช่วย、จุดเพิ่มเติม | — |
+| vi | điểm bổ sung | điểm bổ sung、các điểm bổ sung、cặp điểm bổ sung | — | điểm phụ trợ、điểm bổ trợ、đỉnh bổ sung | — |
+| zh | 补全点 | 补全点 | — | 补充点、补点、补助 | — |
+| zh-TW | 補全點 | 補全點 | — | 補助點、輔助點、補充頂點 | — |
+
+## extrapolation-quadrilateral
+
+GCP の外側を受け持つ範囲の枠。内側は三角網、外側は大域外挿か扇形外挿で変換する（システムが置く）
+
+根拠キー `mapedit.tin_extrapolation_quadrilateral`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.tin_extrapolation_quadrilateral`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Extrapolationsviereck | Extrapolationsviereck、Extrapolationsvierecks、Extrapolationsvierecke、Extrapolationsvierecken、Extrapolations-Viereck | — | — | — |
+| en | extrapolation quadrilateral | extrapolation quadrilateral、extrapolation quadrilaterals | — | — | — |
+| es | cuadrilátero de extrapolación | cuadrilátero de extrapolación、cuadriláteros de extrapolación | — | — | — |
+| fr | quadrilatère d'extrapolation | quadrilatère d'extrapolation、quadrilatère d’extrapolation、quadrilatères d'extrapolation、quadrilatères d’extrapolation | — | — | — |
+| id | segi empat ekstrapolasi | segi empat ekstrapolasi、segiempat ekstrapolasi | — | segi empat bantu | — |
+| ja | 外挿四辺形 | 外挿四辺形 | — | — | — |
+| ko | 외삽 사각형 | 외삽 사각형、외삽 사변형 | — | 외삽 사각 영역 | — |
+| th | รูปสี่เหลี่ยมคาดคะเน | รูปสี่เหลี่ยมคาดคะเน、รูปสี่เหลี่ยมสำหรับการคาดคะเน | — | — | — |
+| vi | tứ giác ngoại suy | tứ giác ngoại suy、hình tứ giác ngoại suy | — | tứ giác ngoại vi | — |
+| zh | 外推四边形 | 外推四边形、外插四边形 | — | 外延四边形、边界四边形 | — |
+| zh-TW | 外插四邊形 | 外插四邊形、外推四邊形 | — | — | — |
+
+## auxiliary-vertex
+
+外挿四辺形の四隅と辺の上に置く頂点（隅の補助頂点・辺の補助頂点）。補完点とは別（システムが置く）
+
+根拠キー `mapedit.tin_auxiliary_vertex`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.tin_auxiliary_vertex`
+
+| 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
+|---|---|---|---|---|---|
+| de | Hilfsknoten | Hilfsknoten、Eck-Hilfsknoten、Seiten-Hilfsknoten | — | Hilfspunkt | — |
+| en | auxiliary vertex | auxiliary vertex、auxiliary vertices | — | — | — |
+| es | vértice auxiliar | vértice auxiliar、vértices auxiliares、vértice auxiliar de esquina、vértices auxiliares de esquina、vértice auxiliar de lado、vértices auxiliares de lado | — | punto auxiliar、vértice complementario | — |
+| fr | sommet auxiliaire | sommet auxiliaire、sommets auxiliaires、sommet auxiliaire de coin、sommet auxiliaire de côté、sommets auxiliaires de coin、sommets auxiliaires de côté | — | point auxiliaire | — |
+| id | simpul bantu | simpul bantu、simpul-simpul bantu、simpul bantu sudut、simpul bantu sisi、verteks bantu | — | — | — |
+| ja | 補助頂点 | 補助頂点 | — | — | — |
+| ko | 보조 정점 | 보조 정점、모서리 보조 정점、변 보조 정점 | — | 보완 정점、꼭짓점 | — |
+| th | จุดยอดช่วย | จุดยอดช่วย、จุดยอดช่วยที่มุม、จุดยอดช่วยที่ขอบ | — | จุดเสริม | — |
+| vi | đỉnh phụ trợ | đỉnh phụ trợ、các đỉnh phụ trợ、đỉnh phụ trợ ở góc、đỉnh phụ trợ ở cạnh | — | đỉnh bổ sung | — |
+| zh | 辅助顶点 | 辅助顶点、角辅助顶点、边辅助顶点 | — | 补助顶点、辅助点 | — |
+| zh-TW | 輔助頂點 | 輔助頂點、角輔助頂點、邊輔助頂點 | — | 補助頂點、補全頂點 | — |
 
 ## residual
 
@@ -786,9 +933,9 @@ GCP と補助頂点で構成する三角網（TIN）。world file だけの形 A
 
 ## global-model
 
-形 B で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）
+三角網＋大域外挿で四辺形の外に使う、world file が表す大域的なアフィン変換（大域モデル）
 
-根拠キー `mapedit.crs_setup_b`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_b`
+根拠キー `mapedit.crs_setup_fallback_notice`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_fallback_notice`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
@@ -846,18 +993,18 @@ score と閾値から示す推奨。採用を強制するものではない
 
 ## fan-fallback
 
-形 B を組めないときに四辺形の外を扇形へ切り替えたことを知らせる通知。形 C 全般や内部の strict_error とは区別する
+大域外挿を組めないときに四辺形の外を扇形外挿へ切り替えたことを知らせる通知。扇形外挿の形全般や内部の strict_error とは区別する
 
 根拠キー `mapedit.crs_setup_fallback_notice`。必須形を求める言語: de, en, es, fr, id, ja, ko, th, vi, zh, zh-TW。先行登録キー: `mapedit.crs_setup_fallback_notice`
 
 | 言語 | 代表語 | 許容形 | 統一前の形 | 禁止形 | 除外語 |
 |---|---|---|---|---|---|
 | de | Wechsel zum Fächermodus | Wechsel zum Fächermodus、zum Fächermodus gewechselt、Fächer-Extrapolation | — | — | — |
-| en | switch to fan mode | switch to fan mode、switched outer extrapolation to fan mode、switch outer extrapolation to fan mode | — | downgrade、fallback | — |
+| en | switch to fan extrapolation | switch to fan extrapolation、switched to fan extrapolation、switch to fan mode、switched outer extrapolation to fan mode、switch outer extrapolation to fan mode | — | downgrade、fallback | — |
 | es | cambio a modo abanico | cambio a modo abanico、cambiado a modo abanico、extrapolación en abanico | — | — | — |
 | fr | passage en mode éventail | passage en mode éventail、passé en mode éventail、extrapolation en éventail | — | — | — |
 | id | beralih ke mode kipas | beralih ke mode kipas、beralih ke ekstrapolasi kipas、ekstrapolasi kipas | — | — | — |
-| ja | 扇形への切り替え | 扇形への切り替え、扇形に切り替え、扇形（従来の外挿）に切り替え | — | 降格、フォールバック | — |
+| ja | 扇形外挿への切り替え | 扇形外挿への切り替え、扇形外挿に切り替え、扇形への切り替え、扇形に切り替え、扇形（従来の外挿）に切り替え | — | 降格、フォールバック | — |
 | ko | 부채꼴로 전환 | 부채꼴로 전환、부채꼴 모드로 전환、부채꼴 외삽 | — | — | — |
 | th | สลับเป็นโหมดรูปพัด | สลับเป็นโหมดรูปพัด、สลับเป็นการคาดคะเนแบบรูปพัด、การคาดคะเนแบบรูปพัด | — | — | — |
 | vi | chuyển sang chế độ hình quạt | chuyển sang chế độ hình quạt、chuyển sang ngoại suy hình quạt、ngoại suy hình quạt | — | — | — |

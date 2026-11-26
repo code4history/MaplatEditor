@@ -538,10 +538,16 @@ export function indexExceptions(exceptions) {
   return { anchor, lang };
 }
 
-/** 代表語の検査: 根拠キーの値がその概念の許容形を満たす */
+/**
+ * 代表語の検査: 根拠キーの値がその概念の許容形を満たす。
+ * 先行登録（pendingKeys）した根拠キーが locale に既にあり、文言がまだ旧い（代表語を満たさない）ときは、違反にせず stale として返す。
+ * 正本だけの PR で新しい語を先に決め、既存キーの文言は後の locale の PR で直すため（2 PR の関門）。
+ * 文言が直れば stale は消え、11 言語すべてが満たした時点で pendingKeys の消し待ちを知らせる
+ */
 function checkRepresentatives(glossary, values) {
   const ix = conceptIndex(glossary);
   const out = [];
+  const stale = [];
   for (const c of glossary.concepts) {
     for (const l of c.requiredLocales) {
       const e = c.locales[l];
@@ -552,10 +558,12 @@ function checkRepresentatives(glossary, values) {
       if (raw === undefined && (c.pendingKeys ?? []).includes(rk)) continue;
       const j = judgeValue(e, ix.modeOf(l), applyExclusions(stripNoise(raw ?? ''), ix.excl(c, l)), true);
       const ok = raw !== undefined && j.accepted && !j.forbHits.length && !j.formerHits.length;
-      if (!ok) out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
+      if (ok) continue;
+      if (raw !== undefined && (c.pendingKeys ?? []).includes(rk)) stale.push({ concept: c.id, lang: l, key: rk });
+      else out.push({ kind: 'representative', lang: l, key: rk, concept: c.id, ruleId: `${c.id}.${l}.representative`, hit: raw ?? '(none)', preferred: e.preferred });
     }
   }
-  return out;
+  return { violations: out, stale };
 }
 
 // ───────────────────────────── 生成物 ─────────────────────────────
@@ -580,7 +588,7 @@ export function renderMarkdown(glossary, exceptions, all) {
   lines.push('正本は `editor-glossary.json`（概念・言語別の代表語・許容形・統一前の形・禁止形）と `editor-glossary.exceptions.json`（例外）。');
   lines.push('検査は `node scripts/editor-glossary-check.mjs`（`pnpm smoke:editor-glossary`）。文言を設計する前に、ここで概念を探す。');
   lines.push('正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。');
-  lines.push('新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。');
+  lines.push('新しい概念が後の locale の PR で足す根拠キー・additionalBindings は、その概念の pendingKeys に先行登録する。登録したキーだけが警告（pending-key）になり、どれか 1 言語へ足した時点で 11 言語すべてへの追加を検査する。先行登録した根拠キーが既に locale にあって文言がまだ旧いときも、直るまで警告（pending-key）にとどめる。まだ無いキーへの例外も、従来どおり正本だけの PR の時点では警告になる。手順は AGENTS.md の「UI Wording & Glossary」。');
   lines.push('');
   const counts = {};
   for (const x of exceptions) counts[x.type] = (counts[x.type] ?? 0) + 1;
@@ -798,9 +806,19 @@ export function runCheck({ root, write = false, base = null }) {
   canon.exceptions.forEach((x, i) => {
     if (!used.has(i) && keys.has(x.key)) warnings.push({ kind: 'unused-exception', type: x.type, concept: x.concept, lang: x.locale ?? '-', key: x.key, index: i, message: '違反を抑えなかった例外（消し待ちか locale の変更待ち。消すのは正本だけの PR で）' });
   });
-  // 先行登録したキーが 11 言語すべてにそろったら、pendingKeys から消し待ちであることを知らせる
+  // (8) 代表語。先行登録した既存キーの旧い文言は、違反にせず警告にする（直すのは後の locale の PR）
+  const reps = checkRepresentatives(g, loc.values);
+  const staleBy = new Map();
+  for (const x of reps.stale) {
+    const id = `${x.concept}\u0000${x.key}`;
+    if (!staleBy.has(id)) staleBy.set(id, { concept: x.concept, key: x.key, langs: [] });
+    staleBy.get(id).langs.push(x.lang);
+  }
+  for (const x of staleBy.values()) warnings.push({ kind: 'pending-key', type: 'rootKeyText', concept: x.concept, lang: '-', key: x.key, message: `先行登録した根拠キーが locale に既にあるが、文言がまだ旧い（${x.langs.join(', ')}。locale の PR で直す）` });
+  // 先行登録したキーが 11 言語すべてにそろい、文言も代表語を満たしたら、pendingKeys から消し待ちであることを知らせる
   for (const c of g.concepts) {
     for (const k of c.pendingKeys ?? []) {
+      if (staleBy.has(`${c.id}\u0000${k}`)) continue;
       if (langs.every((l) => loc.values[l]?.has(k))) warnings.push({ kind: 'unused-pending-key', type: 'pendingKeys', concept: c.id, lang: '-', key: k, message: '先行登録したキーが 11 言語すべてにそろった（pendingKeys から消す。消すのは正本だけの PR で）' });
     }
   }
@@ -818,8 +836,7 @@ export function runCheck({ root, write = false, base = null }) {
     }
     if (cur !== text) violations.push({ kind: 'generated', lang: '-', key: rel, concept: '-', ruleId: 'generated.stale', hit: cur === null ? '(none)' : 'differs', preferred: '--write で作り直す', message: `${rel} が再生成と一致しない` });
   }
-  // (8) 代表語
-  violations.push(...checkRepresentatives(g, loc.values));
+  violations.push(...reps.violations);
 
   const order = (v) => [v.kind === 'gate' || v.kind === 'structure' || v.kind === 'generated' ? 0 : 1, v.lang, v.key, v.concept, v.ruleId, v.hit].join('\u0000');
   violations.sort((a, b) => (order(a) < order(b) ? -1 : order(a) > order(b) ? 1 : 0));
