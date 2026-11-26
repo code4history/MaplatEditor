@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
+import { VIEWER_HOST, waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -132,12 +133,13 @@ test.describe('swiper 12 — preview 到達', () => {
         const src = (window as any).__maplatPreview?.core?.mapObject?.getSource?.('marker');
         return !!src && src.getFeatures().length >= 1;
       }, undefined, { timeout: 60000 });
-      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      await waitViewerSplashHidden(frame);
 
       // 5. POI を開く。
       //    ピクセル座標クリックは地図のパン状態に依存して不安定なため、実経路のイベントを直接発火する。
-      //    Maplat/src/ui_init.ts:616 が core の "clickMarkers" を購読し、detail が1件のとき
-      //    ui.handleMarkerAction(data[0]) を呼ぶ。その中で ui_marker.ts:130 が cc-swiper を組む。
+      //    viewer（@maplat/ui 1.3 の <maplat-ui>）は core の "clickMarkers" を受け、detail が1件のとき
+      //    その POI の窓を開く。画像が複数あれば、窓の本文に <qy-swiper> と <qy-swiper-slide> を組む
+      //    （Maplat/src/element/maplat-ui.ts の #renderPoi・#buildMediaSwiper。UI 1.2 までは cc-swiper だった）。
       //    detail には OL feature ではなく POI の datum（image 配列を持つ）を渡す必要がある。
       const dispatched = await frame.evaluate((featureId: string) => {
         const core = (window as any).__maplatPreview?.core;
@@ -151,7 +153,7 @@ test.describe('swiper 12 — preview 到達', () => {
         // core は OpenLayers の Observable であり、dispatchEvent は DOM CustomEvent ではなく
         // { type, ... } のプレーンオブジェクトを取る（CustomEvent を渡すと OL が target を
         // 代入しようとして 'Cannot set property target of #<Event>' になる。実測）。
-        // 購読側（Maplat/src/ui_init.ts:616）は evt.detail を読むだけなので detail を載せれば足りる。
+        // 購読側は evt.detail を読むだけなので detail を載せれば足りる。
         core.dispatchEvent({ type: 'clickMarkers', detail: [target] });
         return { ok: true, images: Array.isArray(target.image) ? target.image.length : 0 };
       }, POI_FEATURE_ID);
@@ -159,10 +161,17 @@ test.describe('swiper 12 — preview 到達', () => {
       expect(dispatched.images, 'viewer に届いた datum が seed した画像数を保っていること').toBe(IMAGES.length);
 
       // 6. swiper の生成とスライド数を assert
-      const swiper = frame.locator('cc-swiper').first();
-      await expect(swiper).toBeAttached({ timeout: 30000 });
-      const slideCount = await frame.evaluate(() =>
-        document.querySelectorAll('cc-swiper cc-swiper-slide').length);
+      //    UI 1.3 では swiper は <maplat-ui> の Shadow DOM の中の POI の窓（part="poi-modal"）に入る。
+      //    部品は <qy-swiper>（中身は従来と同じ Chuci）。locator は open の Shadow DOM を越えて探す
+      const swiper = frame.locator(`${VIEWER_HOST} [part~="poi-modal"] qy-swiper`);
+      await expect(swiper).toHaveCount(1, { timeout: 30000 });
+      await expect(swiper, 'swiper が開いた POI の窓の中に見えていること').toBeVisible({ timeout: 30000 });
+      // 表示部品が実際に読み込まれていること（要素の定義が無いと、タグが在るだけで何も描かれない）
+      await frame.waitForFunction(() => !!customElements.get('qy-swiper') && !!customElements.get('qy-swiper-slide'),
+        undefined, { timeout: 30000 });
+      const slideCount = await frame.evaluate((host: string) =>
+        document.querySelector(host)?.shadowRoot?.querySelectorAll('[part~="poi-modal"] qy-swiper > qy-swiper-slide').length ?? -1,
+      VIEWER_HOST);
       expect(slideCount, 'swiper のスライド数が seed した画像数と一致すること').toBe(IMAGES.length);
 
       // 7. 人間確認用の一時停止（MAPLAT_E2E_PAUSE=1 のときだけ有効。app-poi-hide-override と同じ作法）

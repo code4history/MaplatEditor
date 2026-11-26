@@ -19,6 +19,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { quitElectronApplication } from './helpers/electronLifecycle';
 import { evalMain } from './helpers/evalMain';
+import { waitViewerSplashHidden } from './helpers/viewerDom';
 
 const projectRoot = path.resolve(import.meta.dirname, '../..');
 const OSM_TILE_FIXTURE_ROOT = path.resolve(import.meta.dirname, 'fixtures/osm-tiles');
@@ -272,7 +273,7 @@ test.describe('アプリ管理 POI 編集の hide 上書き UI', () => {
       }, undefined, { timeout: 90000 });
 
       // モーダル消失待機（properties-viewer-reach と同一）
-      await frame.locator('.modalBase').waitFor({ state: 'hidden', timeout: 30000 });
+      await waitViewerSplashHidden(frame);
       await frame.evaluate(() => new Promise((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
       }));
