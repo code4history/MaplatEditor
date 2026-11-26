@@ -1,4 +1,17 @@
+import path from 'node:path';
 import { defineConfig } from '@playwright/test';
+
+// e2e 起動の Electron が前面に出てフォーカスを奪わないようにする（詳細は
+// tests/e2e/helpers/electronNoFocus.cjs）。NODE_OPTIONS の --require なので
+// env を個別に渡している起動にも届く。MAPLAT_E2E_FOCUS=1 で従来どおりに戻る。
+if (process.env.MAPLAT_E2E_FOCUS !== '1') {
+  const noFocus = path.resolve(import.meta.dirname, 'tests/e2e/helpers/electronNoFocus.cjs');
+  const current = process.env.NODE_OPTIONS ?? '';
+  if (!current.includes(noFocus)) {
+    // 空白を含むパスでも 1 つの引数になるよう、二重引用符で囲む（Node は NODE_OPTIONS の引用符を解釈する）
+    process.env.NODE_OPTIONS = `${current} --require=${JSON.stringify(noFocus)}`.trim();
+  }
+}
 
 export default defineConfig({
   testDir: './tests/e2e',

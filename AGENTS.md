@@ -40,6 +40,8 @@ This repository has no unified `test` script. Smoke tests live under `scripts/` 
 
 In e2e specs, evaluate code in the Electron main process only through `evalMain(app, fn, arg)` from `tests/e2e/helpers/evalMain.ts`. Do not call `ElectronApplication.evaluate()` directly: while the main process is busy, a direct call can fail with `Resulting promise was garbage collected`, and making the function `async` only narrows that window. `evalMain` must not be retried either, because the function has already run in the main process when that error appears. `pnpm smoke:e2e-main-evaluate` rejects direct calls.
 
+On macOS, e2e runs keep Electron from taking the focus: `playwright.config.ts` loads `tests/e2e/helpers/electronNoFocus.cjs` into every Electron launch, which sets the app's activation policy to `accessory` and shows windows with `showInactive()` instead of `show()` (`focus()` does nothing). Windows still appear and render as before, so screenshots and WebGL are unaffected. Set `MAPLAT_E2E_FOCUS=1` to get the previous behavior, for example when a check depends on the window really being focused. To see which app is in front while a spec runs, start `tests/e2e/helpers/record-front-app.sh` in another terminal. Native OS dialogs that a spec does not stub can still come to the front.
+
 ## Browser Engine Policy
 
 The editor runs on two kinds of engines: the Chromium bundled with Electron, and the native web views that the experimental Electrobun runtime uses. `electrobun.config.ts` sets `defaultRenderer: 'native'` explicitly only for macOS, where the native view is WebKit; on Linux (WebKit) and Windows (WebView2) the native view comes from Electrobun's default behavior, not from this repository's configuration. Code must work on both Chromium and WebKit.
