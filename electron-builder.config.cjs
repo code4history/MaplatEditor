@@ -40,6 +40,8 @@ const config = {
     appId: 'jp.maplat.editor',
     productName: 'MaplatEditor',
     asar: true,
+    // 入口とパッケージ解決は ASAR 内。Electron が PROJ の資産だけ展開先へ振り分ける。
+    asarUnpack: ['**/proj-wasm/dist/**'],
     directories: {
         output: 'release/${version}',
         buildResources: 'build',
@@ -67,6 +69,8 @@ const config = {
     files: [
         'dist',
         'dist-electron',
+        // Atlas のブラウザ配布用の複製は省き、Node が解決する proj-wasm の資産を同梱する。
+        '!node_modules/@c4h/atlas/dist/{proj.db,proj.ini,proj-worker.mjs,fetch-worker.mjs,proj-emscripten.js,proj-emscripten.wasm}',
         // 開発用ディレクトリを除外（実測: 除外前は @maplat/core だけで 3408 ファイル、
         // うち public/ が 1197。除外後は 147 ファイル・asar は 330MB → 214MB）。
         // node_modules/ は除外しないこと — 内部パッケージの実依存（@turf /
