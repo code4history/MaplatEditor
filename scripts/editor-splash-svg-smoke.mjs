@@ -488,9 +488,16 @@ console.log("ok: (d) スプラッシュは拡張子のまま、og:image は SVG 
 // --- (e) Maplat UI の表示方法 ---------------------------------------------------
 {
   const ui = await readSrc("public/preview/maplat_ui.umd.js");
-  assert.match(ui, /splash_img/, "Maplat UI に splash_img がない");
-  assert.match(ui, /\.splash_img"\)\.setAttribute\("src"/, "Maplat UI がスプラッシュを <img> の src で表示していない");
+  // 同梱の Maplat UI の minify の 2 つの形で探す。
+  // UI 1.2 まで: querySelector(".splash_img").setAttribute("src", …)
+  // UI 1.3 から（Web Components）: 部品の表に splashImg: q(".splash .splash-img") を持ち、splashImg.src = … で入れる
+  const legacyForm = /splash_img/.test(ui) && /\.splash_img"\)\.setAttribute\("src"/.test(ui);
+  const elementForm = /splashImg:[\w$]+\("\.splash \.splash-img"\)/.test(ui) && /\.splashImg\.src=/.test(ui)
+    && /<img class="splash-img"/.test(ui);
+  assert.ok(legacyForm || elementForm, "Maplat UI がスプラッシュを <img> の src で表示していない（splash_img / splash-img が見つからない）");
   assert.doesNotMatch(ui, /splash_div[^;]{0,200}innerHTML/, "Maplat UI がスプラッシュを innerHTML で入れている");
+  // UI 1.3 の部品の表の名前（splash・splashTitle・splashLoading・splashImage・splashImg）へ innerHTML で入れていない
+  assert.doesNotMatch(ui, /\.splash(?:Title|Loading|Image|Img)?\.innerHTML/, "Maplat UI がスプラッシュを innerHTML で入れている");
 }
 console.log("ok: (e) Maplat UI はスプラッシュを <img src> で表示する（SVG でも描ける）");
 
