@@ -231,6 +231,7 @@ const identity = JSON.parse(read('scripts/win-sign/signer-identity.json'));
 // ───────────────────────────────────────────────
 // [4] case 1 vite.config.ts の main の external
 // ───────────────────────────────────────────────
+const CRS_ESTIMATION_EXTERNALS = ['@c4h/atlas', '@c4h/teiresias', '@c4h/daedalus', 'proj-wasm', '@maplat/transform'];
 function mainExternal(src) {
   const m = src.match(/external:\s*\[([^\]]*)\]/);
   assert.ok(m, 'vite.config.ts に main の external の配列が無い');
@@ -247,12 +248,13 @@ function mainExternal(src) {
   if (hasBase) {
     const base = mainExternal(git('show', 'origin/master:vite.config.ts').stdout);
     // jimp/fonts: kept external with jimp so the font files are found next to the module (maps.render_region)
-    const want = new Set([...base, 'electron-updater', 'jimp/fonts']);
-    assert.deepEqual([...head].sort(), [...want].sort(), 'external(HEAD) が external(origin/master) ∪ {electron-updater} でない');
+    // J6-T2（#314）が CRS 推定の utilityProcess のために足した external（実行時に node_modules から解決する）
+    const want = new Set([...base, 'electron-updater', 'jimp/fonts', ...CRS_ESTIMATION_EXTERNALS]);
+    assert.deepEqual([...head].sort(), [...want].sort(), 'external(HEAD) が external(origin/master) ∪ {electron-updater, CRS 推定の external} でない');
     pass(`case 1 vite external = origin/master ∪ {electron-updater}（${[...head].join(', ')}）`);
   } else {
     // CI の浅い checkout には origin/master が無い。Electron 43 への更新の後の master の期待値で比べる
-    const want = new Set(['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater']);
+    const want = new Set(['node:sqlite', 'jimp', 'jimp/fonts', '@jsquash/webp', 'pwa-asset-generator', 'electron-updater', ...CRS_ESTIMATION_EXTERNALS]);
     assert.deepEqual([...head].sort(), [...want].sort(), 'external が期待値と違う');
     pass('case 1 vite external（origin/master が無いので固定の期待値で比べた）');
   }
