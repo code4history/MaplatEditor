@@ -53,6 +53,8 @@
     "smoke:undo-redo": "node --experimental-strip-types scripts/undo-redo-smoke.mjs",
     "smoke:j6-t4a-layer-transform-state": "node --experimental-strip-types scripts/layer-transform-state-smoke.mjs",
     "smoke:j6-t5a-crs-ui": "node --experimental-strip-types scripts/j6-t5a-crs-ui-smoke.mjs",
+    "smoke:j6-t5-crs-fixtures": "node --experimental-strip-types scripts/generate-j6-crs-fixtures.mjs --check",
+    "test:e2e:j6-t5": "node scripts/ensure-electron.mjs && pnpm run build && playwright test tests/e2e/j6-t5-crs-estimation.spec.ts",
     "smoke:j6-t4-crs-reproject": "node --experimental-strip-types scripts/j6-t4-crs-reproject-smoke.mjs",
     "smoke:pois-format-guard": "node scripts/pois-format-guard-smoke.mjs",
     "smoke:revisioned-save": "node scripts/revisioned-save-smoke.mjs",

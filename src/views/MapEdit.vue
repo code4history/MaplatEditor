@@ -107,7 +107,8 @@ import {
     compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
 } from '../utils/layerTransformIntent';
 import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
-import { estimateGcpsFromLayer, residualArrows, setupLabelKey, type ResidualRow, type ResidualScaleMode, type PreviewMode } from '../utils/crsEstimationPanel';
+import { estimateGcpsFromLayer, residualArrows, setupLabelKey, type ResidualRow, type ResidualScaleMode } from '../utils/crsEstimationPanel';
+import { createCrsPreviewRasterSource, type CrsPreviewEventPayload, type CrsRasterPreviewSpec } from '../utils/crsRasterOverlay';
 import CrsEstimationPanel from '../components/mapedit/CrsEstimationPanel.vue';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -1075,6 +1076,9 @@ const crsResidualState = ref<{ rows: ResidualRow[]; scaleMode: ResidualScaleMode
 let crsResidualSource: VectorSource | null = null;
 let crsPreviewSource: VectorSource | null = null;
 let crsPreviewLayer: any = null;
+let mercPreviewOverlayLayer: any = null;
+let lastAppliedRasterSpec: CrsRasterPreviewSpec | null = null;
+let crsPreviewRasterToken = 0;
 
 // 推定の入力は WGS84 [lon, lat]（§1(b)）。層の座標のまま渡さない。
 const crsGcpsForEstimate = computed(() => estimateGcpsFromLayer(gcps.value, activeLayerCrs.value));
@@ -1209,10 +1213,53 @@ function onCrsResiduals(payload: { rows: ResidualRow[]; scaleMode: ResidualScale
     drawCrsResiduals();
 }
 
-function onCrsPreview(payload: { mode: PreviewMode; opacity: number; geojson: unknown | null }) {
+async function applyCrsPreviewRaster(spec: CrsRasterPreviewSpec, token: number) {
+    if (!mercPreviewOverlayLayer || isUnmounted) return;
+    const width = Number(mapData.value.width) || 0;
+    const height = Number(mapData.value.height) || 0;
+    const delivery = deliveryForSource(mapData.value);
+    const url = delivery ? undefined : displayTileUrl(mapData.value.url_);
+    if (width <= 0 || height <= 0 || (!delivery && !url)) {
+        if (token === crsPreviewRasterToken) mercPreviewOverlayLayer?.setSource?.(null);
+        return;
+    }
+    try {
+        const thumbnail = await resolveSourceThumbnail(mapUid.value || mapID.value);
+        if (isUnmounted || token !== crsPreviewRasterToken || !mercPreviewOverlayLayer) return;
+        const result = await createCrsPreviewRasterSource({
+            spec,
+            width,
+            height,
+            url,
+            delivery,
+            imageExtension: resolveImageExtension(mapData.value),
+            attr: mapData.value.attr,
+            thumbnail,
+        });
+        if (isUnmounted || token !== crsPreviewRasterToken || !mercPreviewOverlayLayer) return;
+        mercPreviewOverlayLayer.setExtent(result?.extent);
+        mercPreviewOverlayLayer.setSource(result?.source ?? null);
+    } catch (error) {
+        if (token !== crsPreviewRasterToken) return;
+        console.warn('[MapEdit] CRS ラスター比較プレビューの生成に失敗しました', error);
+        mercPreviewOverlayLayer?.setSource?.(null);
+    }
+}
+
+function onCrsPreview(payload: CrsPreviewEventPayload) {
     if (!crsPreviewSource || !crsPreviewLayer) return;
     crsPreviewSource.clear();
     crsPreviewLayer.setOpacity(payload.opacity);
+    mercPreviewOverlayLayer?.setOpacity?.(payload.opacity);
+    if (payload.mode === 'original' || !payload.rasterSpec) {
+        crsPreviewRasterToken += 1;
+        lastAppliedRasterSpec = null;
+        mercPreviewOverlayLayer?.setSource?.(null);
+    } else if (payload.rasterSpec !== lastAppliedRasterSpec) {
+        const token = ++crsPreviewRasterToken;
+        lastAppliedRasterSpec = payload.rasterSpec;
+        void applyCrsPreviewRaster(payload.rasterSpec, token);
+    }
     if (!payload.geojson) return;
     try {
         const features = new GeoJSON().readFeatures(payload.geojson, { dataProjection: 'EPSG:3857' });
@@ -1233,9 +1280,13 @@ function onCrsPanResidual(merc: number[]) {
 }
 
 function clearCrsOverlays() {
+    crsPreviewRasterToken += 1;
+    lastAppliedRasterSpec = null;
     crsResidualSource?.clear();
     crsPreviewSource?.clear();
     crsPreviewLayer?.setOpacity(0.7);
+    mercPreviewOverlayLayer?.setSource?.(null);
+    mercPreviewOverlayLayer?.setOpacity?.(0.7);
 }
 
 watch([
@@ -1818,6 +1869,9 @@ const saveState = computed<EditorSaveState>(() => {
 if (typeof window !== 'undefined' && (window as any).isE2E) {
     (window as any).testDebug = {
         mapData,
+        sub_maps,
+        tinObjects,
+        isDirty,
         homePosition,
         mercZoom,
         gcps,
@@ -1840,6 +1894,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         crsAdoptionDiagnostic,
         layerLoadDiagnostics,
         adoptCrsEstimation,
+        createCrsPreviewRasterSource,
         saveMapAfterConfirm: () => saveMapAfterConfirm(),
         baseMapFilterRegion,
         estimateHomeFromGcps,
@@ -1847,6 +1902,7 @@ if (typeof window !== 'undefined' && (window as any).isE2E) {
         tileSourceDebug: () => ({ exchangeCount: illstSourceExchangeCount, key: illstSourceKey }),
         // --- 履歴診断 ---
         // UndoStack の pointer/history は private のため、公開 API snapshot() から導出する
+        historySnapshot: () => historyStack.value?.snapshot() ?? null,
         historyDebug: () => {
             const snap = historyStack.value?.snapshot();
             return snap
@@ -3268,6 +3324,10 @@ onBeforeUnmount(() => {
     // Map/OpenLayers runtime is module-scoped. Clear it before a subsequent
     // MapEdit mount applies a draft, otherwise restoreHistoryState() can draw
     // through a detached source left by the previous screen.
+    crsPreviewRasterToken += 1;
+    lastAppliedRasterSpec = null;
+    mercPreviewOverlayLayer?.setSource?.(null);
+    mercPreviewOverlayLayer = null;
     illstMap?.setTarget(undefined);
     mercMap?.setTarget(undefined);
     illstSource = null;
@@ -3759,6 +3819,9 @@ const initMaps = async () => {
     const mercResidualLayer = new VectorLayer({ source: mercResidualVSrc });
     mercResidualLayer.set('name', 'crsResidual');
     mercMap.getLayers().push(mercResidualLayer);
+    mercPreviewOverlayLayer = new Tile({ opacity: 0.7 });
+    mercPreviewOverlayLayer.set('name', 'crsPreviewRaster');
+    mercMap.getLayers().insertAt(1, mercPreviewOverlayLayer);
     const mercPreviewVSrc = new VectorSource({ wrapX: false });
     crsPreviewSource = mercPreviewVSrc;
     crsPreviewLayer = new VectorLayer({ source: mercPreviewVSrc, opacity: 0.7 });
