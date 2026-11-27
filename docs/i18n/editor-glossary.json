@@ -4542,7 +4542,7 @@
               "literal": "การตั้งค่าการแปลง",
               "scope": "bindings",
               "reason": "定義データに設定を使わない",
-              "alternative": "TIN + การคาดคะเนแบบโกลบอล"
+              "alternative": "TIN + การประมาณค่านอกช่วงแบบโกลบอล"
             }
           ]
         },
@@ -4719,7 +4719,7 @@
               "literal": "การตั้งค่าการแปลง",
               "scope": "bindings",
               "reason": "定義データに設定を使わない",
-              "alternative": "TIN + การคาดคะเนแบบรูปพัด"
+              "alternative": "TIN + การประมาณค่านอกช่วงแบบรูปพัด"
             }
           ],
           "formerForms": [
