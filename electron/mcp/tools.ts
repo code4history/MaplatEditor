@@ -231,6 +231,9 @@ export const registerTools: RegisterTools = (server, context) => {
         if (error instanceof Error && error.message === 'backward not available') {
           return errorResult('backward conversion is not available for this map (its transformation folds over)');
         }
+        if (error instanceof Error && error.message === 'world file maps are not supported by this tool yet') {
+          return errorResult('world file maps are not supported by this tool yet');
+        }
         throw error;
       }
       if (converted === null) return errorResult('map has no compiled transformation');

@@ -10,9 +10,11 @@ import { resolveRuntimeOriginal } from './MapOriginalImageService';
 import { mercatorBboxToWgs84 } from '../utils/webMercator';
 import { estimateJpegDecodeBudget } from '../utils/jpegDecodeBudget';
 import { resolveDecodeSafety, type DecodeSafety } from '../utils/decodeSafety';
+import { MapTransform, type CrsObject, type SurfaceLike } from '@maplat/transform';
+import { projectionEngineForCrs } from '../../src/utils/compiledGeo';
+import { resolveTinBuildOptions } from '../../src/utils/tinOptions';
 
 const MERC_MAX = 20037508.342789244;
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 interface PixelColor { r: number; g: number; b: number; a: number; }
 
@@ -148,11 +150,23 @@ class WmtsGeneratorService {
         tinSerial: any,
         extKey: string,
         hash: string,
-        targetBaseMapUid: string
+        targetBaseMapUid: string,
+        crs?: CrsObject
     ): Promise<{ hash: string; tileJson?: TileJsonDocument; err?: any; errorCode?: MercDecodeError['errorCode']; configuredMB?: number; configuredMP?: number; prediction?: MercDecodeError['prediction']; machine?: MercDecodeError['machine'] }> {
         try {
-            const tin = new Tin(TIN_V2_OPTIONS);
-            tin.setCompiled(tinSerial);
+            let tin: SurfaceLike;
+            if (crs) {
+                const mapTransform = new MapTransform();
+                mapTransform.setLayeredMapData({ main: { kind: 'tin', compiled: tinSerial, crs, projectionEngine: projectionEngineForCrs(crs) } });
+                const surface = mapTransform.getSurfaceTransform(0);
+                if (!surface) throw new Error('failed to initialize projected TIN');
+                tin = surface;
+            } else {
+                // crs の無い地図は、従来どおりの V2 の Tin で compiled を復元する。
+                const restored = new Tin(resolveTinBuildOptions({}) ?? {});
+                restored.setCompiled(tinSerial);
+                tin = restored;
+            }
 
             extKey = extKey || 'jpg';
             const { mercFolder } = this.folders;
@@ -284,7 +298,7 @@ class WmtsGeneratorService {
 
     // 原版 wmts_generator.js maxZoomTileLoop を忠実移植
     private async maxZoomTileLoop(
-        tin: any,
+        tin: SurfaceLike,
         z: number,
         x: number,
         y: number,
@@ -307,11 +321,11 @@ class WmtsGeneratorService {
             const my = MERC_MAX - ((py + startPixelY) * unitPerPixel);
             for (let px = 0; px < 256; px++) {
                 const mx = (px + startPixelX) * unitPerPixel - MERC_MAX;
-                let xy: number[];
+                let xy: number[] | false;
                 try {
                     xy = tin.transform([mx, my], true, true);
                 } catch (_e) {
-                    xy = null as any;
+                    xy = false;
                 }
 
                 if (!xy) {

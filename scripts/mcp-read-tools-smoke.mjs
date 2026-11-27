@@ -124,6 +124,9 @@ try {
     const { registerMapEditHandlers } = await import(${JSON.stringify(rel('electron/ipc/mapedit.ts'))});
     const { default: Tin } = await import('@maplat/tin');
     const { Transform } = await import('@maplat/transform');
+    const proj4Module = await import('proj4');
+    const proj4 = proj4Module.default;
+    const { resolveTinBuildOptions } = await import(${JSON.stringify(rel('src/utils/tinOptions.ts'))});
 
     // ---------------- fixture ----------------
     const HALF = 20037508.342789244;
@@ -467,6 +470,63 @@ try {
           assert.ok(calls < 1000, \`the conversion stopped early (\${calls} of 1000 points)\`);
           console.log(\`ok: maps.transform gives way between points and stops on an abort (\${calls} of 1000 points converted)\`);
         }
+      }
+
+      // ---------------- 平面直角 IX 系の投影変換 ----------------
+      {
+        const IX = { epsg: 6677, proj4: '+proj=tmerc +lat_0=36 +lon_0=139.833333333333 +k=0.9999 +ellps=GRS80 +towgs84=0,0,0 +units=m +axis=enu' };
+        proj4.defs('EPSG:6677', IX.proj4);
+        const worldFile = { xScale: 100, xSkew: 0, xOrigin: 500, ySkew: 0, yScale: -100, yOrigin: 1000 };
+        const imagePoints = [[0, 0], [100, 0], [100, 80], [0, 80], [50, 40]];
+        const projectedGcps = imagePoints.map(([x, y]) => [[x, y], [worldFile.xOrigin + worldFile.xScale * (x - 0.5), worldFile.yOrigin + worldFile.yScale * (y - 0.5)]]);
+        async function projectedCompiled(intent) {
+          const layer = { crs: IX, worldFile, compiled: { outerTransform: intent === 'B' ? 'worldFile' : 'extrapolate', worldFile } };
+          const options = resolveTinBuildOptions(layer, {}, intent);
+          const projectedTin = new Tin(options);
+          projectedTin.setWh([100, 80]);
+          projectedTin.setPoints(projectedGcps);
+          projectedTin.setEdges([]);
+          await projectedTin.updateTinAsync();
+          return projectedTin.getCompiled();
+        }
+        const compiledB = await projectedCompiled('B');
+        const compiledC = await projectedCompiled('C');
+        const mapB = { uid: '77777777-7777-4777-8777-777777777777', slug: 'mcp-ix-b' };
+        const mapC = { uid: '88888888-8888-4888-8888-888888888888', slug: 'mcp-ix-c' };
+        const mapA = { uid: '99999999-9999-4999-8999-999999999999', slug: 'mcp-ix-a' };
+        const projectedBase = { ...base, width: 100, height: 80, gcps: projectedGcps, crs: IX };
+        await SqliteDataService.createMap(mapB.slug, { ...projectedBase, compiled: compiledB }, mapB.uid);
+        await SqliteDataService.createMap(mapC.slug, { ...projectedBase, compiled: compiledC }, mapC.uid);
+        await SqliteDataService.createMap(mapA.slug, { ...projectedBase, gcps: [], crs: IX, tinEnabled: false, worldFile }, mapA.uid);
+        rebaseline();
+        const coordinates = [[25, 30], [50, 40], [90, 20]];
+        const expected = coordinates.map(([x, y]) => proj4('EPSG:6677', 'EPSG:4326', [worldFile.xOrigin + worldFile.xScale * (x - 0.5), worldFile.yOrigin + worldFile.yScale * (y - 0.5)]));
+        for (const [map, compiled, name] of [[mapB, compiledB, 'B'], [mapC, compiledC, 'C']] as const) {
+          assert.equal(typeof compiled, 'object', \`IX \${name} fixture uses Tin's compiled output directly\`);
+          const result = await ok('maps.transform', { map: map.uid, direction: 'forward', points: coordinates });
+          result.points.forEach((point: number[], i: number) => near(point, expected[i], 1e-7, \`IX \${name} projected conversion \${i} matches independent proj4 result\`));
+        }
+        await failed('maps.transform', { map: mapA.uid, direction: 'forward', points: [[25, 30]] }, /^world file maps are not supported by this tool yet$/, 'IX A world-file transform has its dedicated unsupported error');
+        // 変換に使うのは主図だけ。非 3857 の C の主図に A 相当の副層と未作成の副層があっても変換できる。
+        {
+          const mapWithSubs = { uid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', slug: 'mcp-ix-c-subs' };
+          const subBounds = [[0, 0], [100, 0], [100, 80], [0, 80]];
+          await SqliteDataService.createMap(mapWithSubs.slug, {
+            ...projectedBase, compiled: compiledC,
+            sub_maps: [
+              { tinEnabled: false, crs: IX, worldFile, width: 100, height: 80, bounds: subBounds, gcps: [], edges: [], priority: 1, importance: 1 },
+              { crs: IX, gcps: projectedGcps, edges: [], bounds: subBounds, priority: 2, importance: 1 },
+            ],
+          }, mapWithSubs.uid);
+          rebaseline();
+          const withSubs = await ok('maps.transform', { map: mapWithSubs.uid, direction: 'forward', points: coordinates });
+          withSubs.points.forEach((point: number[], i: number) => near(point, expected[i], 1e-7, \`IX C with A and uncreated sub layers: conversion \${i} matches the main layer only\`));
+          const back = await ok('maps.transform', { map: mapWithSubs.uid, direction: 'backward', points: expected });
+          back.points.forEach((point: number[], i: number) => near(point, coordinates[i], 1e-3, \`IX C with sub layers: backward conversion \${i} returns the image point\`));
+        }
+        assert.deepEqual(snapshot(), filesBefore, 'projected MCP transforms do not write files');
+        assert.equal(changes(), changesBefore, 'projected MCP transforms do not change database rows');
+        console.log('ok: maps.transform converts IX B/C with independent proj4 expectations and gives A its dedicated error');
       }
 
       // ---------------- an unexpected failure is not described to the client ----------------

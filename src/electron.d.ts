@@ -1,4 +1,7 @@
+import type { Options as TinOptions } from '@maplat/tin';
+import type { CrsObject } from '@maplat/transform';
 import type { PoiImportParseResult } from './utils/poiImportRows';
+import type { CrsEstimationAPI } from './types/crsEstimation';
 import type { LoadFailureReason } from './components/resource-list/loadFailure';
 
 export interface SettingsAPI {
@@ -409,7 +412,7 @@ export interface MapEditAPI {
     // 位置合わせシフト値の編集環境永続化（visibility と同じ uid 正準）
     getBaseMapShiftsOfMapID(mapRef: string): Promise<Array<{ baseMapUid: string; mapID: string; x: number; y: number }>>;
     setBaseMapShiftForMapID(mapRef: string, baseMapRef: string, x: number, y: number): Promise<void>;
-    updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any): Promise<any>;
+    updateTin(gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions): Promise<any>;
     save(payload: MapSavePayload): Promise<MapSaveResult>;
     checkExtentMap(extent: number[]): Promise<any>;
     download(mapObject: any, tins: any[]): Promise<any>;
@@ -417,7 +420,7 @@ export interface MapEditAPI {
     // #113: options は書き出す中身（省略時は既定＝現行と同じ中身）
     downloadSaved(mapRef: string, options?: Partial<import('./utils/exportOptions').MapExportOptions>): Promise<'Success' | 'Canceled' | 'Error'>;
     // 休眠パネル専用（削除禁止・あとで再編予定）
-    uploadCsv(csvRepl: string, csvUpSettings: any): Promise<any>;
+    uploadCsv(csvRepl: string, csvUpSettings: any, targetCrs?: unknown): Promise<any>;
     // 復元時ガード用の staging 実在照会
     stagingStatus(url_: string, uid?: string): Promise<{ alive: boolean; savedTilesExist: boolean }>;
     getWmtsFolder(): Promise<any>;
@@ -444,6 +447,7 @@ export interface WmtsGenAPI {
         extKey: string,
         hash: string,
         targetBaseMapUid: string,
+        crs?: CrsObject,
     ): Promise<{
         hash: string;
         tileJson?: MercTileJsonDocument;
@@ -496,6 +500,7 @@ export interface IiifImportAPI {
 
 declare global {
   interface Window {
+    crs: CrsEstimationAPI;
     /** preload が渡す OS の種類（process.platform）。Electron の外（ブラウザだけの試験等）では無い */
     runtimeInfo?: { platform: string };
     externalLinks?: { openHttps(url: string): Promise<boolean> };

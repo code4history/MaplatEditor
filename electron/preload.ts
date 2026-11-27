@@ -1,4 +1,7 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import type { Options as TinOptions } from '@maplat/tin'
+import type { CrsObject } from '@maplat/transform'
+import type { CrsEstimationAPI } from '../src/types/crsEstimation'
 
 // バックエンド(メインプロセス)から転送されたエラー/警告をDevToolsコンソールに出す (#18)
 ipcRenderer.on('backend:log', (_event, payload: { level: 'error' | 'warn'; message: string; timestamp: string }) => {
@@ -43,8 +46,8 @@ contextBridge.exposeInMainWorld('mapedit', {
   getBaseMapShiftsOfMapID: (mapRef: string) => ipcRenderer.invoke('mapedit:get-base-map-shifts', mapRef),
   setBaseMapShiftForMapID: (mapRef: string, baseMapRef: string, x: number, y: number) =>
     ipcRenderer.invoke('mapedit:set-base-map-shift', mapRef, baseMapRef, x, y),
-  updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any) =>
-    ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex),
+  updateTin: (gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions) =>
+    ipcRenderer.invoke('mapedit:updateTin', gcps, edges, index, bounds, strict, vertex, tinOptions),
   // payload: { mapObject, tins, uid?, slug?, expectedRevision?, copyFromUid? } (the rule that an immutable UUID is the canonical ID and the slug is a user-facing name unique across all asset kinds)
   save: (payload: any) =>
     ipcRenderer.invoke('mapedit:save', payload),
@@ -57,8 +60,8 @@ contextBridge.exposeInMainWorld('mapedit', {
   downloadSaved: (mapRef: string, options?: { tiles?: boolean; json?: boolean; originals?: boolean }) =>
     ipcRenderer.invoke('mapedit:download-saved', mapRef, options),
   // 休眠パネル専用（削除禁止・あとで再編予定）
-  uploadCsv: (csvRepl: string, csvUpSettings: any) =>
-    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings),
+  uploadCsv: (csvRepl: string, csvUpSettings: any, targetCrs?: unknown) =>
+    ipcRenderer.invoke('mapedit:uploadCsv', csvRepl, csvUpSettings, targetCrs),
   // 復元時ガード用の staging 実在照会
   stagingStatus: (url_: string, uid?: string) =>
     ipcRenderer.invoke('mapedit:stagingStatus', url_, uid),
@@ -85,8 +88,8 @@ contextBridge.exposeInMainWorld('dataupload', {
 contextBridge.exposeInMainWorld('wmtsGen', {
   // uid 追加。runtime read の canonical-first 解決に必要
   // targetBaseMapUid を末尾に追加（出力先ベースマップの UID。メルカトルタイルは元の地図ではなく出力先のベースマップ自身の uid が持つ決まり）
-  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string) =>
-    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid),
+  generate: (uid: string, mapID: string, width: number, height: number, tinSerial: any, extKey: string, hash: string, targetBaseMapUid: string, crs?: CrsObject) =>
+    ipcRenderer.invoke('wmtsGen:generate', uid, mapID, width, height, tinSerial, extKey, hash, targetBaseMapUid, crs),
 })
 
 // 旧実装: window.mapupload 相当
@@ -320,3 +323,10 @@ contextBridge.exposeInMainWorld('slugReservations', {
   check: (payload: { slug: string; excludeUid?: string }) =>
     ipcRenderer.invoke('slug-reservations:check', payload),
 })
+
+const crs: CrsEstimationAPI = {
+  estimate: input => ipcRenderer.invoke('crs:estimate', input),
+  estimateCandidate: input => ipcRenderer.invoke('crs:estimateCandidate', input),
+  cancel: requestId => ipcRenderer.invoke('crs:cancel', requestId),
+};
+contextBridge.exposeInMainWorld('crs', crs);

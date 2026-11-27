@@ -17,10 +17,9 @@ import { draftTileRoot, isDraftTileUrl, resolveDraftTileDir, resolveStagingDirFr
 // 512px の中間ファイル名と保存先パスは派生規約の単一モジュールから導く
 // （インライン派生を製品コードに残さない）。
 import { THUMB_512_TMP_BASENAME, thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
+import { applyTinGeometry, resolveTinBuildOptions } from '../../src/utils/tinOptions';
 // @ts-ignore
 import Tin from '@maplat/tin';
-
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
 
 // MapDataService.ts の isPreviewDisabled/isStrictErrorCompiled と同一ロジックの
 // 3個目の重複実装を避けるため、モジュールレベルの export 関数へ昇格する。
@@ -56,21 +55,16 @@ class MapEditService {
         // 内部タイルはuidパス: tiles/{uid}/0/0 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
         const thumbFolder = path.join(tileFolder, json.uid, "0", "0");
 
-        const res = await this.normalizeRequestData(json, thumbFolder);
-
-        // MapEdit専用フィールドを追加 (mapID欄はslug編集欄になる)
-        res[0].mapID = json.slug;
-        res[0].uid = json.uid;
-        res[0].revision = json.revision;
-        res[0].status = 'Update';
-        res[0].onlyOne = true; // DBに存在するので一意確認済み
-
-        // normalizeRequestData が compiled から生成済みの tins
-        // (byCompiled: 平文 compiled or 文字列素体) をエディタへ添付する。エディタは
-        // compiled を持つレイヤーを再計算せず種付けし、無いレイヤーだけ再計算する。
-        if (res[1]) res[0].compiledTins = res[1];
-
-        return res[0];
+        const [store, tins] = await this.normalizeRequestData(json, thumbFolder);
+        return {
+            ...store,
+            mapID: json.slug,
+            uid: json.uid,
+            revision: json.revision,
+            status: 'Update',
+            onlyOne: true,
+            ...(tins ? { compiledTins: tins } : {}),
+        };
     }
 
     // 既存ロジックをそのまま抽出（strict throw を含まない）。
@@ -80,7 +74,7 @@ class MapEditService {
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
-        const previewJson = await this.ensurePreviewCompiled({ ...json });
+        const previewJson = await this.ensurePreviewCompiled(storeHandler.normalizeStoredTransformKeys(json));
         // ↓ ここに従来の hasStrictError チェックは置かない
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
@@ -93,7 +87,6 @@ class MapEditService {
             mapID: json.slug,
             uid: json.uid,
             maptype: 'maplat',
-            compiled: previewJson.compiled,
             sub_maps: previewJson.sub_maps ?? store.sub_maps ?? [],
             width: store.width ?? previewJson.width ?? previewJson.compiled?.wh?.[0],
             height: store.height ?? previewJson.height ?? previewJson.compiled?.wh?.[1],
@@ -111,7 +104,7 @@ class MapEditService {
     }
 
     private async ensurePreviewCompiled(json: any) {
-        if (!json.compiled) {
+        if (json.tinEnabled !== false && !json.compiled) {
             json.compiled = await this.createCompiledFromGcps(
                 json.gcps,
                 json.edges,
@@ -119,12 +112,13 @@ class MapEditService {
                 null,
                 json.strictMode,
                 json.vertexMode,
+                json,
             );
         }
 
         if (Array.isArray(json.sub_maps)) {
             json.sub_maps = await Promise.all(json.sub_maps.map(async (subMap: any) => {
-                if (subMap.compiled) return subMap;
+                if (subMap.tinEnabled === false || subMap.compiled) return subMap;
                 return {
                     ...subMap,
                     compiled: await this.createCompiledFromGcps(
@@ -134,6 +128,8 @@ class MapEditService {
                         subMap.bounds,
                         json.strictMode,
                         json.vertexMode,
+                        // 副層の保存形式に yaxisMode はないため、地図最上位から引き継ぐ。
+                        { ...subMap, yaxisMode: subMap.yaxisMode ?? json.yaxisMode },
                     ),
                 };
             }));
@@ -142,18 +138,19 @@ class MapEditService {
         return json;
     }
 
-    private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any) {
+    private async createCompiledFromGcps(gcps: any[] = [], edges: any[] = [], wh: any, bounds: any, strict: any, vertex: any, layer: any = {}) {
         if (gcps.length < 3) throw new Error('appedit.preview.too_less_gcps');
-        const tin = new Tin(TIN_V2_OPTIONS);
-        if (wh?.[0] && wh?.[1]) {
-            tin.setWh(wh);
-        } else if (bounds) {
-            tin.setBounds(bounds);
-        } else {
+        // 未作成の層は、層の直下の yaxisMode（無ければ Tin の既定）で作る。
+        const tinOptions = resolveTinBuildOptions(layer, {
+            strictMode: strict || 'strict',
+            vertexMode: vertex || 'plain',
+        });
+        if (!tinOptions) throw new Error('cannot build a TIN for a disabled layer');
+        const tin = new Tin(tinOptions);
+        const wholeImage = wh?.[0] && wh?.[1] ? wh : null;
+        if (!applyTinGeometry(tin, tinOptions, { wh: wholeImage, bounds })) {
             throw new Error('appedit.preview.missing_bounds');
         }
-        tin.setStrictMode(strict || 'strict');
-        tin.setVertexMode(vertex || 'plain');
         tin.setPoints(gcps);
         tin.setEdges(edges || []);
         await tin.updateTinAsync();
@@ -164,26 +161,26 @@ class MapEditService {
         return compiled;
     }
 
-    private async normalizeRequestData(json: any, thumbFolder: string) {
-        let url_: string | undefined;
+    private async normalizeRequestData(
+        json: storeHandler.HistMapStore & { url_?: string },
+        thumbFolder: string,
+    ) {
         // 地図画像サイズが確定しているか確認
         const whReady = (json.width && json.height) || (json.compiled && json.compiled.wh);
 
         if (!whReady) {
-            // サイズ未確定時はそのまま返す（旧実装に準拠）
-            return [json];
+            // サイズ未確定の従来形式を返す前にも、変換の宣言を検査する。
+            const store = storeHandler.normalizeStoredTransformKeys(json);
+            storeHandler.validateStoredTransformLayers(store);
+            return [store] as const;
         }
 
         // url_ の導出は共通実装 deriveRuntimeTileUrl() が正本。
         // DataUploadService.extractZip も同じ関数を呼ぶ（二重実装の一本化）。
         // whReady ガード（上）と store2HistMap（下）は呼び出し側の関心事として据え置く
-        url_ = await deriveRuntimeTileUrl(json, thumbFolder);
-
+        const url_ = await deriveRuntimeTileUrl(json, thumbFolder);
         const [store, tins] = await storeHandler.store2HistMap(json, true);
-        (store as any).url_ = url_;
-
-        const res = [store, tins];
-        return res;
+        return [{ ...store, url_ }, tins] as const;
     }
     /**
      * 旧実装 mapedit.save() 相当 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: uid正準 + revision楽観ロック)

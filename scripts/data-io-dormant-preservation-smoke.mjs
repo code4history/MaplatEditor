@@ -123,12 +123,8 @@ try {
     /\/\/ 本クラスへのUI導線は一度撤去されていたが、その後 MapEdit\.vueの[\s\S]{0,400}class WmtsGeneratorService \{/,
     '#13 WmtsGeneratorService クラスの保全注記が欠落している',
   );
-  // tin-v2-mode-smoke が依存する行に保全コメントが割り込んでいないことも同時に確認
-  assert.match(
-    wmtsService,
-    /new Tin\(TIN_V2_OPTIONS\)/,
-    '#13 保全コメント挿入により new Tin(TIN_V2_OPTIONS) 行が破壊されている（tin-v2-mode-smoke 依存）',
-  );
+  // 新規採用済み CRS は投影付き MapTransform、未採用の既存地図は resolveTinBuildOptions の V2 で Tin を作る。
+  assert.match(wmtsService, /new Tin\(resolveTinBuildOptions\(\{\}\) \?\? \{\}\)/, '#13 旧地図の V2 WMTS 変換が欠落している');
 
   // #14 registerWmtsHandlers() / wmtsGen:generate ハンドラ
   const wmtsIpc = await readProjectFile('electron/ipc/wmts.ts');
@@ -150,7 +146,7 @@ try {
   const preload = await readProjectFile('electron/preload.ts');
   assert.match(
     preload,
-    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any\) =>/,
+    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv: \(csvRepl: string, csvUpSettings: any, targetCrs\?: unknown\) =>/,
     '#16 preload.ts uploadCsv bridge の保全注記が欠落している',
   );
   assert.match(
@@ -163,7 +159,7 @@ try {
   const electronDts = await readProjectFile('src/electron.d.ts');
   assert.match(
     electronDts,
-    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv\(csvRepl: string, csvUpSettings: any\): Promise<any>;/,
+    /\/\/ 休眠パネル専用（削除禁止・あとで再編予定）\n\s*uploadCsv\(csvRepl: string, csvUpSettings: any, targetCrs\?: unknown\): Promise<any>;/,
     '#18 electron.d.ts uploadCsv 宣言の保全注記が欠落している',
   );
 

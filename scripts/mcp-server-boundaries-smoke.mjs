@@ -76,7 +76,9 @@ const COMMON_ALLOWED = (spec) =>
     '../../src/utils/langResource'].includes(spec);
 const FACADE_EXTRA_ALLOWED = (spec) =>
   spec.startsWith('../services/') || spec === '../adapters/ElectronStorageAdapter' || spec === 'node:path' || spec === 'fs-extra' ||
-  spec === '../utils/runtimeTileUrl';
+  spec === '../utils/runtimeTileUrl' ||
+  // 非 3857 の CRS の座標変換に使う純粋な計算ライブラリ（入出力・ネットワークを持たない）
+  spec === '../../src/utils/compiledGeo';
 
 const violations = [];
 for (const file of mcpFiles) {

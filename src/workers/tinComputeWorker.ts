@@ -1,15 +1,6 @@
 import Tin from '@maplat/tin';
-
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
-
-interface TinUpdateRequest {
-  gcps: any[];
-  edges: any[];
-  index: number;
-  bounds: any;
-  strict: any;
-  vertex: any;
-}
+import type { TinUpdateRequest, TinUpdateResult } from '../services/editorComputeBackend';
+import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions.ts';
 
 interface WorkerRequest {
   id: number;
@@ -31,36 +22,32 @@ function normalizeTinError(err: unknown): string | null {
   return null;
 }
 
-async function updateTin(payload: TinUpdateRequest): Promise<[number, any]> {
-  const { gcps, edges, index, bounds, strict, vertex } = payload;
-  if (gcps.length < 3) return [index, 'tooLessGcps'];
+export async function updateTin(payload: TinUpdateRequest): Promise<TinUpdateResult> {
+  const { gcps, edges, index, bounds, strict, vertex, tinOptions } = payload;
+  if (gcps.length < 3) return [index, 'tooLessGcps', null];
 
-  const wh = index === 0 ? bounds : null;
-  const bd = index !== 0 ? bounds : null;
-  const tin = new Tin(TIN_V2_OPTIONS);
-  if (wh) {
-    tin.setWh(wh);
-  } else if (bd) {
-    tin.setBounds(bd);
-  } else {
+  // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
+  const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
+  const tin = new Tin(options);
+  const wh = index === 0 ? bounds as number[] | undefined : undefined;
+  const bd = index !== 0 ? bounds as number[][] | undefined : undefined;
+  if (!applyTinGeometry(tin, options, { wh, bounds: bd })) {
     throw new Error('Both wh and bounds are missing');
   }
-  tin.setStrictMode(strict);
-  tin.setVertexMode(vertex);
   tin.setPoints(gcps);
   tin.setEdges(edges);
 
   try {
     await tin.updateTinAsync();
-    return [index, tin.getCompiled()];
+    return [index, tin.getCompiled(), tin.boundaryDiagnostics ?? null];
   } catch (err) {
     const normalized = normalizeTinError(err);
-    if (normalized) return [index, normalized];
+    if (normalized) return [index, normalized, null];
     throw err;
   }
 }
 
-self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+if (typeof self !== 'undefined') self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { id, type, payload } = event.data;
   try {
     if (type !== 'updateTin') throw new Error(`Unknown worker request: ${type}`);

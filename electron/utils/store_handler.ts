@@ -1,8 +1,14 @@
 "use strict";
 
 import {
+  MapTransform,
   Transform,
-  Compiled,
+  WorldFileSurface,
+  validateWorldFile,
+  type CompiledTransformData,
+  type CrsObject,
+  type LayeredMapData,
+  type WorldFile,
   PointSet,
   EdgeSet,
   StrictMode,
@@ -10,9 +16,23 @@ import {
   YaxisMode
 } from "@maplat/transform";
 import type { Position } from "geojson";
+import { projectionEngineForCrs } from "../../src/utils/compiledGeo";
 import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify";
 type LangResource = string | Record<string, string>;
-type TinLike = string | Transform | Compiled;
+type TinLike = string | Transform | CompiledTransformData;
+const compiledByTransform = new WeakMap<Transform, CompiledTransformData>();
+
+interface StoredLayer {
+  crs?: CrsObject;
+  worldFile?: WorldFile;
+  tinEnabled?: boolean;
+  width?: number;
+  height?: number;
+  gcps?: PointSet[];
+  edges?: EdgeSet[];
+  compiled?: CompiledTransformData;
+  bounds?: number[][];
+}
 
 /** IIIF Image API の画像を配るための情報。 */
 export interface IiifDelivery {
@@ -32,7 +52,7 @@ export interface IiifSection {
   [key: string]: unknown;
 }
 
-export interface HistMapStore {
+export interface HistMapStore extends StoredLayer {
   title: LangResource;
   // 表示ラベル。多言語 (LangResource)。keys へも必ず追加する
   // (無いと MapEditService.save の histMap2Store で保存時に消える。ライセンスの欄の追加の licenseNote /
@@ -63,11 +83,6 @@ export interface HistMapStore {
   url: string;
   lang: string;
   imageExtension: string;
-  width?: number;
-  height?: number;
-  gcps?: PointSet[];
-  edges?: EdgeSet[];
-  compiled?: Compiled;
   sub_maps: SubMap[];
   homePosition: Position;
   mercZoom: number;
@@ -80,13 +95,9 @@ export interface HistMapStore {
   iiif?: IiifSection;
 }
 
-interface SubMap {
-  gcps?: PointSet[];
-  edges?: EdgeSet[];
-  compiled?: Compiled;
+interface SubMap extends StoredLayer {
   priority: number;
   importance: number;
-  bounds?: number[][];
 }
 
 const keys: (keyof HistMapStore)[] = [
@@ -110,10 +121,166 @@ const keys: (keyof HistMapStore)[] = [
   "imageExtension",
   "homePosition",
   "mercZoom",
+  "crs",
+  "worldFile",
+  "tinEnabled",
   "pois",
   "delivery",
   "iiif"
 ];
+
+export function hasLayerTransformDeclaration(layer: StoredLayer): boolean {
+  return layer.tinEnabled === false || layer.crs !== undefined ||
+    (layer.compiled != null && typeof layer.compiled === "object" && "outerTransform" in layer.compiled);
+}
+
+export function imageCorners(layer: StoredLayer): number[][] | undefined {
+  const { width, height } = layer;
+  if (typeof width !== "number" || !Number.isFinite(width) || width <= 0 ||
+      typeof height !== "number" || !Number.isFinite(height) || height <= 0) return undefined;
+  return [[0, 0], [width, 0], [width, height], [0, height]];
+}
+
+export function readWorldFileSurface(layer: StoredLayer, isSubMap: boolean): WorldFileSurface {
+  if (Object.hasOwn(layer, "compiled")) {
+    throw new Error("tinEnabled:false の層は compiled を持てません");
+  }
+  const { crs, worldFile, bounds, width, height } = layer;
+  if (!crs) throw new Error("ワールドファイルの層には crs が必要です");
+  if (!worldFile) throw new Error("tinEnabled:false の層には worldFile が必要です");
+
+  const options = { crs, worldFile, projectionEngine: projectionEngineForCrs(crs) };
+  if (isSubMap) {
+    if (!Array.isArray(bounds) || bounds.length < 3) {
+      throw new Error("ワールドファイルの副層には 3 頂点以上の bounds が必要です");
+    }
+    const surface = new WorldFileSurface({ ...options, bounds: bounds as [number[], number[], number[], ...number[][]] });
+    validateSubMapBounds(bounds, surface);
+    return surface;
+  }
+  if (!imageCorners(layer)) {
+    throw new Error("ワールドファイルの主図には正の有限な width と height が必要です");
+  }
+  return new WorldFileSurface({ ...options, wh: [width!, height!] });
+}
+
+function cleanCompiled(compiled: CompiledTransformData | undefined) {
+  if (!compiled || typeof compiled !== "object" || !("worldFile" in compiled) ||
+      ("outerTransform" in compiled && compiled.outerTransform === "worldFile")) return compiled;
+  const cleaned = { ...compiled };
+  Reflect.deleteProperty(cleaned, "worldFile");
+  return cleaned;
+}
+
+function cleanStoredLayer<T extends StoredLayer>(layer: T): T {
+  if (!layer || typeof layer !== "object" || Array.isArray(layer)) {
+    throw new Error("地図の層はオブジェクトで指定してください");
+  }
+  const cleaned = { ...layer };
+  Reflect.deleteProperty(cleaned, "outerTransform");
+  if (layer.tinEnabled !== false) {
+    delete cleaned.tinEnabled;
+    delete cleaned.worldFile;
+    if (layer.compiled) cleaned.compiled = cleanCompiled(layer.compiled);
+  }
+  return cleaned;
+}
+
+export function normalizeStoredTransformKeys<T extends HistMapStore>(store: T): T {
+  const cleaned = cleanStoredLayer(store);
+  // null は「副層なし」として扱う（master と Core の読み込みと同じ）
+  if (store.sub_maps != null) {
+    if (!Array.isArray(store.sub_maps)) throw new Error("sub_maps は配列で指定してください");
+    cleaned.sub_maps = store.sub_maps.map(cleanStoredLayer);
+  }
+  return cleaned;
+}
+
+function validateSubMapBounds(bounds: number[][] | undefined, surface: Transform | WorldFileSurface) {
+  if (!Array.isArray(bounds) || bounds.length < 3) {
+    throw new Error("副層には 3 頂点以上の bounds または compiled.bounds が必要です");
+  }
+  if (bounds.some(xy => !Array.isArray(xy) || xy.length < 2 ||
+      !Number.isFinite(xy[0]) || !Number.isFinite(xy[1]) || surface.transform(xy, false) === false)) {
+    throw new Error("副層の bounds を変換できません");
+  }
+}
+
+function validateStoredCrs(crs: CrsObject) {
+  // 三角網が無い場合も Core と同じ CRS の定義検査を通す。
+  new WorldFileSurface({
+    crs,
+    worldFile: { xScale: 1, xSkew: 0, xOrigin: 0, ySkew: 0, yScale: -1, yOrigin: 0 },
+    wh: [1, 1],
+    projectionEngine: projectionEngineForCrs(crs),
+  });
+}
+
+/** 範囲検索に必要な定義を、三角網全体を復元せずに検査する。 */
+export function validateCompiledGeo(layer: StoredLayer) {
+  if (layer.crs !== undefined) validateStoredCrs(layer.crs);
+  const { compiled } = layer;
+  if (compiled && "outerTransform" in compiled && compiled.outerTransform === "worldFile") {
+    if (!compiled.worldFile) throw new Error("compiled.worldFile が必要です");
+    validateWorldFile(compiled.worldFile);
+  }
+}
+
+function readStoredTin(layer: StoredLayer, isSubMap = false): Transform | undefined {
+  const { crs, compiled, bounds } = layer;
+  if (!compiled) {
+    if (crs !== undefined) validateStoredCrs(crs);
+    return undefined;
+  }
+
+  let transform: Transform;
+  if (crs !== undefined) {
+    const data: LayeredMapData = {
+      // 主図には bounds を渡さない（Core の store2HistMap4Core と同じ。主図の範囲は wh で決まる）
+      main: { kind: "tin", crs, compiled, ...(isSubMap ? { bounds } : {}), projectionEngine: projectionEngineForCrs(crs) },
+    };
+    const map = new MapTransform();
+    map.setLayeredMapData(data);
+    transform = map.getSurfaceTransform(0) as Transform;
+  } else {
+    transform = new Transform();
+    transform.setCompiled(compiled);
+  }
+  if (isSubMap && hasLayerTransformDeclaration(layer)) {
+    validateSubMapBounds(bounds ?? transform.bounds, transform);
+  }
+  compiledByTransform.set(transform, compiled);
+  return transform;
+}
+
+export function validateStoredTransformLayers(store: HistMapStore): void {
+  [store, ...(store.sub_maps ?? [])].forEach((layer, index) => {
+    if (layer.tinEnabled === false) readWorldFileSurface(layer, index > 0);
+    else if (hasLayerTransformDeclaration(layer)) readStoredTin(layer, index > 0);
+  });
+}
+
+const layerKeys = ["width", "height", "bounds", "gcps", "edges", "compiled"];
+const importMapKeys = new Set<string>([
+  ...keys, ...layerKeys, "strictMode", "vertexMode", "yaxisMode", "sub_maps", "imageExtention", "maptype",
+]);
+const importSubMapKeys = new Set([
+  ...layerKeys, "crs", "worldFile", "tinEnabled", "priority", "importance",
+]);
+
+/** ZIP の形式を検査し、変換の宣言を持つ地図を交換形式の許可リストに揃える。 */
+export function prepareImportedMap(store: HistMapStore): HistMapStore {
+  const cleaned = normalizeStoredTransformKeys(store);
+  validateStoredTransformLayers(cleaned);
+  if (!hasLayerTransformDeclaration(cleaned) && !cleaned.sub_maps?.some(hasLayerTransformDeclaration)) {
+    return cleaned;
+  }
+  const pick = <T extends object>(layer: T, allowed: Set<string>): T =>
+    Object.fromEntries(Object.entries(layer).filter(([key]) => allowed.has(key))) as T;
+  const imported = pick(cleaned, importMapKeys);
+  if (cleaned.sub_maps) imported.sub_maps = cleaned.sub_maps.map(layer => pick(layer, importSubMapKeys));
+  return imported;
+}
 
 export async function store2HistMap(
   store: HistMapStore,
@@ -129,93 +296,95 @@ export async function store2HistMap4Core(
 }
 
 async function store2HistMap_internal(
-  store: HistMapStore,
+  input: HistMapStore,
   byCompiled: boolean,
   coreLogic: boolean
 ): Promise<[HistMapStore, TinLike[]]> {
+  const store = normalizeStoredTransformKeys(input);
   const ret: any = coreLogic ? store : {};
   const tins: TinLike[] = [];
   keys.forEach(key => {
-    ret[key] = store[key];
+    if (store[key] !== undefined) ret[key] = store[key];
   });
-  if ((store as any)["imageExtention"] || (store as any)["imageExtension"])
-    ret["imageExtension"] = (store as any)["imageExtension"] || (store as any)["imageExtention"];
-  if (store.compiled) {
-    let tin: TinLike = new Transform();
-    (tin as Transform).setCompiled(store.compiled);
-    (tin as Transform).addIndexedTin();
-    if (byCompiled) {
-      tin = store.compiled;
-    }
-    const transform = tin as Transform;
-    ret.strictMode = transform.strictMode;
-    ret.vertexMode = transform.vertexMode;
-    ret.yaxisMode = transform.yaxisMode;
-    ret.width = transform.wh?.[0];
-    ret.height = transform.wh?.[1];
-    ret.gcps = transform.points;
-    ret.edges = transform.edges;
-    tins.push(tin);
+  if ((store as any)["imageExtention"] || store.imageExtension)
+    ret.imageExtension = store.imageExtension || (store as any)["imageExtention"];
+
+  ret.strictMode = store.strictMode;
+  ret.vertexMode = store.vertexMode;
+  ret.yaxisMode = store.yaxisMode;
+  ret.width = store.width;
+  ret.height = store.height;
+  ret.gcps = store.gcps;
+  ret.edges = store.edges;
+  if (store.tinEnabled === false) {
+    readWorldFileSurface(store, false);
+    Object.assign(ret, worldFileStoreFields(store));
+    tins.push("worldFile");
   } else {
-    ret.strictMode = store.strictMode;
-    ret.vertexMode = store.vertexMode;
-    ret.yaxisMode = store.yaxisMode;
-    ret.width = store.width;
-    ret.height = store.height;
-    ret.gcps = store.gcps;
-    ret.edges = store.edges;
-    let tin = await createTinFromGcpsAsync(
-      store.strictMode!,
-      store.vertexMode!,
-      store.yaxisMode,
-      store.gcps,
-      store.edges,
-      [store.width!, store.height!]
-    );
-    if (byCompiled && typeof tin !== "string") tin = store.compiled!;
-    tins.push(tin);
+    const transform = readStoredTin(store);
+    if (transform) {
+      // 従来の byCompiled では平文の値を優先する。地図の寸法は wh から復元する。
+      const source = byCompiled ? store.compiled! : transform;
+      ret.strictMode = source.strictMode;
+      ret.vertexMode = source.vertexMode;
+      ret.yaxisMode = source.yaxisMode;
+      ret.width = source.wh?.[0];
+      ret.height = source.wh?.[1];
+      ret.gcps = source.points;
+      ret.edges = source.edges;
+      if (store.compiled && "outerTransform" in store.compiled) ret.compiled = store.compiled;
+      tins.push(byCompiled ? store.compiled! : transform);
+    } else {
+      tins.push(await createTinFromGcpsAsync(
+        store.strictMode!, store.vertexMode!, store.yaxisMode, store.gcps, store.edges,
+        [store.width!, store.height!]
+      ));
+    }
   }
 
   if (store.sub_maps) {
-    const sub_maps = [] as SubMap[];
-    for (let i = 0; i < store.sub_maps.length; i++) {
-      const sub_map = store.sub_maps[i];
-      const sub: any = {};
-      sub.importance = sub_map.importance;
-      sub.priority = sub_map.priority;
-      if (sub_map.compiled) {
-        let tin: TinLike = new Transform();
-        (tin as Transform).setCompiled(sub_map.compiled);
-        (tin as Transform).addIndexedTin();
-        if (byCompiled) {
-          tin = sub_map.compiled;
-        }
-        sub.bounds = tin.bounds;
-        sub.gcps = tin.points;
-        sub.edges = tin.edges;
-        tins.push(tin);
+    // coreLogic では ret と store が同じオブジェクトなので、元の配列を控えてから置き換える
+    const sourceSubMaps = store.sub_maps;
+    ret.sub_maps = [];
+    for (const layer of sourceSubMaps) {
+      const sub: SubMap = { importance: layer.importance, priority: layer.priority };
+      if (layer.crs !== undefined) sub.crs = layer.crs;
+      if (layer.tinEnabled === false) {
+        readWorldFileSurface(layer, true);
+        Object.assign(sub, worldFileStoreFields(layer));
+        tins.push("worldFile");
       } else {
-        sub.bounds = sub_map.bounds;
-        sub.gcps = sub_map.gcps;
-        sub.edges = sub_map.edges;
-        let tin = await createTinFromGcpsAsync(
-          store.strictMode!,
-          store.vertexMode!,
-          store.yaxisMode,
-          sub_map.gcps,
-          sub_map.edges,
-          undefined,
-          sub_map.bounds
-        );
-        if (byCompiled && typeof tin !== "string")
-          tin = sub_map.compiled!;
-        tins.push(tin);
+        const transform = readStoredTin(layer, true);
+        const source = byCompiled ? layer.compiled : transform;
+        if (transform && source) {
+          sub.bounds = hasLayerTransformDeclaration(layer) ? layer.bounds ?? source.bounds : source.bounds;
+          sub.gcps = source.points;
+          sub.edges = source.edges;
+          if (layer.compiled && "outerTransform" in layer.compiled) sub.compiled = layer.compiled;
+          tins.push(source);
+        } else {
+          sub.bounds = layer.bounds;
+          sub.gcps = layer.gcps;
+          sub.edges = layer.edges;
+          tins.push(await createTinFromGcpsAsync(
+            store.strictMode!, store.vertexMode!, store.yaxisMode,
+            layer.gcps, layer.edges, undefined, layer.bounds
+          ));
+        }
       }
-      sub_maps.push(sub as SubMap);
+      ret.sub_maps.push(sub);
     }
-    ret.sub_maps = sub_maps;
   }
-  return [ret as HistMapStore, tins];
+  return [ret, tins];
+}
+
+function worldFileStoreFields(layer: StoredLayer): StoredLayer {
+  const { crs, worldFile, width, height, gcps, edges, bounds } = layer;
+  return { crs, worldFile, tinEnabled: false, width, height, gcps, edges, bounds };
+}
+
+function compiledForStore(tin: Transform | CompiledTransformData | undefined) {
+  return cleanCompiled(tin instanceof Transform ? compiledByTransform.get(tin) : tin);
 }
 
 export async function histMap2Store(
@@ -235,13 +404,15 @@ export async function histMap2Store(
     );
   }
   keys.forEach(key => {
-    if (key === "delivery" && !deliveryAllowed) return;
-    ret[key] = histmap[key];
+    if (key === "worldFile" || key === "tinEnabled" || (key === "delivery" && !deliveryAllowed)) return;
+    if (histmap[key] !== undefined) ret[key] = histmap[key];
   });
   if ((histmap as any)["imageExtention"] || (histmap as any)["imageExtension"])
     ret["imageExtension"] = (histmap as any)["imageExtension"] || (histmap as any)["imageExtention"];
-  const tin = tins.shift();
-  if (typeof tin === "string") {
+  const [tin, ...subTins] = tins;
+  if (tin === "worldFile" || histmap.tinEnabled === false) {
+    Object.assign(ret, worldFileStoreFields(histmap));
+  } else if (typeof tin === "string") {
     ret.width = histmap.width;
     ret.height = histmap.height;
     ret.gcps = histmap.gcps;
@@ -250,27 +421,32 @@ export async function histMap2Store(
     ret.vertexMode = histmap.vertexMode;
     ret.yaxisMode = histmap.yaxisMode;
   } else {
-    ret.compiled = tin as Compiled;
+    ret.compiled = compiledForStore(tin);
   }
 
-  ret.sub_maps =
-    tins.length > 0
-      ? tins.map((tin, index) => {
-          const sub_map = histmap.sub_maps[index];
-          const sub: any = {
-            priority: sub_map.priority,
-            importance: sub_map.importance
-          };
-          if (typeof tin === "string") {
-            sub.gcps = sub_map.gcps;
-            sub.edges = sub_map.edges;
-            sub.bounds = sub_map.bounds;
-          } else {
-            sub.compiled = tin as Compiled;
-          }
-          return sub as SubMap;
-        })
-      : [];
+  ret.sub_maps = [];
+  const subMaps = histmap.sub_maps ?? [];
+  // 印が未設定でも、層の宣言があればワールドファイルを保存する。
+  const layerCount = subMaps.reduce((count, layer, index) =>
+    layer.tinEnabled === false ? Math.max(count, index + 1) : count, subTins.length);
+  for (const [index, layer] of subMaps.slice(0, layerCount).entries()) {
+    const tin = subTins[index];
+    const sub: SubMap = { priority: layer.priority, importance: layer.importance };
+    if (layer.crs !== undefined) sub.crs = layer.crs;
+    if (tin === "worldFile" || layer.tinEnabled === false) {
+      Object.assign(sub, worldFileStoreFields(layer));
+    } else if (typeof tin === "string" || index >= subTins.length) {
+      sub.gcps = layer.gcps;
+      sub.edges = layer.edges;
+      sub.bounds = layer.bounds;
+    } else {
+      sub.compiled = compiledForStore(tin);
+      // Core は副層の直下の bounds を優先する。compiled と異なる明示値は引き継ぐ。
+      if (hasLayerTransformDeclaration(sub) && layer.bounds &&
+          JSON.stringify(layer.bounds) !== JSON.stringify(sub.compiled?.bounds)) sub.bounds = layer.bounds;
+    }
+    ret.sub_maps.push(sub);
+  }
 
   return ret as HistMapStore;
 }

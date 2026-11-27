@@ -84,10 +84,9 @@ class MapPurposeService {
                 uid: previewJson.uid,
                 url: mapDoc?.url,
             };
-            const tins = [
-                previewJson.compiled ?? 'tooLessGcps',
-                ...(previewJson.sub_maps ?? []).map((subMap: any) => subMap.compiled ?? 'tooLessGcps'),
-            ];
+            const tins = [previewJson, ...(previewJson.sub_maps ?? [])].map(layer =>
+                layer.tinEnabled === false ? 'worldFile' : layer.compiled ?? 'tooLessGcps',
+            );
             const slug = mapDoc?.slug || previewJson.mapID;
             if (lacksRequiredAttribution(mapDoc)) return 'Error';
             const fileKey = mapDoc?.uid || slug;

@@ -100,6 +100,9 @@ importers:
       fs-extra:
         specifier: ^11.3.3
         version: 11.4.0
+      geographiclib-geodesic:
+        specifier: 2.2.0
+        version: 2.2.0
       i18next:
         specifier: ^26
         version: 26.5.7(typescript@6.0.3)
@@ -2466,6 +2469,9 @@ packages:
   generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
+
+  geographiclib-geodesic@2.2.0:
+    resolution: {integrity: sha512-cIedo9VTYb0DFufodgibDmVfsWe9EASqb/kUByl09xc6PZYvLvlc89BHCThtGTPf2OII/zWJGxsR3Uz6O7QOVw==}
 
   geojson-equality-ts@1.0.2:
     resolution: {integrity: sha512-h3Ryq+0mCSN/7yLs0eDgrZhvc9af23o/QuC4aTiuuzP/MRCtd6mf5rLsLRY44jX0RPUfM8c4GqERQmlUxPGPoQ==}
@@ -7340,6 +7346,8 @@ snapshots:
   function-bind@1.1.2: {}
 
   generator-function@2.0.1: {}
+
+  geographiclib-geodesic@2.2.0: {}
 
   geojson-equality-ts@1.0.2:
     dependencies:

@@ -25,6 +25,9 @@ import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement
 import { runGuarded } from '../utils/inflightGuard';
 // @ts-ignore
 import Tin from '@maplat/tin';
+import type { Options as TinOptions, BoundaryDiagnostics } from '@maplat/tin';
+import { applyTinGeometry, resolveTinBuildOptions } from '../../src/utils/tinOptions';
+import { csvGeoCoordToTarget } from '../../src/utils/crsProjection';
 
 // composeDownloadMapJson は mapDownloadZip.ts へ移設した。
 // scripts/mapedit-pois-save-smoke.mjs が electron/ipc/mapedit.ts からの named import で
@@ -32,29 +35,23 @@ import Tin from '@maplat/tin';
 // re-export を残す (mapedit.ts → mapDownloadZip.ts の一方向依存のみで循環 import は発生しない)。
 export { composeDownloadMapJson } from '../utils/mapDownloadZip';
 
-const TIN_V2_OPTIONS = { useV2Algorithm: true };
-
 async function createTinFromGcpsAsync(
-    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any
-): Promise<any> {
+    gcps: any[], edges: any[], wh: any, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions
+): Promise<{ compiled: any; boundaryDiagnostics: BoundaryDiagnostics | null } | string> {
     if (gcps.length < 3) return 'tooLessGcps';
     return new Promise((resolve, reject) => {
-        const tin = new Tin(TIN_V2_OPTIONS);
-        if (wh) {
-            tin.setWh(wh);
-        } else if (bounds) {
-            tin.setBounds(bounds);
-        } else {
+        // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
+        const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
+        const tin = new Tin(options);
+        if (!applyTinGeometry(tin, options, { wh, bounds })) {
             reject('Both wh and bounds are missing');
             return;
         }
-        tin.setStrictMode(strict);
-        tin.setVertexMode(vertex);
         tin.setPoints(gcps);
         tin.setEdges(edges);
         tin.updateTinAsync()
             .then(() => {
-                resolve(tin.getCompiled());
+                resolve({ compiled: tin.getCompiled(), boundaryDiagnostics: tin.boundaryDiagnostics ?? null });
             })
             .catch((err: any) => {
                 const e = String(err);
@@ -110,14 +107,15 @@ export const registerMapEditHandlers = () => {
     // TIN計算をNode.jsプロセスで実行してコンパイル済みデータを返す
     ipc.handle('mapedit:updateTin', async (
         _event,
-        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any
+        gcps: any[], edges: any[], index: number, bounds: any, strict: any, vertex: any, tinOptions?: TinOptions
     ) => {
         try {
             const wh = index === 0 ? bounds : null;
             const bd = index !== 0 ? bounds : null;
             const compiled = await runGuarded('mapedit:updateTin',
-                () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex));
-            return [index, compiled];
+                () => createTinFromGcpsAsync(gcps, edges, wh, bd, strict, vertex, tinOptions));
+            if (typeof compiled === 'string') return [index, compiled, null];
+            return [index, compiled.compiled, compiled.boundaryDiagnostics];
         } catch (e) {
             console.error('Failed to handle mapedit:updateTin', e);
             throw e;
@@ -234,7 +232,7 @@ export const registerMapEditHandlers = () => {
 
     // 旧実装: mapedit_uploadCsv 相当（CSV インポート）
     // 休眠パネル専用（削除禁止・あとで再編予定）
-    ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any) => {
+    ipc.handle('mapedit:uploadCsv', async (event, csvRepl: string, csvUpSettings: any, targetCrs?: any) => {
         const win = BrowserWindow.fromWebContents(event.sender)!;
 
         const ret = await dialog.showOpenDialog(win, {
@@ -276,7 +274,9 @@ export const registerMapEditHandlers = () => {
                             if (csvUpSettings.reverseMapY) illstCoord[1] = -1 * illstCoord[1];
                             rawGeoCoord[0] = parseFloat(line[csvUpSettings.lngColumn - 1]);
                             rawGeoCoord[1] = parseFloat(line[csvUpSettings.latColumn - 1]);
-                            const geoCoord = proj(csvUpSettings.projText, 'EPSG:3857', rawGeoCoord);
+                            if (![...illstCoord, ...rawGeoCoord].every(Number.isFinite)) throw new Error('invalid coordinate');
+                            const geoCoord = csvGeoCoordToTarget(rawGeoCoord, targetCrs,
+                                (raw) => proj(csvUpSettings.projText, 'EPSG:4326', [raw[0], raw[1]]) as number[]);
                             gcps.push([illstCoord, geoCoord]);
                         } catch (_e) {
                             error = 'csv_format_error';

@@ -501,7 +501,7 @@ try {
         if (hit.startsWith('electron/services/MapEditService.ts:')) {
           return /compiled\\?\\.strict_status\\s*===\\s*['"]strict_error['"]/.test(lineText);
         }
-        if (hit.startsWith('src/views/MapEdit.vue:')) {
+        if (hit.startsWith('src/views/MapEdit.vue:') || hit.startsWith('src/utils/layerCoordTransform.ts:')) {
           return /tin\\.strict_status\\s*===\\s*['"]strict_error['"]/.test(lineText);
         }
         return hit.startsWith('scripts/resource-diagnostics-smoke.mjs:');
@@ -511,6 +511,7 @@ try {
       assert.equal(strictHits.filter((hit) => hit.startsWith('electron/services/MapEditService.ts')).length, 1, '正準 hasStrictError だけが MapEditService に残る');
       assert.ok(strictHits.some((hit) => hit.includes('src/views/MapEdit.vue') && hit.includes('tin.strict_status')), 'MapEdit.vue の TIN 単位判定は残す');
       assert.equal(strictHits.filter((hit) => hit.includes('src/views/MapEdit.vue')).length, 2, 'MapEdit.vue の TIN 単位判定は2箇所');
+      assert.equal(strictHits.filter((hit) => hit.startsWith('src/utils/layerCoordTransform.ts')).length, 1, '逆変換の入口（layerCoordTransform）の TIN 単位判定は1箇所');
       assert.ok(!strictHits.some((hit) => hit.startsWith('electron/services/MapDataService.ts')), 'MapDataService private重複は撤去');
       assert.ok(!strictHits.some((hit) => hit.startsWith('src/views/resource-adapters/mapListAdapter.ts')), 'mapListAdapter renderer重複は撤去');
       const diagnosticsSource = await readFile(path.join(${JSON.stringify(projectRoot)}, 'electron/services/ResourceDiagnosticsService.ts'), 'utf8');
