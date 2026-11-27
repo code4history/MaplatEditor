@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 const root = path.resolve(import.meta.dirname, '..');
 const files = ['electron/ipc/assets-images.ts', 'electron/ipc/mapedit.ts', 'electron/ipc/poisource.ts',
  'electron/services/AppAssetService.ts', 'electron/services/AppExportService.ts', 'electron/services/DataUploadService.ts',
@@ -37,7 +38,7 @@ console.log(`生ヒット ${raw.length}・コメント除外 ${raw.length-live.l
 
 const fixtureParent = path.join(root, '.tmp-smoke');
 fs.mkdirSync(fixtureParent, { recursive: true });
-const fixture = fs.mkdtempSync(path.join(fixtureParent, 'dialog-folders-'));
+const fixture = await makeSmokeScratch('dialog-folders-');
 const documents = path.join(fixture, 'documents'); fs.mkdirSync(documents);
 process.env.MAPLAT_E2E_ROOT = path.join(fixture, 'runtime');
 const stub = path.join(fixture, 'electron.ts');

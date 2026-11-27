@@ -28,17 +28,18 @@
 //      サンドボックス等で Chrome が起動できない場合も jimp フォールバックで同条件を満たす
 //   ⑰ 参照要素の title 上書き (GUI 検証 D1): {poiUid, title: LangResource} → 解決後 FC.name が
 //      交換形 (compactLangResource collapse) でソース側 title より優先。空 title は上書きなし
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-reference-resolver-'));
+const workDir = await makeSmokeScratch('poi-reference-resolver-');
 const entryFile = path.join(workDir, 'poi-reference-resolver-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

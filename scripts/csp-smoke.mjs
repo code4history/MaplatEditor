@@ -12,11 +12,12 @@
 // 前提: `vite build` 済みの dist/ があること（無ければ case 1 を FAIL にする。黙って合格しない）。
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import * as appScheme from "../electron/utils/appScheme.ts";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const readSrc = (rel) => readFile(path.join(projectRoot, rel), "utf8");
@@ -46,7 +47,7 @@ async function section(label, fn) {
 }
 
 // handler を一時 dist / 保存フォルダで作る（same-origin smoke と同じ様式）
-const work = await mkdtemp(path.join(process.env.TMPDIR || os.tmpdir(), "csp-smoke-"));
+const work = await makeSmokeScratch("csp-smoke-");
 const dist = path.join(work, "dist");
 const save = path.join(work, "save");
 await mkdir(path.join(dist, "assets"), { recursive: true });

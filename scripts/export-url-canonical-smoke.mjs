@@ -32,17 +32,18 @@
 //   case 6 : 保存ダイアログのキャンセルで 'Canceled' を返し、出力先ファイルを作らない
 //         ※既存 smoke は全ケース canceled:false を注入しており、この分岐は未検証だった
 //
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'export-url-canonical-'));
+const workDir = await makeSmokeScratch('export-url-canonical-');
 const entryFile = path.join(workDir, 'export-url-canonical-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

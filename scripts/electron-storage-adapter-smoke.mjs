@@ -1,10 +1,11 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -17,7 +18,7 @@ if (process.platform === 'darwin' && process.env.MAPLAT_RUN_UNSAFE_ELECTRON_SMOK
   process.exit(0);
 }
 
-const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-fx-electron-'));
+const workDir = await makeSmokeScratch('maplat-editor-fx-electron-');
 const entryFile = path.join(workDir, 'fx-electron-storage-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'fx-electron-storage-smoke.mjs');

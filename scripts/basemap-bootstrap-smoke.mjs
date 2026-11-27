@@ -7,17 +7,18 @@
 //   python3 -c "import json;print(json.dumps(json.load(open('$HOME/Library/Application Support/maplat-editor/config.json'))['tmsList'],ensure_ascii=False,indent=2))" \
 //     > tests/fixtures/basemap-bootstrap/legacy-tmslist.json
 // 本機 config.json の tmsList（267 件・KTGIS 公開カタログ由来・個人情報不含）を忠実に保持。
-import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'basemap-bootstrap-'));
+const workDir = await makeSmokeScratch('basemap-bootstrap-');
 const entryFile = path.join(workDir, 'basemap-bootstrap-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

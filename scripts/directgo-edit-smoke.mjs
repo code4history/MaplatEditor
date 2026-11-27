@@ -14,16 +14,17 @@
 //   8. 文言: 11 言語の public/locales/*/translation.json に新しいキーがすべてあり、空でない。
 //      directgo_blank_like は文字列・空でない・キーそのものでない・（ja 以外は）ja と同文でない、を別々に断言する
 //   9. 検証 code → 文言のキーの写像（poiSourceMessages の ISSUE_CODE_KEYS）に directgo-blank-like がある
-import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'directgo-edit-'));
+const workDir = await makeSmokeScratch('directgo-edit-');
 
 async function buildModule(entry, name) {
   const outDir = path.join(workDir, name);

@@ -14,17 +14,18 @@
 //       slug キーではなく canonical uid キーの原本が作られる（レビューで指摘された既知差異は
 //       原本の rename・clone への追随で解消済み。改修方針どおり、本 Part を「解消の確認」へ更新）
 //   (H) WmtsGeneratorService.generate(): canonical-first / legacy fallback / 解決不能時のerr
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'originals-resolver-'));
+const workDir = await makeSmokeScratch('originals-resolver-');
 const entryFile = path.join(workDir, 'originals-resolver-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

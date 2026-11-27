@@ -6,16 +6,17 @@
 //   ③ 各エントリのオフセット位置に PNG マジック (89 50 4E 47) がそのまま格納される
 //   ④ 複数エントリ時のオフセットが順に連結される (6 + 16*N + 累積長)
 //   ⑤ 空配列は Error
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'ico-pack-'));
+const workDir = await makeSmokeScratch('ico-pack-');
 const outDir = path.join(workDir, 'dist');
 
 try {

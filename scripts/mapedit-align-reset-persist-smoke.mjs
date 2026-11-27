@@ -11,12 +11,13 @@
 //   case 13 i18n キー 2 個（basemap_align_reset / basemap_align_cancel）が 11 言語に在り結線されている
 //   case 1  第 2 ボタンが相ボタンの一つ左隣にある（静的。動的確認は e2e / 人間検証 H1）
 //   （結線検査は 結線の規則: smoke / e2e が package.json から到達できる）
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -29,7 +30,7 @@ const NEW_KEYS = ['basemap_align_reset', 'basemap_align_cancel'];
 // 生成物は scratch 配下（.tmp-smoke）に置く（既存 smoke と同一の scratch 位置・gitignore 済み）
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'mapedit-align-reset-persist-'));
+const workDir = await makeSmokeScratch('mapedit-align-reset-persist-');
 const entryFile = path.join(workDir, 'reset-persist-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -339,5 +340,5 @@ try {
   console.error(err);
   process.exitCode = 1;
 }
-// 生成物（workDir）は残置する（破壊的操作 gate: 一時領域は消さない。smoke と同じ扱い。
+// 生成物（workDir）は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1。
 // .tmp-smoke は gitignore 済み）

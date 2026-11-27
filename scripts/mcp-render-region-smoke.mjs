@@ -18,11 +18,12 @@
 // The token is never printed. MCP_SMOKE_TOKEN_FILE and MCP_SMOKE_SECRET_FILE (set by the log-redaction smoke)
 // receive the issued token and pieces of the encoded pictures, so that smoke can check this output for them.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -46,7 +47,7 @@ const rel = (p) => path.join(projectRoot, p);
 
 const scratchRoot = rel('.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'mcp-render-region-'));
+const workDir = await makeSmokeScratch('mcp-render-region-');
 
 try {
   const electronStubFile = path.join(workDir, 'electron-stub.ts');

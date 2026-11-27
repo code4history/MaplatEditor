@@ -8,16 +8,17 @@
 //   11    resolveAppSource（旧形の翻訳で印が消えない）
 //   12    文言 2 キー × 11 言語
 import { readFileSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'map-cache-exclusion-'));
+const workDir = await makeSmokeScratch('map-cache-exclusion-');
 const outDir = path.join(workDir, 'dist');
 
 // 保存（JSON の往復）を真似る

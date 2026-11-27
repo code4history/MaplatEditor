@@ -36,17 +36,18 @@
 //   case 15: Compiled と sentinel が混在する tins の分別処理と並び順
 //   （case 7 はソース確認・case 8/case 9 は別コマンドのため本 smoke の対象外）
 //
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'url-derivation-unification-url-derivation-'));
+const workDir = await makeSmokeScratch('url-derivation-unification-url-derivation-');
 const entryFile = path.join(workDir, 'url-derivation-unification-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

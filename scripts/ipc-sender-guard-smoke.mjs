@@ -14,10 +14,11 @@
 //   (i) saveFolder の保存の失敗は画面に出し、ほかの設定を途中まで保存しない
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -168,7 +169,7 @@ await check('(i) a refused saveFolder is reported before anything else is saved'
 // ---- (b)〜(f2) は TS を読むので vite で束ねる ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'ipc-sender-guard-'));
+const workDir = await makeSmokeScratch('ipc-sender-guard-');
 const p = (r) => JSON.stringify(path.join(projectRoot, r));
 
 try {

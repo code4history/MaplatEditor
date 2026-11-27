@@ -6,15 +6,16 @@
 // case 11: toBaseMapSavePayload が tms.kind を永続化（null→"tms" 正規化）
 // case 13: normalize→compose でも provider 分岐が生きる（kind/maptype 保持）
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "basemap-kind-axis-"));
+const workDir = await makeSmokeScratch("basemap-kind-axis-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));

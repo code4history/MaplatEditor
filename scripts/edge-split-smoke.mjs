@@ -13,15 +13,16 @@
 // 親の作業場所の state も構造が変わって（milestones は配列）前提を揃えても赤だった。製品の検査（上の
 // (a)〜(e)）はそのまま残る。
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "edge-split-"));
+const workDir = await makeSmokeScratch("edge-split-");
 const outDir = path.join(workDir, "dist");
 
 try {

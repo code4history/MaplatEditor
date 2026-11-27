@@ -6,15 +6,16 @@
 // case 9: Google の地図の帰属表記は埋めず、入力させず、読み込み・保存でも持たない
 // case 8: 11言語 Note キー
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "google-preset-defaults-"));
+const workDir = await makeSmokeScratch("google-preset-defaults-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));

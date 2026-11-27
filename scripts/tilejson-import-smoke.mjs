@@ -7,15 +7,16 @@
 // case 8: tileJsonSourceUrl は EDITOR_ONLY_KEYS 経由で viewer 出力から除去される
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdir, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "tilejson-import-"));
+const workDir = await makeSmokeScratch("tilejson-import-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));

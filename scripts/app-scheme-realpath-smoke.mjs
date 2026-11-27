@@ -21,9 +21,10 @@
 // `node --experimental-strip-types` で electron/utils/appScheme.ts を直接 import する（appScheme.ts は electron を import しない）。
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { chmod, lstat, mkdir, mkdtemp, readFile, readlink, realpath, symlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, readlink, realpath, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 import {
   appUrlToLocalPath,
@@ -114,7 +115,7 @@ function countingFs() {
   };
 }
 
-const work = await mkdtemp(path.join(process.env.RUNNER_TEMP || process.env.TMPDIR || os.tmpdir(), "app-scheme-realpath-smoke-"));
+const work = await makeSmokeScratch("app-scheme-realpath-smoke-");
 const save = path.join(work, "save");
 const outside = path.join(work, "outside");
 const dist = path.join(work, "dist");

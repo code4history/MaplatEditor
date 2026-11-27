@@ -10,7 +10,7 @@
  * SAC（2026-10-03）: Windows は配布物の全 PE を electron-builder の署名フック（scripts/win-sign/win-sign.cjs）で
  *   署名する。esigner-codesign action（Setup.exe 2 本だけ）は撤去し、CodeSignTool を版とハッシュで固定して取得する
  */
-import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import yaml from 'js-yaml';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const GUARD = path.join(projectRoot, 'scripts/release/check-release-guard.mjs');
@@ -117,7 +118,7 @@ const sha512b64 = (buf) => createHash('sha512').update(buf).digest('base64');
 // case 5: latest.yml 再計算 + blockmap 再生成
 // ───────────────────────────────────────────────
 {
-  const dir = await mkdtemp(path.join(tmpdir(), 'release-workflow-resign-'));
+  const dir = await makeSmokeScratch('release-workflow-resign-');
   const files = ['MaplatEditor-Windows-9.9.9-x64-Setup.exe', 'MaplatEditor-Windows-9.9.9-arm64-Setup.exe'];
   for (const f of files) {
     // 「署名済み」相当のバイナリ（内容は任意。blockmap は内容定義チャンクなので形式不問）

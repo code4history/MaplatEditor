@@ -3,17 +3,18 @@
 // poiGeoJson.ts（toExportForm / normalizePoiSourceCollection）と poiPackage.ts（rewritePoiMediaReferences）を検証。
 // poiReferenceResolver.ts（applyReferenceIconOverrides / resolveIconRefsInFc）は smoke で実経路検証済みのため、
 // ここでは純関数レベルの検証を行う。
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'properties-migration-'));
+const workDir = await makeSmokeScratch('properties-migration-');
 const entryFile = path.join(workDir, 'properties-migration-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'properties-migration-smoke.mjs');

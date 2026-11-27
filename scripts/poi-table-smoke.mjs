@@ -1,17 +1,18 @@
 // POI の CSV・JSON 書き出し smoke (unit, vite ssr build)
 // 符号化の部品 (RFC 4180 の書き出し・式の無害化の全単射)、CSV の書き出し、JSON の書き出し、
 // 往復、書き出しの IPC 本体 (形式の検査・保存先の扱い) を検証する。
-import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-table-'));
+const workDir = await makeSmokeScratch('poi-table-');
 const outDir = path.join(workDir, 'dist');
 
 try {

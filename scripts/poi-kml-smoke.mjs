@@ -1,7 +1,7 @@
 // KML の取り込み smoke (unit, vite ssr build)。
 // 読み取る要素・取り込む形・取り込まない形・ExtendedData・HTML の説明・誤りの報告、
 // 事前走査 (scanKmlShape) の構文と予算、悪意ある入力の拒否 (時間と RSS を実測) を検証する。
-import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -9,12 +9,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
 import { REJECT, PASS, NORMAL, PLACEMARK_ATTACKS, qgisKml, GOOGLE_EARTH_KML } from './lib/poiKmlInputs.mjs';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-kml-'));
+const workDir = await makeSmokeScratch('poi-kml-');
 
 try {
   const entry = path.join(workDir, 'entry.ts');

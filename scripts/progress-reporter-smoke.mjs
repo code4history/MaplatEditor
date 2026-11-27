@@ -9,18 +9,19 @@
 //   (4) parity + update() 単体の throttle は不変（整数%が進まない通常 update は依然落とされる）ことと、
 //       AppExportService の呼び出し側が「最終件 updatePhaseEnd / 非最終件 update」の二枝で、
 //       非最終件の throttle を温存していること（ソース assert）。
-// 作業ディレクトリは mkdtemp で作ったまま残置する（破壊的操作 gate に従い rm しない。git 非追跡）。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+// 作業ディレクトリは makeSmokeScratch で作る（smoke-scratch.mjs がプロセス終了時に消す。残す場合は KEEP_SMOKE_TMP=1）。
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'progress-reporter-'));
+const workDir = await makeSmokeScratch('progress-reporter-');
 const entryFile = path.join(workDir, 'progress-reporter-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const outDir = path.join(workDir, 'dist');

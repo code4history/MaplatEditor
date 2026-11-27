@@ -17,9 +17,10 @@
 //   (I) crash-mid-write 模擬: 前回クラッシュ残留の .m13tmp (壊れた内容) が事前に存在していても、
 //       次回の正常な書込みで上書き・renameされ、結果は正しい内容になる (同一ディレクトリに配置する設計判断の実証)
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 import {
   mergeAndWriteReport,
@@ -35,7 +36,7 @@ await mkdir(scratchRoot, { recursive: true });
 const workDir = await mktempScratch();
 
 async function mktempScratch() {
-  return mkdtemp(path.join(scratchRoot, 'migration-report-atomic-write-report-atomic-'));
+  return makeSmokeScratch('migration-report-atomic-write-report-atomic-');
 }
 
 async function readReportRaw(dir) {

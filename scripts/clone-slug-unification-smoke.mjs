@@ -14,11 +14,12 @@
 // 現行も新実装も同じであり、**戻り値の比較では欠陥を検出できない**。
 // tryAcquire が何回・どの候補で呼ばれたかを記録して突き合わせる必要がある。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -61,7 +62,7 @@ const viewPath = path.join(projectRoot, 'src/views/PoiEdit.vue');
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'clone-slug-unification-clone-slug-'));
+const workDir = await makeSmokeScratch('clone-slug-unification-clone-slug-');
 const entryFile = path.join(workDir, 'entry.ts');
 const outDir = path.join(workDir, 'dist');
 const bundled = path.join(outDir, 'entry.mjs');

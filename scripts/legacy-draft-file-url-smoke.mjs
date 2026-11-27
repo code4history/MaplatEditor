@@ -24,18 +24,19 @@
 //   [5] save(create): 旧 file:// の後方互換 tmp url_（tmpFolder/tiles）→ Success・恒久 url・originals/<uid>.jpg
 //   [6] save(create/clone): 旧 file:// の複製元タイル url_ → 複製先を指す恒久 url が返る
 //   [7] 許可ルート外・境界外の file://（兄弟 dir・'..' 脱出・%2F・{z}/{x}/{y} の無い形）は staging と認めず、移動もしない
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'legacy-draft-file-url-legacy-draft-'));
+const workDir = await makeSmokeScratch('legacy-draft-file-url-legacy-draft-');
 const entryFile = path.join(workDir, 'legacy-draft-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -352,4 +353,4 @@ try {
   if (e.stderr) process.stderr.write(e.stderr);
   process.exitCode = 1;
 }
-// .tmp-smoke は破壊的操作禁止のため残置
+// .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）

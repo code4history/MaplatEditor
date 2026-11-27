@@ -6,11 +6,12 @@
 // 既存の smoke と同じく、vite の ssr build で main の TS を束ね、electron をスタブして
 // 子プロセスで走らせる（実データ不使用・ネットワーク不使用）。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -58,7 +59,7 @@ const thumbPathsFile = path.join(projectRoot, 'src/utils/thumbnailPaths.ts');
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-thumbnail-safety-'));
+const workDir = await makeSmokeScratch('iiif-thumbnail-safety-');
 const entryFile = path.join(workDir, 'iiif-thumbnail-safety-entry.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -226,5 +227,5 @@ try {
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 } finally {
-  // .tmp-smoke は破壊的操作禁止のため残置
+  // .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）
 }

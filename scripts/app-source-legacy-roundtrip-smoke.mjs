@@ -3,16 +3,17 @@
 // 旧形のまま保存された文書は、所有キー（利用範囲・mercator シフト）が `legacyData` の中に
 // 入れ子で残る。保存するたびに 1 段深くなり、読み直すと所有キーが翻訳されずに消えて見えていた。
 // ここでは normalizeAppSource → resolveAppSource の結果を固定の値で断言する。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'app-source-legacy-roundtrip-'));
+const workDir = await makeSmokeScratch('app-source-legacy-roundtrip-');
 const outDir = path.join(workDir, 'dist');
 
 // 保存（JSON の往復）を真似る

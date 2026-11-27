@@ -15,9 +15,10 @@
 //
 // 他のスモークと同じ sandbox 方式（vite の SSR ビルド＋ electron・electron-store のスタブ＋
 // saveFolder を一時ディレクトリに）で、実サービスを直接呼ぶ。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 
@@ -30,7 +31,7 @@ if (dumpArgIndex >= 0 && !process.argv[dumpArgIndex + 1]) {
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'provider-gl-esm-'));
+const workDir = await makeSmokeScratch('provider-gl-esm-');
 const entryFile = path.join(workDir, 'provider-gl-esm-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

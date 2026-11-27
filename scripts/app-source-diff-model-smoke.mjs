@@ -4,16 +4,17 @@
 //          case 6(overlay 保全) / case 19(builtin の url) / case 21(commonOptions 禁止キー)
 //          case 23(merc の url 導出) / case 24(言語別の上書き粒度)
 // case 7（操作子と定数の一致）は AppSourceEditor.vue のソーステキストを読むため本 smoke の末尾で扱う。
-import { mkdir, mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
+import { mkdir, rm, readFile, readdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'app-source-diff-model-'));
+const workDir = await makeSmokeScratch('app-source-diff-model-');
 const outDir = path.join(workDir, 'dist');
 const read = async (rel) => await readFile(path.join(projectRoot, rel), 'utf8');
 

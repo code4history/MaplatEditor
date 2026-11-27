@@ -382,6 +382,19 @@ pnpm dist:win      # Windows
 pnpm dist:linux    # Linux
 ```
 
+#### スモーク試験の作業フォルダ
+
+スモーク試験（`scripts/*-smoke.mjs`）は作業フォルダを
+`scripts/smoke-scratch.mjs`（`makeSmokeScratch()`）経由で `.tmp-smoke/` 配下に
+作り、プロセスの終了時に自動で消します（正常終了・例外・`process.exit()`・
+SIGINT/SIGTERM のいずれでも）。
+
+- `KEEP_SMOKE_TMP=1` を付けると消さず、残した場所を表示します（失敗調査用）。
+- 強制終了（`scripts/ci/run-smokes.mjs` の 600 秒打ち切りなど）では片付けが
+  走りません。溜まったときは `pnpm run smoke:clean`
+  （または `node scripts/clean-smoke-tmp.mjs`）で `.tmp-smoke/` の中だけを
+  まとめて消せます。
+
 ### キーボードショートカット
 
 | ショートカット | 操作 |

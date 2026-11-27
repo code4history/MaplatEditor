@@ -3,18 +3,19 @@
 // mapedit:download-saved の strict-free 搬出 (case 1)、App save/preview/export の共通 strict guard
 // (case 2)、export の pre-dialog/post-dialog 二重判定 (case 3) を behavioral に検証する。
 // case 4 (ProgressModal 二重翻訳の是正) は MapEdit.vue のソースを静的 grep で検証する。
-import { mkdtemp, rm, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { rm, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'strict-export-guard-'));
+const workDir = await makeSmokeScratch('strict-export-guard-');
 const entryFile = path.join(workDir, 'strict-export-guard-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

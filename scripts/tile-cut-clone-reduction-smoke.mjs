@@ -16,19 +16,20 @@
 //           実 imageCutter の出力タイル群と、smoke 内の参照ループ
 //           （clone().crop().resize().write()）の出力が全ファイル・全バイト一致すること。
 //
-// 一時ディレクトリ: `.tmp-smoke/` 配下の mkdtemp を使い、**残置する**
-// （先例 scripts/large-image-decode-limits-smoke.mjs:491「破壊的操作禁止のため残置」に揃える）。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+// 一時ディレクトリ: `.tmp-smoke/` 配下を makeSmokeScratch で作り、プロセス終了時に消す
+// （残して調べる場合は KEEP_SMOKE_TMP=1。旧「破壊的操作禁止のため残置」方針から転換）。
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'tile-cut-clone-reduction-tilecut-'));
+const workDir = await makeSmokeScratch('tile-cut-clone-reduction-tilecut-');
 const entryFile = path.join(workDir, 'tile-cut-clone-reduction-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

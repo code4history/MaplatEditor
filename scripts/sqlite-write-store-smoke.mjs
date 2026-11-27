@@ -2,17 +2,18 @@
 // シナリオ1: 生きたレガシー入力(nedb.db / settings/)からのマイグレーションと
 //            Write Store経由のCRUD、Search Layer経由の一覧検索、退避リネーム。
 // シナリオ2: 退避済み入力(_nedb.db / _settings/)からもマイグレーションできること。
-import { mkdtemp, rm, writeFile, mkdir, access } from 'node:fs/promises';
+import { rm, writeFile, mkdir, access } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'sqlite-write-store-'));
+const workDir = await makeSmokeScratch('sqlite-write-store-');
 const entryFile = path.join(workDir, 'sqlite-write-store-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

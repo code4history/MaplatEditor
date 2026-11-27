@@ -4,13 +4,14 @@
 // - 新しいソースを作る取り込み (importFile) が解析と合流を共有して動く
 // - 結線の静的検査 (ipc.handle・runGuarded・チャネル名・入口の置き場所・無効条件・確定時の再確認)
 // - 文言: poiio の節に、データを指す名詞の「設定」相当の語が無い (11 言語の語で検査)
-import { mkdir, mkdtemp, rm, readFile, readdir, writeFile, truncate } from 'node:fs/promises';
+import { mkdir, rm, readFile, readdir, writeFile, truncate } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -18,7 +19,7 @@ const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
 const read = (rel) => readFile(path.join(projectRoot, rel), 'utf8');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-import-'));
+const workDir = await makeSmokeScratch('poi-import-');
 
 try {
   const ipcSrc = await read('electron/ipc/poisource.ts');

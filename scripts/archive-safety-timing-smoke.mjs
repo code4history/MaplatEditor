@@ -15,12 +15,13 @@
 //
 // adm-zip 自身の zip-slip 対策には依存しない。ライブラリ更新で暗黙に安全性が変わることを
 // 避けるため、呼び出し側で明示的に検証する。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { crc32 } from 'node:zlib';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 // --- 生 ZIP ビルダ -----------------------------------------------------------
 // adm-zip の addFile は **パスを正規化する**（'tiles/../../escape.jpg' → 'escape.jpg'、
@@ -96,7 +97,7 @@ const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'archive-safety-timing-archive-safety-'));
+const workDir = await makeSmokeScratch('archive-safety-timing-archive-safety-');
 const entryFile = path.join(workDir, 'archive-safety-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

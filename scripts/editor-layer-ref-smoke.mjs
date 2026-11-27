@@ -12,16 +12,17 @@
 // Part I: 「上書きを追加」と3分類のバッジ・注記                                     … case 3/case 5
 // Part J: 新設文言が 11 言語すべてに存在する                                        … case 11
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 // 純関数層のみを vite SSR で束ねて読む（他 smoke と同じ作法。extensionless import を解決するため）
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'editor-layer-ref-'));
+const workDir = await makeSmokeScratch('editor-layer-ref-');
 let mods;
 try {
   const entryFile = path.join(workDir, 'entry.ts');

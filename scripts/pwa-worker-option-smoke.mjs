@@ -13,10 +13,11 @@
 //
 // harness は他の書き出しのスモークと同じ（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
@@ -70,7 +71,7 @@ for (const lang of LANGS.filter((l) => l !== 'ja' && l !== 'en')) {
 // ---- (a)(b)(c) 本体（vite SSR ビルド） ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'pwa-worker-option-'));
+const workDir = await makeSmokeScratch('pwa-worker-option-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

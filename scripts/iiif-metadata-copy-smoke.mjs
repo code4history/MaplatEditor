@@ -9,19 +9,20 @@
 // `@maplat/core/common` は DOM を読むので、束ねるときに小さな代役へ差し替える。
 //
 // 使い方: node scripts/iiif-metadata-copy-smoke.mjs
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { readFileSync, readdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-metadata-copy-'));
+const workDir = await makeSmokeScratch('iiif-metadata-copy-');
 const entryFile = path.join(workDir, 'iiif-metadata-copy-smoke-entry.ts');
 const commonStubFile = path.join(workDir, 'common-stub.ts');
 const outDir = path.join(workDir, 'dist');

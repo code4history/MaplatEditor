@@ -9,17 +9,18 @@
 // case 4 の担保方法: このスクリプトは electron / electron-store の**エイリアスを張らず**、
 // それらを external のまま vite SSR でバンドルする。対象が間接的にでも electron を
 // 参照していれば、素の Node 実行時に MODULE_NOT_FOUND で落ちる。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'decode-budget-phase-a-budget-'));
+const workDir = await makeSmokeScratch('decode-budget-phase-a-budget-');
 const entryFile = path.join(workDir, 'phase-a.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'phase-a.mjs');

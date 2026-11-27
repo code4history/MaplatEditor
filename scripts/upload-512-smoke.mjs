@@ -2,11 +2,12 @@
 // imageCutter（showMapSelectDialog 経由）で thumbnail_512.webp が正しいアスペクト比で生成されること、
 // 長辺≤512px の画像でも拡大せず元の大きさのまま作られることを、実データ不使用（一時フォルダ）で検証する。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -14,7 +15,7 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'upload-512-upload-'));
+const workDir = await makeSmokeScratch('upload-512-upload-');
 const entryFile = path.join(workDir, 'upload-512-upload-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -157,5 +158,5 @@ try {
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 } finally {
-  // .tmp-smoke は破壊的操作禁止のため残置
+  // .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）
 }

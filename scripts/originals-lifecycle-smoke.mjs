@@ -17,17 +17,18 @@
 //   (MapTrashReconcileService / 独自 trash 保持) 自体が OS のゴミ箱への委譲で廃止されたため撤去した
 //   (廃止根拠: —
 //   新順序では reconcile が対象とした「退避済みだが DB 未削除」状態が構造的に発生しない)。
-import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'originals-lifecycle-'));
+const workDir = await makeSmokeScratch('originals-lifecycle-');
 const entryFile = path.join(workDir, 'originals-lifecycle-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

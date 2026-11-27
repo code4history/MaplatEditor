@@ -1,17 +1,18 @@
 // src/utils/poiGeoJson.ts (POI GeoJSON 純関数, renderer/main 共用) のスモーク。
 // 検証コード・旧POI正規化・表示ID採番・_maplatUid注入/剥離・export形往復を検証する。
 // asset-identity-smoke の vite-bundle-single-module 方式に倣う(electron スタブ不要の純モジュール)。
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-geojson-'));
+const workDir = await makeSmokeScratch('poi-geojson-');
 const entryFile = path.join(workDir, 'poi-geojson-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'poi-geojson-smoke.mjs');

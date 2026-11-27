@@ -13,17 +13,18 @@
 // assetIdentity は node:crypto しか使わず、追加で import する slugSequence も依存ゼロの
 // 純関数モジュールである ∴ 素の Node で走る（electron を間接参照していれば
 // MODULE_NOT_FOUND で落ちるので、それ自体が純粋性の検査になる）。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'migration-slug-unification-'));
+const workDir = await makeSmokeScratch('migration-slug-unification-');
 const entryFile = path.join(workDir, 'migration-slug-unification-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'migration-slug-unification-smoke.mjs');

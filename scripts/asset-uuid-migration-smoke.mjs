@@ -14,17 +14,18 @@
 // 一時の DB で runAssetUuidNamesColdBoot を直接呼ぶ（DDL の写しを持たないので食い違わない）。
 // F15 は同じバンドルを子プロセスで `--crash` モードで起動し、__beforeSwap から process.exit(1) で落とす。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uuid-migration-'));
+const workDir = await makeSmokeScratch('asset-uuid-migration-');
 const entryFile = path.join(workDir, 'asset-uuid-migration-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

@@ -6,17 +6,18 @@
 // Part B: externalizePoisArray の要素変換規則 E1〜E7 (正本表)
 // Part C: exportApp の実出力 (zip 展開) — pois/ 実在・両 JSON の参照化・上書き非焼き込み・
 //         icon 実体同梱・app と map で1ファイルへ畳む・sanitize が pois/ の外へ出さない
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'export-pois-externalization-export-pois-'));
+const workDir = await makeSmokeScratch('export-pois-externalization-export-pois-');
 const entryFile = path.join(workDir, 'export-pois-externalization-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

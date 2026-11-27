@@ -23,17 +23,18 @@
 //   (o) delete: 本体・registry掃除 (slug解放)
 //   (p) 旧 poi-sources.json / poi-sources/ ディレクトリは読みも消しもしない (無傷)
 //   (q) list: uid/slug/title/mode/featureCount/revision/updatedAt を返し blob を含まない / query=FTS
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-service-'));
+const workDir = await makeSmokeScratch('poi-service-');
 const entryFile = path.join(workDir, 'poi-service-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

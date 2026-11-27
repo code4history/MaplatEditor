@@ -14,15 +14,16 @@
 // harness は他の移行のスモークと同じ（vite SSR ビルド + electron/electron-store スタブ + saveFolder=一時 dir）。
 // 移行の単体は、SqliteDataService.ts の migrate() の DDL をソースから切り出して流した一時の DB で直接呼ぶ。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'maplibre-version-migration-'));
+const workDir = await makeSmokeScratch('maplibre-version-migration-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

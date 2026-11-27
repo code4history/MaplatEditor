@@ -17,18 +17,19 @@
 //   (j) delete-race: rename の書込 (upsertAssetMeta) の直前に並行 delete (フックで注入、
 //       事前チェックの順序に依らずガードを直撃) → 復活 (revision=1 再INSERT + registry slug 再占有)
 //       せず Error{code:'not-found'}、slug は解放のまま (poi-service-smoke の l4 と同機構: upsertAssetRow の not-found ガード)
-import { mkdtemp, rm, writeFile, mkdir, stat, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, stat, readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'image-asset-'));
+const workDir = await makeSmokeScratch('image-asset-');
 const entryFile = path.join(workDir, 'image-asset-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

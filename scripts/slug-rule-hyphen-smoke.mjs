@@ -14,17 +14,18 @@
 // n=1 は衝突がなく **base をそのまま使う** ケースであり、生成部が存在しない。
 // 「"-" があれば生成名」という判定は、この非対称があってこそ成立する。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'slug-rule-hyphen-slug-rule-'));
+const workDir = await makeSmokeScratch('slug-rule-hyphen-slug-rule-');
 const entryFile = path.join(workDir, 'entry.ts');
 const outDir = path.join(workDir, 'dist');
 const bundled = path.join(outDir, 'entry.mjs');

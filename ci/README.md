@@ -18,13 +18,13 @@ e2e job の install は `--config.side-effects-cache=false` を付けて electro
 
 | kind | 意味 | 判定 |
 |---|---|---|
-| `excluded`（smoke のみ） | 実行しない（runner に無いツール・非公開の前提・時間） | 実行されたら赤（実行集合の不一致） |
+| `excluded`（smoke のみ） | 実行しない（runner に無いツール・非公開の前提・時間・試験でない保守コマンド） | 実行されたら赤（実行集合の不一致） |
 | `known-failure` | 起点から赤の既知失敗 | smoke: 失敗し、出力に `expect` を含めば緑。**通ったら赤**・別の理由（`expect` 不一致）で落ちたら赤。e2e: `unexpected` なら緑・`flaky` なら緑（Summary に「間欠化」）・**1 回目で通ったら赤**・skipped なら赤 |
 | `intermittent`（e2e のみ） | 間欠する失敗。**載せるのは同じ commit で合格と失敗の両方を観測したものだけ** | `unexpected`・`flaky`・`expected` のいずれも緑（Summary に毎回 `intermittent（許容）: … （結果 …）` を出す）・skipped なら赤・同じ file が実行されたのに報告に無ければ赤。`issue` 必須（直す Issue）。smoke では使えない（形式検査で赤）。**通っても落ちても緑なので、本当に壊れても見えない** → 件数を最小に保ち、Issue の修正と同じ変更で表から外す |
 
 - 全エントリに `kind`・`reason`・`issue` が必須（空文字は不可）。smoke の `known-failure` は `expect`（失敗出力の固定部分。パスや乱数を含めない）が必須
 - e2e のエントリは `file`（`tests/e2e/` からの相対）・`line`（`test(` のある行）・`title`（その `test(` の第 1 引数。describe 名は含めない）
-- 表に書いていない smoke・spec は自動で実行対象になる（新しい smoke・spec を足したときに表を触る必要は無い）
+- 表に書いていない smoke・spec は自動で実行対象になる（新しい smoke・spec を足したときに表を触る必要は無い）。例外は試験でない保守コマンドの `smoke:clean`（`.tmp-smoke` の掃除）で、これは `excluded` に載せたまま増やさない
 - **失敗を集めてから最後にまとめて throw する型の smoke** を `known-failure` に載せるときは、`expect` に失敗件数を含める（例: `3 件失敗`）。固定文言だけだと、同じ smoke の中で新しく増えた失敗が既知失敗に隠れる
 
 ## 手元で判定を通す

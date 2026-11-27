@@ -1,16 +1,17 @@
 // assetIdentity 純関数モジュール(資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)のスモーク。
 // slug検証・uid生成・スラッグ衝突解消(数値サフィックス方式)の振る舞いを検証する。
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'asset-identity-'));
+const workDir = await makeSmokeScratch('asset-identity-');
 const entryFile = path.join(workDir, 'asset-identity-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'asset-identity-smoke.mjs');

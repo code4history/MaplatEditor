@@ -11,17 +11,18 @@
 //      data_json に残る
 //   ② MapEditService.request(uid) の読込方向 (store2HistMap) でも保持される
 //   ③ Note を持たない mapObject の保存では data_json に Note キーが生えない
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'map-license-note-roundtrip-'));
+const workDir = await makeSmokeScratch('map-license-note-roundtrip-');
 const entryFile = path.join(workDir, 'map-license-note-roundtrip-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

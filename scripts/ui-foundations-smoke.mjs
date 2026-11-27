@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 
 async function importSource(relativeEntry, fileName) {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'ui-foundations-'));
+  const workDir = await makeSmokeScratch('ui-foundations-');
   const outDir = path.join(workDir, 'dist');
   await build({
     root: projectRoot,
@@ -245,7 +246,7 @@ try {
   );
   console.log('  [9/9] MapEdit save preserves editor history: PASS');
 
-  const electronFixture = await mkdtemp(path.join(scratchRoot, 'electron-fixture-'));
+  const electronFixture = await makeSmokeScratch('electron-fixture-');
   const { inspectElectronInstallation, ensureElectronInstallation } = await import(
     `${pathToFileURL(path.join(projectRoot, 'scripts/ensure-electron.mjs')).href}?t=${Date.now()}`
   );

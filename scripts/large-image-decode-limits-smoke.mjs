@@ -25,11 +25,12 @@
 // 実行時期が異なるため新旧の直接比較には使えない（FUTURE_PLAN.md の「注意」。tile-cut-clone-reduction の
 // 受け入れ条件も同一プロセス A/B のほうであって、この値ではない）。
 // いずれも本タスクのデコード設定とは独立した imageCutter 側の性質である。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -37,7 +38,7 @@ const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'large-image-decode-limits-decode-'));
+const workDir = await makeSmokeScratch('large-image-decode-limits-decode-');
 const entryFile = path.join(workDir, 'large-image-decode-limits-decode-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -495,5 +496,5 @@ try {
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 } finally {
-  // .tmp-smoke は破壊的操作禁止のため残置
+  // .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）
 }

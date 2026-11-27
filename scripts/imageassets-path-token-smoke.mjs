@@ -20,18 +20,19 @@
 // 実行方法: node scripts/imageassets-path-token-smoke.mjs
 // （vite SSR ビルド＋electron／electron-store のスタブ方式。IPC の handler を実物のまま登録させ、
 // ipcMain.handle の登録を拾って呼ぶ）
-import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'imageassets-path-token-'));
+const workDir = await makeSmokeScratch('imageassets-path-token-');
 const fixtureDir = path.join(workDir, 'fixtures');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');

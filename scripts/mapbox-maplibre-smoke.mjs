@@ -4,17 +4,18 @@
  * 既定サムネが単色プレースホルダでなく、寸法も正しいこと
  */
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
 // 512px は webp。webp/非 webp を同じ規則で読む共通リーダーを使う
 import { readImageRGBA } from "./lib/webpAssets.mjs";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "mapbox-maplibre-"));
+const workDir = await makeSmokeScratch("mapbox-maplibre-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 
