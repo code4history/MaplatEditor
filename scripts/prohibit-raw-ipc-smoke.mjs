@@ -1,5 +1,4 @@
 import { readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { makeSmokeScratch } from './smoke-scratch.mjs';

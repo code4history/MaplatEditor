@@ -16,9 +16,8 @@
 //
 // 実行方法: node scripts/zip-errors-smoke.mjs（zip-residual-smoke と同じ vite SSR ビルド＋
 // electron／electron-store のスタブ方式）。2 GiB＋1 バイトの fixture はスパースファイルで、
-// os.tmpdir() 配下に作り、終わりに消す（実ディスクはほぼ使わない）。
+// .tmp-smoke/ 配下に作り、終わりに消す（実ディスクはほぼ使わない）。
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -31,7 +30,7 @@ const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 // バンドルは adm-zip を external にするため、node_modules を辿れるプロジェクト配下に置く
 const workDir = await makeSmokeScratch('zip-errors-');
-// fixture（スパースファイルを含む）は設計どおり os.tmpdir() 配下
+// fixture（スパースファイルを含む）も .tmp-smoke/ 配下（makeSmokeScratch）で、終わりに消す
 const fixtureDir = await makeSmokeScratch('zip-errors-zip-fixtures-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');

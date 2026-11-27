@@ -15,7 +15,6 @@
 // appScheme.ts / appUrl.ts は electron を import しないので `node --experimental-strip-types` で読める。
 import assert from "node:assert/strict";
 import { chmod, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 
 import {
@@ -193,7 +192,7 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
     assert.equal(fsErrorStatus("EIO"), 500);
     assert.equal(fsErrorStatus(undefined), 500);
   } finally {
-    // 作業領域は削除しない（TMPDIR 配下に残す。権限だけ戻して後から読めるようにする）
+    // 権限だけ戻す（作業領域は smoke-scratch が終了時に消す。残して調べるときは KEEP_SMOKE_TMP=1）
     await chmod(path.join(save, "noperm.png"), 0o644).catch(() => {});
   }
   console.log("  [4/6] handler（200/403/404/403(EACCES・dir)/500・防御ヘッダ・warn）: PASS");

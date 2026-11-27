@@ -18,7 +18,6 @@
 //       次回の正常な書込みで上書き・renameされ、結果は正しい内容になる (同一ディレクトリに配置する設計判断の実証)
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { makeSmokeScratch } from './smoke-scratch.mjs';
 

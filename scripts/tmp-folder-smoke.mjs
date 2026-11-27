@@ -7,7 +7,6 @@
 //         app.getPath をそのまま渡さない（this を失うと Electron が投げる）
 import assert from 'node:assert/strict';
 import { lstat, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { makeSmokeScratch } from './smoke-scratch.mjs';

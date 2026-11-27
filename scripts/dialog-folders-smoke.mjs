@@ -93,4 +93,4 @@ assert.deepEqual(Settings.get('lastDialogFolders'),before);
 Settings.store.set('saveFolder',path.join(fixture,'missing'));assert.equal(dialogDefaultPath('saveFolder'),documents);
 rememberDialogPath('image','relative/file.png','file');assert.deepEqual(Settings.get('lastDialogFolders'),before);
 console.log('消失/ファイル/相対/数値/nullは書類へ・保存フォルダは現在値・取消相当では記憶を変えない');
-console.log('fixture残置:',fixture);
+console.log('fixture（終了時に消える。KEEP_SMOKE_TMP=1 で残る）:',fixture);

@@ -13,7 +13,6 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 
 import * as appScheme from "../electron/utils/appScheme.ts";
