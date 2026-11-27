@@ -927,7 +927,7 @@ function noticeSpecialMesh() {
     notifyOperation({ origin: 'mesh-origin', type: 'info', message: t('mapedit.mesh_origin_incremental_notice') });
 }
 // 開いた地図の層ごとの保存済みの三角網。網を持たない層の最初の編集で、全部組み直す代わりに、restoreMesh で網を戻す（§9.5 (c)）。
-// 1 回使ったら外す（使えなかったときは、全部組み直す）
+// 使ったら外すのは consume（種を使い切った知らせ。失効した依頼では呼ばれないので、その種は次の編集でも使える）。
 const restoreSeeds = new Map<string, { tin: Tin; layer: TransformLayer }>();
 // 設定 incrementalEdits は、画面を開いたときに 1 回だけ読んで持つ（依頼のたびに IPC で読まない）。設定画面での切り替えは、
 // 設定画面から戻ってこの画面を開き直したときに効く。
@@ -965,8 +965,11 @@ async function finalizeIncrementalLayer(layer: TransformLayer, layerId: string, 
 /** 層が文書から無くなった（削除・履歴の復元）。worker の網と、表示用の網の購読を捨てる。 */
 function releaseLayerTin(layerId: string) {
     incrementalOrigins.delete(layerId);
-    specialMeshLayers.clear(layerId);
+    // 特例の層が外れたら、特例の保存の知らせも消す（見ている特例の層が無くなれば、もう関係ない）
+    const specialCleared = specialMeshLayers.clear(layerId);
+    if (specialCleared && specialMeshLayers.size === 0) clearOperationNotice('mesh-origin');
     finalizeDecisions.delete(layerId);
+    restoreSeeds.delete(layerId);
     displaySubscriptions.get(layerId)?.();
     displaySubscriptions.delete(layerId);
     void editorComputeBackend.disposeLayer(layerId);
@@ -977,6 +980,7 @@ function releaseAllLayerTins() {
     incrementalOrigins.clear();
     restoreSeeds.clear();
     specialMeshLayers.clearAll();
+    clearOperationNotice('mesh-origin');
     finalizeDecisions.clear();
     for (const unsubscribe of displaySubscriptions.values()) unsubscribe();
     displaySubscriptions.clear();
@@ -1178,13 +1182,15 @@ async function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typ
             refresh: (input, isCurrent, seed) => editorComputeBackend.refreshTin(input, isCurrent, seed),
             restoreSeed: (layerId) => {
                 const seed = restoreSeeds.get(layerId);
-                restoreSeeds.delete(layerId);
-                return seed && { compiled: seed.tin.getCompiled(), layer: seed.layer };
+                // 外すのは consume（restore を試した結果で種を使い切ったとき。失効した依頼では、次の編集でもう一度使える）
+                return seed && { compiled: seed.tin.getCompiled(), layer: seed.layer, consume: () => restoreSeeds.delete(layerId) };
             },
             releaseCandidate: (layerKey) => { void editorComputeBackend.disposeLayer(layerKey); },
             onBuilt: (layerId, origin) => {
                 if (origin === 'incremental') incrementalOrigins.add(layerId); else incrementalOrigins.delete(layerId);
                 specialMeshLayers.observeBuilt(layerId, origin);
+                // 全部組み直した結果で特例が外れ、見ている特例の層が無くなったら、特例の保存の知らせも消す
+                if (origin === 'rebuild' && specialMeshLayers.size === 0) clearOperationNotice('mesh-origin');
             },
         });
 }

@@ -310,7 +310,9 @@ export class TinWorkerSession {
 
   /**
    * 清書（§9.3 の 3）。局所更新の網とは別のインスタンスで全部組み直し、strict のときだけ、層の網を差し替える。
-   * strict にならなかったときは、層の網を保ち、どちらを保存するかを決める（§9.5）。
+   * strict にならなかったときは、どちらを保存するかを決める（§9.5）。特例の保存（局所更新の網を保存する）なら網を保ち、
+   * 全部組み直した結果を保存するのに条件（証拠）を満たさなかった（evidenceFailed・noEvidence）ときは、網も捨てる
+   * （表示・次の編集を清書側へ合わせる）。
    */
   finalize(finalizeRequest: TinFinalizeRequest): Promise<TinFinalizeResponse> {
     return this.enqueue(async (): Promise<TinFinalizeResponse> => {
@@ -356,8 +358,9 @@ export class TinWorkerSession {
         if (bandPatch) evidence = kept.tin.collectIncrementalEvidence({ status: status ?? 'strict_error', kinks: built.compiled.kinks_points?.length ?? 0 });
       }
       const decision = decideSavedMesh({ rebuildStatus: status ?? 'strict_error', evidence, meshMatchesRequest });
-      // 帯を作り直した差分は、Editor の表示用の網へ当てる（網は進んでいる）
-      const band = bandPatch ? { bandPatch } : {};
+      // 帯を作り直した差分は、特例の保存（局所更新の網を保存する）のときだけ、Editor の表示用の網へ当てる（網は進んでいる）。
+      // 全部組み直した結果を保存する判断では、表示も worker の網も清書側へ合わせる（帯の差分は返さない）
+      const band = decision.source === 'incremental' && bandPatch ? { bandPatch } : {};
       if (decision.source === 'incremental' && kept && evidence?.compiled) {
         // 特例の保存: Tin が書き出した、印（meshOrigin）つきの compiled を保存する。診断に、清書の結果との違いを残す
         const diagnostics = { ...(kept.tin.boundaryDiagnostics ?? {}), incremental: decision.diagnostics };
@@ -369,11 +372,16 @@ export class TinWorkerSession {
           ...band,
         };
       }
+      // 全部組み直した結果を保存するのに、条件（証拠）を満たさなかった: 局所更新の網も捨て、表示と次の編集を清書側へ合わせる
+      // （rebuildFailed〔入力のエラー〕と meshMismatch〔網と入力が対応しない〕では、網を保つ）
+      const discardMesh = decision.source === 'rebuild'
+        && (decision.reason === 'evidenceFailed' || decision.reason === 'noEvidence');
+      if (discardMesh) this.layers.delete(layerKey);
       return {
         result: built.result,
         decision: { source: 'rebuild', reason: decision.reason, ...('failed' in decision && decision.failed ? { failed: decision.failed } : {}) },
         replaced: false,
-        ...(kept ? { stamp: this.stamp(kept) } : {}),
+        ...(kept && !discardMesh ? { stamp: this.stamp(kept) } : {}),
         ...band,
       };
     });

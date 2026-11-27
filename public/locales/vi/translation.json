@@ -304,7 +304,7 @@
     "update_check": "Kiểm tra cập nhật khi khởi động",
     "update_check_desc": "Bạn sẽ được thông báo khi có phiên bản mới. Chỉ tải xuống khi bạn chọn \"Cập nhật\". Trên Linux, trang phát hành sẽ được mở.",
     "incremental_edits": "Cập nhật TIN tăng dần (thử nghiệm)",
-    "incremental_edits_desc": "Khi chỉnh sửa điểm tương ứng, chỉ cập nhật vùng lưới tam giác bị thay đổi. Đây là tính năng thử nghiệm và mặc định tắt. Ở phiên bản này, bản đồ được lưu giống nhau dù bật hay tắt.",
+    "incremental_edits_desc": "Khi chỉnh sửa điểm tương ứng, chỉ cập nhật vùng lưới tam giác bị thay đổi. Đây là tính năng thử nghiệm và mặc định tắt. Bản đồ được lưu thường là kết quả dựng lại toàn bộ, giống như khi tắt. Nếu việc dựng lại toàn bộ không đáp ứng điều kiện, lưới được cập nhật tăng dần có thể được lưu thay thế, và bạn sẽ được thông báo.",
     "mcp_tab": "Máy chủ MCP",
     "mcp_enabled": "Bật máy chủ MCP",
     "mcp_status_stopped": "Đã dừng",

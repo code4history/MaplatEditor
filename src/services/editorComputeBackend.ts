@@ -227,9 +227,10 @@ export interface BuildEditorLayerTinOptions {
   onBuilt?: (layerId: string, origin: TinOrigin) => void;
   /**
    * 開いた地図の、層ごとの保存済みの三角網（compiled）と、それに対応する層の文書。網を持たない層の最初の編集の依頼で、
-   * 全部組み直す代わりに、`Tin#restoreMesh` で網を戻す（§9.5 (c)）。使ったら（成否を問わず）外すのは呼び出し側。
+   * 全部組み直す代わりに、`Tin#restoreMesh` で網を戻す（§9.5 (c)）。`consume` は種を使い切ったときに呼ぶ（失効した
+   * 依頼では呼ばれないので、その種は次の依頼でも使える）。
    */
-  restoreSeed?: (layerId: string) => { compiled: unknown; layer: TransformLayer } | undefined;
+  restoreSeed?: (layerId: string) => { compiled: unknown; layer: TransformLayer; consume?: () => void } | undefined;
   /** 採用の候補の計算が終わった（候補の鍵の網を捨てる）。候補は、層の網とは別の鍵で作るので、採用しなかった候補が層の網を汚さない */
   releaseCandidate?: (layerKey: string) => void;
 }
@@ -289,8 +290,13 @@ async function buildLayerTin(
   let origin: TinOrigin | undefined = 'rebuild';
   if (options.incrementalEdits && options.refresh && request.kind === 'edit') {
     const seed = options.restoreSeed?.(request.layerId);
+    // `consume`（種を使い切った知らせ）は主スレッドだけの道具。worker へ送る依頼（`TinRestoreRequest`）には入らない
     const outcome = await options.refresh({ ...input, ...incremental }, request.isCurrent,
-      seed && { compiled: seed.compiled, request: tinRequestOf(seed.layer, request.layerId, index) });
+      seed && {
+        compiled: seed.compiled,
+        request: tinRequestOf(seed.layer, request.layerId, index),
+        ...(seed.consume ? { consume: seed.consume } : {}),
+      });
     [, compiled, diagnostics] = outcome.result;
     origin = outcome.kind === 'patched' ? 'incremental' : outcome.kind === 'rebuilt' ? 'rebuild' : undefined;
   } else {

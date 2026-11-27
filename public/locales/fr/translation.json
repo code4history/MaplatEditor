@@ -304,7 +304,7 @@
     "update_check": "Rechercher les mises à jour au démarrage",
     "update_check_desc": "Vous serez averti lorsqu’une nouvelle version sera disponible. Le téléchargement n’a lieu que si vous choisissez « Mettre à jour ». Sous Linux, la page de version s’ouvre.",
     "incremental_edits": "Mise à jour incrémentale du TIN (expérimental)",
-    "incremental_edits_desc": "Lors de la modification des points de contrôle, ne met à jour que la zone modifiée de la triangulation. Expérimental et désactivé par défaut. Dans cette version, les cartes enregistrées sont identiques, que l’option soit activée ou non.",
+    "incremental_edits_desc": "Lors de la modification des points de contrôle, ne met à jour que la zone modifiée de la triangulation. Expérimental et désactivé par défaut. Les cartes enregistrées contiennent normalement le résultat d’une reconstruction complète, identique à celui obtenu sans cette option. Si la reconstruction complète ne remplit pas les conditions, le maillage mis à jour de façon incrémentielle peut être enregistré à la place, et vous en êtes averti.",
     "mcp_tab": "Serveur MCP",
     "mcp_enabled": "Activer le serveur MCP",
     "mcp_status_stopped": "Arrêté",

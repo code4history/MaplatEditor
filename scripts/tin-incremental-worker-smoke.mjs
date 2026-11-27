@@ -15,7 +15,7 @@ globalThis.self = { onmessage: null, postMessage: (message) => posted.push(messa
 const worker = await import('../src/workers/tinComputeWorker.ts');
 const { TinWorkerSession, normalizeTinError, snapshotFromTin } = await import('../src/workers/tinWorkerSession.ts');
 const { TinDisplayMesh, vertexKey } = await import('../src/utils/tinDisplayMesh.ts');
-const { LayerTinSync } = await import('../src/services/tinEditSync.ts');
+const { LayerTinSync, StaleRequestError } = await import('../src/services/tinEditSync.ts');
 const { decideSavedMesh, hasIncrementalOrigin, withMeshOrigin } = await import('../src/utils/tinSavedMesh.ts');
 const { normalizeIncrementalEdits } = await import('../src/utils/incrementalEditsSetting.ts');
 const { applyTinGeometry } = await import('../src/utils/tinOptions.ts');
@@ -342,6 +342,7 @@ function recordingTransport(session, log) {
     applyEdits: async (req) => { log.push(['applyEdits', req]); return session.applyEdits(req); },
     getCompiled: async (req) => { log.push(['getCompiled', req]); return session.getCompiled(req); },
     getSnapshot: async (req) => { log.push(['getSnapshot', req]); return session.getSnapshot(req); },
+    restore: async (req) => { log.push(['restore', req]); return session.restore(req); },
     finalize: async (req) => { log.push(['finalize', req]); return session.finalize(req); },
     disposeLayer: async (key) => { log.push(['disposeLayer', key]); return session.disposeLayer(key); },
   };
@@ -560,19 +561,18 @@ itest('清書が strict のときは、Tin の証拠の口（refreshBand・colle
   assert.deepEqual(calls, [], '清書が strict のときは、局所更新の網を保存の候補にしない');
 });
 
-itest('清書が strict にならなくても、局所更新の網は上書きされない（帯を最新にできなければ、清書の結果を保存する）', async () => {
+itest('清書が strict にならなくても、帯を最新にできなければ清書の結果を保存する（noEvidence: 局所更新の網も捨て、表示・次の編集を清書へ合わせる）', async () => {
   const { session, finalize } = sessionWhereFinalizeFails({ refreshBand: () => undefined });
   const { req, stamp } = await editedSession(session);
-  const peekBefore = session.peekTin('fin');
   const done = await finalize({ request: req }, stamp);
   assert.deepEqual(done.decision, { source: 'rebuild', reason: 'noEvidence' });
   assert.equal(done.replaced, false);
-  assert.equal(done.bandPatch, undefined);
+  assert.equal(done.bandPatch, undefined, '全部組み直しの結果を保存するなら、帯の差分は返さない');
   assert.equal(done.result[1].strict_status, 'strict_error', '保存するのは、清書の結果（今と同じ）');
   assert.equal(hasIncrementalOrigin(done.result[1]), false);
-  assert.equal(session.peekTin('fin'), peekBefore, '局所更新の網は、そのまま');
-  assert.deepEqual(done.stamp, stamp);
-  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp, index: 0 })).status, 'patched', '網は使い続けられる');
+  assert.equal(session.peekTin('fin'), undefined, '局所更新の網は、清書（保存の結果）へ合わせて捨てる');
+  assert.equal(done.stamp, undefined, '版も返さない（次の編集は noMesh から始まる）');
+  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp, index: 0 })).status, 'noMesh', '次の編集は全部組み直しから');
 });
 
 itest('特例の保存: 清書が strict_error で、局所更新の網が strict なら、Tin の口（refreshBand・collectIncrementalEvidence）で、印つきの compiled を保存する', async () => {
@@ -595,7 +595,7 @@ itest('特例の保存: 清書が strict_error で、局所更新の網が stric
   assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: done.stamp, index: 0 })).status, 'patched');
 });
 
-itest('特例の保存: Tin の証拠が eligible でなければ、清書の結果を保存し、満たさなかった条件を返す', async () => {
+itest('特例の保存: Tin の証拠が eligible でなければ、清書の結果を保存し、満たさなかった条件を返す（局所更新の網も捨てる）', async () => {
   const { session, finalize } = sessionWhereFinalizeFails({
     evidence: (real) => ({ ...real, eligible: false, failed: ['sweepKinks', 'gcpRoundTrip'], compiled: undefined }),
   });
@@ -604,10 +604,128 @@ itest('特例の保存: Tin の証拠が eligible でなければ、清書の結
   assert.deepEqual(done.decision, { source: 'rebuild', reason: 'evidenceFailed', failed: ['sweepKinks', 'gcpRoundTrip'] });
   assert.equal(done.result[1].strict_status, 'strict_error');
   assert.equal(hasIncrementalOrigin(done.result[1]), false);
+  assert.equal(done.bandPatch, undefined, '全部組み直しの結果を保存するなら、帯の差分は返さない');
+  assert.equal(session.peekTin('fin'), undefined, '証拠が不合格でも、局所更新の網は清書（保存の結果）へ合わせて捨てる');
+  assert.equal(done.stamp, undefined, '版も返さない');
+  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp, index: 0 })).status, 'noMesh');
   // eligible でも compiled が無ければ使わない
   const { session: s2, finalize: f2 } = sessionWhereFinalizeFails({ evidence: (real) => ({ ...real, eligible: true, compiled: undefined }) });
   const e2 = await editedSession(s2);
   assert.equal((await f2({ request: e2.req }, e2.stamp)).decision.reason, 'evidenceFailed');
+});
+
+itest('特例の保存: evidenceFailed の清書は、LayerTinSync の表示用の網も清書の結果へ合わせ、次の編集は全部組み直しから', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails({
+    evidence: (real) => ({ ...real, eligible: false, failed: ['sweepKinks'], compiled: undefined }),
+  });
+  const log = [];
+  const transport = recordingTransport(session, log);
+  transport.finalize = async (r) => { log.push(['finalize', r]); return finalize({ request: r.request }, r.base); };
+  const sync = new LayerTinSync(transport, 'ef');
+  const gcps = gridGcps(7);
+  const req = request({ gcps, layerKey: 'ef', incrementalEdits: true });
+  await sync.refresh(req);
+  assert.ok(sync.display.triangleCount > 0, '表示用の網がある');
+  // 局所で済む編集を 1 つ当てる（内側の点だけが局所で済む）
+  let moved;
+  for (let id = 0; id < gcps.length && !moved; id++) {
+    const trial = gcps.map((g, i) => (i === id ? [[g[0][0] + 3, g[0][1] + 3], g[1]] : g));
+    const out = await sync.refresh(request({ gcps: trial, layerKey: 'ef', incrementalEdits: true }));
+    if (out.kind === 'patched') moved = trial;
+    else await sync.refresh(req);
+  }
+  assert.ok(moved, '局所で済む編集がある');
+  const changes = [];
+  sync.onDisplayChange((change) => changes.push(change));
+  const done = await sync.finalize(request({ gcps: moved, layerKey: 'ef', incrementalEdits: true }));
+  assert.deepEqual(done.decision, { source: 'rebuild', reason: 'evidenceFailed', failed: ['sweepKinks'] });
+  assert.equal(done.result[1].strict_status, 'strict_error', '保存するのは、清書の結果');
+  assert.equal(done.bandPatch, undefined, '帯の差分は返らない');
+  assert.equal(done.stamp, undefined);
+  assert.equal(session.stampOf('ef'), undefined, 'worker の局所更新の網は捨てる');
+  assert.equal(sync.stamp, undefined);
+  assert.equal(sync.display.triangleCount, 0, '表示用の網も清書の結果へ合わせて空にする（描き直しは tin.tins）');
+  assert.deepEqual(changes, [{ kind: 'replace' }], '表示の入れ替えを知らせる');
+  // 次の編集は、全部組み直しから（noMesh → rebuild）
+  log.length = 0;
+  const next = await sync.refresh(request({ gcps: moved, layerKey: 'ef', incrementalEdits: true }));
+  assert.deepEqual([next.kind, next.reason], ['rebuilt', 'noMesh']);
+  assert.deepEqual(kinds(log), ['rebuild']);
+});
+
+test('restoreSeed（consume）: 失効（StaleRequestError）で落ちた restore では種を残し、次の refresh は rebuild ではなく restore をもう一度使う', async () => {
+  const req = request({ incrementalEdits: true });
+  const calls = [];
+  let mode = 'stale';
+  const okResponse = {
+    status: 'ok',
+    result: [0, { points: req.gcps.map(([f, b]) => [f, b]) }, null],
+    stamp: { generation: 1, revision: 0 },
+    snapshot: { vertices: [], triangles: [], boundaryStale: false },
+  };
+  const transport = {
+    rebuild: async () => { calls.push('rebuild'); return { result: [0, 'rebuilt', null] }; },
+    applyEdits: async () => { calls.push('applyEdits'); return { status: 'noMesh' }; },
+    getCompiled: async () => { calls.push('getCompiled'); return { status: 'ok', result: okResponse.result, stamp: okResponse.stamp }; },
+    getSnapshot: async () => { calls.push('getSnapshot'); return { status: 'noMesh' }; },
+    restore: async (r) => {
+      calls.push('restore');
+      assert.deepEqual(Object.keys(r).sort(), ['compiled', 'request'], 'worker へ送る依頼に consume（関数）は入らない');
+      if (mode === 'stale') throw new StaleRequestError();
+      if (mode === 'boom') throw new Error('通信エラー');
+      return mode === 'refused' ? { status: 'failed', reason: 'inputMismatch' } : okResponse;
+    },
+    finalize: async () => { calls.push('finalize'); return { result: [0, 'x', null], decision: { source: 'rebuild', reason: 'rebuildStrict' }, replaced: true }; },
+    disposeLayer: async () => {},
+  };
+  // 最初の refresh は失効（StaleRequestError）で落ちる。種は消費しない
+  {
+    const sync = new LayerTinSync(transport, 'seed');
+    let consumed = 0;
+    const seed = { compiled: { saved: true }, request: req, consume: () => consumed++ };
+    await assert.rejects(sync.refresh(req, undefined, seed), /失効/);
+    assert.equal(consumed, 0, '失効した restore では、種を残す');
+    assert.deepEqual(calls, ['restore']);
+    // 次の refresh は、rebuild ではなく restore をもう一度使う
+    mode = 'ok';
+    const out = await sync.refresh(req, undefined, seed);
+    assert.deepEqual(calls, ['restore', 'restore', 'getCompiled'], 'rebuild ではなく、もう一度 restore');
+    assert.equal(consumed, 1, '戻せた種は使い切る');
+    assert.equal(out.kind, 'unchanged');
+    assert.equal(out.result[1].points.length, req.gcps.length);
+  }
+  // 作り方が違う種は、使えないと分かると使い切り、全部組み直す
+  {
+    calls.length = 0;
+    let consumed = 0;
+    const sync = new LayerTinSync(transport, 'seed2');
+    const seed = { compiled: { saved: true }, request: { ...req, tinOptions: { ...V3, strictMode: 'auto' } }, consume: () => consumed++ };
+    const fell = await sync.refresh(req, undefined, seed);
+    assert.deepEqual([fell.kind, fell.reason], ['rebuilt', 'noMesh']);
+    assert.equal(consumed, 1, '作り方が違って使えなかった種も使い切る');
+    assert.deepEqual(calls, ['rebuild'], 'restore は試さず、全部組み直す');
+  }
+  // restore が断られたら、種は使い切って全部組み直す
+  {
+    calls.length = 0;
+    mode = 'refused';
+    let consumed = 0;
+    const sync = new LayerTinSync(transport, 'seed3');
+    const fell = await sync.refresh(req, undefined, { compiled: { saved: true }, request: req, consume: () => consumed++ });
+    assert.deepEqual([fell.kind, fell.reason], ['rebuilt', 'noMesh']);
+    assert.equal(consumed, 1, '試した種は使い切る');
+    assert.deepEqual(calls, ['restore', 'rebuild']);
+  }
+  // 通信エラー（失効以外の失敗）でも、種は使い切る
+  {
+    calls.length = 0;
+    mode = 'boom';
+    let consumed = 0;
+    const sync = new LayerTinSync(transport, 'seed4');
+    await assert.rejects(sync.refresh(req, undefined, { compiled: { saved: true }, request: req, consume: () => consumed++ }), /通信エラー/);
+    assert.equal(consumed, 1);
+    assert.deepEqual(calls, ['restore']);
+  }
 });
 
 itest('特例の保存: 持っている網が、清書を頼んだ入力・版と対応しないときは、候補にしない（証拠を集めることもしない）', async () => {

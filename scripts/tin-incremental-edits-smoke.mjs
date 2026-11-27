@@ -1042,7 +1042,7 @@ itest('特例の保存の準備で作り直した帯の差分は、表示用の�
   assert.equal(final.tin.meshOrigin, 'incremental');
 });
 
-test('buildEditorLayerTin: 開いた地図の保存済みの三角網（restoreSeed）を、編集の最初の依頼の refresh へ渡す', async () => {
+test('buildEditorLayerTin: 開いた地図の保存済みの三角網（restoreSeed）を、編集の最初の依頼の refresh へ渡す（consume も）', async () => {
   const layer = layerOf();
   const seen = [];
   const compiled = new Tin(V3);
@@ -1050,16 +1050,18 @@ test('buildEditorLayerTin: 開いた地図の保存済みの三角網（restoreS
   compiled.setPoints(layer.gcps.map(([p, g]) => [p, g]));
   await compiled.updateTinAsync().catch(() => undefined);
   const result = [0, compiled.getCompiled(), null];
+  const consume = () => {};
   const options = {
     incrementalEdits: true,
     refresh: async (input, _isCurrent, seed) => { seen.push(seed); return { kind: 'patched', result }; },
-    restoreSeed: (layerId) => (layerId === 'main' ? { compiled: { saved: true }, layer } : undefined),
+    restoreSeed: (layerId) => (layerId === 'main' ? { compiled: { saved: true }, layer, consume } : undefined),
   };
   const base = { layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => true };
   await buildEditorLayerTin(base, 0, async () => assert.fail('使わない'), options);
   assert.equal(seen[0].compiled.saved, true);
   assert.equal(seen[0].request.layerKey, 'main');
   assert.equal(seen[0].request.gcps.length, layer.gcps.length, '層の文書から作った依頼（保存したときの入力）');
+  assert.equal(seen[0].consume, consume, '種を使い切った知らせ（consume）も渡す');
   // 採用では、seed を使わない
   seen.length = 0;
   await buildEditorLayerTin({ ...base, kind: 'adoption', adoptionId: 1, signal: new AbortController().signal }, 0,
@@ -1095,13 +1097,17 @@ test('特例の網の層の印: 特例の保存で付き、次の清書が全部
   assert.equal(marks.size, 0);
 });
 
-test('配線: 特例の網の印は、清書の結果が文書へ入ったときだけ動く', async () => {
+test('配線: 特例の網の印は、清書の結果が文書へ入ったときだけ動く。特例が無くなったら知らせも消す', async () => {
   const mapEdit = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
   assert.match(mapEdit, /const specialMeshLayers = createSpecialMeshLayers\(\);/);
   assert.match(mapEdit, /finalizeDecisions\.set\(layerId, decision\)/);
   assert.match(mapEdit, /onFinalized: \(layerId\) => \{[\s\S]*?specialMeshLayers\.observeFinalize\(layerId, decision\)/, '失効して捨てた結果では動かさない');
-  assert.match(mapEdit, /specialMeshLayers\.observeBuilt\(layerId, origin\)/);
-  assert.match(mapEdit, /clearOperationNotice\('mesh-origin'\)/, '特例でなくなったら、知らせを消す');
+  assert.match(mapEdit, /onFinalized: \(layerId\) => \{[\s\S]*?clearOperationNotice\('mesh-origin'\)/, '清書で特例が外れたら、知らせを消す');
+  assert.match(mapEdit, /specialMeshLayers\.observeBuilt\(layerId, origin\);\n\s+\/\/[^\n]*\n\s+if \(origin === 'rebuild' && specialMeshLayers\.size === 0\) clearOperationNotice\('mesh-origin'\);/,
+    '全部組み直しの結果で特例が外れたら、知らせを消す');
+  assert.match(mapEdit, /function releaseLayerTin\(layerId: string\) \{[\s\S]*?const specialCleared = specialMeshLayers\.clear\(layerId\);\n\s+if \(specialCleared && specialMeshLayers\.size === 0\) clearOperationNotice\('mesh-origin'\);/,
+    '層を消して特例が外れたら、知らせを消す');
+  assert.match(mapEdit, /function releaseAllLayerTins\(\) \{[\s\S]*?clearOperationNotice\('mesh-origin'\);/, '地図を開き直したら、知らせを消す');
 });
 
 // ---------------- 6. 保存される地図（設定が切のとき今と同じ・入のときの保存）----------------
@@ -1118,10 +1124,13 @@ test('配線: 編集が止まって 1 秒後・保存の前・層を消したと
   assert.match(mapEdit, /await layerTransformState\.value\.finalizeAll\(\);\n\s+if \(!tinObjects\.value\[0\]/, 'タイルを作る前にも清書する');
   assert.match(mapEdit, /const meshRenderer = new TinMeshRenderer/);
   assert.match(mapEdit, /const restoreSeeds = new Map<string, \{ tin: Tin; layer: TransformLayer \}>\(\);/, '開いた地図の保存済みの三角網を覚える');
-  assert.match(mapEdit, /restoreSeed: \(layerId\) => \{\n\s+const seed = restoreSeeds\.get\(layerId\);\n\s+restoreSeeds\.delete\(layerId\);/, '1 回使ったら外す');
+  assert.match(mapEdit, /restoreSeed: \(layerId\) => \{\n\s+const seed = restoreSeeds\.get\(layerId\);\n\s+\/\/[^\n]*\n\s+return seed && \{ compiled: seed\.tin\.getCompiled\(\), layer: seed\.layer, consume: \(\) => restoreSeeds\.delete\(layerId\) \};/,
+    '外すのは consume（restore を試して使い切ったとき。失効した依頼では残る）');
+  assert.match(mapEdit, /function releaseLayerTin\(layerId: string\) \{[\s\S]*?restoreSeeds\.delete\(layerId\);/, '層を消したら、種も外す');
   assert.match(mapEdit, /seed\.meshOrigin === 'incremental'\) specialSave = specialMeshLayers\.mark\(layer\.layerId\) \|\| specialSave;/, '開いた地図の印のある三角網は、特例の層として覚える');
   assert.match(mapEdit, /t\('mapedit\.mesh_origin_incremental_notice'\)/, '印のある地図には、特例の保存であることを知らせる');
   assert.match(mapEdit, /if \(!keepTriangles\) meshRenderer\.renderAll\(displayMesh\)/, '三角形は表示用の網から描く');
+  assert.match(mapEdit, /const forTin = tin\.tins\?\.forw;/, '表示用の網が無い（清書で捨てた）ときは、清書・保存の結果（tin.tins）を描く');
   const model = await readFile(new URL('../src/composables/useLayerTransformState.ts', import.meta.url), 'utf8');
   assert.match(model, /保存するのは、全部組み直した三角網/);
 });

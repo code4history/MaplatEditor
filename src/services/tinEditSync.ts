@@ -84,6 +84,12 @@ export type TinRefreshOutcome =
 export interface TinRestoreSeed {
   compiled: unknown;
   request: TinUpdateRequest;
+  /**
+   * この種を使い切った（呼び出し側が、保持している種を外す）。`restore` を試した結果（成功・失敗を問わず）と、
+   * 作り方が違って使えなかったときに呼ぶ。**失効した依頼では呼ばない**（送られていなければ、種はそのまま次の依頼で使える）。
+   * `postMessage` に送るオブジェクトへは入れない（主スレッドだけの道具）。
+   */
+  consume?: () => void;
 }
 
 /** 表示用の網が変わったときの通知（画面の描き直しに使う）。 */
@@ -327,16 +333,23 @@ export class LayerTinSync {
 
   /** 保存した compiled から網を戻す。戻せたら true（版・入力の写し・表示用の網が入る）。戻せなければ、何も変えずに false。 */
   private async restoreNow(seed: TinRestoreSeed, request: TinUpdateRequest, isCurrent?: () => boolean): Promise<boolean> {
-    // 保存したときと同じ作り方でなければ、戻さない（生成設定・範囲が変わっていれば、作り直しが要る）
-    const seedRequest: TinUpdateRequest = { ...seed.request, incrementalEdits: true };
-    if (tinSignatureOf(seedRequest) !== tinSignatureOf(request)) return false;
     this.assertCurrent(isCurrent);
+    // 保存したときと同じ作り方でなければ、戻さない（生成設定・範囲が変わっていれば、作り直しが要る）。種はもう使えない
+    const seedRequest: TinUpdateRequest = { ...seed.request, incrementalEdits: true };
+    if (tinSignatureOf(seedRequest) !== tinSignatureOf(request)) {
+      seed.consume?.();
+      return false;
+    }
     let response: TinRestoreResponse;
     try {
       response = await this.transport.restore({ request: { ...seedRequest, layerKey: this.layerKey }, compiled: seed.compiled }, isCurrent);
     } catch (error) {
+      // 失効（送られていない）なら種を残す（次の依頼でまた使える）。それ以外の失敗は、試した種を使い切る
+      if (!(error instanceof StaleRequestError)) seed.consume?.();
       this.failed(error);
     }
+    // 成否を問わず、試した種は使い切る（戻せなかった種も、次は全部組み直す）
+    seed.consume?.();
     if (response.status !== 'ok') return false;
     this.adopt({ result: response.result, stamp: response.stamp, snapshot: response.snapshot });
     this.tracked = trackInputs(seedRequest.gcps, seedRequest.edges as PlannerEdge[]);
@@ -354,8 +367,9 @@ export class LayerTinSync {
       } catch (error) {
         this.failed(error);
       }
-      // 特例の保存の準備で帯を作り直した差分: 網は進んでいる。表示用の網へ当てる（当たらなければ、網から全部を取り直す）
-      if (response.bandPatch && response.stamp && !response.replaced) {
+      // 特例の保存の準備で帯を作り直した差分: 網は進んでいる。表示用の網へ当てる（当たらなければ、網から全部を取り直す）。
+      // 全部組み直しの結果を保存する判断（decision.source が rebuild）では、帯の差分は返らない
+      if (response.decision.source === 'incremental' && response.bandPatch && response.stamp && !response.replaced) {
         const applied = this.display.applyPatch(response.bandPatch);
         this.stamp = response.stamp;
         if (applied.ok) this.notify({ kind: 'patch', change: applied.change });
@@ -374,6 +388,11 @@ export class LayerTinSync {
           this.tracked = undefined;
           this.signature = undefined;
         }
+      } else if (response.decision.source === 'rebuild'
+          && (response.decision.reason === 'evidenceFailed' || response.decision.reason === 'noEvidence' || !response.stamp)) {
+        // 全部組み直した結果（清書・保存の結果）を保存するのに、局所更新の網を使えなかった: worker の網も捨て、
+        // 表示と次の編集を清書側へ合わせる（表示は tin.tins、次の編集は noMesh から全部組み直し）
+        this.reset();
       }
       return response;
     });
