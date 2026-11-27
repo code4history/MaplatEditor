@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import type { CrsEstimationAPI } from '../src/types/crsEstimation'
 
 // バックエンド(メインプロセス)から転送されたエラー/警告をDevToolsコンソールに出す (#18)
 ipcRenderer.on('backend:log', (_event, payload: { level: 'error' | 'warn'; message: string; timestamp: string }) => {
@@ -320,3 +321,10 @@ contextBridge.exposeInMainWorld('slugReservations', {
   check: (payload: { slug: string; excludeUid?: string }) =>
     ipcRenderer.invoke('slug-reservations:check', payload),
 })
+
+const crs: CrsEstimationAPI = {
+  estimate: input => ipcRenderer.invoke('crs:estimate', input),
+  estimateCandidate: input => ipcRenderer.invoke('crs:estimateCandidate', input),
+  cancel: requestId => ipcRenderer.invoke('crs:cancel', requestId),
+};
+contextBridge.exposeInMainWorld('crs', crs);

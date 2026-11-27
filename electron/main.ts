@@ -189,6 +189,8 @@ app.on('before-quit', () => {
   clearAllIiifDrafts()
 })
 
+app.on('will-quit', disposeCrsEstimation)
+
 // 全ウィンドウが閉じられたときにアプリを終了する（macOSを除く）
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -212,6 +214,7 @@ import { registerMapEditHandlers } from './ipc/mapedit'
 import { registerMapUploadHandlers } from './ipc/mapupload'
 import { registerDataUploadHandlers } from './ipc/dataupload'
 import { registerWmtsHandlers } from './ipc/wmts'
+import { disposeCrsEstimation, registerCrsHandlers } from './ipc/crs'
 import { registerAssetDraftHandlers } from './ipc/assetDrafts'
 import { registerAppHandlers } from './ipc/apps'
 import { registerPoisourceHandlers } from './ipc/poisource'
@@ -314,6 +317,7 @@ app.whenReady().then(async () => {
   registerMapUploadHandlers()
   registerDataUploadHandlers()
   registerWmtsHandlers()
+  registerCrsHandlers()
   registerAssetDraftHandlers()
   registerAppHandlers()
   registerPoisourceHandlers()
