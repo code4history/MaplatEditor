@@ -850,6 +850,105 @@ itest('印のある compiled は、restoreMesh で網を戻せ、全部組み直
   assert.equal(again.result[1].meshOrigin, undefined);
 });
 
+const FOLLOW = { ...V3, yaxisMode: 'follow' };
+/** follow は、地理面の Y が紙の面の Y と同じ向き。 */
+function followGcps(seed) {
+  return gridGcps(seed).map(([paper, geo]) => [paper, [geo[0], 4000000 + 100 * paper[1] + (geo[1] - (4000000 - 100 * paper[1]))]]);
+}
+
+itest('follow の地図でも、特例の保存・restoreMesh・開いた後の編集が通る（入力は外の座標系のまま渡す）', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails();
+  const gcps = followGcps(2026);
+  const req = request({ gcps, layerKey: 'fol', tinOptions: FOLLOW });
+  const first = await session.rebuild(req);
+  assert.equal(first.result[1].strict_status, 'strict', 'follow の入力が strict になる');
+  let edited;
+  let stamp;
+  for (let id = 0; id < gcps.length && !edited; id++) {
+    const base = id === 0 ? first.stamp : (await session.rebuild(req)).stamp;
+    const [x, y] = gcps[id][0];
+    const response = await session.applyEdits({ layerKey: 'fol', edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base, index: 0 });
+    if (response.status === 'patched' && response.patch.mode === 'local') {
+      edited = { ...req, gcps: gcps.map((g, i) => (i === id ? [[x + 3, y + 3], g[1]] : g)) };
+      stamp = response.stamp;
+    }
+  }
+  assert.ok(edited, '局所で済む編集がある');
+  const done = await finalize(edited, stamp);
+  assert.deepEqual(done.decision, { source: 'incremental', reason: 'specialSave' }, 'follow の証拠集めが合格する');
+  const compiled = done.result[1];
+  assert.equal(compiled.meshOrigin, 'incremental');
+  assert.equal(compiled.yaxisMode, 'follow');
+  // compiled の点は内部の座標系（地理面の Y が反転済み）。Editor の入力（外の座標系）と直接は比べない
+  assert.deepEqual(compiled.points.map(([f, b]) => [f, [b[0], -b[1]]]), edited.gcps.map(([f, b]) => [f, b]));
+  // 戻す: 入力は外の座標系のまま渡す（反転は Tin が掛ける）
+  const reopened = new TinWorkerSession();
+  const restored = await reopened.restore({ request: { ...edited, layerKey: 'fol2' }, compiled });
+  assert.equal(restored.status, 'ok');
+  assert.equal(restored.result[1].meshOrigin, 'incremental');
+  const next = await reopened.applyEdits({ layerKey: 'fol2', edits: [{ type: 'movePoint', id: 14, forw: [edited.gcps[14][0][0] + 2, edited.gcps[14][0][1]] }], base: restored.stamp, index: 0 });
+  assert.equal(next.status, 'patched');
+  // 開いた地図の最初の編集は、全部組み直さずに、その網から始まる
+  const log = [];
+  const sync = new LayerTinSync(backendLikeTransport(new TinWorkerSession(), log), 'fol3');
+  const moved = clone(edited.gcps);
+  moved[14][0] = [moved[14][0][0] + 2, moved[14][0][1]];
+  const out = await sync.refresh(request({ gcps: moved, tinOptions: FOLLOW }), undefined, { compiled, request: edited });
+  assert.equal(log.includes('rebuild'), false);
+  assert.notEqual(out.kind, 'rebuilt');
+  assert.equal(out.result[1].meshOrigin, 'incremental');
+});
+
+itest('world file 外周の網も、編集の後に帯が古くならず、特例の保存の対象になる', async () => {
+  const worldFile = { xScale: 100, xSkew: 0, xOrigin: 500, ySkew: 0, yScale: -100, yOrigin: 1000 };
+  const WF = { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'worldFile', worldFile, strictMode: 'strict' };
+  const rnd = lcg(2026);
+  const gcps = [];
+  for (let i = 0; i < 7; i++) {
+    for (let j = 0; j < 6; j++) {
+      const x = 40 + i * 90 + (rnd() - 0.5) * 40;
+      const y = 40 + j * 85 + (rnd() - 0.5) * 40;
+      gcps.push([[x, y], [100 * x + (rnd() - 0.5) * 30 + 500, 1000 - 100 * y + (rnd() - 0.5) * 30]]);
+    }
+  }
+  const { session, finalize } = sessionWhereFinalizeFails();
+  const req = request({ gcps, layerKey: 'wf', tinOptions: WF });
+  const first = await session.rebuild(req);
+  assert.equal(first.result[1].outerTransform, 'worldFile');
+  let found;
+  for (let id = 0; id < gcps.length && !found; id++) {
+    const base = id === 0 ? first.stamp : (await session.rebuild(req)).stamp;
+    const [x, y] = gcps[id][0];
+    const response = await session.applyEdits({ layerKey: 'wf', edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base, index: 0 });
+    if (response.status === 'patched' && response.patch.mode === 'local') {
+      assert.equal(response.patch.boundaryStale, false, 'world file 外周は、編集の後も帯が古くならない');
+      found = { edited: { ...req, gcps: gcps.map((g, i) => (i === id ? [[x + 3, y + 3], g[1]] : g)) }, stamp: response.stamp };
+    }
+  }
+  assert.ok(found);
+  const done = await finalize(found.edited, found.stamp);
+  assert.deepEqual(done.decision, { source: 'incremental', reason: 'specialSave' });
+  assert.equal(done.result[1].meshOrigin, 'incremental');
+  assert.equal(done.result[1].outerTransform, 'worldFile');
+});
+
+itest('restoreMesh が断った Tin（strict_status が未定）は、使わない。層の網は作られず、全部組み直せば値が入る', async () => {
+  const { edited, compiled } = await specialSaved();
+  const session = new TinWorkerSession();
+  const wrong = { ...edited, gcps: edited.gcps.slice(0, 20) };
+  const refused = await session.restore({ request: { ...wrong, layerKey: 'ref' }, compiled });
+  assert.equal(refused.status, 'failed');
+  assert.deepEqual(session.layerKeys(), [], '断った Tin は、層の網にしない');
+  // Editor は、全部組み直す。その結果は、定まった strict_status を持つ
+  const log = [];
+  const sync = new LayerTinSync(backendLikeTransport(session, log), 'ref');
+  const out = await sync.refresh(request({ gcps: wrong.gcps }), undefined, { compiled, request: wrong });
+  assert.equal(out.kind, 'rebuilt');
+  assert.ok(['strict', 'strict_error', 'loose'].includes(out.result[1].strict_status), '全部組み直した結果には、strict_status がある');
+  assert.equal(out.result[1].meshOrigin, undefined, '印は外れる');
+  assert.ok(log.includes('restore') && log.includes('rebuild'));
+});
+
 itest('開いた地図の最初の編集は、全部組み直さずに、保存した網から始める（restoreSeed）', async () => {
   const { edited, compiled } = await specialSaved();
   const session = new TinWorkerSession();
