@@ -335,7 +335,7 @@ try {
     });
 
     await check('(e) only the listed settings keys pass', () => {
-      assert.equal(RENDERER_SETTINGS_KEYS.size, 10);
+      assert.equal(RENDERER_SETTINGS_KEYS.size, 11);
       for (const key of RENDERER_SETTINGS_KEYS) assert.doesNotThrow(() => assertRendererSettingsKey(key));
       for (const key of ['evil', 'tmpFolder', 'lastDialogFolders', 'migratedFromLegacy', '__proto__', 'saveFolder.x', 42, null, undefined, ['lang']]) {
         assert.throws(() => assertRendererSettingsKey(key), /not allowed/, String(key));

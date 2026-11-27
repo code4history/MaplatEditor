@@ -20,6 +20,8 @@ interface AppSettings {
   jpegDecodeMaxResolutionMP: number | null;
   /** 起動時に更新を確認する（既定オン）。オフでもメニューの「更新を確認…」は使える */
   updateCheckEnabled: boolean;
+  /** 三角網の差分更新（試験段階。既定は切）。明示の true だけが「入れる」 */
+  incrementalEdits: boolean;
   /**
    * recent-search-chips: 一覧トップの直近の検索条件（`{ [kind]: { q, at }[] }`）。
    * **型のためだけに足す**（`[key: string]: any` があるため実行時の追加作業は無い）。
@@ -67,6 +69,7 @@ function normalizeJpegDecodeCap(value: unknown, min: number, max: number): numbe
 
 import { resolveDecodeSafety } from '../utils/decodeSafety';
 import { normalizeUpdateCheckEnabled } from '../utils/updatePolicy';
+import { normalizeIncrementalEdits } from '../../src/utils/incrementalEditsSetting';
 import { resolveEditorLanguage } from '../../src/utils/editorLanguages';
 import { resolveRuntimeStoragePaths } from './runtimeStoragePaths';
 import { defaultDraftTileRoot } from './draftTilePaths';
@@ -88,6 +91,7 @@ const defaultSettings: AppSettings = {
   jpegDecodeMaxMemoryMB: null,
   jpegDecodeMaxResolutionMP: null,
   updateCheckEnabled: true,
+  incrementalEdits: false,
 } as AppSettings;
 
 import { EventEmitter } from 'events';
@@ -171,6 +175,9 @@ class SettingsService extends EventEmitter {
     if (key === 'updateCheckEnabled') {
       return normalizeUpdateCheckEnabled(this.store.get('updateCheckEnabled'));
     }
+    if (key === 'incrementalEdits') {
+      return normalizeIncrementalEdits(this.store.get('incrementalEdits'));
+    }
     return this.store.get(key);
   }
 
@@ -222,6 +229,9 @@ class SettingsService extends EventEmitter {
     } else if (key === 'updateCheckEnabled') {
       // 明示の false（と文字列の 'false'）だけを「切る」に正規化する
       value = normalizeUpdateCheckEnabled(value);
+    } else if (key === 'incrementalEdits') {
+      // 明示の true（と文字列の 'true'）だけを「入れる」に正規化する（既定は切）
+      value = normalizeIncrementalEdits(value);
     }
     this.store.set(key, value);
     if (key === 'saveFolder') {

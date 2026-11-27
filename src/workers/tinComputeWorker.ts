@@ -1,59 +1,54 @@
-import Tin from '@maplat/tin';
 import type { TinUpdateRequest, TinUpdateResult } from '../services/editorComputeBackend';
-import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions.ts';
+import { TinWorkerSession } from './tinWorkerSession.ts';
+import type { TinWorkerRequest } from './tinWorkerProtocol.ts';
 
-interface WorkerRequest {
-  id: number;
-  type: 'updateTin';
-  payload: TinUpdateRequest;
-}
+/**
+ * worker 1 つにつき、層ごとの網を持つ 1 つの状態（MaplatTin#100・設計書 §9.3）。
+ * 依頼は `tinWorkerSession.ts` が 1 つずつ処理する。
+ */
+const session = new TinWorkerSession();
 
-function normalizeTinError(err: unknown): string | null {
-  const message = String(err);
-  if (message.includes('SOME POINTS OUTSIDE')) return 'pointsOutside';
-  if (message.indexOf('TOO LINEAR') === 0) return 'tooLinear';
-  if (
-    message.includes('Vertex indices') ||
-    message.includes('is degenerate!') ||
-    message.includes('already exists or intersects with an existing edge!')
-  ) {
-    return 'edgeError';
-  }
-  return null;
-}
-
+/**
+ * 今の `updateTin` と同じ入口と結果（全部組み直して compiled を返す）。違いは、組み直した網を層ごとに持ち続けること。
+ * 出力（compiled・診断・エラー文字列）は、網を持たなかった今までと変わらない。
+ */
 export async function updateTin(payload: TinUpdateRequest): Promise<TinUpdateResult> {
-  const { gcps, edges, index, bounds, strict, vertex, tinOptions } = payload;
-  if (gcps.length < 3) return [index, 'tooLessGcps', null];
+  return (await session.rebuild(payload)).result;
+}
 
-  // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
-  const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
-  const tin = new Tin(options);
-  const wh = index === 0 ? bounds as number[] | undefined : undefined;
-  const bd = index !== 0 ? bounds as number[][] | undefined : undefined;
-  if (!applyTinGeometry(tin, options, { wh, bounds: bd })) {
-    throw new Error('Both wh and bounds are missing');
-  }
-  tin.setPoints(gcps);
-  tin.setEdges(edges);
-
-  try {
-    await tin.updateTinAsync();
-    return [index, tin.getCompiled(), tin.boundaryDiagnostics ?? null];
-  } catch (err) {
-    const normalized = normalizeTinError(err);
-    if (normalized) return [index, normalized, null];
-    throw err;
+async function handle(request: TinWorkerRequest): Promise<unknown> {
+  switch (request.type) {
+    case 'updateTin':
+      return updateTin(request.payload);
+    case 'rebuild':
+      return session.rebuild(request.payload);
+    case 'applyEdits':
+      return session.applyEdits(request.payload);
+    case 'getCompiled':
+      return session.getCompiled(request.payload);
+    case 'getSnapshot':
+      return session.getSnapshot(request.payload);
+    case 'restore':
+      return session.restore(request.payload);
+    case 'finalize':
+      return session.finalize(request.payload);
+    case 'disposeLayer':
+      await session.disposeLayer(request.payload.layerKey);
+      return null;
+    case 'dispose':
+      await session.dispose();
+      return null;
+    default:
+      throw new Error(`Unknown worker request: ${(request as { type?: unknown }).type}`);
   }
 }
 
-if (typeof self !== 'undefined') self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { id, type, payload } = event.data;
+if (typeof self !== 'undefined') self.onmessage = async (event: MessageEvent<TinWorkerRequest>) => {
+  const request = event.data;
   try {
-    if (type !== 'updateTin') throw new Error(`Unknown worker request: ${type}`);
-    const result = await updateTin(payload);
-    self.postMessage({ id, result });
+    const result = await handle(request);
+    self.postMessage({ id: request.id, result });
   } catch (err) {
-    self.postMessage({ id, error: String(err instanceof Error ? err.message : err) });
+    self.postMessage({ id: request.id, error: String(err instanceof Error ? err.message : err) });
   }
 };

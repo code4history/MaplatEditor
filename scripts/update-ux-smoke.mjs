@@ -211,12 +211,13 @@ function blockFrom(src, start) {
     ]);
     baseLabel = 'd77eb63 の既知の 4 キー（浅い checkout）';
   }
-  const want = new Set([...base.keys(), 'updateCheckEnabled']);
-  assert.deepEqual([...head.keys()].sort(), [...want].sort(), `defaultSettings のキーが ${baseLabel} ∪ {updateCheckEnabled} でない`);
+  const want = new Set([...base.keys(), 'updateCheckEnabled', 'incrementalEdits']);
+  assert.deepEqual([...head.keys()].sort(), [...want].sort(), `defaultSettings のキーが ${baseLabel} ∪ {updateCheckEnabled, incrementalEdits} でない`);
   for (const [k, v] of base) assert.equal(head.get(k), v, `defaultSettings.${k} の字面が ${baseLabel} と違う`);
   assert.equal(head.get('updateCheckEnabled'), 'true', 'defaultSettings.updateCheckEnabled が true でない');
   assert.equal(head.get('lastDialogFolders'), '{}', 'ダイアログのフォルダの記憶の lastDialogFolders: {} が残っていない');
-  pass(`case 3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true}（${[...head.keys()].join(', ')}）`);
+  assert.equal(head.get('incrementalEdits'), 'false', 'defaultSettings.incrementalEdits が false でない（既定は切）');
+  pass(`case 3 defaultSettings = ${baseLabel} ∪ {updateCheckEnabled: true, incrementalEdits: false}（${[...head.keys()].join(', ')}）`);
 }
 
 // ───────────────────────────────────────────────

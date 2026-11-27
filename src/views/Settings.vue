@@ -153,6 +153,33 @@
               </div>
             </div>
 
+            <!-- 三角網の差分更新（MaplatTin#100）。試験段階で、既定は切 -->
+            <div class="row mb-3 align-items-center">
+              <label
+                for="incrementalEdits"
+                class="col-sm-3 col-form-label text-end d-flex align-items-center justify-content-end gap-1"
+              >
+                {{ t("settings.incremental_edits") }}
+                <ContextHelp
+                  :text="t('settings.incremental_edits_desc')"
+                  :ariaLabel="t('settings.incremental_edits_desc')"
+                  data-testid="settings-incremental-edits-help"
+                />
+              </label>
+              <div class="col-sm-9 d-flex align-items-center">
+                <div class="form-check form-switch">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="incrementalEdits"
+                    data-testid="settings-incremental-edits"
+                    v-model="state.incrementalEdits"
+                  />
+                </div>
+              </div>
+            </div>
+
             <!-- Buttons -->
             <div class="row">
               <div class="col-sm-9 offset-sm-3 d-flex justify-content-end gap-2">
@@ -542,6 +569,7 @@ const state = reactive<{
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
   updateCheckEnabled: boolean;
+  incrementalEdits: boolean;
   editorGoogleApiKey: string;
   editorMapboxToken: string;
   defaultPublishGoogleApiKey: string;
@@ -552,6 +580,7 @@ const state = reactive<{
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
   updateCheckEnabled: true,
+  incrementalEdits: false,
   editorGoogleApiKey: "",
   editorMapboxToken: "",
   defaultPublishGoogleApiKey: "",
@@ -565,6 +594,7 @@ const original = reactive<{
   jpegDecodeMaxMemoryMB: string;
   jpegDecodeMaxResolutionMP: string;
   updateCheckEnabled: boolean;
+  incrementalEdits: boolean;
   editorGoogleApiKey: string;
   editorMapboxToken: string;
   defaultPublishGoogleApiKey: string;
@@ -575,6 +605,7 @@ const original = reactive<{
   jpegDecodeMaxMemoryMB: "",
   jpegDecodeMaxResolutionMP: "",
   updateCheckEnabled: true,
+  incrementalEdits: false,
   editorGoogleApiKey: "",
   editorMapboxToken: "",
   defaultPublishGoogleApiKey: "",
@@ -604,6 +635,7 @@ const isDirty = computed(() => {
     state.jpegDecodeMaxMemoryMB !== original.jpegDecodeMaxMemoryMB ||
     state.jpegDecodeMaxResolutionMP !== original.jpegDecodeMaxResolutionMP ||
     state.updateCheckEnabled !== original.updateCheckEnabled ||
+    state.incrementalEdits !== original.incrementalEdits ||
     BASEMAP_KEY_FIELDS.some((key) => state[key] !== original[key])
   );
 });
@@ -634,6 +666,9 @@ onMounted(async () => {
     const updateCheck = await window.settings.get("updateCheckEnabled");
     state.updateCheckEnabled = updateCheck !== false;
     original.updateCheckEnabled = state.updateCheckEnabled;
+    // 三角網の差分更新（main 側の get が正規化する。未設定は false）
+    state.incrementalEdits = (await window.settings.get("incrementalEdits")) === true;
+    original.incrementalEdits = state.incrementalEdits;
     // ベースマップタブの4キー（未設定時は window.settings.get が undefined を返す）
     for (const key of BASEMAP_KEY_FIELDS) {
       const value = await window.settings.get(key);
@@ -661,6 +696,7 @@ const resetSettings = async () => {
     state.jpegDecodeMaxMemoryMB = original.jpegDecodeMaxMemoryMB;
     state.jpegDecodeMaxResolutionMP = original.jpegDecodeMaxResolutionMP;
     state.updateCheckEnabled = original.updateCheckEnabled;
+    state.incrementalEdits = original.incrementalEdits;
     for (const key of BASEMAP_KEY_FIELDS) {
       state[key] = original[key];
     }
@@ -689,6 +725,7 @@ const saveSettings = async () => {
     await window.settings.set("jpegDecodeMaxMemoryMB", state.jpegDecodeMaxMemoryMB === "" ? null : state.jpegDecodeMaxMemoryMB);
     await window.settings.set("jpegDecodeMaxResolutionMP", state.jpegDecodeMaxResolutionMP === "" ? null : state.jpegDecodeMaxResolutionMP);
     await window.settings.set("updateCheckEnabled", state.updateCheckEnabled);
+    await window.settings.set("incrementalEdits", state.incrementalEdits);
     for (const key of BASEMAP_KEY_FIELDS) {
       await window.settings.set(key, state[key]);
     }
@@ -708,6 +745,8 @@ const saveSettings = async () => {
     const savedUpdateCheck = await window.settings.get("updateCheckEnabled");
     state.updateCheckEnabled = savedUpdateCheck !== false;
     original.updateCheckEnabled = state.updateCheckEnabled;
+    state.incrementalEdits = (await window.settings.get("incrementalEdits")) === true;
+    original.incrementalEdits = state.incrementalEdits;
     // ベースマップキーは正規化を挟まないので読み直し不要。dirty 判定を閉じるだけでよい
     for (const key of BASEMAP_KEY_FIELDS) {
       original[key] = state[key];

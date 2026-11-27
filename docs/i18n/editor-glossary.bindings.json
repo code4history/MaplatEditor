@@ -1990,6 +1990,12 @@
         "en",
         "ja"
       ]
+    },
+    "settings.incremental_edits_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
     }
   },
   "basemap": {
@@ -3582,6 +3588,12 @@
         "ja"
       ]
     },
+    "mapedit.mesh_origin_incremental_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.testerror_outside": {
       "by": [
         "en",
@@ -3613,6 +3625,12 @@
       ]
     },
     "range_filter.active_auto": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.incremental_edits_desc": {
       "by": [
         "en",
         "ja"
@@ -4133,6 +4151,12 @@
         "ja"
       ]
     },
+    "mapedit.mesh_origin_incremental_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.originals.unsupported_extension": {
       "by": [
         "en",
@@ -4230,6 +4254,12 @@
       ]
     },
     "settings.confirm_close_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.incremental_edits_desc": {
       "by": [
         "en",
         "ja"
