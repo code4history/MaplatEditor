@@ -516,6 +516,7 @@
     "success_save": "Đã lưu thành công.",
     "error_duplicate_id": "ID bản đồ bị trùng lặp.\nVui lòng thay đổi ID bản đồ.",
     "error_saving": "Đã xảy ra lỗi khi lưu.",
+    "mesh_origin_incremental_notice": "Lưới tam giác này được lưu như một trường hợp đặc biệt phụ thuộc vào lịch sử chỉnh sửa. Nếu dựng lại từ cùng các điểm tương ứng, kết quả sẽ không còn là strict. Hệ thống kiểm tra lại trước mỗi lần lưu.",
     "confirm_layer_delete": "Bạn có chắc chắn muốn xóa lớp phụ này không?",
     "confirm_no_save": "Bản đồ đã bị thay đổi nhưng chưa được lưu.\nBạn có muốn đóng mà không lưu không?",
     "testerror_too_short": "Số điểm tương ứng cần thiết cho kiểm tra chuyển đổi quá ít.",

@@ -516,6 +516,7 @@
     "success_save": "儲存成功。",
     "error_duplicate_id": "地圖ID重複。\n請變更地圖ID。",
     "error_saving": "儲存時發生錯誤。",
+    "mesh_origin_incremental_notice": "此三角網是依賴編輯歷程的特例儲存。用同樣的控制點重新產生，不會得到嚴格（strict）的三角網。每次儲存前都會重新確認。",
     "confirm_layer_delete": "確定要刪除此子圖層嗎?",
     "confirm_no_save": "地圖已變更但尚未儲存。\n確定不儲存就關閉嗎?",
     "testerror_too_short": "轉換測試所需的控制點數量過少。",

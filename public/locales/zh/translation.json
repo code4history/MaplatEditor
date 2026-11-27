@@ -516,6 +516,7 @@
     "success_save": "保存成功。",
     "error_duplicate_id": "地图ID重复。\n请更改地图ID。",
     "error_saving": "保存时发生错误。",
+    "mesh_origin_incremental_notice": "此三角网是依赖编辑历史的特例保存。用同样的控制点重新生成，不会得到严格（strict）的三角网。每次保存前都会重新确认。",
     "confirm_layer_delete": "确定要删除此子图层吗?",
     "confirm_no_save": "地图已被更改但尚未保存。\n确定不保存就关闭吗?",
     "testerror_too_short": "转换测试所需的控制点数量过少。",

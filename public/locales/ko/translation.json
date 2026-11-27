@@ -516,6 +516,7 @@
     "success_save": "정상적으로 저장되었습니다.",
     "error_duplicate_id": "지도 ID가 중복되었습니다.\n지도 ID를 변경하세요.",
     "error_saving": "저장 중 오류가 발생했습니다.",
+    "mesh_origin_incremental_notice": "이 삼각망은 편집 이력에 의존하는 특례로 저장된 것입니다. 같은 대응점에서 다시 만들면 엄밀한(strict) 삼각망이 되지 않습니다. 저장하기 전에 다시 확인합니다.",
     "confirm_layer_delete": "정말 이 서브 레이어를 삭제하시겠습니까?",
     "confirm_no_save": "지도에 변경 사항이 있지만 저장되지 않았습니다.\n저장하지 않고 닫으시겠습니까?",
     "testerror_too_short": "변환 테스트에 필요한 대응점 수가 너무 적습니다.",

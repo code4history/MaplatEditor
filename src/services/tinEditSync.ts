@@ -30,6 +30,8 @@ import type {
   TinPatch,
   TinPatchFallbackReason,
   TinRebuildResponse,
+  TinRestoreRequest,
+  TinRestoreResponse,
   TinRevisionStamp,
   TinSnapshotRequest,
   TinSnapshotResponse,
@@ -40,6 +42,7 @@ export interface TinComputeTransport {
   applyEdits(request: TinApplyEditsRequest, isCurrent?: () => boolean): Promise<TinApplyEditsResponse>;
   getCompiled(request: TinCompiledRequest, isCurrent?: () => boolean): Promise<TinCompiledResponse>;
   getSnapshot(request: TinSnapshotRequest, isCurrent?: () => boolean): Promise<TinSnapshotResponse>;
+  restore(request: TinRestoreRequest, isCurrent?: () => boolean): Promise<TinRestoreResponse>;
   finalize(request: TinFinalizeRequest, isCurrent?: () => boolean): Promise<TinFinalizeResponse>;
   disposeLayer(layerKey: string): Promise<void>;
 }
@@ -73,6 +76,15 @@ export type TinRefreshOutcome =
   /** 前の入力と同じ（編集なし）。`result` は、網の今の compiled */
   | { kind: 'unchanged'; result: TinUpdateResult }
   | { kind: 'rebuilt'; result: TinUpdateResult; reason: TinRefreshReason };
+
+/**
+ * 開いた地図の保存済みの三角網（compiled）と、それに対応する入力・作り方（`request` の `gcps`・`edges`・`tinOptions` など）。
+ * 網を持たない層の最初の `refresh` で、全部組み直す代わりに、`Tin#restoreMesh` で網を戻すのに使う。
+ */
+export interface TinRestoreSeed {
+  compiled: unknown;
+  request: TinUpdateRequest;
+}
 
 /** 表示用の網が変わったときの通知（画面の描き直しに使う）。 */
 export type DisplayChange =
@@ -286,12 +298,16 @@ export class LayerTinSync {
    * Editor の対応点・必須エッジ（`request.gcps`・`request.edges`）を、今の網へ反映する。前の入力との差から編集を作って当て、
    * 局所で済めば、三角形分けをせずに compiled を返す。作り方が変わった・編集にできない・局所で済まない、ときは全部組み直す。
    */
-  refresh(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinRefreshOutcome> {
+  refresh(request: TinUpdateRequest, isCurrent?: () => boolean, seed?: TinRestoreSeed): Promise<TinRefreshOutcome> {
     return this.exclusive(async (): Promise<TinRefreshOutcome> => {
       this.assertCurrent(isCurrent);
       const rebuilt = async (reason: TinRefreshReason): Promise<TinRefreshOutcome> =>
         ({ kind: 'rebuilt', result: await this.rebuildNow(request, isCurrent), reason });
       if (!request.incrementalEdits) return rebuilt('optionsChanged');
+      // 網が無い層の最初の依頼で、開いた地図の保存済みの三角網があれば、全部組み直さずに、その網から始める（§9.5 (c)）
+      if ((!this.stamp || !this.tracked) && seed && await this.restoreNow(seed, request, isCurrent)) {
+        // 戻した網（保存した入力）から、今の入力への差を、下で編集にして当てる
+      }
       if (!this.stamp || !this.tracked) return rebuilt('noMesh');
       if (this.signature !== tinSignatureOf(request)) return rebuilt('optionsChanged');
       const plan = planEdits(this.tracked, request.gcps, request.edges as PlannerEdge[]);
@@ -309,6 +325,25 @@ export class LayerTinSync {
     });
   }
 
+  /** 保存した compiled から網を戻す。戻せたら true（版・入力の写し・表示用の網が入る）。戻せなければ、何も変えずに false。 */
+  private async restoreNow(seed: TinRestoreSeed, request: TinUpdateRequest, isCurrent?: () => boolean): Promise<boolean> {
+    // 保存したときと同じ作り方でなければ、戻さない（生成設定・範囲が変わっていれば、作り直しが要る）
+    const seedRequest: TinUpdateRequest = { ...seed.request, incrementalEdits: true };
+    if (tinSignatureOf(seedRequest) !== tinSignatureOf(request)) return false;
+    this.assertCurrent(isCurrent);
+    let response: TinRestoreResponse;
+    try {
+      response = await this.transport.restore({ request: { ...seedRequest, layerKey: this.layerKey }, compiled: seed.compiled }, isCurrent);
+    } catch (error) {
+      this.failed(error);
+    }
+    if (response.status !== 'ok') return false;
+    this.adopt({ result: response.result, stamp: response.stamp, snapshot: response.snapshot });
+    this.tracked = trackInputs(seedRequest.gcps, seedRequest.edges as PlannerEdge[]);
+    this.signature = tinSignatureOf(request);
+    return true;
+  }
+
   /** 清書。strict のときだけ、worker の網が差し替わる（表示用の網も全部入れ替える。入力の写しも添字の id へ戻る）。 */
   finalize(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinFinalizeResponse> {
     return this.strict(async () => {
@@ -318,6 +353,13 @@ export class LayerTinSync {
         response = await this.transport.finalize({ request: { ...request, layerKey: this.layerKey }, ...(this.stamp ? { base: this.stamp } : {}) }, isCurrent);
       } catch (error) {
         this.failed(error);
+      }
+      // 特例の保存の準備で帯を作り直した差分: 網は進んでいる。表示用の網へ当てる（当たらなければ、網から全部を取り直す）
+      if (response.bandPatch && response.stamp && !response.replaced) {
+        const applied = this.display.applyPatch(response.bandPatch);
+        this.stamp = response.stamp;
+        if (applied.ok) this.notify({ kind: 'patch', change: applied.change });
+        else await this.resnapshot(isCurrent);
       }
       if (response.replaced && response.stamp) {
         this.stamp = response.stamp;

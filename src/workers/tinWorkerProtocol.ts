@@ -143,6 +143,20 @@ export interface TinFinalizeRequest {
   base?: TinRevisionStamp;
 }
 
+/**
+ * 保存した compiled から網を戻す依頼（`Tin#restoreMesh`。§9.5 (c)）。`request` は作り方（`rebuild` と同じ形）で、
+ * その `gcps`・`edges` は、`compiled` と対応する入力（外の座標系）。
+ */
+export interface TinRestoreRequest {
+  request: TinUpdateRequest;
+  compiled: unknown;
+}
+
+export type TinRestoreResponse =
+  | { status: 'ok'; result: TinUpdateResult; stamp: TinRevisionStamp; snapshot?: TinMeshSnapshot }
+  /** 戻せなかった（`RestoreFailure` など）。層の網は変えていない。Editor は `rebuild` で作り直す */
+  | { status: 'failed'; reason: string };
+
 /** 清書の応答。 */
 export interface TinFinalizeResponse {
   /** 保存する結果（compiled かエラー文字列）。特例の保存のときは、局所更新の網から書いた compiled（`meshOrigin` つき） */
@@ -155,12 +169,16 @@ export interface TinFinalizeResponse {
   stamp?: TinRevisionStamp;
   /** 差し替えたときの、表示用の網の全部 */
   snapshot?: TinMeshSnapshot;
+  /** 特例の保存の準備で、帯（補助頂点・重心）を作り直した差分。表示用の網へ当てる（網の版は進んでいる） */
+  bandPatch?: TinPatch;
 }
 
 /** `tinSavedMesh.ts` の `SavedMeshDecision` の、worker の応答に載せる分（循環を避けるため構造だけを写す）。 */
 export interface SavedMeshDecisionLike {
   source: 'rebuild' | 'incremental';
   reason: string;
+  /** Tin の証拠で満たさなかった条件（`reason: "evidenceFailed"` のとき） */
+  failed?: string[];
 }
 
 export type TinWorkerRequest =
@@ -169,6 +187,7 @@ export type TinWorkerRequest =
   | { id: number; type: 'applyEdits'; payload: TinApplyEditsRequest }
   | { id: number; type: 'getCompiled'; payload: TinCompiledRequest }
   | { id: number; type: 'getSnapshot'; payload: TinSnapshotRequest }
+  | { id: number; type: 'restore'; payload: TinRestoreRequest }
   | { id: number; type: 'finalize'; payload: TinFinalizeRequest }
   | { id: number; type: 'disposeLayer'; payload: { layerKey: string } }
   | { id: number; type: 'dispose' };

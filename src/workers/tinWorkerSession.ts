@@ -18,11 +18,13 @@ import type { Options as TinOptions } from '@maplat/tin';
 import type { CompiledTransformData } from '@maplat/transform';
 import type { TinUpdateRequest, TinUpdateResult } from '../services/editorComputeBackend';
 import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions.ts';
-import { decideSavedMesh, withMeshOrigin } from '../utils/tinSavedMesh.ts';
+import { decideSavedMesh } from '../utils/tinSavedMesh.ts';
 import { applyEditsToTracked, trackInputs } from '../utils/tinEditPlanner.ts';
 import type { PlannerEdge, TrackedInputs } from '../utils/tinEditPlanner.ts';
-import type { SpecialSaveEvidence } from '../utils/tinSavedMesh.ts';
+import type { IncrementalEvidence } from '../utils/tinSavedMesh.ts';
 import type {
+  TinRestoreRequest,
+  TinRestoreResponse,
   TinSnapshotRequest,
   TinSnapshotResponse,
   TinCompiledRequest,
@@ -68,11 +70,6 @@ interface LayerEntry {
 export interface TinWorkerSessionOptions {
   /** Tin の作り方（試験で差し替える）。既定は `new Tin(options)` */
   createTin?: (options: TinOptions) => Tin;
-  /**
-   * 特例の保存（§9.5）の条件の証拠を集める口。保存の直前に、網の全部を数え直して集める。
-   * Tin の `restoreMesh`・帯の差し替え・全数の確かめ（第 2 段 b）が入るまでは、集められない（undefined）。
-   */
-  collectEvidence?: (tin: Tin) => SpecialSaveEvidence | undefined;
 }
 
 type Built =
@@ -86,8 +83,9 @@ async function buildTin(request: TinUpdateRequest, createTin: (options: TinOptio
 
   // tinOptions があるときは、それがそのまま Tin の作り方。古い strict / vertex は無いときの代わりだけ。
   const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
-  // 局所更新のスイッチが入っているときだけ、網を取り込ませる（出力の compiled は、切っても入れても同じ）。
-  const buildOptions = request.incrementalEdits ? { ...options, incremental: true } : options;
+  // 局所更新のスイッチが入っているときだけ、網を取り込ませ、帯の更新を許す（出力の compiled は、切っても入れても同じ）。
+  // `incrementalRebuild`（繰り返しの置き換え。出力が変わりうる）は入れない
+  const buildOptions = request.incrementalEdits ? { ...options, incremental: true, incrementalBand: true } : options;
   const tin = createTin(buildOptions) as Tin;
   const wh = index === 0 ? bounds as number[] | undefined : undefined;
   const bd = index !== 0 ? bounds as number[][] | undefined : undefined;
@@ -164,11 +162,9 @@ export class TinWorkerSession {
   private generationCounter = 0;
   private chain: Promise<unknown> = Promise.resolve();
   private readonly createTin: (options: TinOptions) => Tin;
-  private readonly collectEvidence?: TinWorkerSessionOptions['collectEvidence'];
 
   constructor(options: TinWorkerSessionOptions = {}) {
     this.createTin = options.createTin ?? ((tinOptions) => new Tin(tinOptions));
-    this.collectEvidence = options.collectEvidence;
   }
 
   /** 層の鍵。指定が無ければ層の番号。 */
@@ -348,32 +344,69 @@ export class TinWorkerSession {
         };
       }
       // strict にならなかった清書の網は捨てる（局所更新の網を、清書の strict_error で上書きしない）
-      // 持っている網が、この清書を頼んだ Editor の入力・版に対応しているときだけ、特例の保存の候補にする
+      // 持っている網が、この清書を頼んだ Editor の入力・版に対応しているときだけ、特例の保存の候補にする。
+      // 条件の判定は Tin が持つ: strict な網の帯を最新にし（refreshBand）、網の全部を数え直した証拠を集める（collectIncrementalEvidence）
       const meshMatchesRequest = !!kept && !!finalizeRequest.base && !!kept.inputs
         && this.stampMatches(kept, finalizeRequest.base) && inputsMatchRequest(kept.inputs, request);
-      const evidence = kept && meshMatchesRequest ? this.collectEvidence?.(kept.tin) : undefined;
-      const decision = decideSavedMesh({
-        rebuildStatus: status,
-        rebuildKinks: built.compiled.kinks_points?.length ?? 0,
-        evidence: evidence && { ...evidence, editsSinceRebuild: kept!.editsSinceRebuild },
-        meshMatchesRequest,
-      });
-      if (decision.source === 'incremental' && kept) {
-        // 特例の保存: 局所更新の網から書いた compiled に印を付けて保存する。診断に、清書の結果との違いを残す
+      let bandPatch: TinPatch | undefined;
+      let evidence: IncrementalEvidence | undefined;
+      if (kept && meshMatchesRequest && kept.tin.strict_status === 'strict') {
+        bandPatch = kept.tin.refreshBand();
+        // 帯を最新にできなければ（スイッチが切・どの余白でも strict な帯にならない）、特例の保存はしない
+        if (bandPatch) evidence = kept.tin.collectIncrementalEvidence({ status: status ?? 'strict_error', kinks: built.compiled.kinks_points?.length ?? 0 });
+      }
+      const decision = decideSavedMesh({ rebuildStatus: status ?? 'strict_error', evidence, meshMatchesRequest });
+      // 帯を作り直した差分は、Editor の表示用の網へ当てる（網は進んでいる）
+      const band = bandPatch ? { bandPatch } : {};
+      if (decision.source === 'incremental' && kept && evidence?.compiled) {
+        // 特例の保存: Tin が書き出した、印（meshOrigin）つきの compiled を保存する。診断に、清書の結果との違いを残す
         const diagnostics = { ...(kept.tin.boundaryDiagnostics ?? {}), incremental: decision.diagnostics };
         return {
-          result: [request.index, withMeshOrigin(kept.tin.getCompiled()), diagnostics as TinUpdateResult[2]],
+          result: [request.index, evidence.compiled, diagnostics as TinUpdateResult[2]],
           decision: { source: 'incremental', reason: decision.reason },
           replaced: false,
           stamp: this.stamp(kept),
+          ...band,
         };
       }
       return {
         result: built.result,
-        decision: { source: 'rebuild', reason: decision.reason },
+        decision: { source: 'rebuild', reason: decision.reason, ...('failed' in decision && decision.failed ? { failed: decision.failed } : {}) },
         replaced: false,
         ...(kept ? { stamp: this.stamp(kept) } : {}),
+        ...band,
       };
+    });
+  }
+
+  /**
+   * 保存した compiled から、網を戻す（`Tin#restoreMesh`。三角形分けをしない。§9.5 (c)）。印のある（特例の保存の）compiled は、
+   * `updateTin()` で開くと strict_error に戻るので、これで開く。印の無い compiled も戻せる（全部組み直しを待たずに編集を始められる）。
+   * 戻せなければ `failed`（理由つき）。層の網は変えない（呼び出し側は、`rebuild` で作り直す）。
+   * `request` の `gcps`・`edges` は、`compiled` と対応する入力（外の座標系）。
+   */
+  restore(restoreRequest: TinRestoreRequest): Promise<TinRestoreResponse> {
+    return this.enqueue(async (): Promise<TinRestoreResponse> => {
+      const { request, compiled } = restoreRequest;
+      const layerKey = TinWorkerSession.layerKeyOf(request);
+      if (!request.incrementalEdits) return { status: 'failed', reason: 'disabled' };
+      const { gcps, edges, index, bounds, strict, vertex, tinOptions } = request;
+      const options = tinOptions ?? resolveTinBuildOptions({}, { strictMode: strict, vertexMode: vertex }) ?? {};
+      const tin = this.createTin({ ...options, incremental: true, incrementalBand: true });
+      const wh = index === 0 ? bounds as number[] | undefined : undefined;
+      const bd = index !== 0 ? bounds as number[][] | undefined : undefined;
+      if (!applyTinGeometry(tin, options, { wh, bounds: bd })) throw new Error('Both wh and bounds are missing');
+      const restored = tin.restoreMesh(compiled as Parameters<Tin['restoreMesh']>[0], {
+        points: gcps as never,
+        edges: edges as never,
+      });
+      if (!restored.ok) return { status: 'failed', reason: restored.reason };
+      this.layers.delete(layerKey);
+      const restoredCompiled = tin.getCompiled();
+      const result: TinUpdateResult = [index, restoredCompiled, tin.boundaryDiagnostics ?? null];
+      const entry = this.adopt(layerKey, { ok: true, tin, compiled: restoredCompiled, result }, request);
+      const snapshot = snapshotFromTin(tin, restoredCompiled);
+      return { status: 'ok', result, stamp: this.stamp(entry), ...(snapshot ? { snapshot } : {}) };
     });
   }
 

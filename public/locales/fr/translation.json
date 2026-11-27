@@ -516,6 +516,7 @@
     "success_save": "Enregistrement réussi.",
     "error_duplicate_id": "L'ID de carte est déjà utilisé.\nVeuillez changer l'ID de la carte.",
     "error_saving": "Une erreur s'est produite lors de l'enregistrement.",
+    "mesh_origin_incremental_notice": "Ce TIN a été enregistré comme un cas particulier qui dépend de l’historique de modification. Reconstruit à partir des mêmes points de contrôle, il ne serait pas strict. Il est revérifié avant chaque enregistrement.",
     "confirm_layer_delete": "Voulez-vous vraiment supprimer ce sous-calque ?",
     "confirm_no_save": "La carte a été modifiée mais non enregistrée.\nVoulez-vous fermer sans enregistrer ?",
     "testerror_too_short": "Pas assez de GCP pour le test de conversion.",

@@ -516,6 +516,7 @@
     "success_save": "Se ha guardado correctamente.",
     "error_duplicate_id": "El ID de mapa ya está en uso.\nCambie el ID de mapa.",
     "error_saving": "Se ha producido un error al guardar.",
+    "mesh_origin_incremental_notice": "Esta triangulación se guardó como un caso especial que depende del historial de edición. Si se reconstruye con los mismos puntos de control, no sería estricta. Se comprueba de nuevo antes de cada guardado.",
     "confirm_layer_delete": "¿Está seguro de que desea eliminar esta subcapa?",
     "confirm_no_save": "El mapa se ha modificado pero no se ha guardado.\n¿Desea cerrar sin guardar?",
     "testerror_too_short": "Hay muy pocos GCP para la prueba de conversión.",

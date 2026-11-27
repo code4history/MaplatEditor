@@ -13,11 +13,13 @@ import type {
   TinFinalizeRequest,
   TinFinalizeResponse,
   TinRebuildResponse,
+  TinRestoreRequest,
+  TinRestoreResponse,
   TinSnapshotRequest,
   TinSnapshotResponse,
 } from '../workers/tinWorkerProtocol.ts';
 import { LayerTinSync, StaleRequestError } from './tinEditSync.ts';
-import type { DisplayChange, TinComputeTransport, TinEditOutcome, TinRefreshOutcome } from './tinEditSync.ts';
+import type { DisplayChange, TinComputeTransport, TinEditOutcome, TinRefreshOutcome, TinRestoreSeed } from './tinEditSync.ts';
 
 export interface TinUpdateRequest {
   gcps: PointSet[];
@@ -49,7 +51,7 @@ export interface EditorComputeBackend {
    * Editor の対応点・必須エッジの配列を、worker の網へ反映する。前の入力との差から編集を作って当て、局所で済めば
    * 三角形分けをせずに compiled を返す。済まなければ全部組み直す。
    */
-  refreshTin(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinRefreshOutcome>;
+  refreshTin(request: TinUpdateRequest, isCurrent?: () => boolean, seed?: TinRestoreSeed): Promise<TinRefreshOutcome>;
   /** 清書（別のインスタンスで全部組み直し、strict のときだけ網を差し替える） */
   finalize(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinFinalizeResponse>;
   /** 表示用の網が変わったときの通知を受ける。戻り値で、購読をやめる */
@@ -81,6 +83,8 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
     applyEdits: (request, isCurrent) => this.enqueue(isCurrent, () => this.send<TinApplyEditsResponse>('applyEdits', request)),
     getCompiled: (request, isCurrent) => this.enqueue(isCurrent, () => this.send<TinCompiledResponse>('getCompiled', request)),
     getSnapshot: (request, isCurrent) => this.enqueue(isCurrent, () => this.send<TinSnapshotResponse>('getSnapshot', request)),
+    restore: (request, isCurrent) =>
+      this.enqueue(isCurrent, () => this.send<TinRestoreResponse>('restore', { ...request, request: this.plain(request.request) })),
     finalize: (request, isCurrent) =>
       this.enqueue(isCurrent, () => this.send<TinFinalizeResponse>('finalize', { ...request, request: this.plain(request.request) })),
     // worker がまだ無ければ、捨てる網も無い（捨てるためだけに worker を立てない）
@@ -98,8 +102,8 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
     return this.syncOf({ ...latestRequest, layerKey }).edit(edits, latestRequest, isCurrent);
   }
 
-  refreshTin(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinRefreshOutcome> {
-    return this.syncOf(request).refresh(request, isCurrent);
+  refreshTin(request: TinUpdateRequest, isCurrent?: () => boolean, seed?: TinRestoreSeed): Promise<TinRefreshOutcome> {
+    return this.syncOf(request).refresh(request, isCurrent, seed);
   }
 
   finalize(request: TinUpdateRequest, isCurrent?: () => boolean): Promise<TinFinalizeResponse> {
@@ -157,8 +161,8 @@ class WorkerEditorComputeBackend implements EditorComputeBackend {
   }
 
   private send<T>(
-    type: 'rebuild' | 'applyEdits' | 'getCompiled' | 'getSnapshot' | 'finalize' | 'disposeLayer',
-    payload: TinUpdateRequest | TinApplyEditsRequest | TinCompiledRequest | TinSnapshotRequest | TinFinalizeRequest | { layerKey: string },
+    type: 'rebuild' | 'applyEdits' | 'getCompiled' | 'getSnapshot' | 'restore' | 'finalize' | 'disposeLayer',
+    payload: TinUpdateRequest | TinApplyEditsRequest | TinCompiledRequest | TinSnapshotRequest | TinRestoreRequest | TinFinalizeRequest | { layerKey: string },
   ): Promise<T> {
     const worker = this.getWorker();
     const id = this.nextID++;
@@ -221,6 +225,11 @@ export interface BuildEditorLayerTinOptions {
   refresh?: EditorComputeBackend['refreshTin'];
   /** 結果が、どの手順の産物かを知らせる（保存の前の清書が要るかの判断に使う） */
   onBuilt?: (layerId: string, origin: TinOrigin) => void;
+  /**
+   * 開いた地図の、層ごとの保存済みの三角網（compiled）と、それに対応する層の文書。網を持たない層の最初の編集の依頼で、
+   * 全部組み直す代わりに、`Tin#restoreMesh` で網を戻す（§9.5 (c)）。使ったら（成否を問わず）外すのは呼び出し側。
+   */
+  restoreSeed?: (layerId: string) => { compiled: unknown; layer: TransformLayer } | undefined;
   /** 採用の候補の計算が終わった（候補の鍵の網を捨てる）。候補は、層の網とは別の鍵で作るので、採用しなかった候補が層の網を汚さない */
   releaseCandidate?: (layerKey: string) => void;
 }
@@ -279,7 +288,9 @@ async function buildLayerTin(
   // 結果がどの手順の産物か。変わらなかった（unchanged）ときは、前のまま（知らせない）
   let origin: TinOrigin | undefined = 'rebuild';
   if (options.incrementalEdits && options.refresh && request.kind === 'edit') {
-    const outcome = await options.refresh({ ...input, ...incremental }, request.isCurrent);
+    const seed = options.restoreSeed?.(request.layerId);
+    const outcome = await options.refresh({ ...input, ...incremental }, request.isCurrent,
+      seed && { compiled: seed.compiled, request: tinRequestOf(seed.layer, request.layerId, index) });
     [, compiled, diagnostics] = outcome.result;
     origin = outcome.kind === 'patched' ? 'incremental' : outcome.kind === 'rebuilt' ? 'rebuild' : undefined;
   } else {

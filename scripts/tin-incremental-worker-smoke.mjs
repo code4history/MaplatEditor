@@ -221,7 +221,7 @@ itest('表示用の網: 本物の applyEdits の差分を当てた結果が、Ti
     stamp = response.stamp;
     if (response.patch.mode === 'local') {
       locals++;
-      assert.equal(response.patch.boundaryStale, true);
+      assert.equal(typeof response.patch.boundaryStale, 'boolean');
       const applied = display.applyPatch(response.patch);
       if (!applied.ok && applied.reason === 'supplementPairs') {
         // 補完点の対が変わる差分は、当てられない（添字の上の番号）。worker の網から全部を取り直す
@@ -230,7 +230,7 @@ itest('表示用の網: 本物の applyEdits の差分を当てた結果が、Ti
         resnapshots++;
       } else assert.ok(applied.ok, `step ${step}: 差分が表示用の網に当たる（${JSON.stringify(applied)}）`);
       if (!response.patch.removedTriangles?.length && !response.patch.addedTriangles?.length) moveOnly++;
-      assert.equal(display.boundaryStale, true);
+      assert.equal(display.boundaryStale, response.patch.boundaryStale);
     } else {
       fulls++;
       assert.ok(response.full?.snapshot, '全部組み直しのときは、全部が返る');
@@ -488,7 +488,7 @@ test('網が無い・applyEdits が使えない・編集が例外・差分が当
 
 // ---------------- 4. 清書と特例の保存 ----------------
 /** 清書（finalize）で作られる 2 つ目の Tin だけ、strict_error と報告させる（今の全部組み直しが strict にならない場面を作る）。 */
-function sessionWhereFinalizeFails(options = {}) {
+function sessionWhereFinalizeFails(hooks = {}) {
   const control = { failing: false };
   class MaybeFailingTin extends Tin {
     constructor(o) {
@@ -499,19 +499,22 @@ function sessionWhereFinalizeFails(options = {}) {
       const compiled = super.getCompiled();
       return this.isFinalizer ? { ...compiled, strict_status: 'strict_error' } : compiled;
     }
+    // 局所更新の網の側の口は、本物の Tin の実装。試験で、条件を満たさない場面を作るときだけ差し替える
+    refreshBand() {
+      return hooks.refreshBand && !this.isFinalizer ? hooks.refreshBand(super.refreshBand.bind(this)) : super.refreshBand();
+    }
+    collectIncrementalEvidence(rebuild) {
+      const real = super.collectIncrementalEvidence(rebuild);
+      return hooks.evidence && !this.isFinalizer ? hooks.evidence(real) : real;
+    }
   }
-  const session = new TinWorkerSession({ createTin: (o) => new MaybeFailingTin(o), ...options });
+  const session = new TinWorkerSession({ createTin: (o) => new MaybeFailingTin(o) });
   const finalize = (req, base) => {
     control.failing = true; // この間に作られる Tin（清書のインスタンス）だけが、strict_error と報告する
     return session.finalize({ ...req, ...(base ? { base } : {}) }).finally(() => { control.failing = false; });
   };
   return { session, finalize };
 }
-
-const goodEvidence = () => ({
-  incrementalStatus: 'strict', boundaryFresh: true, invariantsHold: true, roundTripMatches: true,
-  sweepKinks: 0, remainingForbiddenTriangles: 2, editsSinceRebuild: 0,
-});
 
 async function editedSession(session, key = 'fin') {
   const req = request({ layerKey: key, incrementalEdits: true });
@@ -544,13 +547,14 @@ itest('清書: strict になれば、別のインスタンスの結果で網を�
   assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: oldStamp, index: 0 })).status, 'revisionMismatch', '差し替え前の版では当たらない');
 });
 
-itest('清書が strict にならなくても、局所更新の網は上書きされない（証拠が無ければ、清書の結果を保存する）', async () => {
-  const { session, finalize } = sessionWhereFinalizeFails();
+itest('清書が strict にならなくても、局所更新の網は上書きされない（帯を最新にできなければ、清書の結果を保存する）', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails({ refreshBand: () => undefined });
   const { req, stamp } = await editedSession(session);
   const peekBefore = session.peekTin('fin');
   const done = await finalize({ request: req }, stamp);
   assert.deepEqual(done.decision, { source: 'rebuild', reason: 'noEvidence' });
   assert.equal(done.replaced, false);
+  assert.equal(done.bandPatch, undefined);
   assert.equal(done.result[1].strict_status, 'strict_error', '保存するのは、清書の結果（今と同じ）');
   assert.equal(hasIncrementalOrigin(done.result[1]), false);
   assert.equal(session.peekTin('fin'), peekBefore, '局所更新の網は、そのまま');
@@ -558,93 +562,82 @@ itest('清書が strict にならなくても、局所更新の網は上書き�
   assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp, index: 0 })).status, 'patched', '網は使い続けられる');
 });
 
-itest('特例の保存: 清書が strict_error で、局所更新の網が strict なら、局所更新の網から書いた compiled（印つき）を保存する', async () => {
-  let asked = 0;
-  const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: (tin) => { asked++; assert.ok(tin.incrementalMesh); return goodEvidence(); } });
+itest('特例の保存: 清書が strict_error で、局所更新の網が strict なら、Tin の口（refreshBand・collectIncrementalEvidence）で、印つきの compiled を保存する', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails();
   const { req, stamp } = await editedSession(session);
   const peekBefore = session.peekTin('fin');
   const done = await finalize({ request: req }, stamp);
-  assert.equal(asked, 1);
-  assert.equal(done.stamp.revision, stamp.revision);
   assert.deepEqual(done.decision, { source: 'incremental', reason: 'specialSave' });
   assert.equal(done.replaced, false);
+  assert.ok(done.bandPatch, '帯を最新にした差分が返る（表示用の網へ当てる）');
+  assert.equal(done.stamp.generation, stamp.generation);
   const saved = done.result[1];
   assert.equal(saved.meshOrigin, 'incremental', '印が付く');
   assert.equal(hasIncrementalOrigin(saved), true);
   assert.equal(saved.strict_status, 'strict', '局所更新の網は strict');
-  const { meshOrigin, ...rest } = saved;
-  assert.equal(meshOrigin, 'incremental');
-  assert.equal(bits(rest), bits(peekBefore.getCompiled()), '局所更新の網そのものから書いている');
-  assert.deepEqual(done.result[2].incremental, {
-    rebuildStatus: 'strict_error', rebuildKinks: 0, editsSinceRebuild: 1, sweepKinks: 0, remainingForbiddenTriangles: 2,
-  }, '診断に、特例の保存であることと、清書の結果が残る');
+  assert.equal(done.result[2].incremental.rebuildStatus, 'strict_error', '診断に、清書の結果が残る');
+  assert.ok(done.result[2].incremental.editsSinceRebuild >= 1);
+  assert.equal(done.result[2].incremental.sweepKinks, 0);
   assert.equal(session.peekTin('fin'), peekBefore, '網は保たれ、局所更新を続けられる');
-  assert.deepEqual(done.stamp.generation, stamp.generation);
+  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: done.stamp, index: 0 })).status, 'patched');
 });
 
-itest('特例の保存: 条件が 1 つでも欠ければ、清書の結果を保存する', async () => {
-  const breakers = {
-    incrementalNotStrict: { incrementalStatus: 'strict_error' },
-    boundaryStale: { boundaryFresh: false },
-    invariantsNotHeld: { invariantsHold: false },
-    roundTripMismatch: { roundTripMatches: false },
-    sweepKinksFound: { sweepKinks: 1 },
-  };
-  for (const [reason, broken] of Object.entries(breakers)) {
-    const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => ({ ...goodEvidence(), ...broken }) });
-    const { req, stamp } = await editedSession(session);
-    const done = await finalize({ request: req }, stamp);
-    assert.deepEqual(done.decision, { source: 'rebuild', reason }, reason);
-    assert.equal(done.result[1].strict_status, 'strict_error');
-    assert.equal(hasIncrementalOrigin(done.result[1]), false);
-  }
-  // 証拠の値が、型・範囲に合わないときは、通さない（undefined・NaN・文字列・負の数）
-  for (const sweepKinks of [undefined, Number.NaN, '1', -1, 0.5]) {
-    const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => ({ ...goodEvidence(), sweepKinks }) });
-    const { req, stamp } = await editedSession(session);
-    const done = await finalize({ request: req }, stamp);
-    assert.deepEqual(done.decision, { source: 'rebuild', reason: 'evidenceInvalid' }, `sweepKinks=${String(sweepKinks)}`);
-  }
-  // 持っている網が、清書を頼んだ入力・版と対応しないときは、特例の保存の候補にしない（証拠を集めることもしない）
-  {
-    let asked = 0;
-    const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => { asked++; return goodEvidence(); } });
-    const { req, stamp } = await editedSession(session);
-    const stale = await finalize({ request: req }, { generation: stamp.generation, revision: stamp.revision - 1 });
-    assert.deepEqual(stale.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版が違う');
-    const noBase = await finalize({ request: req });
-    assert.deepEqual(noBase.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版を渡さない');
-    const newer = { ...req, gcps: req.gcps.map((g, i) => (i === 16 ? [[g[0][0] + 6, g[0][1] + 6], g[1]] : g)) };
-    const other = await finalize({ request: newer }, stamp);
-    assert.deepEqual(other.decision, { source: 'rebuild', reason: 'meshMismatch' }, 'Editor の最新の入力が、網の入力と違う（網に入っていない編集がある）');
-    assert.equal(other.result[1].points[16][0][0], newer.gcps[16][0][0], '保存するのは、渡した入力の清書');
-    assert.equal(hasIncrementalOrigin(other.result[1]), false);
-    assert.equal(asked, 0, '対応しない網の証拠は集めない');
-    // 必須エッジの違いも見る
-    const withEdge = { ...req, edges: [[[], [], [0, 1]]] };
-    assert.equal((await finalize({ request: withEdge }, stamp)).decision.reason, 'meshMismatch');
-    const ok = await finalize({ request: req }, stamp);
-    assert.equal(ok.decision.reason, 'specialSave', '入力と版が合えば、特例の保存');
-  }
-  // 清書が入力のエラーで失敗したときは、そのエラーを保存し、網には触らない
-  const session = new TinWorkerSession();
+itest('特例の保存: Tin の証拠が eligible でなければ、清書の結果を保存し、満たさなかった条件を返す', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails({
+    evidence: (real) => ({ ...real, eligible: false, failed: ['sweepKinks', 'gcpRoundTrip'], compiled: undefined }),
+  });
   const { req, stamp } = await editedSession(session);
-  const failed = await session.finalize({ request: { ...req, gcps: req.gcps.slice(0, 2) } });
+  const done = await finalize({ request: req }, stamp);
+  assert.deepEqual(done.decision, { source: 'rebuild', reason: 'evidenceFailed', failed: ['sweepKinks', 'gcpRoundTrip'] });
+  assert.equal(done.result[1].strict_status, 'strict_error');
+  assert.equal(hasIncrementalOrigin(done.result[1]), false);
+  // eligible でも compiled が無ければ使わない
+  const { session: s2, finalize: f2 } = sessionWhereFinalizeFails({ evidence: (real) => ({ ...real, eligible: true, compiled: undefined }) });
+  const e2 = await editedSession(s2);
+  assert.equal((await f2({ request: e2.req }, e2.stamp)).decision.reason, 'evidenceFailed');
+});
+
+itest('特例の保存: 持っている網が、清書を頼んだ入力・版と対応しないときは、候補にしない（証拠を集めることもしない）', async () => {
+  let asked = 0;
+  const { session, finalize } = sessionWhereFinalizeFails({ refreshBand: (real) => { asked++; return real(); } });
+  const { req, stamp } = await editedSession(session);
+  const stale = await finalize({ request: req }, { generation: stamp.generation, revision: stamp.revision - 1 });
+  assert.deepEqual(stale.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版が違う');
+  const noBase = await finalize({ request: req });
+  assert.deepEqual(noBase.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版を渡さない');
+  const newer = { ...req, gcps: req.gcps.map((g, i) => (i === 16 ? [[g[0][0] + 6, g[0][1] + 6], g[1]] : g)) };
+  const other = await finalize({ request: newer }, stamp);
+  assert.deepEqual(other.decision, { source: 'rebuild', reason: 'meshMismatch' }, 'Editor の最新の入力が、網の入力と違う（網に入っていない編集がある）');
+  assert.equal(other.result[1].points[16][0][0], newer.gcps[16][0][0], '保存するのは、渡した入力の清書');
+  assert.equal(hasIncrementalOrigin(other.result[1]), false);
+  assert.equal(asked, 0, '対応しない網の帯は作り直さない');
+  const withEdge = { ...req, edges: [[[], [], [0, 1]]] };
+  assert.equal((await finalize({ request: withEdge }, stamp)).decision.reason, 'meshMismatch', '必須エッジの違いも見る');
+  const ok = await finalize({ request: req }, stamp);
+  assert.equal(ok.decision.reason, 'specialSave', '入力と版が合えば、特例の保存');
+  assert.equal(asked, 1);
+  // 清書が入力のエラーで失敗したときは、そのエラーを保存し、網には触らない
+  const plain = new TinWorkerSession();
+  const e = await editedSession(plain);
+  const failed = await plain.finalize({ request: { ...e.req, gcps: e.req.gcps.slice(0, 2) } });
   assert.deepEqual(failed.result, [0, 'tooLessGcps', null]);
   assert.deepEqual(failed.decision, { source: 'rebuild', reason: 'rebuildFailed' });
-  assert.deepEqual(failed.stamp, stamp);
+  assert.deepEqual(failed.stamp, e.stamp);
 });
 
 test('decideSavedMesh と印の道具', () => {
-  const evidence = goodEvidence();
-  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict', evidence }), { source: 'rebuild', reason: 'rebuildStrict' }, '清書が strict なら、証拠があっても清書');
-  assert.deepEqual(decideSavedMesh({ rebuildStatus: undefined, evidence }), { source: 'rebuild', reason: 'rebuildFailed' });
-  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error' }), { source: 'rebuild', reason: 'noEvidence' });
+  const evidence = { eligible: true, failed: [], compiled: { version: 3 }, editsSinceRebuild: 3, rebuildKinks: 4, sweepKinks: 0, remainingForbiddenTriangles: 2 };
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict', evidence, meshMatchesRequest: true }), { source: 'rebuild', reason: 'rebuildStrict' }, '清書が strict なら、証拠があっても清書');
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: undefined, evidence, meshMatchesRequest: true }), { source: 'rebuild', reason: 'rebuildFailed' });
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error', meshMatchesRequest: true }), { source: 'rebuild', reason: 'noEvidence' });
   assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error', evidence }), { source: 'rebuild', reason: 'meshMismatch' }, '網と入力の対応が確かめられていなければ使わない');
-  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'loose', evidence: { ...evidence, editsSinceRebuild: 3 }, rebuildKinks: 4, meshMatchesRequest: true }), {
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error', evidence, meshMatchesRequest: false }), { source: 'rebuild', reason: 'meshMismatch' });
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error', evidence: { ...evidence, eligible: false, failed: ['boundary'] }, meshMatchesRequest: true }),
+    { source: 'rebuild', reason: 'evidenceFailed', failed: ['boundary'] }, '証拠は読み直さず、eligible と failed に任せる');
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'loose', evidence, meshMatchesRequest: true }), {
     source: 'incremental', reason: 'specialSave',
     diagnostics: { rebuildStatus: 'loose', rebuildKinks: 4, editsSinceRebuild: 3, sweepKinks: 0, remainingForbiddenTriangles: 2 },
-  });
+  }, 'loose のときも働く');
   const compiled = { version: 3, strict_status: 'strict' };
   const marked = withMeshOrigin(compiled);
   assert.equal(marked.meshOrigin, 'incremental');
@@ -685,7 +678,7 @@ test('配線: 設定画面の切り替えが保存され、MapEdit が画面を�
   assert.match(mapEdit, /normalizeIncrementalEdits\(await settings\.get\('incrementalEdits'\)\)/);
   assert.match(mapEdit, /const incrementalEditsSetting: Promise<boolean> = readIncrementalEditsSetting\(\);/, '開いたときに 1 回だけ読む');
   assert.doesNotMatch(mapEdit, /await readIncrementalEditsSetting\(\)/, '依頼のたびには読まない');
-  assert.match(mapEdit, /incrementalEdits,\n\s+refresh: \(input, isCurrent\) => editorComputeBackend\.refreshTin/, 'buildEditorLayerTin へ渡す');
+  assert.match(mapEdit, /incrementalEdits,\n\s+refresh: \(input, isCurrent, seed\) => editorComputeBackend\.refreshTin/, 'buildEditorLayerTin へ渡す');
   const settings = await readFile(new URL('../src/views/Settings.vue', import.meta.url), 'utf8');
   assert.match(settings, /incrementalEdits: false,/, '画面の既定は切');
   assert.match(settings, /window\.settings\.set\("incrementalEdits", state\.incrementalEdits\)/);

@@ -7,7 +7,7 @@
 正本と locale は同じ PR で変えられない（初版を除く）。新しい語・例外は、先に正本だけの PR を合流させてから locale の PR を出す。
 まだ無いキーへの例外は、正本だけの PR の時点では警告（pending-key）になり、後の locale の PR でキーを足すと働く。手順は AGENTS.md の「UI Wording & Glossary」。
 
-概念 26・結び付いたキー 525・例外 293（anchorExclusion 12・omission 100・untranslated 181）
+概念 26・結び付いたキー 526・例外 293（anchorExclusion 12・omission 100・untranslated 181）
 
 | 概念 | 説明 | 根拠キー | 結び付け |
 |---|---|---|---:|
@@ -25,10 +25,10 @@
 | [source](#source) | POI ソース | `resource_list.kind_poi_source` | 34 |
 | [citation](#citation) | 地図・ベースマップの出所（書誌的な典拠） | `mapedit.map_source` | 4 |
 | [attribution](#attribution) | 地図画像・データの帰属（著作権表示） | `mapedit.map_copyright_pf` | 19 |
-| [gcp](#gcp) | 地図画像と地理座標の対応点 | `editor_ui.tabs.gcps` | 16 |
+| [gcp](#gcp) | 地図画像と地理座標の対応点 | `editor_ui.tabs.gcps` | 17 |
 | [bibliography](#bibliography) | IIIF 等から写す書誌情報。Maplat の地図メタデータ（editor_ui.tabs.metadata）とは別。代表語は ja・en だけ | `iiif_metadata.heading` | 9 |
 | [tile](#tile) | 地図画像を分割した配信用画像。スタイル・TileJSON の tiles 配列・ベクタータイルセットは除外 | `editor_ui.tabs.merc` | 39 |
-| [save](#save) | 編集内容を永続化する操作。エクスポート・端末キャッシュとは区別 | `common.save` | 58 |
+| [save](#save) | 編集内容を永続化する操作。エクスポート・端末キャッシュとは区別 | `common.save` | 59 |
 | [overwrite](#overwrite) | 既存値の置換。POI import では同一 ID を更新し、無ければ追加 | `common.overwrite` | 9 |
 | [override](#override) | 参照先を変えずに表示属性（タイトル・アイコン・非表示）だけを差し替える | `poiref.add_override` | 6 |
 | [append](#append) | 既存 POI を置換せず全行を新規 POI として足す | `poiio.import_mode_append` | 1 |

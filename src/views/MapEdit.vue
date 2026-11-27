@@ -918,6 +918,9 @@ const incrementalOrigins = new Set<string>();
 // 編集が止まってから清書するまでの時間（設計書 §9.3 の 3）
 const INCREMENTAL_FINALIZE_IDLE_MS = 1000;
 const displaySubscriptions = new Map<string, () => void>();
+// 開いた地図の層ごとの保存済みの三角網。網を持たない層の最初の編集で、全部組み直す代わりに、restoreMesh で網を戻す（§9.5 (c)）。
+// 1 回使ったら外す（使えなかったときは、全部組み直す）
+const restoreSeeds = new Map<string, { tin: Tin; layer: TransformLayer }>();
 // 設定 incrementalEdits は、画面を開いたときに 1 回だけ読んで持つ（依頼のたびに IPC で読まない）。設定画面での切り替えは、
 // 設定画面から戻ってこの画面を開き直したときに効く。
 const incrementalEditsSetting: Promise<boolean> = readIncrementalEditsSetting();
@@ -960,6 +963,7 @@ function releaseLayerTin(layerId: string) {
 /** 地図を開き直したとき: 前の地図の層の網（同じ層の id で残っている）を、全部捨てる。 */
 function releaseAllLayerTins() {
     incrementalOrigins.clear();
+    restoreSeeds.clear();
     for (const unsubscribe of displaySubscriptions.values()) unsubscribe();
     displaySubscriptions.clear();
     meshRenderer.forget();
@@ -1149,7 +1153,12 @@ async function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typ
     return buildEditorLayerTin(request, layerIds.value.indexOf(request.layerId),
         (input, isCurrent) => editorComputeBackend.updateTin(input, isCurrent), {
             incrementalEdits,
-            refresh: (input, isCurrent) => editorComputeBackend.refreshTin(input, isCurrent),
+            refresh: (input, isCurrent, seed) => editorComputeBackend.refreshTin(input, isCurrent, seed),
+            restoreSeed: (layerId) => {
+                const seed = restoreSeeds.get(layerId);
+                restoreSeeds.delete(layerId);
+                return seed && { compiled: seed.tin.getCompiled(), layer: seed.layer };
+            },
             releaseCandidate: (layerKey) => { void editorComputeBackend.disposeLayer(layerKey); },
             onBuilt: (layerId, origin) => { if (origin === 'incremental') incrementalOrigins.add(layerId); else incrementalOrigins.delete(layerId); },
         });
@@ -2735,6 +2744,16 @@ function initializeLayerTransformState(tins: any[] | null) {
     const snapshot = [mapData.value, ...sub_maps.value].map((document, index) =>
         transformLayerFromDocument(index === 0 ? 'main' : `sub:${crypto.randomUUID()}`, document, tins?.[index], mapData.value));
     const next = createLayerTransformState(snapshot, seedTinObjects(snapshot, tins));
+    // 保存した三角網（compiled）から網を戻せるように覚える。特例の保存（meshOrigin）の地図は、これが無いと、
+    // 編集のたびに全部組み直して strict でなくなる。印のある地図には、そのことを知らせる（§9.5 (d)）
+    let specialSave = false;
+    for (const layer of snapshot) {
+        const seed = next.getTinState(layer.layerId)?.tin;
+        if (typeof seed !== 'object' || seed === null) continue;
+        restoreSeeds.set(layer.layerId, { tin: seed, layer });
+        if (seed.meshOrigin === 'incremental') specialSave = true;
+    }
+    if (specialSave) notifyOperation({ origin: 'mesh-origin', type: 'info', message: t('mapedit.mesh_origin_incremental_notice') });
     layerTransformState.value.dispose();
     layerTransformState.value = next;
     documentLayerIds = snapshot.map(({ layerId }) => layerId);

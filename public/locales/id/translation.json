@@ -516,6 +516,7 @@
     "success_save": "Berhasil disimpan.",
     "error_duplicate_id": "ID Peta duplikat.\nSilakan ubah ID Peta.",
     "error_saving": "Terjadi kesalahan saat menyimpan.",
+    "mesh_origin_incremental_notice": "Triangulasi ini disimpan sebagai kasus khusus yang bergantung pada riwayat penyuntingan. Jika dibangun ulang dari titik korespondensi yang sama, hasilnya tidak akan strict. Triangulasi diperiksa ulang sebelum setiap penyimpanan.",
     "confirm_layer_delete": "Apakah Anda yakin ingin menghapus sublapisan ini?",
     "confirm_no_save": "Peta telah diubah tetapi belum disimpan.\nApakah Anda ingin menutup tanpa menyimpan?",
     "testerror_too_short": "Jumlah titik korespondensi yang diperlukan untuk uji transformasi terlalu sedikit.",

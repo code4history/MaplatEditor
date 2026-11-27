@@ -496,6 +496,7 @@
     "success_save": "Save succeeded.",
     "error_duplicate_id": "The slug (ID) is already in use.\nPlease change the slug (ID).",
     "error_saving": "Error occurred during save.",
+    "mesh_origin_incremental_notice": "This triangulation was saved as a special case that depends on the editing history. Rebuilding it from the same control points would not give a strict triangulation. It is checked again before each save.",
     "originals": {
       "unsupported_extension": "Unsupported image format (only jpg/jpeg/png are supported). Please save again with a different image format."
     },

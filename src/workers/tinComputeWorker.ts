@@ -28,6 +28,8 @@ async function handle(request: TinWorkerRequest): Promise<unknown> {
       return session.getCompiled(request.payload);
     case 'getSnapshot':
       return session.getSnapshot(request.payload);
+    case 'restore':
+      return session.restore(request.payload);
     case 'finalize':
       return session.finalize(request.payload);
     case 'disposeLayer':

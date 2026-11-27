@@ -172,6 +172,7 @@ function transportOf(session, log) {
     applyEdits: async (req) => { log.push('applyEdits'); return session.applyEdits(req); },
     getCompiled: async (req) => { log.push('getCompiled'); return session.getCompiled(req); },
     getSnapshot: async (req) => { log.push('getSnapshot'); return session.getSnapshot(req); },
+    restore: async (req) => { log.push('restore'); return session.restore(req); },
     finalize: async (req) => { log.push('finalize'); return session.finalize(req); },
     disposeLayer: async (key) => { log.push('disposeLayer'); return session.disposeLayer(key); },
   };
@@ -312,6 +313,7 @@ function backendLikeTransport(session, log) {
     applyEdits: (r, c) => enqueue(c, () => { log.push('applyEdits'); return session.applyEdits(wire(r)).then(wire); }),
     getCompiled: (r, c) => enqueue(c, () => { log.push('getCompiled'); return session.getCompiled(wire(r)).then(wire); }),
     getSnapshot: (r, c) => enqueue(c, () => { log.push('getSnapshot'); return session.getSnapshot(wire(r)).then(wire); }),
+    restore: (r, c) => enqueue(c, () => { log.push('restore'); return session.restore(wire(r)).then(wire); }),
     finalize: (r, c) => enqueue(c, () => { log.push('finalize'); return session.finalize(wire(r)).then(wire); }),
     disposeLayer: (k) => enqueue(undefined, () => session.disposeLayer(k)),
   };
@@ -769,6 +771,168 @@ test('編集が止まって一定時間後に 1 回だけ実行する（編集�
   assert.equal(runs, 1, 'やめたら実行しない');
 });
 
+// ---------------- 5b. 特例の保存の読み直し・帯の差分（Tin の口: restoreMesh・refreshBand・collectIncrementalEvidence）----------------
+/** 清書（finalize で作られる別のインスタンス）だけが strict_error と報告する session。局所更新の網は、本物の Tin。 */
+function sessionWhereFinalizeFails() {
+  const control = { failing: false };
+  class MaybeFailingTin extends Tin {
+    constructor(o) {
+      super(o);
+      this.isFinalizer = control.failing;
+    }
+    getCompiled() {
+      const compiled = super.getCompiled();
+      return this.isFinalizer ? { ...compiled, strict_status: 'strict_error' } : compiled;
+    }
+  }
+  const session = new TinWorkerSession({ createTin: (o) => new MaybeFailingTin(o) });
+  return {
+    session,
+    control,
+    finalize: (req, base) => {
+      control.failing = true;
+      return session.finalize({ request: req, ...(base ? { base } : {}) }).finally(() => { control.failing = false; });
+    },
+  };
+}
+
+/** 局所更新を 1 回当てた層と、その特例の保存の compiled。 */
+async function specialSaved(key = 'sp') {
+  const { session, finalize } = sessionWhereFinalizeFails();
+  const gcps = gridGcps(2026);
+  const req = request({ gcps, layerKey: key });
+  const first = await session.rebuild(req);
+  let edited;
+  let stamp = first.stamp;
+  for (let id = 0; id < gcps.length && !edited; id++) {
+    const base = id === 0 ? first.stamp : (await session.rebuild(req)).stamp;
+    const [x, y] = gcps[id][0];
+    const response = await session.applyEdits({ layerKey: key, edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base, index: 0 });
+    if (response.status === 'patched' && response.patch.mode === 'local') {
+      edited = { ...req, gcps: gcps.map((g, i) => (i === id ? [[x + 3, y + 3], g[1]] : g)) };
+      stamp = response.stamp;
+    }
+  }
+  assert.ok(edited, '局所で済む編集がある');
+  const done = await finalize(edited, stamp);
+  assert.equal(done.decision.reason, 'specialSave');
+  return { session, finalize, edited, done, compiled: done.result[1], stamp };
+}
+
+itest('印のある compiled は、restoreMesh で網を戻せ、全部組み直さずに編集を続けられる（清書の strict_error に戻らない）', async () => {
+  const { edited, compiled } = await specialSaved();
+  assert.equal(compiled.meshOrigin, 'incremental');
+  // 同じ入力を全部組み直すと strict にならない（特例の保存の前提）ことは、別の網の strict_status で表している。ここは、戻す口を確かめる
+  const session = new TinWorkerSession();
+  const restored = await session.restore({ request: { ...edited, layerKey: 'reopen' }, compiled });
+  assert.equal(restored.status, 'ok');
+  assert.ok(restored.stamp && restored.snapshot && restored.snapshot.triangles.length > 0);
+  assert.equal(restored.result[1].meshOrigin, 'incremental', '印は、戻した網から書き出しても残る');
+  assert.equal(restored.result[1].strict_status, 'strict');
+  assert.deepEqual(restored.result[1].points, edited.gcps.map(([f, b]) => [f, b]));
+  assert.deepEqual(session.layerKeys(), ['reopen']);
+  // 続けて編集できる
+  const [x, y] = edited.gcps[14][0];
+  const next = await session.applyEdits({ layerKey: 'reopen', edits: [{ type: 'movePoint', id: 14, forw: [x + 2, y] }], base: restored.stamp, index: 0 });
+  assert.equal(next.status, 'patched');
+  // 戻せないとき（入力が compiled と合わない）は、理由つきで断り、層の網は変えない
+  const wrong = { ...edited, gcps: edited.gcps.map((g, i) => (i === 3 ? [[g[0][0] + 50, g[0][1]], g[1]] : g)) };
+  const failed = await session.restore({ request: { ...wrong, layerKey: 'reopen2' }, compiled });
+  assert.deepEqual(failed, { status: 'failed', reason: 'inputMismatch' });
+  assert.deepEqual(session.layerKeys(), ['reopen'], '失敗した層の網は作らない');
+  // スイッチが切のときは使わない
+  assert.equal((await session.restore({ request: { ...edited, incrementalEdits: undefined, layerKey: 'off' }, compiled })).status, 'failed');
+  // 印の無い（全部組み直しの）compiled も戻せる
+  const clean = await new TinWorkerSession().rebuild(request({ gcps: edited.gcps, layerKey: 'c' }));
+  const again = await new TinWorkerSession().restore({ request: { ...edited, layerKey: 'c2' }, compiled: clean.result[1] });
+  assert.equal(again.status, 'ok');
+  assert.equal(again.result[1].meshOrigin, undefined);
+});
+
+itest('開いた地図の最初の編集は、全部組み直さずに、保存した網から始める（restoreSeed）', async () => {
+  const { edited, compiled } = await specialSaved();
+  const session = new TinWorkerSession();
+  let log = [];
+  const sync = new LayerTinSync(backendLikeTransport(session, log), 'open');
+  const next = clone(edited.gcps);
+  next[14][0] = [next[14][0][0] + 2, next[14][0][1]];
+  const outcome = await sync.refresh(request({ gcps: next }), undefined, { compiled, request: edited });
+  assert.equal(log.includes('rebuild'), false, '全部組み直さない');
+  assert.ok(log.includes('restore'), '保存した網を戻す');
+  assert.notEqual(outcome.kind, 'rebuilt');
+  assert.deepEqual(outcome.result[1].points, next.map(([f, b]) => [f, b]));
+  assert.equal(outcome.result[1].meshOrigin, 'incremental', '印のある網から始めている');
+  assert.ok(sync.display.triangleCount > 0);
+  assert.deepEqual(vertexAndTriangles(sync.display.canonical()), vertexAndTriangles(freshCanonical(session, 'open')));
+  // 作り方が違う（生成設定が変わった）seed は使わず、全部組み直す
+  const other = new LayerTinSync(backendLikeTransport(new TinWorkerSession(), log = []), 'open2');
+  const rebuilt = await other.refresh(request({ gcps: next, tinOptions: { ...V3, strictMode: 'auto' } }), undefined, { compiled, request: edited });
+  assert.deepEqual([rebuilt.kind, rebuilt.reason], ['rebuilt', 'noMesh']);
+  assert.ok(log.includes('rebuild') && !log.includes('restore'));
+  // 戻せなかった seed は、全部組み直しに落ちる
+  log = [];
+  const wrong = new LayerTinSync(backendLikeTransport(new TinWorkerSession(), log), 'open3');
+  const fell = await wrong.refresh(request({ gcps: next }), undefined, { compiled, request: { ...edited, gcps: edited.gcps.slice(0, 20) } });
+  assert.equal(fell.kind, 'rebuilt');
+  assert.ok(log.includes('restore') && log.includes('rebuild'));
+});
+
+itest('特例の保存の準備で作り直した帯の差分は、表示用の網へ当たり、網と一致する。印は seed した三角網にも残る', async () => {
+  // Editor の同期（LayerTinSync）で、局所更新を当ててから清書する
+  const syncSession = sessionWhereFinalizeFails();
+  const syncSide = new LayerTinSync(backendLikeTransport(syncSession.session, []), 'sync');
+  const original = gridGcps(2026);
+  // 局所で済む点を探して動かす
+  let moved = false;
+  await syncSide.refresh(request({ gcps: original }));
+  for (let id = 0; id < original.length && !moved; id++) {
+    const trial = clone(original);
+    trial[id][0] = [trial[id][0][0] + 3, trial[id][0][1] + 3];
+    const out = await syncSide.refresh(request({ gcps: trial }));
+    if (out.kind === 'patched') { moved = trial; }
+    else await syncSide.refresh(request({ gcps: original }));
+  }
+  assert.ok(moved);
+  syncSession.control.failing = true;
+  const done = await syncSide.finalize(request({ gcps: moved }));
+  syncSession.control.failing = false;
+  assert.equal(done.decision.reason, 'specialSave');
+  assert.deepEqual(done.stamp, syncSide.stamp, '帯を作り直した後の版を取り込む');
+  assert.deepEqual(vertexAndTriangles(syncSide.display.canonical()), vertexAndTriangles(freshCanonical(syncSession.session, 'sync')), '帯の差分を当てた表示用の網が、網と一致する');
+  // 保存した compiled から Tin（seed）を作っても、印が残る（保存の経路は、Tin#getCompiled）
+  const layer = layerOf();
+  const final = await finalizeEditorLayerTin({ layer, layerId: 'main', isCurrent: () => true }, 0, async () => ({
+    result: [0, done.result[1], null], decision: done.decision, replaced: false,
+  }));
+  assert.equal(final.tin.getCompiled().meshOrigin, 'incremental');
+  assert.equal(final.tin.meshOrigin, 'incremental');
+});
+
+test('buildEditorLayerTin: 開いた地図の保存済みの三角網（restoreSeed）を、編集の最初の依頼の refresh へ渡す', async () => {
+  const layer = layerOf();
+  const seen = [];
+  const compiled = new Tin(V3);
+  compiled.setWh([100, 100]);
+  compiled.setPoints(layer.gcps.map(([p, g]) => [p, g]));
+  await compiled.updateTinAsync().catch(() => undefined);
+  const result = [0, compiled.getCompiled(), null];
+  const options = {
+    incrementalEdits: true,
+    refresh: async (input, _isCurrent, seed) => { seen.push(seed); return { kind: 'patched', result }; },
+    restoreSeed: (layerId) => (layerId === 'main' ? { compiled: { saved: true }, layer } : undefined),
+  };
+  const base = { layer, layerId: 'main', kind: 'edit', reqGen: 1, isCurrent: () => true };
+  await buildEditorLayerTin(base, 0, async () => assert.fail('使わない'), options);
+  assert.equal(seen[0].compiled.saved, true);
+  assert.equal(seen[0].request.layerKey, 'main');
+  assert.equal(seen[0].request.gcps.length, layer.gcps.length, '層の文書から作った依頼（保存したときの入力）');
+  // 採用では、seed を使わない
+  seen.length = 0;
+  await buildEditorLayerTin({ ...base, kind: 'adoption', adoptionId: 1, signal: new AbortController().signal }, 0,
+    async () => [0, compiled.getCompiled(), null], options);
+  assert.deepEqual(seen, []);
+});
+
 // ---------------- 6. 保存される地図（設定が切のとき今と同じ・入のときの保存）----------------
 test('配線: 編集が止まって 1 秒後・保存の前・層を消したとき・地図を開き直したときの後始末が、MapEdit につながっている', async () => {
   const mapEdit = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
@@ -782,6 +946,10 @@ test('配線: 編集が止まって 1 秒後・保存の前・層を消したと
   assert.match(mapEdit, /function createLayerTransformState\(snapshot: LayerTransformSnapshot, initialTins\?: MapEditTinSeed\) \{\n\s+releaseAllLayerTins\(\);/);
   assert.match(mapEdit, /await layerTransformState\.value\.finalizeAll\(\);\n\s+if \(!tinObjects\.value\[0\]/, 'タイルを作る前にも清書する');
   assert.match(mapEdit, /const meshRenderer = new TinMeshRenderer/);
+  assert.match(mapEdit, /const restoreSeeds = new Map<string, \{ tin: Tin; layer: TransformLayer \}>\(\);/, '開いた地図の保存済みの三角網を覚える');
+  assert.match(mapEdit, /restoreSeed: \(layerId\) => \{\n\s+const seed = restoreSeeds\.get\(layerId\);\n\s+restoreSeeds\.delete\(layerId\);/, '1 回使ったら外す');
+  assert.match(mapEdit, /seed\.meshOrigin === 'incremental'\) specialSave = true;/);
+  assert.match(mapEdit, /t\('mapedit\.mesh_origin_incremental_notice'\)/, '印のある地図には、特例の保存であることを知らせる');
   assert.match(mapEdit, /if \(!keepTriangles\) meshRenderer\.renderAll\(displayMesh\)/, '三角形は表示用の網から描く');
   const model = await readFile(new URL('../src/composables/useLayerTransformState.ts', import.meta.url), 'utf8');
   assert.match(model, /保存するのは、全部組み直した三角網/);

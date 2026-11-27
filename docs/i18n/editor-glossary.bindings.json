@@ -3534,6 +3534,12 @@
         "ja"
       ]
     },
+    "mapedit.mesh_origin_incremental_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.testerror_outside": {
       "by": [
         "en",
@@ -4080,6 +4086,12 @@
       ]
     },
     "mapedit.error_saving": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.mesh_origin_incremental_notice": {
       "by": [
         "en",
         "ja"
