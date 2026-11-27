@@ -4661,5 +4661,95 @@
         "ja"
       ]
     }
-  }
+  },
+  "crs": {},
+  "crs-estimation": {},
+  "crs-candidate": {},
+  "crs-score": {},
+  "transform-setup": {},
+  "transform-setup-a": {},
+  "transform-setup-b": {},
+  "transform-setup-c": {},
+  "transform-setup-legacy": {},
+  "world-file": {},
+  "tin": {
+    "appedit.preview.compiled_required": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "corresponding-line": {
+    "mapedit.context_correspond_line_cancel": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.context_correspond_line_end": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.context_correspond_line_remove": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.context_correspond_line_start": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.context_marker_on_line": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edge_error_not_found": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.edge_error_zero_length": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.line_selected_already": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.map_error_crossing": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.testerror_line": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    }
+  },
+  "bend-point": {},
+  "proportional-point": {},
+  "supplement-point": {},
+  "extrapolation-quadrilateral": {},
+  "auxiliary-vertex": {},
+  "residual": {},
+  "global-model": {},
+  "recommendation": {},
+  "adoption": {},
+  "fan-fallback": {}
 }

@@ -88,6 +88,15 @@
           "additionalProperties": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/phrase" } }
         },
         "additionalBindings": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "pendingKeys": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/nonEmpty" } },
+        "pendingTexts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": { "$ref": "#/$defs/lang" },
+            "additionalProperties": { "$ref": "#/$defs/nonEmpty" }
+          }
+        },
         "locales": {
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/lang" },
