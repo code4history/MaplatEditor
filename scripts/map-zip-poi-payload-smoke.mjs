@@ -25,7 +25,6 @@
 // 大きい画像はゼロ画素の BMP（デコードできる実画像。asset 登録が jimp でデコードするため）で作る。
 // 失敗しても途中で止めず、全部の結果を出してから exit 1 にする。
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';

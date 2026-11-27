@@ -12,7 +12,6 @@
 // 実行方法: node scripts/map-zip-limits-smoke.mjs。ZIP は小さく作り、上限は extractZip の第 2 引数で小さく渡す。
 // 失敗しても途中で止めず、全部の結果を出してから exit 1 にする。
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';

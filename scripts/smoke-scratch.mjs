@@ -7,6 +7,7 @@
  *   finally より先に走る・そもそも片付け記述がない、という理由で `.tmp-smoke/` に残り続けた
  *   （1 回の全数実行で最大 13GB が残留した実測）。ここへ寄せることで残置を防ぐ。
  * - 失敗の調査に使う場合は KEEP_SMOKE_TMP=1 を付ける。消さず、残した場所を表示する。
+ *   keepSmokeScratch(dir) でも 1 つだけ残せる（export-zip-writer-smoke の KEEP 系環境変数用）。
  * - 打ち切り（run-smokes の 600 秒タイムアウト）は SIGKILL のため片付けられない。
  *   溜まった分は scripts/clean-smoke-tmp.mjs（`smoke:clean`）で消す。
  */
@@ -41,7 +42,7 @@ function cleanupSync(reason) {
   }
   for (const dir of dirs) {
     try {
-      rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     } catch (e) {
       console.error(`[smoke-scratch] 片付けに失敗（${reason}）: ${dir}: ${e.message}`);
     }
@@ -54,12 +55,21 @@ function installHandlers() {
   // process.exit()・例外・イベントループの枯渇のいずれでも 'exit' は走る（実測）。
   // ただし 'exit' 内は同期しか走らせられないので rmSync で消す。
   process.on('exit', () => cleanupSync('exit'));
-  // SIGINT 等は既定では 'exit' を経由せずに死ぬ（実測）ので、明示的に受けて消してから終了する。
+  // SIGINT 等は既定では 'exit' を経由せずに死ぬ（実測）ので、明示的に受けて消す。
+  // once で登録し、呼ばれた時点で自分は外れている。ほかに同じシグナルのリスナが無ければ
+  // 本来のシグナル終了に戻す（POSIX は process.kill の再送、Windows は process.exit）。
+  // ほかのリスナが在るときは終わり方を任せて、exit も呼ばない。
   const signals = { SIGINT: 130, SIGHUP: 129, SIGTERM: 143 };
   for (const [sig, code] of Object.entries(signals)) {
-    process.on(sig, () => {
+    process.once(sig, () => {
       cleanupSync(sig);
-      process.exit(code);
+      if (process.listenerCount(sig) > 0) return;
+      if (process.platform === 'win32') {
+        // Windows はシグナルを再送しても本来の終了にできないため、終了コードで代える
+        process.exit(code);
+      } else {
+        process.kill(process.pid, sig);
+      }
     });
   }
 }
@@ -74,7 +84,23 @@ export async function makeSmokeScratch(prefix) {
   installHandlers();
   await mkdir(smokeScratchRoot, { recursive: true });
   const dir = await mkdtemp(path.join(smokeScratchRoot, prefix));
+  // prefix に ../ などが入って .tmp-smoke/ の直下以外に作られた場合、登録せず（終了時の
+  // 片付けで外を消さないために）エラーにする
+  if (path.resolve(path.dirname(dir)) !== path.resolve(smokeScratchRoot)) {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    throw new Error(`[smoke-scratch] 作業フォルダが .tmp-smoke/ の直下にない: ${dir}`);
+  }
   created.add(dir);
   if (keepScratch()) console.error(`[smoke-scratch] KEEP_SMOKE_TMP により残す予定: ${dir}`);
   return dir;
+}
+
+/**
+ * makeSmokeScratch が作ったフォルダを終了時の片付けから外して残す（残した場所を表示する）。
+ * 指定したフォルダ以外は通常どおり消える。KEEP_SMOKE_TMP=1 なら全部残る。
+ * @param {string} dir makeSmokeScratch が返したパス
+ */
+export function keepSmokeScratch(dir) {
+  created.delete(dir);
+  console.error(`[smoke-scratch] keepSmokeScratch により残置: ${dir}`);
 }
