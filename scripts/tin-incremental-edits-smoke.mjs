@@ -899,6 +899,40 @@ itest('follow の地図でも、特例の保存・restoreMesh・開いた後の�
   assert.equal(out.result[1].meshOrigin, 'incremental');
 });
 
+itest('follow の地図で必須エッジ（折れ点つき）があっても、特例の保存と restoreMesh が通る（対応線は内部軸の入力）', async () => {
+  const { session, finalize } = sessionWhereFinalizeFails();
+  const gcps = followGcps(2026);
+  // 対応線の折れ点は、Tin の内部軸（地理面の Y を反転した値）で渡す（buildEditorLayerTin の reverseFollowEdgeAxis と同じ）
+  const a = gcps[8];
+  const b = gcps[14];
+  // 両面で、違う比の位置に折れ点を置く（同じ比だと、1 つの中継点にまとまる）
+  const at = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+  const mid = at(a[0], b[0], 0.4);
+  const midGeo = at(a[1], b[1], 0.6);
+  const edges = [[[mid], [[midGeo[0], -midGeo[1]]], [8, 14]]];
+  const req = request({ gcps, edges, layerKey: 'folE', tinOptions: FOLLOW });
+  const first = await session.rebuild(req);
+  assert.equal(typeof first.result[1], 'object');
+  assert.equal(first.result[1].strict_status, 'strict');
+  let edited;
+  let stamp;
+  for (let id = 0; id < gcps.length && !edited; id++) {
+    if (id === 8 || id === 14) continue;
+    const base = id === 0 ? first.stamp : (await session.rebuild(req)).stamp;
+    const [x, y] = gcps[id][0];
+    const response = await session.applyEdits({ layerKey: 'folE', edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base, index: 0 });
+    if (response.status === 'patched' && response.patch.mode === 'local') {
+      edited = { ...req, gcps: gcps.map((g, i) => (i === id ? [[x + 3, y + 3], g[1]] : g)) };
+      stamp = response.stamp;
+    }
+  }
+  assert.ok(edited);
+  const done = await finalize(edited, stamp);
+  assert.deepEqual(done.decision, { source: 'incremental', reason: 'specialSave' });
+  const restored = await new TinWorkerSession().restore({ request: { ...edited, layerKey: 'folE2' }, compiled: done.result[1] });
+  assert.equal(restored.status, 'ok', `restoreMesh: ${restored.reason ?? ''}`);
+});
+
 itest('world file 外周の網も、編集の後に帯が古くならず、特例の保存の対象になる', async () => {
   const worldFile = { xScale: 100, xSkew: 0, xOrigin: 500, ySkew: 0, yScale: -100, yOrigin: 1000 };
   const WF = { useV2Algorithm: false, yaxisMode: 'invert', outerTransform: 'worldFile', worldFile, strictMode: 'strict' };
