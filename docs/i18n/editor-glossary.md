@@ -706,7 +706,7 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 | id | TIN + ekstrapolasi global | TIN + ekstrapolasi global、B: TIN + ekstrapolasi global | B: TIN + model global、B: CRS + TIN、TIN + model global | — | — |
 | ja | 三角網＋大域外挿 | 三角網＋大域外挿、B: 三角網＋大域外挿 | B: 三角網＋大域モデル、三角網＋大域モデル、B: CRS＋三角網 | — | — |
 | ko | TIN + 전역 외삽 | TIN + 전역 외삽、B: TIN + 전역 외삽 | B: TIN + 전역 모델、TIN + 전역 모델、B: CRS + TIN | — | — |
-| th | TIN + การคาดคะเนแบบโกลบอล | TIN + การคาดคะเนแบบโกลบอล、B: TIN + การคาดคะเนแบบโกลบอล | B: TIN + แบบจำลองโกลบอล、TIN + แบบจำลองโกลบอล、B: CRS + TIN | การตั้งค่าการแปลง | — |
+| th | TIN + การประมาณค่านอกช่วงแบบโกลบอล | TIN + การประมาณค่านอกช่วงแบบโกลบอล、B: TIN + การประมาณค่านอกช่วงแบบโกลบอล | B: TIN + แบบจำลองโกลบอล、TIN + แบบจำลองโกลบอล、B: CRS + TIN、TIN + การคาดคะเนแบบโกลบอล、B: TIN + การคาดคะเนแบบโกลบอล | การตั้งค่าการแปลง | — |
 | vi | TIN + ngoại suy toàn cục | TIN + ngoại suy toàn cục、B: TIN + ngoại suy toàn cục | TIN + mô hình toàn cục、B: TIN + mô hình toàn cục、B: CRS + TIN | — | — |
 | zh | TIN + 全局外推 | TIN + 全局外推、B: TIN + 全局外推、三角网 + 全局外推 | B: TIN + 全局模型、B: CRS + TIN、TIN + 全局模型 | — | — |
 | zh-TW | TIN + 全域外插 | TIN + 全域外插、B: TIN + 全域外插 | B: TIN + 全域模型、TIN + 全域模型、B: CRS + TIN | 轉換設定 | — |
@@ -726,7 +726,7 @@ CRS・world file・三角網・外側の変換を組み合わせた変換の形�
 | id | TIN + ekstrapolasi kipas | TIN + ekstrapolasi kipas、C: TIN + ekstrapolasi kipas、C: TIN + kipas | C: CRS + TIN | — | — |
 | ja | 三角網＋扇形外挿 | 三角網＋扇形外挿、C: 三角網＋扇形外挿、C: 三角網＋扇形、三角網＋扇形 | C: CRS＋三角網 | — | — |
 | ko | TIN + 부채꼴 외삽 | TIN + 부채꼴 외삽、C: TIN + 부채꼴 외삽、C: TIN + 부채꼴、TIN + 부채꼴 | C: CRS + TIN | — | — |
-| th | TIN + การคาดคะเนแบบรูปพัด | TIN + การคาดคะเนแบบรูปพัด、C: TIN + การคาดคะเนแบบรูปพัด、C: TIN + รูปพัด | C: CRS + TIN | การตั้งค่าการแปลง | — |
+| th | TIN + การประมาณค่านอกช่วงแบบรูปพัด | TIN + การประมาณค่านอกช่วงแบบรูปพัด、C: TIN + การประมาณค่านอกช่วงแบบรูปพัด、C: TIN + รูปพัด | C: CRS + TIN、TIN + การคาดคะเนแบบรูปพัด、C: TIN + การคาดคะเนแบบรูปพัด | การตั้งค่าการแปลง | — |
 | vi | TIN + ngoại suy hình quạt | TIN + ngoại suy hình quạt、C: TIN + ngoại suy hình quạt、TIN + hình quạt、C: TIN + hình quạt | C: CRS + TIN | — | — |
 | zh | TIN + 扇形外推 | TIN + 扇形外推、C: TIN + 扇形外推、三角网 + 扇形外推、C: TIN + 扇形 | C: CRS + TIN | — | — |
 | zh-TW | TIN + 扇形外插 | TIN + 扇形外插、C: TIN + 扇形外插、C: TIN + 扇形、TIN + 扇形、TIN + 扇形外推 | C: CRS + TIN | 轉換設定 | — |
@@ -886,7 +886,7 @@ GCP の外側を受け持つ範囲の枠。内側は三角網、外側は大域�
 | id | segi empat ekstrapolasi | segi empat ekstrapolasi、segiempat ekstrapolasi | — | segi empat bantu | — |
 | ja | 外挿四辺形 | 外挿四辺形 | — | — | — |
 | ko | 외삽 사각형 | 외삽 사각형、외삽 사변형 | — | 외삽 사각 영역 | — |
-| th | รูปสี่เหลี่ยมการอนุมาน | รูปสี่เหลี่ยมการอนุมาน、รูปสี่เหลี่ยมสำหรับการอนุมาน | รูปสี่เหลี่ยมคาดคะเน、รูปสี่เหลี่ยมสำหรับการคาดคะเน | — | — |
+| th | รูปสี่เหลี่ยมประมาณค่านอกช่วง | รูปสี่เหลี่ยมประมาณค่านอกช่วง、รูปสี่เหลี่ยมสำหรับการประมาณค่านอกช่วง | รูปสี่เหลี่ยมคาดคะเน、รูปสี่เหลี่ยมสำหรับการคาดคะเน、รูปสี่เหลี่ยมการอนุมาน、รูปสี่เหลี่ยมสำหรับการอนุมาน | — | — |
 | vi | tứ giác ngoại suy | tứ giác ngoại suy、hình tứ giác ngoại suy | — | tứ giác ngoại vi | — |
 | zh | 外推四边形 | 外推四边形、外插四边形 | — | 外延四边形、边界四边形 | — |
 | zh-TW | 外插四邊形 | 外插四邊形、外推四邊形 | — | — | — |
@@ -1006,7 +1006,7 @@ score と閾値から示す推奨。採用を強制するものではない
 | id | beralih ke mode kipas | beralih ke mode kipas、beralih ke ekstrapolasi kipas、ekstrapolasi kipas | — | — | — |
 | ja | 扇形外挿への切り替え | 扇形外挿への切り替え、扇形外挿に切り替え、扇形への切り替え、扇形に切り替え、扇形（従来の外挿）に切り替え | — | 降格、フォールバック | — |
 | ko | 부채꼴로 전환 | 부채꼴로 전환、부채꼴 모드로 전환、부채꼴 외삽 | — | — | — |
-| th | สลับเป็นโหมดรูปพัด | สลับเป็นโหมดรูปพัด、สลับเป็นการคาดคะเนแบบรูปพัด、การคาดคะเนแบบรูปพัด | — | — | — |
+| th | สลับเป็นโหมดรูปพัด | สลับเป็นโหมดรูปพัด、สลับเป็นการประมาณค่านอกช่วงแบบรูปพัด、การประมาณค่านอกช่วงแบบรูปพัด | สลับเป็นการคาดคะเนแบบรูปพัด、การคาดคะเนแบบรูปพัด | — | — |
 | vi | chuyển sang chế độ hình quạt | chuyển sang chế độ hình quạt、chuyển sang ngoại suy hình quạt、ngoại suy hình quạt | — | — | — |
 | zh | 切换为扇形模式 | 切换为扇形模式、切换为扇形外推 | — | — | — |
 | zh-TW | 切換為扇形模式 | 切換為扇形模式、切換為扇形外推 | — | — | — |
