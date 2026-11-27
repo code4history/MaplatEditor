@@ -303,6 +303,8 @@
     "same_key_warning": "Kunci editor dan kunci publikasi default untuk {{provider}} sama. Disarankan untuk menerbitkan kunci yang terpisah.",
     "update_check": "Periksa pembaruan saat mulai",
     "update_check_desc": "Anda akan diberi tahu jika ada versi baru. Unduhan hanya dilakukan jika Anda memilih \"Perbarui\". Di Linux, halaman rilis akan dibuka.",
+    "incremental_edits": "Pembaruan TIN inkremental (eksperimental)",
+    "incremental_edits_desc": "Saat titik korespondensi diedit, hanya area triangulasi yang berubah yang diperbarui. Bersifat eksperimental dan nonaktif secara default. Pada versi ini, peta yang disimpan sama baik opsi ini aktif maupun tidak.",
     "mcp_tab": "Server MCP",
     "mcp_enabled": "Aktifkan server MCP",
     "mcp_status_stopped": "Berhenti",

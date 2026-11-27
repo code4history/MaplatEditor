@@ -11,6 +11,7 @@ export const RENDERER_SETTINGS_KEYS: ReadonlySet<string> = new Set([
   'jpegDecodeMaxMemoryMB',
   'jpegDecodeMaxResolutionMP',
   'updateCheckEnabled',
+  'incrementalEdits',
   'editorGoogleApiKey',
   'editorMapboxToken',
   'defaultPublishGoogleApiKey',

@@ -303,6 +303,8 @@
     "same_key_warning": "{{provider}}의 에디터용 키와 기본 공개용 키가 동일합니다. 별도의 키를 발급하는 것을 권장합니다.",
     "update_check": "시작할 때 업데이트 확인",
     "update_check_desc": "새 버전이 있으면 알려 드립니다. \"업데이트\"를 선택할 때만 다운로드합니다. Linux에서는 릴리스 페이지를 엽니다.",
+    "incremental_edits": "TIN 증분 갱신 (실험 단계)",
+    "incremental_edits_desc": "대응점을 편집할 때 삼각망에서 바뀐 범위만 갱신합니다. 실험 단계이며 기본값은 꺼짐입니다. 이 버전에서는 켜든 끄든 저장되는 지도가 같습니다.",
     "mcp_tab": "MCP 서버",
     "mcp_enabled": "MCP 서버 켜기",
     "mcp_status_stopped": "정지됨",

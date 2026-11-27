@@ -303,6 +303,8 @@
     "same_key_warning": "La clave del editor y la clave de publicación predeterminada de {{provider}} son idénticas. Se recomienda emitir una clave distinta.",
     "update_check": "Buscar actualizaciones al iniciar",
     "update_check_desc": "Se le avisará cuando haya una nueva versión. Solo se descarga si elige «Actualizar». En Linux se abre la página de la versión.",
+    "incremental_edits": "Actualización incremental de la TIN (experimental)",
+    "incremental_edits_desc": "Al editar puntos de control, actualiza solo la zona modificada de la triangulación. Es experimental y está desactivada por defecto. En esta versión, los mapas guardados son iguales con la opción activada o desactivada.",
     "mcp_tab": "Servidor MCP",
     "mcp_enabled": "Activar el servidor MCP",
     "mcp_status_stopped": "Detenido",

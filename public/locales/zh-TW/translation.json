@@ -303,6 +303,8 @@
     "same_key_warning": "{{provider}} 的編輯器金鑰與預設發布金鑰相同。建議發行另一組金鑰。",
     "update_check": "啟動時檢查更新",
     "update_check_desc": "有新版本時會通知您。僅在您選擇「更新」時才會下載。在 Linux 上會開啟發行版頁面。",
+    "incremental_edits": "三角網增量更新（試驗）",
+    "incremental_edits_desc": "編輯控制點時，只更新三角網中有變動的範圍。目前為試驗功能，預設關閉。在此版本中，無論開啟或關閉，儲存的地圖都相同。",
     "mcp_tab": "MCP 伺服器",
     "mcp_enabled": "啟用 MCP 伺服器",
     "mcp_status_stopped": "已停止",

@@ -66,6 +66,7 @@ import {
 import { UndoStack } from '../services/editorUndoStack';
 import { useHistorySuppression } from '../composables/useHistorySuppression';
 import { buildEditorLayerTin, editorComputeBackend } from '../services/editorComputeBackend';
+import { normalizeIncrementalEdits } from '../utils/incrementalEditsSetting';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
@@ -1047,9 +1048,22 @@ function applyLayerSnapshotToDocuments(snapshot: LayerTransformSnapshot): void {
     reflectActiveLayer();
 }
 
-function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typeof buildEditorLayerTin> {
+// 三角網の差分更新（設定 incrementalEdits。試験段階で既定は切）。依頼のたびに読む（設定画面での切り替えを再読み込みなしで拾う）。
+// 切れていれば、依頼は今までと同じ形で、保存される三角網も同じ。
+async function readIncrementalEditsSetting(): Promise<boolean> {
+    const settings = (window as any).settings;
+    if (!settings?.get) return false;
+    try {
+        return normalizeIncrementalEdits(await settings.get('incrementalEdits'));
+    } catch {
+        return false;
+    }
+}
+
+async function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typeof buildEditorLayerTin> {
+    const incrementalEdits = await readIncrementalEditsSetting();
     return buildEditorLayerTin(request, layerIds.value.indexOf(request.layerId),
-        (input, isCurrent) => editorComputeBackend.updateTin(input, isCurrent));
+        (input, isCurrent) => editorComputeBackend.updateTin(input, isCurrent), { incrementalEdits });
 }
 
 async function adoptCrsEstimation(selection: CrsAdoptionSelection) {

@@ -1990,6 +1990,12 @@
         "en",
         "ja"
       ]
+    },
+    "settings.incremental_edits_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
     }
   },
   "basemap": {
@@ -3563,6 +3569,12 @@
         "en",
         "ja"
       ]
+    },
+    "settings.incremental_edits_desc": {
+      "by": [
+        "en",
+        "ja"
+      ]
     }
   },
   "bibliography": {
@@ -4170,6 +4182,12 @@
       ]
     },
     "settings.confirm_close_no_save": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "settings.incremental_edits_desc": {
       "by": [
         "en",
         "ja"

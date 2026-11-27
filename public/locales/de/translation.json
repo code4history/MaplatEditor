@@ -303,6 +303,8 @@
     "same_key_warning": "Der Editor-Schlüssel und der Standard-Veröffentlichungsschlüssel für {{provider}} sind identisch. Es wird empfohlen, einen separaten Schlüssel auszustellen.",
     "update_check": "Beim Start nach Updates suchen",
     "update_check_desc": "Sie werden benachrichtigt, wenn eine neue Version verfügbar ist. Heruntergeladen wird nur, wenn Sie „Aktualisieren“ wählen. Unter Linux wird die Release-Seite geöffnet.",
+    "incremental_edits": "Inkrementelle TIN-Aktualisierung (experimentell)",
+    "incremental_edits_desc": "Aktualisiert beim Bearbeiten von Passpunkten nur den geänderten Bereich der Dreiecksvermaschung. Experimentell und standardmäßig aus. In dieser Version sind gespeicherte Karten mit und ohne diese Option identisch.",
     "mcp_tab": "MCP-Server",
     "mcp_enabled": "MCP-Server einschalten",
     "mcp_status_stopped": "Angehalten",
