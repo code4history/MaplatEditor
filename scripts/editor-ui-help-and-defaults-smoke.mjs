@@ -165,11 +165,12 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
 //   BaseMapEdit +1（Google の地図の帰属表記を入力できない理由）∴ 12
 //   MapEdit +3（IIIF から配信する地図の大きさの決まり方・画像の登録とタイルの URL を使えない理由）∴ 25
 //   BaseMapEdit +1（Google の地図のデータの帰属表記を入力できない理由）∴ 13
+//   MapEdit +1（CRS を推定できない理由・J6-T5a）∴ 26
 // ---------------------------------------------------------------------------
 {
   const cases = [
     [APP_EDIT, appEditVue, 15, "S3"],
-    [MAP_EDIT, mapEditVue, 25, "S4"],
+    [MAP_EDIT, mapEditVue, 26, "S4"],
     [BASE_MAP_EDIT, baseMapEditVue, 13, "S5"],
   ];
   for (const [rel, source, expected, label] of cases) {
@@ -187,6 +188,7 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
   // Google の地図の帰属表記を入力できない理由で +1 ∴ 75（BaseMapEdit）
   // IIIF から配信する地図の欄の説明・使えない理由で +4 ∴ 79（MapEdit 3・AppSourceEditor 1）
   // Google の地図のデータの帰属表記を入力できない理由で +1 ∴ 80（BaseMapEdit）
+  // J6-T5a: CRS 推定パネル 6 + MapEdit の推定ボタン無効理由 1 で +7 ∴ 87
   let total = 0;
   const walk = async (dir) => {
     for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -196,8 +198,8 @@ const defaultHttpBlock = extractDefaultAppHttpSettings(appEditVue, await readSrc
     }
   };
   await walk(path.join(projectRoot, "src"));
-  assert.equal(total, 80, `S3-S5: src 全体の <ContextHelp タグ数は 80 であること（上の注記の 56 + UI 文法の 17 + #85 の 1 + Google の帰属表記の 2 + IIIF の 4） (got ${total})`);
-  console.log("  [S3-S5] ContextHelp タグ数 AppEdit 15 / MapEdit 25 / BaseMapEdit 13 / src 計 80: PASS");
+  assert.equal(total, 87, `S3-S5: src 全体の <ContextHelp タグ数は 87 であること（上の注記の 56 + UI 文法の 17 + #85 の 1 + Google の帰属表記の 2 + IIIF の 4 + J6-T5a の 7） (got ${total})`);
+  console.log("  [S3-S5] ContextHelp タグ数 AppEdit 15 / MapEdit 26 / BaseMapEdit 13 / src 計 87: PASS");
 }
 
 // S4 続き: 旧 <p class="text-muted small"> の merc.tab_description が残っていない
