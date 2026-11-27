@@ -65,8 +65,11 @@ import {
 } from '../utils/editorLanguages';
 import { UndoStack } from '../services/editorUndoStack';
 import { useHistorySuppression } from '../composables/useHistorySuppression';
-import { buildEditorLayerTin, editorComputeBackend } from '../services/editorComputeBackend';
+import { buildEditorLayerTin, editorComputeBackend, finalizeEditorLayerTin } from '../services/editorComputeBackend';
 import { normalizeIncrementalEdits } from '../utils/incrementalEditsSetting';
+import { TinMeshRenderer } from '../utils/tinMeshRenderer';
+import { createIdleRunner } from '../utils/idleRunner';
+import type { TinMeshSide } from '../utils/tinMeshRenderer';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
 import { useInitialDraftPersist } from '../composables/useInitialDraftPersist';
@@ -97,7 +100,7 @@ import {
     transformMercatorToXy as transformMercatorToXyIn, transformXyToMercator as transformXyToMercatorIn,
     type LayerCoordTarget,
 } from '../utils/layerCoordTransform';
-import { compiledGeoJsonToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
+import { compiledGeoJsonToMercator, compiledPointToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
 import {
     compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
@@ -117,7 +120,8 @@ import { Tile, Group } from 'ol/layer';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Style, Icon } from 'ol/style';
-import { LineString } from 'ol/geom';
+import { LineString, Polygon } from 'ol/geom';
+import OlFeature from 'ol/Feature';
 import { transform } from 'ol/proj';
 import { useGcpAutoRange } from '../composables/useGcpAutoRange';
 import { navigateBackToList } from '../utils/listBackNavigation';
@@ -908,10 +912,65 @@ const commitHistorySnapshot = () => {
     journal('commit', mergeOrigin(pending, ['(direct)']));
 };
 
+// ---- 三角網の差分更新（設定 incrementalEdits。MaplatTin#100）----
+// 局所更新の網から書き出した三角網（保存の前に清書が要るもの）を持つ層。全部組み直した結果が入ると外れる。
+const incrementalOrigins = new Set<string>();
+// 編集が止まってから清書するまでの時間（設計書 §9.3 の 3）
+const INCREMENTAL_FINALIZE_IDLE_MS = 1000;
+const displaySubscriptions = new Map<string, () => void>();
+// 設定 incrementalEdits は、画面を開いたときに 1 回だけ読んで持つ（依頼のたびに IPC で読まない）。設定画面での切り替えは、
+// 設定画面から戻ってこの画面を開き直したときに効く。
+const incrementalEditsSetting: Promise<boolean> = readIncrementalEditsSetting();
+// 三角網の網を描く部品。表示用の網（worker が持つ網の写し）の差分を、地図の上の三角形へ当てる
+const meshTriangleStyle = haloLineStyles('blue', 1.5, { fill: 'rgba(0, 0, 255, 0.05)', outline: false });
+const meshRenderer = new TinMeshRenderer<OlFeature>({
+    forwToMap: (position) => illstSource ? illstSource.xy2SysCoord(position) as number[] : false,
+    bakwToMap: (position) => {
+        const tin = tinObject.value;
+        return compiledPointToMercator(position, typeof tin === 'object' && tin ? tin.yaxisMode : undefined, activeLayerCrs.value);
+    },
+    createPolygon: (_side: TinMeshSide, ring) => {
+        const feature = new OlFeature({ geometry: new Polygon([ring]) });
+        feature.setStyle(meshTriangleStyle);
+        return feature;
+    },
+    add: (side, features) => (side === 'forw' ? illstJsonSource : mercJsonSource)?.addFeatures(features),
+    remove: (side, features) => {
+        const source = side === 'forw' ? illstJsonSource : mercJsonSource;
+        for (const feature of features) source?.removeFeature(feature);
+    },
+});
+
+async function finalizeIncrementalLayer(layer: TransformLayer, layerId: string, isCurrent: () => boolean) {
+    const { tin, diagnostics } = await finalizeEditorLayerTin(
+        { layer, layerId, isCurrent }, layerIds.value.indexOf(layerId),
+        (input, current) => editorComputeBackend.finalize(input, current), { incrementalEdits: true },
+    );
+    return { tin, diagnostics };
+}
+
+/** 層が文書から無くなった（削除・履歴の復元）。worker の網と、表示用の網の購読を捨てる。 */
+function releaseLayerTin(layerId: string) {
+    incrementalOrigins.delete(layerId);
+    displaySubscriptions.get(layerId)?.();
+    displaySubscriptions.delete(layerId);
+    void editorComputeBackend.disposeLayer(layerId);
+}
+
+/** 地図を開き直したとき: 前の地図の層の網（同じ層の id で残っている）を、全部捨てる。 */
+function releaseAllLayerTins() {
+    incrementalOrigins.clear();
+    for (const unsubscribe of displaySubscriptions.values()) unsubscribe();
+    displaySubscriptions.clear();
+    meshRenderer.forget();
+    void editorComputeBackend.disposeAllLayers();
+}
+
 type MapEditTin = Tin | string;
 type MapEditTinSeed = ReadonlyMap<string, { tin: MapEditTin; diagnostics?: BoundaryDiagnostics }>;
 
 function createLayerTransformState(snapshot: LayerTransformSnapshot, initialTins?: MapEditTinSeed) {
+    releaseAllLayerTins();
     return useLayerTransformState<MapEditTin, BoundaryDiagnostics, CrsAdoptionSelection>(snapshot, {
         history: {
             commit: (layers) => {
@@ -927,6 +986,11 @@ function createLayerTransformState(snapshot: LayerTransformSnapshot, initialTins
         },
         buildTin: buildTinForLayerRequest,
         prepareAdoption: prepareCrsAdoption,
+        // 三角網の差分更新（設定 incrementalEdits）: 局所更新で済ませた層は、編集が止まって 1 秒後と保存の前に清書する
+        finalize: ({ layer, layerId, isCurrent }) => finalizeIncrementalLayer(layer, layerId, isCurrent),
+        needsFinalize: (layerId) => incrementalOrigins.has(layerId),
+        onFinalized: (layerId) => { incrementalOrigins.delete(layerId); },
+        onLayerRemoved: (layerId) => releaseLayerTin(layerId),
     }, initialTins);
 }
 
@@ -1048,8 +1112,7 @@ function applyLayerSnapshotToDocuments(snapshot: LayerTransformSnapshot): void {
     reflectActiveLayer();
 }
 
-// 三角網の差分更新（設定 incrementalEdits。試験段階で既定は切）。依頼のたびに読む（設定画面での切り替えを再読み込みなしで拾う）。
-// 切れていれば、依頼は今までと同じ形で、保存される三角網も同じ。
+// 三角網の差分更新（設定 incrementalEdits。試験段階で既定は切）。切れていれば、保存される三角網は今までと同じ。
 async function readIncrementalEditsSetting(): Promise<boolean> {
     const settings = (window as any).settings;
     if (!settings?.get) return false;
@@ -1060,10 +1123,36 @@ async function readIncrementalEditsSetting(): Promise<boolean> {
     }
 }
 
+// 局所更新の差分が届いたら、描いてある三角形を差分で描き直す（compiled の書き出しと三角網の再構築を待たない）。
+function watchLayerDisplay(layerId: string) {
+    if (displaySubscriptions.has(layerId)) return;
+    displaySubscriptions.set(layerId, editorComputeBackend.onDisplayChange(layerId, (change) => {
+        if (change.kind !== 'patch' || layerIds.value[currentEditingLayer.value] !== layerId) return;
+        const mesh = editorComputeBackend.displayMesh(layerId);
+        if (mesh && meshRenderer.isOneBehind(mesh)) meshRenderer.applyChange(mesh, change.change);
+    }));
+}
+
+// 編集が止まって一定時間（INCREMENTAL_FINALIZE_IDLE_MS）後に、局所更新で済ませた層を清書する。編集のたびに延ばす。
+const incrementalFinalizeIdle = createIdleRunner(() => {
+    if (!isUnmounted) void layerTransformState.value.finalizeAll();
+}, INCREMENTAL_FINALIZE_IDLE_MS);
+function scheduleIncrementalFinalize() {
+    if (incrementalOrigins.size === 0 || isUnmounted) incrementalFinalizeIdle.cancel();
+    else incrementalFinalizeIdle.schedule();
+}
+watch([tinStates, editGeneration], scheduleIncrementalFinalize);
+
 async function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typeof buildEditorLayerTin> {
-    const incrementalEdits = await readIncrementalEditsSetting();
+    const incrementalEdits = await incrementalEditsSetting;
+    if (incrementalEdits) watchLayerDisplay(request.layerId);
     return buildEditorLayerTin(request, layerIds.value.indexOf(request.layerId),
-        (input, isCurrent) => editorComputeBackend.updateTin(input, isCurrent), { incrementalEdits });
+        (input, isCurrent) => editorComputeBackend.updateTin(input, isCurrent), {
+            incrementalEdits,
+            refresh: (input, isCurrent) => editorComputeBackend.refreshTin(input, isCurrent),
+            releaseCandidate: (layerKey) => { void editorComputeBackend.disposeLayer(layerKey); },
+            onBuilt: (layerId, origin) => { if (origin === 'incremental') incrementalOrigins.add(layerId); else incrementalOrigins.delete(layerId); },
+        });
 }
 
 async function adoptCrsEstimation(selection: CrsAdoptionSelection) {
@@ -2934,6 +3023,9 @@ onBeforeUnmount(() => {
     mercMap = null;
     illstCheckSource = null;
     mercCheckSource = null;
+    incrementalFinalizeIdle.cancel();
+    for (const unsubscribe of displaySubscriptions.values()) unsubscribe();
+    displaySubscriptions.clear();
     layerTransformState.value.dispose();
     editorComputeBackend.dispose();
 });
@@ -3042,10 +3134,34 @@ const checkClear = () => {
     mercCheckSource?.clear();
 };
 
+// 三角網の差分更新（設定 incrementalEdits）が入っているとき、編集中の層の表示用の網（三角形が 1 つ以上あるもの）。
+// あれば、三角形はこれで描く（compiled を GeoJSON に直して全部描き直さない）。
+const incrementalDisplayMesh = () => {
+    const layerId = layerIds.value[currentEditingLayer.value];
+    const mesh = layerId === undefined ? undefined : editorComputeBackend.displayMesh(layerId);
+    return mesh && mesh.triangleCount > 0 ? mesh : undefined;
+};
+
+// 描いてある三角形（meshRenderer が出し入れしたもの）は残し、それ以外の図形（交差の点など）だけを外す。
+const clearExceptMeshTriangles = () => {
+    for (const source of [illstJsonSource, mercJsonSource]) {
+        if (!source) continue;
+        for (const feature of source.getFeatures()) if (!meshRenderer.owns(feature)) source.removeFeature(feature);
+    }
+};
+
 const tinResultUpdate = () => {
     if (!illstMap || !mercMap || !illstSource) return;
 
-    jsonClear();
+    const displayMesh = incrementalDisplayMesh();
+    // 描いてある三角形が今の網と同じなら、描き直さない（差分で描き直し済み）
+    const keepTriangles = !!displayMesh && meshRenderer.isCurrentFor(displayMesh);
+    if (keepTriangles) {
+        clearExceptMeshTriangles();
+    } else {
+        jsonClear();
+        meshRenderer.forget();
+    }
     boundsClear();
     checkClear();
     errorNumber.value = null;
@@ -3093,19 +3209,24 @@ const tinResultUpdate = () => {
     // tins は Tin インスタンスの直接プロパティ（getCompiled() の中ではない）
     // 旧実装: tinObject.tins.forw / tinObject.tins.bakw
     try {
-        const forTin = tin.tins?.forw;
         const yaxisMode = tin.yaxisMode;
         const crs = activeLayerCrs.value;
-        const bakTin = compiledGeoJsonToMercator(tin.tins?.bakw, yaxisMode, crs);
-        if (forTin) {
-            const forFeatures = jsonReader.readFeatures(forTin, { dataProjection: forProj, featureProjection: 'EPSG:3857' });
-            forFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
-            if (illstJsonSource) illstJsonSource.addFeatures(forFeatures);
-        }
-        if (bakTin) {
-            const bakFeatures = jsonReader.readFeatures(bakTin, { dataProjection: 'EPSG:3857' });
-            bakFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
-            if (mercJsonSource) mercJsonSource.addFeatures(bakFeatures);
+        if (displayMesh) {
+            // 三角網の差分更新: 表示用の網から描く
+            if (!keepTriangles) meshRenderer.renderAll(displayMesh);
+        } else {
+            const forTin = tin.tins?.forw;
+            const bakTin = compiledGeoJsonToMercator(tin.tins?.bakw, yaxisMode, crs);
+            if (forTin) {
+                const forFeatures = jsonReader.readFeatures(forTin, { dataProjection: forProj, featureProjection: 'EPSG:3857' });
+                forFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+                if (illstJsonSource) illstJsonSource.addFeatures(forFeatures);
+            }
+            if (bakTin) {
+                const bakFeatures = jsonReader.readFeatures(bakTin, { dataProjection: 'EPSG:3857' });
+                bakFeatures.forEach((f: any) => f.setStyle(tinStyle(f)));
+                if (mercJsonSource) mercJsonSource.addFeatures(bakFeatures);
+            }
         }
         // A-2: kinks（交差エラー点）の表示 - strict_errorの場合のみ
         // 旧実装 mapedit.js L.706-709 に準拠
@@ -4955,6 +5076,8 @@ const mercDefaultSlug = computed(() => `${mapData.value.mapID}-merc`);
 const MERC_SLUG_SUFFIX = '-merc';
 
 async function generateMercTileSet(target: MercGenerationTarget): Promise<void> {
+    // 局所更新で済ませた三角網は、タイルを作る前に清書する（保存と同じく、全部組み直した三角網から作る）
+    await layerTransformState.value.finalizeAll();
     if (!tinObjects.value[0] || typeof tinObjects.value[0] === 'string') return;
     // wmtsEditReady（呼び出し前提）が mainLayerHash の真値を要求するため実質到達しないが、
     // window.wmtsGen.generate() の hash 引数が string 必須のため型を絞る

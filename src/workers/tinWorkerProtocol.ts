@@ -44,6 +44,19 @@ export interface TinMeshTriangle {
 }
 
 /**
+ * 補完点の対（システムが足した点と、その理由）。compiled の `supplementPairs` は配列の添字（`e{n}`・対応点の位置）で持つが、
+ * 点の削除・追加で添字がずれるので、表示用の網は、安定した頂点の指し方（`VertexRef`）で持つ。
+ */
+export interface TinMeshSupplementPair {
+  /** 補完点（`kind: "supplement"` の頂点） */
+  node: VertexRef;
+  kind: string;
+  /** 凸包の辺の両端 */
+  edge: [VertexRef, VertexRef];
+  anchor?: VertexRef;
+}
+
+/**
  * 網の全部（頂点表 + 三角形）。worker が `Tin#incrementalMesh` から作り、表示用の網が全部入れ替えで取り込む。
  * 差分（`TinPatch`）の最初の土台になる。
  */
@@ -53,7 +66,7 @@ export interface TinMeshSnapshot {
   /** 重心・補助頂点の扇形の値（帯を作ったときの値） */
   centroid?: NonNullable<TinPatch['centroid']>;
   verticesParams?: number[][];
-  supplementPairs?: NonNullable<TinPatch['supplementPairs']>;
+  supplementPairs?: TinMeshSupplementPair[];
   /** ok でない三角形の id */
   badTriangles?: number[];
   /** 補助頂点・重心が最新でない */
@@ -74,6 +87,8 @@ export interface TinApplyEditsRequest {
   edits: TinEdit[];
   /** この版の網に対する編集である、という前提。合わなければ、網に触らずに `revisionMismatch` を返す */
   base: TinRevisionStamp;
+  /** 結果の先頭に付ける層の番号（層の削除で、番号は変わりうるので、依頼のたびに渡す） */
+  index: number;
 }
 
 /**
@@ -91,12 +106,41 @@ export type TinApplyEditsResponse =
   | { status: 'unsupported' }
   | { status: 'failed'; message: string };
 
+/** 網の今の状態から、compiled を書き出させる依頼（局所更新の後に、主スレッドの Tin を作り直すのに使う）。 */
+export interface TinCompiledRequest {
+  layerKey: string;
+  base: TinRevisionStamp;
+  index: number;
+}
+
+/** `ok` は網に触らない（版は進まない）。版が合わない・網が無いときは、`applyEdits` と同じく、rebuild を送り直す。 */
+export type TinCompiledResponse =
+  | { status: 'ok'; result: TinUpdateResult; stamp: TinRevisionStamp }
+  | { status: 'revisionMismatch'; current: TinRevisionStamp }
+  | { status: 'noMesh' };
+
+/** 網の今の状態から、表示用の網の全部を作らせる依頼（差分で補完点の対が分からないときなど）。網にも版にも触らない。 */
+export interface TinSnapshotRequest {
+  layerKey: string;
+  base: TinRevisionStamp;
+}
+
+export type TinSnapshotResponse =
+  | { status: 'ok'; snapshot: TinMeshSnapshot | undefined; stamp: TinRevisionStamp }
+  | { status: 'revisionMismatch'; current: TinRevisionStamp }
+  | { status: 'noMesh' };
+
 /**
  * 清書（§9.3 の 3）の依頼。同じ入力の複製で、別のインスタンスに全部組み直させる。
  * `request` は、`rebuild` と同じ形（編集が止まった時点の、最新の入力の全部）。
  */
 export interface TinFinalizeRequest {
   request: TinUpdateRequest;
+  /**
+   * Editor が見ている、worker の網の版。合わなければ、持っている網は Editor の入力とは別物なので、
+   * 特例の保存（局所更新の網を保存する）には使わない。
+   */
+  base?: TinRevisionStamp;
 }
 
 /** 清書の応答。 */
@@ -123,6 +167,8 @@ export type TinWorkerRequest =
   | { id: number; type: 'updateTin'; payload: TinUpdateRequest }
   | { id: number; type: 'rebuild'; payload: TinUpdateRequest }
   | { id: number; type: 'applyEdits'; payload: TinApplyEditsRequest }
+  | { id: number; type: 'getCompiled'; payload: TinCompiledRequest }
+  | { id: number; type: 'getSnapshot'; payload: TinSnapshotRequest }
   | { id: number; type: 'finalize'; payload: TinFinalizeRequest }
   | { id: number; type: 'disposeLayer'; payload: { layerKey: string } }
   | { id: number; type: 'dispose' };

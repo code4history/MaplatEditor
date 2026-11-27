@@ -100,7 +100,8 @@ for (const incrementalEdits of [false, true]) {
       const expected = await reference(base);
       const got = await session.rebuild(req);
       assert.equal(bits(got.result), bits(expected), `${name}: 結果が今と同じ`);
-      assert.ok(got.stamp, `${name}: 網を持ち続ける`);
+      if (incrementalEdits) assert.ok(got.stamp, `${name}: スイッチが入っていれば、網を持ち続ける`);
+      else assert.equal(got.stamp, undefined, `${name}: スイッチ切では、網を持ち続けない`);
       if (incrementalEdits && ['V3 strict', 'V3 auto'].includes(name)) assert.ok(got.snapshot, `${name}: 局所更新の網が取り込まれ、表示用の網の全部が返る`);
       if (!incrementalEdits) assert.equal(got.snapshot, undefined, `${name}: スイッチ切では表示用の網を作らない`);
     }
@@ -109,19 +110,24 @@ for (const incrementalEdits of [false, true]) {
 
 test('前の入力が残らない: 同じ層・別の層を挟んで組み直しても、毎回、新しい Tin と同じ結果', async () => {
   const session = new TinWorkerSession();
-  const a = request({ layerKey: 'x' });
-  const b = request({ layerKey: 'x', gcps: gridGcps(99, 6, 6) });
-  const c = request({ layerKey: 'y', gcps: gridGcps(5, 5, 6) });
+  const a = request({ layerKey: 'x', incrementalEdits: true });
+  const b = request({ layerKey: 'x', gcps: gridGcps(99, 6, 6), incrementalEdits: true });
+  const c = request({ layerKey: 'y', gcps: gridGcps(5, 5, 6), incrementalEdits: true });
   for (const req of [a, c, b, a, b]) {
     const got = await session.rebuild(req);
-    assert.equal(bits(got.result), bits(await reference(req)));
+    assert.equal(bits(got.result), bits(await reference({ ...req, incrementalEdits: undefined })));
   }
   assert.deepEqual(session.layerKeys().sort(), ['x', 'y']);
+  // スイッチが切なら、網を持ち続けない（使い道が無く、層ごとに大きなメモリを占める）
+  const off = new TinWorkerSession();
+  await off.rebuild(request({ layerKey: 'x' }));
+  await off.finalize({ request: request({ layerKey: 'x' }) });
+  assert.deepEqual(off.layerKeys(), []);
 });
 
 test('エラーの結果も今と同じで、網は捨てる（古い網を残さない）', async () => {
   const session = new TinWorkerSession();
-  await session.rebuild(request());
+  await session.rebuild(request({ incrementalEdits: true }));
   assert.ok(session.stampOf('main'));
   const few = request({ gcps: gridGcps(1, 1, 2) });
   assert.deepEqual((await session.rebuild(few)).result, [0, 'tooLessGcps', null]);
@@ -192,6 +198,7 @@ itest('表示用の網: 本物の applyEdits の差分を当てた結果が、Ti
   let locals = 0;
   let moveOnly = 0;
   let fulls = 0;
+  let resnapshots = 0;
   const live = new Map(gcps.map((g, id) => [id, g]));
   let nextId = gcps.length;
   for (let step = 0; step < 60; step++) {
@@ -206,7 +213,7 @@ itest('表示用の網: 本物の applyEdits の差分を当てた結果が、Ti
       const x = 80 + rnd() * 440, y = 80 + rnd() * 340;
       edit = { type: 'addPoint', id: nextId, forw: [x, y], bakw: [15000000 + 100 * x, 4000000 - 100 * y] };
     } else edit = { type: 'removePoint', id: pick };
-    const response = await session.applyEdits({ layerKey: 'live', edits: [edit], base: stamp });
+    const response = await session.applyEdits({ layerKey: 'live', edits: [edit], base: stamp, index: 0 });
     assert.equal(response.status, 'patched', `step ${step}: 版が合っているので、当たる（${JSON.stringify(response)}）`);
     if (edit.type === 'movePoint') live.set(pick, [edit.forw ?? paper, edit.bakw ?? geo]);
     else if (edit.type === 'addPoint') live.set(nextId++, [edit.forw, edit.bakw]);
@@ -216,7 +223,12 @@ itest('表示用の網: 本物の applyEdits の差分を当てた結果が、Ti
       locals++;
       assert.equal(response.patch.boundaryStale, true);
       const applied = display.applyPatch(response.patch);
-      assert.ok(applied.ok, `step ${step}: 差分が表示用の網に当たる（${JSON.stringify(applied)}）`);
+      if (!applied.ok && applied.reason === 'supplementPairs') {
+        // 補完点の対が変わる差分は、当てられない（添字の上の番号）。worker の網から全部を取り直す
+        const tin = session.peekTin('live');
+        display.replaceAll(snapshotFromTin(tin, tin.getCompiled(), true), response.stamp.revision);
+        resnapshots++;
+      } else assert.ok(applied.ok, `step ${step}: 差分が表示用の網に当たる（${JSON.stringify(applied)}）`);
       if (!response.patch.removedTriangles?.length && !response.patch.addedTriangles?.length) moveOnly++;
       assert.equal(display.boundaryStale, true);
     } else {
@@ -270,7 +282,7 @@ itest('表示用の網: 2 つの全部組み直しの差を差分にして当て
   assert.ok(patch.addedVertices.length + patch.removedVertices.length + patch.movedVertices.length > 0);
   const display = new TinDisplayMesh();
   display.replaceAll(a.snapshot, 0);
-  assert.deepEqual(display.applyPatch(patch), { ok: true });
+  assert.equal(display.applyPatch(patch).ok, true);
   const expected = new TinDisplayMesh();
   expected.replaceAll(b.snapshot, 1);
   assert.deepEqual(vertexAndTriangleForm(display.canonical()), vertexAndTriangleForm(expected.canonical()));
@@ -278,7 +290,10 @@ itest('表示用の網: 2 つの全部組み直しの差を差分にして当て
   // 座標だけの差分: 動いた頂点だけが入り、三角形は触らない
   const moveOnly = { revision: 2, mode: 'local', strict_status: 'strict', boundaryStale: true, movedVertices: [{ ref: { kind: 'gcp', id: 0 }, forw: [1, 2], bakw: [3, 4] }] };
   const triangleCount = display.triangleCount;
-  assert.deepEqual(display.applyPatch(moveOnly), { ok: true });
+  const moved = display.applyPatch(moveOnly);
+  assert.equal(moved.ok, true);
+  assert.deepEqual(moved.change.removedTriangles.concat(moved.change.addedTriangles), [], '座標だけの差分は、三角形の増減が無い');
+  assert.ok(moved.change.movedTriangles.length > 0, '頂点が動いた三角形が、描き直しの対象として返る');
   assert.deepEqual(display.vertex({ kind: 'gcp', id: 0 }).forw, [1, 2]);
   assert.equal(display.triangleCount, triangleCount);
   assert.deepEqual(display.triangleCoordinates('forw').length, triangleCount);
@@ -325,6 +340,8 @@ function recordingTransport(session, log) {
   return {
     rebuild: async (req) => { log.push(['rebuild', req]); return session.rebuild(req); },
     applyEdits: async (req) => { log.push(['applyEdits', req]); return session.applyEdits(req); },
+    getCompiled: async (req) => { log.push(['getCompiled', req]); return session.getCompiled(req); },
+    getSnapshot: async (req) => { log.push(['getSnapshot', req]); return session.getSnapshot(req); },
     finalize: async (req) => { log.push(['finalize', req]); return session.finalize(req); },
     disposeLayer: async (key) => { log.push(['disposeLayer', key]); return session.disposeLayer(key); },
   };
@@ -373,7 +390,7 @@ itest('revisionMismatch: worker は網に触らず、Editor は最新の入力�
 
   // 食い違いのとき、worker は網に触っていない
   const before = session.stampOf('mm');
-  const direct = await session.applyEdits({ layerKey: 'mm', edits: [{ type: 'movePoint', id: 0, forw: [61, 61] }], base: { generation: before.generation - 1, revision: before.revision } });
+  const direct = await session.applyEdits({ layerKey: 'mm', edits: [{ type: 'movePoint', id: 0, forw: [61, 61] }], base: { generation: before.generation - 1, revision: before.revision }, index: 0 });
   assert.deepEqual(direct, { status: 'revisionMismatch', current: before });
   assert.deepEqual(session.stampOf('mm'), before);
 });
@@ -484,9 +501,9 @@ function sessionWhereFinalizeFails(options = {}) {
     }
   }
   const session = new TinWorkerSession({ createTin: (o) => new MaybeFailingTin(o), ...options });
-  const finalize = (req) => {
+  const finalize = (req, base) => {
     control.failing = true; // この間に作られる Tin（清書のインスタンス）だけが、strict_error と報告する
-    return session.finalize(req).finally(() => { control.failing = false; });
+    return session.finalize({ ...req, ...(base ? { base } : {}) }).finally(() => { control.failing = false; });
   };
   return { session, finalize };
 }
@@ -503,8 +520,12 @@ async function editedSession(session, key = 'fin') {
   for (let id = 0; id < req.gcps.length; id++) {
     const rebuilt = id === 0 ? first : await session.rebuild(req);
     const [x, y] = req.gcps[id][0];
-    const response = await session.applyEdits({ layerKey: key, edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base: rebuilt.stamp });
-    if (response.status === 'patched' && response.patch.mode === 'local') return { req, stamp: response.stamp, patch: response.patch };
+    const response = await session.applyEdits({ layerKey: key, edits: [{ type: 'movePoint', id, forw: [x + 3, y + 3] }], base: rebuilt.stamp, index: 0 });
+    if (response.status === 'patched' && response.patch.mode === 'local') {
+      // 清書を頼む入力は、編集を反映した最新の入力
+      const edited = { ...req, gcps: req.gcps.map((g, i) => (i === id ? [[x + 3, y + 3], g[1]] : g)) };
+      return { req: edited, stamp: response.stamp, patch: response.patch };
+    }
   }
   assert.fail('局所で済む編集が見つからない');
 }
@@ -513,28 +534,28 @@ itest('清書: strict になれば、別のインスタンスの結果で網を�
   const session = new TinWorkerSession();
   const { req, stamp: oldStamp } = await editedSession(session);
   const peekBefore = session.peekTin('fin');
-  const done = await session.finalize({ request: req });
+  const done = await session.finalize({ request: req, base: oldStamp });
   assert.deepEqual(done.decision, { source: 'rebuild', reason: 'rebuildStrict' });
   assert.equal(done.replaced, true);
-  assert.equal(bits(done.result), bits(await reference(request())), '保存する compiled は、全部組み直しの結果（今と同じ）');
+  assert.equal(bits(done.result), bits(await reference(request({ gcps: req.gcps, incrementalEdits: undefined }))), '保存する compiled は、全部組み直しの結果（今と同じ）');
   assert.notEqual(session.peekTin('fin'), peekBefore, '別のインスタンスに差し替わる');
   assert.ok(done.stamp.generation > oldStamp.generation && done.stamp.revision === 0);
   assert.ok(done.snapshot);
-  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: oldStamp })).status, 'revisionMismatch', '差し替え前の版では当たらない');
+  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: oldStamp, index: 0 })).status, 'revisionMismatch', '差し替え前の版では当たらない');
 });
 
 itest('清書が strict にならなくても、局所更新の網は上書きされない（証拠が無ければ、清書の結果を保存する）', async () => {
   const { session, finalize } = sessionWhereFinalizeFails();
   const { req, stamp } = await editedSession(session);
   const peekBefore = session.peekTin('fin');
-  const done = await finalize({ request: req });
+  const done = await finalize({ request: req }, stamp);
   assert.deepEqual(done.decision, { source: 'rebuild', reason: 'noEvidence' });
   assert.equal(done.replaced, false);
   assert.equal(done.result[1].strict_status, 'strict_error', '保存するのは、清書の結果（今と同じ）');
   assert.equal(hasIncrementalOrigin(done.result[1]), false);
   assert.equal(session.peekTin('fin'), peekBefore, '局所更新の網は、そのまま');
   assert.deepEqual(done.stamp, stamp);
-  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp })).status, 'patched', '網は使い続けられる');
+  assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: stamp, index: 0 })).status, 'patched', '網は使い続けられる');
 });
 
 itest('特例の保存: 清書が strict_error で、局所更新の網が strict なら、局所更新の網から書いた compiled（印つき）を保存する', async () => {
@@ -542,7 +563,7 @@ itest('特例の保存: 清書が strict_error で、局所更新の網が stric
   const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: (tin) => { asked++; assert.ok(tin.incrementalMesh); return goodEvidence(); } });
   const { req, stamp } = await editedSession(session);
   const peekBefore = session.peekTin('fin');
-  const done = await finalize({ request: req });
+  const done = await finalize({ request: req }, stamp);
   assert.equal(asked, 1);
   assert.equal(done.stamp.revision, stamp.revision);
   assert.deepEqual(done.decision, { source: 'incremental', reason: 'specialSave' });
@@ -571,11 +592,39 @@ itest('特例の保存: 条件が 1 つでも欠ければ、清書の結果を�
   };
   for (const [reason, broken] of Object.entries(breakers)) {
     const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => ({ ...goodEvidence(), ...broken }) });
-    const { req } = await editedSession(session);
-    const done = await finalize({ request: req });
+    const { req, stamp } = await editedSession(session);
+    const done = await finalize({ request: req }, stamp);
     assert.deepEqual(done.decision, { source: 'rebuild', reason }, reason);
     assert.equal(done.result[1].strict_status, 'strict_error');
     assert.equal(hasIncrementalOrigin(done.result[1]), false);
+  }
+  // 証拠の値が、型・範囲に合わないときは、通さない（undefined・NaN・文字列・負の数）
+  for (const sweepKinks of [undefined, Number.NaN, '1', -1, 0.5]) {
+    const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => ({ ...goodEvidence(), sweepKinks }) });
+    const { req, stamp } = await editedSession(session);
+    const done = await finalize({ request: req }, stamp);
+    assert.deepEqual(done.decision, { source: 'rebuild', reason: 'evidenceInvalid' }, `sweepKinks=${String(sweepKinks)}`);
+  }
+  // 持っている網が、清書を頼んだ入力・版と対応しないときは、特例の保存の候補にしない（証拠を集めることもしない）
+  {
+    let asked = 0;
+    const { session, finalize } = sessionWhereFinalizeFails({ collectEvidence: () => { asked++; return goodEvidence(); } });
+    const { req, stamp } = await editedSession(session);
+    const stale = await finalize({ request: req }, { generation: stamp.generation, revision: stamp.revision - 1 });
+    assert.deepEqual(stale.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版が違う');
+    const noBase = await finalize({ request: req });
+    assert.deepEqual(noBase.decision, { source: 'rebuild', reason: 'meshMismatch' }, '版を渡さない');
+    const newer = { ...req, gcps: req.gcps.map((g, i) => (i === 16 ? [[g[0][0] + 6, g[0][1] + 6], g[1]] : g)) };
+    const other = await finalize({ request: newer }, stamp);
+    assert.deepEqual(other.decision, { source: 'rebuild', reason: 'meshMismatch' }, 'Editor の最新の入力が、網の入力と違う（網に入っていない編集がある）');
+    assert.equal(other.result[1].points[16][0][0], newer.gcps[16][0][0], '保存するのは、渡した入力の清書');
+    assert.equal(hasIncrementalOrigin(other.result[1]), false);
+    assert.equal(asked, 0, '対応しない網の証拠は集めない');
+    // 必須エッジの違いも見る
+    const withEdge = { ...req, edges: [[[], [], [0, 1]]] };
+    assert.equal((await finalize({ request: withEdge }, stamp)).decision.reason, 'meshMismatch');
+    const ok = await finalize({ request: req }, stamp);
+    assert.equal(ok.decision.reason, 'specialSave', '入力と版が合えば、特例の保存');
   }
   // 清書が入力のエラーで失敗したときは、そのエラーを保存し、網には触らない
   const session = new TinWorkerSession();
@@ -591,7 +640,8 @@ test('decideSavedMesh と印の道具', () => {
   assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict', evidence }), { source: 'rebuild', reason: 'rebuildStrict' }, '清書が strict なら、証拠があっても清書');
   assert.deepEqual(decideSavedMesh({ rebuildStatus: undefined, evidence }), { source: 'rebuild', reason: 'rebuildFailed' });
   assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error' }), { source: 'rebuild', reason: 'noEvidence' });
-  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'loose', evidence: { ...evidence, editsSinceRebuild: 3 }, rebuildKinks: 4 }), {
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'strict_error', evidence }), { source: 'rebuild', reason: 'meshMismatch' }, '網と入力の対応が確かめられていなければ使わない');
+  assert.deepEqual(decideSavedMesh({ rebuildStatus: 'loose', evidence: { ...evidence, editsSinceRebuild: 3 }, rebuildKinks: 4, meshMatchesRequest: true }), {
     source: 'incremental', reason: 'specialSave',
     diagnostics: { rebuildStatus: 'loose', rebuildKinks: 4, editsSinceRebuild: 3, sweepKinks: 0, remainingForbiddenTriangles: 2 },
   });
@@ -630,10 +680,12 @@ test('設定が切なら、worker への依頼は今と同じ形（incrementalEd
   assert.equal(bits(rest), bits(inputs[0]));
 });
 
-test('配線: 設定画面の切り替えが保存され、MapEdit が依頼のたびに設定を読む。導入文は既定が切', async () => {
+test('配線: 設定画面の切り替えが保存され、MapEdit が画面を開いたときに設定を読む。導入文は既定が切', async () => {
   const mapEdit = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
   assert.match(mapEdit, /normalizeIncrementalEdits\(await settings\.get\('incrementalEdits'\)\)/);
-  assert.match(mapEdit, /\{ incrementalEdits \}\)/, 'buildEditorLayerTin へ渡す');
+  assert.match(mapEdit, /const incrementalEditsSetting: Promise<boolean> = readIncrementalEditsSetting\(\);/, '開いたときに 1 回だけ読む');
+  assert.doesNotMatch(mapEdit, /await readIncrementalEditsSetting\(\)/, '依頼のたびには読まない');
+  assert.match(mapEdit, /incrementalEdits,\n\s+refresh: \(input, isCurrent\) => editorComputeBackend\.refreshTin/, 'buildEditorLayerTin へ渡す');
   const settings = await readFile(new URL('../src/views/Settings.vue', import.meta.url), 'utf8');
   assert.match(settings, /incrementalEdits: false,/, '画面の既定は切');
   assert.match(settings, /window\.settings\.set\("incrementalEdits", state\.incrementalEdits\)/);

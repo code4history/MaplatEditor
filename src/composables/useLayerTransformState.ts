@@ -64,6 +64,9 @@ export type AdoptionOutcome =
     | { status: 'adopted' | 'cancelled' | 'rejected' }
     | { status: 'failed'; error: unknown };
 
+/** 清書（§9.3 の 3）の依頼。層の今の文書で、保存してよい三角網（全部組み直しの結果）を作らせる。 */
+export type LayerFinalizeRequest = { layer: TransformLayer; layerId: string; isCurrent(): boolean };
+
 export interface LayerTransformHistory {
     commit(snapshot: LayerTransformSnapshot): void;
     undo(): LayerTransformSnapshot | undefined;
@@ -79,6 +82,17 @@ export interface LayerTransformDependencies<Tin, Diagnostics, Selection> {
         selection: Selection,
         signal: AbortSignal,
     ): PreparedAdoption | Promise<PreparedAdoption>;
+    /**
+     * 清書。三角網の更新が局所更新（全部組み直しではない手順）で済ませてある層を、保存してよい三角網にする。
+     * 無ければ、清書はしない（今までどおり、保存するのは編集のたびの結果）。
+     */
+    finalize?(request: LayerFinalizeRequest): TinBuildResult<Tin, Diagnostics> | Promise<TinBuildResult<Tin, Diagnostics>>;
+    /** 層の今の三角網が、清書を要するか。無ければ、`finalize` があるときは常に要る */
+    needsFinalize?(layerId: string): boolean;
+    /** 清書の結果を文書へ入れた（`needsFinalize` が偽になる） */
+    onFinalized?(layerId: string): void;
+    /** 層が文書から無くなった（削除・履歴の復元で）。層に付いた計算の状態を捨てるのに使う */
+    onLayerRemoved?(layerId: string): void;
 }
 
 export interface LayerTransformSave<Tin> {
@@ -185,7 +199,12 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
     const editsBlocked = () => disposed || adoptionInProgress.value || writing.value;
 
     function replaceDocument(next: LayerTransformSnapshot, volatile = state.value.volatile) {
+        const before = state.value.layers;
         state.value = { layers: next, editGeneration: state.value.editGeneration + 1, volatile };
+        const remaining = new Set(next.map(({ layerId }) => layerId));
+        for (const { layerId } of before) {
+            if (!remaining.has(layerId)) dependencies.onLayerRemoved?.(layerId);
+        }
     }
 
     function setTin(layerId: string, tin: Volatile) {
@@ -292,6 +311,39 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         dependencies.history.commit(capture());
         for (const layerId of changed) void requestTin(layerId);
         return true;
+    }
+
+    /**
+     * 清書（§9.3 の 3）。層の三角網が局所更新で済ませたものなら、全部組み直した結果へ置き換える。
+     * 編集が入った（世代が変わった）・編集中・採用中なら何もしない（結果は捨てる）。置き換えたら true。
+     */
+    async function finalizeLayer(layerId: string): Promise<boolean> {
+        const finalize = dependencies.finalize;
+        if (!finalize || editsBlocked() || jobs.has(layerId)) return false;
+        if (dependencies.needsFinalize && !dependencies.needsFinalize(layerId)) return false;
+        const target = state.value.layers.find((layer) => layer.layerId === layerId);
+        const tin = state.value.volatile.get(layerId);
+        if (!target || tin?.status !== 'ready' || tin.tin === 'worldFile' || typeof tin.tin === 'string') return false;
+        const reqGen = state.value.editGeneration;
+        const layer = copyDocument(target);
+        const current = () => !disposed && state.value.editGeneration === reqGen
+            && state.value.volatile.get(layerId)?.status === 'ready';
+        let result: TinBuildResult<Tin, Diagnostics>;
+        try {
+            result = await finalize({ layer, layerId, isCurrent: current });
+        } catch {
+            return false;
+        }
+        if (!current() || adoptionInProgress.value) return false;
+        // 世代は変えない（文書は変わっていない。同じ入力の、保存してよい三角網へ替えただけ）
+        setTin(layerId, { status: 'ready', ...result });
+        dependencies.onFinalized?.(layerId);
+        return true;
+    }
+
+    /** 全部の層を清書する（編集が止まったとき・保存の前）。 */
+    async function finalizeAll(): Promise<void> {
+        for (const { layerId } of [...state.value.layers]) await finalizeLayer(layerId);
     }
 
     function changeLayerRanks(updates: readonly LayerRankUpdate[]) {
@@ -441,6 +493,19 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
             await Promise.all(stale.map(({ layerId }) => requestTin(layerId)));
             if (disposed) return { ok: false, reason: 'disposed' };
             if (state.value.editGeneration !== reqGen) return { ok: false, reason: 'generationChanged' };
+            // 保存するのは、全部組み直した三角網（局所更新で済ませた層は、保存の前に清書する。§9.3）
+            if (dependencies.finalize) {
+                for (const { layerId } of current) {
+                    const built = getTinState(layerId)?.tin;
+                    // ワールドファイルだけの層・エラーの層に、清書する三角網は無い
+                    if (built === 'worldFile' || typeof built === 'string') continue;
+                    if (dependencies.needsFinalize && !dependencies.needsFinalize(layerId)) continue;
+                    const done = await finalizeLayer(layerId);
+                    if (disposed) return { ok: false, reason: 'disposed' };
+                    if (state.value.editGeneration !== reqGen) return { ok: false, reason: 'generationChanged' };
+                    if (!done) return { ok: false, reason: 'buildFailed' };
+                }
+            }
             const tins: (Tin | 'worldFile')[] = [];
             for (const { layerId } of current) {
                 const tin = getTinState(layerId);
@@ -469,7 +534,7 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
 
     return {
         layers, editGeneration, adoptionInProgress, saveWriting, getTinState, capture,
-        editLayer, editLayers, changeLayerRanks, addLayer, removeLayer, requestTin,
+        editLayer, editLayers, changeLayerRanks, addLayer, removeLayer, requestTin, finalizeLayer, finalizeAll,
         startAdoption, cancelAdoption, undo: () => navigate('undo'), redo: () => navigate('redo'),
         restoreDraft, save, dispose,
     };

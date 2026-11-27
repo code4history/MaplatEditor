@@ -46,10 +46,27 @@ export type PatchRejection =
   | 'unknownTriangle'
   | 'duplicateTriangle'
   /** 消した頂点を、残った三角形がまだ指している */
-  | 'danglingVertex';
+  | 'danglingVertex'
+  /**
+   * 補完点の対の一覧が変わる差分（`supplementPairs` が入っている・補完点が増えた）。差分の添字は、表示用の網が持たない
+   * 点の並びの上の番号なので、当てられない。全部を取り直す（網から表示用の網の全部を作り直させる）
+   */
+  | 'supplementPairs';
+
+/** 差分を当てて変わった三角形（画面の描き直しに使う）。 */
+export interface PatchChange {
+  /** 消えた三角形の id */
+  removedTriangles: number[];
+  /** 増えた三角形の id */
+  addedTriangles: number[];
+  /** 残っているが、頂点の座標が変わった三角形の id（増えた三角形は含まない） */
+  movedTriangles: number[];
+  /** 差し替えた範囲の外接矩形（紙の面）。描き直す範囲に使う */
+  dirtyBounds?: [number, number, number, number];
+}
 
 export type PatchApplyResult =
-  | { ok: true; /** 差し替えた範囲の外接矩形（紙の面）。描き直す範囲に使う */ dirtyBounds?: [number, number, number, number] }
+  | { ok: true; change: PatchChange }
   | { ok: false; reason: PatchRejection };
 
 /** 比べるための正規の形（三角形の id と順は問わない。向きは保つ）。 */
@@ -59,7 +76,8 @@ export interface CanonicalDisplayMesh {
   triangles: string[];
   centroid?: TinMeshSnapshot['centroid'];
   verticesParams?: number[][];
-  supplementPairs?: TinMeshSnapshot['supplementPairs'];
+  /** 補完点の対（頂点の指し方のキーで書いた文字列。昇順） */
+  supplementPairs?: string[];
   badTriangles?: number;
   boundaryStale: boolean;
 }
@@ -67,13 +85,15 @@ export interface CanonicalDisplayMesh {
 export class TinDisplayMesh {
   private readonly vertexTable = new Map<string, DisplayVertex>();
   private readonly triangleTable = new Map<number, DisplayTriangle>();
-  /** 頂点を指している三角形の数（消す頂点が、残った三角形に指されていないかの確かめに使う） */
-  private readonly uses = new Map<string, number>();
+  /** 頂点を指している三角形（消す頂点が、残った三角形に指されていないかの確かめと、動いた頂点の三角形の特定に使う） */
+  private readonly byVertex = new Map<string, Set<number>>();
   private meta: Pick<TinMeshSnapshot, 'centroid' | 'verticesParams' | 'supplementPairs' | 'badTriangles' | 'boundaryStale'> = {
     boundaryStale: false,
   };
   /** 最後に取り込んだ差分の版（全部の取り込みでは、渡した版） */
   revision = 0;
+  /** 網が変わるたびに進む番号（描画側が、描いた時点の網と今の網が同じかを見るのに使う） */
+  version = 0;
 
   get vertexCount(): number {
     return this.vertexTable.size;
@@ -81,6 +101,11 @@ export class TinDisplayMesh {
 
   get triangleCount(): number {
     return this.triangleTable.size;
+  }
+
+  /** 補完点の対（頂点の指し方で持つ。全部の取り込みの値から、差分で消えた頂点を指す対を外したもの） */
+  get supplementPairs(): NonNullable<TinMeshSnapshot['supplementPairs']> {
+    return this.meta.supplementPairs ?? [];
   }
 
   get boundaryStale(): boolean {
@@ -96,6 +121,11 @@ export class TinDisplayMesh {
     return this.vertexTable.get(vertexKey(ref));
   }
 
+  /** 頂点表のキー（`vertexKey`）から頂点を引く（三角形が持つキーから、座標を読むのに使う）。 */
+  vertexByKey(key: string): DisplayVertex | undefined {
+    return this.vertexTable.get(key);
+  }
+
   triangle(id: number): DisplayTriangle | undefined {
     return this.triangleTable.get(id);
   }
@@ -103,9 +133,10 @@ export class TinDisplayMesh {
   clear(): void {
     this.vertexTable.clear();
     this.triangleTable.clear();
-    this.uses.clear();
+    this.byVertex.clear();
     this.meta = { boundaryStale: false };
     this.revision = 0;
+    this.version++;
   }
 
   /** 全部の三角形から作り直す。 */
@@ -117,16 +148,34 @@ export class TinDisplayMesh {
     for (const { id, vertices } of snapshot.triangles) {
       const keys = vertices.map(vertexKey) as [string, string, string];
       this.triangleTable.set(id, { id, keys });
-      for (const key of keys) this.uses.set(key, (this.uses.get(key) ?? 0) + 1);
+      for (const key of keys) this.link(key, id);
     }
     this.meta = cloneMeta(snapshot);
     this.revision = revision;
+    // 全部の取り込みは、差分 1 つぶんの遅れとは見なさない（描画側が差分で追いつこうとしないように、番号を 2 つ進める）
+    this.version++;
+  }
+
+  private link(key: string, id: number): void {
+    const set = this.byVertex.get(key);
+    if (set) set.add(id);
+    else this.byVertex.set(key, new Set([id]));
+  }
+
+  private unlink(key: string, id: number): void {
+    const set = this.byVertex.get(key);
+    if (!set) return;
+    set.delete(id);
+    if (set.size === 0) this.byVertex.delete(key);
   }
 
   /** 差分を当てる。失敗したら、網には触らない。 */
   applyPatch(patch: TinPatch): PatchApplyResult {
     if (patch.mode !== 'local') return { ok: false, reason: 'notLocal' };
     if (patch.revision !== this.revision + 1) return { ok: false, reason: 'revisionGap' };
+    if (patch.supplementPairs || patch.addedVertices?.some(({ ref }) => ref.kind === 'supplement')) {
+      return { ok: false, reason: 'supplementPairs' };
+    }
 
     const undo: Array<() => void> = [];
     const rollback = () => {
@@ -138,15 +187,11 @@ export class TinDisplayMesh {
     };
     const attach = (triangle: DisplayTriangle) => {
       this.triangleTable.set(triangle.id, triangle);
-      for (const key of triangle.keys) this.uses.set(key, (this.uses.get(key) ?? 0) + 1);
+      for (const key of triangle.keys) this.link(key, triangle.id);
     };
     const detach = (triangle: DisplayTriangle) => {
       this.triangleTable.delete(triangle.id);
-      for (const key of triangle.keys) {
-        const next = (this.uses.get(key) ?? 0) - 1;
-        if (next > 0) this.uses.set(key, next);
-        else this.uses.delete(key);
-      }
+      for (const key of triangle.keys) this.unlink(key, triangle.id);
     };
 
     // 1. 消えた三角形
@@ -161,7 +206,7 @@ export class TinDisplayMesh {
       const key = vertexKey(ref);
       const vertex = this.vertexTable.get(key);
       if (!vertex) return fail('unknownVertex');
-      if (this.uses.has(key)) return fail('danglingVertex');
+      if (this.byVertex.has(key)) return fail('danglingVertex');
       this.vertexTable.delete(key);
       undo.push(() => this.vertexTable.set(key, vertex));
     }
@@ -195,11 +240,32 @@ export class TinDisplayMesh {
     // 全部が当たった。付随の値は、入っているものだけを置き換える（入っていなければ前のまま）
     if (patch.centroid) this.meta.centroid = { forw: [...patch.centroid.forw], bakw: [...patch.centroid.bakw] };
     if (patch.verticesParams) this.meta.verticesParams = patch.verticesParams.map((row) => [...row]);
-    if (patch.supplementPairs) this.meta.supplementPairs = structuredClone(patch.supplementPairs);
+    // 補完点の対は、頂点の指し方で持つので、消えた頂点を指す対だけを外す（添字のずれは起きない）
+    if (this.meta.supplementPairs && patch.removedVertices?.length) {
+      const gone = new Set(patch.removedVertices.map(vertexKey));
+      const kept = this.meta.supplementPairs.filter(({ node, edge, anchor }) =>
+        ![node, ...edge, ...(anchor ? [anchor] : [])].some((ref) => gone.has(vertexKey(ref))));
+      this.meta.supplementPairs = kept;
+    }
     if (patch.badTriangles) this.meta.badTriangles = [...patch.badTriangles];
     this.meta.boundaryStale = patch.boundaryStale;
     this.revision = patch.revision;
-    return { ok: true, ...(patch.dirtyBounds ? { dirtyBounds: patch.dirtyBounds } : {}) };
+    this.version++;
+    // 変わった三角形: 消えた・増えた（差分の列挙のとおり）と、動いた頂点を持つ残りの三角形
+    const added = new Set((patch.addedTriangles ?? []).map(({ id }) => id));
+    const moved = new Set<number>();
+    for (const { ref } of patch.movedVertices ?? []) {
+      for (const id of this.byVertex.get(vertexKey(ref)) ?? []) if (!added.has(id)) moved.add(id);
+    }
+    return {
+      ok: true,
+      change: {
+        removedTriangles: [...(patch.removedTriangles ?? [])],
+        addedTriangles: [...added],
+        movedTriangles: [...moved],
+        ...(patch.dirtyBounds ? { dirtyBounds: patch.dirtyBounds } : {}),
+      },
+    };
   }
 
   /** 描くための座標（面ごと）。三角形は id の昇順。 */
@@ -237,12 +303,19 @@ export class TinDisplayMesh {
       triangles,
       ...(this.meta.centroid ? { centroid: this.meta.centroid } : {}),
       ...(this.meta.verticesParams ? { verticesParams: this.meta.verticesParams } : {}),
-      ...(this.meta.supplementPairs ? { supplementPairs: this.meta.supplementPairs } : {}),
+      ...(this.meta.supplementPairs?.length
+        ? { supplementPairs: this.meta.supplementPairs.map((pair) => canonicalPair(pair)).sort() }
+        : {}),
       // 不良な三角形は id で持つので、id を問わない比較では件数だけを見る
       badTriangles: this.meta.badTriangles?.length ?? 0,
       boundaryStale: this.meta.boundaryStale,
     };
   }
+}
+
+/** 補完点の対を、頂点の指し方のキーだけで書いた文字列にする（比べるため）。 */
+function canonicalPair({ node, kind, edge, anchor }: NonNullable<TinMeshSnapshot['supplementPairs']>[number]): string {
+  return [vertexKey(node), kind, vertexKey(edge[0]), vertexKey(edge[1]), anchor ? vertexKey(anchor) : ''].join('|');
 }
 
 function cloneMeta(

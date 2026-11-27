@@ -19,8 +19,14 @@ import type { CompiledTransformData } from '@maplat/transform';
 import type { TinUpdateRequest, TinUpdateResult } from '../services/editorComputeBackend';
 import { applyTinGeometry, resolveTinBuildOptions } from '../utils/tinOptions.ts';
 import { decideSavedMesh, withMeshOrigin } from '../utils/tinSavedMesh.ts';
+import { applyEditsToTracked, trackInputs } from '../utils/tinEditPlanner.ts';
+import type { PlannerEdge, TrackedInputs } from '../utils/tinEditPlanner.ts';
 import type { SpecialSaveEvidence } from '../utils/tinSavedMesh.ts';
 import type {
+  TinSnapshotRequest,
+  TinSnapshotResponse,
+  TinCompiledRequest,
+  TinCompiledResponse,
   TinApplyEditsRequest,
   TinApplyEditsResponse,
   TinFinalizeRequest,
@@ -52,6 +58,11 @@ interface LayerEntry {
   generation: number;
   /** 最後の清書から重ねた局所更新の回数（特例の保存の診断） */
   editsSinceRebuild: number;
+  /**
+   * 網が持っている入力（対応点・必須エッジ。外の座標系）の写し。`rebuild` の入力から始め、`applyEdits` の編集を当てて進める。
+   * 清書を頼まれたときに、依頼の入力と同じ網か（特例の保存に使ってよいか）を確かめるのに使う。写せなくなったら undefined。
+   */
+  inputs: TrackedInputs | undefined;
 }
 
 export interface TinWorkerSessionOptions {
@@ -113,14 +124,39 @@ export function snapshotFromTin(tin: Tin, compiled: CompiledTransformData, bound
   const withParams = compiled as CompiledTransformData & {
     centroid_point?: [number[], number[]];
     vertices_params?: number[][];
-    supplementPairs?: NonNullable<TinMeshSnapshot['supplementPairs']>;
   };
   if (withParams.centroid_point) {
     snapshot.centroid = { forw: [...withParams.centroid_point[0]], bakw: [...withParams.centroid_point[1]] };
   }
   if (withParams.vertices_params) snapshot.verticesParams = withParams.vertices_params.map((row) => [...row]);
-  if (withParams.supplementPairs) snapshot.supplementPairs = structuredClone(withParams.supplementPairs);
+  // 補完点の対は、添字ではなく頂点の指し方で持つ（点の削除・追加で、添字はずれる）
+  if (model.supplements.length > 0) {
+    snapshot.supplementPairs = model.supplements.map(({ vertex, kind, edge, anchor }) => ({
+      node: { ...refOf(vertex) },
+      kind,
+      edge: [{ ...refOf(edge[0]) }, { ...refOf(edge[1]) }],
+      ...(anchor === undefined ? {} : { anchor: { ...refOf(anchor) } }),
+    }));
+  }
   return snapshot;
+}
+
+const samePosition = (a: number[], b: number[]) => a[0] === b[0] && a[1] === b[1];
+const sameNodes = (a: number[][], b: number[][]) => a.length === b.length && a.every((p, i) => samePosition(p, b[i]));
+
+/** 網が持っている入力の写しが、清書の依頼の入力（対応点・必須エッジ。外の座標系）と同じか。 */
+function inputsMatchRequest(tracked: TrackedInputs, request: TinUpdateRequest): boolean {
+  if (tracked.points.length !== request.gcps.length || tracked.edges.length !== request.edges.length) return false;
+  for (let i = 0; i < tracked.points.length; i++) {
+    const [forw, bakw] = request.gcps[i];
+    if (!samePosition(tracked.points[i][0], forw) || !samePosition(tracked.points[i][1], bakw)) return false;
+  }
+  for (let i = 0; i < tracked.edges.length; i++) {
+    const [forwNodes, bakwNodes, [start, end]] = request.edges[i] as PlannerEdge;
+    const [trackedForw, trackedBakw, [trackedStart, trackedEnd]] = tracked.edges[i];
+    if (start !== trackedStart || end !== trackedEnd || !sameNodes(trackedForw, forwNodes) || !sameNodes(trackedBakw, bakwNodes)) return false;
+  }
+  return true;
 }
 
 export class TinWorkerSession {
@@ -163,6 +199,11 @@ export class TinWorkerSession {
     return next;
   }
 
+  private stampMatches(entry: LayerEntry, base: TinRevisionStamp): boolean {
+    const current = this.stamp(entry);
+    return base.generation === current.generation && base.revision === current.revision;
+  }
+
   private stamp(entry: LayerEntry): TinRevisionStamp {
     return { generation: entry.generation, revision: entry.tin.revision };
   }
@@ -173,6 +214,7 @@ export class TinWorkerSession {
       index: request.index,
       generation: ++this.generationCounter,
       editsSinceRebuild: 0,
+      inputs: trackInputs(request.gcps, request.edges as PlannerEdge[]),
     };
     this.layers.set(layerKey, entry);
     return entry;
@@ -185,9 +227,10 @@ export class TinWorkerSession {
       // 組み直しに失敗したときに、古い網が残らないようにする
       this.layers.delete(layerKey);
       const built = await buildTin(request, this.createTin);
-      if (!built.ok) return { result: built.result };
+      // 局所更新のスイッチが切なら、網は持ち続けない（使い道が無く、層ごとに大きなメモリを占めるため）
+      if (!built.ok || !request.incrementalEdits) return { result: built.result };
       const entry = this.adopt(layerKey, built, request);
-      const snapshot = request.incrementalEdits ? snapshotFromTin(built.tin, built.compiled) : undefined;
+      const snapshot = snapshotFromTin(built.tin, built.compiled);
       return { result: built.result, stamp: this.stamp(entry), ...(snapshot ? { snapshot } : {}) };
     });
   }
@@ -201,6 +244,7 @@ export class TinWorkerSession {
       if (request.base.generation !== current.generation || request.base.revision !== current.revision) {
         return { status: 'revisionMismatch', current };
       }
+      entry.index = request.index;
       const { tin } = entry;
       // 入れ替えた Tin が applyEdits を持たない（古い版・試験の差し替え）ときは、局所更新を使わない
       if (typeof tin.applyEdits !== 'function') return { status: 'unsupported' };
@@ -215,6 +259,8 @@ export class TinWorkerSession {
       if (patch.fallbackReason === 'revisionMismatch') {
         return { status: 'revisionMismatch', current: this.stamp(entry) };
       }
+      // 入力の写しにも、同じ編集を当てる（当てられなければ、写せなくなったとして、特例の保存の候補にしない）
+      entry.inputs = entry.inputs && applyEditsToTracked(entry.inputs, request.edits);
       if (patch.mode === 'local') {
         entry.editsSinceRebuild++;
         return { status: 'patched', stamp: this.stamp(entry), patch };
@@ -230,6 +276,39 @@ export class TinWorkerSession {
         ...(snapshot ? { snapshot } : {}),
       };
       return { status: 'patched', stamp: this.stamp(entry), patch, full };
+    });
+  }
+
+  /** 網の今の状態から compiled を書き出す。網にも版にも触らない（局所更新の後に、主スレッドの Tin を作り直すのに使う）。 */
+  getCompiled(request: TinCompiledRequest): Promise<TinCompiledResponse> {
+    return this.enqueue(async (): Promise<TinCompiledResponse> => {
+      const entry = this.layers.get(request.layerKey);
+      if (!entry) return { status: 'noMesh' };
+      const current = this.stamp(entry);
+      if (request.base.generation !== current.generation || request.base.revision !== current.revision) {
+        return { status: 'revisionMismatch', current };
+      }
+      entry.index = request.index;
+      const { tin } = entry;
+      return {
+        status: 'ok',
+        result: [entry.index, tin.getCompiled(), tin.boundaryDiagnostics ?? null],
+        stamp: this.stamp(entry),
+      };
+    });
+  }
+
+  /** 網の今の状態から、表示用の網の全部を作る。網にも版にも触らない。 */
+  getSnapshot(request: TinSnapshotRequest): Promise<TinSnapshotResponse> {
+    return this.enqueue(async (): Promise<TinSnapshotResponse> => {
+      const entry = this.layers.get(request.layerKey);
+      if (!entry) return { status: 'noMesh' };
+      const current = this.stamp(entry);
+      if (request.base.generation !== current.generation || request.base.revision !== current.revision) {
+        return { status: 'revisionMismatch', current };
+      }
+      const { tin } = entry;
+      return { status: 'ok', snapshot: snapshotFromTin(tin, tin.getCompiled(), true), stamp: this.stamp(entry) };
     });
   }
 
@@ -254,8 +333,12 @@ export class TinWorkerSession {
       }
       const status = built.compiled.strict_status;
       if (status === 'strict') {
+        // スイッチが切なら、網は持ち続けない（rebuild と同じ）
+        if (!request.incrementalEdits) {
+          return { result: built.result, decision: { source: 'rebuild', reason: 'rebuildStrict' }, replaced: false };
+        }
         const entry = this.adopt(layerKey, built, request);
-        const snapshot = request.incrementalEdits ? snapshotFromTin(built.tin, built.compiled) : undefined;
+        const snapshot = snapshotFromTin(built.tin, built.compiled);
         return {
           result: built.result,
           decision: { source: 'rebuild', reason: 'rebuildStrict' },
@@ -265,17 +348,21 @@ export class TinWorkerSession {
         };
       }
       // strict にならなかった清書の網は捨てる（局所更新の網を、清書の strict_error で上書きしない）
-      const evidence = kept ? this.collectEvidence?.(kept.tin) : undefined;
+      // 持っている網が、この清書を頼んだ Editor の入力・版に対応しているときだけ、特例の保存の候補にする
+      const meshMatchesRequest = !!kept && !!finalizeRequest.base && !!kept.inputs
+        && this.stampMatches(kept, finalizeRequest.base) && inputsMatchRequest(kept.inputs, request);
+      const evidence = kept && meshMatchesRequest ? this.collectEvidence?.(kept.tin) : undefined;
       const decision = decideSavedMesh({
         rebuildStatus: status,
         rebuildKinks: built.compiled.kinks_points?.length ?? 0,
         evidence: evidence && { ...evidence, editsSinceRebuild: kept!.editsSinceRebuild },
+        meshMatchesRequest,
       });
       if (decision.source === 'incremental' && kept) {
         // 特例の保存: 局所更新の網から書いた compiled に印を付けて保存する。診断に、清書の結果との違いを残す
         const diagnostics = { ...(kept.tin.boundaryDiagnostics ?? {}), incremental: decision.diagnostics };
         return {
-          result: [kept.index, withMeshOrigin(kept.tin.getCompiled()), diagnostics as TinUpdateResult[2]],
+          result: [request.index, withMeshOrigin(kept.tin.getCompiled()), diagnostics as TinUpdateResult[2]],
           decision: { source: 'incremental', reason: decision.reason },
           replaced: false,
           stamp: this.stamp(kept),

@@ -61,6 +61,10 @@ export type SavedMeshReason =
   | 'rebuildFailed'
   /** 証拠が集められていない（第 1 週・局所更新の網が無い・取り込めなかった網） */
   | 'noEvidence'
+  /** worker が持つ網が、清書を頼んだ Editor の入力・版と対応していない（別の入力の網は保存しない） */
+  | 'meshMismatch'
+  /** 証拠の値が、型・範囲に合わない（欠けている・数でない、など） */
+  | 'evidenceInvalid'
   | 'incrementalNotStrict'
   | 'boundaryStale'
   | 'invariantsNotHeld'
@@ -81,6 +85,26 @@ export interface DecideSavedMeshInput {
   rebuildKinks?: number;
   /** 局所更新の網の証拠。集められなければ undefined */
   evidence?: SpecialSaveEvidence;
+  /**
+   * worker が持つ網が、清書を頼んだ入力（対応点・必須エッジ）と、Editor が見ている版に対応するか。
+   * 偽（または未指定）なら、局所更新の網は保存の候補にしない。
+   */
+  meshMatchesRequest?: boolean;
+}
+
+const isCount = (value: unknown): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0;
+
+/** 証拠の型・範囲を、実行時に確かめる（worker の外から来る値・未配線の値を通さない）。 */
+export function isValidEvidence(evidence: unknown): evidence is SpecialSaveEvidence {
+  if (typeof evidence !== 'object' || evidence === null) return false;
+  const e = evidence as Record<string, unknown>;
+  return (e.incrementalStatus === 'strict' || e.incrementalStatus === 'strict_error' || e.incrementalStatus === 'loose')
+    && typeof e.boundaryFresh === 'boolean'
+    && typeof e.invariantsHold === 'boolean'
+    && typeof e.roundTripMatches === 'boolean'
+    && isCount(e.sweepKinks)
+    && isCount(e.remainingForbiddenTriangles)
+    && isCount(e.editsSinceRebuild);
 }
 
 /** どちらの網を保存するか。条件が 1 つでも欠ければ、清書の結果を選ぶ。 */
@@ -88,12 +112,17 @@ export function decideSavedMesh(input: DecideSavedMeshInput): SavedMeshDecision 
   const { rebuildStatus, evidence } = input;
   if (rebuildStatus === undefined) return { source: 'rebuild', reason: 'rebuildFailed' };
   if (rebuildStatus === 'strict') return { source: 'rebuild', reason: 'rebuildStrict' };
+  // 対応が偽と分かっているなら、その理由を先に返す（証拠が無いのも、対応しない網の証拠は集めないため）
+  if (input.meshMatchesRequest === false) return { source: 'rebuild', reason: 'meshMismatch' };
   if (!evidence) return { source: 'rebuild', reason: 'noEvidence' };
+  // 対応が確かめられていない（未指定）なら、証拠があっても使わない
+  if (input.meshMatchesRequest !== true) return { source: 'rebuild', reason: 'meshMismatch' };
+  if (!isValidEvidence(evidence)) return { source: 'rebuild', reason: 'evidenceInvalid' };
   if (evidence.incrementalStatus !== 'strict') return { source: 'rebuild', reason: 'incrementalNotStrict' };
   if (!evidence.boundaryFresh) return { source: 'rebuild', reason: 'boundaryStale' };
   if (!evidence.invariantsHold) return { source: 'rebuild', reason: 'invariantsNotHeld' };
   if (!evidence.roundTripMatches) return { source: 'rebuild', reason: 'roundTripMismatch' };
-  if (evidence.sweepKinks > 0) return { source: 'rebuild', reason: 'sweepKinksFound' };
+  if (evidence.sweepKinks !== 0) return { source: 'rebuild', reason: 'sweepKinksFound' };
   return {
     source: 'incremental',
     reason: 'specialSave',

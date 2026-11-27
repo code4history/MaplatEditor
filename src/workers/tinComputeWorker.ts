@@ -24,6 +24,10 @@ async function handle(request: TinWorkerRequest): Promise<unknown> {
       return session.rebuild(request.payload);
     case 'applyEdits':
       return session.applyEdits(request.payload);
+    case 'getCompiled':
+      return session.getCompiled(request.payload);
+    case 'getSnapshot':
+      return session.getSnapshot(request.payload);
     case 'finalize':
       return session.finalize(request.payload);
     case 'disposeLayer':
