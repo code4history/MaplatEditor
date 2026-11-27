@@ -68,6 +68,7 @@
     "smoke:poi-service": "node scripts/poi-service-smoke.mjs",
     "smoke:image-asset": "node scripts/image-asset-smoke.mjs",
     "smoke:poi-reference-resolver": "node scripts/poi-reference-resolver-smoke.mjs",
+    "smoke:j6-t1a-v4-key-roundtrip": "node scripts/j6-t1a-v4-key-roundtrip-smoke.mjs",
     "smoke:mapedit-pois-save": "node scripts/mapedit-pois-save-smoke.mjs",
     "smoke:ico-pack": "node scripts/ico-pack-smoke.mjs",
     "smoke:ui-foundations": "node scripts/ui-foundations-smoke.mjs",

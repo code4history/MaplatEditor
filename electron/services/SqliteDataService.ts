@@ -19,6 +19,8 @@ import { normalizeRuntimeKeys } from './MaplatRuntimeKeys';
 import { normalizeLangResource, normalizeMapLangFields, type LangResource } from '../../src/utils/langResource';
 import { lacksRequiredAttribution } from '../../src/utils/attributionRequirement';
 import { adoptDeprecatedMapNames } from '../../src/utils/mapNameUnification';
+import { compiledPointToMercator } from '../../src/utils/compiledGeo';
+import { hasLayerTransformDeclaration, imageCorners, readWorldFileSurface, validateCompiledGeo } from '../utils/store_handler';
 // 512px パスの派生は単一関数へ集約する（マイルストーン）
 import { thumb512PathFor, thumb52PathFor } from '../../src/utils/thumbnailPaths';
 // 512px の符号化・復号は宛先/入力の拡張子だけで決まる唯一の実装へ委譲する
@@ -337,19 +339,45 @@ function poiFtsRawFromJson(dataJson: string, titleJson: string, slug: string): s
   return parts.join('\n');
 }
 
-// 地図のbbox(メルカトル座標)。compiled.vertices_points から算出(従来のsearchExtentと同一定義)
+// 変換の宣言がある地図では、副層を含むメルカトル範囲を索引に入れる。
 function mapBboxFromJson(dataJson: string): string | null {
   try {
     const doc = JSON.parse(dataJson);
-    const pts = doc?.compiled?.vertices_points;
-    if (!Array.isArray(pts) || pts.length === 0) return null;
+    const subMaps: typeof doc[] = Array.isArray(doc.sub_maps) ? doc.sub_maps : [];
+    const layers = [doc, ...subMaps];
+    const hasDeclaredTransform = layers.some(hasLayerTransformDeclaration);
+    const indexedLayers = hasDeclaredTransform ? layers : [doc];
     let bbox: number[] | null = null;
-    for (const vertex of pts) {
-      const merc = vertex?.[1];
-      if (!Array.isArray(merc) || typeof merc[0] !== 'number' || typeof merc[1] !== 'number') continue;
+    const include = ([x, y]: number[]) => {
       bbox = bbox
-        ? [Math.min(bbox[0], merc[0]), Math.min(bbox[1], merc[1]), Math.max(bbox[2], merc[0]), Math.max(bbox[3], merc[1])]
-        : [merc[0], merc[1], merc[0], merc[1]];
+        ? [Math.min(bbox[0], x), Math.min(bbox[1], y), Math.max(bbox[2], x), Math.max(bbox[3], y)]
+        : [x, y, x, y];
+    };
+
+    for (const [index, layer] of indexedLayers.entries()) {
+      if (layer.tinEnabled === false) {
+        const surface = readWorldFileSurface(layer, index > 0);
+        for (const pixel of imageCorners(layer) ?? surface.bounds!) {
+          const merc = surface.transform(pixel);
+          if (merc === false) return null;
+          include(merc);
+        }
+        continue;
+      }
+
+      if (hasLayerTransformDeclaration(layer)) validateCompiledGeo(layer);
+      const vertices = layer.compiled?.vertices_points;
+      if (!Array.isArray(vertices)) continue;
+      for (const vertex of vertices) {
+        const point = vertex?.[1];
+        if (!Array.isArray(point) || typeof point[0] !== 'number' || typeof point[1] !== 'number') {
+          if (hasDeclaredTransform) return null;
+          continue;
+        }
+        const merc = compiledPointToMercator(point, layer.compiled.yaxisMode, layer.crs);
+        if (merc === false) return null;
+        include(merc);
+      }
     }
     return bbox ? JSON.stringify(bbox) : null;
   } catch {

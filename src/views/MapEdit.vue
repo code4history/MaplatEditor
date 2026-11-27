@@ -90,6 +90,7 @@ import { mapSourceFactory } from '@maplat/core/src/source_ex';
 // @ts-ignore
 import type { IiifBindings } from '@maplat/core/src/iiif/manifest';
 import Tin from '@maplat/tin';
+import { Transform, type CompiledTransformData } from '@maplat/transform';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
@@ -823,7 +824,7 @@ const restoreHistoryState = async (state: MapEditHistoryState) => await withoutH
     mercZoom.value = state.mercZoom;
     strictMode.value = state.strictMode || 'strict';
     vertexMode.value = state.vertexMode || 'plain';
-    tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
+    seedTinObjects(null);
     editingID.value = '';
     newGcp.value = undefined;
     newlyAddEdge.value = undefined;
@@ -2343,17 +2344,41 @@ const extractCompiledTins = (data: any): any[] | null => {
     if (data && 'compiledTins' in data) delete data.compiledTins;
     return tins;
 };
-// compiled を持つレイヤーへ Tin を種付けする(再計算は compiled が無いレイヤーだけで良い)。
-// 文字列(tooLessGcps/compiledRequired)は未計算のまま残し、load 側の再計算に委ねる
-const seedTinObjects = (tins: any[] | null): void => {
-    if (!tins) return;
-    tins.forEach((entry, i) => {
-        if (i >= tinObjects.value.length || !entry || typeof entry === 'string') return;
-        const tin = new Tin(TIN_V2_OPTIONS);
-        tin.setCompiled(entry);
-        tinObjects.value[i] = tin;
+// B/C の保存済み compiled は Transform で読み、外周の鍵を含む元のデータを保存に使う。
+class StoredOuterTin extends Transform {
+    constructor(private readonly compiled: CompiledTransformData) {
+        super();
+        this.setCompiled(compiled);
+    }
+
+    getCompiled(): CompiledTransformData {
+        return this.compiled;
+    }
+}
+
+const layerDocumentAt = (index: number) =>
+    index === 0 ? mapData.value : sub_maps.value[index - 1];
+
+function seedTinObjects(tins: any[] | null, keepErrors = false): void {
+    tinObjects.value = Array.from({ length: 1 + sub_maps.value.length }, (_, index) => {
+        const layer = layerDocumentAt(index);
+        const storedOuter = layer?.compiled?.outerTransform !== undefined ? layer.compiled : undefined;
+        const entry = tins?.[index] ?? storedOuter;
+        if (layer?.tinEnabled === false || entry === 'worldFile') return 'worldFile';
+        if (entry && typeof entry === 'object') {
+            if (entry.outerTransform !== undefined) return new StoredOuterTin(entry);
+            const tin = new Tin(TIN_V2_OPTIONS);
+            tin.setCompiled(entry);
+            return tin;
+        }
+        // ZIP 取り込みでは既存のエラーの印も引き継ぐ。
+        return keepErrors && typeof entry === 'string' ? entry : undefined;
     });
-};
+}
+
+const isStoredTransform = () =>
+    layerDocumentAt(currentEditingLayer.value)?.tinEnabled === false ||
+    tinObject.value === 'worldFile' || tinObject.value instanceof StoredOuterTin;
 
 // 開き直しで地図の源に渡す delivery を決める。URL の文字列の検査を通らないものは
 // 「配れない」として渡さない（renderer は取得しない）。
@@ -2574,8 +2599,6 @@ onMounted(async () => {
         strictMode.value = mapData.value.strictMode || 'strict';
         vertexMode.value = mapData.value.vertexMode || 'plain';
     });
-    // tinObjects: メインレイヤー + サブマップ分 の undefined で初期化（旧実装: vueMap.tinObjects = [...]）
-    tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
     // compiled を持つレイヤーは種付けし再計算を省く(未訪問レイヤーの素体化も防ぐ)
     seedTinObjects(requestCompiledTins);
     initializeHistoryStack();
@@ -2826,6 +2849,11 @@ const waitForTinComputeIdle = (): Promise<void> =>
 // opts.force: 保存前ゲート用。タイル読込(illstSource)前でも TIN 計算自体は gcps/bounds だけで可能
 const updateTin = async (opts?: { force?: boolean }) => {
     if (!illstSource && !opts?.force) return;
+    // 保存済みの A/B/C は、従来の三角網計算で上書きせず描画だけ更新する。
+    if (isStoredTransform()) {
+        tinResultUpdate();
+        return;
+    }
     const gcpList = gcps.value;
     if (!gcpList || gcpList.length < 3) {
         tinObject.value = 'tooLessGcps';
@@ -2866,6 +2894,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
             strict: strictMode.value,
             vertex: vertexMode.value
         });
+        if (isStoredTransform()) return;
         if (typeof compiled === 'string') {
             // エラー文字列が返ってきた場合
             tinObject.value = compiled;
@@ -2877,7 +2906,7 @@ const updateTin = async (opts?: { force?: boolean }) => {
         }
     } catch (err: any) {
         // unmount による worker dispose は画面遷移中の正常な取消。状態を汚さず終了する(人間検証R5)
-        if (String(err?.message ?? err).includes('worker was disposed')) return;
+        if (isStoredTransform() || String(err?.message ?? err).includes('worker was disposed')) return;
         console.error('[updateTin] IPC error:', err);
         tinObject.value = 'unknownError';
     } finally {
@@ -4286,7 +4315,8 @@ const saveMapAfterConfirm = async (): Promise<boolean> => {
     const copyFromUid: string | undefined = copyFromUidSource.value || undefined;
 
     // 3. tins 収集（旧実装: vueMap.tinObjects.map(tin => tin.getCompiled())）
-    const tins = tinObjects.value.map((tin: any) => {
+    const tins = tinObjects.value.map((tin: any, index: number) => {
+        if (layerDocumentAt(index)?.tinEnabled === false) return 'worldFile';
         if (!tin || typeof tin === 'string') return tin || 'tooLessGcps';
         return tin.getCompiled();
     });
@@ -4330,7 +4360,6 @@ const reloadFromStore = async () => {
         mercZoom.value = data.mercZoom;
         strictMode.value = data.strictMode || 'strict';
         vertexMode.value = data.vertexMode || 'plain';
-        tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
         seedTinObjects(reloadCompiledTins);
         editingID.value = '';
         newGcp.value = undefined;
@@ -4563,17 +4592,7 @@ const importMap = async () => {
             mercZoom.value = histMap.mercZoom;
             strictMode.value = histMap.strictMode || 'strict';
             vertexMode.value = histMap.vertexMode || 'plain';
-            // TIN インスタンスを生成（旧実装: vueMap.tinObjects = tins.map(...)）
-            if (compiledTins && compiledTins.length > 0) {
-                tinObjects.value = compiledTins.map((compiled: any) => {
-                    if (typeof compiled === 'string') return compiled;
-                    const tin = new Tin(TIN_V2_OPTIONS);
-                    tin.setCompiled(compiled);
-                    return tin;
-                });
-            } else {
-                tinObjects.value = Array(1 + sub_maps.value.length).fill(undefined);
-            }
+            seedTinObjects(compiledTins, true);
             // タイル・マーカー反映
             if (histMap.url_) await loadMapTiles();
             gcpsToMarkers();

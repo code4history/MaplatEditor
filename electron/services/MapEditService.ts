@@ -56,21 +56,16 @@ class MapEditService {
         // 内部タイルはuidパス: tiles/{uid}/0/0 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり)
         const thumbFolder = path.join(tileFolder, json.uid, "0", "0");
 
-        const res = await this.normalizeRequestData(json, thumbFolder);
-
-        // MapEdit専用フィールドを追加 (mapID欄はslug編集欄になる)
-        res[0].mapID = json.slug;
-        res[0].uid = json.uid;
-        res[0].revision = json.revision;
-        res[0].status = 'Update';
-        res[0].onlyOne = true; // DBに存在するので一意確認済み
-
-        // normalizeRequestData が compiled から生成済みの tins
-        // (byCompiled: 平文 compiled or 文字列素体) をエディタへ添付する。エディタは
-        // compiled を持つレイヤーを再計算せず種付けし、無いレイヤーだけ再計算する。
-        if (res[1]) res[0].compiledTins = res[1];
-
-        return res[0];
+        const [store, tins] = await this.normalizeRequestData(json, thumbFolder);
+        return {
+            ...store,
+            mapID: json.slug,
+            uid: json.uid,
+            revision: json.revision,
+            status: 'Update',
+            onlyOne: true,
+            ...(tins ? { compiledTins: tins } : {}),
+        };
     }
 
     // 既存ロジックをそのまま抽出（strict throw を含まない）。
@@ -80,7 +75,7 @@ class MapEditService {
 
         if (!json) throw new Error(`Map with ID ${uidOrMapID} not found`);
 
-        const previewJson = await this.ensurePreviewCompiled({ ...json });
+        const previewJson = await this.ensurePreviewCompiled(storeHandler.normalizeStoredTransformKeys(json));
         // ↓ ここに従来の hasStrictError チェックは置かない
         const saveFolder = SettingsService.get('saveFolder');
         const tileFolder = path.join(saveFolder, "tiles");
@@ -93,7 +88,6 @@ class MapEditService {
             mapID: json.slug,
             uid: json.uid,
             maptype: 'maplat',
-            compiled: previewJson.compiled,
             sub_maps: previewJson.sub_maps ?? store.sub_maps ?? [],
             width: store.width ?? previewJson.width ?? previewJson.compiled?.wh?.[0],
             height: store.height ?? previewJson.height ?? previewJson.compiled?.wh?.[1],
@@ -111,7 +105,7 @@ class MapEditService {
     }
 
     private async ensurePreviewCompiled(json: any) {
-        if (!json.compiled) {
+        if (json.tinEnabled !== false && !json.compiled) {
             json.compiled = await this.createCompiledFromGcps(
                 json.gcps,
                 json.edges,
@@ -124,7 +118,7 @@ class MapEditService {
 
         if (Array.isArray(json.sub_maps)) {
             json.sub_maps = await Promise.all(json.sub_maps.map(async (subMap: any) => {
-                if (subMap.compiled) return subMap;
+                if (subMap.tinEnabled === false || subMap.compiled) return subMap;
                 return {
                     ...subMap,
                     compiled: await this.createCompiledFromGcps(
@@ -164,26 +158,26 @@ class MapEditService {
         return compiled;
     }
 
-    private async normalizeRequestData(json: any, thumbFolder: string) {
-        let url_: string | undefined;
+    private async normalizeRequestData(
+        json: storeHandler.HistMapStore & { url_?: string },
+        thumbFolder: string,
+    ) {
         // 地図画像サイズが確定しているか確認
         const whReady = (json.width && json.height) || (json.compiled && json.compiled.wh);
 
         if (!whReady) {
-            // サイズ未確定時はそのまま返す（旧実装に準拠）
-            return [json];
+            // サイズ未確定の従来形式を返す前にも、変換の宣言を検査する。
+            const store = storeHandler.normalizeStoredTransformKeys(json);
+            storeHandler.validateStoredTransformLayers(store);
+            return [store] as const;
         }
 
         // url_ の導出は共通実装 deriveRuntimeTileUrl() が正本。
         // DataUploadService.extractZip も同じ関数を呼ぶ（二重実装の一本化）。
         // whReady ガード（上）と store2HistMap（下）は呼び出し側の関心事として据え置く
-        url_ = await deriveRuntimeTileUrl(json, thumbFolder);
-
+        const url_ = await deriveRuntimeTileUrl(json, thumbFolder);
         const [store, tins] = await storeHandler.store2HistMap(json, true);
-        (store as any).url_ = url_;
-
-        const res = [store, tins];
-        return res;
+        return [{ ...store, url_ }, tins] as const;
     }
     /**
      * 旧実装 mapedit.save() 相当 (資産の正本の識別子は変わらない uid とし、slug は全種類で一意な利用者向けの名前とする決まり: uid正準 + revision楽観ロック)

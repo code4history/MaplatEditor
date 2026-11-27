@@ -109,7 +109,7 @@ const keysBlock = storeHandlerText.match(/const keys[\s\S]*?\];/)?.[0];
 assert.ok(keysBlock, 'case 1c: store_handler.ts の keys 配列を抽出できるはず');
 assert.ok(/"label"/.test(keysBlock), 'case 1c: keys 配列に "label" が入っているはず');
 assert.ok(!keysBlock.includes(DEPRECATED_ATTR), 'case 1c: keys 配列から廃止属性が消えているはず');
-const histMapStoreBlock = storeHandlerText.match(/export interface HistMapStore \{[\s\S]*?\n\}/)?.[0];
+const histMapStoreBlock = storeHandlerText.match(/export interface HistMapStore(?:\s+extends\s+[\w, ]+)?\s*\{[\s\S]*?\n\}/)?.[0];
 assert.ok(histMapStoreBlock, 'case 1c: HistMapStore の型定義を抽出できるはず');
 assert.ok(
   /^\s{2}label\??:/m.test(histMapStoreBlock),
