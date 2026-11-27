@@ -547,6 +547,19 @@ itest('清書: strict になれば、別のインスタンスの結果で網を�
   assert.equal((await session.applyEdits({ layerKey: 'fin', edits: [], base: oldStamp, index: 0 })).status, 'revisionMismatch', '差し替え前の版では当たらない');
 });
 
+itest('清書が strict のときは、Tin の証拠の口（refreshBand・collectIncrementalEvidence）を呼ばない（証拠は清書の状態を見ないので、呼ぶと eligible が真になる）', async () => {
+  const calls = [];
+  class SpyTin extends Tin {
+    refreshBand() { calls.push('refreshBand'); return super.refreshBand(); }
+    collectIncrementalEvidence(rebuild) { calls.push('collect'); return super.collectIncrementalEvidence(rebuild); }
+  }
+  const session = new TinWorkerSession({ createTin: (o) => new SpyTin(o) });
+  const { req, stamp } = await editedSession(session);
+  const done = await session.finalize({ request: req, base: stamp });
+  assert.deepEqual(done.decision, { source: 'rebuild', reason: 'rebuildStrict' });
+  assert.deepEqual(calls, [], '清書が strict のときは、局所更新の網を保存の候補にしない');
+});
+
 itest('清書が strict にならなくても、局所更新の網は上書きされない（帯を最新にできなければ、清書の結果を保存する）', async () => {
   const { session, finalize } = sessionWhereFinalizeFails({ refreshBand: () => undefined });
   const { req, stamp } = await editedSession(session);

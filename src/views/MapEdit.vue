@@ -69,6 +69,7 @@ import { buildEditorLayerTin, editorComputeBackend, finalizeEditorLayerTin } fro
 import { normalizeIncrementalEdits } from '../utils/incrementalEditsSetting';
 import { TinMeshRenderer } from '../utils/tinMeshRenderer';
 import { createIdleRunner } from '../utils/idleRunner';
+import { createSpecialMeshLayers } from '../utils/specialMeshLayers';
 import type { TinMeshSide } from '../utils/tinMeshRenderer';
 import { useRevisionedAssetSave } from '../composables/useRevisionedAssetSave';
 import { useAssetDraftLifecycle } from '../composables/useAssetDraftLifecycle';
@@ -918,6 +919,13 @@ const incrementalOrigins = new Set<string>();
 // 編集が止まってから清書するまでの時間（設計書 §9.3 の 3）
 const INCREMENTAL_FINALIZE_IDLE_MS = 1000;
 const displaySubscriptions = new Map<string, () => void>();
+// 特例の保存（局所更新の網をそのまま保存したもの）の層。Tin の証拠が合格しても、表示用の Tin に印は付かないので、Editor が持つ。
+// 次の清書が全部組み直しの結果になったら外す。
+const specialMeshLayers = createSpecialMeshLayers();
+const finalizeDecisions = new Map<string, { source: 'rebuild' | 'incremental'; reason: string }>();
+function noticeSpecialMesh() {
+    notifyOperation({ origin: 'mesh-origin', type: 'info', message: t('mapedit.mesh_origin_incremental_notice') });
+}
 // 開いた地図の層ごとの保存済みの三角網。網を持たない層の最初の編集で、全部組み直す代わりに、restoreMesh で網を戻す（§9.5 (c)）。
 // 1 回使ったら外す（使えなかったときは、全部組み直す）
 const restoreSeeds = new Map<string, { tin: Tin; layer: TransformLayer }>();
@@ -945,16 +953,20 @@ const meshRenderer = new TinMeshRenderer<OlFeature>({
 });
 
 async function finalizeIncrementalLayer(layer: TransformLayer, layerId: string, isCurrent: () => boolean) {
-    const { tin, diagnostics } = await finalizeEditorLayerTin(
+    const { tin, diagnostics, decision } = await finalizeEditorLayerTin(
         { layer, layerId, isCurrent }, layerIds.value.indexOf(layerId),
         (input, current) => editorComputeBackend.finalize(input, current), { incrementalEdits: true },
     );
+    // 清書の判断は、結果が文書へ入った（onFinalized）ときだけ使う（失効して捨てた結果で、印を動かさない）
+    finalizeDecisions.set(layerId, decision);
     return { tin, diagnostics };
 }
 
 /** 層が文書から無くなった（削除・履歴の復元）。worker の網と、表示用の網の購読を捨てる。 */
 function releaseLayerTin(layerId: string) {
     incrementalOrigins.delete(layerId);
+    specialMeshLayers.clear(layerId);
+    finalizeDecisions.delete(layerId);
     displaySubscriptions.get(layerId)?.();
     displaySubscriptions.delete(layerId);
     void editorComputeBackend.disposeLayer(layerId);
@@ -964,6 +976,8 @@ function releaseLayerTin(layerId: string) {
 function releaseAllLayerTins() {
     incrementalOrigins.clear();
     restoreSeeds.clear();
+    specialMeshLayers.clearAll();
+    finalizeDecisions.clear();
     for (const unsubscribe of displaySubscriptions.values()) unsubscribe();
     displaySubscriptions.clear();
     meshRenderer.forget();
@@ -993,7 +1007,15 @@ function createLayerTransformState(snapshot: LayerTransformSnapshot, initialTins
         // 三角網の差分更新（設定 incrementalEdits）: 局所更新で済ませた層は、編集が止まって 1 秒後と保存の前に清書する
         finalize: ({ layer, layerId, isCurrent }) => finalizeIncrementalLayer(layer, layerId, isCurrent),
         needsFinalize: (layerId) => incrementalOrigins.has(layerId),
-        onFinalized: (layerId) => { incrementalOrigins.delete(layerId); },
+        onFinalized: (layerId) => {
+            incrementalOrigins.delete(layerId);
+            const decision = finalizeDecisions.get(layerId);
+            finalizeDecisions.delete(layerId);
+            if (!decision) return;
+            const change = specialMeshLayers.observeFinalize(layerId, decision);
+            if (change === 'marked') noticeSpecialMesh();
+            else if (change === 'cleared' && specialMeshLayers.size === 0) clearOperationNotice('mesh-origin');
+        },
         onLayerRemoved: (layerId) => releaseLayerTin(layerId),
     }, initialTins);
 }
@@ -1160,7 +1182,10 @@ async function buildTinForLayerRequest(request: LayerTinRequest): ReturnType<typ
                 return seed && { compiled: seed.tin.getCompiled(), layer: seed.layer };
             },
             releaseCandidate: (layerKey) => { void editorComputeBackend.disposeLayer(layerKey); },
-            onBuilt: (layerId, origin) => { if (origin === 'incremental') incrementalOrigins.add(layerId); else incrementalOrigins.delete(layerId); },
+            onBuilt: (layerId, origin) => {
+                if (origin === 'incremental') incrementalOrigins.add(layerId); else incrementalOrigins.delete(layerId);
+                specialMeshLayers.observeBuilt(layerId, origin);
+            },
         });
 }
 
@@ -2751,9 +2776,9 @@ function initializeLayerTransformState(tins: any[] | null) {
         const seed = next.getTinState(layer.layerId)?.tin;
         if (typeof seed !== 'object' || seed === null) continue;
         restoreSeeds.set(layer.layerId, { tin: seed, layer });
-        if (seed.meshOrigin === 'incremental') specialSave = true;
+        if (seed.meshOrigin === 'incremental') specialSave = specialMeshLayers.mark(layer.layerId) || specialSave;
     }
-    if (specialSave) notifyOperation({ origin: 'mesh-origin', type: 'info', message: t('mapedit.mesh_origin_incremental_notice') });
+    if (specialSave) noticeSpecialMesh();
     layerTransformState.value.dispose();
     layerTransformState.value = next;
     documentLayerIds = snapshot.map(({ layerId }) => layerId);

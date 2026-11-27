@@ -14,6 +14,7 @@ const { TinDisplayMesh } = await import('../src/utils/tinDisplayMesh.ts');
 const { LayerTinSync, StaleRequestError } = await import('../src/services/tinEditSync.ts');
 const { TinMeshRenderer } = await import('../src/utils/tinMeshRenderer.ts');
 const { createIdleRunner } = await import('../src/utils/idleRunner.ts');
+const { createSpecialMeshLayers } = await import('../src/utils/specialMeshLayers.ts');
 const { applyEditsToTracked, planEdits, trackInputs } = await import('../src/utils/tinEditPlanner.ts');
 const { buildEditorLayerTin, finalizeEditorLayerTin } = await import('../src/services/editorComputeBackend.ts');
 const { transformLayerFromDocument } = await import('../src/utils/layerTransformIntent.ts');
@@ -933,6 +934,43 @@ test('buildEditorLayerTin: 開いた地図の保存済みの三角網（restoreS
   assert.deepEqual(seen, []);
 });
 
+test('特例の網の層の印: 特例の保存で付き、次の清書が全部組み直しの結果になったら外れる。局所更新の結果では動かない', () => {
+  const marks = createSpecialMeshLayers();
+  const special = { source: 'incremental', reason: 'specialSave' };
+  const strict = { source: 'rebuild', reason: 'rebuildStrict' };
+  const failed = { source: 'rebuild', reason: 'evidenceFailed', failed: ['sweepKinks'] };
+  assert.equal(marks.observeFinalize('a', strict), 'unchanged');
+  assert.equal(marks.observeFinalize('a', special), 'marked');
+  assert.equal(marks.observeFinalize('a', special), 'unchanged', '付いたままの再度の特例の保存は、知らせ直さない');
+  assert.equal(marks.has('a'), true);
+  // 特例の網から編集を続けている間（局所更新の結果）は、そのまま
+  marks.observeBuilt('a', 'incremental');
+  assert.equal(marks.has('a'), true);
+  // 全部組み直した結果が入ったら外れる
+  marks.observeBuilt('a', 'rebuild');
+  assert.equal(marks.has('a'), false);
+  // 次の清書が strict になったら外れる。strict でなくても、特例にならなかった（清書の結果を保存した）なら外れる
+  marks.mark('a');
+  assert.equal(marks.observeFinalize('a', strict), 'cleared');
+  marks.mark('a');
+  assert.equal(marks.observeFinalize('a', failed), 'cleared');
+  marks.mark('b');
+  assert.equal(marks.size, 1);
+  assert.equal(marks.clear('b'), true);
+  marks.mark('c');
+  marks.clearAll();
+  assert.equal(marks.size, 0);
+});
+
+test('配線: 特例の網の印は、清書の結果が文書へ入ったときだけ動く', async () => {
+  const mapEdit = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
+  assert.match(mapEdit, /const specialMeshLayers = createSpecialMeshLayers\(\);/);
+  assert.match(mapEdit, /finalizeDecisions\.set\(layerId, decision\)/);
+  assert.match(mapEdit, /onFinalized: \(layerId\) => \{[\s\S]*?specialMeshLayers\.observeFinalize\(layerId, decision\)/, '失効して捨てた結果では動かさない');
+  assert.match(mapEdit, /specialMeshLayers\.observeBuilt\(layerId, origin\)/);
+  assert.match(mapEdit, /clearOperationNotice\('mesh-origin'\)/, '特例でなくなったら、知らせを消す');
+});
+
 // ---------------- 6. 保存される地図（設定が切のとき今と同じ・入のときの保存）----------------
 test('配線: 編集が止まって 1 秒後・保存の前・層を消したとき・地図を開き直したときの後始末が、MapEdit につながっている', async () => {
   const mapEdit = await readFile(new URL('../src/views/MapEdit.vue', import.meta.url), 'utf8');
@@ -948,7 +986,7 @@ test('配線: 編集が止まって 1 秒後・保存の前・層を消したと
   assert.match(mapEdit, /const meshRenderer = new TinMeshRenderer/);
   assert.match(mapEdit, /const restoreSeeds = new Map<string, \{ tin: Tin; layer: TransformLayer \}>\(\);/, '開いた地図の保存済みの三角網を覚える');
   assert.match(mapEdit, /restoreSeed: \(layerId\) => \{\n\s+const seed = restoreSeeds\.get\(layerId\);\n\s+restoreSeeds\.delete\(layerId\);/, '1 回使ったら外す');
-  assert.match(mapEdit, /seed\.meshOrigin === 'incremental'\) specialSave = true;/);
+  assert.match(mapEdit, /seed\.meshOrigin === 'incremental'\) specialSave = specialMeshLayers\.mark\(layer\.layerId\) \|\| specialSave;/, '開いた地図の印のある三角網は、特例の層として覚える');
   assert.match(mapEdit, /t\('mapedit\.mesh_origin_incremental_notice'\)/, '印のある地図には、特例の保存であることを知らせる');
   assert.match(mapEdit, /if \(!keepTriangles\) meshRenderer\.renderAll\(displayMesh\)/, '三角形は表示用の網から描く');
   const model = await readFile(new URL('../src/composables/useLayerTransformState.ts', import.meta.url), 'utf8');
