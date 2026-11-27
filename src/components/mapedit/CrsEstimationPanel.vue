@@ -182,7 +182,7 @@
         </div>
       </template>
 
-      <!-- 見た目の比較（ベクタ。ラスター重ね合わせは後続の担当） -->
+      <!-- 見た目の比較（ベクタ＋ワープ済みラスター重ね合わせ） -->
       <div class="d-flex flex-column gap-2" data-testid="crs-panel-preview">
         <div class="small fw-bold">{{ t('mapedit.crs_preview_heading') }}</div>
         <div class="btn-group btn-group-sm" role="group">
@@ -260,7 +260,8 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useTranslation } from 'i18next-vue';
 import Tin from '@maplat/tin';
-import type { CrsObject, EdgeSet, PointSet, WorldFile } from '@maplat/transform';
+import type { Compiled, CrsObject, EdgeSet, PointSet, WorldFile } from '@maplat/transform';
+import type { CrsPreviewEventPayload, CrsRasterPreviewSpec } from '../../utils/crsRasterOverlay';
 import type { GcpPair } from '@c4h/teiresias';
 import ContextHelp from '../editor-ui/ContextHelp.vue';
 import DiagnosticFeedback from '../editor-ui/DiagnosticFeedback.vue';
@@ -312,7 +313,7 @@ const emit = defineEmits<{
   estimating: [boolean];
   adopt: [CrsAdoptionSelection];
   residuals: [payload: { rows: ResidualRow[]; scaleMode: ResidualScaleMode }];
-  preview: [payload: { mode: PreviewMode; opacity: number; geojson: unknown | null }];
+  preview: [payload: CrsPreviewEventPayload];
   'pan-residual': [merc: number[]];
 }>();
 
@@ -586,11 +587,13 @@ watch([residualTable, residualScale], () => {
 // 比較プレビュー（A: 四隅ポリゴン / B・C: 一時ワーカーの三角網。表示専用で文書を一切変えない）
 let previewToken = 0;
 let lastPreviewGeojson: unknown = null;
+let lastPreviewRasterSpec: CrsRasterPreviewSpec | null = null;
 watch([previewMode, selectedCandidate, () => props.vertexMode, () => props.strictMode, () => props.edges, () => props.crs], async () => {
   const mode = previewMode.value;
   const candidate = selectedCandidate.value;
   lastPreviewGeojson = null;
-  emit('preview', { mode, opacity: previewOpacity.value, geojson: null });
+  lastPreviewRasterSpec = null;
+  emit('preview', { mode, opacity: previewOpacity.value, geojson: null, rasterSpec: null });
   if (mode === 'original' || !candidate) {
     previewFallbackNotice.value = false;
     return;
@@ -605,8 +608,16 @@ watch([previewMode, selectedCandidate, () => props.vertexMode, () => props.stric
     });
     if (token !== previewToken) return;
     previewFallbackNotice.value = false;
+    const rasterSpec: CrsRasterPreviewSpec = {
+      mode: 'A',
+      layerIndex: props.layerIndex,
+      crs: candidate.crs,
+      worldFile: candidate.worldFile as WorldFile,
+      bounds: props.bounds,
+    };
     lastPreviewGeojson = geojson;
-    emit('preview', { mode, opacity: previewOpacity.value, geojson });
+    lastPreviewRasterSpec = rasterSpec;
+    emit('preview', { mode, opacity: previewOpacity.value, geojson, rasterSpec });
     return;
   }
   try {
@@ -648,19 +659,33 @@ watch([previewMode, selectedCandidate, () => props.vertexMode, () => props.stric
     previewFallbackNotice.value = mode === 'B'
       && diagnostics?.requestedOuterTransform === 'worldFile'
       && diagnostics?.outerTransform === 'extrapolate';
+    const rasterSpec: CrsRasterPreviewSpec = {
+      mode,
+      layerIndex: props.layerIndex,
+      crs: candidate.crs,
+      compiled: compiled as Compiled,
+      bounds: props.bounds,
+    };
     lastPreviewGeojson = geojson || null;
-    emit('preview', { mode, opacity: previewOpacity.value, geojson: geojson || null });
+    lastPreviewRasterSpec = rasterSpec;
+    emit('preview', { mode, opacity: previewOpacity.value, geojson: geojson || null, rasterSpec });
   } catch {
     if (token !== previewToken) return;
     previewFallbackNotice.value = false;
     lastPreviewGeojson = null;
-    emit('preview', { mode, opacity: previewOpacity.value, geojson: null });
+    lastPreviewRasterSpec = null;
+    emit('preview', { mode, opacity: previewOpacity.value, geojson: null, rasterSpec: null });
   }
 }, { deep: true, immediate: true });
 
 // 不透明度だけの変更では幾何を作り直さない（geojson の null 初期化や TIN 再計算で点滅させない）
 watch(previewOpacity, () => {
-  emit('preview', { mode: previewMode.value, opacity: previewOpacity.value, geojson: lastPreviewGeojson });
+  emit('preview', {
+    mode: previewMode.value,
+    opacity: previewOpacity.value,
+    geojson: lastPreviewGeojson,
+    rasterSpec: lastPreviewRasterSpec,
+  });
 });
 
 onBeforeUnmount(() => {
@@ -673,7 +698,7 @@ onBeforeUnmount(() => {
     void crsApi?.cancel();
   }
   emit('residuals', { rows: [], scaleMode: residualScale.value });
-  emit('preview', { mode: 'original', opacity: previewOpacity.value, geojson: null });
+  emit('preview', { mode: 'original', opacity: previewOpacity.value, geojson: null, rasterSpec: null });
 });
 
 defineExpose({ runEstimate, cancelEstimate });

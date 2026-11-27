@@ -43,6 +43,7 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    dedupe: ['ol'],
     alias: [
       { find: '@maplat/core/src', replacement: path.resolve(__dirname, 'node_modules/@maplat/core/src') },
       { find: 'i18next-http-backend', replacement: path.resolve(__dirname, 'node_modules/i18next-http-backend/esm/index.js') },
