@@ -1,11 +1,11 @@
 import type { EstimationResult, GcpPair, RecommendationReason, TransformSetup, WorldFile } from '@c4h/teiresias';
 import { recommendTransformSetup, shouldRecommendCrsSwitch } from '@c4h/teiresias';
-import type { CrsObject } from '@maplat/transform';
+import type { CrsObject, EdgeSet, YaxisMode } from '@maplat/transform';
 import { worldFileToCrs } from '@maplat/transform';
 import type { CrsAdoptionSelection } from './crsAdoption.ts';
 import type { CrsEstimationResponse, SelectedCrsCandidate } from '../types/crsEstimation';
-import { compiledGeoJsonToMercator } from './compiledGeo.ts';
-import { crsToLonLat, crsToMercator, geodesicDistanceMeters } from './crsProjection.ts';
+import { compiledGeoJsonToMercator, reverseFollowEdgeAxis } from './compiledGeo.ts';
+import { crsToLonLat, crsToMercator, geodesicDistanceMeters, reprojectLayerCoords } from './crsProjection.ts';
 
 /** 変換の形の画面の並び。A〜C の記号は画面に出さず、ラベルキーだけを持つ。 */
 export type TransformSetupKey = 'A' | 'B' | 'C';
@@ -46,6 +46,23 @@ export function usableEstimation(response: CrsEstimationResponse | null | undefi
  */
 export function isEstimationStale(resultGeneration: number | null, editGeneration: number): boolean {
   return resultGeneration !== null && resultGeneration !== editGeneration;
+}
+
+/**
+ * 推定の入力（§1(b) `geoBasis: LONLAT`）。層の座標系の GCP（`[pixel, geo, …]`）の
+ * `gcp[1]` を WGS84 `[lon, lat]` へ写す。1 点でも写せなければ全体を出さない。
+ */
+export function estimateGcpsFromLayer(
+  gcps: readonly (readonly number[][])[],
+  crs?: CrsObject,
+): GcpPair[] | null {
+  const out: GcpPair[] = [];
+  for (const gcp of gcps) {
+    const lonLat = crsToLonLat(gcp[1], crs);
+    if (lonLat === false || !Number.isFinite(lonLat[0]) || !Number.isFinite(lonLat[1])) return null;
+    out.push({ pixel: [gcp[0][0], gcp[0][1]], geo: [lonLat[0], lonLat[1]] });
+  }
+  return out;
 }
 
 export interface PipelineSummary {
@@ -365,6 +382,20 @@ export interface PreviewMeshInput {
  */
 export function previewMeshMercator(input: PreviewMeshInput): unknown | false {
   return compiledGeoJsonToMercator(input.bakw, input.yaxisMode, input.crs);
+}
+
+/**
+ * B/C プレビューの対応線。`editorComputeBackend.updateTin` は `edges` に内部軸を期待するので、
+ * 再投影した結果を `yaxisMode === 'follow'` のとき `reverseFollowEdgeAxis` で反転して渡す。
+ */
+export function previewTinEdges(
+  edges: readonly EdgeSet[],
+  fromCrs: CrsObject | undefined,
+  toCrs: CrsObject | undefined,
+  yaxisMode: YaxisMode | undefined,
+): EdgeSet[] {
+  const reprojected = reprojectLayerCoords([], edges, fromCrs, toCrs).edges;
+  return yaxisMode === 'follow' ? reverseFollowEdgeAxis(reprojected) : reprojected;
 }
 
 export interface PreviewCornersInput {

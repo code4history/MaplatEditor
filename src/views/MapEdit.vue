@@ -102,7 +102,7 @@ import {
     compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
 } from '../utils/layerTransformIntent';
 import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
-import { residualArrows, setupLabelKey, type ResidualRow, type ResidualScaleMode, type PreviewMode } from '../utils/crsEstimationPanel';
+import { estimateGcpsFromLayer, residualArrows, setupLabelKey, type ResidualRow, type ResidualScaleMode, type PreviewMode } from '../utils/crsEstimationPanel';
 import CrsEstimationPanel from '../components/mapedit/CrsEstimationPanel.vue';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
@@ -642,6 +642,8 @@ watch(sub_maps, (newVal) => {
 }, { deep: true });
 
 watch(currentEditingLayer, () => {
+    // 層が変わったら前の層の推定結果を残さない
+    if (crsPanelVisible.value) closeCrsPanel();
     reflectActiveLayer();
     editingID.value = '';
     newGcp.value = undefined;
@@ -832,6 +834,9 @@ function restoreHistoryDocuments(state: MapEditHistoryState): void {
     sub_maps.value = cloneDeep(state.sub_maps);
     homePosition.value = cloneDeep(state.homePosition);
     mercZoom.value = state.mercZoom;
+    // Undo 復元で前回の採用済み通知・診断を残さない
+    crsAdoptedNotice.value = null;
+    crsAdoptionDiagnostic.value = null;
     const snapshot = layerTransformState.value.capture();
     documentLayerIds = snapshot.map(({ layerId }) => layerId);
     currentEditingLayer.value = Math.min(state.currentEditingLayer, snapshot.length - 1);
@@ -976,10 +981,8 @@ let crsResidualSource: VectorSource | null = null;
 let crsPreviewSource: VectorSource | null = null;
 let crsPreviewLayer: any = null;
 
-const crsGcpsForEstimate = computed(() => gcps.value.map((gcp: number[][]) => ({
-    pixel: [gcp[0][0], gcp[0][1]] as [number, number],
-    geo: [gcp[1][0], gcp[1][1]] as [number, number],
-})));
+// 推定の入力は WGS84 [lon, lat]（§1(b)）。層の座標のまま渡さない。
+const crsGcpsForEstimate = computed(() => estimateGcpsFromLayer(gcps.value, activeLayerCrs.value));
 const crsCurrentSetup = computed(() =>
     layerTransformIntents.value[layerIds.value[currentEditingLayer.value]]?.setup ?? 'legacyV2');
 const crsLayerGeometry = computed(() => {
@@ -989,7 +992,7 @@ const crsLayerGeometry = computed(() => {
         : { width: 0, height: 0, bounds: layer?.bounds as number[][] | undefined };
 });
 const estimateCrsDisabled = computed(() => !crsPanelEstimating.value
-    && (gcps.value.length < 3 || !gcpsEditReady.value || alignPhase.value !== 'P0'
+    && (gcps.value.length < 3 || !crsGcpsForEstimate.value || !gcpsEditReady.value || alignPhase.value !== 'P0'
         || documentEditsBlocked.value || adoptionInProgress.value));
 
 async function onEstimateCrsClick() {
@@ -1004,6 +1007,7 @@ async function onEstimateCrsClick() {
 
 function closeCrsPanel() {
     crsPanelVisible.value = false;
+    crsPanelEstimating.value = false;
     clearCrsOverlays();
     void nextTick(() => illstMap?.updateSize?.());
 }
@@ -2820,6 +2824,9 @@ function seedTinObjects(snapshot: LayerTransformSnapshot, tins: any[] | null = n
 
 function initializeLayerTransformState(tins: any[] | null) {
     layerLoadDiagnostics.value = [];
+    // 地図の入れ替えで前回の採用済み通知・診断を残さない
+    crsAdoptedNotice.value = null;
+    crsAdoptionDiagnostic.value = null;
     sub_maps.value = cloneDeep(mapData.value.sub_maps ?? []);
     currentEditingLayer.value = 0;
     homePosition.value = mapData.value.homePosition;
@@ -5900,7 +5907,7 @@ const goBack = async () => {
                         <CrsEstimationPanel
                             v-if="crsPanelVisible"
                             ref="crsPanelRef"
-                            :gcps="crsGcpsForEstimate"
+                            :gcps="crsGcpsForEstimate ?? []"
                             :edges="edges"
                             :crs="activeLayerCrs"
                             :vertex-mode="vertexMode"

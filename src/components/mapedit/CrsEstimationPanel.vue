@@ -269,7 +269,6 @@ import type { CrsAdoptionSelection } from '../../utils/crsAdoption';
 import type { CrsEstimationAPI, CrsEstimationResponse, SelectedCrsCandidate } from '../../types/crsEstimation';
 import { editorComputeBackend } from '../../services/editorComputeBackend';
 import { resolveTinBuildOptions } from '../../utils/tinOptions';
-import { reprojectLayerCoords } from '../../utils/crsProjection';
 import {
   adoptRecommendedPlan,
   buildPipelineSummary,
@@ -280,12 +279,14 @@ import {
   manualSelection,
   previewCornerPolygonMercator,
   previewMeshMercator,
+  previewTinEdges,
   residualRows,
   setupAdvice,
   setupLabelKey,
   usableEstimation,
   warningMessageKeys,
   type AdoptRecommendedDisabledReason,
+  type AdoptRecommendedVerdict,
   type PreviewMode,
   type ResidualRow,
   type ResidualScaleMode,
@@ -319,7 +320,15 @@ const { t } = useTranslation();
 const crsApi: CrsEstimationAPI | undefined = typeof window !== 'undefined' ? window.crs : undefined;
 
 const estimating = ref(false);
-const requestToken = ref(0);
+/** 推定セッション単位（`runEstimate` / `cancelEstimate` で更新）。古い応答の棄却に使う。 */
+const estimateSessionToken = ref(0);
+/** `estimating` / `emit('estimating', …)` の解放判定用。進行中操作の解放が新操作を巻き込まない。 */
+const uiBusyToken = ref(0);
+/** 進行中のワーカーリクエスト。次を始める前に cancel して `active` の終了を待つ。 */
+let inFlightRequest: Promise<unknown> | null = null;
+/** 推定開始時点の GCP（推定後に編集されても、同じ推定の残差・再推定と混ぜない）。 */
+const estimatedGcps = ref<GcpPair[] | null>(null);
+const estimatedOnshoreOnly = ref<boolean | null>(null);
 const response = ref<CrsEstimationResponse | null>(null);
 const resultGeneration = ref<number | null>(null);
 const onshoreOnly = ref(true);
@@ -391,26 +400,21 @@ const adoptDisabledReasonKey = computed(() => {
   return null;
 });
 
-const recommendedPlan = computed(() => {
+// 「推奨のまま採用」の判定は 1 つにまとめ、plan と disabled が同じ base3857Selected の
+// フォールバック（全体推定の selected が 3857 のときはそれ）を参照する。
+const recommendedVerdict = computed<AdoptRecommendedVerdict | null>(() => {
   if (stale.value || !usable.value) return null;
-  const verdict = adoptRecommendedPlan({
+  return adoptRecommendedPlan({
     response: response.value,
     base3857Selected: base3857Selected.value ?? (usable.value.selected?.authority === 'EPSG' && usable.value.selected?.code === '3857'
       ? usable.value.selected
       : null),
     vertexMode: props.vertexMode,
   });
-  return verdict.plan;
 });
-const recommendedDisabledReason = computed<AdoptRecommendedDisabledReason | null>(() => {
-  if (stale.value) return null;
-  const verdict = adoptRecommendedPlan({
-    response: response.value,
-    base3857Selected: base3857Selected.value,
-    vertexMode: props.vertexMode,
-  });
-  return verdict.disabled;
-});
+const recommendedPlan = computed(() => recommendedVerdict.value?.plan ?? null);
+const recommendedDisabledReason = computed<AdoptRecommendedDisabledReason | null>(
+  () => recommendedVerdict.value?.disabled ?? null);
 const recommendedDisabledHelp = computed(() => {
   switch (recommendedDisabledReason.value) {
     case 'no-base-score': return t('mapedit.crs_compare_unavailable');
@@ -423,7 +427,8 @@ const recommendedDisabledHelp = computed(() => {
 const residualTable = computed<ResidualRow[]>(() => {
   const candidate = selectedCandidate.value ?? usable.value?.selected ?? null;
   if (!candidate) return [];
-  return residualRows(candidate, props.gcps);
+  // 同一推定の gcpsNew（画素・実測の組）だけで残差を出す（推定後に編集した GCP と混ぜない）
+  return residualRows(candidate, candidate.gcpsNew);
 });
 
 function previewModeLabelKey(mode: PreviewMode): string {
@@ -436,27 +441,66 @@ function onOpacityInput(event: Event) {
   if (Number.isFinite(value)) previewOpacity.value = value / 100;
 }
 
-async function runEstimate() {
-  if (!crsApi) return;
-  requestToken.value += 1;
-  const token = requestToken.value;
+function beginBusy(): number {
+  uiBusyToken.value += 1;
   estimating.value = true;
   emit('estimating', true);
+  return uiBusyToken.value;
+}
+
+function endBusy(token: number) {
+  if (token !== uiBusyToken.value) return;
+  estimating.value = false;
+  emit('estimating', false);
+}
+
+function trackRequest<T>(request: Promise<T>): Promise<T> {
+  inFlightRequest = request;
+  const clear = () => { if (inFlightRequest === request) inFlightRequest = null; };
+  request.then(clear, clear);
+  return request;
+}
+
+/** 進行中リクエストがあれば cancel し、ワーカーの `active` 終了（応答の到着）を待ってから次を始める。 */
+async function settleInFlight() {
+  if (!inFlightRequest) return;
+  await crsApi?.cancel();
+  await inFlightRequest.catch(() => {});
+}
+
+async function runEstimate() {
+  if (!crsApi) return;
+  await settleInFlight();
+  estimateSessionToken.value += 1;
+  const session = estimateSessionToken.value;
+  const busy = beginBusy();
+  // 推定開始時点の入力を凍結する（推定後の GCP 編集を同じ推定の残差・再推定に混ぜない）
+  const gcpsSnapshot = structuredClone(props.gcps);
+  const onshoreSnapshot = onshoreOnly.value;
+  estimatedGcps.value = gcpsSnapshot;
+  estimatedOnshoreOnly.value = onshoreSnapshot;
   try {
-    const result = await crsApi.estimate({ gcps: props.gcps, onshoreOnly: onshoreOnly.value });
-    if (token !== requestToken.value) return;
+    const result = await trackRequest(crsApi.estimate({ gcps: gcpsSnapshot, onshoreOnly: onshoreSnapshot }));
+    if (session !== estimateSessionToken.value || result.status === 'canceled') return;
     applyResponse(result);
-  } finally {
-    if (token === requestToken.value) {
-      estimating.value = false;
-      emit('estimating', false);
+    const usableResult = usableEstimation(result);
+    const selected = usableResult?.selected ?? null;
+    const needsBase3857 = selected
+      && !(selected.authority === 'EPSG' && selected.code === '3857')
+      && (usableResult?.ranked ?? []).some((row) => row.authority === 'EPSG' && row.code === '3857');
+    if (needsBase3857) {
+      // 同じ推定セッション内で直列に済ませる（`watch` からの別発火と競合させない）
+      await ensureBase3857Selected(session);
     }
+  } finally {
+    endBusy(busy);
   }
 }
 
 async function cancelEstimate() {
   if (!crsApi || !estimating.value) return;
-  requestToken.value += 1;
+  estimateSessionToken.value += 1;
+  uiBusyToken.value += 1;
   estimating.value = false;
   emit('estimating', false);
   await crsApi.cancel();
@@ -476,57 +520,53 @@ function applyResponse(result: CrsEstimationResponse) {
   }
 }
 
-/** 候補行の選択（単体再推定。同一入力はキャッシュし、古い非同期応答は捨てる）。 */
+/** 候補行の選択（単体再推定。同一入力はキャッシュし、推定開始時点の GCP で再推定する）。 */
 async function selectCandidate(candidateId: string) {
-  if (!crsApi || !usable.value) return;
+  if (!crsApi || !usable.value || !estimatedGcps.value) return;
   const cached = candidateCache.get(candidateId);
   if (cached) {
     selectedCandidate.value = cached;
     return;
   }
-  requestToken.value += 1;
-  const token = requestToken.value;
-  estimating.value = true;
-  emit('estimating', true);
+  await settleInFlight();
+  const session = estimateSessionToken.value;
+  const busy = beginBusy();
   try {
-    const result = await crsApi.estimateCandidate({
-      gcps: props.gcps, onshoreOnly: onshoreOnly.value, candidateId,
-    });
-    if (token !== requestToken.value) return;
+    const result = await trackRequest(crsApi.estimateCandidate({
+      gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId,
+    }));
+    if (session !== estimateSessionToken.value || result.status === 'canceled') return;
     const single = usableEstimation(result);
     if (single?.selected) {
       candidateCache.set(candidateId, single.selected);
       selectedCandidate.value = single.selected;
     }
   } finally {
-    if (token === requestToken.value) {
-      estimating.value = false;
-      emit('estimating', false);
-    }
+    endBusy(busy);
   }
 }
 
 /** 「推奨のまま採用」が 3857 を採るとき、完全な `selected` を先に単体再推定で用意する。 */
-async function ensureBase3857Selected() {
-  if (base3857Selected.value || !usable.value || !crsApi) return;
-  const selected = usable.value.selected!;
+async function ensureBase3857Selected(session: number) {
+  if (!crsApi || !estimatedGcps.value || base3857Selected.value || session !== estimateSessionToken.value) return;
+  const usableResult = usable.value;
+  if (!usableResult) return;
+  const selected = usableResult.selected!;
   if (selected.authority === 'EPSG' && selected.code === '3857') {
     base3857Selected.value = selected;
     return;
   }
-  const row = usable.value.ranked.find((item) => item.authority === 'EPSG' && item.code === '3857');
+  const row = usableResult.ranked.find((item) => item.authority === 'EPSG' && item.code === '3857');
   if (!row) return;
   const cached = candidateCache.get(row.id);
   if (cached) {
     base3857Selected.value = cached;
     return;
   }
-  requestToken.value += 1;
-  const token = requestToken.value;
-  const result = await crsApi.estimateCandidate({
-    gcps: props.gcps, onshoreOnly: onshoreOnly.value, candidateId: row.id,
-  });
-  if (token !== requestToken.value) return;
+  const result = await trackRequest(crsApi.estimateCandidate({
+    gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId: row.id,
+  }));
+  if (session !== estimateSessionToken.value || result.status === 'canceled') return;
   const single = usableEstimation(result);
   if (single?.selected) {
     candidateCache.set(row.id, single.selected);
@@ -539,19 +579,17 @@ function chooseSetup(key: TransformSetupKey) {
   if (key === 'A' || key === 'B' || key === 'C') previewMode.value = key;
 }
 
-watch(usable, (value) => {
-  if (value?.selected) void ensureBase3857Selected();
-}, { immediate: true });
-
 watch([residualTable, residualScale], () => {
   emit('residuals', { rows: residualTable.value, scaleMode: residualScale.value });
 }, { deep: true, immediate: true });
 
 // 比較プレビュー（A: 四隅ポリゴン / B・C: 一時ワーカーの三角網。表示専用で文書を一切変えない）
 let previewToken = 0;
-watch([previewMode, selectedCandidate, previewOpacity], async () => {
+let lastPreviewGeojson: unknown = null;
+watch([previewMode, selectedCandidate, () => props.vertexMode, () => props.strictMode, () => props.edges, () => props.crs], async () => {
   const mode = previewMode.value;
   const candidate = selectedCandidate.value;
+  lastPreviewGeojson = null;
   emit('preview', { mode, opacity: previewOpacity.value, geojson: null });
   if (mode === 'original' || !candidate) {
     previewFallbackNotice.value = false;
@@ -567,12 +605,12 @@ watch([previewMode, selectedCandidate, previewOpacity], async () => {
     });
     if (token !== previewToken) return;
     previewFallbackNotice.value = false;
+    lastPreviewGeojson = geojson;
     emit('preview', { mode, opacity: previewOpacity.value, geojson });
     return;
   }
   try {
     const gcpsNew: PointSet[] = candidate.gcpsNew.map((gcp: GcpPair) => [[gcp.pixel[0], gcp.pixel[1]], [gcp.geo[0], gcp.geo[1]]]);
-    const edgesNew = reprojectLayerCoords([], props.edges, props.crs, candidate.crs).edges;
     const layerDoc = {
       crs: candidate.crs,
       worldFile: candidate.worldFile as WorldFile,
@@ -583,10 +621,15 @@ watch([previewMode, selectedCandidate, previewOpacity], async () => {
     const tinOptions = resolveTinBuildOptions(layerDoc, {
       strictMode: props.strictMode, vertexMode: props.vertexMode,
     }, mode);
-    if (!tinOptions) return;
+    if (!tinOptions) {
+      previewFallbackNotice.value = false;
+      return;
+    }
+    // updateTin は内部軸の対応線を期待する（editorComputeBackend.buildEditorLayerTin と同じ経路）
+    const edgesNew = previewTinEdges(props.edges, props.crs, candidate.crs, tinOptions.yaxisMode);
     const [, compiled, diagnostics] = await editorComputeBackend.updateTin({
       gcps: gcpsNew,
-      edges: edgesNew as EdgeSet[],
+      edges: edgesNew,
       index: props.layerIndex,
       bounds: (props.layerIndex === 0 ? [props.width, props.height] : props.bounds) as never,
       strict: props.strictMode,
@@ -605,16 +648,30 @@ watch([previewMode, selectedCandidate, previewOpacity], async () => {
     previewFallbackNotice.value = mode === 'B'
       && diagnostics?.requestedOuterTransform === 'worldFile'
       && diagnostics?.outerTransform === 'extrapolate';
+    lastPreviewGeojson = geojson || null;
     emit('preview', { mode, opacity: previewOpacity.value, geojson: geojson || null });
   } catch {
     if (token !== previewToken) return;
     previewFallbackNotice.value = false;
+    lastPreviewGeojson = null;
     emit('preview', { mode, opacity: previewOpacity.value, geojson: null });
   }
 }, { deep: true, immediate: true });
 
+// 不透明度だけの変更では幾何を作り直さない（geojson の null 初期化や TIN 再計算で点滅させない）
+watch(previewOpacity, () => {
+  emit('preview', { mode: previewMode.value, opacity: previewOpacity.value, geojson: lastPreviewGeojson });
+});
+
 onBeforeUnmount(() => {
-  requestToken.value += 1;
+  estimateSessionToken.value += 1;
+  uiBusyToken.value += 1;
+  // 推定中に閉じたら、親の `crsPanelEstimating` を true 残りにせずワーカーも止める
+  if (estimating.value) {
+    estimating.value = false;
+    emit('estimating', false);
+    void crsApi?.cancel();
+  }
   emit('residuals', { rows: [], scaleMode: residualScale.value });
   emit('preview', { mode: 'original', opacity: previewOpacity.value, geojson: null });
 });

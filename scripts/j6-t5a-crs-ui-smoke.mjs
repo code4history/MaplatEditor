@@ -8,12 +8,12 @@ import { worldFileToCrs } from '@maplat/transform';
 import { shouldRecommendCrsSwitch } from '@c4h/teiresias';
 import {
   adoptRecommendedPlan, buildPipelineSummary, candidateRows, compare3857, estimationResultFor,
-  isEstimationStale, manualSelection, previewCornerPolygonMercator, previewMeshMercator,
-  residualArrows, residualRows, setupAdvice, setupLabelKey, usableEstimation, warningMessageKeys,
+  estimateGcpsFromLayer, isEstimationStale, manualSelection, previewCornerPolygonMercator, previewMeshMercator,
+  previewTinEdges, residualArrows, residualRows, setupAdvice, setupLabelKey, usableEstimation, warningMessageKeys,
 } from '../src/utils/crsEstimationPanel.ts';
 import { prepareCrsAdoption } from '../src/utils/crsAdoption.ts';
 import { useLayerTransformState } from '../src/composables/useLayerTransformState.ts';
-import { crsToMercator, geodesicDistanceMeters, lonLatToCrs } from '../src/utils/crsProjection.ts';
+import { crsToMercator, geodesicDistanceMeters, lonLatToCrs, reprojectLayerCoords } from '../src/utils/crsProjection.ts';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const LANGS = ['de', 'en', 'es', 'fr', 'id', 'ja', 'ko', 'th', 'vi', 'zh', 'zh-TW'];
@@ -301,6 +301,42 @@ test('A のベクタ比較は画像側の外枠を worldFileToCrs で 3857 に�
   assert.equal(previewCornerPolygonMercator({ worldFile, crs: planeVi, pixelCorners: [[0, 0], [1, 1]] }), null);
 });
 
+// ---- 推定の入力（§1(b) geoBasis: LONLAT）と B/C プレビューの対応線の内部軸 ----
+test('CRS 推定の入力: 層座標の gcp[1] を WGS84 [lon, lat] へ写す（1 点でも写せなければ null）', () => {
+  const lonLats = [[136, 36], [136.01, 36], [136, 36.01]];
+  const mercGcps = lonLats.map((lonLat, index) => [[index * 10, index * 20], lonLatToCrs(lonLat, { epsg: 3857 })]);
+  const from3857 = estimateGcpsFromLayer(mercGcps, { epsg: 3857 });
+  assert.ok(from3857);
+  assert.equal(from3857.length, 3);
+  from3857.forEach((gcp, index) => {
+    assert.deepEqual(gcp.pixel, [index * 10, index * 20]);
+    assert.ok(Math.abs(gcp.geo[0] - lonLats[index][0]) < 1e-9, `3857 経度 ${index}`);
+    assert.ok(Math.abs(gcp.geo[1] - lonLats[index][1]) < 1e-9, `3857 緯度 ${index}`);
+  });
+  const planeGcps = lonLats.map((lonLat, index) => [[index * 10, index * 20], lonLatToCrs(lonLat, planeVi)]);
+  const from6674 = estimateGcpsFromLayer(planeGcps, planeVi);
+  assert.ok(from6674);
+  from6674.forEach((gcp, index) => {
+    assert.ok(Math.abs(gcp.geo[0] - lonLats[index][0]) < 1e-7, `6674 経度 ${index}`);
+    assert.ok(Math.abs(gcp.geo[1] - lonLats[index][1]) < 1e-7, `6674 緯度 ${index}`);
+  });
+  // 異常点（非有限・変換不能）は 1 点でも null
+  assert.equal(estimateGcpsFromLayer([[[0, 0], [Number.NaN, 0]]], { epsg: 3857 }), null);
+  assert.equal(estimateGcpsFromLayer([[[0, 0], [136, 36]], [[1, 1], [Infinity, 0]]], { epsg: 4326 }), null);
+  assert.deepEqual(estimateGcpsFromLayer([], { epsg: 3857 }), []);
+});
+
+test('B/C プレビューの対応線: follow は内部軸へ y 反転し、invert・未指定は反転しない', () => {
+  const edges = [[[[0.5, 0]], [[10, 20], [30, 40]], [0, 1]]];
+  const plain4326 = reprojectLayerCoords([], edges, { epsg: 3857 }, { epsg: 4326 }).edges;
+  const follow4326 = previewTinEdges(edges, { epsg: 3857 }, { epsg: 4326 }, 'follow');
+  assert.deepEqual(follow4326[0][1], plain4326[0][1].map((point) => [point[0], -point[1]]), 'EPSG:4326 YAXIS_FOLLOW は y 反転');
+  assert.deepEqual(previewTinEdges(edges, { epsg: 3857 }, { epsg: 4326 }, 'invert'), plain4326);
+  const plain6674 = reprojectLayerCoords([], edges, { epsg: 3857 }, planeVi).edges;
+  assert.deepEqual(previewTinEdges(edges, { epsg: 3857 }, planeVi, 'invert'), plain6674, 'EPSG:6674 は非反転');
+  assert.deepEqual(previewTinEdges(edges, { epsg: 3857 }, planeVi, undefined), plain6674);
+});
+
 test('比較切替・不透明度・残差倍率の操作は地図文書を 1 ビットも変えない', () => {
   const guarded = {
     mapData: { gcps: structuredClone(gcps), crs: structuredClone(planeVi) },
@@ -440,6 +476,42 @@ test('静的: 推定パネルは換算済み worldFile を再換算せず、単�
     assert.ok(panel.includes(needle), `CrsEstimationPanel.vue に ${needle} が無い`);
   }
   assert.ok(!panel.includes('toCenteredWorldFile'), '半画素換算は T2 ワーカーだけ（パネルで再換算しない）');
+});
+
+test('静的: WGS84 換算の推定入力・対応線の内部軸・競合解消・中止通知・不透明度分離が接続されている', async () => {
+  const mapEdit = await readFile(path.join(root, 'src/views/MapEdit.vue'), 'utf8');
+  for (const needle of [
+    'estimateGcpsFromLayer(gcps.value, activeLayerCrs.value)',
+    '|| !crsGcpsForEstimate.value',
+    ':gcps="crsGcpsForEstimate ?? []"',
+    'if (crsPanelVisible.value) closeCrsPanel();',
+    'crsPanelEstimating.value = false;',
+  ]) {
+    assert.ok(mapEdit.includes(needle), `MapEdit.vue に ${needle} が無い`);
+  }
+  assert.ok(/function restoreHistoryDocuments\(state: MapEditHistoryState\): void \{[\s\S]{0,600}crsAdoptedNotice\.value = null;/.test(mapEdit),
+    'restoreHistoryDocuments で採用済み通知をクリアしていない');
+  assert.ok(/function initializeLayerTransformState\(tins: any\[\] \| null\) \{[\s\S]{0,400}crsAdoptedNotice\.value = null;/.test(mapEdit),
+    'initializeLayerTransformState で採用済み通知をクリアしていない');
+  const panel = await readFile(path.join(root, 'src/components/mapedit/CrsEstimationPanel.vue'), 'utf8');
+  for (const needle of [
+    'previewTinEdges(props.edges, props.crs, candidate.crs, tinOptions.yaxisMode)',
+    'residualRows(candidate, candidate.gcpsNew)',
+    'estimateSessionToken',
+    'uiBusyToken',
+    'inFlightRequest',
+    'await inFlightRequest.catch(() => {});',
+    'estimatedGcps',
+    'estimatedOnshoreOnly',
+    'lastPreviewGeojson',
+    'watch(previewOpacity',
+    'void crsApi?.cancel()',
+  ]) {
+    assert.ok(panel.includes(needle), `CrsEstimationPanel.vue に ${needle} が無い`);
+  }
+  assert.ok(!panel.includes('watch([previewMode, selectedCandidate, previewOpacity]'),
+    '不透明度がプレビュー幾何の watch に混入している');
+  assert.ok(!panel.includes('watch(usable'), '`watch(usable)` からの別発火は残さない');
 });
 
 test('静的: 画面から参照する mapedit.crs_* キーが 11 言語すべてに存在する', async () => {
