@@ -2,16 +2,17 @@
 // iconRefs.ts の collectIconAssetUids が、アイコン (icon / selectedIcon) のうち
 // アセット UID だけを集め、アイコンセットの参照・URL・相対パスを集めないことを確かめる。
 // 実体の有無の照会 (window.imageAssets.getFilePath) は PoiEdit.vue 側で、e2e が確かめる。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'icon-asset-diagnostics-'));
+const workDir = await makeSmokeScratch('icon-asset-diagnostics-');
 const outDir = path.join(workDir, 'dist');
 
 try {

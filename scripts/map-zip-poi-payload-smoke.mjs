@@ -24,19 +24,20 @@
 // 実行方法: node scripts/map-zip-poi-payload-smoke.mjs。fixture は小さく保ち、
 // 大きい画像はゼロ画素の BMP（デコードできる実画像。asset 登録が jimp でデコードするため）で作る。
 // 失敗しても途中で止めず、全部の結果を出してから exit 1 にする。
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'map-zip-poi-payload-'));
-const fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'map-zip-poi-payload-fixtures-'));
+const workDir = await makeSmokeScratch('map-zip-poi-payload-');
+const fixtureDir = await makeSmokeScratch('map-zip-poi-payload-fixtures-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');

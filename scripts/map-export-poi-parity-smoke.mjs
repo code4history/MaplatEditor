@@ -14,10 +14,11 @@
 // その変更のコメント（AppExportService.ts:281-286 相当）がこの是正理由を記録しており、
 // 本 smoke はその欠陥が地図 ZIP 側に残っていることを RED として固定してから是正する。
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
@@ -26,7 +27,7 @@ await mkdir(scratchRoot, { recursive: true });
 // composeDownloadMapJson は electron 依存を持たない純粋寄りの関数だが、
 // storeHandler / poiReferenceResolver を transitive に引くため SSR build で束ねる。
 async function importComposer() {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'map-export-poi-parity-map-export-'));
+  const workDir = await makeSmokeScratch('map-export-poi-parity-map-export-');
   const outDir = path.join(workDir, 'dist');
   const entryFile = path.join(workDir, 'entry.ts');
   const electronStub = path.join(workDir, 'electron-stub.ts');

@@ -15,11 +15,12 @@
 //   case 18 新規 i18n キー 9 件が全 11 言語に実在・空値なし・末尾改行保持・
 //        mercator_x/y_shift の訳が appedit.* と同一文言
 //   case 22 package.json への結線（結線の規則）
-import { mkdir, mkdtemp, readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const read = (rel) => readFile(path.join(projectRoot, rel), 'utf8');
@@ -39,10 +40,10 @@ const NEW_KEYS = [
 ];
 
 // vite lib build で src/utils/basemapAlign.ts を .mjs 化して import する（app-source-diff-model-smoke と同型）。
-// 生成物は scratch 配下に残置する（破壊的操作 gate: 一時領域は消さない）
+// 生成物は scratch 配下に置く（smoke-scratch.mjs がプロセス終了時に消す。残す場合は KEEP_SMOKE_TMP=1）
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'mapedit-align-basemap-align-'));
+const workDir = await makeSmokeScratch('mapedit-align-basemap-align-');
 const outDir = path.join(workDir, 'dist');
 
 try {

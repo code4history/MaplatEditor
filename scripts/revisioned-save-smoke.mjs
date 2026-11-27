@@ -1,16 +1,17 @@
 // useRevisionedAssetSave composable smoke (unit, vite lib build)
 // maps/apps/poi_sources 共通の revision 楽観ロック保存フロー（conflict → 読み直す/上書き）を
 // fake send / fake window.dialog.showMessageBox で検証する。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'revisioned-save-'));
+const workDir = await makeSmokeScratch('revisioned-save-');
 const outDir = path.join(workDir, 'dist');
 
 try {

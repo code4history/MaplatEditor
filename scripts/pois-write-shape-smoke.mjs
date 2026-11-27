@@ -10,19 +10,20 @@
 // Part C: 構造 assert（撤去の恒久ガード） — 撤去ファイル不在 / MAX_REPARSE_DEPTH 0件 /
 //         appPoisFormat.ts に JSON.parse 不在 / preview・export の poiSources 読み撤去 /
 //         AppEdit.vue の新配線
-import { mkdtemp, rm, writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'pois-write-shape-pois-'));
+const workDir = await makeSmokeScratch('pois-write-shape-pois-');
 const entryFile = path.join(workDir, 'pois-write-shape-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

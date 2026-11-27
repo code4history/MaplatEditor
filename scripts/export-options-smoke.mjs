@@ -17,11 +17,12 @@
 // 基準（b）の作り方: 変更前の master で `node scripts/export-options-smoke.mjs --write-baseline` を走らせ、
 // scripts/fixtures/default-map-export.json に保存した（このファイルを手で書き換えない）。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -30,7 +31,7 @@ const writeBaseline = process.argv.includes('--write-baseline');
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'export-options-'));
+const workDir = await makeSmokeScratch('export-options-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');

@@ -11,12 +11,13 @@
 //   Part D: 既存地図の通常更新 (tmpCheck=false) は url を含まない (無回帰)
 //   Part E: clone は url を含むようになった  — 複製先タイルパスを指す恒久URLを返す
 //   Part F: rename (改名、tmpCheck=false) は url を含まない (無回帰)
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
 import assert from 'node:assert/strict';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -52,7 +53,7 @@ await mkdir(scratchRoot, { recursive: true });
 // 使われるため、$ 特殊シーケンスを含めてはいけない(vite/rollup 内部の文字列置換処理が誤爆し、
 // ビルド自体が壊れることを実測確認した)。Part C 用の $& 断片は、workDir 配下の
 // 「実行時にのみ MapEditService.save() が扱う」サブディレクトリ名にのみ含める(下記 Part C 参照)。
-const workDir = await mkdtemp(path.join(scratchRoot, 'upload-tile-ref-'));
+const workDir = await makeSmokeScratch('upload-tile-ref-');
 const entryFile = path.join(workDir, 'upload-tile-ref-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

@@ -25,11 +25,12 @@
 //     ※ --capture は「変更前の実装」に対して 1 回だけ実行して固定するためのもの。
 //        実装変更後に安易に取り直すとゴールデンが意味を失う。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -227,7 +228,7 @@ if (!CAPTURE) {
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'migration-passthrough-'));
+const workDir = await makeSmokeScratch('migration-passthrough-');
 const entryFile = path.join(workDir, 'passthrough-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

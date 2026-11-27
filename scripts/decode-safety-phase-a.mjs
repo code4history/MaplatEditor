@@ -15,19 +15,20 @@
 // external のままバンドルする。間接参照があれば素の Node 実行で MODULE_NOT_FOUND になる。
 // `node:v8` は Node 組み込みなので external でも解決される。∴ case 3 の v8 非依存は
 // ソーステキスト assert で別途確認する（jpegDecodeBudget.ts 側の純粋性の担保）。
-import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'decode-safety-phase-a-'));
+const workDir = await makeSmokeScratch('decode-safety-phase-a-');
 const entryFile = path.join(workDir, 'phase-a.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'phase-a.mjs');

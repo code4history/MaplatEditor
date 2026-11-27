@@ -1,16 +1,17 @@
 // 既存 smoke と同じ Vite SSR + 子プロセス方式。ネットワークは preload で禁止。
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const root = fileURLToPath(new URL('..', import.meta.url));
 const scratch = path.join(root, '.tmp-smoke');
 await mkdir(scratch, { recursive: true });
-const work = await mkdtemp(path.join(scratch, 'iiif-real-'));
+const work = await makeSmokeScratch('iiif-real-');
 try {
   const commonStub = path.join(work, 'common.mjs');
   await writeFile(commonStub, `export function sanitizeIiifHtml() { throw new Error('試験は sanitize を明示して渡します'); }`);

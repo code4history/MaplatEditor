@@ -13,17 +13,18 @@
 //   ④ 大文字の UID を指定して add すると、行の uid・実体のファイル名・返る uid が小文字になる
 //   ⑤ 大文字の UID で rename / updateMetadata が Success になり、返る uid が小文字
 //   ⑥ 大文字の UID で delete すると行が消え、実体が _trash へ移る
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'asset-uid-case-export-'));
+const workDir = await makeSmokeScratch('asset-uid-case-export-');
 const entryFile = path.join(workDir, 'asset-uid-case-export-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

@@ -1,19 +1,20 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const read = (relativePath) => readFile(path.join(projectRoot, relativePath), "utf8");
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "t8b-search-"));
+const workDir = await makeSmokeScratch("t8b-search-");
 const entryFile = path.join(workDir, "entry.ts");
 const outFile = path.join(workDir, "dist", "entry.mjs");
 
 await writeFile(entryFile, `
-import assert from "node:assert/strict";
-import { WEB_MERCATOR_MAX_LAT, mercatorBboxToWgs84, wgs84BboxToMercator } from ${JSON.stringify(path.join(projectRoot, "electron/utils/webMercator.ts"))};
+ import assert from "node:assert/strict";
+ import { WEB_MERCATOR_MAX_LAT, mercatorBboxToWgs84, wgs84BboxToMercator } from ${JSON.stringify(path.join(projectRoot, "electron/utils/webMercator.ts"))};
 import { filterBaseMapsByBbox, filterDocsByExtentSlugs } from ${JSON.stringify(path.join(projectRoot, "electron/utils/searchSpatial.ts"))};
 import { useInfiniteResourceList } from ${JSON.stringify(path.join(projectRoot, "src/composables/useInfiniteResourceList.ts"))};
 

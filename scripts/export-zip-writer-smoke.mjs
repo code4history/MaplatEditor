@@ -19,26 +19,27 @@
 //
 // app-source-diff-model-smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ）。
 // 環境変数:
-//   EXPORT_ZIP_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の mkdtemp）
-//   EXPORT_ZIP_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用）
-//   EXPORT_ZIP_SMOKE_KEEP_BUILD=1 : vite ビルド出力（.tmp-smoke 配下）も残す（デバッグ用）
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+//   EXPORT_ZIP_SMOKE_WORKDIR: 作業ディレクトリの明示指定（既定: .tmp-smoke 配下の makeSmokeScratch）
+//   EXPORT_ZIP_SMOKE_KEEP=1 : 終了後も作業ディレクトリを残す（実測証跡の残置用。KEEP_SMOKE_TMP=1 と併用する）
+//   EXPORT_ZIP_SMOKE_KEEP_BUILD=1 : vite ビルド出力（.tmp-smoke 配下）も残す（デバッグ用。KEEP_SMOKE_TMP=1 と併用する）
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 // ビルド出力（vite バンドル）は常にプロジェクト配下に置く。プロジェクト外に置くと
 // external 指定の 'adm-zip' 等が bundle の位置から解決できず ERR_MODULE_NOT_FOUND になる（実測）
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const buildRoot = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-build-'));
+const buildRoot = await makeSmokeScratch('export-zip-writer-build-');
 // データ作業域（合成ツリー・zip・展開結果）は EXPORT_ZIP_SMOKE_WORKDIR で外へ出せる（証跡の残置用）
 let workDir;
 if (process.env.EXPORT_ZIP_SMOKE_WORKDIR) {
   workDir = path.resolve(process.env.EXPORT_ZIP_SMOKE_WORKDIR);
   await mkdir(workDir, { recursive: true });
 } else {
-  workDir = await mkdtemp(path.join(scratchRoot, 'export-zip-writer-'));
+  workDir = await makeSmokeScratch('export-zip-writer-');
 }
 const keepWorkDir = process.env.EXPORT_ZIP_SMOKE_KEEP === '1';
 const entryFile = path.join(buildRoot, 'export-zip-writer-smoke.ts');

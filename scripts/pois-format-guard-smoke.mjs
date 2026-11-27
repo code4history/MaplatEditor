@@ -12,18 +12,19 @@
 // Part C: 実装同一性と関所の実効性のソース assert
 //         — 両 View が同じ1本を通り、温存の独自分岐を持たない /
 //           MapEdit の mapData.value 直接代入が setter と履歴復帰の2箇所のみ
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'pois-format-guard-pois-guard-'));
+const workDir = await makeSmokeScratch('pois-format-guard-pois-guard-');
 const entryFile = path.join(workDir, 'pois-format-guard-smoke.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'pois-format-guard-smoke.mjs');

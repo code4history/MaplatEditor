@@ -14,9 +14,10 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, readFile, rm, mkdir } from 'node:fs/promises';
+import { readFile, rm, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -64,7 +65,7 @@ async function readLines(file) {
 
 /** Runs one smoke and checks its whole output. */
 async function checkRun({ script, minLines, minServerLines, minTokens, withValues }) {
-  const dir = await mkdtemp(path.join(scratch, 'mcp-log-redaction-'));
+  const dir = await makeSmokeScratch('mcp-log-redaction-');
   const tokenFile = path.join(dir, 'tokens.txt');
   const valueFile = path.join(dir, 'values.txt');
   try {

@@ -55,6 +55,12 @@
       "kind": "excluded",
       "reason": "親の作業場所の配下の MaplatUI 配布物との MD5 照合で、単独 clone では比較元が無い（環境依存）",
       "issue": "#121"
+    },
+    {
+      "name": "clean",
+      "kind": "excluded",
+      "reason": "保守コマンド（.tmp-smoke の掃除）であり試験ではない。試験中に実行すると他の smoke の作業フォルダごと消えるため実行対象から外す",
+      "issue": "#121"
     }
   ],
   "e2e": []

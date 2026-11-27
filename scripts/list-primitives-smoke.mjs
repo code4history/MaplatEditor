@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, access } from "node:fs/promises";
 import path from "node:path";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const read = (rel) => readFile(path.join(projectRoot, rel), "utf8");
@@ -65,12 +66,12 @@ assert.equal(translations.ja.resource_list.search_placeholder, "{{name}}を検�
 console.log("smoke Part 1: OK");
 
 // --- Part 2: useInfiniteResourceList pure unit（vite bundle → node 実行）---
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import { build } from "vite";
 
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "t6-composable-"));
+const workDir = await makeSmokeScratch("t6-composable-");
 const entryFile = path.join(workDir, "entry.ts");
 const outFile = path.join(workDir, "dist", "entry.mjs");
 
@@ -260,7 +261,7 @@ console.log("smoke Part 4: OK");
 import vue from "@vitejs/plugin-vue";
 
 {
-  const helpDir = await mkdtemp(path.join(scratchRoot, "t6-help-aria-"));
+  const helpDir = await makeSmokeScratch("t6-help-aria-");
   // ContextHelp は bootstrap の Popover を import するが、SSR 描画では動かないので差し替える
   await writeFile(path.join(helpDir, "bootstrap-stub.mjs"), "export class Popover { constructor() {} dispose() {} }\n");
   await writeFile(

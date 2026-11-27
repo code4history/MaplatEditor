@@ -12,12 +12,13 @@
 // **同じ規則を4箇所に書いても同じ結果になる**。二重実装が残っていないことは
 // 挙動からは証明できない ∴ 定義の一意性はソースで固定する。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -76,7 +77,7 @@ console.log('ok (b): 4経路（＋経路5）が共有 API を呼ぶ');
 // ---- (d): 契約の実挙動 ----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'import-slug-resolver-'));
+const workDir = await makeSmokeScratch('import-slug-resolver-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const storeStub = path.join(workDir, 'electron-store-stub.ts');

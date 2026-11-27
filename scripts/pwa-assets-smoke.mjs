@@ -13,7 +13,7 @@
 // 実 Electron を要する検証（case 1〜case 5）は
 // scripts/pwa-chromium-smoke.mjs が担う。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -21,6 +21,7 @@ import { pathToFileURL } from 'node:url';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -128,7 +129,7 @@ const baseline = JSON.parse(await readFile(baselinePath, 'utf8'));
 
 // --- 純関数（Electron を import しないモジュール）-----------------------------
 await mkdir(path.join(projectRoot, '.tmp-smoke'), { recursive: true });
-const workDir = await mkdtemp(path.join(projectRoot, '.tmp-smoke', 'rc-editor174-pwa-'));
+const workDir = await makeSmokeScratch('rc-editor174-pwa-');
 const entryFile = path.join(workDir, 'pure.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'pure.mjs');

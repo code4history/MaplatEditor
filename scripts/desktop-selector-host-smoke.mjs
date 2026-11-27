@@ -1,13 +1,14 @@
-import { readdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
-const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-desktop-selector-host-'));
+const workDir = await makeSmokeScratch('maplat-editor-desktop-selector-host-');
 
 const NORMALIZE_TYPE = (s) =>
   s.replace(/\s+/g, ' ').replace(/\s*([<>(),;|&?:])\s*/g, '$1').trim();

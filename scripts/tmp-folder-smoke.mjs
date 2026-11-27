@@ -6,10 +6,11 @@
 //   (iii) 解決は 1 か所（SettingsService は tmpFolder.ts を呼ぶ）で、消費者は SettingsService.get のまま。
 //         app.getPath をそのまま渡さない（this を失うと Electron が投げる）
 import assert from 'node:assert/strict';
-import { lstat, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const failures = [];
@@ -88,7 +89,7 @@ if (tmpFolder) {
     });
   }
 
-  const root = await mkdtemp(path.join(os.tmpdir(), 'tmp-folder-smoke-'));
+  const root = await makeSmokeScratch('tmp-folder-smoke-');
   try {
     const deps = { lstat, mkdir, getuid: process.getuid };
     const outside = path.join(root, 'outside');

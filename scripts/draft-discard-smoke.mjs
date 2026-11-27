@@ -8,15 +8,16 @@
 //
 // 実行: pnpm smoke:draft-discard
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'draft-discard-'));
+const workDir = await makeSmokeScratch('draft-discard-');
 
 async function importSource(relativeEntry, fileName) {
   const outDir = path.join(workDir, fileName.replace(/\.mjs$/, ''));

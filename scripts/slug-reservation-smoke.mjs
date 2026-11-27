@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
@@ -13,6 +13,7 @@ import {
 } from "../electron/services/SlugReservationService.ts";
 import { toRegistryKind, toDraftKind } from "../electron/services/slugReservationKind.ts";
 import { createResettableSingleFlight } from "../electron/services/ResettableSingleFlight.ts";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const readSrc = (rel) => readFile(new URL(`../${rel}`, import.meta.url), "utf8");
 
@@ -21,7 +22,7 @@ const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
 
 async function importSource(relativeEntry, fileName) {
-  const workDir = await mkdtemp(path.join(scratchRoot, "slug-reservation-renderer-"));
+  const workDir = await makeSmokeScratch("slug-reservation-renderer-");
   const outDir = path.join(workDir, "dist");
   try {
     await build({
@@ -1146,7 +1147,7 @@ for (const loc of LOCALES) {
   const projectRoot = new URL("..", import.meta.url).pathname;
   const scratchRoot = path.join(projectRoot, ".tmp-smoke");
   await mkdir(scratchRoot, { recursive: true });
-  const workDir = await mkdtemp(path.join(scratchRoot, "t7-draft-core-"));
+  const workDir = await makeSmokeScratch("t7-draft-core-");
   const entryFile = path.join(workDir, "entry.ts");
   const outFile = path.join(workDir, "dist", "entry.mjs");
   await writeFile(entryFile, `

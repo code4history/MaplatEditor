@@ -1,16 +1,17 @@
 // usePoiEditSession composable smoke (unit, vite lib build)
 // POI エディタの編集セッション（明示 commit = 1 Undo 単位、structural sharing、
 // UndoStack<PoiEditState> 委譲）を検証する。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-edit-session-'));
+const workDir = await makeSmokeScratch('poi-edit-session-');
 const outDir = path.join(workDir, 'dist');
 
 try {

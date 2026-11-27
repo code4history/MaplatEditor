@@ -14,7 +14,7 @@
 //
 // appScheme.ts / appUrl.ts は electron を import しないので `node --experimental-strip-types` で読める。
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -34,6 +34,7 @@ import {
   resolveAppUrl,
 } from "../electron/utils/appScheme.ts";
 import * as rendererAppUrl from "../src/utils/appUrl.ts";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
@@ -104,7 +105,7 @@ const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ 
 
 // --- [4] handler の実挙動（実ファイル・node の Response） ---
 {
-  const work = await mkdtemp(path.join(process.env.TMPDIR || os.tmpdir(), "app-scheme-same-origin-smoke-"));
+  const work = await makeSmokeScratch("app-scheme-same-origin-smoke-");
   const save = path.join(work, "save");
   const dist = path.join(work, "dist");
   await mkdir(path.join(save, "tiles"), { recursive: true });

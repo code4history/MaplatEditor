@@ -20,17 +20,18 @@
 //
 // 実行方法: node scripts/zip-entry-limit-smoke.mjs（zip-errors-smoke と同じ vite SSR ビルド＋
 // electron／electron-store のスタブ方式）。作業場所は .tmp-smoke/ の下に作り、終わりに消す。
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'zip-entry-limit-'));
+const workDir = await makeSmokeScratch('zip-entry-limit-');
 const fixtureDir = path.join(workDir, 'fixtures');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');

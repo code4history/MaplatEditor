@@ -9,13 +9,14 @@
 // The token is never printed. When MCP_SMOKE_TOKEN_FILE is set, every token issued during the run is written
 // there (one per line) so that the log-redaction smoke can check the output for them.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import { readdirSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { builtinModules } from 'node:module';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -159,7 +160,7 @@ console.log(`ok: import wall holds for ${mcpFiles.length} files under electron/m
 
 const scratchRoot = rel('.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'mcp-server-boundaries-'));
+const workDir = await makeSmokeScratch('mcp-server-boundaries-');
 
 try {
   // Bundle the server the way the main process is bundled (only builtins and the configured externals stay

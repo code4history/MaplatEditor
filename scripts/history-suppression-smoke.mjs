@@ -2,16 +2,17 @@
 //
 // case 2 (a)-(h) を検証する。方式は scripts/poi-edit-session-smoke.mjs と同一
 // （vite の build() を lib モードで呼び .mjs を出力 → import → node:assert）。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'history-suppression-'));
+const workDir = await makeSmokeScratch('history-suppression-');
 const outDir = path.join(workDir, 'dist');
 
 // setTimeout(0) の発火（マクロタスク）まで待つ。マイクロタスクもここで flush される

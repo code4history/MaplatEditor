@@ -1,15 +1,16 @@
 // POI Content Mode 純ロジック smoke (unit, vite lib build)
 // poiContentMode.ts の ContentMode 型・legacy推定・Asset Reference URI収集を検証する。
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-content-mode-'));
+const workDir = await makeSmokeScratch('poi-content-mode-');
 const outDir = path.join(workDir, 'dist');
 
 try {

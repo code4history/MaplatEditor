@@ -19,18 +19,19 @@
 //
 // 出力: `result: <経路> <操作> <POI> <kept|missing|changed|rejected>` の行を全件出し、
 // P1〜P3 に kept 以外が 1 件でもあれば失敗する。P4 が拒まれなければ失敗する。P3 単独のソースの検証結果は `record:` 行で出す。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/e2e/fixtures/directgo');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'directgo-roundtrip-'));
+const workDir = await makeSmokeScratch('directgo-roundtrip-');
 const entryFile = path.join(workDir, 'directgo-roundtrip-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

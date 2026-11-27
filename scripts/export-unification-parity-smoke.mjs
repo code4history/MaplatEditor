@@ -11,10 +11,11 @@
 // 呼び出しがソース上で1本になっていることも固定する。
 // これは poi-package smoke が PoiPackageService に対して行っているのと同じ軸4 の手法である。
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdir, rm, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
@@ -70,7 +71,7 @@ await mkdir(scratchRoot, { recursive: true });
 // 出力の一致: 同じ POI 入力に対し、共通 API が返す参照形が地図/アプリで同一であること
 // ---------------------------------------------------------------------------
 async function importResolver() {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'export-unification-parity-'));
+  const workDir = await makeSmokeScratch('export-unification-parity-');
   const outDir = path.join(workDir, 'dist');
   const entryFile = path.join(workDir, 'entry.ts');
   const electronStub = path.join(workDir, 'electron-stub.ts');

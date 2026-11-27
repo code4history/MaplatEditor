@@ -13,17 +13,18 @@
 // Part H: i18n — 全キーが 11 locale に存在 + 削除キー (external_data/external_note) の残置なし
 // Part I: poisLayerStructure (完全分割表の機械導出 — クラス転記表 + 341 通り全域列挙 +
 //         hasPoisLayerKey)
-import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'inline-poi-convert-'));
+const workDir = await makeSmokeScratch('inline-poi-convert-');
 const entryFile = path.join(workDir, 'inline-poi-convert-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

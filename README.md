@@ -412,6 +412,20 @@ pnpm dist:win      # Windows
 pnpm dist:linux    # Linux
 ```
 
+#### Smoke test scratch folders
+
+Smoke tests (`scripts/*-smoke.mjs`) create their work folders under
+`.tmp-smoke/` through `scripts/smoke-scratch.mjs` (`makeSmokeScratch()`).
+Every folder is deleted automatically when the process exits — on success,
+on exceptions, on `process.exit()`, and on SIGINT/SIGTERM.
+
+- `KEEP_SMOKE_TMP=1` keeps the folders for debugging and prints their
+  locations instead of deleting them.
+- A hard kill (for example the 600-second timeout of
+  `scripts/ci/run-smokes.mjs`) cannot run the cleanup. If leftovers pile
+  up, `pnpm run smoke:clean` (or `node scripts/clean-smoke-tmp.mjs`)
+  deletes everything inside `.tmp-smoke/` — only inside it.
+
 ### Keyboard Shortcuts
 
 | Shortcut | Action |

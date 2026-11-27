@@ -7,11 +7,12 @@
 //       update だと落ち、updatePhaseEnd だと送られる
 //
 // 実行方法: node scripts/progress-phase-end-smoke.mjs（progress-reporter-smoke と同じ vite SSR 方式）
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -39,7 +40,7 @@ const MARKER = 'progress phase end smoke passed';
 // ---- (2) 動的な断言（判別力の対照）----
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'progress-phase-end-progress-'));
+const workDir = await makeSmokeScratch('progress-phase-end-progress-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStub = path.join(workDir, 'electron-stub.ts');
 const outDir = path.join(workDir, 'dist');

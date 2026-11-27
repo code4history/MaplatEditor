@@ -1,11 +1,12 @@
 // タイル実寸からのコンテンツ寸法導出と破損シグネチャ検出の検証。
 // 実データ不使用（一時フォルダ + electron/electron-store stub + vite ssr build）。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -14,7 +15,7 @@ const codecFile = path.join(projectRoot, 'electron/utils/thumbnail512Codec.ts');
 const stitchFile = path.join(projectRoot, 'electron/utils/thumbnail512Stitch.ts');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'tile-content-size-and-corruption-'));
+const workDir = await makeSmokeScratch('tile-content-size-and-corruption-');
 const entryFile = path.join(workDir, 'tile-content-size-and-corruption-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -162,5 +163,5 @@ try {
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 } finally {
-  // .tmp-smoke は破壊的操作禁止のため残置
+  // .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）
 }

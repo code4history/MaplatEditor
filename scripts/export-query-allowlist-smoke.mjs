@@ -8,18 +8,19 @@
 //
 // 書き出しは スモークと同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で、実サービス AppExportService.exportApp を直接呼ぶ。
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'export-query-allowlist-query-'));
+const workDir = await makeSmokeScratch('export-query-allowlist-query-');
 
 const BASE_URL = 'https://example.test/app/index.html';
 

@@ -1,16 +1,17 @@
 // POI の取り込み（追記・上書き）の合流 smoke (unit, vite ssr build)
 // planPoiMerge（空セルは変えない・往復で変更なし・Undo 1 回）を検証する。
-import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-merge-'));
+const workDir = await makeSmokeScratch('poi-merge-');
 const outDir = path.join(workDir, 'dist');
 
 try {

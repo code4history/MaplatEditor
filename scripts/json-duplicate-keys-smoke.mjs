@@ -7,15 +7,16 @@
 //
 // 使い方: node scripts/json-duplicate-keys-smoke.mjs
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const checker = path.join(projectRoot, 'scripts/ci/check-json-duplicate-keys.mjs');
 
-const workDir = await mkdtemp(path.join(os.tmpdir(), 'json-duplicate-keys-'));
+const workDir = await makeSmokeScratch('json-duplicate-keys-');
 const run = (...files) =>
   spawnSync(process.execPath, [checker, ...files], { encoding: 'utf8', timeout: 30000 });
 

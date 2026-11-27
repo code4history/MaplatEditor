@@ -6,17 +6,18 @@
 //   (B) generateTmsThumbnail を本物で: 外を指す URL は NoTiles、中と同梱リソースはサムネイルができる
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'read-tile-roots-'));
+const workDir = await makeSmokeScratch('read-tile-roots-');
 const p = (r) => JSON.stringify(path.join(projectRoot, r));
 const failures = [];
 

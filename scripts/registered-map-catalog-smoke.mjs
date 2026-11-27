@@ -1,13 +1,14 @@
-import { access, readdir, readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
-const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-registered-map-catalog-'));
+const workDir = await makeSmokeScratch('maplat-editor-registered-map-catalog-');
 
 const fileExists = (p) => access(p).then(() => true, () => false);
 

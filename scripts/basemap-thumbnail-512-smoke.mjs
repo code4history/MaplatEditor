@@ -14,17 +14,18 @@
 // basemap-512-export と同型 harness（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で、実サービス（AppAssetService / AppExportService / SqliteDataService）を直接呼ぶ。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'basemap-thumbnail-512-thumb512-'));
+const workDir = await makeSmokeScratch('basemap-thumbnail-512-thumb512-');
 const entryFile = path.join(workDir, 'basemap-thumbnail-512-thumb512-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

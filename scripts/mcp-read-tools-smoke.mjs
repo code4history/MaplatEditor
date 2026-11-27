@@ -13,11 +13,12 @@
 // The token is never printed. MCP_SMOKE_TOKEN_FILE and MCP_SMOKE_SECRET_FILE (set by the log-redaction smoke)
 // receive the issued tokens and the fixture's coordinate values, so that smoke can check this output for them.
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
+import { rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -55,7 +56,7 @@ const RECORDED = JSON.parse(await readFile(rel('scripts/fixtures/mcp-read-tools-
 
 const scratchRoot = rel('.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'mcp-read-tools-'));
+const workDir = await makeSmokeScratch('mcp-read-tools-');
 
 try {
   const electronStubFile = path.join(workDir, 'electron-stub.ts');

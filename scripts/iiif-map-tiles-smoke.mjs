@@ -12,17 +12,18 @@
 //
 // 既存の smoke と同じ harness（electron/electron-store スタブ + vite の ssr build）で
 // main のサービスをそのまま起動し、実際にファイルと DB を触って確かめる。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-map-tiles-'));
+const workDir = await makeSmokeScratch('iiif-map-tiles-');
 const entryFile = path.join(workDir, 'iiif-map-tiles-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

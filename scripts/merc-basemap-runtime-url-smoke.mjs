@@ -29,18 +29,19 @@
 //      url_ を持たない item の返り値には url_ own key を立てない（own-key を保持する契約）
 //   S8 search:baseMaps の pageSize<=0（全件）経路でも url_ と thumbnailUrl の両方が添付される
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'merc-basemap-runtime-url-merc-url-'));
+const workDir = await makeSmokeScratch('merc-basemap-runtime-url-merc-url-');
 const entryFile = path.join(workDir, 'merc-basemap-runtime-url-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

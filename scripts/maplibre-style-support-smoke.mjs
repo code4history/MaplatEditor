@@ -8,15 +8,16 @@
 //
 // ネットワークを使わない。判定の関数と表は vite でバンドルして読む（他のスモークと同じ）。
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'maplibre-style-support-'));
+const workDir = await makeSmokeScratch('maplibre-style-support-');
 const entryPath = path.join(workDir, 'entry.ts');
 const outDir = path.join(workDir, 'dist');
 const p = (rel) => JSON.stringify(path.join(projectRoot, rel));

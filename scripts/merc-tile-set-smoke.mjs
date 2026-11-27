@@ -5,15 +5,16 @@
 // AppExportService の merc 抽出・コピー・名前衝突診断、SqliteDataService の
 // deleteUserBaseMap merc タイル削除、元地図削除で merc タイルが無傷であることを
 // behavioral に検証する。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'merc-tile-set-'));
+const workDir = await makeSmokeScratch('merc-tile-set-');
 const entryFile = path.join(workDir, 'merc-tile-set-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

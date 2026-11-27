@@ -11,17 +11,18 @@
 // 【責務境界】正本化した FC を読むのは PoiPackageService.importManagedPoiDocuments、
 // poi_sources 行を作るのは PoiSourceService。名前もそれを語るものにする
 // （importManagedPoiDocument**s** との単複1文字差を避け createPoiSourceFromManagedDocument）。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'managed-poi-source-managed-source-'));
+const workDir = await makeSmokeScratch('managed-poi-source-managed-source-');
 const entryFile = path.join(workDir, 'managed-source-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

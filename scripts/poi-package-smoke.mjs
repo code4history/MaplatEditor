@@ -1,16 +1,17 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 
 async function importSource() {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'poi-package-'));
+  const workDir = await makeSmokeScratch('poi-package-');
   const outDir = path.join(workDir, 'dist');
   try {
     await build({

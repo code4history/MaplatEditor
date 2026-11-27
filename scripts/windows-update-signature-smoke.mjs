@@ -1,17 +1,18 @@
 // Run with: node scripts/windows-update-signature-smoke.mjs
 // Bundle the real updater service with stubs; never start Electron or PowerShell.
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import childProcess from 'node:child_process';
 import { createRequire, syncBuiltinESMExports } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmpRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(tmpRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(tmpRoot, 'windows-update-signature-'));
+const workDir = await makeSmokeScratch('windows-update-signature-');
 const platform = Object.getOwnPropertyDescriptor(process, 'platform');
 const file = 'C:\\Users\\test\\AppData\\Local\\updater\\Setup.exe';
 const subject = 'CN=Maplat, O=Maplat Project, S=Osaka, C=JP';

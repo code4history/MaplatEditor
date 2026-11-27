@@ -9,17 +9,18 @@
 // Part E: 外部ファイル内の icon / asset が imgs/ ルートで実体として取れる
 // Part F: preview と export が同一形式（ファイル名の一致は要求しない）
 // Part G: バンドル viewer の POI 表示の対応（伝播要否の判定を記録する）
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'preview-pois-parity-preview-pois-'));
+const workDir = await makeSmokeScratch('preview-pois-parity-preview-pois-');
 const entryFile = path.join(workDir, 'preview-pois-parity-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

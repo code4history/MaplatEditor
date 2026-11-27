@@ -1,10 +1,11 @@
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
-const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-poi-source-contract-'));
+const workDir = await makeSmokeScratch('maplat-editor-poi-source-contract-');
 
 try {
   // --- Part 1: Contract export shape ---

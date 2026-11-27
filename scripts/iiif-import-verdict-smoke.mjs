@@ -6,17 +6,18 @@
 // 1 件ずつ確かめる。vite の ssr build で束ね、子プロセスで走らせる。
 //
 // 使い方: node scripts/iiif-import-verdict-smoke.mjs
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'iiif-import-verdict-'));
+const workDir = await makeSmokeScratch('iiif-import-verdict-');
 const entryFile = path.join(workDir, 'iiif-import-verdict-smoke-entry.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const outDir = path.join(workDir, 'dist');

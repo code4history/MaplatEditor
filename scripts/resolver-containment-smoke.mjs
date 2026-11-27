@@ -19,17 +19,18 @@
 //   case 7(t7): 実体の無い AppDataService.getMapTile への stale 参照が解消されている（ソース検査）
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'resolver-containment-'));
+const workDir = await makeSmokeScratch('resolver-containment-');
 const entryFile = path.join(workDir, 'resolver-containment-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

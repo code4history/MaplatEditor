@@ -15,18 +15,19 @@
 //   (G) 単一 map の copy 失敗 (source がディレクトリ) が他 map の処理を止めない
 //   (H) 進捗通知: copyable >= 1 のときだけ database.migrating_originals が送出される
 //       (設計レビューの指摘を実装時に取り込んだもの — runInternal への配線確認)
-import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'originals-migration-'));
+const workDir = await makeSmokeScratch('originals-migration-');
 const entryFile = path.join(workDir, 'originals-migration-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

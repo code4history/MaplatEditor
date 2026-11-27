@@ -8,17 +8,18 @@
 // case 16: 既定サムネイルパスの定数整合（document 値は UI 側。payload thumbnail は別経路）
 // case 3: icons exist ブロックへ単色プレースホルダ検出・寸法検証を追加
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
 // 512px は webp。webp/非 webp を同じ規則で読む共通リーダーを使う
 import { readImageRGBA } from "./lib/webpAssets.mjs";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "google-preset-"));
+const workDir = await makeSmokeScratch("google-preset-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 const modulePath = (relativePath) => JSON.stringify(path.join(projectRoot, relativePath));

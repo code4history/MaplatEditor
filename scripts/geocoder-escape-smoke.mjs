@@ -8,11 +8,12 @@
 // dom.js は './mix' を拡張子なしで import するため node から直接 import できない。
 // 他の smoke と同じく vite の ssr build で束ねてから実行する。
 import assert from 'node:assert/strict';
-import { readFile, mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -61,7 +62,7 @@ console.log('ok: shared escape primitives present in helpers/dom.js');
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'geocoder-escape-'));
+const workDir = await makeSmokeScratch('geocoder-escape-');
 const entryFile = path.join(workDir, 'geocoder-escape-entry.ts');
 const outDir = path.join(workDir, 'dist');
 const bundledFile = path.join(outDir, 'geocoder-escape-entry.mjs');

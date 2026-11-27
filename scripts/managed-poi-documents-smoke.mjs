@@ -11,17 +11,18 @@
 //         assertSafePoiPackageEntries を全 entry へ直接呼ぶ
 //   case 2   経路レベルの容量上限 — 512 entry 超のタイルを持つ地図 ZIP が読める /
 //         payload 超過は拒否される（契約レベルは case 1 が担う）
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'managed-poi-documents-managed-poi-'));
+const workDir = await makeSmokeScratch('managed-poi-documents-managed-poi-');
 const entryFile = path.join(workDir, 'managed-poi-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

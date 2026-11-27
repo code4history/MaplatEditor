@@ -11,14 +11,15 @@
 //
 // 既存の smoke と同じ sandbox 方式（vite SSR ビルド + electron/electron-store スタブ +
 // saveFolder=一時dir）で、実サービス（AppExportService / AppPreviewService）を直接呼ぶ。
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'export-preview-'));
+const workDir = await makeSmokeScratch('export-preview-');
 const entryFile = path.join(workDir, 'export-preview-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

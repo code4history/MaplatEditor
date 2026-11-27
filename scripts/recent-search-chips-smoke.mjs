@@ -10,10 +10,11 @@
 //
 // 実行: node --experimental-strip-types scripts/recent-search-chips-smoke.mjs
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const read = (rel) => readFile(new URL(`../${rel}`, import.meta.url), "utf8");
@@ -31,7 +32,7 @@ function check(name, fn) {
 }
 
 // --- Part 1: 純関数 -------------------------------------
-const workDir = await mkdtemp(path.join(scratchRoot, "recent-search-chips-"));
+const workDir = await makeSmokeScratch("recent-search-chips-");
 const outDir = path.join(workDir, "dist");
 let recent;
 try {

@@ -11,17 +11,18 @@
 //   (f) pageSize<=0 の全件経路では添付をスキップする（無制限 I/O 防止）
 //   (g) MapDataService.requestMaps / AppDataService.requestApps の image 添付が委譲後も現行どおり
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'search-thumbnails-'));
+const workDir = await makeSmokeScratch('search-thumbnails-');
 const entryFile = path.join(workDir, 'search-thumbnails-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

@@ -15,17 +15,18 @@
 //   case 21  別 webContents の選択を拾わない
 //
 // サンドボックス方式は / smoke と同じ（vite SSR + electron / electron-store スタブ）。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'auto-decode-limits-phase-b-'));
+const workDir = await makeSmokeScratch('auto-decode-limits-phase-b-');
 const entryFile = path.join(workDir, 'phase-b.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

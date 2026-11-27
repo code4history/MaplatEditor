@@ -17,11 +17,12 @@
 // 起動方式は scripts/electron-storage-adapter-smoke.mjs と同じ（vite で SSR ビルドし、
 // electron バイナリで実行する）。Electron が無い環境では SKIP する。
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const require = createRequire(import.meta.url);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -39,7 +40,7 @@ if (typeof electronBin !== 'string') {
 }
 
 await mkdir(path.join(projectRoot, '.tmp-smoke'), { recursive: true });
-const workDir = await mkdtemp(path.join(projectRoot, '.tmp-smoke', 'rc-editor174-pwa-chromium-'));
+const workDir = await makeSmokeScratch('rc-editor174-pwa-chromium-');
 const entryFile = path.join(workDir, 'entry.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
 const outDir = path.join(workDir, 'dist');
@@ -74,7 +75,7 @@ try {
     entryFile,
     `
       import assert from 'node:assert/strict';
-      import { readFile, writeFile, mkdir, readdir, mkdtemp } from 'node:fs/promises';
+      import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
       import nodePath from 'node:path';
       import { app, dialog, BrowserWindow } from 'electron';
       import { Jimp, intToRGBA } from 'jimp';

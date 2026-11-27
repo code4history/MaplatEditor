@@ -19,17 +19,18 @@
 //   （vite SSR ビルド + electron / electron-store スタブ + 一時 saveFolder）。
 //   IPC ハンドラは electron スタブの `__handlers` から取り出して**実際に呼ぶ**。
 //
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'runtime-tile-url-ipc-tile-url-'));
+const workDir = await makeSmokeScratch('runtime-tile-url-ipc-tile-url-');
 const entryFile = path.join(workDir, 'runtime-tile-url-ipc-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');
@@ -270,5 +271,5 @@ try {
   process.stdout.write(stdout);
   if (stderr) process.stderr.write(stderr);
 } finally {
-  // .tmp-smoke は破壊的操作禁止のため残置
+  // .tmp-smoke は smoke-scratch.mjs がプロセス終了時に消す（残す場合は KEEP_SMOKE_TMP=1）
 }

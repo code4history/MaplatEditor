@@ -11,17 +11,18 @@
 // 本 smoke は純粋関数層（src/utils/poiPackage.ts）だけを対象とする。
 // 実行時点（extractAllTo の前）の固定は case 3(a) を担う別 smoke の責務である。
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 
 async function importSource() {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'package-limit-scope-'));
+  const workDir = await makeSmokeScratch('package-limit-scope-');
   const outDir = path.join(workDir, 'dist');
   try {
     await build({

@@ -30,11 +30,12 @@
 // 瞬間に data_json から消える。licenseNote / pois に続く 3 度目の同型欠落
 // であり、同じ harness (map-license-note-roundtrip-smoke.mjs) を踏襲する。
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
@@ -219,7 +220,7 @@ console.log('ok: case 18b 写像に触れるのは mapNameUnification.ts のみ 
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'map-name-unification-'));
+const workDir = await makeSmokeScratch('map-name-unification-');
 const entryFile = path.join(workDir, 'map-name-unification-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

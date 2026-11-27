@@ -11,17 +11,18 @@
 //         （実ファイルを用意。旧実装 startsWith(saveFolder) なら prefix 一致で 200 配信されうる = RED）
 //   case 3:  正常系（saveFolder/tmbs 内の実ファイル、saveFolder/tiles 内の実ファイル）は 200 配信（非退行）
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { rm, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'preview-containment-'));
+const workDir = await makeSmokeScratch('preview-containment-');
 const entryFile = path.join(workDir, 'preview-containment-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

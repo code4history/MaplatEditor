@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
 
 async function importSource(relativeEntry, fileName) {
-  const workDir = await mkdtemp(path.join(scratchRoot, 'language-boundary-language-'));
+  const workDir = await makeSmokeScratch('language-boundary-language-');
   const outDir = path.join(workDir, 'dist');
   try {
     await build({

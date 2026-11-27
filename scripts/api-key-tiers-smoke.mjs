@@ -8,15 +8,16 @@
  * resolveStartFromViewerMapID の3段照合（除外ソース救済なし・旧形 slug 救済あり）
  */
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "api-key-tiers-"));
+const workDir = await makeSmokeScratch("api-key-tiers-");
 const entryPath = path.join(workDir, "entry.ts");
 const outDir = path.join(workDir, "dist");
 

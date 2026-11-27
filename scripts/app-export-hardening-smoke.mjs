@@ -8,16 +8,17 @@
 //   (6) 書き出しの appID は main でも slug の字種（画面の入力欄と同じ）を確かめる
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'app-export-hardening-'));
+const workDir = await makeSmokeScratch('app-export-hardening-');
 const p = (r) => JSON.stringify(path.join(projectRoot, r));
 const failures = [];
 

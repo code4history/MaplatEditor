@@ -4,15 +4,16 @@
 //
 // 使い方: node scripts/envelope-coord-input-smoke.mjs
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "envelope-coord-input-"));
+const workDir = await makeSmokeScratch("envelope-coord-input-");
 const outDir = path.join(workDir, "dist");
 
 try {

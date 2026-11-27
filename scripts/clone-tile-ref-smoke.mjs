@@ -12,19 +12,20 @@
 //   Part E (UID 接頭辞境界の回帰): startsWith 境界チェック厳密化 — 複製元 uid が別 uid の
 //                      文字列プレフィックスに一致してしまう異常な url_ に対して、誤った URL を
 //                      構築せず url を省略する (壊れた URL を返すくらいなら省略する安全側)
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { build } from 'vite';
 import assert from 'node:assert/strict';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'clone-tile-ref-'));
+const workDir = await makeSmokeScratch('clone-tile-ref-');
 const entryFile = path.join(workDir, 'clone-tile-ref-smoke.ts');
 const electronStubFile = path.join(workDir, 'electron-stub.ts');
 const electronStoreStubFile = path.join(workDir, 'electron-store-stub.ts');

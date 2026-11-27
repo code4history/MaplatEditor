@@ -16,18 +16,19 @@
 //
 // master-detail-smoke と同じ harness（vite SSR ビルド + import）。
 import assert from "node:assert/strict";
-import { mkdtemp, rm, mkdir, readFile, writeFile } from "node:fs/promises";
+import { rm, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { build } from "vite";
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const scratchRoot = path.join(projectRoot, ".tmp-smoke");
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, "attribution-license-"));
+const workDir = await makeSmokeScratch("attribution-license-");
 const entryFile = path.join(workDir, "attribution-license-smoke.ts");
 const outDir = path.join(workDir, "dist");
 const bundledFile = path.join(outDir, "attribution-license-smoke.mjs");

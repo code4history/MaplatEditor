@@ -3,17 +3,18 @@
 //
 // harness は scripts/issue-148-basemap-icon-smoke.mjs と同型
 // （vite SSR ビルド + electron / electron-store スタブ + saveFolder=一時 dir）。
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'issue-192-'));
+const workDir = await makeSmokeScratch('issue-192-');
 const electronStubFile = path.join(workDir, 'electron.ts');
 const electronStoreStubFile = path.join(workDir, 'store.ts');
 const outDir = path.join(workDir, 'dist');

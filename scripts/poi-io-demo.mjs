@@ -3,12 +3,13 @@
 // 期待値は smoke (poi-merge-smoke・poi-import-smoke) と同じ fixtures を読む。
 //   A: 追記と上書きの対比    B: 誤りの行の報告    C: 文字コード    D: KML    E: 書き出しと往復
 // 使い方: node scripts/poi-io-demo.mjs --out <出力ディレクトリ>
-import { mkdir, mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { build } from 'vite';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
 const fixtureDir = path.join(projectRoot, 'tests/fixtures/poi-io');
@@ -21,7 +22,7 @@ const outDir = path.resolve(process.argv[outArg + 1]);
 await mkdir(outDir, { recursive: true });
 const scratchRoot = path.join(projectRoot, '.tmp-smoke');
 await mkdir(scratchRoot, { recursive: true });
-const workDir = await mkdtemp(path.join(scratchRoot, 'poi-io-demo-'));
+const workDir = await makeSmokeScratch('poi-io-demo-');
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const failures = [];

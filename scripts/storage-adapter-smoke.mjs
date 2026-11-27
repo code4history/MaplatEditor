@@ -1,12 +1,13 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
+import { makeSmokeScratch } from './smoke-scratch.mjs';
 
 const projectRoot = path.resolve(new URL('..', import.meta.url).pathname);
-const workDir = await mkdtemp(path.join(tmpdir(), 'maplat-editor-storage-adapter-'));
+const workDir = await makeSmokeScratch('maplat-editor-storage-adapter-');
 const bundledAdapter = path.join(workDir, 'StorageAdapter.mjs');
 
 try {
