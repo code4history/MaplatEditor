@@ -18,7 +18,9 @@ const { resolveTinBuildOptions } = await import('../src/utils/tinOptions.ts');
 const storeHandler = await import('../electron/utils/store_handler.ts');
 
 const incrementalTin = typeof Tin.prototype.applyEdits === 'function';
-const itest = (name, fn) => test(name, { skip: incrementalTin ? false : '@maplat/tin に applyEdits が無い' }, fn);
+// 補完点（MaplatTin#89）は未公開の Tin にだけある。公開済みの Tin では、補完点が出る試験を飛ばす
+// （tin-incremental-edits-smoke.mjs の能力ゲートと同じ扱い）。
+const itest = (name, fn) => test(name, { skip: incrementalTin ? false : '@maplat/tin に補完点（applyEdits）が無い' }, fn);
 
 // ---- 補完点が付く入力（MaplatTin#89 §2 の形: 凸包の辺の近くの対応点が、地理の面で弦の外へ出る） ----
 function lcg(seed) {
@@ -56,7 +58,7 @@ async function buildTin(gcps, extra = {}) {
 }
 
 // ---- 1. 補完点は対応点の表に入らない ----
-test('補完点は gcps・compiled.points に入らず、派生データとしてだけ読める', async () => {
+itest('補完点は gcps・compiled.points に入らず、派生データとしてだけ読める', async () => {
     const gcps = supplementInput();
     const tin = await buildTin(gcps);
     const compiled = tin.getCompiled();
@@ -103,7 +105,7 @@ itest('表示用の網（VertexRef）からも同じ補完点が読める', asyn
 });
 
 // ---- 2. 未保存の変更に数えない ----
-test('補完点の読み取り・作り直しで文書（gcps・edges・切り替え）は 1 文字も変わらない', async () => {
+itest('補完点の読み取り・作り直しで文書（gcps・edges・切り替え）は 1 文字も変わらない', async () => {
     const gcps = supplementInput();
     const document = { gcps: clone(gcps), edges: [], strictMode: 'strict', vertexMode: 'plain' };
     const historyState = () => bits({ gcps: document.gcps, edges: document.edges, strictMode: document.strictMode, vertexMode: document.vertexMode });
@@ -126,7 +128,7 @@ test('補完点の読み取り・作り直しで文書（gcps・edges・切り�
 });
 
 // ---- 3. 格上げ（対応点にする） ----
-test('格上げで gcps に入り、Undo 1 回で元へ戻る（履歴 1 件）', async () => {
+itest('格上げで gcps に入り、Undo 1 回で元へ戻る（履歴 1 件）', async () => {
     const gcps = supplementInput();
     const tin = await buildTin(gcps);
     const views = supplementPointsFromCompiled(tin.getCompiled());
@@ -161,7 +163,7 @@ test('格上げで gcps に入り、Undo 1 回で元へ戻る（履歴 1 件）'
 });
 
 // ---- 4. 地図ごとの切り替え（supplementPairs: false） ----
-test('supplementPairs: false の Tin は補完点を足さない（#91 の時点と同じ形）', async () => {
+itest('supplementPairs: false の Tin は補完点を足さない（#91 の時点と同じ形）', async () => {
     const gcps = supplementInput();
     const on = await buildTin(gcps);
     assert.ok((on.getCompiled().supplementPairs ?? []).length >= 1);
