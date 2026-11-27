@@ -2343,6 +2343,8 @@ let mercSupplementSource: VectorSource | null = null;
 // 三角網の表示部品（外挿四辺形・補助頂点・内分点）の VectorSource（MaplatEditor#321）。同じく選択・ドラッグの対象外
 let illstTinDecorSource: VectorSource | null = null;
 let mercTinDecorSource: VectorSource | null = null;
+// 補完点のツールチップを消す viewport の pointerleave リスナーの後始末（ol@10 は Map の 'pointerleave' を流さない）
+let supplementLeaveCleanups: Array<() => void> = [];
 
 const labelFontStyle = "Normal 12px Arial";
 
@@ -3353,6 +3355,8 @@ onBeforeUnmount(() => {
     lastAppliedRasterSpec = null;
     mercPreviewOverlayLayer?.setSource?.(null);
     mercPreviewOverlayLayer = null;
+    for (const cleanup of supplementLeaveCleanups) cleanup();
+    supplementLeaveCleanups = [];
     illstMap?.setTarget(undefined);
     mercMap?.setTarget(undefined);
     illstSource = null;
@@ -3600,7 +3604,7 @@ const supplementMarkerStyle = new Style({
     image: new RegularShape({
         points: 4,
         radius: 8,
-        angle: Math.PI / 4,
+        // angle は付けない（RegularShape の既定が菱形。付けると四角になる。凡例の菱形とそろえる）
         fill: new Fill({ color: '#0f9b8e' }),
         stroke: new Stroke({ color: '#ffffff', width: 2 }),
     }),
@@ -3733,6 +3737,15 @@ function supplementPointerMove(side: 'illst' | 'merc', evt: any) {
     supplementTip.value = view
         ? { side, text: supplementPointDescription(view), x: evt.pixel[0], y: evt.pixel[1] }
         : null;
+}
+
+/** ポインタが地図から出たらツールチップを消す（ol@10 は Map の 'pointerleave' を流さないので viewport で受ける。解除は unmount で） */
+function watchSupplementLeave(map: any) {
+    const viewport = typeof map?.getViewport === 'function' ? map.getViewport() : undefined;
+    if (!viewport?.addEventListener) return;
+    const onLeave = () => { supplementTip.value = null; };
+    viewport.addEventListener('pointerleave', onLeave);
+    supplementLeaveCleanups.push(() => viewport.removeEventListener('pointerleave', onLeave));
 }
 
 /** 格上げ（補完点を対応点にする）。[紙, 地理] が gcps に入り、以後は人間の対応点（履歴は 1 件・Undo 1 回）。 */
@@ -3948,7 +3961,7 @@ const initMaps = async () => {
     illstMap.on('click', onMapClick);
     // 補完点を指すと理由を出す（MaplatEditor#321）。地図から外れたら・地図が動いたら消す
     illstMap.on('pointermove', (evt: any) => supplementPointerMove('illst', evt));
-    illstMap.on('pointerleave', () => { supplementTip.value = null; });
+    watchSupplementLeave(illstMap);
     illstMap.on('movestart', () => { supplementTip.value = null; });
 
     const illstEdgeModify = new Modify({
@@ -4040,7 +4053,7 @@ const initMaps = async () => {
     mercMap.getLayers().push(mercCheckLayer);
     // 補完点を指すと理由を出す（MaplatEditor#321）。地図から外れたら・地図が動いたら消す
     mercMap.on('pointermove', (evt: any) => supplementPointerMove('merc', evt));
-    mercMap.on('pointerleave', () => { supplementTip.value = null; });
+    watchSupplementLeave(mercMap);
     mercMap.on('movestart', () => { supplementTip.value = null; });
     // C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
     // createContextMenu の layerFilter は marker/edges のみを拾う ∴ このレイヤ上の

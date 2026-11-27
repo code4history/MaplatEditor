@@ -266,8 +266,9 @@ export function validateStoredTransformLayers(store: HistMapStore): void {
 }
 
 const layerKeys = ["width", "height", "bounds", "gcps", "edges", "compiled"];
+// supplementPairs は pick の許可リストに入れたうえで、false のときだけ残す（dropSupplementFlag）
 const importMapKeys = new Set<string>([
-  ...keys, ...layerKeys, "strictMode", "vertexMode", "yaxisMode", "sub_maps", "imageExtention", "maptype",
+  ...keys, ...layerKeys, "strictMode", "vertexMode", "yaxisMode", "supplementPairs", "sub_maps", "imageExtention", "maptype",
 ]);
 const importSubMapKeys = new Set([
   ...layerKeys, "crs", "worldFile", "tinEnabled", "priority", "importance",

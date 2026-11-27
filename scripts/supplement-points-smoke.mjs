@@ -249,6 +249,14 @@ test('supplementPairs: false は保存・書き出し・取り込みで落ちな
     const [loadedTrue] = await storeHandler.store2HistMap({ ...saved, supplementPairs: true });
     assert.ok(!('supplementPairs' in loadedTrue), '読み直しで true は落とす');
 
+    // CRS 付きの地図（変換の宣言がある）の ZIP 取り込みでも false は落ちない（importMapKeys の許可リスト）
+    const crsStore = { ...saved, crs: { epsg: 3857 }, supplementPairs: false };
+    assert.ok(storeHandler.hasLayerTransformDeclaration(crsStore), '変換の宣言を持つ地図');
+    const importedCrs = storeHandler.prepareImportedMap(clone(crsStore));
+    assert.equal(importedCrs.supplementPairs, false, 'CRS 付きの地図の取り込みでも残る');
+    const importedCrsTrue = storeHandler.prepareImportedMap({ ...clone(crsStore), supplementPairs: true });
+    assert.ok(!('supplementPairs' in importedCrsTrue), 'CRS 付きの地図でも true は落とす');
+
     // 副層にも同じ値を使う（地図最上位の値）
     const options = resolveTinBuildOptions({ crs: { epsg: 3857 }, supplementPairs: imported.supplementPairs }, {});
     assert.equal(options.supplementPairs, false);
@@ -514,4 +522,38 @@ itest('表示部品（外挿四辺形・補助頂点・内分点）が compiled�
         assert.ok(Math.abs(position[0] - meshDecor.quadrilateral.forw[index][0]) < 1e-6);
         assert.ok(Math.abs(position[1] - meshDecor.quadrilateral.forw[index][1]) < 1e-6);
     }
+});
+
+// ---- 11. Plan A（ワールドファイルだけ）の切り替え・復元で worker の網を捨てる ----
+test('Plan A の層の requestTin で onTinDiscarded が呼ばれ、worker の網を捨てる', async () => {
+    const { useLayerTransformState } = await import('../src/composables/useLayerTransformState.ts');
+    const discarded = [];
+    const built = [];
+    const model = useLayerTransformState([{
+        layerId: 'main',
+        intent: { setup: 'A', crs: { epsg: 3857 }, worldFile: { xScale: 1, xSkew: 0, xOrigin: 0, ySkew: 0, yScale: -1, yOrigin: 0 } },
+        buildOptions: { strictMode: 'strict', vertexMode: 'plain' },
+        gcps: [],
+        edges: [],
+    }], {
+        history: {
+            commit() {},
+            undo: () => undefined,
+            redo: () => undefined,
+            async withoutHistoryAsync(apply) { apply(); },
+        },
+        buildTin(request) {
+            built.push(request.layerId);
+            return { tin: 'tooLessGcps' };
+        },
+        prepareAdoption: (copy, selected) => ({ ...copy, ...selected }),
+        onTinDiscarded: (layerId) => discarded.push(layerId),
+    });
+
+    assert.deepEqual(discarded, [], '最初は呼ばれない');
+    // Plan A への切り替え・復元と同じ経路（requestTin → build）で、A の層は buildTin を呼ぶ前に捨てる
+    assert.equal(model.editLayer('main', { gcps: [[[0, 0], [10, 10]]] }), true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.deepEqual(discarded, ['main'], 'onTinDiscarded(layerId) が呼ばれる');
+    assert.deepEqual(built, [], 'Plan A の層で buildTin を呼ばない');
 });
