@@ -650,8 +650,8 @@
     "tin_auxiliary_vertex": "Simpul bantu",
     "tin_extrapolation_quadrilateral": "Segi empat ekstrapolasi",
     "tin_proportional_point": "Titik proporsional",
-    "tin_supplement_reason_hull_edge": "Titik pelengkap yang dipasang di sisi cembung {{edge}} untuk GCP {{anchor}}",
-    "tin_supplement_reason_hull_edge_no_anchor": "Titik pelengkap yang dipasang di sisi cembung {{edge}}",
+    "tin_supplement_reason_hull_edge": "Titik pelengkap yang dipasang di sisi cangkang cembung {{edge}} untuk GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Titik pelengkap yang dipasang di sisi cangkang cembung {{edge}}",
     "tin_supplement_promote": "Jadikan GCP",
     "tin_supplement_list_title": "Titik-titik pelengkap",
     "tin_supplement_toggle": "Gunakan titik pelengkap"

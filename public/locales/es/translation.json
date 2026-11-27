@@ -650,8 +650,8 @@
     "tin_auxiliary_vertex": "Vértice auxiliar",
     "tin_extrapolation_quadrilateral": "Cuadrilátero de extrapolación",
     "tin_proportional_point": "Punto proporcional",
-    "tin_supplement_reason_hull_edge": "Punto complementario colocado en el borde convexo {{edge}} para el GCP {{anchor}}",
-    "tin_supplement_reason_hull_edge_no_anchor": "Punto complementario colocado en el borde convexo {{edge}}",
+    "tin_supplement_reason_hull_edge": "Punto complementario colocado en el borde de la envolvente convexa {{edge}} para el GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Punto complementario colocado en el borde de la envolvente convexa {{edge}}",
     "tin_supplement_promote": "Convertir en GCP",
     "tin_supplement_list_title": "Puntos complementarios",
     "tin_supplement_toggle": "Usar puntos complementarios"

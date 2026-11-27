@@ -98,6 +98,11 @@ export interface LayerTransformDependencies<Tin, Diagnostics, Selection> {
     onFinalized?(layerId: string): void;
     /** 層が文書から無くなった（削除・履歴の復元で）。層に付いた計算の状態を捨てるのに使う */
     onLayerRemoved?(layerId: string): void;
+    /**
+     * 層に三角網が無くなった（Plan A（ワールドファイルだけ）への切り替え・復元で）。層に付いた三角網
+     * （worker の網）を捨て、古い補完点の印などが残らないようにする（MaplatEditor#321）
+     */
+    onTinDiscarded?(layerId: string): void;
 }
 
 export interface LayerTransformSave<Tin> {
@@ -219,7 +224,12 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
     }
 
     function build(request: LayerTinRequest): TinBuildResult<Tin | 'worldFile', Diagnostics> | Promise<TinBuildResult<Tin, Diagnostics>> {
-        if (request.layer.intent.setup === 'A') return { tin: 'worldFile' };
+        if (request.layer.intent.setup === 'A') {
+            // Plan A（ワールドファイルだけ）に切り替わった・復元された層には三角網が無い。
+            // 以前の三角網（補完点の印の元）を捨ててから、ワールドファイルの結果として返す（MaplatEditor#321）
+            dependencies.onTinDiscarded?.(request.layerId);
+            return { tin: 'worldFile' };
+        }
         return dependencies.buildTin(request);
     }
 
@@ -370,10 +380,17 @@ export function useLayerTransformState<Tin, Diagnostics, Selection>(
         issuedIds.add(layerId);
         const { gcps = [], edges = [] } = input;
         // 旧 V2 の副層は、主図が旧 V2 で follow ならそれを継ぐ（副層の保存形式に yaxisMode は無く、地図最上位の値を使う）。
-        const mainIntent = state.value.layers[0]?.intent;
+        const mainLayer = state.value.layers[0];
+        const mainIntent = mainLayer?.intent;
         const intent: LayerTransformIntent = mainIntent?.setup === 'legacyV2' && mainIntent.yaxisMode
             ? { setup: 'legacyV2', yaxisMode: mainIntent.yaxisMode } : { setup: 'legacyV2' };
-        const layer = copyLayer({ ...input, gcps, edges, layerId, intent });
+        // 補完点の地図ごとの切り替え（supplementPairs）は地図全体の値なので、副層も主図にそろえる（MaplatEditor#321）
+        const supplementPairs = mainLayer?.buildOptions.supplementPairs ?? input.buildOptions.supplementPairs;
+        const buildOptions = {
+            ...input.buildOptions,
+            ...(supplementPairs !== undefined ? { supplementPairs } : {}),
+        };
+        const layer = copyLayer({ ...input, gcps, edges, layerId, intent, buildOptions });
         const next = [...applyRanks(state.value.layers, ranks), layer];
         const volatile = new Map(state.value.volatile);
         volatile.set(layerId, { status: 'empty' });

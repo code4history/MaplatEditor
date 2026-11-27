@@ -103,8 +103,8 @@ import {
 } from '../utils/layerCoordTransform';
 import { compiledGeoJsonToMercator, compiledPointToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
 import {
-    supplementPointsFromDisplayMesh, supplementPointsFromCompiled, supplementPointToGcp,
-    supplementVertexText, type SupplementPointView,
+    supplementPointToGcp, supplementVertexText, supplementDisplayOf,
+    type SupplementPointView, type SupplementDisplay,
 } from '../utils/supplementPoints';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
 import {
@@ -1041,6 +1041,8 @@ function createLayerTransformState(snapshot: LayerTransformSnapshot, initialTins
             else if (change === 'cleared' && specialMeshLayers.size === 0) clearOperationNotice('mesh-origin');
         },
         onLayerRemoved: (layerId) => releaseLayerTin(layerId),
+        // Plan A（ワールドファイルだけ）に切り替わった・復元された層の、古い三角網（補完点の印の元）を捨てる（MaplatEditor#321）
+        onTinDiscarded: (layerId) => releaseLayerTin(layerId),
     }, initialTins);
 }
 
@@ -2338,6 +2340,9 @@ let mercBoundsSource: VectorSource | null = null;
 // 補完点の印の VectorSource（MaplatEditor#321）。GCP の marker 層と分け、選択・ドラッグ・削除の対象にしない
 let illstSupplementSource: VectorSource | null = null;
 let mercSupplementSource: VectorSource | null = null;
+// 三角網の表示部品（外挿四辺形・補助頂点・内分点）の VectorSource（MaplatEditor#321）。同じく選択・ドラッグの対象外
+let illstTinDecorSource: VectorSource | null = null;
+let mercTinDecorSource: VectorSource | null = null;
 
 const labelFontStyle = "Normal 12px Arial";
 
@@ -3601,13 +3606,35 @@ const supplementMarkerStyle = new Style({
     }),
 });
 
-/** 補完点を読む。局所更新の表示用の網（VertexRef）を優先し、切のときは compiled の supplementPairs。 */
-function readSupplementPoints(): SupplementPointView[] {
-    const layerId = layerIds.value[currentEditingLayer.value];
-    const mesh = layerId === undefined ? undefined : editorComputeBackend.displayMesh(layerId);
-    if (mesh && mesh.triangleCount > 0) return supplementPointsFromDisplayMesh(mesh);
-    const tin = tinObject.value;
-    return supplementPointsFromCompiled(tin && typeof tin === 'object' ? tin.getCompiled() : undefined);
+// 三角網の表示部品（外挿四辺形・補助頂点・内分点）の印。色は凡例と同じ #3454d1
+const tinDecorColor = '#3454d1';
+const tinQuadrilateralStyle = new Style({
+    stroke: new Stroke({ color: tinDecorColor, width: 2 }),
+});
+const tinAuxiliaryVertexStyle = new Style({
+    image: new RegularShape({
+        points: 4,
+        radius: 5,
+        angle: Math.PI / 4,
+        fill: new Fill({ color: tinDecorColor }),
+        stroke: new Stroke({ color: '#ffffff', width: 1 }),
+    }),
+});
+const tinProportionalPointStyle = new Style({
+    image: new RegularShape({
+        points: 16,
+        radius: 5,
+        fill: new Fill({ color: '#ffffff' }),
+        stroke: new Stroke({ color: tinDecorColor, width: 2 }),
+    }),
+});
+
+/**
+ * 補完点と表示部品を読む（MaplatEditor#321）。Plan A（ワールドファイルだけ）・エラーの層では空。
+ * 局所更新が入っているときは表示用の網（VertexRef）から、切のときは compiled から取る。
+ */
+function readSupplementDisplay(): SupplementDisplay {
+    return supplementDisplayOf(tinObject.value, incrementalDisplayMesh());
 }
 
 /** 補完点の理由（どの凸包の辺に、どの対応点のために置かれたか）。kind で文言を選ぶ。 */
@@ -3631,16 +3658,52 @@ function supplementReasonText(view: SupplementPointView): string {
 const supplementPointDescription = (view: SupplementPointView): string =>
     `${t('mapedit.tin_supplement_point')}: ${supplementReasonText(view)}`;
 
-/** 補完点の印と一覧を作り直す（三角網の結果のたび。補完点の変化は未保存に数えない）。 */
+/** 補完点の印・一覧と、三角網の表示部品を作り直す（三角網の結果のたび。変化は未保存に数えない）。 */
 function updateSupplementDisplay() {
-    supplementPoints.value = readSupplementPoints();
+    const display = readSupplementDisplay();
+    supplementPoints.value = display.points;
     supplementTip.value = null;
     if (!illstMap || !mercMap || !illstSource) return;
     illstSupplementSource?.clear();
     mercSupplementSource?.clear();
+    illstTinDecorSource?.clear();
+    mercTinDecorSource?.clear();
     const tin = tinObject.value;
     const yaxisMode = tin && typeof tin === 'object' ? tin.yaxisMode : undefined;
-    for (const view of supplementPoints.value) {
+
+    // 三角網の表示部品（外挿四辺形の線・補助頂点の四角・内分点の白抜きの丸）。Plan A の層では空
+    const addDecor = (side: 'forw' | 'bakw', style: Style) => (position: number[]) => {
+        const mapped = side === 'forw'
+            ? illstSource.xy2SysCoord(position) as number[] | false
+            : compiledPointToMercator(position, yaxisMode, activeLayerCrs.value);
+        if (mapped === false || !mapped) return;
+        const feature = new OlFeature({ geometry: new Point(mapped) });
+        feature.setStyle(style);
+        (side === 'forw' ? illstTinDecorSource : mercTinDecorSource)?.addFeature(feature);
+    };
+    for (const point of display.decor.auxiliaryVertices) {
+        addDecor('forw', tinAuxiliaryVertexStyle)(point.forw);
+        addDecor('bakw', tinAuxiliaryVertexStyle)(point.bakw);
+    }
+    for (const point of display.decor.proportionalPoints) {
+        addDecor('forw', tinProportionalPointStyle)(point.forw);
+        addDecor('bakw', tinProportionalPointStyle)(point.bakw);
+    }
+    const quad = display.decor.quadrilateral;
+    if (quad) {
+        for (const side of ['forw', 'bakw'] as const) {
+            const mapped: Array<number[] | false> = (side === 'forw' ? quad.forw : quad.bakw)
+                .map((position) => side === 'forw'
+                    ? (illstSource.xy2SysCoord(position) as number[] | false)
+                    : compiledPointToMercator(position, yaxisMode, activeLayerCrs.value));
+            if (mapped.some((position) => !Array.isArray(position) || position.length < 2)) continue;
+            const feature = new OlFeature({ geometry: new LineString(mapped as number[][]) });
+            feature.setStyle(tinQuadrilateralStyle);
+            (side === 'forw' ? illstTinDecorSource : mercTinDecorSource)?.addFeature(feature);
+        }
+    }
+
+    for (const view of display.points) {
         const forw = illstSource.xy2SysCoord(view.forw) as number[] | false;
         if (forw) {
             const feature = new OlFeature({ geometry: new Point(forw) });
@@ -3866,19 +3929,27 @@ const initMaps = async () => {
     illstSupplementSource = illstSupplementVSrc;
     const illstSupplementLayer = new VectorLayer({ source: illstSupplementVSrc });
     illstSupplementLayer.set('name', 'supplement');
+    // 三角網の表示部品（MaplatEditor#321）。同じく選択・ドラッグの対象にしない
+    const illstTinDecorVSrc = new VectorSource({ wrapX: false });
+    illstTinDecorSource = illstTinDecorVSrc;
+    const illstTinDecorLayer = new VectorLayer({ source: illstTinDecorVSrc });
+    illstTinDecorLayer.set('name', 'tinDecor');
     const illstOverlay = illstMap.getLayer('overlay');
     if (illstOverlay && illstOverlay.getLayers) {
         illstOverlay.getLayers().push(illstBoundsLayer);
         illstOverlay.getLayers().push(illstJsonLayer);
         illstOverlay.getLayers().push(illstEdgesLayer);
+        illstOverlay.getLayers().push(illstTinDecorLayer);
         illstOverlay.getLayers().push(illstSupplementLayer);
     }
     // check レイヤーはトップレベルに追加（overlay グループではない）
     illstMap.getLayers().push(illstCheckLayer);
     // クリックイベント: 座標変換テスト
     illstMap.on('click', onMapClick);
-    // 補完点を指すと理由を出す（MaplatEditor#321）
+    // 補完点を指すと理由を出す（MaplatEditor#321）。地図から外れたら・地図が動いたら消す
     illstMap.on('pointermove', (evt: any) => supplementPointerMove('illst', evt));
+    illstMap.on('pointerleave', () => { supplementTip.value = null; });
+    illstMap.on('movestart', () => { supplementTip.value = null; });
 
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
@@ -3952,17 +4023,25 @@ const initMaps = async () => {
     mercSupplementSource = mercSupplementVSrc;
     const mercSupplementLayer = new VectorLayer({ source: mercSupplementVSrc });
     mercSupplementLayer.set('name', 'supplement');
+    // 三角網の表示部品（MaplatEditor#321）。同じく選択・ドラッグの対象にしない
+    const mercTinDecorVSrc = new VectorSource({ wrapX: false });
+    mercTinDecorSource = mercTinDecorVSrc;
+    const mercTinDecorLayer = new VectorLayer({ source: mercTinDecorVSrc });
+    mercTinDecorLayer.set('name', 'tinDecor');
     const mercOverlay = mercMap.getLayer('overlay');
     if (mercOverlay && mercOverlay.getLayers) {
         mercOverlay.getLayers().push(mercBoundsLayer);
         mercOverlay.getLayers().push(mercJsonLayer);
         mercOverlay.getLayers().push(mercEdgesLayer);
+        mercOverlay.getLayers().push(mercTinDecorLayer);
         mercOverlay.getLayers().push(mercSupplementLayer);
     }
     // checkレイヤーはトップレベルに追加
     mercMap.getLayers().push(mercCheckLayer);
-    // 補完点を指すと理由を出す（MaplatEditor#321）
+    // 補完点を指すと理由を出す（MaplatEditor#321）。地図から外れたら・地図が動いたら消す
     mercMap.on('pointermove', (evt: any) => supplementPointerMove('merc', evt));
+    mercMap.on('pointerleave', () => { supplementTip.value = null; });
+    mercMap.on('movestart', () => { supplementTip.value = null; });
     // C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
     // createContextMenu の layerFilter は marker/edges のみを拾う ∴ このレイヤ上の
     // マーカーを右クリックしても GCP 分岐へ落ちない
@@ -5245,7 +5324,7 @@ const addSubMap = () => {
     currentEditingLayer.value = sub_maps.value.length + 1;
     const layerId = layerTransformState.value.addLayer({
         gcps: [], edges: [], bounds: document.bounds, importance: document.importance, priority: document.priority,
-        buildOptions: { strictMode: strictMode.value, vertexMode: vertexMode.value },
+        buildOptions: { strictMode: strictMode.value, vertexMode: vertexMode.value, supplementPairs: supplementPairsEnabled.value },
     }, ranks);
     if (!layerId) currentEditingLayer.value = selected;
 };

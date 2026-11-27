@@ -650,8 +650,8 @@
     "tin_auxiliary_vertex": "보조 정점",
     "tin_extrapolation_quadrilateral": "외삽 사각형",
     "tin_proportional_point": "내분점",
-    "tin_supplement_reason_hull_edge": "GCP {{anchor}}을 위해 볼록 외곽선 {{edge}}에 놓인 보완점",
-    "tin_supplement_reason_hull_edge_no_anchor": "볼록 외곽선 {{edge}}에 놓인 보완점",
+    "tin_supplement_reason_hull_edge": "GCP {{anchor}}을(를) 위해 볼록 껍질 변 {{edge}}에 놓인 보완점",
+    "tin_supplement_reason_hull_edge_no_anchor": "볼록 껍질 변 {{edge}}에 놓인 보완점",
     "tin_supplement_promote": "GCP로 만들기",
     "tin_supplement_list_title": "보완점 목록",
     "tin_supplement_toggle": "보완점 사용"

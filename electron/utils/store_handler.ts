@@ -129,7 +129,6 @@ const keys: (keyof HistMapStore)[] = [
   "crs",
   "worldFile",
   "tinEnabled",
-  "supplementPairs",
   "pois",
   "delivery",
   "iiif"
@@ -278,14 +277,20 @@ const importSubMapKeys = new Set([
 export function prepareImportedMap(store: HistMapStore): HistMapStore {
   const cleaned = normalizeStoredTransformKeys(store);
   validateStoredTransformLayers(cleaned);
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ残す（true などは取り込みで落とす）
+  const dropSupplementFlag = (target: HistMapStore): HistMapStore => {
+    if (target.supplementPairs === false) return target;
+    Reflect.deleteProperty(target, "supplementPairs");
+    return target;
+  };
   if (!hasLayerTransformDeclaration(cleaned) && !cleaned.sub_maps?.some(hasLayerTransformDeclaration)) {
-    return cleaned;
+    return dropSupplementFlag(cleaned);
   }
   const pick = <T extends object>(layer: T, allowed: Set<string>): T =>
     Object.fromEntries(Object.entries(layer).filter(([key]) => allowed.has(key))) as T;
   const imported = pick(cleaned, importMapKeys);
   if (cleaned.sub_maps) imported.sub_maps = cleaned.sub_maps.map(layer => pick(layer, importSubMapKeys));
-  return imported;
+  return dropSupplementFlag(imported);
 }
 
 export async function store2HistMap(
@@ -318,6 +323,8 @@ async function store2HistMap_internal(
   ret.strictMode = store.strictMode;
   ret.vertexMode = store.vertexMode;
   ret.yaxisMode = store.yaxisMode;
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ残す（true などは既定として落とす）
+  if (store.supplementPairs === false) ret.supplementPairs = false;
   ret.width = store.width;
   ret.height = store.height;
   ret.gcps = store.gcps;
@@ -415,6 +422,8 @@ export async function histMap2Store(
   });
   if ((histmap as any)["imageExtention"] || (histmap as any)["imageExtension"])
     ret["imageExtension"] = (histmap as any)["imageExtension"] || (histmap as any)["imageExtention"];
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ書く（true などは書かない）
+  if (histmap.supplementPairs === false) ret.supplementPairs = false;
   const [tin, ...subTins] = tins;
   if (tin === "worldFile" || histmap.tinEnabled === false) {
     Object.assign(ret, worldFileStoreFields(histmap));

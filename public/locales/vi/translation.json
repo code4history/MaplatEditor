@@ -650,8 +650,8 @@
     "tin_auxiliary_vertex": "Đỉnh phụ trợ",
     "tin_extrapolation_quadrilateral": "Tứ giác ngoại suy",
     "tin_proportional_point": "Điểm chia theo tỉ lệ",
-    "tin_supplement_reason_hull_edge": "Điểm bổ sung đặt trên cạnh lồi {{edge}} cho GCP {{anchor}}",
-    "tin_supplement_reason_hull_edge_no_anchor": "Điểm bổ sung đặt trên cạnh lồi {{edge}}",
+    "tin_supplement_reason_hull_edge": "Điểm bổ sung đặt trên cạnh bao lồi {{edge}} cho GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Điểm bổ sung đặt trên cạnh bao lồi {{edge}}",
     "tin_supplement_promote": "Chuyển thành GCP",
     "tin_supplement_list_title": "Các điểm bổ sung",
     "tin_supplement_toggle": "Dùng điểm bổ sung"
