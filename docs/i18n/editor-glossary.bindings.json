@@ -3498,6 +3498,60 @@
         "ja"
       ]
     },
+    "mapedit.crs_estimate_disabled_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_gcp_edited_after_adopt": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_residual_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_residual_table_gcp": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_residuals_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_setup_fallback_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_warning_affine_skipped": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_warning_near_collinear": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_warning_three_gcps": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.draft_tiles_lost": {
       "by": [
         "en",
@@ -4079,6 +4133,12 @@
         "ja"
       ]
     },
+    "mapedit.crs_setup_fallback_notice": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.draft_already_saved": {
       "by": [
         "en",
@@ -4409,6 +4469,12 @@
       ]
     },
     "field_help.display_label": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_core_incompatible": {
       "by": [
         "en",
         "ja"

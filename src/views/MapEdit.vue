@@ -79,7 +79,7 @@ import type { SelectorSpatialContextView, ResourceListItemViewModel } from '../c
 import { createBaseMapVisibilityListAdapter } from '../views/resource-adapters/baseMapVisibilityListAdapter';
 import type { BaseMapVisibilityItem } from '../../electron/services/SqliteDataService';
 import { runEditorExportDecision } from '../composables/useEditorExportDecision';
-import type { EditorSaveState } from '../components/editor-ui/editorUiTypes';
+import type { EditorSaveState, DiagnosticItem } from '../components/editor-ui/editorUiTypes';
 import type { MapSaveResult } from '../electron';
 // @ts-ignore
 import { useTranslation } from 'i18next-vue';
@@ -107,6 +107,8 @@ import {
     compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
 } from '../utils/layerTransformIntent';
 import { prepareCrsAdoption, type CrsAdoptionSelection } from '../utils/crsAdoption';
+import { estimateGcpsFromLayer, residualArrows, setupLabelKey, type ResidualRow, type ResidualScaleMode, type PreviewMode } from '../utils/crsEstimationPanel';
+import CrsEstimationPanel from '../components/mapedit/CrsEstimationPanel.vue';
 import { GeoJSON } from 'ol/format';
 import { edgeSplit } from '../utils/edgeSplitMath';
 import { isAllowedDeliveryUrl } from '../utils/ipClassify';
@@ -120,8 +122,8 @@ import { altKeyOnly } from 'ol/events/condition';
 import { Tile, Group } from 'ol/layer';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Style, Icon } from 'ol/style';
-import { LineString, Polygon } from 'ol/geom';
+import { Style, Icon, Stroke, Fill, Text, RegularShape } from 'ol/style';
+import { LineString, Point, Polygon } from 'ol/geom';
 import OlFeature from 'ol/Feature';
 import { transform } from 'ol/proj';
 import { useGcpAutoRange } from '../composables/useGcpAutoRange';
@@ -130,7 +132,7 @@ import { navigateBackToList } from '../utils/listBackNavigation';
 // import { Projection } from 'ol/proj';
 // import { XYZ } from 'ol/source';
 import type { MapBrowserEvent } from 'ol';
-import type Feature from 'ol/Feature';
+import Feature from 'ol/Feature';
 import type { SimpleGeometry } from 'ol/geom';
 
 const { t, i18next } = useTranslation();
@@ -646,6 +648,8 @@ watch(sub_maps, (newVal) => {
 }, { deep: true });
 
 watch(currentEditingLayer, () => {
+    // 層が変わったら前の層の推定結果を残さない
+    if (crsPanelVisible.value) closeCrsPanel();
     reflectActiveLayer();
     editingID.value = '';
     newGcp.value = undefined;
@@ -836,6 +840,9 @@ function restoreHistoryDocuments(state: MapEditHistoryState): void {
     sub_maps.value = cloneDeep(state.sub_maps);
     homePosition.value = cloneDeep(state.homePosition);
     mercZoom.value = state.mercZoom;
+    // Undo 復元で前回の採用済み通知・診断を残さない
+    crsAdoptedNotice.value = null;
+    crsAdoptionDiagnostic.value = null;
     const snapshot = layerTransformState.value.capture();
     documentLayerIds = snapshot.map(({ layerId }) => layerId);
     currentEditingLayer.value = Math.min(state.currentEditingLayer, snapshot.length - 1);
@@ -1056,6 +1063,181 @@ const crsAdoptionDiagnostic = ref<Record<string, unknown> | null>(null);
 // 読み込みで見つけた層ごとの診断（揮発）。食い違った y 軸の向きなど。
 const layerLoadDiagnostics = ref<Record<string, unknown>[]>([]);
 
+// CRS 推定パネル（推定・比較・残差はすべて揮発の表示状態。文書へ書き込むのは adoptCrsEstimation だけ）
+const crsPanelVisible = ref(false);
+const crsPanelEstimating = ref(false);
+const crsPanelRef = ref<InstanceType<typeof CrsEstimationPanel> | null>(null);
+const crsAdoptedNotice = ref<{ crs: string; setupKey: string } | null>(null);
+const planAAdoptedLayerId = ref<string | null>(null);
+const planAFingerprint = ref<string | null>(null);
+const planAEditNotice = ref(false);
+const crsResidualState = ref<{ rows: ResidualRow[]; scaleMode: ResidualScaleMode }>({ rows: [], scaleMode: '1x' });
+let crsResidualSource: VectorSource | null = null;
+let crsPreviewSource: VectorSource | null = null;
+let crsPreviewLayer: any = null;
+
+// 推定の入力は WGS84 [lon, lat]（§1(b)）。層の座標のまま渡さない。
+const crsGcpsForEstimate = computed(() => estimateGcpsFromLayer(gcps.value, activeLayerCrs.value));
+const crsCurrentSetup = computed(() =>
+    layerTransformIntents.value[layerIds.value[currentEditingLayer.value]]?.setup ?? 'legacyV2');
+const crsLayerGeometry = computed(() => {
+    const layer = layerDocumentAt(currentEditingLayer.value);
+    return currentEditingLayer.value === 0
+        ? { width: Number(layer?.width) || 0, height: Number(layer?.height) || 0, bounds: undefined }
+        : { width: 0, height: 0, bounds: layer?.bounds as number[][] | undefined };
+});
+const estimateCrsDisabled = computed(() => !crsPanelEstimating.value
+    && (gcps.value.length < 3 || !crsGcpsForEstimate.value || !gcpsEditReady.value || alignPhase.value !== 'P0'
+        || documentEditsBlocked.value || adoptionInProgress.value));
+
+async function onEstimateCrsClick() {
+    if (crsPanelEstimating.value) {
+        await crsPanelRef.value?.cancelEstimate();
+        return;
+    }
+    crsPanelVisible.value = true;
+    await nextTick();
+    await crsPanelRef.value?.runEstimate();
+}
+
+function closeCrsPanel() {
+    crsPanelVisible.value = false;
+    crsPanelEstimating.value = false;
+    clearCrsOverlays();
+    void nextTick(() => illstMap?.updateSize?.());
+}
+
+function layerEditFingerprint(layerId: string): string {
+    const layer = layerTransformState.value.layers.value.find((item) => item.layerId === layerId);
+    return JSON.stringify({ gcps: layer?.gcps ?? [], edges: layer?.edges ?? [] });
+}
+
+// Plan A 採用後の GCP・対応線編集は自動再計算しない（§1(d).6）。案内だけ出す。
+watch(editGeneration, () => {
+    const layerId = planAAdoptedLayerId.value;
+    if (!layerId) {
+        planAEditNotice.value = false;
+        return;
+    }
+    const layer = layerTransformState.value.layers.value.find((item) => item.layerId === layerId);
+    if (!layer || layer.intent.setup !== 'A') {
+        planAEditNotice.value = false;
+        return;
+    }
+    planAEditNotice.value = planAFingerprint.value !== null
+        && layerEditFingerprint(layerId) !== planAFingerprint.value;
+});
+
+const crsDiagnosticItems = computed<DiagnosticItem[]>(() => {
+    const items: DiagnosticItem[] = [];
+    if (crsAdoptedNotice.value) {
+        items.push({
+            key: 'crs-adopted',
+            severity: 'success',
+            message: t('mapedit.crs_adopted_notice', {
+                crs: crsAdoptedNotice.value.crs,
+                setup: t(crsAdoptedNotice.value.setupKey),
+            }),
+        });
+    }
+    const diagnostic = crsAdoptionDiagnostic.value;
+    if (diagnostic) {
+        const code = String(diagnostic.code ?? '');
+        if (code === 'setup_fallback') {
+            items.push({ key: 'crs-fallback', severity: 'warning', message: t('mapedit.crs_setup_fallback_notice') });
+        } else if (code === 'core_incompatible' || code === 'unsupported_axis') {
+            items.push({ key: 'crs-core', severity: 'danger', message: t('mapedit.crs_core_incompatible') });
+        } else {
+            items.push({ key: 'crs-reproject', severity: 'danger', message: t('mapedit.crs_reproject_error') });
+        }
+    }
+    for (const entry of layerLoadDiagnostics.value) {
+        if (entry?.code === 'yaxis_mismatch') {
+            items.push({
+                key: `crs-yaxis-${String(entry.layerId ?? '')}`,
+                severity: 'warning',
+                message: t('mapedit.crs_yaxis_mismatch_rebuild'),
+            });
+        }
+    }
+    if (planAEditNotice.value) {
+        items.push({ key: 'crs-gcp-edited', severity: 'info', message: t('mapedit.crs_gcp_edited_after_adopt') });
+    }
+    return items;
+});
+
+function drawCrsResiduals() {
+    if (!crsResidualSource || !mercMap) return;
+    crsResidualSource.clear();
+    const resolution = Number(mercMap.getView?.()?.getResolution?.()) || 1;
+    const arrows = residualArrows(crsResidualState.value.rows, crsResidualState.value.scaleMode, resolution);
+    for (const arrow of arrows) {
+        const line = new Feature({
+            geometry: new LineString([arrow.from, arrow.to]),
+        });
+        line.setStyle(new Style({
+            stroke: new Stroke({ color: '#d63384', width: 2 }),
+        }));
+        crsResidualSource.addFeature(line);
+        const dx = arrow.to[0] - arrow.from[0];
+        const dy = arrow.to[1] - arrow.from[1];
+        const head = new Feature({ geometry: new Point(arrow.to) });
+        head.setStyle(new Style({
+            image: new RegularShape({
+                points: 3,
+                radius: 6,
+                fill: new Fill({ color: '#d63384' }),
+                rotation: Math.atan2(dy, dx) + Math.PI / 2,
+            }),
+            text: new Text({
+                text: t('mapedit.crs_residual_label', {
+                    index: arrow.index,
+                    meters: arrow.distanceMeters.toFixed(1),
+                }),
+                font: labelFontStyle,
+                offsetY: -12,
+                fill: new Fill({ color: '#d63384' }),
+                stroke: new Stroke({ color: '#ffffff', width: 3 }),
+            }),
+        }));
+        crsResidualSource.addFeature(head);
+    }
+}
+
+function onCrsResiduals(payload: { rows: ResidualRow[]; scaleMode: ResidualScaleMode }) {
+    crsResidualState.value = payload;
+    drawCrsResiduals();
+}
+
+function onCrsPreview(payload: { mode: PreviewMode; opacity: number; geojson: unknown | null }) {
+    if (!crsPreviewSource || !crsPreviewLayer) return;
+    crsPreviewSource.clear();
+    crsPreviewLayer.setOpacity(payload.opacity);
+    if (!payload.geojson) return;
+    try {
+        const features = new GeoJSON().readFeatures(payload.geojson, { dataProjection: 'EPSG:3857' });
+        features.forEach((feature: Feature) => {
+            feature.setStyle(new Style({
+                fill: new Fill({ color: 'rgba(13, 110, 253, 0.25)' }),
+                stroke: new Stroke({ color: '#0d6efd', width: 2 }),
+            }));
+            crsPreviewSource?.addFeature(feature);
+        });
+    } catch (error) {
+        console.warn('[MapEdit] CRS 比較プレビューの描画に失敗しました', error);
+    }
+}
+
+function onCrsPanResidual(merc: number[]) {
+    mercMap?.getView?.()?.setCenter?.(merc);
+}
+
+function clearCrsOverlays() {
+    crsResidualSource?.clear();
+    crsPreviewSource?.clear();
+    crsPreviewLayer?.setOpacity(0.7);
+}
+
 watch([
     tinObject,
     () => tinObjects.value[0],
@@ -1200,18 +1382,35 @@ async function adoptCrsEstimation(selection: CrsAdoptionSelection) {
     (document.activeElement as HTMLElement | null)?.blur?.();
     clearOperationNotice('crs-adoption');
     crsAdoptionDiagnostic.value = null;
+    crsAdoptedNotice.value = null;
     commitPendingBeforeNavigate();
     const targetLayerId = layerIds.value[currentEditingLayer.value];
     const outcome = await layerTransformState.value.startAdoption(targetLayerId, selection);
     if (outcome.status === 'failed') {
         notifyOperation({ origin: 'crs-adoption', type: 'error', message: t('dataio.error_occurs') });
         crsAdoptionDiagnostic.value = {
-            code: outcome.error instanceof CrsReprojectionError ? outcome.error.code : 'adoption_failed',
+            code: outcome.error instanceof CrsReprojectionError
+                ? outcome.error.code
+                : (outcome.error instanceof Error && (outcome.error.message === 'core_incompatible' || outcome.error.message === 'unsupported_axis')
+                    ? outcome.error.message
+                    : 'adoption_failed'),
             cause: outcome.error,
         };
         return outcome;
     }
     if (outcome.status === 'adopted') {
+        crsAdoptedNotice.value = {
+            crs: `${selection.selected.authority}:${selection.selected.code}`,
+            setupKey: setupLabelKey(selection.setup),
+        };
+        if (selection.setup === 'A') {
+            planAAdoptedLayerId.value = targetLayerId;
+            planAFingerprint.value = layerEditFingerprint(targetLayerId);
+        } else {
+            planAAdoptedLayerId.value = null;
+            planAFingerprint.value = null;
+        }
+        planAEditNotice.value = false;
         const volatile = layerTransformState.value.getTinState(targetLayerId);
         const diagnostics = volatile && 'diagnostics' in volatile ? volatile.diagnostics : undefined;
         if (diagnostics?.requestedOuterTransform === 'worldFile' && diagnostics?.outerTransform === 'extrapolate') {
@@ -2768,6 +2967,9 @@ function seedTinObjects(snapshot: LayerTransformSnapshot, tins: any[] | null = n
 
 function initializeLayerTransformState(tins: any[] | null) {
     layerLoadDiagnostics.value = [];
+    // 地図の入れ替えで前回の採用済み通知・診断を残さない
+    crsAdoptedNotice.value = null;
+    crsAdoptionDiagnostic.value = null;
     sub_maps.value = cloneDeep(mapData.value.sub_maps ?? []);
     currentEditingLayer.value = 0;
     homePosition.value = mapData.value.homePosition;
@@ -3551,9 +3753,21 @@ const initMaps = async () => {
     const mercAlignLayer = new VectorLayer({ source: mercAlignVSrc });
     mercAlignLayer.set('name', 'basemapAlign');
     mercMap.getLayers().push(mercAlignLayer);
+    // CRS 推定の残差矢印とベクタ比較プレビューの専用レイヤ（表示のみ。文書は変えない）
+    const mercResidualVSrc = new VectorSource({ wrapX: false });
+    crsResidualSource = mercResidualVSrc;
+    const mercResidualLayer = new VectorLayer({ source: mercResidualVSrc });
+    mercResidualLayer.set('name', 'crsResidual');
+    mercMap.getLayers().push(mercResidualLayer);
+    const mercPreviewVSrc = new VectorSource({ wrapX: false });
+    crsPreviewSource = mercPreviewVSrc;
+    crsPreviewLayer = new VectorLayer({ source: mercPreviewVSrc, opacity: 0.7 });
+    crsPreviewLayer.set('name', 'crsPreviewVector');
+    mercMap.getLayers().push(crsPreviewLayer);
     // クリックイベント: 座標変換テスト
     mercMap.on('click', onMapClick);
-    
+    // 残差矢印の自動拡大は表示解像度で決めるので、拡縮で描き直す
+    mercMap.getView().on('change:resolution', drawCrsResiduals);
     const mercEdgeModify = new Modify({
         source: mercEdgesVSrc as VectorSource,
         condition: edgeModifyCondition,
@@ -5852,24 +6066,65 @@ const goBack = async () => {
                                      </div>
                                  </div>
                              </div>
+
+                             <!-- CRS 推定（J6-T5a）。押下条件は GCP 3 点以上・画像読込済み・通常相・編集中でないこと -->
+                             <div class="row g-2 align-items-center mt-1">
+                                 <div class="col-auto d-flex align-items-center gap-2">
+                                     <button class="btn btn-sm btn-primary" data-testid="map-edit-estimate-crs"
+                                         :disabled="estimateCrsDisabled" @click="onEstimateCrsClick">
+                                         {{ crsPanelEstimating ? t('mapedit.crs_cancel_estimate_button') : t('mapedit.crs_estimate_button') }}
+                                     </button>
+                                     <ContextHelp v-if="gcps.length < 3" data-testid="map-edit-estimate-crs-help"
+                                         :text="t('mapedit.crs_estimate_disabled_help')"
+                                         :ariaLabel="t('editor_ui.unavailable_reason', { name: t('mapedit.crs_estimate_button') })" />
+                                 </div>
+                             </div>
                         </div>
                      </div>
                 </div>
 
+                <!-- T4 の構造化診断と採用結果・案内（CRS・y 軸・B→C 切替・自動再計算禁止） -->
+                <DiagnosticFeedback v-if="crsDiagnosticItems.length" scope="operation" :items="crsDiagnosticItems"
+                    data-testid="map-crs-diagnostics" />
+
                 <!-- Maps Container -->
                 <div class="row g-2 flex-grow-1 border-bottom px-2">
-                    <!-- Left: Illustrated Map (Source) -->
+                    <!-- Left: Illustrated Map (Source) / CRS 推定パネル -->
                     <div class="col-6 h-100 position-relative px-1">
-                        <div id="illstMap" class="w-100 h-100"></div>
-                        <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
-                        <div class="map-overlay-tools" data-testid="map-overlay-tools-illst">
-                            <div class="map-overlay-tools__row">
-                                <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
-                                    <i class="bi bi-magic"></i>
-                                </button>
-                                <button class="btn map-tool" data-testid="map-edit-set-home-illst" :disabled="!enableSetHomeIllst" @click="setHomeIllst" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
-                                    <i class="bi bi-house"></i>
-                                </button>
+                        <CrsEstimationPanel
+                            v-if="crsPanelVisible"
+                            ref="crsPanelRef"
+                            :gcps="crsGcpsForEstimate ?? []"
+                            :edges="edges"
+                            :crs="activeLayerCrs"
+                            :vertex-mode="vertexMode"
+                            :strict-mode="strictMode"
+                            :edit-generation="editGeneration"
+                            :layer-index="currentEditingLayer"
+                            :width="crsLayerGeometry.width"
+                            :height="crsLayerGeometry.height"
+                            :bounds="crsLayerGeometry.bounds"
+                            :current-setup="crsCurrentSetup"
+                            @close="closeCrsPanel"
+                            @estimating="crsPanelEstimating = $event"
+                            @adopt="adoptCrsEstimation"
+                            @residuals="onCrsResiduals"
+                            @preview="onCrsPreview"
+                            @pan-residual="onCrsPanResidual"
+                        />
+                        <!-- #illstMap は v-show で保持し、OpenLayers のインスタンスを壊さない -->
+                        <div v-show="!crsPanelVisible" class="w-100 h-100">
+                            <div id="illstMap" class="w-100 h-100"></div>
+                            <!-- 地図の上の道具（推定・ホーム位置）と帰属表示 -->
+                            <div class="map-overlay-tools" data-testid="map-overlay-tools-illst">
+                                <div class="map-overlay-tools__row">
+                                    <button class="btn map-tool" data-testid="map-edit-estimate-home" :disabled="gcps.length === 0" @click="estimateHomeFromGcps" :title="t('common.estimate')" :aria-label="t('common.estimate')">
+                                        <i class="bi bi-magic"></i>
+                                    </button>
+                                    <button class="btn map-tool" data-testid="map-edit-set-home-illst" :disabled="!enableSetHomeIllst" @click="setHomeIllst" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
+                                        <i class="bi bi-house"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
