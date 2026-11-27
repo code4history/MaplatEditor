@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "ไม่ประเมินการแปลงแอฟินเพราะ GCP น้อยเกินไป ใช้เฉพาะการแปลงความคล้ายเท่านั้น",
     "crs_warning_near_collinear": "GCP เรียงกันเกือบเป็นเส้นตรง ควรเพิ่มจุดในตำแหน่งกระจาย ๆ เพื่อให้การปรับเข้าเสถียร",
     "crs_estimate_failed": "การประเมิน CRS ล้มเหลว",
-    "crs_yaxis_mismatch_rebuild": "ทิศทางแกน y ไม่ตรงกับ CRS จึงสร้าง TIN ใหม่"
+    "crs_yaxis_mismatch_rebuild": "ทิศทางแกน y ไม่ตรงกับ CRS จึงสร้าง TIN ใหม่",
+    "tin_legend_title": "คำอธิบายสัญลักษณ์",
+    "tin_supplement_point": "จุดเติมเต็ม",
+    "tin_auxiliary_vertex": "จุดยอดช่วย",
+    "tin_extrapolation_quadrilateral": "รูปสี่เหลี่ยมคาดคะเน",
+    "tin_proportional_point": "จุดแบ่งตามสัดส่วน",
+    "tin_supplement_reason_hull_edge": "จุดเติมเต็มที่วางบนเส้นนูน {{edge}} สำหรับ GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "จุดเติมเต็มที่วางบนเส้นนูน {{edge}}",
+    "tin_supplement_promote": "เปลี่ยนเป็น GCP",
+    "tin_supplement_list_title": "รายการจุดเติมเต็ม",
+    "tin_supplement_toggle": "ใช้จุดเติมเต็ม"
   },
   "mapupload": {
     "map_image": "ภาพแผนที่",

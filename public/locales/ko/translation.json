@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "GCP 수가 부족해 아핀 변환은 평가하지 않고 유사 변환만 사용했습니다.",
     "crs_warning_near_collinear": "GCP가 거의 한 직선에 놓여 있습니다. 위치를 고르게 늘리면 적합이 안정됩니다.",
     "crs_estimate_failed": "CRS 추정에 실패했습니다.",
-    "crs_yaxis_mismatch_rebuild": "y축 방향이 CRS와 일치하지 않아 TIN을 다시 만들었습니다."
+    "crs_yaxis_mismatch_rebuild": "y축 방향이 CRS와 일치하지 않아 TIN을 다시 만들었습니다.",
+    "tin_legend_title": "범례",
+    "tin_supplement_point": "보완점",
+    "tin_auxiliary_vertex": "보조 정점",
+    "tin_extrapolation_quadrilateral": "외삽 사각형",
+    "tin_proportional_point": "내분점",
+    "tin_supplement_reason_hull_edge": "GCP {{anchor}}을 위해 볼록 외곽선 {{edge}}에 놓인 보완점",
+    "tin_supplement_reason_hull_edge_no_anchor": "볼록 외곽선 {{edge}}에 놓인 보완점",
+    "tin_supplement_promote": "GCP로 만들기",
+    "tin_supplement_list_title": "보완점 목록",
+    "tin_supplement_toggle": "보완점 사용"
   },
   "mapupload": {
     "map_image": "지도 이미지",

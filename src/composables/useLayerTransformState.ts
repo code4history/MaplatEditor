@@ -13,6 +13,11 @@ export type LayerTransformIntent =
 export interface LayerBuildOptions {
     strictMode: StrictMode;
     vertexMode: VertexMode;
+    /**
+     * 補完点（supplementPairs）を足すか（MaplatEditor#321）。地図ごとの切り替えで、全層が同じ値。
+     * 保存形は地図 JSON 最上位の `supplementPairs: false`（true は書かない）。
+     */
+    supplementPairs?: boolean;
 }
 
 export interface TransformLayer {

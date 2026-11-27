@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "Không đánh giá phép biến đổi afin vì GCP quá ít; chỉ dùng phép biến đổi đồng dạng.",
     "crs_warning_near_collinear": "Các GCP gần như thẳng hàng. Thêm điểm ở các vị trí rải rác để khớp ổn định hơn.",
     "crs_estimate_failed": "Ước tính CRS thất bại.",
-    "crs_yaxis_mismatch_rebuild": "Hướng trục y không khớp với CRS; TIN đã được dựng lại."
+    "crs_yaxis_mismatch_rebuild": "Hướng trục y không khớp với CRS; TIN đã được dựng lại.",
+    "tin_legend_title": "Chú giải",
+    "tin_supplement_point": "Điểm bổ sung",
+    "tin_auxiliary_vertex": "Đỉnh phụ trợ",
+    "tin_extrapolation_quadrilateral": "Tứ giác ngoại suy",
+    "tin_proportional_point": "Điểm chia theo tỉ lệ",
+    "tin_supplement_reason_hull_edge": "Điểm bổ sung đặt trên cạnh lồi {{edge}} cho GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Điểm bổ sung đặt trên cạnh lồi {{edge}}",
+    "tin_supplement_promote": "Chuyển thành GCP",
+    "tin_supplement_list_title": "Các điểm bổ sung",
+    "tin_supplement_toggle": "Dùng điểm bổ sung"
   },
   "mapupload": {
     "map_image": "Ảnh bản đồ",

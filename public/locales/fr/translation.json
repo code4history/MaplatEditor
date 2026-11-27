@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "La transformation affine n'a pas été évaluée faute de GCP ; seule la transformation de similarité a été utilisée.",
     "crs_warning_near_collinear": "Les GCP sont presque alignés. Ajoutez des points à des positions variées pour un ajustement stable.",
     "crs_estimate_failed": "L'estimation du CRS a échoué.",
-    "crs_yaxis_mismatch_rebuild": "L'orientation de l'axe y ne correspond pas au CRS ; le TIN a été reconstruit."
+    "crs_yaxis_mismatch_rebuild": "L'orientation de l'axe y ne correspond pas au CRS ; le TIN a été reconstruit.",
+    "tin_legend_title": "Légende",
+    "tin_supplement_point": "Point complémentaire",
+    "tin_auxiliary_vertex": "Sommet auxiliaire",
+    "tin_extrapolation_quadrilateral": "Quadrilatère d'extrapolation",
+    "tin_proportional_point": "Point proportionnel",
+    "tin_supplement_reason_hull_edge": "Point complémentaire placé sur l'arête convexe {{edge}} pour le GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Point complémentaire placé sur l'arête convexe {{edge}}",
+    "tin_supplement_promote": "Convertir en GCP",
+    "tin_supplement_list_title": "Points complémentaires",
+    "tin_supplement_toggle": "Utiliser les points complémentaires"
   },
   "mapupload": {
     "map_image": "Image de la carte",

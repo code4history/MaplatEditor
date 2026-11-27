@@ -583,4 +583,50 @@ $map-tool-focus: var(--bs-primary, #0d6efd);
     border-top-style: solid;
     flex: none;
   }
+
+  // 三角網の凡例の印（MaplatEditor#321）。線の見本は __swatch のまま、点・形の見本はここで変える
+  .map-overlay-legend__swatch--supplement {
+    width: 10px;
+    height: 10px;
+    border: none;
+    border-radius: 2px;
+    background-color: #0f9b8e;
+    transform: rotate(45deg);
+  }
+
+  .map-overlay-legend__swatch--auxiliary {
+    width: 10px;
+    height: 10px;
+    border: none;
+    border-radius: 2px;
+    background-color: #3454d1;
+  }
+
+  .map-overlay-legend__swatch--quadrilateral {
+    border-top-color: #3454d1;
+  }
+
+  .map-overlay-legend__swatch--proportional {
+    width: 10px;
+    height: 10px;
+    border: 2px solid #3454d1;
+    border-radius: 50%;
+    background-color: transparent;
+  }
+}
+
+// ---- 補完点を指したときの理由（情報。ui-map-overlay-proposal §4.2 の白い札） ----
+.map-overlay-tip {
+  position: absolute;
+  z-index: 11;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: .35rem .55rem;
+  background-color: rgba(255, 255, 255, .85);
+  border: none;
+  border-radius: $map-tool-radius;
+  color: #333;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
 }

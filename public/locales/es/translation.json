@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "La transformación afín no se evaluó por falta de GCP; solo se usó la transformación de semejanza.",
     "crs_warning_near_collinear": "Los GCP están casi en línea recta. Añada puntos en posiciones variadas para un ajuste estable.",
     "crs_estimate_failed": "La estimación de CRS falló.",
-    "crs_yaxis_mismatch_rebuild": "La orientación del eje y no coincide con el CRS; se reconstruyó el TIN."
+    "crs_yaxis_mismatch_rebuild": "La orientación del eje y no coincide con el CRS; se reconstruyó el TIN.",
+    "tin_legend_title": "Leyenda",
+    "tin_supplement_point": "Punto complementario",
+    "tin_auxiliary_vertex": "Vértice auxiliar",
+    "tin_extrapolation_quadrilateral": "Cuadrilátero de extrapolación",
+    "tin_proportional_point": "Punto proporcional",
+    "tin_supplement_reason_hull_edge": "Punto complementario colocado en el borde convexo {{edge}} para el GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Punto complementario colocado en el borde convexo {{edge}}",
+    "tin_supplement_promote": "Convertir en GCP",
+    "tin_supplement_list_title": "Puntos complementarios",
+    "tin_supplement_toggle": "Usar puntos complementarios"
   },
   "mapupload": {
     "map_image": "Imagen del mapa",

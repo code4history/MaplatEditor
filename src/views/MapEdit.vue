@@ -102,6 +102,10 @@ import {
     type LayerCoordTarget,
 } from '../utils/layerCoordTransform';
 import { compiledGeoJsonToMercator, compiledPointToMercator, projectionEngineForCrs } from '../utils/compiledGeo';
+import {
+    supplementPointsFromDisplayMesh, supplementPointsFromCompiled, supplementPointToGcp,
+    supplementVertexText, type SupplementPointView,
+} from '../utils/supplementPoints';
 import { useLayerTransformState, type LayerTinRequest, type LayerTransformIntent, type LayerTransformSnapshot, type TransformLayer } from '../composables/useLayerTransformState';
 import {
     compiledYaxisMismatch, layerYaxisMode, seedCompiledTin, shouldRebuildTin, transformLayerFromDocument,
@@ -825,12 +829,20 @@ function snapshotForHistoryState(state: MapEditHistoryState): LayerTransformSnap
             : document;
         const layer = transformLayerFromDocument(layerId, source, document.compiled, {
             strictMode: state.strictMode, vertexMode: state.vertexMode, yaxisMode: state.mapData.yaxisMode,
+            supplementPairs: state.mapData.supplementPairs,
             width: state.mapData.width, height: state.mapData.height, bounds: state.mapData.bounds,
         });
         layer.intent = state.layerTransformIntents?.[layerId] ?? layer.intent;
         // 古い下書きの buildOptions に残る yaxisMode は読まない（y 軸の向きは crs から導く）。
         const savedOptions = state.layerBuildOptions?.[layerId];
-        if (savedOptions) layer.buildOptions = { strictMode: savedOptions.strictMode, vertexMode: savedOptions.vertexMode };
+        if (savedOptions) {
+            layer.buildOptions = {
+                strictMode: savedOptions.strictMode,
+                vertexMode: savedOptions.vertexMode,
+                // 古い下書きの buildOptions に補完点の切り替えが無いときは、地図最上位の値に従う
+                supplementPairs: savedOptions.supplementPairs ?? layer.buildOptions.supplementPairs,
+            };
+        }
         return layer;
     });
 }
@@ -1357,6 +1369,9 @@ function applyLayerSnapshotToDocuments(snapshot: LayerTransformSnapshot): void {
     mapData.value.edges = cloneDeep(main.edges);
     mapData.value.strictMode = main.buildOptions.strictMode;
     mapData.value.vertexMode = main.buildOptions.vertexMode;
+    // 補完点の地図ごとの切り替え（MaplatEditor#321）は、false のときだけ地図 JSON の最上位に書く
+    if (main.buildOptions.supplementPairs === false) mapData.value.supplementPairs = false;
+    else delete mapData.value.supplementPairs;
     // 地図最上位の向きは、主図の crs から導いた値（crs の無い旧 V2 は保存されていた値）で書く。
     if (mapData.value.yaxisMode !== undefined) mapData.value.yaxisMode = layerYaxisMode(main);
     sub_maps.value = sublayers.map((layer) => {
@@ -1393,6 +1408,8 @@ function watchLayerDisplay(layerId: string) {
         if (change.kind !== 'patch' || layerIds.value[currentEditingLayer.value] !== layerId) return;
         const mesh = editorComputeBackend.displayMesh(layerId);
         if (mesh && meshRenderer.isOneBehind(mesh)) meshRenderer.applyChange(mesh, change.change);
+        // 補完点が差分（movedVertices）で動いたときも印を作り直す（未保存の変更には数えない）
+        updateSupplementDisplay();
     }));
 }
 
@@ -2318,6 +2335,9 @@ let illstJsonSource: VectorSource | null = null;
 let illstBoundsSource: VectorSource | null = null;
 let mercJsonSource: VectorSource | null = null;
 let mercBoundsSource: VectorSource | null = null;
+// 補完点の印の VectorSource（MaplatEditor#321）。GCP の marker 層と分け、選択・ドラッグ・削除の対象にしない
+let illstSupplementSource: VectorSource | null = null;
+let mercSupplementSource: VectorSource | null = null;
 
 const labelFontStyle = "Normal 12px Arial";
 
@@ -3465,6 +3485,9 @@ const clearExceptMeshTriangles = () => {
 const tinResultUpdate = () => {
     if (!illstMap || !mercMap || !illstSource) return;
 
+    // 補完点の印と一覧（MaplatEditor#321）。三角網の結果のたびに作り直す
+    updateSupplementDisplay();
+
     const displayMesh = incrementalDisplayMesh();
     // 描いてある三角形が今の網と同じなら、描き直さない（差分で描き直し済み）
     const keepTriangles = !!displayMesh && meshRenderer.isCurrentFor(displayMesh);
@@ -3554,6 +3577,124 @@ const tinResultUpdate = () => {
         console.error('[tinResultUpdate] Failed to render TIN:', e);
     }
 };
+
+// ---- 補完点（supplementPairs。MaplatEditor#321） ----
+// 補完点は Tin が作るもので、対応点の表（gcps）には入れない。位置や数が変わっても文書を変えないので、
+// 履歴・下書き・isDirty には数えない。文書へ書き込むのは格上げ（promoteSupplement）だけ。
+const supplementPoints = ref<SupplementPointView[]>([]);
+const supplementTip = ref<{ side: 'illst' | 'merc'; text: string; x: number; y: number } | null>(null);
+
+/** 三角網の表示の凡例を出すか（三角網を持つ層を編集中のとき） */
+const tinLegendVisible = computed(() => {
+    const tin = tinObject.value;
+    return !!tin && typeof tin === 'object';
+});
+
+/** 補完点の印。対応点（吹き出しラベル）と違う形と色（菱形・ティール）で、選択・ドラッグ・削除はできない */
+const supplementMarkerStyle = new Style({
+    image: new RegularShape({
+        points: 4,
+        radius: 8,
+        angle: Math.PI / 4,
+        fill: new Fill({ color: '#0f9b8e' }),
+        stroke: new Stroke({ color: '#ffffff', width: 2 }),
+    }),
+});
+
+/** 補完点を読む。局所更新の表示用の網（VertexRef）を優先し、切のときは compiled の supplementPairs。 */
+function readSupplementPoints(): SupplementPointView[] {
+    const layerId = layerIds.value[currentEditingLayer.value];
+    const mesh = layerId === undefined ? undefined : editorComputeBackend.displayMesh(layerId);
+    if (mesh && mesh.triangleCount > 0) return supplementPointsFromDisplayMesh(mesh);
+    const tin = tinObject.value;
+    return supplementPointsFromCompiled(tin && typeof tin === 'object' ? tin.getCompiled() : undefined);
+}
+
+/** 補完点の理由（どの凸包の辺に、どの対応点のために置かれたか）。kind で文言を選ぶ。 */
+const SUPPLEMENT_REASON_KEYS: Record<string, { withAnchor: string; withoutAnchor: string }> = {
+    hullEdge: {
+        withAnchor: 'mapedit.tin_supplement_reason_hull_edge',
+        withoutAnchor: 'mapedit.tin_supplement_reason_hull_edge_no_anchor',
+    },
+};
+
+function supplementReasonText(view: SupplementPointView): string {
+    const edge = `${supplementVertexText(view.edge[0])} – ${supplementVertexText(view.edge[1])}`;
+    const anchor = view.anchor ? supplementVertexText(view.anchor) : undefined;
+    // kind は足した理由（compiled の supplementPairs）。今は "hullEdge"（凸包の辺）だけなので、未知の kind も同じ文言にする
+    const keys = SUPPLEMENT_REASON_KEYS[view.kind] ?? SUPPLEMENT_REASON_KEYS.hullEdge;
+    return anchor !== undefined
+        ? t(keys.withAnchor, { edge, anchor })
+        : t(keys.withoutAnchor, { edge });
+}
+
+const supplementPointDescription = (view: SupplementPointView): string =>
+    `${t('mapedit.tin_supplement_point')}: ${supplementReasonText(view)}`;
+
+/** 補完点の印と一覧を作り直す（三角網の結果のたび。補完点の変化は未保存に数えない）。 */
+function updateSupplementDisplay() {
+    supplementPoints.value = readSupplementPoints();
+    supplementTip.value = null;
+    if (!illstMap || !mercMap || !illstSource) return;
+    illstSupplementSource?.clear();
+    mercSupplementSource?.clear();
+    const tin = tinObject.value;
+    const yaxisMode = tin && typeof tin === 'object' ? tin.yaxisMode : undefined;
+    for (const view of supplementPoints.value) {
+        const forw = illstSource.xy2SysCoord(view.forw) as number[] | false;
+        if (forw) {
+            const feature = new OlFeature({ geometry: new Point(forw) });
+            feature.set('supplementKey', view.key);
+            feature.setStyle(supplementMarkerStyle);
+            illstSupplementSource?.addFeature(feature);
+        }
+        const bakw = compiledPointToMercator(view.bakw, yaxisMode, activeLayerCrs.value);
+        if (bakw !== false) {
+            const feature = new OlFeature({ geometry: new Point(bakw) });
+            feature.set('supplementKey', view.key);
+            feature.setStyle(supplementMarkerStyle);
+            mercSupplementSource?.addFeature(feature);
+        }
+    }
+}
+
+/** ポインタを合わせると、どの凸包の辺に、どの対応点のために置かれたかを出す */
+function supplementPointerMove(side: 'illst' | 'merc', evt: any) {
+    const map = side === 'illst' ? illstMap : mercMap;
+    if (!map) return;
+    const feature = map.forEachFeatureAtPixel(evt.pixel, (f: any) => f, {
+        layerFilter: (layer: any) => layer.get('name') === 'supplement',
+        hitTolerance: 6,
+    });
+    const view = feature ? supplementPoints.value.find((p) => p.key === feature.get('supplementKey')) : undefined;
+    supplementTip.value = view
+        ? { side, text: supplementPointDescription(view), x: evt.pixel[0], y: evt.pixel[1] }
+        : null;
+}
+
+/** 格上げ（補完点を対応点にする）。[紙, 地理] が gcps に入り、以後は人間の対応点（履歴は 1 件・Undo 1 回）。 */
+const promoteSupplement = (view: SupplementPointView) => {
+    if (documentEditsBlocked.value) return;
+    const tin = tinObject.value;
+    const yaxisMode = tin && typeof tin === 'object' ? tin.yaxisMode : undefined;
+    gcps.value.push(supplementPointToGcp(view, currentEditingLayer.value, yaxisMode));
+    editingID.value = String(gcps.value.length);
+    gcpsToMarkers();
+    syncLayerData();
+};
+
+/** 補完点の地図ごとの切り替え（map JSON 最上位の `supplementPairs: false`）。全層に同じ値を置く。 */
+const supplementPairsEnabled = computed(() => layerTransformState.value.layers.value[0].buildOptions.supplementPairs !== false);
+
+function selectSupplementPairs(enabled: boolean, event?: Event) {
+    const applied = !documentEditsBlocked.value
+        && layerTransformState.value.editLayers(layerTransformState.value.layers.value.map(({ layerId, buildOptions }) => ({
+            layerId, edit: { buildOptions: { ...buildOptions, supplementPairs: enabled } },
+        })));
+    // `:checked` は文書の値が変わらないと描き直されない。拒否されたときは、ブラウザが切り替えた見た目を戻す。
+    const input = event?.target;
+    if (!applied && input instanceof HTMLInputElement) input.checked = !enabled;
+}
 
 // 対象の層 ID はモデルが固定し、成功・失敗の両方で世代と現存性を照合する。
 // updateTin は文書の編集ではない。読み込み直後（W2 の履歴の抑止中）にも計算を依頼する必要があるので、
@@ -3720,16 +3861,24 @@ const initMaps = async () => {
         source: illstEdgesVSrc
     });
     illstEdgesLayer.set('name', 'edges');
+    // 補完点の印（MaplatEditor#321）。GCP の marker 層と分け、Drag・右クリック・選択の対象にしない
+    const illstSupplementVSrc = new VectorSource({ wrapX: false });
+    illstSupplementSource = illstSupplementVSrc;
+    const illstSupplementLayer = new VectorLayer({ source: illstSupplementVSrc });
+    illstSupplementLayer.set('name', 'supplement');
     const illstOverlay = illstMap.getLayer('overlay');
     if (illstOverlay && illstOverlay.getLayers) {
         illstOverlay.getLayers().push(illstBoundsLayer);
         illstOverlay.getLayers().push(illstJsonLayer);
         illstOverlay.getLayers().push(illstEdgesLayer);
+        illstOverlay.getLayers().push(illstSupplementLayer);
     }
     // check レイヤーはトップレベルに追加（overlay グループではない）
     illstMap.getLayers().push(illstCheckLayer);
     // クリックイベント: 座標変換テスト
     illstMap.on('click', onMapClick);
+    // 補完点を指すと理由を出す（MaplatEditor#321）
+    illstMap.on('pointermove', (evt: any) => supplementPointerMove('illst', evt));
 
     const illstEdgeModify = new Modify({
         source: illstEdgesVSrc as VectorSource,
@@ -3798,14 +3947,22 @@ const initMaps = async () => {
         source: mercEdgesVSrc
     });
     mercEdgesLayer.set('name', 'edges');
+    // 補完点の印（MaplatEditor#321）。GCP の marker 層と分け、Drag・右クリック・選択の対象にしない
+    const mercSupplementVSrc = new VectorSource({ wrapX: false });
+    mercSupplementSource = mercSupplementVSrc;
+    const mercSupplementLayer = new VectorLayer({ source: mercSupplementVSrc });
+    mercSupplementLayer.set('name', 'supplement');
     const mercOverlay = mercMap.getLayer('overlay');
     if (mercOverlay && mercOverlay.getLayers) {
         mercOverlay.getLayers().push(mercBoundsLayer);
         mercOverlay.getLayers().push(mercJsonLayer);
         mercOverlay.getLayers().push(mercEdgesLayer);
+        mercOverlay.getLayers().push(mercSupplementLayer);
     }
     // checkレイヤーはトップレベルに追加
     mercMap.getLayers().push(mercCheckLayer);
+    // 補完点を指すと理由を出す（MaplatEditor#321）
+    mercMap.on('pointermove', (evt: any) => supplementPointerMove('merc', evt));
     // C-8: 位置合わせマーカー専用レイヤ（check レイヤと同じくトップレベル）。
     // createContextMenu の layerFilter は marker/edges のみを拾う ∴ このレイヤ上の
     // マーカーを右クリックしても GCP 分岐へ落ちない
@@ -6189,6 +6346,25 @@ const goBack = async () => {
                                     </button>
                                 </div>
                             </div>
+                            <!-- 三角網の表示の凡例（MaplatEditor#321。ui-map-overlay-proposal §5-6: 左下・色の見本と名前） -->
+                            <div v-if="tinLegendVisible" class="map-overlay-legend" data-testid="map-tin-legend-illst">
+                                <div class="map-overlay-legend__title">{{ t("mapedit.tin_legend_title") }}</div>
+                                <div class="map-overlay-legend__item">
+                                    <span class="map-overlay-legend__swatch map-overlay-legend__swatch--supplement"></span>{{ t("mapedit.tin_supplement_point") }}
+                                </div>
+                                <div class="map-overlay-legend__item">
+                                    <span class="map-overlay-legend__swatch map-overlay-legend__swatch--auxiliary"></span>{{ t("mapedit.tin_auxiliary_vertex") }}
+                                </div>
+                                <div class="map-overlay-legend__item">
+                                    <span class="map-overlay-legend__swatch map-overlay-legend__swatch--quadrilateral"></span>{{ t("mapedit.tin_extrapolation_quadrilateral") }}
+                                </div>
+                                <div class="map-overlay-legend__item">
+                                    <span class="map-overlay-legend__swatch map-overlay-legend__swatch--proportional"></span>{{ t("mapedit.tin_proportional_point") }}
+                                </div>
+                            </div>
+                            <!-- 補完点を指したときの理由（MaplatEditor#321） -->
+                            <div v-if="supplementTip?.side === 'illst'" class="map-overlay-tip" data-testid="map-supplement-tip-illst"
+                                 :style="{ left: `${supplementTip.x}px`, top: `${supplementTip.y}px` }">{{ supplementTip.text }}</div>
                         </div>
                     </div>
 
@@ -6203,6 +6379,42 @@ const goBack = async () => {
                                 </button>
                                 <button class="btn map-tool" data-testid="map-edit-set-home-merc" :disabled="!enableSetHomeMerc" @click="setHomeMerc" :title="t('mapedit.control_set_home')" :aria-label="t('mapedit.control_set_home')">
                                     <i class="bi bi-house"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 三角網の表示の凡例（MaplatEditor#321） -->
+                        <div v-if="tinLegendVisible" class="map-overlay-legend" data-testid="map-tin-legend-merc">
+                            <div class="map-overlay-legend__title">{{ t("mapedit.tin_legend_title") }}</div>
+                            <div class="map-overlay-legend__item">
+                                <span class="map-overlay-legend__swatch map-overlay-legend__swatch--supplement"></span>{{ t("mapedit.tin_supplement_point") }}
+                            </div>
+                            <div class="map-overlay-legend__item">
+                                <span class="map-overlay-legend__swatch map-overlay-legend__swatch--auxiliary"></span>{{ t("mapedit.tin_auxiliary_vertex") }}
+                            </div>
+                            <div class="map-overlay-legend__item">
+                                <span class="map-overlay-legend__swatch map-overlay-legend__swatch--quadrilateral"></span>{{ t("mapedit.tin_extrapolation_quadrilateral") }}
+                            </div>
+                            <div class="map-overlay-legend__item">
+                                <span class="map-overlay-legend__swatch map-overlay-legend__swatch--proportional"></span>{{ t("mapedit.tin_proportional_point") }}
+                            </div>
+                        </div>
+                        <!-- 補完点を指したときの理由（MaplatEditor#321） -->
+                        <div v-if="supplementTip?.side === 'merc'" class="map-overlay-tip" data-testid="map-supplement-tip-merc"
+                             :style="{ left: `${supplementTip.x}px`, top: `${supplementTip.y}px` }">{{ supplementTip.text }}</div>
+                    </div>
+                </div>
+
+                <!-- 補完点の一覧（読み取り専用。MaplatEditor#321）。対応点の表には入れず、格上げの入口だけ持つ -->
+                <div v-if="supplementPoints.length" class="bg-white border-top p-2" data-testid="map-supplement-list">
+                    <div class="container-fluid">
+                        <div class="small fw-bold mb-1">{{ t("mapedit.tin_supplement_list_title") }}</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div v-for="view in supplementPoints" :key="view.key"
+                                 class="d-flex align-items-center gap-2 border rounded px-2 py-1 small">
+                                <span data-testid="map-supplement-info">{{ supplementPointDescription(view) }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-testid="map-supplement-promote"
+                                        :disabled="documentEditsBlocked" @click="promoteSupplement(view)">
+                                    {{ t("mapedit.tin_supplement_promote") }}
                                 </button>
                             </div>
                         </div>
@@ -6247,14 +6459,25 @@ const goBack = async () => {
                                  </div>
                              </div>
 
-                             <!-- Column 3: Error Status (footer 素表示から DF section バナーへ。
+                             <!-- Column 3: 補完点の地図ごとの切り替え（MaplatEditor#321。map JSON 最上位の
+                                  supplementPairs: false。全層に同じ値） -->
+                             <div class="col-md-2">
+                                 <div class="form-check form-check-inline m-0">
+                                     <input class="form-check-input" type="checkbox" id="supplementPairsToggle" data-testid="map-supplement-toggle"
+                                            :checked="supplementPairsEnabled" :disabled="documentEditsBlocked"
+                                            @change="selectSupplementPairs(($event.target as HTMLInputElement).checked, $event)">
+                                     <label class="form-check-label" for="supplementPairsToggle">{{ t("mapedit.tin_supplement_toggle") }}</label>
+                                 </div>
+                             </div>
+
+                             <!-- Column 4: Error Status (footer 素表示から DF section バナーへ。
                                   「エラーなし」(strict) は非表示) -->
-                             <div class="col-md-3">
+                             <div class="col-md-2">
                                  <DiagnosticFeedback v-if="gcpErrorStatusMessage" scope="section" :items="[{ key: 'gcp-error', severity: 'danger', message: gcpErrorStatusMessage }]" />
                              </div>
 
-                             <!-- Column 4: View Error Button -->
-                             <div class="col-md-3 text-end">
+                             <!-- Column 5: View Error Button -->
+                             <div class="col-md-2 text-end">
                                  <button class="btn btn-sm btn-outline-danger" v-show="errorStatus === 'strict_error'" @click="viewError">
                                      {{ t('mapedit.map_error_next') }}
                                  </button>

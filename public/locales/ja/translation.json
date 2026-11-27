@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "アフィン変換は GCP の点数が不足しているため評価せず、相似変換のみで評価しています。",
     "crs_warning_near_collinear": "GCP がほぼ一直線上に並んでいます。ばらついた位置に増やすと当てはまりが安定します。",
     "crs_estimate_failed": "CRS を推定できませんでした。",
-    "crs_yaxis_mismatch_rebuild": "記録されている y 軸の向きが CRS と食い違うため、三角網を作り直しました。"
+    "crs_yaxis_mismatch_rebuild": "記録されている y 軸の向きが CRS と食い違うため、三角網を作り直しました。",
+    "tin_legend_title": "凡例",
+    "tin_supplement_point": "補完点",
+    "tin_auxiliary_vertex": "補助頂点",
+    "tin_extrapolation_quadrilateral": "外挿四辺形",
+    "tin_proportional_point": "内分点",
+    "tin_supplement_reason_hull_edge": "凸包の辺 {{edge}} に、対応点 {{anchor}} のために置いた補完点",
+    "tin_supplement_reason_hull_edge_no_anchor": "凸包の辺 {{edge}} に置いた補完点",
+    "tin_supplement_promote": "対応点にする",
+    "tin_supplement_list_title": "補完点の一覧",
+    "tin_supplement_toggle": "補完点を使う"
   },
   "mapupload": {
     "map_image": "地図画像",

@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "Transformasi afine tidak dievaluasi karena GCP terlalu sedikit; hanya transformasi kemiripan yang dipakai.",
     "crs_warning_near_collinear": "GCP hampir sejajar lurus. Tambahkan titik di posisi yang beragam agar pasangan stabil.",
     "crs_estimate_failed": "Estimasi CRS gagal.",
-    "crs_yaxis_mismatch_rebuild": "Orientasi sumbu y tidak sesuai dengan CRS; TIN dibangun ulang."
+    "crs_yaxis_mismatch_rebuild": "Orientasi sumbu y tidak sesuai dengan CRS; TIN dibangun ulang.",
+    "tin_legend_title": "Legenda",
+    "tin_supplement_point": "Titik pelengkap",
+    "tin_auxiliary_vertex": "Simpul bantu",
+    "tin_extrapolation_quadrilateral": "Segi empat ekstrapolasi",
+    "tin_proportional_point": "Titik proporsional",
+    "tin_supplement_reason_hull_edge": "Titik pelengkap yang dipasang di sisi cembung {{edge}} untuk GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Titik pelengkap yang dipasang di sisi cembung {{edge}}",
+    "tin_supplement_promote": "Jadikan GCP",
+    "tin_supplement_list_title": "Titik-titik pelengkap",
+    "tin_supplement_toggle": "Gunakan titik pelengkap"
   },
   "mapupload": {
     "map_image": "Gambar peta",

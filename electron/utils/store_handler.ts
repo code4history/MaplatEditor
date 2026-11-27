@@ -9,15 +9,15 @@ import {
   type CrsObject,
   type LayeredMapData,
   type WorldFile,
-  PointSet,
-  EdgeSet,
-  StrictMode,
-  VertexMode,
-  YaxisMode
+  type PointSet,
+  type EdgeSet,
+  type StrictMode,
+  type VertexMode,
+  type YaxisMode
 } from "@maplat/transform";
 import type { Position } from "geojson";
-import { projectionEngineForCrs } from "../../src/utils/compiledGeo";
-import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify";
+import { projectionEngineForCrs } from "../../src/utils/compiledGeo.ts";
+import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify.ts";
 type LangResource = string | Record<string, string>;
 type TinLike = string | Transform | CompiledTransformData;
 const compiledByTransform = new WeakMap<Transform, CompiledTransformData>();
@@ -64,6 +64,11 @@ export interface HistMapStore extends StoredLayer {
   strictMode?: StrictMode;
   vertexMode?: VertexMode;
   yaxisMode?: YaxisMode;
+  /**
+   * 補完点（supplementPairs）を足すか（MaplatEditor#321）。Editor の持ち物で、false のときだけ
+   * 地図 JSON の最上位に書く（true は省く）。サブマップにも同じ値を使う。
+   */
+  supplementPairs?: boolean;
   author: LangResource;
   createdAt: LangResource;
   era: LangResource;
@@ -124,6 +129,7 @@ const keys: (keyof HistMapStore)[] = [
   "crs",
   "worldFile",
   "tinEnabled",
+  "supplementPairs",
   "pois",
   "delivery",
   "iiif"
