@@ -75,7 +75,8 @@ export function toCenteredWorldFile(rawWorldFile: WorldFile): WorldFile {
   return worldFile;
 }
 
-async function estimate(
+/** 推定の本体。fixture の生成器（scripts/generate-j6-crs-fixtures.mjs）も同じ処理を通す。 */
+export async function estimate(
   { requestId, input, candidateId }: Extract<CrsEstimationRequest, { type: 'estimate' }>,
   signal: AbortSignal,
 ): Promise<CrsEstimationResponse> {

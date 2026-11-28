@@ -1537,6 +1537,12 @@
         "ja"
       ]
     },
+    "mapedit.crs_residual_scale_help": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
     "mapedit.draft_already_saved": {
       "by": [
         "en",
@@ -3523,6 +3529,12 @@
       ]
     },
     "mapedit.crs_residuals_heading": {
+      "by": [
+        "en",
+        "ja"
+      ]
+    },
+    "mapedit.crs_residuals_help": {
       "by": [
         "en",
         "ja"

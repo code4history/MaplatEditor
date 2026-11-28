@@ -304,6 +304,28 @@ export interface RecommendedPlan {
   borderlineSetupLabelKey: string | null;
 }
 
+const isBase3857 = (candidate: { authority: string; code: string }): boolean =>
+  candidate.authority === 'EPSG' && candidate.code === '3857';
+
+/**
+ * 「推奨のまま採用」のために `EPSG:3857` の単体再推定が要るときの候補 ID。要らない（最良候補が 3857）か、
+ * 順位に 3857 が無いときは null。画面と fixture の生成器が同じ判定を使う。
+ */
+export function base3857CandidateId(response: EstimationOkResponse): string | null {
+  const best = response.selected;
+  if (!best || isBase3857(best)) return null;
+  return response.ranked.find(isBase3857)?.id ?? null;
+}
+
+/** 「推奨のまま採用」に渡す 3857 の `selected`。単体再推定の結果が無ければ、最良候補が 3857 のときだけそれを使う。 */
+export function resolveBase3857Selected(
+  response: EstimationOkResponse,
+  reestimated: SelectedCrsCandidate | null,
+): SelectedCrsCandidate | null {
+  if (reestimated) return reestimated;
+  return response.selected && isBase3857(response.selected) ? response.selected : null;
+}
+
 export interface AdoptRecommendedInput {
   /** 全体推定の結果（`selected` が最良候補）。 */
   response: CrsEstimationResponse | null;
@@ -354,6 +376,24 @@ export function adoptRecommendedPlan(input: AdoptRecommendedInput): AdoptRecomme
     },
     disabled: null,
   };
+}
+
+/** 「推奨のまま採用」で実際に入る CRS と変換の形。採用の処理へ渡す `plan.selection` だけから作る。 */
+export function recommendedAdoptionTarget(plan: RecommendedPlan): { crsLabel: string; setupLabelKey: string } {
+  return {
+    crsLabel: candidateCrsLabel(plan.selection.selected)!,
+    setupLabelKey: setupLabelKey(plan.selection.setup),
+  };
+}
+
+/** 比べている候補が最良候補と違うときの、2 つの CRS。同じなら null。 */
+export function comparedCandidateNotice(
+  best: { authority: string; code: string } | null | undefined,
+  compared: { authority: string; code: string } | null | undefined,
+): { bestCrs: string; comparedCrs: string } | null {
+  const bestCrs = candidateCrsLabel(best);
+  const comparedCrs = candidateCrsLabel(compared);
+  return bestCrs && comparedCrs && bestCrs !== comparedCrs ? { bestCrs, comparedCrs } : null;
 }
 
 /** 推定の警告（`DiagnosticFeedback` で結果の上に出す）。 */

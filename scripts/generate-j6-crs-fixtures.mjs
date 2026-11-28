@@ -6,16 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import proj4 from 'proj4';
-import {
-  createCandidateTransformer,
-  initializeProjWasmRuntime,
-  listProjectedCrsFromProjWasm,
-} from '@c4h/atlas';
-import {
-  estimateCrs,
-  recommendTransformSetup,
-  shouldRecommendCrsSwitch,
-} from '@c4h/teiresias';
+import { initializeProjWasmRuntime } from '@c4h/atlas';
+import { recommendTransformSetup, shouldRecommendCrsSwitch } from '@c4h/teiresias';
 import Tin from '@maplat/tin';
 import {
   MapTransform,
@@ -24,10 +16,19 @@ import {
   createProj4ProjectionEngine,
   worldFileToCrs,
 } from '@maplat/transform';
+// 推定・推奨・採用・三角網の生成は、Editor の実際の処理と同じ関数を通す
+import { estimate } from '../electron/workers/crsEstimationProcess.ts';
+import { prepareCrsAdoption } from '../src/utils/crsAdoption.ts';
 import {
-  describeCandidate,
-  toCenteredWorldFile,
-} from '../electron/workers/crsEstimationProcess.ts';
+  adoptRecommendedPlan,
+  base3857CandidateId,
+  estimateGcpsFromLayer,
+  estimationResultFor,
+  manualSelection,
+  resolveBase3857Selected,
+} from '../src/utils/crsEstimationPanel.ts';
+import { resolveTransformLayerTinOptions, transformLayerFromDocument } from '../src/utils/layerTransformIntent.ts';
+import { applyTinGeometry } from '../src/utils/tinOptions.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE_DIR = path.join(ROOT, 'tests', 'fixtures', 'j6-crs');
@@ -37,14 +38,12 @@ const GRID_PNG_PATH = path.join(ASSET_DIR, 'grid-256.png');
 const PRNG_SEED = 20270106;
 const EPSG_6674_PROJ4 =
   '+proj=tmerc +lat_0=36 +lon_0=136 +k=0.9999 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs';
-const BASELINE_CANDIDATE = {
-  id: 'EPSG:3857',
-  authority: 'EPSG',
-  code: '3857',
-  name: 'WGS 84 / Pseudo-Mercator',
-  proj4:
-    '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +type=crs',
-};
+// 広域の合成地図（北緯 61〜65 度）の生成元。緯度の幅が大きく、3857 の縮尺（1/cos φ）が図の中で大きく変わるので、
+// 投影の伸び縮みを補正した適合スコアでも、3857 でない CRS が 5% 以上良くなる。
+const UTM33_PROJ4 = '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
+const INPUT_CRS = { epsg: 3857 };
+const WH = [256, 256];
+const BASE_ID = 'EPSG:3857';
 
 const projectionEngine = createProj4ProjectionEngine(proj4);
 
@@ -158,83 +157,64 @@ function roundPair(pair, decimals = 10) {
   return [roundNum(pair[0], decimals), roundNum(pair[1], decimals)];
 }
 
-async function runEstimation(gcpsLonLat, preferredCandidateId) {
-  const lon = gcpsLonLat.map((g) => g.geo[0]);
-  const lat = gcpsLonLat.map((g) => g.geo[1]);
-  const rows = await listProjectedCrsFromProjWasm({
-    extent: {
-      west: Math.min(...lon),
-      south: Math.min(...lat),
-      east: Math.max(...lon),
-      north: Math.max(...lat),
-    },
-    onshoreOnly: true,
-    includeCustomProjections: false,
-  });
-  if (!rows.some((r) => r.id === BASELINE_CANDIDATE.id)) rows.push(BASELINE_CANDIDATE);
+async function runWorker(input, candidateId) {
+  const response = await estimate(
+    { type: 'estimate', requestId: 'j6-fixture', input, candidateId },
+    new AbortController().signal,
+  );
+  assert.ok(response.selected, `estimation failed: ${response.status} ${response.failureReason ?? ''}`);
+  return response;
+}
 
-  const transformAll = createCandidateTransformer(rows);
-  const transformedAll = new Map();
-  const fullRes = await estimateCrs(gcpsLonLat, rows, {
-    geoBasis: { kind: 'lonlat_deg', axisOrder: 'lon-lat' },
-    timeoutMs: 10_000,
-    transformer: async (id, pts, basis) => {
-      const converted = await transformAll(id, pts, basis);
-      if (converted) transformedAll.set(id, Array.isArray(converted) ? converted : converted.points);
-      return converted;
-    },
-  });
+/** 地図に入れる対応点（3857）。 */
+function inputGcpsOf(gcpsLonLat) {
+  return gcpsLonLat.map((g) => [g.pixel, roundPair(proj4('EPSG:4326', 'EPSG:3857', g.geo), 6)]);
+}
 
-  const base3857Score =
-    fullRes.ranked.find((r) => r.authority === 'EPSG' && r.code === '3857')?.score ?? null;
-  let activeRes = fullRes;
-  let activePtsMap = transformedAll;
-  let selectedId = `${fullRes.selected.identity.authority}:${fullRes.selected.identity.code}`;
-
-  if (preferredCandidateId && preferredCandidateId !== selectedId) {
-    const singleRows = rows.filter((r) => r.id === preferredCandidateId);
-    assert.equal(singleRows.length, 1, `Candidate ${preferredCandidateId} must exist`);
-    const singleTransform = createCandidateTransformer(singleRows);
-    const singlePts = new Map();
-    activeRes = await estimateCrs(gcpsLonLat, singleRows, {
-      geoBasis: { kind: 'lonlat_deg', axisOrder: 'lon-lat' },
-      timeoutMs: 10_000,
-      transformer: async (id, pts, basis) => {
-        const converted = await singleTransform(id, pts, basis);
-        if (converted) singlePts.set(id, Array.isArray(converted) ? converted : converted.points);
-        return converted;
-      },
-    });
-    activePtsMap = singlePts;
-    selectedId = preferredCandidateId;
-  }
-
-  const candidateRow = rows.find((r) => r.id === selectedId);
-  assert.ok(candidateRow, `Row ${selectedId} missing`);
-  const desc = describeCandidate(candidateRow);
-  const rawWorldFile = activeRes.selected.worldFile;
-  const worldFile = toCenteredWorldFile(rawWorldFile);
-  const crsPoints = activePtsMap.get(selectedId);
-  assert.ok(crsPoints && crsPoints.length === gcpsLonLat.length, 'Transformed points missing');
-
+/**
+ * 推定パネルと同じ手順。最良候補（全候補の推定の 1 位）と、
+ * 自動の採用先（乗り換えの規則を当てた後の CRS と形。「推奨のまま採用」）を分けて返す。
+ */
+async function runEstimation(inputGcps, vertexMode) {
+  const gcps = estimateGcpsFromLayer(inputGcps, INPUT_CRS);
+  assert.ok(gcps, 'input GCPs must convert to lon/lat');
+  const input = { gcps, onshoreOnly: true };
+  const response = await runWorker(input);
+  const best = response.selected;
+  const baseId = base3857CandidateId(response);
+  const reestimated = baseId ? (await runWorker(input, baseId)).selected : null;
+  const base3857Selected = resolveBase3857Selected(response, reestimated);
+  const { plan, disabled } = adoptRecommendedPlan({ response, base3857Selected, vertexMode });
+  assert.ok(plan, `recommended adoption is disabled: ${disabled}`);
   return {
-    fullRes,
-    activeRes,
-    base3857Score,
-    selectedId,
-    desc,
-    rawWorldFile,
-    worldFile,
-    crsPoints,
-    recommendation: recommendTransformSetup(activeRes),
-    shouldRecommendSwitch: shouldRecommendCrsSwitch(
-      fullRes.selected?.score ?? null,
-      base3857Score,
-    ),
+    best,
+    base3857Score: response.base3857Score,
+    plan,
+    recommendation: recommendTransformSetup(estimationResultFor(best), { vertexMode }),
+    shouldRecommendSwitch: shouldRecommendCrsSwitch(best.score, response.base3857Score),
   };
 }
 
-async function computeKnownPixels({ setup, crs, worldFile, gcps, edges, strictMode, vertexMode }) {
+/** 採用の処理（座標の変換と照合）を通した層。 */
+async function adoptLayer({ inputGcps, selection, strictMode, vertexMode }) {
+  const layer = transformLayerFromDocument('main', {
+    crs: INPUT_CRS, gcps: inputGcps, edges: [], width: WH[0], height: WH[1], strictMode, vertexMode,
+  });
+  const prepared = await prepareCrsAdoption(layer, selection, new AbortController().signal);
+  return { ...layer, ...prepared };
+}
+
+async function buildTin(layer) {
+  const options = resolveTransformLayerTinOptions(layer);
+  const tin = new Tin(options);
+  assert.ok(applyTinGeometry(tin, options, { wh: WH }));
+  tin.setPoints(layer.gcps);
+  tin.setEdges(layer.edges);
+  await tin.updateTinAsync();
+  return tin;
+}
+
+async function computeKnownPixels(layer) {
   const probePixels = [
     [0, 0],
     [256, 0],
@@ -245,36 +225,30 @@ async function computeKnownPixels({ setup, crs, worldFile, gcps, edges, strictMo
     [280, 128],
     [-24, 128],
   ];
-  const crsProj = proj4StringOf(crs);
+  const { intent } = layer;
+  const { crs } = intent;
 
-  if (setup === 'A') {
-    const surface = new WorldFileSurface({ crs, worldFile, wh: [256, 256], projectionEngine });
-    return probePixels.map((pixel) => {
-      const crsPt = worldFileToCrs(worldFile, pixel);
-      const mercPt = surface.transform(pixel, false);
-      assert.ok(Array.isArray(mercPt), 'WorldFileSurface forward failed');
-      const geo = proj4('EPSG:3857', 'EPSG:4326', mercPt);
-      return {
-        pixel,
-        crsCoord: roundPair(crsPt, 8),
-        mercatorCoord: roundPair(mercPt, 8),
-        geoLonLat: roundPair(geo, 10),
-      };
-    });
+  if (intent.setup === 'A') {
+    const { worldFile } = intent;
+    const surface = new WorldFileSurface({ crs, worldFile, wh: WH, projectionEngine });
+    return {
+      knownPixels: probePixels.map((pixel) => {
+        const crsPt = worldFileToCrs(worldFile, pixel);
+        const mercPt = surface.transform(pixel, false);
+        assert.ok(Array.isArray(mercPt), 'WorldFileSurface forward failed');
+        const geo = proj4('EPSG:3857', 'EPSG:4326', mercPt);
+        return {
+          pixel,
+          crsCoord: roundPair(crsPt, 8),
+          mercatorCoord: roundPair(mercPt, 8),
+          geoLonLat: roundPair(geo, 10),
+        };
+      }),
+    };
   }
 
-  const outerTransform = setup === 'B' ? 'worldFile' : 'extrapolate';
-  const tin = new Tin({
-    wh: [256, 256],
-    points: gcps,
-    edges,
-    strictMode,
-    vertexMode,
-    useV2Algorithm: false,
-    outerTransform,
-    ...(setup === 'B' ? { worldFile } : {}),
-  });
-  await tin.updateTinAsync();
+  const crsProj = proj4StringOf(crs);
+  const tin = await buildTin(layer);
   const compiled = tin.getCompiled();
   const mapTransform = new MapTransform();
   await mapTransform.setLayeredMapData({
@@ -308,6 +282,49 @@ async function computeKnownPixels({ setup, crs, worldFile, gcps, edges, strictMo
   };
 }
 
+/** fixture の共通部分。`estimation` は最良候補、`autoAdoption` は「推奨のまま採用」が採る CRS と形。 */
+function fixtureOf({ id, title, seed, strictMode, vertexMode = 'plain', inputGcps, est }) {
+  const { best, plan } = est;
+  return {
+    id,
+    title,
+    seed,
+    wh: WH,
+    imageAsset: 'assets/grid-256.png',
+    strictMode,
+    vertexMode,
+    inputMap: { crs: INPUT_CRS, gcps: inputGcps, edges: [] },
+    estimation: {
+      selectedId: best.id,
+      crs: best.crs,
+      coreCompatible: best.coreCompatible,
+      score: roundNum(best.score, 10),
+      rmsMeters: roundNum(best.rmsMeters, 6),
+      base3857Score: roundNum(est.base3857Score, 10),
+      shouldRecommendCrsSwitch: est.shouldRecommendSwitch,
+      recommendation: est.recommendation,
+      rawWorldFile: best.rawWorldFile,
+      worldFile: best.worldFile,
+      gcpsNew: best.gcpsNew.map((g) => ({ pixel: g.pixel, geo: roundPair(g.geo, 6) })),
+    },
+    autoAdoption: {
+      crsChoice: plan.crsChoice,
+      selectedId: plan.selection.selected.id,
+      setup: plan.setup,
+      score: roundNum(plan.selection.selected.score, 10),
+    },
+  };
+}
+
+/** B・BC の意図: 最良候補が 3857 でなく、乗り換えが勧められ、自動の採用先もその候補になる。 */
+function assertSwitchRecommended(est) {
+  assert.notEqual(est.best.id, BASE_ID);
+  assert.equal(est.best.coreCompatible, true);
+  assert.equal(est.shouldRecommendSwitch, true);
+  assert.equal(est.plan.crsChoice, 'best');
+  assert.equal(est.plan.selection.selected.id, est.best.id);
+}
+
 async function buildFixtureA() {
   const rng = mulberry32(PRNG_SEED + 1);
   const center = proj4('EPSG:4326', 'EPSG:3857', [135.755, 34.935]);
@@ -335,53 +352,33 @@ async function buildFixtureA() {
     ]),
   }));
 
-  const est = await runEstimation(gcpsLonLat);
-  assert.equal(est.desc.id, 'EPSG:3857');
-  assert.ok(est.activeRes.selected.score < 0.003);
+  const inputGcps = inputGcpsOf(gcpsLonLat);
+  const est = await runEstimation(inputGcps, 'plain');
+  assert.equal(est.best.id, BASE_ID);
+  assert.ok(est.best.score < 0.003);
   assert.deepEqual(est.recommendation.reason, 'clear');
   assert.deepEqual(est.recommendation.setups, ['worldFileOnly']);
   assert.equal(est.shouldRecommendSwitch, false);
+  assert.equal(est.plan.selection.selected.id, BASE_ID);
+  assert.equal(est.plan.setup, 'A');
 
-  const gcpsMerc = gcpsLonLat.map((g, i) => [g.pixel, roundPair(est.crsPoints[i], 6)]);
-  const knownPixels = await computeKnownPixels({
-    setup: 'A',
-    crs: est.desc.crs,
-    worldFile: est.worldFile,
-    gcps: gcpsMerc,
-    edges: [],
-    strictMode: 'strict',
-    vertexMode: 'plain',
-  });
+  const layer = await adoptLayer({ inputGcps, selection: est.plan.selection, strictMode: 'strict', vertexMode: 'plain' });
+  const { knownPixels } = await computeKnownPixels(layer);
 
   return {
-    id: 'fixture-a',
-    title: 'Fixture A（伏見城図クラス・CRS＋ワールドファイルのみ推奨）',
-    seed: PRNG_SEED + 1,
-    wh: [256, 256],
-    imageAsset: 'assets/grid-256.png',
-    strictMode: 'strict',
-    vertexMode: 'plain',
-    inputMap: {
-      crs: { epsg: 3857 },
-      gcps: gcpsLonLat.map((g) => [g.pixel, roundPair(proj4('EPSG:4326', 'EPSG:3857', g.geo), 6)]),
-      edges: [],
-    },
-    estimation: {
-      selectedId: est.selectedId,
-      crs: est.desc.crs,
-      coreCompatible: est.desc.coreCompatible,
-      score: roundNum(est.activeRes.selected.score, 10),
-      rmsMeters: roundNum(est.activeRes.selected.rmsMeters, 6),
-      base3857Score: roundNum(est.base3857Score, 10),
-      shouldRecommendCrsSwitch: est.shouldRecommendSwitch,
-      recommendation: est.recommendation,
-      rawWorldFile: est.rawWorldFile,
-      worldFile: est.worldFile,
-      gcpsNew: gcpsLonLat.map((g, i) => ({ pixel: g.pixel, geo: roundPair(est.crsPoints[i], 6) })),
-    },
+    ...fixtureOf({
+      id: 'fixture-a',
+      title: 'Fixture A（伏見城図クラス・CRS＋ワールドファイルのみ推奨）',
+      seed: PRNG_SEED + 1,
+      strictMode: 'strict',
+      inputGcps,
+      est,
+    }),
     expectedAdoption: {
+      source: 'auto',
+      selectedId: est.plan.selection.selected.id,
       setup: 'A',
-      crs: est.desc.crs,
+      crs: layer.intent.crs,
       tinEnabled: false,
       knownPixels,
     },
@@ -389,14 +386,16 @@ async function buildFixtureA() {
 }
 
 async function buildFixtureB() {
-  const center = proj4('EPSG:4326', 'EPSG:3857', [135.755, 34.935]);
+  // 1 画素 1600 m（図の一辺は約 410 km）。対応点のずれは画素の単位で与える
+  const scale = 1600;
+  const center = [550000, 7000000];
   const wf = {
-    xScale: 5.0,
-    xSkew: 0.3,
-    xOrigin: center[0] - 640,
-    ySkew: 0.3,
-    yScale: -5.0,
-    yOrigin: center[1] + 640,
+    xScale: scale,
+    xSkew: scale * 0.06,
+    xOrigin: center[0] - 128 * scale * 1.06,
+    ySkew: scale * 0.06,
+    yScale: -scale,
+    yOrigin: center[1] + 128 * scale * 0.94,
   };
   const pixels = [
     [24, 24],
@@ -413,97 +412,68 @@ async function buildFixtureB() {
     [0, 0],
     [0, 0],
     [0, 0],
-    [22, -17],
-    [-20, 22],
-    [20, 20],
-    [-22, -20],
+    [4.4, -3.4],
+    [-4, 4.4],
+    [4, 4],
+    [-4.4, -4],
   ];
   const gcpsLonLat = pixels.map(([x, y], i) => ({
     pixel: [x, y],
-    geo: proj4('EPSG:3857', 'EPSG:4326', [
-      wf.xScale * x + wf.xSkew * y + wf.xOrigin + offsets[i][0],
-      wf.ySkew * x + wf.yScale * y + wf.yOrigin + offsets[i][1],
+    geo: proj4(UTM33_PROJ4, 'EPSG:4326', [
+      wf.xScale * x + wf.xSkew * y + wf.xOrigin + offsets[i][0] * scale,
+      wf.ySkew * x + wf.yScale * y + wf.yOrigin + offsets[i][1] * scale,
     ]),
   }));
 
-  const est = await runEstimation(gcpsLonLat);
+  const inputGcps = inputGcpsOf(gcpsLonLat);
+  const est = await runEstimation(inputGcps, 'plain');
+  assertSwitchRecommended(est);
   assert.ok(
-    est.activeRes.selected.score >= 0.008 && est.activeRes.selected.score < 0.03,
-    `Expected B score in [0.008, 0.030), got ${est.activeRes.selected.score}`,
+    est.best.score >= 0.008 && est.best.score < 0.03,
+    `Expected B score in [0.008, 0.030), got ${est.best.score}`,
   );
   assert.equal(est.recommendation.reason, 'clear');
   assert.deepEqual(est.recommendation.setups, ['tinGlobal']);
+  assert.equal(est.plan.setup, 'B');
 
-  const gcpsCrs = gcpsLonLat.map((g, i) => [g.pixel, roundPair(est.crsPoints[i], 6)]);
-  const bComputed = await computeKnownPixels({
-    setup: 'B',
-    crs: est.desc.crs,
-    worldFile: est.worldFile,
-    gcps: gcpsCrs,
-    edges: [],
-    strictMode: 'strict',
-    vertexMode: 'plain',
-  });
+  const layer = await adoptLayer({ inputGcps, selection: est.plan.selection, strictMode: 'strict', vertexMode: 'plain' });
+  const bComputed = await computeKnownPixels(layer);
   const bDiag = bComputed.tin.boundaryDiagnostics;
   assert.equal(bComputed.compiled.outerTransform, 'worldFile');
   assert.equal(bDiag?.outerTransform, 'worldFile');
   assert.ok(bDiag?.margin >= 0.1 && bDiag?.margin <= 0.225, `Unexpected margin: ${bDiag?.margin}`);
 
-  const editedGcpsCrs = gcpsCrs.map(([px, geo], idx) =>
-    idx === 0 ? [px, roundPair([geo[0] - 900, geo[1] + 900], 6)] : [px, geo],
+  // 左上の対応点を、図の外向きに 180 画素ぶん動かすと、境界が反転して外挿へ降格する
+  const editedGcps = layer.gcps.map(([px, geo], idx) =>
+    idx === 0 ? [px, roundPair([geo[0] - 180 * scale, geo[1] + 180 * scale], 6)] : [px, geo],
   );
-  const tinEdited = new Tin({
-    wh: [256, 256],
-    points: editedGcpsCrs,
-    edges: [],
-    strictMode: 'strict',
-    vertexMode: 'plain',
-    useV2Algorithm: false,
-    outerTransform: 'worldFile',
-    worldFile: est.worldFile,
-  });
-  await tinEdited.updateTinAsync();
+  const tinEdited = await buildTin({ ...layer, gcps: editedGcps });
   assert.equal(tinEdited.boundaryDiagnostics?.requestedOuterTransform, 'worldFile');
   assert.equal(tinEdited.boundaryDiagnostics?.outerTransform, 'extrapolate');
   assert.equal(tinEdited.boundaryDiagnostics?.fallbackReason, 'boundaryFlips');
   assert.equal(tinEdited.getCompiled().outerTransform, 'extrapolate');
 
   return {
-    id: 'fixture-b',
-    title: 'Fixture B（延岡・広島城クラス・三角網＋大域外挿推奨）',
-    seed: PRNG_SEED + 2,
-    wh: [256, 256],
-    imageAsset: 'assets/grid-256.png',
-    strictMode: 'strict',
-    vertexMode: 'plain',
-    inputMap: {
-      crs: { epsg: 3857 },
-      gcps: gcpsLonLat.map((g) => [g.pixel, roundPair(proj4('EPSG:4326', 'EPSG:3857', g.geo), 6)]),
-      edges: [],
-    },
-    estimation: {
-      selectedId: est.selectedId,
-      crs: est.desc.crs,
-      coreCompatible: est.desc.coreCompatible,
-      score: roundNum(est.activeRes.selected.score, 10),
-      rmsMeters: roundNum(est.activeRes.selected.rmsMeters, 6),
-      base3857Score: roundNum(est.base3857Score, 10),
-      shouldRecommendCrsSwitch: est.shouldRecommendSwitch,
-      recommendation: est.recommendation,
-      rawWorldFile: est.rawWorldFile,
-      worldFile: est.worldFile,
-      gcpsNew: gcpsLonLat.map((g, i) => ({ pixel: g.pixel, geo: roundPair(est.crsPoints[i], 6) })),
-    },
+    ...fixtureOf({
+      id: 'fixture-b',
+      title: 'Fixture B（広域の合成地図・乗り換え推奨・三角網＋大域外挿推奨）',
+      seed: PRNG_SEED + 2,
+      strictMode: 'strict',
+      inputGcps,
+      est,
+    }),
     expectedAdoption: {
+      source: 'auto',
+      selectedId: est.plan.selection.selected.id,
       setup: 'B',
-      crs: est.desc.crs,
+      crs: layer.intent.crs,
       outerTransform: 'worldFile',
       margin: bDiag.margin,
       knownPixels: bComputed.knownPixels,
     },
     editToFallback: {
       gcpIndex: 0,
-      editedGeo: editedGcpsCrs[0][1],
+      editedGeo: editedGcps[0][1],
       expectedRequestedOuterTransform: 'worldFile',
       expectedOuterTransform: 'extrapolate',
       expectedFallbackReason: 'boundaryFlips',
@@ -512,13 +482,16 @@ async function buildFixtureB() {
 }
 
 async function buildFixtureBcFallback() {
+  // 1 画素 2000 m（図の一辺は約 510 km）
+  const scale = 2000;
+  const center = [550000, 7000000];
   const wf = {
-    xScale: 4.0,
-    xSkew: 0.25,
-    xOrigin: -22500,
-    ySkew: 0.25,
-    yScale: -4.0,
-    yOrigin: -117500,
+    xScale: scale,
+    xSkew: scale * 0.0625,
+    xOrigin: center[0] - 128 * scale * 1.0625,
+    ySkew: scale * 0.0625,
+    yScale: -scale,
+    yOrigin: center[1] + 128 * scale * 0.9375,
   };
   const pixels = [
     [20, 20],
@@ -535,37 +508,32 @@ async function buildFixtureBcFallback() {
     [0, 0],
     [0, 0],
     [0, 0],
-    [80, 0],
-    [-80, 0],
-    [20, -16],
-    [-20, 16],
+    [20, 0],
+    [-20, 0],
+    [5, -4],
+    [-5, 4],
   ];
   const gcpsLonLat = pixels.map(([x, y], i) => ({
     pixel: [x, y],
-    geo: proj4(EPSG_6674_PROJ4, 'EPSG:4326', [
-      wf.xScale * x + wf.xSkew * y + wf.xOrigin + offsets[i][0],
-      wf.ySkew * x + wf.yScale * y + wf.yOrigin + offsets[i][1],
+    geo: proj4(UTM33_PROJ4, 'EPSG:4326', [
+      wf.xScale * x + wf.xSkew * y + wf.xOrigin + offsets[i][0] * scale,
+      wf.ySkew * x + wf.yScale * y + wf.yOrigin + offsets[i][1] * scale,
     ]),
   }));
 
-  const est = await runEstimation(gcpsLonLat);
+  const inputGcps = inputGcpsOf(gcpsLonLat);
+  const est = await runEstimation(inputGcps, 'plain');
+  assertSwitchRecommended(est);
   assert.ok(
-    est.activeRes.selected.score >= 0.03 && est.activeRes.selected.score < 0.04,
-    `Expected BC borderline score in [0.030, 0.040), got ${est.activeRes.selected.score}`,
+    est.best.score >= 0.03 && est.best.score < 0.04,
+    `Expected BC borderline score in [0.030, 0.040), got ${est.best.score}`,
   );
   assert.equal(est.recommendation.reason, 'borderline');
   assert.equal(est.recommendation.setups.length, 2);
+  assert.equal(est.plan.setup, 'B');
 
-  const gcpsCrs = gcpsLonLat.map((g, i) => [g.pixel, roundPair(est.crsPoints[i], 6)]);
-  const cComputed = await computeKnownPixels({
-    setup: 'B',
-    crs: est.desc.crs,
-    worldFile: est.worldFile,
-    gcps: gcpsCrs,
-    edges: [],
-    strictMode: 'loose',
-    vertexMode: 'plain',
-  });
+  const layer = await adoptLayer({ inputGcps, selection: est.plan.selection, strictMode: 'loose', vertexMode: 'plain' });
+  const cComputed = await computeKnownPixels(layer);
   const diag = cComputed.tin.boundaryDiagnostics;
   assert.equal(diag?.requestedOuterTransform, 'worldFile');
   assert.equal(diag?.outerTransform, 'extrapolate');
@@ -575,35 +543,20 @@ async function buildFixtureBcFallback() {
   assert.equal(cComputed.compiled.worldFile, undefined);
 
   return {
-    id: 'fixture-bc-fallback',
-    title: 'Fixture BC-Fallback（奈良町絵図 v2 型・境界付近で B→C 降格）',
-    seed: PRNG_SEED + 3,
-    wh: [256, 256],
-    imageAsset: 'assets/grid-256.png',
-    strictMode: 'loose',
-    vertexMode: 'plain',
-    inputMap: {
-      crs: { epsg: 3857 },
-      gcps: gcpsLonLat.map((g) => [g.pixel, roundPair(proj4('EPSG:4326', 'EPSG:3857', g.geo), 6)]),
-      edges: [],
-    },
-    estimation: {
-      selectedId: est.selectedId,
-      crs: est.desc.crs,
-      coreCompatible: est.desc.coreCompatible,
-      score: roundNum(est.activeRes.selected.score, 10),
-      rmsMeters: roundNum(est.activeRes.selected.rmsMeters, 6),
-      base3857Score: roundNum(est.base3857Score, 10),
-      shouldRecommendCrsSwitch: est.shouldRecommendSwitch,
-      recommendation: est.recommendation,
-      rawWorldFile: est.rawWorldFile,
-      worldFile: est.worldFile,
-      gcpsNew: gcpsLonLat.map((g, i) => ({ pixel: g.pixel, geo: roundPair(est.crsPoints[i], 6) })),
-    },
+    ...fixtureOf({
+      id: 'fixture-bc-fallback',
+      title: 'Fixture BC-Fallback（広域の合成地図・乗り換え推奨・境界付近で B→C 降格）',
+      seed: PRNG_SEED + 3,
+      strictMode: 'loose',
+      inputGcps,
+      est,
+    }),
     expectedAdoption: {
+      source: 'auto',
+      selectedId: est.plan.selection.selected.id,
       setup: 'B',
       persistedSetupOnReopen: 'C',
-      crs: est.desc.crs,
+      crs: layer.intent.crs,
       requestedOuterTransform: 'worldFile',
       outerTransform: 'extrapolate',
       fallbackReason: 'boundaryFlips',
@@ -646,53 +599,34 @@ async function buildFixtureNon3857() {
     ]),
   }));
 
-  const est = await runEstimation(gcpsLonLat);
-  assert.notEqual(est.desc.crs.epsg, 3857);
-  assert.equal(est.desc.coreCompatible, true);
-  assert.equal(est.shouldRecommendSwitch, true);
-  assert.ok(est.activeRes.selected.score <= est.base3857Score * 0.95);
+  const inputGcps = inputGcpsOf(gcpsLonLat);
+  const est = await runEstimation(inputGcps, 'plain');
+  assertSwitchRecommended(est);
+  assert.ok(est.best.score <= est.base3857Score * 0.95);
 
-  const gcpsCrs = gcpsLonLat.map((g, i) => [g.pixel, roundPair(est.crsPoints[i], 6)]);
-  const bComputed = await computeKnownPixels({
-    setup: 'B',
-    crs: est.desc.crs,
-    worldFile: est.worldFile,
-    gcps: gcpsCrs,
-    edges: [],
-    strictMode: 'strict',
-    vertexMode: 'plain',
+  // この fixture は手動の採用（最良候補を選んだまま、形は B）を試す。推奨の形とは別に持つ
+  const manualAdoption = { selectedId: est.best.id, setup: 'B' };
+  const layer = await adoptLayer({
+    inputGcps, selection: manualSelection(est.best, manualAdoption.setup), strictMode: 'strict', vertexMode: 'plain',
   });
+  const bComputed = await computeKnownPixels(layer);
   assert.equal(bComputed.compiled.outerTransform, 'worldFile');
 
   return {
-    id: 'fixture-non3857',
-    title: 'Fixture Non-3857（広域地図・3857 からの乗り換え推奨）',
-    seed: PRNG_SEED + 4,
-    wh: [256, 256],
-    imageAsset: 'assets/grid-256.png',
-    strictMode: 'strict',
-    vertexMode: 'plain',
-    inputMap: {
-      crs: { epsg: 3857 },
-      gcps: gcpsLonLat.map((g) => [g.pixel, roundPair(proj4('EPSG:4326', 'EPSG:3857', g.geo), 6)]),
-      edges: [],
-    },
-    estimation: {
-      selectedId: est.selectedId,
-      crs: est.desc.crs,
-      coreCompatible: est.desc.coreCompatible,
-      score: roundNum(est.activeRes.selected.score, 10),
-      rmsMeters: roundNum(est.activeRes.selected.rmsMeters, 6),
-      base3857Score: roundNum(est.base3857Score, 10),
-      shouldRecommendCrsSwitch: est.shouldRecommendSwitch,
-      recommendation: est.recommendation,
-      rawWorldFile: est.rawWorldFile,
-      worldFile: est.worldFile,
-      gcpsNew: gcpsLonLat.map((g, i) => ({ pixel: g.pixel, geo: roundPair(est.crsPoints[i], 6) })),
-    },
+    ...fixtureOf({
+      id: 'fixture-non3857',
+      title: 'Fixture Non-3857（広域地図・3857 からの乗り換え推奨）',
+      seed: PRNG_SEED + 4,
+      strictMode: 'strict',
+      inputGcps,
+      est,
+    }),
+    manualAdoption,
     expectedAdoption: {
-      setup: 'B',
-      crs: est.desc.crs,
+      source: 'manual',
+      selectedId: manualAdoption.selectedId,
+      setup: manualAdoption.setup,
+      crs: layer.intent.crs,
       outerTransform: 'worldFile',
       knownPixels: bComputed.knownPixels,
     },
@@ -708,12 +642,11 @@ async function main() {
   await initializeProjWasmRuntime({ enableNetwork: false });
 
   const pngBytes = buildDeterministicGridPng();
-  const fixtures = await Promise.all([
-    buildFixtureA(),
-    buildFixtureB(),
-    buildFixtureBcFallback(),
-    buildFixtureNon3857(),
-  ]);
+  // 推定ワーカーと同じく 1 件ずつ推定する
+  const fixtures = [];
+  for (const build of [buildFixtureA, buildFixtureB, buildFixtureBcFallback, buildFixtureNon3857]) {
+    fixtures.push(await build());
+  }
 
   if (mode === 'write') {
     await fs.mkdir(ASSET_DIR, { recursive: true });

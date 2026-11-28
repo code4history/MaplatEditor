@@ -71,15 +71,37 @@
 
         <div>
           <div class="small fw-bold">{{ t('mapedit.crs_candidates_heading') }}</div>
+          <div v-if="comparedNotice" class="small d-flex flex-wrap gap-2" data-testid="crs-panel-compared-candidate">
+            <span>{{ t('mapedit.crs_best_candidate', { crs: comparedNotice.bestCrs }) }}</span>
+            <span class="fw-bold">{{ t('mapedit.crs_compared_candidate', { crs: comparedNotice.comparedCrs }) }}</span>
+          </div>
           <table class="table table-sm small" data-testid="crs-panel-candidates">
             <thead>
               <tr>
                 <th>{{ t('mapedit.crs_col_rank') }}</th>
                 <th>{{ t('mapedit.crs_col_id') }}</th>
                 <th>{{ t('mapedit.crs_col_name') }}</th>
-                <th>{{ t('mapedit.crs_col_score') }}</th>
-                <th>{{ t('mapedit.crs_col_rms') }}</th>
-                <th>{{ t('mapedit.crs_col_diff') }}</th>
+                <th>
+                  {{ t('mapedit.crs_col_score') }}
+                  <ContextHelp
+                    :text="t('mapedit.crs_col_score_help')"
+                    :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.crs_col_score') })"
+                  />
+                </th>
+                <th>
+                  {{ t('mapedit.crs_col_rms') }}
+                  <ContextHelp
+                    :text="t('mapedit.crs_col_rms_help')"
+                    :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.crs_col_rms') })"
+                  />
+                </th>
+                <th>
+                  {{ t('mapedit.crs_col_diff') }}
+                  <ContextHelp
+                    :text="t('mapedit.crs_col_diff_help')"
+                    :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.crs_col_diff') })"
+                  />
+                </th>
                 <th>{{ t('mapedit.crs_col_unit') }}</th>
               </tr>
             </thead>
@@ -126,6 +148,12 @@
               :text="recommendedDisabledHelp"
               :ariaLabel="t('editor_ui.unavailable_reason', { name: t('mapedit.crs_adopt_recommended_button') })"
             />
+            <span v-if="recommendedTarget" class="small" data-testid="crs-adopt-recommended-target">
+              {{ t('mapedit.crs_adopt_recommended_target', {
+                crs: recommendedTarget.crsLabel,
+                setup: t(recommendedTarget.setupLabelKey),
+              }) }}
+            </span>
           </div>
 
           <DiagnosticFeedback
@@ -221,7 +249,13 @@
       <!-- 残差（矢印・表） -->
       <div class="d-flex flex-column gap-2" data-testid="crs-panel-residuals">
         <div class="d-flex align-items-center gap-2">
-          <span class="small fw-bold me-auto">{{ t('mapedit.crs_residuals_heading') }}</span>
+          <span class="small fw-bold me-auto">
+            {{ t('mapedit.crs_residuals_heading') }}
+            <ContextHelp
+              :text="t('mapedit.crs_residuals_help')"
+              :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.crs_residuals_heading') })"
+            />
+          </span>
           <label class="small d-flex align-items-center gap-1">
             {{ t('mapedit.crs_residual_scale') }}
             <select v-model="residualScale" class="form-select form-select-sm w-auto" data-testid="crs-residual-scale">
@@ -230,6 +264,10 @@
               <option value="auto">{{ t('mapedit.crs_residual_scale_auto') }}</option>
             </select>
           </label>
+          <ContextHelp
+            :text="t('mapedit.crs_residual_scale_help')"
+            :ariaLabel="t('editor_ui.help_about', { name: t('mapedit.crs_residual_scale') })"
+          />
         </div>
         <table class="table table-sm small" data-testid="crs-panel-residual-table">
           <thead>
@@ -272,16 +310,20 @@ import { editorComputeBackend } from '../../services/editorComputeBackend';
 import { resolveTinBuildOptions } from '../../utils/tinOptions';
 import {
   adoptRecommendedPlan,
+  base3857CandidateId,
   buildPipelineSummary,
   candidateRows,
   compare3857,
+  comparedCandidateNotice,
   estimationResultFor,
   isEstimationStale,
   manualSelection,
   previewCornerPolygonMercator,
   previewMeshMercator,
   previewTinEdges,
+  recommendedAdoptionTarget,
   residualRows,
+  resolveBase3857Selected,
   setupAdvice,
   setupLabelKey,
   usableEstimation,
@@ -407,13 +449,17 @@ const recommendedVerdict = computed<AdoptRecommendedVerdict | null>(() => {
   if (stale.value || !usable.value) return null;
   return adoptRecommendedPlan({
     response: response.value,
-    base3857Selected: base3857Selected.value ?? (usable.value.selected?.authority === 'EPSG' && usable.value.selected?.code === '3857'
-      ? usable.value.selected
-      : null),
+    base3857Selected: resolveBase3857Selected(usable.value, base3857Selected.value),
     vertexMode: props.vertexMode,
   });
 });
 const recommendedPlan = computed(() => recommendedVerdict.value?.plan ?? null);
+const recommendedTarget = computed(() => (recommendedPlan.value
+  ? recommendedAdoptionTarget(recommendedPlan.value)
+  : null));
+const comparedNotice = computed(() => (usable.value
+  ? comparedCandidateNotice(usable.value.selected, selectedCandidate.value)
+  : null));
 const recommendedDisabledReason = computed<AdoptRecommendedDisabledReason | null>(
   () => recommendedVerdict.value?.disabled ?? null);
 const recommendedDisabledHelp = computed(() => {
@@ -485,11 +531,7 @@ async function runEstimate() {
     if (session !== estimateSessionToken.value || result.status === 'canceled') return;
     applyResponse(result);
     const usableResult = usableEstimation(result);
-    const selected = usableResult?.selected ?? null;
-    const needsBase3857 = selected
-      && !(selected.authority === 'EPSG' && selected.code === '3857')
-      && (usableResult?.ranked ?? []).some((row) => row.authority === 'EPSG' && row.code === '3857');
-    if (needsBase3857) {
+    if (usableResult && base3857CandidateId(usableResult)) {
       // 同じ推定セッション内で直列に済ませる（`watch` からの別発火と競合させない）
       await ensureBase3857Selected(session);
     }
@@ -552,25 +594,23 @@ async function ensureBase3857Selected(session: number) {
   if (!crsApi || !estimatedGcps.value || base3857Selected.value || session !== estimateSessionToken.value) return;
   const usableResult = usable.value;
   if (!usableResult) return;
-  const selected = usableResult.selected!;
-  if (selected.authority === 'EPSG' && selected.code === '3857') {
-    base3857Selected.value = selected;
+  const candidateId = base3857CandidateId(usableResult);
+  if (!candidateId) {
+    base3857Selected.value = resolveBase3857Selected(usableResult, null);
     return;
   }
-  const row = usableResult.ranked.find((item) => item.authority === 'EPSG' && item.code === '3857');
-  if (!row) return;
-  const cached = candidateCache.get(row.id);
+  const cached = candidateCache.get(candidateId);
   if (cached) {
     base3857Selected.value = cached;
     return;
   }
   const result = await trackRequest(crsApi.estimateCandidate({
-    gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId: row.id,
+    gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId,
   }));
   if (session !== estimateSessionToken.value || result.status === 'canceled') return;
   const single = usableEstimation(result);
   if (single?.selected) {
-    candidateCache.set(row.id, single.selected);
+    candidateCache.set(candidateId, single.selected);
     base3857Selected.value = single.selected;
   }
 }
