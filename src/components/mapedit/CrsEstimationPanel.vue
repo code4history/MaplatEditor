@@ -272,6 +272,7 @@ import { editorComputeBackend } from '../../services/editorComputeBackend';
 import { resolveTinBuildOptions } from '../../utils/tinOptions';
 import {
   adoptRecommendedPlan,
+  base3857CandidateId,
   buildPipelineSummary,
   candidateRows,
   compare3857,
@@ -282,6 +283,7 @@ import {
   previewMeshMercator,
   previewTinEdges,
   residualRows,
+  resolveBase3857Selected,
   setupAdvice,
   setupLabelKey,
   usableEstimation,
@@ -407,9 +409,7 @@ const recommendedVerdict = computed<AdoptRecommendedVerdict | null>(() => {
   if (stale.value || !usable.value) return null;
   return adoptRecommendedPlan({
     response: response.value,
-    base3857Selected: base3857Selected.value ?? (usable.value.selected?.authority === 'EPSG' && usable.value.selected?.code === '3857'
-      ? usable.value.selected
-      : null),
+    base3857Selected: resolveBase3857Selected(usable.value, base3857Selected.value),
     vertexMode: props.vertexMode,
   });
 });
@@ -485,11 +485,7 @@ async function runEstimate() {
     if (session !== estimateSessionToken.value || result.status === 'canceled') return;
     applyResponse(result);
     const usableResult = usableEstimation(result);
-    const selected = usableResult?.selected ?? null;
-    const needsBase3857 = selected
-      && !(selected.authority === 'EPSG' && selected.code === '3857')
-      && (usableResult?.ranked ?? []).some((row) => row.authority === 'EPSG' && row.code === '3857');
-    if (needsBase3857) {
+    if (usableResult && base3857CandidateId(usableResult)) {
       // 同じ推定セッション内で直列に済ませる（`watch` からの別発火と競合させない）
       await ensureBase3857Selected(session);
     }
@@ -552,25 +548,23 @@ async function ensureBase3857Selected(session: number) {
   if (!crsApi || !estimatedGcps.value || base3857Selected.value || session !== estimateSessionToken.value) return;
   const usableResult = usable.value;
   if (!usableResult) return;
-  const selected = usableResult.selected!;
-  if (selected.authority === 'EPSG' && selected.code === '3857') {
-    base3857Selected.value = selected;
+  const candidateId = base3857CandidateId(usableResult);
+  if (!candidateId) {
+    base3857Selected.value = resolveBase3857Selected(usableResult, null);
     return;
   }
-  const row = usableResult.ranked.find((item) => item.authority === 'EPSG' && item.code === '3857');
-  if (!row) return;
-  const cached = candidateCache.get(row.id);
+  const cached = candidateCache.get(candidateId);
   if (cached) {
     base3857Selected.value = cached;
     return;
   }
   const result = await trackRequest(crsApi.estimateCandidate({
-    gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId: row.id,
+    gcps: estimatedGcps.value, onshoreOnly: estimatedOnshoreOnly.value ?? undefined, candidateId,
   }));
   if (session !== estimateSessionToken.value || result.status === 'canceled') return;
   const single = usableEstimation(result);
   if (single?.selected) {
-    candidateCache.set(row.id, single.selected);
+    candidateCache.set(candidateId, single.selected);
     base3857Selected.value = single.selected;
   }
 }

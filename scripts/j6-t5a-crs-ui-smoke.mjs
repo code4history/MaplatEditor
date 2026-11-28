@@ -7,7 +7,7 @@ import { test as nodeTest } from 'node:test';
 import { worldFileToCrs } from '@maplat/transform';
 import { shouldRecommendCrsSwitch } from '@c4h/teiresias';
 import {
-  adoptRecommendedPlan, buildPipelineSummary, candidateRows, compare3857, estimationResultFor,
+  adoptRecommendedPlan, base3857CandidateId, resolveBase3857Selected, buildPipelineSummary, candidateRows, compare3857, estimationResultFor,
   estimateGcpsFromLayer, isEstimationStale, manualSelection, previewCornerPolygonMercator, previewMeshMercator,
   previewTinEdges, residualArrows, residualRows, setupAdvice, setupLabelKey, usableEstimation, warningMessageKeys,
 } from '../src/utils/crsEstimationPanel.ts';
@@ -239,13 +239,43 @@ test('§4.8: 押せない 4 条件（unavailable / failed / 基準スコア欠�
   assert.deepEqual(coreIncompatible, { plan: null, disabled: 'core-incompatible' });
 });
 
-test('§4.8: 乗り換えが推奨されないときは EPSG:3857 を採る（3857 の selected が必要）', () => {
-  const response = okResponse(candidate({ score: 0.0012 }), { base3857Score: 0.0012 });
-  const verdict = adoptRecommendedPlan({ response, base3857Selected, vertexMode: 'plain' });
+// 3857 の単体再推定の selected は、全体推定の base3857Score と同じ推定の値（同じ入力なのでスコアは一致する）
+const keptBase = (score) => ({ ...base3857Selected, score });
+
+test('§4.8: 乗り換えが推奨されないときは EPSG:3857 を、3857 の側の形で採る', () => {
+  const response = okResponse(candidate({ score: 0.0012 }), { base3857Score: 0.00121 });
+  const verdict = adoptRecommendedPlan({ response, base3857Selected: keptBase(0.00121), vertexMode: 'plain' });
   assert.equal(verdict.plan.crsChoice, 'base3857');
   assert.equal(verdict.plan.selection.selected.id, 'EPSG:3857');
+  assert.equal(verdict.plan.selection.setup, 'A');
+  assert.equal(verdict.plan.setup, 'A');
   const withoutBase = adoptRecommendedPlan({ response, base3857Selected: null, vertexMode: 'plain' });
   assert.deepEqual(withoutBase, { plan: null, disabled: 'no-base-score' });
+});
+
+test('§4.8: 最良候補と自動の採用先が違うとき（非 3857 が 0.0349・3857 が 0.0351）は 3857 を保ち、3857 の側の形を採る', () => {
+  const best = candidate({ score: 0.0349 });
+  const response = okResponse(best, { base3857Score: 0.0351 });
+  const base = keptBase(0.0351);
+  const verdict = adoptRecommendedPlan({ response, base3857Selected: base, vertexMode: 'plain' });
+  assert.equal(response.selected.id, 'EPSG:6674', '最良候補は非 3857 のまま');
+  assert.equal(verdict.plan.crsChoice, 'base3857');
+  assert.equal(verdict.plan.selection.selected, base);
+  // 最良候補の形は B（0.0349 < 0.035）だが、採るのは 3857 の側の形 C（0.0351 >= 0.035）
+  assert.equal(setupAdvice(estimationResultFor(best), 'plain').borderlineSetupKey, 'B');
+  assert.equal(verdict.plan.setup, 'C');
+  assert.equal(verdict.plan.selection.setup, 'C');
+  assert.equal(verdict.plan.borderlineSetupLabelKey, 'mapedit.crs_setup_c');
+});
+
+test('§4.8: 3857 の単体再推定が要るのは最良候補が非 3857 で順位に 3857 があるときだけ', () => {
+  const non = okResponse(candidate());
+  assert.equal(base3857CandidateId(non), 'EPSG:3857');
+  assert.equal(base3857CandidateId(okResponse(candidate(), { ranked: [] })), null);
+  assert.equal(base3857CandidateId(okResponse(base3857Selected)), null);
+  assert.equal(resolveBase3857Selected(non, null), null);
+  assert.equal(resolveBase3857Selected(non, base3857Selected), base3857Selected);
+  assert.equal(resolveBase3857Selected(okResponse(base3857Selected), null), base3857Selected);
 });
 
 test('§4.8: editGeneration が進んだ結果は古く、ボタンは出さない', () => {
@@ -412,7 +442,7 @@ test('§4.8: 推奨のまま採用は履歴に 1 件だけ積み、Undo 1 回で
     worldFile: { ...worldFile, xOrigin: 7 },
     gcpsNew: gcps3857.map(([pixel, geo]) => ({ pixel: [pixel[0], pixel[1]], geo: [geo[0], geo[1]] })),
     score: 0.001,
-  }), { base3857Score: 0.05 });
+  }), { base3857Score: 0.001 });
   const verdict = adoptRecommendedPlan({ response, base3857Selected: response.selected, vertexMode: 'plain' });
   assert.equal(verdict.disabled, null);
   const { model, history, events } = historyFixture();
@@ -536,7 +566,7 @@ test('推奨のまま採用でも prepareCrsAdoption の同じ経路を通る（
   const response = okResponse(candidate({
     id: 'EPSG:3857', authority: 'EPSG', code: '3857', crs: { epsg: 3857 },
     gcpsNew: gcps3857.map(([pixel, geo]) => ({ pixel: [pixel[0], pixel[1]], geo: [geo[0], geo[1]] })),
-  }), { base3857Score: 0.05 });
+  }), { base3857Score: 0.001 });
   const verdict = adoptRecommendedPlan({ response, base3857Selected: response.selected, vertexMode: 'plain' });
   const layer = {
     layerId: 'main',

@@ -68,7 +68,14 @@ interface J6Fixture {
     worldFile: Record<string, number>;
     gcpsNew: { pixel: [number, number]; geo: [number, number] }[];
   };
+  /** 「推奨のまま採用」が採る CRS と形（最良候補の `estimation` とは別に持つ）。 */
+  autoAdoption: { crsChoice: 'best' | 'base3857'; selectedId: string; setup: 'A' | 'B' | 'C'; score: number };
+  /** 手動の採用を試す fixture だけが持つ。 */
+  manualAdoption?: { selectedId: string; setup: 'A' | 'B' | 'C' };
+  /** `source` の側の採用先から作った期待値。 */
   expectedAdoption: {
+    source: 'auto' | 'manual';
+    selectedId: string;
     setup: 'A' | 'B' | 'C';
     persistedSetupOnReopen?: 'A' | 'B' | 'C';
     crs: CrsObject;
@@ -361,6 +368,7 @@ async function sampleMercCanvasSignature(page: Page): Promise<{
 
 async function verifySavedKnownPixels(stored: any, fixture: J6Fixture): Promise<void> {
   const crs = stored.crs as CrsObject;
+  expect(crs.epsg).toBe(fixture.expectedAdoption.crs.epsg);
   const crsProj = proj4StringOf(crs);
   if (fixture.expectedAdoption.setup === 'A') {
     expect(stored.tinEnabled).toBe(false);
@@ -718,6 +726,9 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       await verifySavedKnownPixels(storedA, fixtureA);
 
       // --- Fixture B + editToFallback + Undo / Redo ---
+      // B は 3857 からの乗り換えが勧められ、「推奨のまま採用」は最良候補の CRS を採る
+      expect(fixtureB.autoAdoption.crsChoice).toBe('best');
+      expect(fixtureB.expectedAdoption.crs.epsg).not.toBe(3857);
       await openMapInGcpsTab(page, seededB.uid);
       await fitMercViewToCoords(page, fixtureB.expectedAdoption.knownPixels.slice(0, 4).map((k) => k.mercatorCoord));
       await page.getByTestId('map-edit-estimate-crs').click();
@@ -788,6 +799,8 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       await page.route(/^https?:/, (route) => route.abort());
       await stubMessageBoxAutoOk(app);
       const fixtureBc = await loadFixture('fixture-bc-fallback.json');
+      expect(fixtureBc.autoAdoption.crsChoice).toBe('best');
+      expect(fixtureBc.expectedAdoption.crs.epsg).not.toBe(3857);
       const seeded = await seedFixtureMap(page, await saveFolderOf(page), fixtureBc, 'j6-fixbc');
 
       await openMapInGcpsTab(page, seeded.uid);
@@ -850,9 +863,10 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       await expect(page.getByTestId('crs-panel-candidate-row-' + fixtureNon.estimation.selectedId)).toBeVisible();
       await expect(page.getByTestId('crs-panel-comparison')).toContainText(fixtureNon.estimation.selectedId);
 
-      // 非 3857 CRS + Setup B を選択して採用し既知点変換を検証
+      // 非 3857 CRS + Setup B を選択して手動で採用し既知点変換を検証
+      expect(fixtureNon.expectedAdoption.source).toBe('manual');
       await expect(page.getByTestId('crs-adopt-recommended')).toBeEnabled();
-      await page.getByTestId('crs-setup-card-B').click();
+      await page.getByTestId(`crs-setup-card-${fixtureNon.manualAdoption!.setup}`).click();
       await page.getByTestId('crs-adopt-button').click();
       await expect.poll(() => page.evaluate(() => ({
         setup: (window as any).testDebug.layerTransformIntents.value.main?.setup,
