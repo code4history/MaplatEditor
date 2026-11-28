@@ -611,7 +611,7 @@
     "crs_col_rms": "RMS residual de semejanza (en el CRS, en m)",
     "crs_col_rms_help": "El residual de una transformación de semejanza en las coordenadas del CRS candidato, convertido a metros. No está corregido por la escala de la proyección; use el score para comparar candidatos.",
     "crs_col_diff": "Mejora del score respecto a EPSG:3857",
-    "crs_col_diff_help": "Qué porcentaje es menor el score que el de EPSG:3857. Un valor positivo es una mejora. No significa que las posiciones sean más correctas en ese porcentaje.",
+    "crs_col_diff_help": "Indica en qué porcentaje el score es menor que el de EPSG:3857. Un valor positivo es una mejora. No significa que las posiciones sean más correctas en ese porcentaje.",
     "crs_col_unit": "Unidad",
     "crs_compare_heading": "Comparación con EPSG:3857",
     "crs_switch_recommended": "Cambiar a {{crs}} es recomendado (el score mejora un {{percent}}% respecto a EPSG:3857)",

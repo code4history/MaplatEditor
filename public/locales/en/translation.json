@@ -591,7 +591,7 @@
     "crs_col_rms": "Similarity residual RMS (on CRS, in m)",
     "crs_col_rms_help": "The residual of a similarity transformation on the coordinates of the candidate CRS, converted to metres. It is not corrected for the projection scale, so use the score to compare candidates.",
     "crs_col_diff": "Score improvement over EPSG:3857",
-    "crs_col_diff_help": "How many percent lower the score is than that of EPSG:3857. A positive value is an improvement. It does not mean that positions become more correct by that percentage.",
+    "crs_col_diff_help": "How many percent lower the score is than that of EPSG:3857. A positive value is an improvement. It does not mean that positions become more accurate by that percentage.",
     "crs_col_unit": "Unit",
     "crs_compare_heading": "Comparison with EPSG:3857",
     "crs_switch_recommended": "Switching to {{crs}} is recommended (score improved by {{percent}}% over EPSG:3857)",

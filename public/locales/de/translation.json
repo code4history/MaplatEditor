@@ -639,7 +639,7 @@
     "crs_preview_opacity": "Deckkraft",
     "crs_preview_fallback_notice": "Die Außenseite verwendet Fächer-Extrapolation, da das Globalmodell nicht erstellt werden konnte.",
     "crs_residuals_heading": "Residuen pro GCP",
-    "crs_residuals_help": "Die geodätische Entfernung im verglichenen CRS-Kandidaten zwischen der Position aus dem World file (auch eine affine Transformation möglich) und den geografischen Koordinaten des GCP. Es ist nicht das Residuum nach der TIN-Transformation.",
+    "crs_residuals_help": "Die geodätische Entfernung zwischen der Position aus dem World file (das auch eine affine Transformation sein kann) und den geografischen Koordinaten des GCP, berechnet im verglichenen CRS-Kandidaten. Es ist nicht das Residuum nach der TIN-Transformation.",
     "crs_residual_scale": "Residuum-Maßstab",
     "crs_residual_scale_help": "Der Maßstab ändert nur die Darstellung der Pfeile auf der Karte. Die Residuumswerte ändern sich nicht.",
     "crs_residual_scale_1x": "1x",

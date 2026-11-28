@@ -615,7 +615,7 @@
     "crs_col_unit": "Đơn vị",
     "crs_compare_heading": "So sánh với EPSG:3857",
     "crs_switch_recommended": "Đề xuất chuyển sang {{crs}} (score cải thiện {{percent}}% so với EPSG:3857)",
-    "crs_keep_3857_recommended": "score khác rất ít so với EPSG:3857 (cải thiện {{percent}}%); giữ EPSG:3857 được đề xuất",
+    "crs_keep_3857_recommended": "Score khác rất ít so với EPSG:3857 (cải thiện {{percent}}%); giữ EPSG:3857 được đề xuất",
     "crs_compare_unavailable": "Không thể so sánh với EPSG:3857 vì thiếu score tham chiếu",
     "crs_setup_a": "chỉ CRS",
     "crs_setup_b": "TIN + ngoại suy toàn cục",
