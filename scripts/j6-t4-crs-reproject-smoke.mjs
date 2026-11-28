@@ -111,7 +111,7 @@ test('保存形から A/B/C・三つの生成設定を復元し降格保存は C
   assert.deepEqual(deriveIntentFromStoredLayer({}, { outerTransform: 'worldFile', worldFile }), { setup: 'legacyV2' });
   // yaxisMode は生成設定ではない。保存されていても buildOptions には入らない（設計書 §4.6）
   assert.deepEqual(deriveLayerBuildOptions({}, { strictMode: 'loose', vertexMode: 'birdeye', yaxisMode: 'follow' }),
-    { strictMode: 'loose', vertexMode: 'birdeye' });
+    { strictMode: 'loose', vertexMode: 'birdeye', supplementPairs: true });
   assert.deepEqual(deriveIntentFromStoredLayer({}, { yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' });
   assert.deepEqual(deriveIntentFromStoredLayer({ yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' });
   assert.deepEqual(deriveIntentFromStoredLayer({}, undefined, { yaxisMode: 'follow' }), { setup: 'legacyV2', yaxisMode: 'follow' },
