@@ -416,6 +416,14 @@ async function verifySavedKnownPixels(stored: any, fixture: J6Fixture): Promise<
   }
 }
 
+/** 「推奨のまま採用」の横に、採用の処理へ渡る CRS と変換の形が出ていること。 */
+async function expectRecommendedTarget(page: Page, fixture: J6Fixture): Promise<void> {
+  const target = page.getByTestId('crs-adopt-recommended-target');
+  await expect(target).toContainText(fixture.autoAdoption.selectedId);
+  const setupLabel = { A: 'CRS', B: '三角網＋大域外挿', C: '三角網＋扇形外挿' }[fixture.autoAdoption.setup];
+  await expect(target).toContainText(`変換の形：${setupLabel}`);
+}
+
 async function setRangeValue(slider: Locator, value: number): Promise<void> {
   await slider.evaluate((el, val) => {
     const input = el as HTMLInputElement;
@@ -719,6 +727,7 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       });
 
       // Fixture A 採用 -> 保存 -> 既知点変換一致
+      await expectRecommendedTarget(page, fixtureA);
       await page.getByTestId('crs-adopt-recommended').click();
       await expect.poll(() => page.evaluate(() => (window as any).testDebug.layerTransformIntents.value.main?.setup)).toBe('A');
       await expect.poll(() => page.evaluate(() => (window as any).testDebug.saveMapAfterConfirm())).toBe(true);
@@ -734,6 +743,7 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       await page.getByTestId('map-edit-estimate-crs').click();
       await expect(page.getByTestId('crs-panel-candidates')).toBeVisible({ timeout: 30_000 });
       await expect(page.getByTestId('crs-setup-card-B')).toContainText('推奨');
+      await expectRecommendedTarget(page, fixtureB);
       await page.getByTestId('crs-adopt-recommended').click();
       await expect.poll(() => page.evaluate(() => ({
         setup: (window as any).testDebug.layerTransformIntents.value.main?.setup,
@@ -814,6 +824,7 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       await expect(page.getByTestId('crs-panel-preview-fallback')).toBeVisible({ timeout: 20_000 });
 
       // 推奨採用（borderline 先頭は B）-> 実生成で境界反転により C へ自動降格＋操作診断通知
+      await expectRecommendedTarget(page, fixtureBc);
       await page.getByTestId('crs-adopt-recommended').click();
       await expect.poll(() => page.evaluate(() => {
         const d = (window as any).testDebug.tinDiagnostics.value.main;
@@ -866,6 +877,7 @@ test.describe('J6-T5b CRS 推定・比較オーバーレイ・固定 fixture・E
       // 非 3857 CRS + Setup B を選択して手動で採用し既知点変換を検証
       expect(fixtureNon.expectedAdoption.source).toBe('manual');
       await expect(page.getByTestId('crs-adopt-recommended')).toBeEnabled();
+      await expectRecommendedTarget(page, fixtureNon);
       await page.getByTestId(`crs-setup-card-${fixtureNon.manualAdoption!.setup}`).click();
       await page.getByTestId('crs-adopt-button').click();
       await expect.poll(() => page.evaluate(() => ({

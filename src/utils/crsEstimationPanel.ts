@@ -378,6 +378,24 @@ export function adoptRecommendedPlan(input: AdoptRecommendedInput): AdoptRecomme
   };
 }
 
+/** 「推奨のまま採用」で実際に入る CRS と変換の形。採用の処理へ渡す `plan.selection` だけから作る。 */
+export function recommendedAdoptionTarget(plan: RecommendedPlan): { crsLabel: string; setupLabelKey: string } {
+  return {
+    crsLabel: candidateCrsLabel(plan.selection.selected)!,
+    setupLabelKey: setupLabelKey(plan.selection.setup),
+  };
+}
+
+/** 比べている候補が最良候補と違うときの、2 つの CRS。同じなら null。 */
+export function comparedCandidateNotice(
+  best: { authority: string; code: string } | null | undefined,
+  compared: { authority: string; code: string } | null | undefined,
+): { bestCrs: string; comparedCrs: string } | null {
+  const bestCrs = candidateCrsLabel(best);
+  const comparedCrs = candidateCrsLabel(compared);
+  return bestCrs && comparedCrs && bestCrs !== comparedCrs ? { bestCrs, comparedCrs } : null;
+}
+
 /** 推定の警告（`DiagnosticFeedback` で結果の上に出す）。 */
 export function warningMessageKeys(response: CrsEstimationResponse, gcpCount: number): string[] {
   const keys: string[] = [];

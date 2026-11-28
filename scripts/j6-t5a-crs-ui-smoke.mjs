@@ -7,7 +7,8 @@ import { test as nodeTest } from 'node:test';
 import { worldFileToCrs } from '@maplat/transform';
 import { shouldRecommendCrsSwitch } from '@c4h/teiresias';
 import {
-  adoptRecommendedPlan, base3857CandidateId, resolveBase3857Selected, buildPipelineSummary, candidateRows, compare3857, estimationResultFor,
+  adoptRecommendedPlan, base3857CandidateId, resolveBase3857Selected, buildPipelineSummary,
+  comparedCandidateNotice, recommendedAdoptionTarget, candidateRows, compare3857, estimationResultFor,
   estimateGcpsFromLayer, isEstimationStale, manualSelection, previewCornerPolygonMercator, previewMeshMercator,
   previewTinEdges, residualArrows, residualRows, setupAdvice, setupLabelKey, usableEstimation, warningMessageKeys,
 } from '../src/utils/crsEstimationPanel.ts';
@@ -278,6 +279,24 @@ test('§4.8: 3857 の単体再推定が要るのは最良候補が非 3857 で�
   assert.equal(resolveBase3857Selected(okResponse(base3857Selected), null), base3857Selected);
 });
 
+test('「推奨のまま採用」の横の CRS と変換の形は、採用の処理へ渡す selection から作る（最良候補から推測しない）', () => {
+  const response = okResponse(candidate({ score: 0.0349 }), { base3857Score: 0.0351 });
+  const { plan } = adoptRecommendedPlan({ response, base3857Selected: keptBase(0.0351), vertexMode: 'plain' });
+  assert.deepEqual(recommendedAdoptionTarget(plan), { crsLabel: 'EPSG:3857', setupLabelKey: 'mapedit.crs_setup_c' });
+  const switched = adoptRecommendedPlan({
+    response: okResponse(candidate({ score: 0.001 })), base3857Selected, vertexMode: 'plain',
+  }).plan;
+  assert.deepEqual(recommendedAdoptionTarget(switched), { crsLabel: 'EPSG:6674', setupLabelKey: 'mapedit.crs_setup_a' });
+});
+
+test('比べている候補が最良候補と違うときだけ、2 つの CRS を出す', () => {
+  const best = candidate();
+  assert.equal(comparedCandidateNotice(best, best), null);
+  assert.equal(comparedCandidateNotice(best, null), null);
+  assert.equal(comparedCandidateNotice(null, best), null);
+  assert.deepEqual(comparedCandidateNotice(best, base3857Selected), { bestCrs: 'EPSG:6674', comparedCrs: 'EPSG:3857' });
+});
+
 test('§4.8: editGeneration が進んだ結果は古く、ボタンは出さない', () => {
   assert.equal(isEstimationStale(0, 0), false);
   assert.equal(isEstimationStale(null, 7), false, '推定前は結果自体が無い');
@@ -506,6 +525,26 @@ test('静的: 推定パネルは換算済み worldFile を再換算せず、単�
     assert.ok(panel.includes(needle), `CrsEstimationPanel.vue に ${needle} が無い`);
   }
   assert.ok(!panel.includes('toCenteredWorldFile'), '半画素換算は T2 ワーカーだけ（パネルで再換算しない）');
+});
+
+test('静的: 数値の意味の説明・推奨の採用先・最良候補と比較中の候補が画面に接続されている', async () => {
+  const panel = await readFile(path.join(root, 'src/components/mapedit/CrsEstimationPanel.vue'), 'utf8');
+  for (const key of [
+    'crs_col_score_help', 'crs_col_rms_help', 'crs_col_diff_help', 'crs_residuals_help', 'crs_residual_scale_help',
+  ]) {
+    assert.ok(panel.includes(`:text="t('mapedit.${key}')"`), `ContextHelp に mapedit.${key} が接続されていない`);
+  }
+  for (const needle of [
+    'data-testid="crs-adopt-recommended-target"',
+    "t('mapedit.crs_adopt_recommended_target'",
+    'recommendedAdoptionTarget(recommendedPlan.value)',
+    'data-testid="crs-panel-compared-candidate"',
+    'comparedCandidateNotice(usable.value.selected, selectedCandidate.value)',
+    "t('mapedit.crs_best_candidate'",
+    "t('mapedit.crs_compared_candidate'",
+  ]) {
+    assert.ok(panel.includes(needle), `CrsEstimationPanel.vue に ${needle} が無い`);
+  }
 });
 
 test('静的: WGS84 換算の推定入力・対応線の内部軸・競合解消・中止通知・不透明度分離が接続されている', async () => {
