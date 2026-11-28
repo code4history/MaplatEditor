@@ -631,7 +631,7 @@
     "crs_preview_heading": "外觀比較",
     "crs_compare_original": "原始狀態",
     "crs_preview_opacity": "不透明度",
-    "crs_preview_fallback_notice": "因無法建立全域模型，外側已切換為扇形外推。",
+    "crs_preview_fallback_notice": "因無法建立全域模型，外側已切換為扇形外插。",
     "crs_residuals_heading": "各 GCP 的殘差",
     "crs_residual_scale": "殘差倍率",
     "crs_residual_scale_1x": "1x",
