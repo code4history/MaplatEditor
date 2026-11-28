@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "因 GCP 数量不足，未评估仿射变换，仅使用相似变换。",
     "crs_warning_near_collinear": "GCP 几乎在同一直线上。请在分散的位置增加点，使拟合稳定。",
     "crs_estimate_failed": "CRS 估计失败。",
-    "crs_yaxis_mismatch_rebuild": "y 轴方向与 CRS 不符，已重建 TIN。"
+    "crs_yaxis_mismatch_rebuild": "y 轴方向与 CRS 不符，已重建 TIN。",
+    "tin_legend_title": "图例",
+    "tin_supplement_point": "补全点",
+    "tin_auxiliary_vertex": "辅助顶点",
+    "tin_extrapolation_quadrilateral": "外推四边形",
+    "tin_proportional_point": "内分点",
+    "tin_supplement_reason_hull_edge": "补全点，置于凸包边 {{edge}}，为控制点 {{anchor}} 而设",
+    "tin_supplement_reason_hull_edge_no_anchor": "补全点，置于凸包边 {{edge}}",
+    "tin_supplement_promote": "转为控制点",
+    "tin_supplement_list_title": "补全点列表",
+    "tin_supplement_toggle": "使用补全点"
   },
   "mapupload": {
     "map_image": "地图图像",

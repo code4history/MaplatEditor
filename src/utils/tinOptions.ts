@@ -8,6 +8,8 @@ import type { CrsObject, StrictMode, VertexMode, WorldFile, YaxisMode } from '@m
 export interface LayerTinBuildOptions {
   strictMode?: StrictMode;
   vertexMode?: VertexMode;
+  /** 補完点（supplementPairs）を足すか（MaplatEditor#321）。省略・true は足す（Tin の既定）。 */
+  supplementPairs?: boolean;
 }
 
 /**
@@ -25,6 +27,8 @@ export interface TinBuildLayer {
   tinEnabled?: boolean;
   worldFile?: WorldFile;
   yaxisMode?: YaxisMode;
+  /** 補完点（supplementPairs）を足すか（MaplatEditor#321）。地図 JSON 最上位の値（副層にも同じ値）。 */
+  supplementPairs?: boolean;
   compiled?: {
     outerTransform?: 'worldFile' | 'extrapolate';
     worldFile?: WorldFile;
@@ -56,6 +60,8 @@ export function resolveTinBuildOptions(
     ...(buildOptions.strictMode !== undefined ? { strictMode: buildOptions.strictMode } : {}),
     ...(buildOptions.vertexMode !== undefined ? { vertexMode: buildOptions.vertexMode } : {}),
     ...(yaxisMode !== undefined ? { yaxisMode } : {}),
+    // 補完点の地図ごとの切り替え（MaplatEditor#321）。false のときだけ Tin へ渡す（既定は true）。
+    ...((buildOptions.supplementPairs ?? layer.supplementPairs) === false ? { supplementPairs: false } : {}),
   };
   const compiled = layer.compiled ?? {};
   const wantsWorldFile = intent === 'B' || (intent !== 'C' && compiled.outerTransform === 'worldFile');

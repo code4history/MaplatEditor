@@ -380,7 +380,8 @@
     "smoke:j6-t1b-preview-rebuild": "node --experimental-strip-types scripts/j6-t1b-preview-rebuild-smoke.mjs",
     "smoke:m4-tin-v2-mode": "node --experimental-strip-types scripts/m4-tin-v2-mode-smoke.mjs",
     "smoke:tin-incremental-worker": "node --experimental-strip-types scripts/tin-incremental-worker-smoke.mjs",
-    "smoke:tin-incremental-edits": "node --experimental-strip-types scripts/tin-incremental-edits-smoke.mjs"
+    "smoke:tin-incremental-edits": "node --experimental-strip-types scripts/tin-incremental-edits-smoke.mjs",
+    "smoke:supplement-points": "node --experimental-strip-types scripts/supplement-points-smoke.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

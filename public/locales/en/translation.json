@@ -624,7 +624,17 @@
     "crs_warning_affine_skipped": "The affine transform was not evaluated because there are too few GCPs; only the similarity transform was used.",
     "crs_warning_near_collinear": "The GCPs are nearly collinear. Add points at varied positions for a stable fit.",
     "crs_estimate_failed": "Could not estimate CRS.",
-    "crs_yaxis_mismatch_rebuild": "The stored y-axis orientation disagrees with the CRS; the TIN was rebuilt."
+    "crs_yaxis_mismatch_rebuild": "The stored y-axis orientation disagrees with the CRS; the TIN was rebuilt.",
+    "tin_legend_title": "Legend",
+    "tin_supplement_point": "Supplement point",
+    "tin_auxiliary_vertex": "Auxiliary vertex",
+    "tin_extrapolation_quadrilateral": "Extrapolation quadrilateral",
+    "tin_proportional_point": "Proportional point",
+    "tin_supplement_reason_hull_edge": "Supplement point placed on hull edge {{edge}} for GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Supplement point placed on hull edge {{edge}}",
+    "tin_supplement_promote": "Make it a GCP",
+    "tin_supplement_list_title": "Supplement points",
+    "tin_supplement_toggle": "Use supplement points"
   },
   "mapupload": {
     "map_image": "Map Image",

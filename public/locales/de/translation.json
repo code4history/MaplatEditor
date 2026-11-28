@@ -644,7 +644,17 @@
     "crs_warning_affine_skipped": "Die Affintransformation wurde wegen zu weniger GCPs nicht ausgewertet; nur die Ähnlichkeitstransformation kam zum Einsatz.",
     "crs_warning_near_collinear": "Die GCPs liegen fast auf einer Geraden. Ergänzen Sie Punkte an unterschiedlichen Positionen für eine stabile Anpassung.",
     "crs_estimate_failed": "Die CRS-Schätzung ist fehlgeschlagen.",
-    "crs_yaxis_mismatch_rebuild": "Die y-Achsen-Orientierung passt nicht zum CRS; das TIN wurde neu aufgebaut."
+    "crs_yaxis_mismatch_rebuild": "Die y-Achsen-Orientierung passt nicht zum CRS; das TIN wurde neu aufgebaut.",
+    "tin_legend_title": "Legende",
+    "tin_supplement_point": "Ergänzungspunkt",
+    "tin_auxiliary_vertex": "Hilfsknoten",
+    "tin_extrapolation_quadrilateral": "Extrapolationsviereck",
+    "tin_proportional_point": "Teilungspunkt",
+    "tin_supplement_reason_hull_edge": "Ergänzungspunkt auf der Hüllkante {{edge}} für GCP {{anchor}}",
+    "tin_supplement_reason_hull_edge_no_anchor": "Ergänzungspunkt auf der Hüllkante {{edge}}",
+    "tin_supplement_promote": "Zum GCP machen",
+    "tin_supplement_list_title": "Ergänzungspunkte",
+    "tin_supplement_toggle": "Ergänzungspunkte verwenden"
   },
   "mapupload": {
     "map_image": "Kartenbild",

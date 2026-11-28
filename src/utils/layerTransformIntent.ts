@@ -35,6 +35,8 @@ export function deriveLayerBuildOptions(layer: any, compiled?: any, defaults?: P
   return {
     strictMode: (actual?.strictMode ?? layer?.strictMode ?? defaults?.strictMode ?? 'strict') as StrictMode,
     vertexMode: (actual?.vertexMode ?? layer?.vertexMode ?? defaults?.vertexMode ?? 'plain') as VertexMode,
+    // 補完点の地図ごとの切り替え（MaplatEditor#321）。地図 JSON 最上位の値（副層にも同じ値を使う）。
+    supplementPairs: (layer?.supplementPairs ?? defaults?.supplementPairs) !== false,
   };
 }
 

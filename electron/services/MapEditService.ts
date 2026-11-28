@@ -129,7 +129,8 @@ class MapEditService {
                         json.strictMode,
                         json.vertexMode,
                         // 副層の保存形式に yaxisMode はないため、地図最上位から引き継ぐ。
-                        { ...subMap, yaxisMode: subMap.yaxisMode ?? json.yaxisMode },
+                        // 補完点の地図ごとの切り替え（supplementPairs）も同じく地図最上位の値を使う。
+                        { ...subMap, yaxisMode: subMap.yaxisMode ?? json.yaxisMode, supplementPairs: json.supplementPairs },
                     ),
                 };
             }));

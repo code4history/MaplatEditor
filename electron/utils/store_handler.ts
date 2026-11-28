@@ -9,15 +9,15 @@ import {
   type CrsObject,
   type LayeredMapData,
   type WorldFile,
-  PointSet,
-  EdgeSet,
-  StrictMode,
-  VertexMode,
-  YaxisMode
+  type PointSet,
+  type EdgeSet,
+  type StrictMode,
+  type VertexMode,
+  type YaxisMode
 } from "@maplat/transform";
 import type { Position } from "geojson";
-import { projectionEngineForCrs } from "../../src/utils/compiledGeo";
-import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify";
+import { projectionEngineForCrs } from "../../src/utils/compiledGeo.ts";
+import { isAllowedDeliveryUrl } from "../../src/utils/ipClassify.ts";
 type LangResource = string | Record<string, string>;
 type TinLike = string | Transform | CompiledTransformData;
 const compiledByTransform = new WeakMap<Transform, CompiledTransformData>();
@@ -64,6 +64,11 @@ export interface HistMapStore extends StoredLayer {
   strictMode?: StrictMode;
   vertexMode?: VertexMode;
   yaxisMode?: YaxisMode;
+  /**
+   * 補完点（supplementPairs）を足すか（MaplatEditor#321）。Editor の持ち物で、false のときだけ
+   * 地図 JSON の最上位に書く（true は省く）。サブマップにも同じ値を使う。
+   */
+  supplementPairs?: boolean;
   author: LangResource;
   createdAt: LangResource;
   era: LangResource;
@@ -261,8 +266,9 @@ export function validateStoredTransformLayers(store: HistMapStore): void {
 }
 
 const layerKeys = ["width", "height", "bounds", "gcps", "edges", "compiled"];
+// supplementPairs は pick の許可リストに入れたうえで、false のときだけ残す（dropSupplementFlag）
 const importMapKeys = new Set<string>([
-  ...keys, ...layerKeys, "strictMode", "vertexMode", "yaxisMode", "sub_maps", "imageExtention", "maptype",
+  ...keys, ...layerKeys, "strictMode", "vertexMode", "yaxisMode", "supplementPairs", "sub_maps", "imageExtention", "maptype",
 ]);
 const importSubMapKeys = new Set([
   ...layerKeys, "crs", "worldFile", "tinEnabled", "priority", "importance",
@@ -272,14 +278,20 @@ const importSubMapKeys = new Set([
 export function prepareImportedMap(store: HistMapStore): HistMapStore {
   const cleaned = normalizeStoredTransformKeys(store);
   validateStoredTransformLayers(cleaned);
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ残す（true などは取り込みで落とす）
+  const dropSupplementFlag = (target: HistMapStore): HistMapStore => {
+    if (target.supplementPairs === false) return target;
+    Reflect.deleteProperty(target, "supplementPairs");
+    return target;
+  };
   if (!hasLayerTransformDeclaration(cleaned) && !cleaned.sub_maps?.some(hasLayerTransformDeclaration)) {
-    return cleaned;
+    return dropSupplementFlag(cleaned);
   }
   const pick = <T extends object>(layer: T, allowed: Set<string>): T =>
     Object.fromEntries(Object.entries(layer).filter(([key]) => allowed.has(key))) as T;
   const imported = pick(cleaned, importMapKeys);
   if (cleaned.sub_maps) imported.sub_maps = cleaned.sub_maps.map(layer => pick(layer, importSubMapKeys));
-  return imported;
+  return dropSupplementFlag(imported);
 }
 
 export async function store2HistMap(
@@ -312,6 +324,8 @@ async function store2HistMap_internal(
   ret.strictMode = store.strictMode;
   ret.vertexMode = store.vertexMode;
   ret.yaxisMode = store.yaxisMode;
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ残す（true などは既定として落とす）
+  if (store.supplementPairs === false) ret.supplementPairs = false;
   ret.width = store.width;
   ret.height = store.height;
   ret.gcps = store.gcps;
@@ -409,6 +423,8 @@ export async function histMap2Store(
   });
   if ((histmap as any)["imageExtention"] || (histmap as any)["imageExtension"])
     ret["imageExtension"] = (histmap as any)["imageExtension"] || (histmap as any)["imageExtention"];
+  // 補完点の地図ごとの切り替え（MaplatEditor#321）は false のときだけ書く（true などは書かない）
+  if (histmap.supplementPairs === false) ret.supplementPairs = false;
   const [tin, ...subTins] = tins;
   if (tin === "worldFile" || histmap.tinEnabled === false) {
     Object.assign(ret, worldFileStoreFields(histmap));
